@@ -5,29 +5,29 @@
 ////////////////////////////////////////////Vars//////////////////////////////////////////////////
 
 //Stationary Creeps
-let stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
-let stationaryBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryBuilder');
+var stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
+var stationaryBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryBuilder');
 
 //Worker Creeps
-let worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker');
-let upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader');
-let wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer');
-let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester');
+var worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker');
+var upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader');
+var wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer');
+var remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester');
 
 //Hauling Creeps
-let haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler');
-let expediters = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter');
-let dumpTrucks = _.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck');
-let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler');
+var haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler');
+var expediters = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter');
+var dumpTrucks = _.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck');
+var remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler');
 
 //Combat Creeps
-let rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender');
-let defenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'defender');
-let scout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');
+var rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender');
+var defenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'defender');
+var scout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');
 
 //MISC
-let sourceCount = Game.spawns['spawn1'].room.find(FIND_SOURCES);
-let containers = Game.spawns['spawn1'].room.find(FIND_STRUCTURES, {
+var sourceCount = Game.spawns['spawn1'].room.find(FIND_SOURCES);
+var containers = Game.spawns['spawn1'].room.find(FIND_STRUCTURES, {
     filter: { structureType: STRUCTURE_CONTAINER }
 });
 
