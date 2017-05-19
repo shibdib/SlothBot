@@ -3,7 +3,7 @@ var roleRemoteHarvester = {
     /** @param {Creep} creep **/
     run: function (creep) {
         //Initial move
-        if (creep.memory.destinationReached === null) {
+        if (!creep.memory.destinationReached) {
             creep.moveTo(Game.flags[creep.memory.destination]);
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
                 creep.memory.destinationReached = true;

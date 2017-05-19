@@ -12,6 +12,7 @@ let stationaryBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 
 let worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker');
 let upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader');
 let wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer');
+let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester');
 
 //Hauling Creeps
 let haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler');
@@ -37,6 +38,7 @@ const respawnCreeps = {
 
         /**console.log('Creep Count');
         console.log('Harvesters: ' + stationaryHarvester.length);
+         console.log('Remote Harvesters: ' + remoteHarvester.length);
         console.log('Builders: ' + stationaryBuilders.length);
         console.log('Workers: ' + worker.length);
         console.log('Upgraders: ' + upgraders.length);
