@@ -9,14 +9,14 @@ let roleDumpTruck = require('role.DumpTruck');
 let roleWorker = require('role.worker');
 let roleWallRepairer = require('role.wallRepairer');
 let roleStationaryBuilder = require('role.StationaryBuilder');
-const profiler = require('screeps-profiler');
-const spawnsCreation = require('respawn');
-const creepBalancer = require('balancer');
-const autoBuild = require('autoBuild');
-const towerControl = require('role.Tower');
+let towerControl = require('module.Tower');
+let profiler = require('screeps-profiler');
+let spawnsCreation = require('module.respawn');
+let creepBalancer = require('module.balancer');
+let autoBuild = require('module.autoBuild');
 
 // This line monkey patches the global prototypes.
-profiler.enable();
+//profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {

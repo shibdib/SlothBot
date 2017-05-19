@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="don't build extra builders for walls/ramparts or roads">
+    <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
+      <change type="MOVED" beforePath="$PROJECT_DIR$/inUse/autoBuild.js" afterPath="$PROJECT_DIR$/inUse/module.autoBuild.js" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/inUse/balancer.js" afterPath="$PROJECT_DIR$/inUse/module.balancer.js" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/inUse/respawn.js" afterPath="$PROJECT_DIR$/inUse/module.respawn.js" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/inUse/role.Tower.js" afterPath="$PROJECT_DIR$/inUse/module.Tower.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/respawn.js" afterPath="$PROJECT_DIR$/inUse/respawn.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -38,6 +41,16 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="main.js" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/inUse/main.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-533">
+              <caret line="15" column="40" lean-forward="false" selection-start-line="15" selection-start-column="40" selection-end-line="15" selection-end-column="40" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="role.harvester.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/role.harvester.js">
           <provider selected="true" editor-type-id="text-editor">
@@ -48,11 +61,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="respawn.js" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/inUse/respawn.js">
+      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="456">
-              <caret line="77" column="192" lean-forward="false" selection-start-line="77" selection-start-column="192" selection-end-line="77" selection-end-column="192" />
+            <state relative-caret-position="1513">
+              <caret line="91" column="30" lean-forward="false" selection-start-line="91" selection-start-column="30" selection-end-line="91" selection-end-column="160" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -119,6 +132,7 @@
         <option value="$PROJECT_DIR$/inUse/role.upgrader.js" />
         <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/respawn.js" />
+        <option value="$PROJECT_DIR$/inUse/main.js" />
       </list>
     </option>
   </component>
@@ -319,7 +333,7 @@
       <workItem from="1494881622288" duration="61974000" />
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
-      <workItem from="1495180962216" duration="1256000" />
+      <workItem from="1495180962216" duration="2113000" />
     </task>
     <task id="LOCAL-00001" summary="reorg">
       <created>1495181373932</created>
@@ -335,11 +349,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495181909066</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="don't build extra builders for walls/ramparts or roads">
+      <created>1495182226031</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1495182226031</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="94452000" />
+    <option name="totallyTimeSpent" value="95309000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -374,7 +395,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="reorg" />
     <MESSAGE value="800 energy upgrader, uses dumpTrucks now" />
-    <option name="LAST_COMMIT_MESSAGE" value="800 energy upgrader, uses dumpTrucks now" />
+    <MESSAGE value="don't build extra builders for walls/ramparts or roads" />
+    <option name="LAST_COMMIT_MESSAGE" value="don't build extra builders for walls/ramparts or roads" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -407,7 +429,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.Tower.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.Tower.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="816">
           <caret line="50" column="132" lean-forward="false" selection-start-line="50" selection-start-column="132" selection-end-line="50" selection-end-column="132" />
@@ -433,7 +455,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/autoBuild.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.autoBuild.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="595">
           <caret line="37" column="2" lean-forward="false" selection-start-line="37" selection-start-column="2" selection-end-line="37" selection-end-column="2" />
@@ -443,7 +465,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/respawn.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1071">
           <caret line="65" column="13" lean-forward="false" selection-start-line="65" selection-start-column="13" selection-end-line="65" selection-end-column="13" />
@@ -501,7 +523,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/balancer.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="493">
           <caret line="31" column="22" lean-forward="false" selection-start-line="31" selection-start-column="22" selection-end-line="31" selection-end-column="22" />
@@ -511,7 +533,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/respawn.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="952">
           <caret line="58" column="0" lean-forward="true" selection-start-line="58" selection-start-column="0" selection-end-line="58" selection-end-column="0" />
@@ -593,7 +615,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/balancer.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="493">
           <caret line="31" column="22" lean-forward="true" selection-start-line="31" selection-start-column="22" selection-end-line="31" selection-end-column="22" />
@@ -603,7 +625,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/respawn.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="884">
           <caret line="54" column="81" lean-forward="false" selection-start-line="54" selection-start-column="81" selection-end-line="54" selection-end-column="81" />
@@ -691,7 +713,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/autoBuild.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.autoBuild.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="595">
           <caret line="37" column="2" lean-forward="false" selection-start-line="37" selection-start-column="2" selection-end-line="37" selection-end-column="2" />
@@ -725,21 +747,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.Tower.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.Tower.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="816">
           <caret line="50" column="132" lean-forward="false" selection-start-line="50" selection-start-column="132" selection-end-line="50" selection-end-column="132" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/main.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="11" column="20" lean-forward="false" selection-start-line="11" selection-start-column="20" selection-end-line="11" selection-end-column="20" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -751,7 +765,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/balancer.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="476">
           <caret line="30" column="0" lean-forward="true" selection-start-line="30" selection-start-column="0" selection-end-line="30" selection-end-column="0" />
@@ -793,13 +807,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/respawn.js">
+    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="456">
-          <caret line="77" column="192" lean-forward="false" selection-start-line="77" selection-start-column="192" selection-end-line="77" selection-end-column="192" />
+        <state relative-caret-position="1513">
+          <caret line="91" column="30" lean-forward="false" selection-start-line="91" selection-start-column="30" selection-end-line="91" selection-end-column="160" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/main.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-533">
+          <caret line="15" column="40" lean-forward="false" selection-start-line="15" selection-start-column="40" selection-end-line="15" selection-end-column="40" />
+          <folding />
         </state>
       </provider>
     </entry>
