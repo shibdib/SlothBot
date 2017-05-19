@@ -38,10 +38,14 @@ module.exports.loop = function () {
             Game.flags.combatBuild.remove();
         }
 
+        //Every 5 ticks
+        if (Game.time % 5 === 0) {
+            creepBalancer.run();
+        }
+
         //Every 15 ticks
         if (Game.time % 15 === 0) {
             spawnsCreation.run();
-            creepBalancer.run();
         }
 
         //Every 100 ticks
