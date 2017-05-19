@@ -17,7 +17,6 @@ var roleRemoteHauler = {
             if (remoteHarvester && creep.memory.hauling === false) {
                 creep.moveTo(remoteHarvester, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
-            if (Room.find())
             if (creep.pos.getRangeTo(remoteHarvester) === 1) {
                 let energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 5);
                 if (energy) {
