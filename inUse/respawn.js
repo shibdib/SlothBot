@@ -75,7 +75,7 @@ const respawnCreeps = {
 
         //BUILDER RESPAWNS
         if (Game.flags.builderBuild) {
-            var constructionSites = sources = Game.spawns['spawn1'].room.find(FIND_CONSTRUCTION_SITES);
+            var constructionSites = sources = Game.spawns['spawn1'].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
             if (constructionSites.length === 0 && stationaryBuilders.length < 2){
                 var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
             }else
