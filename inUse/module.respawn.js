@@ -40,6 +40,7 @@ const respawnCreeps = {
         /**console.log('Creep Count');
         console.log('Harvesters: ' + stationaryHarvester.length);
          console.log('Remote Harvesters: ' + remoteHarvester.length);
+         console.log('Remote Haulers: ' + remoteHauler.length);
         console.log('Builders: ' + stationaryBuilders.length);
         console.log('Workers: ' + worker.length);
         console.log('Upgraders: ' + upgraders.length);
