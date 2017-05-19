@@ -61,7 +61,7 @@ const respawnCreeps = {
                 var newName = Game.spawns['spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
             } else if (haulers.length < containers.length) {
                 var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
-            } else if (dumpTrucks.length < stationaryBuilders.length) {
+            } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length) {
                 var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
             }
         }
@@ -89,7 +89,7 @@ const respawnCreeps = {
             if (worker.length < 3) {
                 var newName = Game.spawns['spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
             } else if (upgraders.length < 1) {
-                var newName = Game.spawns['spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
+                var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
             } else if (wallRepairers.length < 1) {
                 var newName = Game.spawns['spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
             }

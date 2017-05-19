@@ -2,11 +2,12 @@ var roleUpgrader = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        dumpTruck(creep);
 
         if (creep.memory.upgrading && creep.carry.energy === 0) {
             creep.memory.upgrading = false;
         }
-        if (!creep.memory.upgrading && creep.carry.energy === creep.carryCapacity) {
+        if (!creep.memory.upgrading && creep.carry.energy > 0) {
             creep.memory.upgrading = true;
         }
 
@@ -15,41 +16,27 @@ var roleUpgrader = {
                 creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
-        else {
-            var container = findContainer(creep);
-            container = Game.getObjectById(container);
-            if (container) {
-                if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(container, {visualizePathStyle: {stroke: '#ffaa00'}});
-                }
-            }
-            if (!container) {
-                creep.moveTo(Game.flags.haulers);
-            }
-        }
     }
 };
 
 module.exports = roleUpgrader;
 
-function findContainer(creep) {
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 1000});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
+function dumpTruck(creep) {
+    if (!creep.memory.incomingEnergy) {
+        creep.memory.incomingEnergy = false;
     }
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 500});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
+    if (creep.memory.incomingEnergy) {
+        creep.memory.incomingCounter = creep.memory.incomingCounter+1;
+        if (creep.memory.incomingCounter > 25){
+            creep.memory.incomingEnergy = false;
+        }
     }
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
+    if (creep.carry.energy < (creep.carryCapacity/2)) {
+        creep.memory.needEnergy = true;
     }
-    return null;
+    if (creep.carry.energy > (creep.carryCapacity/2)) {
+        creep.memory.incomingCounter = 0;
+        creep.memory.needEnergy = false;
+        creep.memory.incomingEnergy = false;
+    }
 }

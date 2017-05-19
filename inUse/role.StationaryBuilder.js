@@ -6,23 +6,7 @@ var roleStationaryBuilder = {
             creep.moveTo(Game.flags.defender1);
             return null;
         }
-        if (!creep.memory.incomingEnergy) {
-            creep.memory.incomingEnergy = false;
-        }
-        if (creep.memory.incomingEnergy) {
-            creep.memory.incomingCounter = creep.memory.incomingCounter+1;
-            if (creep.memory.incomingCounter > 25){
-                creep.memory.incomingEnergy = false;
-            }
-        }
-        if (creep.carry.energy < (creep.carryCapacity/2)) {
-            creep.memory.needEnergy = true;
-        }
-        if (creep.carry.energy > (creep.carryCapacity/2)) {
-            creep.memory.incomingCounter = 0;
-            creep.memory.needEnergy = false;
-            creep.memory.incomingEnergy = false;
-        }
+        dumpTruck(creep);
 
         if (creep.memory.constructionSite && creep.carry.energy > 0){
             target = Game.getObjectById(creep.memory.constructionSite);
@@ -74,6 +58,26 @@ function findConstruction(creep) {
     if (site !== null && site !== undefined) {
         creep.memory.constructionSite = site.id;
         return site.id;
+    }
+}
+
+function dumpTruck(creep) {
+    if (!creep.memory.incomingEnergy) {
+        creep.memory.incomingEnergy = false;
+    }
+    if (creep.memory.incomingEnergy) {
+        creep.memory.incomingCounter = creep.memory.incomingCounter+1;
+        if (creep.memory.incomingCounter > 25){
+            creep.memory.incomingEnergy = false;
+        }
+    }
+    if (creep.carry.energy < (creep.carryCapacity/2)) {
+        creep.memory.needEnergy = true;
+    }
+    if (creep.carry.energy > (creep.carryCapacity/2)) {
+        creep.memory.incomingCounter = 0;
+        creep.memory.needEnergy = false;
+        creep.memory.incomingEnergy = false;
     }
 }
 
