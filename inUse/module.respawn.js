@@ -38,7 +38,7 @@ const respawnCreeps = {
         console.log('Workers: ' + worker.length);
         console.log('Upgraders: ' + upgraders.length);
         console.log('Haulers: ' + haulers.length);
-        console.log('Expediters: ' + Expediters.length);
+        console.log('Expediters: ' + expediters.length);
         console.log('Dump Trucks: ' + dumpTrucks.length);**/
 
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
