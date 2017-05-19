@@ -25,6 +25,9 @@ let scout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');
 
 //MISC
 let sourceCount = Game.spawns['spawn1'].room.find(FIND_SOURCES);
+let containers = Game.spawns['spawn1'].room.find(FIND_STRUCTURES, {
+    filter: { structureType: STRUCTURE_CONTAINER }
+});
 
 const respawnCreeps = {
     /** @param  {Spawn} spawn  **/
@@ -54,9 +57,6 @@ const respawnCreeps = {
 
         //HAULER RESPAWNS
         if (Game.flags.haulerBuild) {
-            let containers = Game.spawns['spawn1'].room.find(FIND_STRUCTURES, {
-                filter: { structureType: STRUCTURE_CONTAINER }
-            });
             if (expediters.length < containers.length) {
                 let newName = Game.spawns['spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
             } else if (haulers.length < containers.length) {
