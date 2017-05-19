@@ -18,6 +18,7 @@ let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 're
 let haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler');
 let expediters = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter');
 let dumpTrucks = _.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck');
+let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler');
 
 //Combat Creeps
 let rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender');
@@ -97,7 +98,7 @@ const respawnCreeps = {
             }
         }
 
-        //REMOTE HARVESTERS RESPAWN
+        //REMOTE RESPAWN
         if (Game.flags.remoteBuild) {
             for (let i = 0; i < 5; i++) {
                 let remote = 'remote' + i;
@@ -110,6 +111,9 @@ const respawnCreeps = {
                         });
                     }
                 }
+            }
+            if (remoteHauler.length < remoteHarvester.length) {
+                let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'remoteHauler'});
             }
         }
 

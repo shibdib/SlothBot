@@ -34,6 +34,13 @@ const balanceCreeps = {
         for (var i = 0; i < containers.length && i < hauler.length; i++){
             hauler[i].memory.assignedContainer = containers[i].id;
         }
+
+        //Split up Remote Haulers 1-1
+        var remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler');
+        var remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester');
+        for (var i = 0; i < remoteHarvester.length && i < remoteHauler.length; i++){
+            remoteHauler[i].memory.assignedHarvester = remoteHarvester[i].id;
+        }
         return null;
 
         //Source Flags
