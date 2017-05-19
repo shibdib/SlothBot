@@ -95,6 +95,22 @@ const respawnCreeps = {
             }
         }
 
+        //REMOTE HARVESTERS RESPAWN
+        if (Game.flags.remoteBuild) {
+            for (let i = 0; i < 5; i++) {
+                let remote = 'remote' + i;
+                if (Game.flags[remote]) {
+                    let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === remote);
+                    if (creep.length === 0) {
+                        let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], undefined, {
+                            role: 'remoteHarvester',
+                            destination: remote
+                        });
+                    }
+                }
+            }
+        }
+
         //SCOUT RESPAWNS
         if (Game.flags.scoutBuild) {
             for (let i = 0; i < 5; i++) {
