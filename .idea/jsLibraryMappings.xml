@@ -2,6 +2,7 @@
 <project version="4">
   <component name="JavaScriptLibraryMappings">
     <file url="PROJECT" libraries="{Screeps}" />
+    <includedPredefinedLibrary name="ECMAScript 6" />
     <excludedPredefinedLibrary name="HTML" />
   </component>
 </project>
