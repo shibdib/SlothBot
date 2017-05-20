@@ -15,7 +15,11 @@ var roleBasicHauler = {
                 }
             }
         } else {
-            let spawn = Game.getObjectById(findSpawn(creep));
+            if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
+                var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
+            } else {
+                var spawn = findSpawn(creep);
+            }
             if (creep.transfer(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
@@ -34,7 +38,7 @@ function findSpawn(creep) {
     if (spawn) {
         if (creep.moveTo(spawn) !== ERR_NO_PATH) {
             if (spawn.id) {
-                creep.memory.source = source.id;
+                creep.memory.spawnID = spawn.id;
                 return spawn;
             }
         }

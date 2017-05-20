@@ -15,11 +15,28 @@ let rolePeasantUpgrader = {
                 creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         } else {
-            if (creep.withdraw(Game.spawns['Spawn1'], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(Game.spawns['Spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
+                var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
+            } else {
+                var spawn = findSpawn(creep);
+            }
+            if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }
 };
 
 module.exports = rolePeasantUpgrader;
+
+function findSpawn(creep) {
+    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+    if (spawn) {
+        if (creep.moveTo(spawn) !== ERR_NO_PATH) {
+            if (spawn.id) {
+                creep.memory.spawnID = spawn.id;
+                return spawn;
+            }
+        }
+    }
+}

@@ -15,7 +15,7 @@ let rolePeasant = {
             if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
                 var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
             } else {
-                var spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS);
+                var spawn = findSpawn(creep);
             }
             if (creep.transfer(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
