@@ -1,3 +1,4 @@
+let pathFinder = require('module.pathFinder');
 var roleWorker = {
 
     /** @param {Creep} creep **/
@@ -21,8 +22,7 @@ var roleWorker = {
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.moveTo(repairNeeded, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
-            } else
-            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+            } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
@@ -35,9 +35,18 @@ var roleWorker = {
                 }
             }
             if (!container) {
-                creep.moveTo(Game.flags.haulers);
+                let goals = _.map(creep.room.find(FIND_DROPPED_ENERGY), function (source) {
+                    return {pos: source.pos}
+                });
+
+                var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+                if (energy) {
+                    if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
+                        creep.move(creep.pos.getDirectionTo(pathFinder.run(creep, goals, false)));
+                    }
                 }
             }
+        }
     }
 };
 
