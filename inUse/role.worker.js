@@ -35,14 +35,10 @@ var roleWorker = {
                 }
             }
             if (!container) {
-                let goals = _.map(creep.room.find(FIND_DROPPED_ENERGY), function (source) {
-                    return {pos: source.pos}
-                });
-
                 var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
                 if (energy) {
                     if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                        creep.move(creep.pos.getDirectionTo(pathFinder.run(creep, goals, false)));
+                        creep.moveTo(energy);
                     }
                 }
             }

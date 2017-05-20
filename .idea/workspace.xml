@@ -63,8 +63,8 @@
       <file leaf-file-name="role.worker.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/role.worker.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="289">
-              <caret line="38" column="44" lean-forward="true" selection-start-line="38" selection-start-column="44" selection-end-line="38" selection-end-column="44" />
+            <state relative-caret-position="357">
+              <caret line="42" column="17" lean-forward="true" selection-start-line="42" selection-start-column="17" selection-end-line="42" selection-end-column="17" />
               <folding />
             </state>
           </provider>
@@ -381,14 +381,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="19522000" />
-    </task>
-    <task id="LOCAL-00025" summary="keep peasants around longer">
-      <created>1495260220795</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
-      <option name="project" value="LOCAL" />
-      <updated>1495260220795</updated>
+      <workItem from="1495258208933" duration="19602000" />
     </task>
     <task id="LOCAL-00026" summary="peasant upgraders">
       <created>1495260596493</created>
@@ -726,11 +719,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495278685968</updated>
     </task>
-    <option name="localTasksCounter" value="74" />
+    <task id="LOCAL-00074" summary="worker with custom pathfinder">
+      <created>1495279026533</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1495279026533</updated>
+    </task>
+    <option name="localTasksCounter" value="75" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="123098000" />
+    <option name="totallyTimeSpent" value="123178000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -763,7 +763,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="typo" />
     <MESSAGE value="add 650+ harvester" />
     <MESSAGE value="mem stuff" />
     <MESSAGE value="ability to pause building via spawn mem" />
@@ -788,7 +787,8 @@
     <MESSAGE value="remove completed attack flags" />
     <MESSAGE value="attackers" />
     <MESSAGE value="handle dumpTrucks going out of the room" />
-    <option name="LAST_COMMIT_MESSAGE" value="handle dumpTrucks going out of the room" />
+    <MESSAGE value="worker with custom pathfinder" />
+    <option name="LAST_COMMIT_MESSAGE" value="worker with custom pathfinder" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1173,8 +1173,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.worker.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="38" column="44" lean-forward="true" selection-start-line="38" selection-start-column="44" selection-end-line="38" selection-end-column="44" />
+        <state relative-caret-position="357">
+          <caret line="42" column="17" lean-forward="true" selection-start-line="42" selection-start-column="17" selection-end-line="42" selection-end-column="17" />
           <folding />
         </state>
       </provider>
