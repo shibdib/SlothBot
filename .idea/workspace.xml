@@ -28,11 +28,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="232">
-              <caret line="65" column="43" lean-forward="false" selection-start-line="65" selection-start-column="43" selection-end-line="65" selection-end-column="43" />
+            <state relative-caret-position="1303">
+              <caret line="176" column="25" lean-forward="true" selection-start-line="176" selection-start-column="25" selection-end-line="176" selection-end-column="25" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -70,7 +70,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.balancer.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="module.balancer.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="391">
@@ -367,7 +367,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="5034000" />
+      <workItem from="1495258208933" duration="6270000" />
     </task>
     <task id="LOCAL-00001" summary="reorg">
       <created>1495181373932</created>
@@ -593,11 +593,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495263177785</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="fix multi room support">
+      <created>1495263250101</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1495263250101</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="108610000" />
+    <option name="totallyTimeSpent" value="109846000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -1019,21 +1026,21 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1303">
+          <caret line="176" column="25" lean-forward="true" selection-start-line="176" selection-start-column="25" selection-end-line="176" selection-end-column="25" />
+          <folding>
+            <element signature="e#0#41#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="391">
           <caret line="23" column="9" lean-forward="true" selection-start-line="23" selection-start-column="9" selection-end-line="23" selection-end-column="9" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="232">
-          <caret line="65" column="43" lean-forward="false" selection-start-line="65" selection-start-column="43" selection-end-line="65" selection-end-column="43" />
-          <folding>
-            <element signature="e#0#41#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>

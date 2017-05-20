@@ -44,6 +44,8 @@ const respawnCreeps = {
         var containers = Game.spawns['Spawn1'].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_CONTAINER}
         });
+        var roomEnergyCapacity = Game.spawns['Spawn1'].room.energyCapacityAvailable;
+        var roomEnergy = Game.spawns['Spawn1'].room.energyAvailable;
 
         ///////////////////////////////////////////////COUNT TO CONSOLE///////////////////////////////////////
 
@@ -107,11 +109,11 @@ const respawnCreeps = {
                             console.log('Spawning a expediter');
                             return;
                         } else if (haulers.length < containers.length) {
-                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
+                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
                             console.log('Spawning a hauler');
                             return;
                         } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length) {
-                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
+                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
                             console.log('Spawning a dumpTruck');
                             return;
                         }
@@ -119,7 +121,12 @@ const respawnCreeps = {
 
                     //HARVESTER RESPAWNS
                     if (Game.flags.harvesterBuild) {
-                        if (stationaryHarvester.length < Math.ceil(sourceCount.length * 3)) {
+                        if (stationaryHarvester.length < sourceCount.length && roomEnergyCapacity >= 550) {
+                            Game.spawns['Spawn1'].createCreep([WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
+                            console.log('Spawning a stationaryHarvester');
+                            return;
+                        }
+                        if (stationaryHarvester.length < Math.ceil(sourceCount.length * 3) && roomEnergyCapacity < 550) {
                             Game.spawns['Spawn1'].createCreep([WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
                             console.log('Spawning a stationaryHarvester');
                             return;
@@ -129,14 +136,27 @@ const respawnCreeps = {
                     //BUILDER RESPAWNS
                     if (Game.flags.builderBuild) {
                         let constructionSites = sources = Game.spawns['Spawn1'].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
-                        if (constructionSites.length === 0 && stationaryBuilders.length < 2) {
-                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
-                            console.log('Spawning a stationaryBuilder');
-                            return;
-                        } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)) {
-                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
-                            console.log('Spawning a stationaryBuilder');
-                            return;
+                        if (roomEnergyCapacity >= 450) {
+                            if (constructionSites.length === 0 && stationaryBuilders.length < 2) {
+                                Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
+                                console.log('Spawning a stationaryBuilder');
+                                return;
+                            } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)) {
+                                Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
+                                console.log('Spawning a stationaryBuilder');
+                                return;
+                            }
+                        }
+                        if (roomEnergyCapacity < 450) {
+                            if (constructionSites.length === 0 && stationaryBuilders.length < 2) {
+                                Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
+                                console.log('Spawning a stationaryBuilder');
+                                return;
+                            } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)) {
+                                Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
+                                console.log('Spawning a stationaryBuilder');
+                                return;
+                            }
                         }
                     }
 
@@ -146,8 +166,8 @@ const respawnCreeps = {
                             Game.spawns['Spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
                             console.log('Spawning a worker');
                             return;
-                        } else if (upgraders.length < 1) {
-                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
+                        } else if (upgraders.length < 1 ** roomEnergyCapacity >= 500) {
+                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
                             console.log('Spawning a upgrader');
                             return;
                         } else if (wallRepairers.length < 1) {
