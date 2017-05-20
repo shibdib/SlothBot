@@ -77,6 +77,7 @@ function findContainer(creep) {
         creep.memory.container = container.id;
         return container.id;
     }
+    creep.memory.container = null;
     return null;
 }
 
