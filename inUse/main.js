@@ -15,7 +15,7 @@ let towerControl = require('module.Tower');
 let profiler = require('screeps-profiler');
 let creepBalancer = require('module.balancer');
 let autoBuild = require('module.autoBuild');
-import {respawnCreeps} from 'module.respawn';
+let respawnCreeps = require('module.respawn')
 
 // This line monkey patches the global prototypes.
 //profiler.enable();
@@ -31,7 +31,7 @@ module.exports.loop = function () {
         }
 
         //HOSTILE CHECK//
-        var closestHostile = Game.spawns['spawn1'].room.find(FIND_HOSTILE_CREEPS);
+        var closestHostile = Game.spawns['Spawn1'].room.find(FIND_HOSTILE_CREEPS);
         if (closestHostile[0]) {
             var pos = new RoomPosition(43, 22, 'E41N96');
             pos.createFlag('combatBuild');
@@ -46,7 +46,7 @@ module.exports.loop = function () {
 
         //Every 15 ticks
         if (Game.time % 15 === 0) {
-            respawnCreeps();
+            respawnCreeps.run();
         }
 
         //Every 100 ticks

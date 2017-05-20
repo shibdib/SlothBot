@@ -29,8 +29,8 @@ var roleRemoteHauler = {
 
         //Haul to spawn/extension
         if (creep.memory.hauling === true) {
-            if (creep.transfer(Game.spawns['spawn1'], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(Game.spawns['spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            if (creep.transfer(Game.spawns['Spawn1'], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(Game.spawns['Spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }

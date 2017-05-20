@@ -7,8 +7,8 @@ const balanceCreeps = {
     run: function () {
 
         //VARS
-        var sources = Game.spawns['spawn1'].room.find(FIND_SOURCES);
-        var containers = Game.spawns['spawn1'].room.find(FIND_STRUCTURES, {
+        var sources = Game.spawns['Spawn1'].room.find(FIND_SOURCES);
+        var containers = Game.spawns['Spawn1'].room.find(FIND_STRUCTURES, {
             filter: { structureType: STRUCTURE_CONTAINER }
         });
 
@@ -63,52 +63,52 @@ const balanceCreeps = {
             //HAULER RESPAWNS
             if (Game.flags.haulerBuild) {
                 if (haulers.length < 2) {
-                    var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
+                    var newName = Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
                 } else if (dumpTrucks.length < 4) {
-                    var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
+                    var newName = Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
                 } else if (Expediters.length < 2) {
-                    var newName = Game.spawns['spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
+                    var newName = Game.spawns['Spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
                 }
             } else
 
             //HARVESTER RESPAWNS
             if (Game.flags.harvesterBuild) {
                 if (stationaryHarvester.length < 6) {
-                    var newName = Game.spawns['spawn1'].createCreep([WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'stationaryHarvester'});
+                    var newName = Game.spawns['Spawn1'].createCreep([WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'stationaryHarvester'});
                 }
             } else
 
             //BUILDER RESPAWNS
             if (Game.flags.builderBuild) {
                 if (stationaryBuilders.length < 3) {
-                    var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
+                    var newName = Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
                 }
             } else
 
             //WORKER RESPAWNS
             if (Game.flags.workerBuild) {
                 if (worker.length < 3) {
-                    var newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, WORK, MOVE, MOVE, MOVE], undefined, {role: 'worker'});
+                    var newName = Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, MOVE, MOVE, MOVE], undefined, {role: 'worker'});
                 }
             } else
 
             //COMBAT RESPAWNS
             if (Game.flags.combatBuild) {
                 if (scout.length < 1) {
-                    var newName = Game.spawns['spawn1'].createCreep([MOVE], undefined, {role: 'scout'});
+                    var newName = Game.spawns['Spawn1'].createCreep([MOVE], undefined, {role: 'scout'});
                 } else if (rangedDefenders.length < 1) {
-                    var newName = Game.spawns['spawn1'].createCreep([RANGED_ATTACK, MOVE, MOVE, MOVE], undefined, {role: 'rangedDefender'});
-                } else if (Defenders.length < 2 && Game.spawns['spawn1'].energyCapacity >= 350) {
-                    var newName = Game.spawns['spawn1'].createCreep([ATTACK, ATTACK, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE], undefined, {role: 'defender'});
+                    var newName = Game.spawns['Spawn1'].createCreep([RANGED_ATTACK, MOVE, MOVE, MOVE], undefined, {role: 'rangedDefender'});
+                } else if (Defenders.length < 2 && Game.spawns['Spawn1'].energyCapacity >= 350) {
+                    var newName = Game.spawns['Spawn1'].createCreep([ATTACK, ATTACK, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE], undefined, {role: 'defender'});
                 }
             }
 
-            if (Game.spawns['spawn1'].spawning) {
-                var spawningCreep = Game.creeps[Game.spawns['spawn1'].spawning.name];
-                Game.spawns['spawn1'].room.visual.text(
+            if (Game.spawns['Spawn1'].spawning) {
+                var spawningCreep = Game.creeps[Game.spawns['Spawn1'].spawning.name];
+                Game.spawns['Spawn1'].room.visual.text(
                     '🛠️' + spawningCreep.memory.role,
-                    Game.spawns['spawn1'].pos.x + 1,
-                    Game.spawns['spawn1'].pos.y,
+                    Game.spawns['Spawn1'].pos.x + 1,
+                    Game.spawns['Spawn1'].pos.y,
                     {align: 'left', opacity: 0.8});
             }
 
