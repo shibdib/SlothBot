@@ -41,12 +41,12 @@ var roleWorker = {
                     if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                         creep.moveTo(energy, {visualizePathStyle: {stroke: '#ffaa00'}});
                     }
-                }
-            } else {
-                let source = findSource(creep);
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
-                    creep.memory.harvesting = true;
+                } else {
+                    let source = findSource(creep);
+                    if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                        creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
+                        creep.memory.harvesting = true;
+                    }
                 }
             }
         }
