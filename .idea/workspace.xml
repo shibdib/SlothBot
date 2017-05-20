@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/role.basicHauler.js" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/role.basicHauler.js" afterPath="$PROJECT_DIR$/inUse/role.basicHauler.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.respawn.js" afterPath="$PROJECT_DIR$/inUse/module.respawn.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -71,11 +70,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.basicHauler.js" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/role.basicHauler.js">
+      <file leaf-file-name="role.basicHauler.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.basicHauler.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="68">
-              <caret line="4" column="55" lean-forward="true" selection-start-line="4" selection-start-column="55" selection-end-line="9" selection-end-column="13" />
+            <state relative-caret-position="0">
+              <caret line="0" column="23" lean-forward="true" selection-start-line="0" selection-start-column="23" selection-end-line="0" selection-end-column="23" />
               <folding />
             </state>
           </provider>
@@ -101,11 +100,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="main.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/main.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2040">
-              <caret line="120" column="31" lean-forward="false" selection-start-line="120" selection-start-column="31" selection-end-line="120" selection-end-column="31" />
+            <state relative-caret-position="85">
+              <caret line="5" column="44" lean-forward="true" selection-start-line="5" selection-start-column="44" selection-end-line="5" selection-end-column="44" />
               <folding />
             </state>
           </provider>
@@ -381,7 +380,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="8277000" />
+      <workItem from="1495258208933" duration="8384000" />
     </task>
     <task id="LOCAL-00001" summary="reorg">
       <created>1495181373932</created>
@@ -649,18 +648,25 @@
       <option name="project" value="LOCAL" />
       <updated>1495265473022</updated>
     </task>
-    <option name="localTasksCounter" value="39" />
+    <task id="LOCAL-00039" summary="add basic hauler, make peasant more cpu efficient">
+      <created>1495266505371</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1495266505371</updated>
+    </task>
+    <option name="localTasksCounter" value="40" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="111853000" />
+    <option name="totallyTimeSpent" value="111960000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2553305" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2553305" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -686,7 +692,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="remote harvesting 1.0" />
     <MESSAGE value="fix typo in counter" />
     <MESSAGE value="balance every 5" />
     <MESSAGE value="remote update" />
@@ -711,7 +716,8 @@
     <MESSAGE value="fix peasants" />
     <MESSAGE value="fix non peasants" />
     <MESSAGE value="multi room combat check" />
-    <option name="LAST_COMMIT_MESSAGE" value="multi room combat check" />
+    <MESSAGE value="add basic hauler, make peasant more cpu efficient" />
+    <option name="LAST_COMMIT_MESSAGE" value="add basic hauler, make peasant more cpu efficient" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1064,14 +1070,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/main.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2040">
-          <caret line="120" column="31" lean-forward="false" selection-start-line="120" selection-start-column="31" selection-end-line="120" selection-end-column="31" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1898">
@@ -1090,10 +1088,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/role.basicHauler.js">
+    <entry file="file://$PROJECT_DIR$/inUse/role.basicHauler.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="68">
-          <caret line="4" column="55" lean-forward="true" selection-start-line="4" selection-start-column="55" selection-end-line="9" selection-end-column="13" />
+        <state relative-caret-position="0">
+          <caret line="0" column="23" lean-forward="true" selection-start-line="0" selection-start-column="23" selection-end-line="0" selection-end-column="23" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/main.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="85">
+          <caret line="5" column="44" lean-forward="true" selection-start-line="5" selection-start-column="44" selection-end-line="5" selection-end-column="44" />
           <folding />
         </state>
       </provider>
