@@ -80,7 +80,8 @@ const respawnCreeps = {
                         Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasantUpgrader'});
                         console.log('Spawning a peasantUpgrader');
                     }
-                } else {
+                }
+                if (totalCreeps.length > 2) {
                     if (totalCreeps.length > 8) {
                         //Kill peasants
                         Game.spawns[spawnName].room.memory.peasant = false;
