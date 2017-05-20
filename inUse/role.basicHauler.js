@@ -2,7 +2,13 @@ var roleBasicHauler = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        if (creep.carry.energy < creep.carryCapacity) {
+        if (creep.carry.energy !== creep.carryCapacity) {
+            creep.memory.hauling = false;
+        }
+        if (creep.carry.energy === creep.carryCapacity) {
+            creep.memory.hauling = true;
+        }
+        if (creep.memory.hauling === false) {
                 var energy = creep.pos.findClosestByPath(FIND_DROPPED_ENERGY);
             if (energy) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
