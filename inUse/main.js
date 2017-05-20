@@ -15,7 +15,7 @@ let towerControl = require('module.Tower');
 let profiler = require('screeps-profiler');
 let creepBalancer = require('module.balancer');
 let autoBuild = require('module.autoBuild');
-import {respawnCreeps} from 'module.respawn';
+import { respawnCreeps } from 'module.respawn';
 
 // This line monkey patches the global prototypes.
 //profiler.enable();
