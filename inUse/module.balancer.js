@@ -23,6 +23,7 @@ const balanceCreeps = {
                 stationaryHarvester[i].memory.assignedSource = sources[1].id;
             }
         }
+        var perSource = peasant.length / sources.length;
         for (var i = 0; i < peasant.length; i++){
             if (i < perSource){
                 peasant[i].memory.assignedSource = sources[0].id;

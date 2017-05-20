@@ -4,7 +4,6 @@
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.balancer.js" afterPath="$PROJECT_DIR$/inUse/module.balancer.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.peasant.js" afterPath="$PROJECT_DIR$/inUse/role.peasant.js" />
     </list>
     <ignored path="E:\Documents\GitHub\screeps\.idea\shelf/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -72,7 +71,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.peasant.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="role.peasant.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="306">
@@ -92,11 +91,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.balancer.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="module.balancer.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="22" column="41" lean-forward="false" selection-start-line="22" selection-start-column="41" selection-end-line="22" selection-end-column="41" />
+            <state relative-caret-position="357">
+              <caret line="23" column="13" lean-forward="true" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -198,8 +197,8 @@
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
         <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/inUse/role.worker.js" />
-        <option value="$PROJECT_DIR$/inUse/module.balancer.js" />
         <option value="$PROJECT_DIR$/inUse/role.peasant.js" />
+        <option value="$PROJECT_DIR$/inUse/module.balancer.js" />
       </list>
     </option>
   </component>
@@ -388,14 +387,7 @@
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
       <workItem from="1495258208933" duration="19522000" />
-      <workItem from="1495320725067" duration="753000" />
-    </task>
-    <task id="LOCAL-00034" summary="tweak respawn rates">
-      <created>1495264492497</created>
-      <option name="number" value="00034" />
-      <option name="presentableId" value="LOCAL-00034" />
-      <option name="project" value="LOCAL" />
-      <updated>1495264492497</updated>
+      <workItem from="1495320725067" duration="923000" />
     </task>
     <task id="LOCAL-00035" summary="fix typo">
       <created>1495264710317</created>
@@ -733,11 +725,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495321305714</updated>
     </task>
-    <option name="localTasksCounter" value="83" />
+    <task id="LOCAL-00083" summary="balance peasants">
+      <created>1495321487399</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1495321487399</updated>
+    </task>
+    <option name="localTasksCounter" value="84" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="125965000" />
+    <option name="totallyTimeSpent" value="126135000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="3456" height="1416" extended-state="6" />
@@ -770,7 +769,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="not an array" />
     <MESSAGE value="fix basic hauler dropping of partial loads" />
     <MESSAGE value="fix multi room" />
     <MESSAGE value="test custom pathfinder" />
@@ -795,7 +793,8 @@
     <MESSAGE value="require harvesters" />
     <MESSAGE value="ignore update" />
     <MESSAGE value="worker cleanup" />
-    <option name="LAST_COMMIT_MESSAGE" value="worker cleanup" />
+    <MESSAGE value="balance peasants" />
+    <option name="LAST_COMMIT_MESSAGE" value="balance peasants" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1164,21 +1163,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="22" column="41" lean-forward="false" selection-start-line="22" selection-start-column="41" selection-end-line="22" selection-end-column="41" />
-          <folding>
-            <element signature="e#0#41#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="306">
           <caret line="18" column="13" lean-forward="true" selection-start-line="18" selection-start-column="13" selection-end-line="18" selection-end-column="13" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="357">
+          <caret line="23" column="13" lean-forward="true" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
+          <folding>
+            <element signature="e#0#41#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
