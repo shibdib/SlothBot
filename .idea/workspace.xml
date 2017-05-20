@@ -3,7 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.respawn.js" afterPath="$PROJECT_DIR$/inUse/module.respawn.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" afterPath="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -18,20 +18,20 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="role.StationaryBuilder.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="role.StationaryBuilder.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1071">
-              <caret line="90" column="16" lean-forward="true" selection-start-line="90" selection-start-column="16" selection-end-line="90" selection-end-column="16" />
+            <state relative-caret-position="374">
+              <caret line="49" column="169" lean-forward="false" selection-start-line="49" selection-start-column="169" selection-end-line="49" selection-end-column="169" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="144">
+            <state relative-caret-position="-162">
               <caret line="108" column="87" lean-forward="false" selection-start-line="108" selection-start-column="87" selection-end-line="108" selection-end-column="87" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
@@ -127,12 +127,12 @@
         <option value="$PROJECT_DIR$/inUse/module.pathFinder.js" />
         <option value="$PROJECT_DIR$/inUse/role.Expediter.js" />
         <option value="$PROJECT_DIR$/inUse/role.Hauler.js" />
-        <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/role.remoteHauler.js" />
         <option value="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
         <option value="$PROJECT_DIR$/inUse/role.worker.js" />
         <option value="$PROJECT_DIR$/inUse/role.basicHauler.js" />
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
+        <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
       </list>
     </option>
   </component>
@@ -320,14 +320,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="15492000" />
-    </task>
-    <task id="LOCAL-00012" summary="balance every 5">
-      <created>1495187761081</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1495187761081</updated>
+      <workItem from="1495258208933" duration="16143000" />
     </task>
     <task id="LOCAL-00013" summary="balance every 5">
       <created>1495187921875</created>
@@ -665,11 +658,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495273317977</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="dont build regular haulers if not needed">
+      <created>1495273731667</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1495273731667</updated>
+    </task>
+    <option name="localTasksCounter" value="62" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="119068000" />
+    <option name="totallyTimeSpent" value="119719000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -702,7 +702,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="fix peasant spawning" />
     <MESSAGE value="fix multi room support" />
     <MESSAGE value="tweak respawn rates" />
     <MESSAGE value="fix peasants" />
@@ -727,7 +726,8 @@
     <MESSAGE value="cap builders at 5" />
     <MESSAGE value="workers &gt; builders" />
     <MESSAGE value="tweak expediter" />
-    <option name="LAST_COMMIT_MESSAGE" value="tweak expediter" />
+    <MESSAGE value="dont build regular haulers if not needed" />
+    <option name="LAST_COMMIT_MESSAGE" value="dont build regular haulers if not needed" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1094,14 +1094,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1071">
-          <caret line="90" column="16" lean-forward="true" selection-start-line="90" selection-start-column="16" selection-end-line="90" selection-end-column="16" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.pathFinder.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="408">
@@ -1112,11 +1104,19 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="144">
+        <state relative-caret-position="-162">
           <caret line="108" column="87" lean-forward="false" selection-start-line="108" selection-start-column="87" selection-end-line="108" selection-end-column="87" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="374">
+          <caret line="49" column="169" lean-forward="false" selection-start-line="49" selection-start-column="169" selection-end-line="49" selection-end-column="169" />
+          <folding />
         </state>
       </provider>
     </entry>
