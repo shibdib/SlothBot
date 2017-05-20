@@ -166,7 +166,7 @@ const respawnCreeps = {
                             Game.spawns['Spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
                             console.log('Spawning a worker');
                             return;
-                        } else if (upgraders.length < 1 ** roomEnergyCapacity >= 500) {
+                        } else if (upgraders.length < 1 && roomEnergyCapacity >= 500) {
                             Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
                             console.log('Spawning a upgrader');
                             return;

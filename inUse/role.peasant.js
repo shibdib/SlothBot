@@ -1,4 +1,4 @@
-var rolePeasant = {
+let rolePeasant = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
@@ -19,7 +19,7 @@ var rolePeasant = {
     }
 };
 
-var rolePeasantBuilder = {
+let rolePeasantBuilder = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
@@ -43,7 +43,7 @@ var rolePeasantBuilder = {
     }
 };
 
-var rolePeasantUpgrader = {
+let rolePeasantUpgrader = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
