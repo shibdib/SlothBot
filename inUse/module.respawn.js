@@ -110,7 +110,7 @@ const respawnCreeps = {
                             Game.spawns['Spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
                             console.log('Spawning a expediter');
                             return;
-                        } else if (haulers.length < containers.length || (haulers.length < 2 && containers.length === 0)) {
+                        } else if (haulers.length < containers.length) {
                             Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
                             console.log('Spawning a hauler');
                             return;
