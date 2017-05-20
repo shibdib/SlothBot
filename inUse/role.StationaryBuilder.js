@@ -2,39 +2,41 @@ var roleStationaryBuilder = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        if (rangeSource(creep) === 1) {
-            creep.moveTo(Game.flags.defender1);
-            return null;
-        }
-        dumpTruck(creep);
-
-        if (creep.memory.constructionSite && creep.carry.energy > 0){
-            target = Game.getObjectById(creep.memory.constructionSite);
-            if (target && target.progress < target.progressTotal) {
-                if (creep.build(target) === ERR_INVALID_TARGET) {
-                    creep.moveTo(Game.flags.haulers);
-                } else {
-                    if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-                    }
-                }
-            } else {
-                creep.memory.constructionSite = null;
+        if (!findSpawn(creep).memory.build === false) {
+            if (rangeSource(creep) === 1) {
+                creep.moveTo(Game.flags.defender1);
+                return null;
             }
-        }else if (creep.carry.energy > 0){
-            var target = findConstruction(creep);
-            target = Game.getObjectById(target);
-            if (target) {
-                if (creep.build(target) === ERR_INVALID_TARGET) {
-                    creep.moveTo(Game.flags.haulers);
-                } else {
-                    if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            dumpTruck(creep);
+
+            if (creep.memory.constructionSite && creep.carry.energy > 0) {
+                target = Game.getObjectById(creep.memory.constructionSite);
+                if (target && target.progress < target.progressTotal) {
+                    if (creep.build(target) === ERR_INVALID_TARGET) {
+                        creep.moveTo(Game.flags.haulers);
+                    } else {
+                        if (creep.build(target) === ERR_NOT_IN_RANGE) {
+                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                        }
                     }
+                } else {
+                    creep.memory.constructionSite = null;
                 }
-            }else{
-                if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
+            } else if (creep.carry.energy > 0) {
+                var target = findConstruction(creep);
+                target = Game.getObjectById(target);
+                if (target) {
+                    if (creep.build(target) === ERR_INVALID_TARGET) {
+                        creep.moveTo(Game.flags.haulers);
+                    } else {
+                        if (creep.build(target) === ERR_NOT_IN_RANGE) {
+                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                        }
+                    }
+                } else {
+                    if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
+                        creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
+                    }
                 }
             }
         }
@@ -87,4 +89,16 @@ function rangeSource(creep) {
         return 1;
     }
     return null;
+}
+
+function findSpawn(creep) {
+    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+    if (spawn) {
+        if (creep.moveTo(spawn) !== ERR_NO_PATH) {
+            if (spawn.id) {
+                creep.memory.spawnID = spawn.id;
+                return spawn;
+            }
+        }
+    }
 }

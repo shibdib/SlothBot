@@ -2,26 +2,28 @@ let rolePeasantBuilder = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        if (creep.carry.energy > 0) {
-            var target = findConstruction(creep);
-            target = Game.getObjectById(target);
-            if (target) {
-                if (creep.build(target) === ERR_INVALID_TARGET) {
-                    creep.moveTo(Game.flags.haulers);
-                } else {
-                    if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        if (!findSpawn(creep).memory.build === false) {
+            if (creep.carry.energy > 0) {
+                var target = findConstruction(creep);
+                target = Game.getObjectById(target);
+                if (target) {
+                    if (creep.build(target) === ERR_INVALID_TARGET) {
+                        creep.moveTo(Game.flags.haulers);
+                    } else {
+                        if (creep.build(target) === ERR_NOT_IN_RANGE) {
+                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                        }
                     }
                 }
-            }
-        }else {
-            if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
-                var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
             } else {
-                var spawn = findSpawn(creep);
-            }
-            if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
+                    var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
+                } else {
+                    var spawn = findSpawn(creep);
+                }
+                if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                }
             }
         }
     }
