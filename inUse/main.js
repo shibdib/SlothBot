@@ -20,6 +20,8 @@ let creepBalancer = require('module.balancer');
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn')
 
+let Rooms = Game.rooms;
+
 // This line monkey patches the global prototypes.
 //profiler.enable();
 
@@ -42,19 +44,22 @@ module.exports.loop = function () {
             Game.flags.combatBuild.remove();
         }
 
-        //Every 5 ticks
-        if (Game.time % 5 === 0) {
-            creepBalancer.run();
-        }
+        //Room Management
+        for (i=0; Rooms.length<i; i++) {
+            //Every 5 ticks
+            if (Game.time % 5 === 0) {
+                creepBalancer.run(Rooms[i]);
+            }
 
-        //Every 15 ticks
-        if (Game.time % 15 === 0) {
-            respawnCreeps.run();
-        }
+            //Every 15 ticks
+            if (Game.time % 15 === 0) {
+                respawnCreeps.run(Rooms[i]);
+            }
 
-        //Every 100 ticks
-        if (Game.time % 100 === 0) {
-            autoBuild.run();
+            //Every 100 ticks
+            if (Game.time % 100 === 0) {
+                //autoBuild.run(Rooms[i]);
+            }
         }
 
         //Tower Management
