@@ -35,20 +35,17 @@ var roleWorker = {
                 }
             }
             if (!container) {
-                let goals = _.map(creep.room.find(FIND_DROPPED_ENERGY), function (source) {
-                    return {pos: source.pos}
-                });
                 var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
                 if (energy) {
                     if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                        creep.move(creep.pos.getDirectionTo(pathFinder.run(creep, goals, false)));
+                        creep.moveTo(energy, {visualizePathStyle: {stroke: '#ffaa00'}});
                     }
-                } else {
-                    let source = findSource(creep);
-                    if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
+                }
+            } else {
+                let source = findSource(creep);
+                if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
 
-                    }
                 }
             }
         }
@@ -95,7 +92,7 @@ function findRepair(creep) {
         site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 1000});
     }
     if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax/2});
+        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2});
     }
     if (site === null) {
         site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 1000});
