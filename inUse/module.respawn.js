@@ -57,8 +57,15 @@ const respawnCreeps = {
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
         if (!Game.spawns['Spawn1'].spawning) {
             //ERRBODY DEAD??
-            if (totalCreeps.length < 3){
-                Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
+            if (totalCreeps.length < 4){
+                if (peasants.length < 2) {
+                    Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
+                    console.log('Spawning a peasant');
+                }
+                if (peasantBuilder.length < 2) {
+                    Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasantBuilder'});
+                    console.log('Spawning a peasantBuilder');
+                }
             }else{
 
                 //Kill peasants
