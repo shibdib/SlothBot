@@ -31,8 +31,8 @@
       <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="612">
-              <caret line="77" column="40" lean-forward="false" selection-start-line="77" selection-start-column="40" selection-end-line="77" selection-end-column="40" />
+            <state relative-caret-position="238">
+              <caret line="76" column="19" lean-forward="false" selection-start-line="76" selection-start-column="19" selection-end-line="76" selection-end-column="19" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -356,7 +356,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="2477000" />
+      <workItem from="1495258208933" duration="2571000" />
     </task>
     <task id="LOCAL-00001" summary="reorg">
       <created>1495181373932</created>
@@ -540,11 +540,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495260596493</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="derp the peasant suicide code">
+      <created>1495260704878</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1495260704878</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="106053000" />
+    <option name="totallyTimeSpent" value="106147000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -598,7 +605,8 @@
     <MESSAGE value="peasant builders" />
     <MESSAGE value="keep peasants around longer" />
     <MESSAGE value="peasant upgraders" />
-    <option name="LAST_COMMIT_MESSAGE" value="peasant upgraders" />
+    <MESSAGE value="derp the peasant suicide code" />
+    <option name="LAST_COMMIT_MESSAGE" value="derp the peasant suicide code" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -971,8 +979,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="612">
-          <caret line="77" column="40" lean-forward="false" selection-start-line="77" selection-start-column="40" selection-end-line="77" selection-end-column="40" />
+        <state relative-caret-position="238">
+          <caret line="76" column="19" lean-forward="false" selection-start-line="76" selection-start-column="19" selection-end-line="76" selection-end-column="19" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
