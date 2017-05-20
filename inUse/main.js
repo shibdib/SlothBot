@@ -15,6 +15,7 @@ let roleWallRepairer = require('role.wallRepairer');
 let roleStationaryBuilder = require('role.StationaryBuilder');
 let roleRemoteHarvester = require('role.remoteHarvester');
 let roleRemoteHauler = require('role.remoteHauler');
+let roleAttacker = require('role.attacker');
 let towerControl = require('module.Tower');
 let profiler = require('screeps-profiler');
 let creepBalancer = require('module.balancer');
@@ -119,6 +120,9 @@ module.exports.loop = function () {
             }
             if (creep.memory.role === 'basicHauler') {
                 roleBasicHauler.run(creep);
+            }
+            if (creep.memory.role === 'attacker') {
+                roleAttacker.run(creep);
             }
         }
     });

@@ -91,7 +91,21 @@ const respawnCreeps = {
                         }
                     }
 
-                    //COMBAT RESPAWNS
+                    //ATTACK RESPAWNS
+                    for (let i = 0; i < 5; i++) {
+                        let attack = 'attack' + i;
+                        if (Game.flags[attack]) {
+                            if (attackers.length < 4 && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, ATTACK, ATTACK, MOVE, MOVE]) === OK) {
+                                Game.spawns[spawnName].createCreep([TOUGH, TOUGH, ATTACK, ATTACK, MOVE, MOVE], undefined, {
+                                    role: 'attacker'
+                                });
+                                console.log('Spawning a attacker');
+                                return;
+                            }
+                        }
+                    }
+
+                    //DEFENSE RESPAWNS
                     if (Game.flags.combatBuild) {
                         if (rangedDefenders.length < 3 && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE], undefined, {role: 'rangedDefender'});
