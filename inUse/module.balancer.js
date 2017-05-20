@@ -13,7 +13,7 @@ const balanceCreeps = {
         });
 
         //Split up harvesters
-        var stationaryHarvester = _.filter(room.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
+        var stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
         var perSource = stationaryHarvester.length / sources.length;
         for (var i = 0; i < stationaryHarvester.length; i++){
             if (i < perSource){
@@ -24,7 +24,7 @@ const balanceCreeps = {
         }
 
         //Split up Expediter 1-1
-        var expediter = _.filter(room.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
+        var expediter = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
         for (var i = 0; i < containers.length && i < expediter.length; i++){
             expediter[i].memory.assignedContainer = containers[i].id;
         }
