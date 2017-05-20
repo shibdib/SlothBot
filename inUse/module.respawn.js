@@ -152,7 +152,7 @@ const respawnCreeps = {
                                 Game.spawns[spawnName].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
                                 console.log('Spawning a stationaryBuilder');
                                 return;
-                            } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3) && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
+                            } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3) && stationaryBuilders.length < 5 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
                                 Game.spawns[spawnName].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
                                 console.log('Spawning a stationaryBuilder');
                                 return;
@@ -163,7 +163,7 @@ const respawnCreeps = {
                                 Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
                                 console.log('Spawning a stationaryBuilder');
                                 return;
-                            } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3) && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, MOVE]) === OK) {
+                            } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)  && stationaryBuilders.length < 5 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, MOVE]) === OK) {
                                 Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
                                 console.log('Spawning a stationaryBuilder');
                                 return;
