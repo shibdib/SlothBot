@@ -65,14 +65,15 @@ const respawnCreeps = {
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
         if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
             if (!Game.spawns[spawnName].spawning) {
-                //ERRBODY DEAD??
+                //Always have 2 basic peasants
+                if (peasants.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE]) === OK) {
+                    Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
+                    console.log('Spawning a peasant');
+                    return;
+                }
+                //ERRBODY DEAD?? Build basic builders/upgraders
                 if (totalCreeps.length <= 2 || Game.spawns[spawnName].room.memory.peasant === true) {
                     Game.spawns[spawnName].room.memory.peasant = true;
-                    if (peasants.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE]) === OK) {
-                        Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
-                        console.log('Spawning a peasant');
-                        return;
-                    }
                     if (peasantBuilders.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE]) === OK) {
                         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasantBuilder'});
                         console.log('Spawning a peasantBuilder');
@@ -85,10 +86,13 @@ const respawnCreeps = {
                 }
                 if (totalCreeps.length > 2) {
                     if (totalCreeps.length > 8) {
-                        //Kill peasants
+                        //Kill peasantBuilders and upgraders
                         Game.spawns[spawnName].room.memory.peasant = false;
-                        for (let i = 0; i < peasants.length; i++) {
-                            peasants[i].suicide();
+                        for (let i = 0; i < peasantBuilders.length; i++) {
+                            peasantBuilders[i].suicide();
+                        }
+                        for (let i = 0; i < peasantUpgraders.length; i++) {
+                            peasantUpgraders[i].suicide();
                         }
                     }
 
