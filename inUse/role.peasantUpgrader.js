@@ -11,12 +11,12 @@ let rolePeasantUpgrader = {
         }
 
         if (creep.memory.upgrading) {
-            if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
+            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         } else {
             if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
-                var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
+                var spawn = Game.getObjectById(creep.memory.spawnID);
             } else {
                 var spawn = findSpawn(creep);
             }

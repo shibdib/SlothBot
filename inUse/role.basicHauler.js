@@ -16,7 +16,7 @@ var roleBasicHauler = {
             }
         } else {
             if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
-                var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
+                var spawn = Game.getObjectById(creep.memory.spawnID);
             } else {
                 var spawn = findSpawn(creep);
             }
