@@ -144,6 +144,23 @@ const respawnCreeps = {
                         }
                     }
 
+                    //WORKER RESPAWNS
+                    if (Game.flags.workerBuild) {
+                        if (worker.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
+                            Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
+                            console.log('Spawning a worker');
+                            return;
+                        } else if (upgraders.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
+                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
+                            console.log('Spawning a upgrader');
+                            return;
+                        } else if (wallRepairers.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
+                            Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
+                            console.log('Spawning a wallRepairer');
+                            return;
+                        }
+                    }
+
                     //BUILDER RESPAWNS
                     if (Game.flags.builderBuild) {
                         let constructionSites = sources = Game.spawns[spawnName].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
@@ -168,23 +185,6 @@ const respawnCreeps = {
                                 console.log('Spawning a stationaryBuilder');
                                 return;
                             }
-                        }
-                    }
-
-                    //WORKER RESPAWNS
-                    if (Game.flags.workerBuild) {
-                        if (worker.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
-                            console.log('Spawning a worker');
-                            return;
-                        } else if (upgraders.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
-                            console.log('Spawning a upgrader');
-                            return;
-                        } else if (wallRepairers.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
-                            console.log('Spawning a wallRepairer');
-                            return;
                         }
                     }
 

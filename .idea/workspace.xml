@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="cap builders at 5">
+    <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.respawn.js" afterPath="$PROJECT_DIR$/inUse/module.respawn.js" />
     </list>
@@ -21,8 +21,8 @@
       <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="501">
-              <caret line="165" column="141" lean-forward="false" selection-start-line="165" selection-start-column="141" selection-end-line="165" selection-end-column="141" />
+            <state relative-caret-position="1861">
+              <caret line="161" column="21" lean-forward="false" selection-start-line="161" selection-start-column="21" selection-end-line="161" selection-end-column="21" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -310,14 +310,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="14838000" />
-    </task>
-    <task id="LOCAL-00009" summary="camelCase is hard">
-      <created>1495185497424</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1495185497424</updated>
+      <workItem from="1495258208933" duration="14912000" />
     </task>
     <task id="LOCAL-00010" summary="remote harvesting 1.0">
       <created>1495186876219</created>
@@ -655,11 +648,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495272653602</updated>
     </task>
-    <option name="localTasksCounter" value="58" />
+    <task id="LOCAL-00058" summary="cap builders at 5">
+      <created>1495273068877</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1495273068877</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="118414000" />
+    <option name="totallyTimeSpent" value="118488000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -692,7 +692,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="peasant upgraders" />
     <MESSAGE value="derp the peasant suicide code" />
     <MESSAGE value="inital probably broken multi room support" />
     <MESSAGE value="fix peasant spawning" />
@@ -717,7 +716,8 @@
     <MESSAGE value="2 peasant builders" />
     <MESSAGE value="keep basic haulers from taking up a mining spot" />
     <MESSAGE value="check if creep can be made" />
-    <option name="LAST_COMMIT_MESSAGE" value="check if creep can be made" />
+    <MESSAGE value="cap builders at 5" />
+    <option name="LAST_COMMIT_MESSAGE" value="cap builders at 5" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1102,8 +1102,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="501">
-          <caret line="165" column="141" lean-forward="false" selection-start-line="165" selection-start-column="141" selection-end-line="165" selection-end-column="141" />
+        <state relative-caret-position="1861">
+          <caret line="161" column="21" lean-forward="false" selection-start-line="161" selection-start-column="21" selection-end-line="161" selection-end-column="21" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
