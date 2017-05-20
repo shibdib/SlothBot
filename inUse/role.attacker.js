@@ -5,7 +5,7 @@ var roleAttacker = {
         var attackers = _.filter(Game.creeps, (attackers) => attackers.memory.role === 'attacker' && attackers.room === creep.room);
 
         var closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
-        if (closestHostileSpawn && moveTo(closestHostileSpawn) !== ERR_NO_PATH) {
+        if (closestHostileSpawn) {
             if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestHostileSpawn, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
