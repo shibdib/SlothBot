@@ -3,7 +3,7 @@ let rolePeasant = {
     /** @param {Creep} creep **/
     run: function (creep) {
         if (creep.carry.energy < creep.carryCapacity) {
-            if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
+            if (creep.memory.source && creep.moveTo(Game.getObjectById(creep.memory.source)) !== ERR_NO_PATH){
                 source = Game.getObjectById(creep.memory.assignedSource);
             }else if (!source) {
                 var source = findSource(creep);
@@ -12,32 +12,13 @@ let rolePeasant = {
                 creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
         } else {
-            if (creep.transfer(Game.spawns['Spawn1'], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(Game.spawns['Spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
+                var spawn = creep.pos.findClosestByPath(creep.memory.spawnID);
+            } else {
+                var spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS);
             }
-        }
-    }
-};
-
-let rolePeasantUpgrader = {
-
-    /** @param {Creep} creep **/
-    run: function (creep) {
-
-        if (creep.memory.upgrading && creep.carry.energy === 0) {
-            creep.memory.upgrading = false;
-        }
-        if (!creep.memory.upgrading && creep.carry.energy > 0) {
-            creep.memory.upgrading = true;
-        }
-
-        if (creep.memory.upgrading) {
-            if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
-            }
-        } else {
-            if (creep.withdraw(Game.spawns['Spawn1'], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(Game.spawns['Spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            if (creep.transfer(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }
@@ -56,4 +37,16 @@ function findSource(creep) {
         }
     }
     return null;
+}
+
+function findSpawn(creep) {
+    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+    if (spawn) {
+        if (creep.moveTo(spawn) !== ERR_NO_PATH) {
+            if (spawn.id) {
+                creep.memory.spawnID = spawn.id;
+                return spawn;
+            }
+        }
+    }
 }

@@ -1,6 +1,7 @@
 let rolePeasant = require('role.peasant');
 let rolePeasantBuilder = require('role.peasantBuilder');
 let rolePeasantUpgrader = require('role.peasantUpgrader');
+let roleBasicHauler = require('role.basicHauler');
 let roleHarvester = require('role.harvester');
 let roleUpgrader = require('role.upgrader');
 let roleDefenderRanged = require('role.defenderRanged');
@@ -115,6 +116,9 @@ module.exports.loop = function () {
             }
             if (creep.memory.role === 'remoteHauler') {
                 roleRemoteHauler.run(creep);
+            }
+            if (creep.memory.role === 'basicHauler') {
+                roleBasicHauler.run(creep);
             }
         }
     });

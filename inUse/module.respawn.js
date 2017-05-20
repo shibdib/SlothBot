@@ -33,6 +33,7 @@ const respawnCreeps = {
         var expediters = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
         var dumpTrucks = _.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck' && creep.room === Game.spawns[spawnName].room);
         var remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.room === Game.spawns[spawnName].room);
+        var basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
 
 //Combat Creeps
         var rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender' && creep.room === Game.spawns[spawnName].room);
@@ -109,13 +110,17 @@ const respawnCreeps = {
                             Game.spawns['Spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
                             console.log('Spawning a expediter');
                             return;
-                        } else if (haulers.length < containers.length) {
+                        } else if (haulers.length < containers.length || (haulers.length < 2 && containers.length === 0)) {
                             Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
                             console.log('Spawning a hauler');
                             return;
                         } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length) {
                             Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
                             console.log('Spawning a dumpTruck');
+                            return;
+                        } else if (basicHauler.length < 2) {
+                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'basicHauler'});
+                            console.log('Spawning a basicHauler');
                             return;
                         }
                     }
