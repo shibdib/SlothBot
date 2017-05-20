@@ -72,7 +72,7 @@ const respawnCreeps = {
                         console.log('Spawning a peasant');
                         return;
                     }
-                    if (peasantBuilders.length < 1) {
+                    if (peasantBuilders.length < 2) {
                         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasantBuilder'});
                         console.log('Spawning a peasantBuilder');
                         return;
