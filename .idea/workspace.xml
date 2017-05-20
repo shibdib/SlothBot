@@ -73,8 +73,8 @@
       <file leaf-file-name="role.attacker.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/role.attacker.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="510">
-              <caret line="30" column="3" lean-forward="true" selection-start-line="30" selection-start-column="3" selection-end-line="30" selection-end-column="3" />
+            <state relative-caret-position="187">
+              <caret line="11" column="14" lean-forward="false" selection-start-line="11" selection-start-column="14" selection-end-line="11" selection-end-column="14" />
               <folding />
             </state>
           </provider>
@@ -361,14 +361,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="18390000" />
-    </task>
-    <task id="LOCAL-00018" summary="var?">
-      <created>1495189721121</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1495189721121</updated>
+      <workItem from="1495258208933" duration="18481000" />
     </task>
     <task id="LOCAL-00019" summary="add another carry to remotes">
       <created>1495190009864</created>
@@ -706,11 +699,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495277762555</updated>
     </task>
-    <option name="localTasksCounter" value="67" />
+    <task id="LOCAL-00067" summary="attackers">
+      <created>1495277889090</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1495277889090</updated>
+    </task>
+    <option name="localTasksCounter" value="68" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="121966000" />
+    <option name="totallyTimeSpent" value="122057000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -743,7 +743,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="multi room combat check" />
     <MESSAGE value="add basic hauler, make peasant more cpu efficient" />
     <MESSAGE value="typo" />
     <MESSAGE value="add 650+ harvester" />
@@ -768,7 +767,8 @@
     <MESSAGE value="attacker test" />
     <MESSAGE value="tweak dump trucks" />
     <MESSAGE value="remove completed attack flags" />
-    <option name="LAST_COMMIT_MESSAGE" value="remove completed attack flags" />
+    <MESSAGE value="attackers" />
+    <option name="LAST_COMMIT_MESSAGE" value="attackers" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1153,8 +1153,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.attacker.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="510">
-          <caret line="30" column="3" lean-forward="true" selection-start-line="30" selection-start-column="3" selection-end-line="30" selection-end-column="3" />
+        <state relative-caret-position="187">
+          <caret line="11" column="14" lean-forward="false" selection-start-line="11" selection-start-column="14" selection-end-line="11" selection-end-column="14" />
           <folding />
         </state>
       </provider>

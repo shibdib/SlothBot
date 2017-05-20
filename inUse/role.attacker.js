@@ -9,7 +9,7 @@ var roleAttacker = {
             if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestHostileSpawn, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
-        }
+        } else
         if (!closestHostileSpawn) {
             var closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
             if (closestHostile) {
