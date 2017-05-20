@@ -3,7 +3,7 @@ var roleWorker = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        if (rangeSource(creep) === 1) {
+        if (rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
             creep.moveTo(Game.flags.bump);
             return null;
         }
@@ -38,11 +38,16 @@ var roleWorker = {
                 let goals = _.map(creep.room.find(FIND_DROPPED_ENERGY), function (source) {
                     return {pos: source.pos}
                 });
-
                 var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
                 if (energy) {
                     if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                         creep.move(creep.pos.getDirectionTo(pathFinder.run(creep, goals, false)));
+                    }
+                } else {
+                    let source = findSource(creep);
+                    if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                        creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
+
                     }
                 }
             }
@@ -104,6 +109,19 @@ function rangeSource(creep) {
     var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
     if (creep.pos.getRangeTo(source) === 1) {
         return 1;
+    }
+    return null;
+}
+
+function findSource(creep) {
+    var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
+    if (source) {
+        if (creep.moveTo(source) !== ERR_NO_PATH) {
+            if (source.id) {
+                creep.memory.source = source.id;
+                return source;
+            }
+        }
     }
     return null;
 }
