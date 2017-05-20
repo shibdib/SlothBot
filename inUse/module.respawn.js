@@ -75,7 +75,7 @@ const respawnCreeps = {
             }else{
 
 
-                if (totalCreeps.length < 8) {
+                if (totalCreeps.length > 8) {
                     //Kill peasants
                     for (let i = 0; i < peasants.length; i++) {
                         peasants[i].suicide();
