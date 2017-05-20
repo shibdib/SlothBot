@@ -5,8 +5,8 @@ var roleBasicHauler = {
         if (creep.carry.energy < creep.carryCapacity) {
                 var energy = creep.pos.findClosestByPath(FIND_DROPPED_ENERGY);
             if (energy) {
-                if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(energy[0], {visualizePathStyle: {stroke: '#ffaa00'}});
+                if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(energy, {visualizePathStyle: {stroke: '#ffaa00'}});
                 }
             }
         } else {
