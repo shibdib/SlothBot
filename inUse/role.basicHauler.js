@@ -1,3 +1,4 @@
+let pathFinder = require('module.pathFinder');
 var roleBasicHauler = {
 
     /** @param {Creep} creep **/
@@ -9,12 +10,15 @@ var roleBasicHauler = {
             creep.memory.hauling = true;
         }
         if (creep.memory.hauling === false) {
-                var energy = creep.pos.findClosestByPath(FIND_DROPPED_ENERGY);
-            if (energy) {
-                if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(energy, {visualizePathStyle: {stroke: '#ffaa00'}});
+                let goals = _.map(creep.room.findClosestByRange(FIND_DROPPED_ENERGY), function (source) {
+                return {pos: source.pos}});
+
+                var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+                if (energy) {
+                    if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
+                        creep.move(creep.pos.getDirectionTo(pathFinder(creep,goals,false)));
+                    }
                 }
-            }
         } else {
             if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
                 var spawn = Game.getObjectById(creep.memory.spawnID);
