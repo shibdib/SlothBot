@@ -106,8 +106,8 @@ const respawnCreeps = {
 
                     //HAULER RESPAWNS
                     if (Game.flags.haulerBuild) {
-                        if (expediters.length < containers.length && Game.spawns[spawnName].canCreateCreep([CARRY, MOVE, MOVE, MOVE, MOVE]) === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
+                        if (expediters.length < containers.length && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
+                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
                             console.log('Spawning a expediter');
                             return;
                         } else if (haulers.length < containers.length && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {

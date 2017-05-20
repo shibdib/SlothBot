@@ -21,8 +21,8 @@
       <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1861">
-              <caret line="161" column="21" lean-forward="false" selection-start-line="161" selection-start-column="21" selection-end-line="161" selection-end-column="21" />
+            <state relative-caret-position="195">
+              <caret line="108" column="145" lean-forward="false" selection-start-line="108" selection-start-column="145" selection-end-line="108" selection-end-column="145" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -310,14 +310,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="14912000" />
-    </task>
-    <task id="LOCAL-00010" summary="remote harvesting 1.0">
-      <created>1495186876219</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1495186876219</updated>
+      <workItem from="1495258208933" duration="15082000" />
     </task>
     <task id="LOCAL-00011" summary="fix typo in counter">
       <created>1495187593948</created>
@@ -655,11 +648,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495273068877</updated>
     </task>
-    <option name="localTasksCounter" value="59" />
+    <task id="LOCAL-00059" summary="workers &gt; builders">
+      <created>1495273149219</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1495273149219</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="118488000" />
+    <option name="totallyTimeSpent" value="118658000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -692,7 +692,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="derp the peasant suicide code" />
     <MESSAGE value="inital probably broken multi room support" />
     <MESSAGE value="fix peasant spawning" />
     <MESSAGE value="fix multi room support" />
@@ -717,7 +716,8 @@
     <MESSAGE value="keep basic haulers from taking up a mining spot" />
     <MESSAGE value="check if creep can be made" />
     <MESSAGE value="cap builders at 5" />
-    <option name="LAST_COMMIT_MESSAGE" value="cap builders at 5" />
+    <MESSAGE value="workers &gt; builders" />
+    <option name="LAST_COMMIT_MESSAGE" value="workers &gt; builders" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1102,8 +1102,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1861">
-          <caret line="161" column="21" lean-forward="false" selection-start-line="161" selection-start-column="21" selection-end-line="161" selection-end-column="21" />
+        <state relative-caret-position="195">
+          <caret line="108" column="145" lean-forward="false" selection-start-line="108" selection-start-column="145" selection-end-line="108" selection-end-column="145" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
