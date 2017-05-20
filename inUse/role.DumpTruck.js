@@ -7,9 +7,9 @@ var roleDumpTruck = {
             creep.memory.hauling = false;
         }
         if (creep.memory.hauling === false) {
-                var closestContainer = findContainer(creep);
-                closestContainer = Game.getObjectById(closestContainer);
-                if (closestContainer && creep.moveTo(closestContainer) !== ERR_NO_PATH) {
+                findContainer(creep);
+                let closestContainer = Game.getObjectById(creep.memory.container);
+                if (closestContainer && creep.moveTo(creep.memory.container) !== ERR_NO_PATH) {
                     if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                         creep.moveTo(closestContainer, {visualizePathStyle: {stroke: '#ffaa00'}});
                     }
@@ -26,8 +26,8 @@ var roleDumpTruck = {
         //Haul to spawn/extension
         if (creep.carry.energy >= 50) {
             creep.memory.hauling = true;
-            var target = findBuilder(creep);
-            target = Game.getObjectById(creep.memory.builderID);
+            findBuilder(creep);
+            let target = Game.getObjectById(creep.memory.builderID);
             if (target) {
                 target.memory.incomingEnergy = creep.id;
                 if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
