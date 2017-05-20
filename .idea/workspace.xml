@@ -18,11 +18,21 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="role.StationaryBuilder.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1071">
+              <caret line="90" column="16" lean-forward="true" selection-start-line="90" selection-start-column="16" selection-end-line="90" selection-end-column="16" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="195">
-              <caret line="108" column="145" lean-forward="false" selection-start-line="108" selection-start-column="145" selection-end-line="108" selection-end-column="145" />
+            <state relative-caret-position="144">
+              <caret line="108" column="87" lean-forward="false" selection-start-line="108" selection-start-column="87" selection-end-line="108" selection-end-column="87" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -310,14 +320,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="15082000" />
-    </task>
-    <task id="LOCAL-00011" summary="fix typo in counter">
-      <created>1495187593948</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1495187593948</updated>
+      <workItem from="1495258208933" duration="15492000" />
     </task>
     <task id="LOCAL-00012" summary="balance every 5">
       <created>1495187761081</created>
@@ -655,11 +658,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495273149219</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="tweak expediter">
+      <created>1495273317977</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1495273317977</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="118658000" />
+    <option name="totallyTimeSpent" value="119068000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -692,7 +702,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="inital probably broken multi room support" />
     <MESSAGE value="fix peasant spawning" />
     <MESSAGE value="fix multi room support" />
     <MESSAGE value="tweak respawn rates" />
@@ -717,7 +726,8 @@
     <MESSAGE value="check if creep can be made" />
     <MESSAGE value="cap builders at 5" />
     <MESSAGE value="workers &gt; builders" />
-    <option name="LAST_COMMIT_MESSAGE" value="workers &gt; builders" />
+    <MESSAGE value="tweak expediter" />
+    <option name="LAST_COMMIT_MESSAGE" value="tweak expediter" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1068,14 +1078,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="83" column="1" lean-forward="true" selection-start-line="83" selection-start-column="1" selection-end-line="91" selection-end-column="1" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.basicHauler.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="685">
@@ -1092,6 +1094,14 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1071">
+          <caret line="90" column="16" lean-forward="true" selection-start-line="90" selection-start-column="16" selection-end-line="90" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.pathFinder.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="408">
@@ -1102,8 +1112,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="195">
-          <caret line="108" column="145" lean-forward="false" selection-start-line="108" selection-start-column="145" selection-end-line="108" selection-end-column="145" />
+        <state relative-caret-position="144">
+          <caret line="108" column="87" lean-forward="false" selection-start-line="108" selection-start-column="87" selection-end-line="108" selection-end-column="87" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>

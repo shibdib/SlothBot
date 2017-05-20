@@ -118,7 +118,7 @@ const respawnCreeps = {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
                             console.log('Spawning a dumpTruck');
                             return;
-                        } else if (basicHauler.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
+                        } else if (basicHauler.length < 2 && haulers.lengt === 0 && expediters.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'basicHauler'});
                             console.log('Spawning a basicHauler');
                             return;
