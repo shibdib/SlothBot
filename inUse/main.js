@@ -33,17 +33,17 @@ module.exports.loop = function () {
             }
         }
 
-        //HOSTILE CHECK//
-        var closestHostile = Game.spawns['Spawn1'].room.find(FIND_HOSTILE_CREEPS);
-        if (closestHostile[0]) {
-            var pos = new RoomPosition(43, 22, 'E41N96');
-            pos.createFlag('combatBuild');
-        } else if (Game.flags.combatBuild) {
-            Game.flags.combatBuild.remove();
-        }
-
         //Room Management
         for(let name in Game.spawns) {
+            //HOSTILE CHECK//
+            let closestHostile = Game.spawns[name].room.find(FIND_HOSTILE_CREEPS);
+            if (closestHostile[0]) {
+                var pos = new RoomPosition(2, 2, Game.spawns[name].room.name);
+                pos.createFlag('combatBuild');
+            } else if (Game.flags.combatBuild) {
+                Game.flags.combatBuild.remove();
+            }
+
             //Every 5 ticks
             if (Game.time % 5 === 0) {
                 creepBalancer.run(name);
