@@ -21,8 +21,8 @@
       <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3612">
-              <caret line="219" column="119" lean-forward="false" selection-start-line="219" selection-start-column="119" selection-end-line="219" selection-end-column="119" />
+            <state relative-caret-position="552">
+              <caret line="69" column="125" lean-forward="false" selection-start-line="69" selection-start-column="125" selection-end-line="69" selection-end-column="125" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -300,14 +300,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="14070000" />
-    </task>
-    <task id="LOCAL-00007" summary="camelCase is hard">
-      <created>1495184962842</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1495184962842</updated>
+      <workItem from="1495258208933" duration="14418000" />
     </task>
     <task id="LOCAL-00008" summary="camelCase is hard">
       <created>1495185025365</created>
@@ -645,11 +638,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495271183499</updated>
     </task>
-    <option name="localTasksCounter" value="56" />
+    <task id="LOCAL-00056" summary="check if creep can be made">
+      <created>1495272305441</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1495272305441</updated>
+    </task>
+    <option name="localTasksCounter" value="57" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="117646000" />
+    <option name="totallyTimeSpent" value="117994000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -682,7 +682,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="keep peasants around longer" />
     <MESSAGE value="peasant upgraders" />
     <MESSAGE value="derp the peasant suicide code" />
     <MESSAGE value="inital probably broken multi room support" />
@@ -707,7 +706,8 @@
     <MESSAGE value="test custom pathfinder" />
     <MESSAGE value="2 peasant builders" />
     <MESSAGE value="keep basic haulers from taking up a mining spot" />
-    <option name="LAST_COMMIT_MESSAGE" value="keep basic haulers from taking up a mining spot" />
+    <MESSAGE value="check if creep can be made" />
+    <option name="LAST_COMMIT_MESSAGE" value="check if creep can be made" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1092,8 +1092,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3612">
-          <caret line="219" column="119" lean-forward="false" selection-start-line="219" selection-start-column="119" selection-end-line="219" selection-end-column="119" />
+        <state relative-caret-position="552">
+          <caret line="69" column="125" lean-forward="false" selection-start-line="69" selection-start-column="125" selection-end-line="69" selection-end-column="125" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
