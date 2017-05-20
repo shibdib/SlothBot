@@ -39,6 +39,7 @@ const respawnCreeps = {
         var rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender' && creep.room === Game.spawns[spawnName].room);
         var defenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'defender' && creep.room === Game.spawns[spawnName].room);
         var scout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout' && creep.room === Game.spawns[spawnName].room);
+        var attackers = _.filter(Game.creeps, (creep) => creep.memory.role === 'attacker' && creep.room === Game.spawns[spawnName].room);
 
 //MISC
         var sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES);

@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/inUse/role.attacker.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/main.js" afterPath="$PROJECT_DIR$/inUse/main.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.respawn.js" afterPath="$PROJECT_DIR$/inUse/module.respawn.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -43,11 +41,21 @@
       <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="362">
-              <caret line="101" column="64" lean-forward="false" selection-start-line="101" selection-start-column="64" selection-end-line="101" selection-end-column="64" />
+            <state relative-caret-position="510">
+              <caret line="41" column="88" lean-forward="false" selection-start-line="41" selection-start-column="88" selection-end-line="41" selection-end-column="88" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="role.DumpTruck.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="362">
+              <caret line="27" column="40" lean-forward="true" selection-start-line="27" selection-start-column="40" selection-end-line="27" selection-end-column="40" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -143,7 +151,6 @@
         <option value="$PROJECT_DIR$/role.Tower.js" />
         <option value="$PROJECT_DIR$/main.js" />
         <option value="$PROJECT_DIR$/.gitignore" />
-        <option value="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
         <option value="$PROJECT_DIR$/inUse/role.upgrader.js" />
         <option value="$PROJECT_DIR$/inUse/respawn.js" />
         <option value="$PROJECT_DIR$/role.remoteHarvester.js" />
@@ -165,6 +172,7 @@
         <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/role.attacker.js" />
         <option value="$PROJECT_DIR$/inUse/main.js" />
+        <option value="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
       </list>
     </option>
@@ -353,14 +361,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="16994000" />
-    </task>
-    <task id="LOCAL-00014" summary="remote update">
-      <created>1495188453795</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1495188453795</updated>
+      <workItem from="1495258208933" duration="17376000" />
     </task>
     <task id="LOCAL-00015" summary="remote haulers">
       <created>1495189456707</created>
@@ -698,11 +699,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495275642900</updated>
     </task>
-    <option name="localTasksCounter" value="63" />
+    <task id="LOCAL-00063" summary="attacker test">
+      <created>1495276494686</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1495276494686</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="120570000" />
+    <option name="totallyTimeSpent" value="120952000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -735,7 +743,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="tweak respawn rates" />
     <MESSAGE value="fix peasants" />
     <MESSAGE value="fix non peasants" />
     <MESSAGE value="multi room combat check" />
@@ -760,7 +767,8 @@
     <MESSAGE value="tweak expediter" />
     <MESSAGE value="dont build regular haulers if not needed" />
     <MESSAGE value="tweak construction queue" />
-    <option name="LAST_COMMIT_MESSAGE" value="tweak construction queue" />
+    <MESSAGE value="attacker test" />
+    <option name="LAST_COMMIT_MESSAGE" value="attacker test" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1093,14 +1101,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="11" column="85" lean-forward="false" selection-start-line="11" selection-start-column="36" selection-end-line="11" selection-end-column="86" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.pathFinder.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="408">
@@ -1141,10 +1141,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
+    <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="362">
-          <caret line="101" column="64" lean-forward="false" selection-start-line="101" selection-start-column="64" selection-end-line="101" selection-end-column="64" />
+          <caret line="27" column="40" lean-forward="true" selection-start-line="27" selection-start-column="40" selection-end-line="27" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="510">
+          <caret line="41" column="88" lean-forward="false" selection-start-line="41" selection-start-column="88" selection-end-line="41" selection-end-column="88" />
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
