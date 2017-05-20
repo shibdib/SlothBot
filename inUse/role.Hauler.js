@@ -3,7 +3,7 @@ var roleHauler = {
     /** @param {Creep} creep **/
     run: function (creep) {
         if (rangeSource(creep) === 1) {
-            creep.moveTo(Game.flags.defender1);
+            creep.moveTo(Game.flags.bump);
             return null;
         }
         if (creep.carry.energy !== creep.carryCapacity) {

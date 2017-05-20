@@ -3,6 +3,10 @@ var roleBasicHauler = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        if (rangeSource(creep) === 1) {
+            creep.moveTo(Game.flags.bump);
+            return null;
+        }
         if (creep.carry.energy !== creep.carryCapacity) {
             creep.memory.hauling = false;
         }
@@ -48,4 +52,12 @@ function findSpawn(creep) {
             }
         }
     }
+}
+
+function rangeSource(creep) {
+    var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
+    if (creep.pos.getRangeTo(source) === 1) {
+        return 1;
+    }
+    return null;
 }

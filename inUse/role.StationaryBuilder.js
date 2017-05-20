@@ -4,7 +4,7 @@ var roleStationaryBuilder = {
     run: function (creep) {
         if (!findSpawn(creep).memory.build === false) {
             if (rangeSource(creep) === 1) {
-                creep.moveTo(Game.flags.defender1);
+                creep.moveTo(Game.flags.bump);
                 return null;
             }
             dumpTruck(creep);
