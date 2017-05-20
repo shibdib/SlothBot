@@ -13,9 +13,9 @@ let roleRemoteHarvester = require('role.remoteHarvester');
 let roleRemoteHauler = require('role.remoteHauler');
 let towerControl = require('module.Tower');
 let profiler = require('screeps-profiler');
-let spawnsCreation = require('module.respawn');
 let creepBalancer = require('module.balancer');
 let autoBuild = require('module.autoBuild');
+import {respawnCreeps} from 'module.respawn';
 
 // This line monkey patches the global prototypes.
 //profiler.enable();
@@ -46,7 +46,7 @@ module.exports.loop = function () {
 
         //Every 15 ticks
         if (Game.time % 15 === 0) {
-            spawnsCreation.run();
+            respawnCreeps();
         }
 
         //Every 100 ticks

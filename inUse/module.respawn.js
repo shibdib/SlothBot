@@ -31,9 +31,7 @@ var containers = Game.spawns['spawn1'].room.find(FIND_STRUCTURES, {
     filter: { structureType: STRUCTURE_CONTAINER }
 });
 
-const respawnCreeps = {
-    /** @param  {Spawn} spawn  **/
-    run: function () {
+export function respawnCreeps() {
 
         ///////////////////////////////////////////////COUNT TO CONSOLE///////////////////////////////////////
 
@@ -50,89 +48,104 @@ const respawnCreeps = {
 
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
 
-        //COMBAT RESPAWNS
-        if (Game.flags.combatBuild) {
-            if (rangedDefenders.length < 3) {
-                let newName = Game.spawns['spawn1'].createCreep([RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE], undefined, {role: 'rangedDefender'});
-            } else if (defenders.length < 4 && Game.spawns['spawn1'].energyCapacity >= 350) {
-                let newName = Game.spawns['spawn1'].createCreep([ATTACK, ATTACK, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'defender'});
+        if(!Game.spawns['spawn1'].spawning) {
+            //COMBAT RESPAWNS
+            if (Game.flags.combatBuild) {
+                if (rangedDefenders.length < 3) {
+                    Game.spawns['spawn1'].createCreep([RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE], undefined, {role: 'rangedDefender'});
+                    console.log('Spawning a rangedDefender');
+                } else if (defenders.length < 4 && Game.spawns['spawn1'].energyCapacity >= 350) {
+                    Game.spawns['spawn1'].createCreep([ATTACK, ATTACK, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'defender'});
+                    console.log('Spawning a defender');
+                }
             }
-        }
 
-        //HAULER RESPAWNS
-        if (Game.flags.haulerBuild) {
-            if (expediters.length < containers.length) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
-            } else if (haulers.length < containers.length) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
-            } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
+            //HAULER RESPAWNS
+            if (Game.flags.haulerBuild) {
+                if (expediters.length < containers.length) {
+                    Game.spawns['spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
+                    console.log('Spawning a expediter');
+                } else if (haulers.length < containers.length) {
+                    Game.spawns['spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
+                    console.log('Spawning a hauler');
+                } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length) {
+                    Game.spawns['spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
+                    console.log('Spawning a dumpTruck');
+                }
             }
-        }
 
-        //HARVESTER RESPAWNS
-        if (Game.flags.harvesterBuild) {
-            if (stationaryHarvester.length < Math.ceil(sourceCount.length * 3)) {
-                let newName = Game.spawns['spawn1'].createCreep([WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
+            //HARVESTER RESPAWNS
+            if (Game.flags.harvesterBuild) {
+                if (stationaryHarvester.length < Math.ceil(sourceCount.length * 3)) {
+                    Game.spawns['spawn1'].createCreep([WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
+                    console.log('Spawning a stationaryHarvester');
+                }
             }
-        }
 
-        //BUILDER RESPAWNS
-        if (Game.flags.builderBuild) {
-            let constructionSites = sources = Game.spawns['spawn1'].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
-            if (constructionSites.length === 0 && stationaryBuilders.length < 2){
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
-            }else
-            if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
+            //BUILDER RESPAWNS
+            if (Game.flags.builderBuild) {
+                let constructionSites = sources = Game.spawns['spawn1'].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
+                if (constructionSites.length === 0 && stationaryBuilders.length < 2) {
+                    Game.spawns['spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
+                    console.log('Spawning a stationaryBuilder');
+                } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)) {
+                    Game.spawns['spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
+                    console.log('Spawning a stationaryBuilder');
+                }
             }
-        }
 
-        //WORKER RESPAWNS
-        if (Game.flags.workerBuild) {
-            if (worker.length < 3) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
-            } else if (upgraders.length < 1) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
-            } else if (wallRepairers.length < 1) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
+            //WORKER RESPAWNS
+            if (Game.flags.workerBuild) {
+                if (worker.length < 3) {
+                    Game.spawns['spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
+                    console.log('Spawning a worker');
+                } else if (upgraders.length < 1) {
+                    Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
+                    console.log('Spawning a upgrader');
+                } else if (wallRepairers.length < 1) {
+                    Game.spawns['spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
+                    console.log('Spawning a wallRepairer');
+                }
             }
-        }
 
-        //REMOTE RESPAWN
-        if (Game.flags.remoteBuild) {
-            for (let i = 0; i < 5; i++) {
-                let remote = 'remote' + i;
-                if (Game.flags[remote]) {
-                    let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === remote);
-                    if (creep.length === 0) {
-                        let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE], undefined, {
-                            role: 'remoteHarvester',
-                            destination: remote
-                        });
+            //REMOTE RESPAWN
+            if (Game.flags.remoteBuild) {
+                for (let i = 0; i < 5; i++) {
+                    let remote = 'remote' + i;
+                    if (Game.flags[remote]) {
+                        let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === remote);
+                        if (creep.length === 0) {
+                            Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE], undefined, {
+                                role: 'remoteHarvester',
+                                destination: remote
+                            });
+                            console.log('Spawning a remoteHarvester');
+                        }
+                    }
+                }
+                if (remoteHauler.length < remoteHarvester.length) {
+                    Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'remoteHauler'});
+                    console.log('Spawning a remoteHauler');
+                }
+            }
+
+            //SCOUT RESPAWNS
+            if (Game.flags.scoutBuild) {
+                for (let i = 0; i < 5; i++) {
+                    let scout = 'scout' + i;
+                    if (Game.flags[scout]) {
+                        let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === scout);
+                        if (creep.length === 0) {
+                            Game.spawns['spawn1'].createCreep([MOVE, MOVE, MOVE, MOVE], undefined, {
+                                role: 'scout',
+                                destination: scout
+                            });
+                            console.log('Spawning a scout');
+                        }
                     }
                 }
             }
-            if (remoteHauler.length < remoteHarvester.length) {
-                let newName = Game.spawns['spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'remoteHauler'});
-            }
-        }
-
-        //SCOUT RESPAWNS
-        if (Game.flags.scoutBuild) {
-            for (let i = 0; i < 5; i++) {
-                let scout = 'scout' + i;
-                if (Game.flags[scout]) {
-                    let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === scout);
-                    if (creep.length === 0) {
-                        let newName = Game.spawns['spawn1'].createCreep([MOVE, MOVE, MOVE, MOVE], undefined, {
-                            role: 'scout',
-                            destination: scout
-                        });
-                    }
-                }
-            }
-        }
+        }else
 
 
         if (Game.spawns['spawn1'].spawning) {
@@ -143,8 +156,4 @@ const respawnCreeps = {
                 Game.spawns['spawn1'].pos.y,
                 {align: 'left', opacity: 0.8});
         }
-
-    }
-};
-
-module.exports = respawnCreeps;
+}
