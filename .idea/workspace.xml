@@ -4,10 +4,6 @@
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/main.js" afterPath="$PROJECT_DIR$/inUse/main.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.basicHauler.js" afterPath="$PROJECT_DIR$/inUse/role.basicHauler.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.peasant.js" afterPath="$PROJECT_DIR$/inUse/role.peasant.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.peasantBuilder.js" afterPath="$PROJECT_DIR$/inUse/role.peasantBuilder.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" afterPath="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -84,7 +80,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.peasantUpgrader.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="role.peasantUpgrader.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="306">
@@ -104,11 +100,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="main.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/main.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="521">
-              <caret line="69" column="9" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="127" selection-end-column="1" />
+            <state relative-caret-position="334">
+              <caret line="34" column="9" lean-forward="false" selection-start-line="34" selection-start-column="9" selection-end-line="34" selection-end-column="9" />
               <folding />
             </state>
           </provider>
@@ -193,11 +189,11 @@
         <option value="$PROJECT_DIR$/role.basicHauler.js" />
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
         <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
-        <option value="$PROJECT_DIR$/inUse/main.js" />
         <option value="$PROJECT_DIR$/inUse/role.peasant.js" />
         <option value="$PROJECT_DIR$/inUse/role.peasantBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/role.basicHauler.js" />
         <option value="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" />
+        <option value="$PROJECT_DIR$/inUse/main.js" />
       </list>
     </option>
   </component>
@@ -385,7 +381,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="9826000" />
+      <workItem from="1495258208933" duration="9848000" />
     </task>
     <task id="LOCAL-00001" summary="reorg">
       <created>1495181373932</created>
@@ -695,11 +691,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495267349208</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="fix spawn finding error">
+      <created>1495268050532</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1495268050532</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="113402000" />
+    <option name="totallyTimeSpent" value="113424000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -732,7 +735,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="rename" />
     <MESSAGE value="add remote haulers to count" />
     <MESSAGE value="var?" />
     <MESSAGE value="add another carry to remotes" />
@@ -757,7 +759,8 @@
     <MESSAGE value="add 650+ harvester" />
     <MESSAGE value="mem stuff" />
     <MESSAGE value="ability to pause building via spawn mem" />
-    <option name="LAST_COMMIT_MESSAGE" value="ability to pause building via spawn mem" />
+    <MESSAGE value="fix spawn finding error" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix spawn finding error" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1096,14 +1099,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/main.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="521">
-          <caret line="69" column="9" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="127" selection-end-column="1" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="255">
@@ -1140,6 +1135,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="306">
           <caret line="18" column="47" lean-forward="false" selection-start-line="18" selection-start-column="47" selection-end-line="18" selection-end-column="47" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/main.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="334">
+          <caret line="34" column="9" lean-forward="false" selection-start-line="34" selection-start-column="9" selection-end-line="34" selection-end-column="9" />
           <folding />
         </state>
       </provider>

@@ -33,7 +33,6 @@ module.exports.loop = function () {
                 console.log('Clearing non-existing creep memory:' + name);
             }
         }
-        console.log('1');
 
         //Room Management
         for(let name in Game.spawns) {
@@ -61,14 +60,12 @@ module.exports.loop = function () {
                 //autoBuild.run(name);
             }
         }
-        console.log('2');
 
         //Tower Management
         var tower = Game.getObjectById('591d48b421061c6c5b9bfaea');
         if (tower) {
             towerControl.run(tower);
         }
-        console.log('3');
 
         for (var name in Game.creeps) {
             var creep = Game.creeps[name];
