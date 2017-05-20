@@ -38,7 +38,7 @@ module.exports.loop = function () {
         for (let i = 0; i < 5; i++) {
             let attack = 'attack' + i;
             if (Game.flags[attack]) {
-                if (Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_CREEPS) === null || Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_SPAWNS) === null ) {
+                if (Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_CREEPS) === null && Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_SPAWNS) === null ) {
                     Game.flags[attack].remove();
                 }
             }
