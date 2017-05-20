@@ -164,7 +164,7 @@ const respawnCreeps = {
                     }
 
                     //WORKER RESPAWNS
-                    if (Game.flags.workerBuild && stationaryHarvester.length >= 1 ) {
+                    if (Game.flags.workerBuild && stationaryHarvester.length >= sourceCount) {
                         if (worker.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
                             console.log('Spawning a worker');
@@ -181,7 +181,7 @@ const respawnCreeps = {
                     }
 
                     //BUILDER RESPAWNS
-                    if (Game.flags.builderBuild && stationaryHarvester.length >= 1 ) {
+                    if (Game.flags.builderBuild && stationaryHarvester.length >= sourceCount) {
                         let constructionSites = sources = Game.spawns[spawnName].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
                         if (roomEnergyCapacity >= 450) {
                             if (constructionSites.length === 0 && stationaryBuilders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
@@ -208,7 +208,7 @@ const respawnCreeps = {
                     }
 
                     //REMOTE RESPAWN
-                    if (Game.flags.remoteBuild && stationaryHarvester.length >= 1 ) {
+                    if (Game.flags.remoteBuild && stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 5; i++) {
                             let remote = 'remote' + i;
                             if (Game.flags[remote]) {
@@ -231,7 +231,7 @@ const respawnCreeps = {
                     }
 
                     //SCOUT RESPAWNS
-                    if (Game.flags.scoutBuild && stationaryHarvester.length >= 1 ) {
+                    if (Game.flags.scoutBuild && stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 5; i++) {
                             let scout = 'scout' + i;
                             if (Game.flags[scout]) {
