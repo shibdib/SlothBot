@@ -4,6 +4,12 @@
 
 ////////////////////////////////////////////Vars//////////////////////////////////////////////////
 
+//Total creeps
+var totalCreeps = _.filter(Game.creeps, (creep) => creep.memory.role !== null);
+
+//Peasant Creeps
+var peasants = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant');
+
 //Stationary Creeps
 var stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
 var stationaryBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryBuilder');
@@ -49,100 +55,110 @@ const respawnCreeps = {
          console.log('Dump Trucks: ' + dumpTrucks.length);**/
 
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
-
         if (!Game.spawns['Spawn1'].spawning) {
-            //COMBAT RESPAWNS
-            if (Game.flags.combatBuild) {
-                if (rangedDefenders.length < 3) {
-                    Game.spawns['Spawn1'].createCreep([RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE], undefined, {role: 'rangedDefender'});
-                    console.log('Spawning a rangedDefender');
-                } else if (defenders.length < 4 && Game.spawns['Spawn1'].energyCapacity >= 350) {
-                    Game.spawns['Spawn1'].createCreep([ATTACK, ATTACK, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'defender'});
-                    console.log('Spawning a defender');
-                }
-            }
+            //ERRBODY DEAD??
+            if (totalCreeps.length < 3){
+                Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
+            }else{
 
-            //HAULER RESPAWNS
-            if (Game.flags.haulerBuild) {
-                if (expediters.length < containers.length) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
-                    console.log('Spawning a expediter');
-                } else if (haulers.length < containers.length) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
-                    console.log('Spawning a hauler');
-                } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
-                    console.log('Spawning a dumpTruck');
+                //Kill peasants
+                for (let i=0; i < peasants.length; i++){
+                    peasants[i].suicide();
                 }
-            }
 
-            //HARVESTER RESPAWNS
-            if (Game.flags.harvesterBuild) {
-                if (stationaryHarvester.length < Math.ceil(sourceCount.length * 3)) {
-                    Game.spawns['Spawn1'].createCreep([WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
-                    console.log('Spawning a stationaryHarvester');
-                }
-            }
-
-            //BUILDER RESPAWNS
-            if (Game.flags.builderBuild) {
-                let constructionSites = sources = Game.spawns['Spawn1'].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
-                if (constructionSites.length === 0 && stationaryBuilders.length < 2) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
-                    console.log('Spawning a stationaryBuilder');
-                } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
-                    console.log('Spawning a stationaryBuilder');
-                }
-            }
-
-            //WORKER RESPAWNS
-            if (Game.flags.workerBuild) {
-                if (worker.length < 3) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
-                    console.log('Spawning a worker');
-                } else if (upgraders.length < 1) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
-                    console.log('Spawning a upgrader');
-                } else if (wallRepairers.length < 1) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
-                    console.log('Spawning a wallRepairer');
-                }
-            }
-
-            //REMOTE RESPAWN
-            if (Game.flags.remoteBuild) {
-                for (let i = 0; i < 5; i++) {
-                    let remote = 'remote' + i;
-                    if (Game.flags[remote]) {
-                        let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === remote);
-                        if (creep.length === 0) {
-                            Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE], undefined, {
-                                role: 'remoteHarvester',
-                                destination: remote
-                            });
-                            console.log('Spawning a remoteHarvester');
-                        }
+                //COMBAT RESPAWNS
+                if (Game.flags.combatBuild) {
+                    if (rangedDefenders.length < 3) {
+                        Game.spawns['Spawn1'].createCreep([RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE], undefined, {role: 'rangedDefender'});
+                        console.log('Spawning a rangedDefender');
+                    } else if (defenders.length < 4 && Game.spawns['Spawn1'].energyCapacity >= 350) {
+                        Game.spawns['Spawn1'].createCreep([ATTACK, ATTACK, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'defender'});
+                        console.log('Spawning a defender');
                     }
                 }
-                if (remoteHauler.length < remoteHarvester.length) {
-                    Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'remoteHauler'});
-                    console.log('Spawning a remoteHauler');
-                }
-            }
 
-            //SCOUT RESPAWNS
-            if (Game.flags.scoutBuild) {
-                for (let i = 0; i < 5; i++) {
-                    let scout = 'scout' + i;
-                    if (Game.flags[scout]) {
-                        let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === scout);
-                        if (creep.length === 0) {
-                            Game.spawns['Spawn1'].createCreep([MOVE, MOVE, MOVE, MOVE], undefined, {
-                                role: 'scout',
-                                destination: scout
-                            });
-                            console.log('Spawning a scout');
+                //HAULER RESPAWNS
+                if (Game.flags.haulerBuild) {
+                    if (expediters.length < containers.length) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
+                        console.log('Spawning a expediter');
+                    } else if (haulers.length < containers.length) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
+                        console.log('Spawning a hauler');
+                    } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
+                        console.log('Spawning a dumpTruck');
+                    }
+                }
+
+                //HARVESTER RESPAWNS
+                if (Game.flags.harvesterBuild) {
+                    if (stationaryHarvester.length < Math.ceil(sourceCount.length * 3)) {
+                        Game.spawns['Spawn1'].createCreep([WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
+                        console.log('Spawning a stationaryHarvester');
+                    }
+                }
+
+                //BUILDER RESPAWNS
+                if (Game.flags.builderBuild) {
+                    let constructionSites = sources = Game.spawns['Spawn1'].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
+                    if (constructionSites.length === 0 && stationaryBuilders.length < 2) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
+                        console.log('Spawning a stationaryBuilder');
+                    } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
+                        console.log('Spawning a stationaryBuilder');
+                    }
+                }
+
+                //WORKER RESPAWNS
+                if (Game.flags.workerBuild) {
+                    if (worker.length < 3) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
+                        console.log('Spawning a worker');
+                    } else if (upgraders.length < 1) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'upgrader'});
+                        console.log('Spawning a upgrader');
+                    } else if (wallRepairers.length < 1) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
+                        console.log('Spawning a wallRepairer');
+                    }
+                }
+
+                //REMOTE RESPAWN
+                if (Game.flags.remoteBuild) {
+                    for (let i = 0; i < 5; i++) {
+                        let remote = 'remote' + i;
+                        if (Game.flags[remote]) {
+                            let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === remote);
+                            if (creep.length === 0) {
+                                Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE], undefined, {
+                                    role: 'remoteHarvester',
+                                    destination: remote
+                                });
+                                console.log('Spawning a remoteHarvester');
+                            }
+                        }
+                    }
+                    if (remoteHauler.length < remoteHarvester.length) {
+                        Game.spawns['Spawn1'].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], undefined, {role: 'remoteHauler'});
+                        console.log('Spawning a remoteHauler');
+                    }
+                }
+
+                //SCOUT RESPAWNS
+                if (Game.flags.scoutBuild) {
+                    for (let i = 0; i < 5; i++) {
+                        let scout = 'scout' + i;
+                        if (Game.flags[scout]) {
+                            let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === scout);
+                            if (creep.length === 0) {
+                                Game.spawns['Spawn1'].createCreep([MOVE, MOVE, MOVE, MOVE], undefined, {
+                                    role: 'scout',
+                                    destination: scout
+                                });
+                                console.log('Spawning a scout');
+                            }
                         }
                     }
                 }

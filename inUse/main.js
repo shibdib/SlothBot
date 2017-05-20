@@ -1,3 +1,4 @@
+let rolePeasant = require('role.peasant');
 let roleHarvester = require('role.harvester');
 let roleUpgrader = require('role.upgrader');
 let roleDefenderRanged = require('role.defenderRanged');
@@ -62,6 +63,9 @@ module.exports.loop = function () {
 
         for (var name in Game.creeps) {
             var creep = Game.creeps[name];
+            if (creep.memory.role === 'peasant') {
+                rolePeasant.run(creep);
+            }
             if (creep.memory.role === 'stationaryHarvester') {
                 roleHarvester.run(creep);
             }
