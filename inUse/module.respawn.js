@@ -9,6 +9,8 @@ var totalCreeps = _.filter(Game.creeps, (creep) => creep.memory.role !== null);
 
 //Peasant Creeps
 var peasants = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant');
+var peasantBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasantBuilder');
+var peasantUpgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasantUpgrader');
 
 //Stationary Creeps
 var stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
@@ -57,14 +59,18 @@ const respawnCreeps = {
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
         if (!Game.spawns['Spawn1'].spawning) {
             //ERRBODY DEAD??
-            if (totalCreeps.length < 4){
+            if (totalCreeps.length === 0){
                 if (peasants.length < 2) {
                     Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
                     console.log('Spawning a peasant');
                 }
-                if (peasantBuilder.length < 2) {
+                if (peasantBuilders.length < 1) {
                     Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasantBuilder'});
                     console.log('Spawning a peasantBuilder');
+                }
+                if (peasantUpgraders.length < 1) {
+                    Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasantUpgrader'});
+                    console.log('Spawning a peasantUpgrader');
                 }
             }else{
 
