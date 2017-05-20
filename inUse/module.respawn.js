@@ -127,7 +127,12 @@ const respawnCreeps = {
 
                     //HARVESTER RESPAWNS
                     if (Game.flags.harvesterBuild) {
-                        if (stationaryHarvester.length < sourceCount.length && roomEnergyCapacity >= 550) {
+                        if (stationaryHarvester.length < sourceCount.length && roomEnergyCapacity >= 650) {
+                            Game.spawns['Spawn1'].createCreep([WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
+                            console.log('Spawning a stationaryHarvester');
+                            return;
+                        }
+                        if (stationaryHarvester.length < sourceCount.length && roomEnergyCapacity >= 550 && roomEnergyCapacity < 650) {
                             Game.spawns['Spawn1'].createCreep([WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
                             console.log('Spawning a stationaryHarvester');
                             return;
