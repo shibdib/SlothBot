@@ -62,7 +62,8 @@ const respawnCreeps = {
         if (room.find(FIND_MY_SPAWNS)) {
             if (!Game.spawns['Spawn1'].spawning) {
                 //ERRBODY DEAD??
-                if (totalCreeps.length <= 2 && room.memory.peasant === true) {
+                if (totalCreeps.length <= 2 || room.memory.peasant === true) {
+                    room.memory.peasant = true;
                     if (peasants.length < 2) {
                         Game.spawns['Spawn1'].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
                         console.log('Spawning a peasant');
@@ -78,10 +79,9 @@ const respawnCreeps = {
                         console.log('Spawning a peasantUpgrader');
                     }
                 } else {
-
-
                     if (totalCreeps.length > 8) {
                         //Kill peasants
+                        room.memory.peasant = false;
                         for (let i = 0; i < peasants.length; i++) {
                             peasants[i].suicide();
                         }

@@ -3,9 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/main.js" afterPath="$PROJECT_DIR$/inUse/main.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.autoBuild.js" afterPath="$PROJECT_DIR$/inUse/module.autoBuild.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.balancer.js" afterPath="$PROJECT_DIR$/inUse/module.balancer.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.respawn.js" afterPath="$PROJECT_DIR$/inUse/module.respawn.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -31,11 +28,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="303">
-              <caret line="60" column="110" lean-forward="true" selection-start-line="60" selection-start-column="110" selection-end-line="61" selection-end-column="40" />
+            <state relative-caret-position="456">
+              <caret line="75" column="21" lean-forward="true" selection-start-line="75" selection-start-column="21" selection-end-line="75" selection-end-column="21" />
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
@@ -73,7 +70,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.balancer.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="module.balancer.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="657">
@@ -179,10 +176,10 @@
         <option value="$PROJECT_DIR$/inUse/role.remoteHauler.js" />
         <option value="$PROJECT_DIR$/inUse/role.remoteHarvester.js" />
         <option value="$PROJECT_DIR$/inUse/role.peasant.js" />
-        <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
         <option value="$PROJECT_DIR$/inUse/module.autoBuild.js" />
         <option value="$PROJECT_DIR$/inUse/main.js" />
         <option value="$PROJECT_DIR$/inUse/module.balancer.js" />
+        <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
       </list>
     </option>
   </component>
@@ -370,7 +367,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="3582000" />
+      <workItem from="1495258208933" duration="3678000" />
     </task>
     <task id="LOCAL-00001" summary="reorg">
       <created>1495181373932</created>
@@ -568,11 +565,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495260790221</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="inital probably broken multi room support">
+      <created>1495261808383</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1495261808383</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="107158000" />
+    <option name="totallyTimeSpent" value="107254000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -627,7 +631,8 @@
     <MESSAGE value="keep peasants around longer" />
     <MESSAGE value="peasant upgraders" />
     <MESSAGE value="derp the peasant suicide code" />
-    <option name="LAST_COMMIT_MESSAGE" value="derp the peasant suicide code" />
+    <MESSAGE value="inital probably broken multi room support" />
+    <option name="LAST_COMMIT_MESSAGE" value="inital probably broken multi room support" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -975,16 +980,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="303">
-          <caret line="60" column="110" lean-forward="true" selection-start-line="60" selection-start-column="110" selection-end-line="61" selection-end-column="40" />
-          <folding>
-            <element signature="e#0#41#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.autoBuild.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="204">
@@ -1006,6 +1001,16 @@
         <state relative-caret-position="657">
           <caret line="39" column="43" lean-forward="false" selection-start-line="39" selection-start-column="43" selection-end-line="39" selection-end-column="43" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="456">
+          <caret line="75" column="21" lean-forward="true" selection-start-line="75" selection-start-column="21" selection-end-line="75" selection-end-column="21" />
+          <folding>
+            <element signature="e#0#41#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
