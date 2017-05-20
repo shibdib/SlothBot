@@ -12,6 +12,7 @@ var roleWorker = {
             creep.memory.working = null;
         }
         if (creep.carry.energy === creep.carryCapacity) {
+            creep.memory.harvesting = false;
             creep.memory.working = true;
         }
 
@@ -45,7 +46,7 @@ var roleWorker = {
                 let source = findSource(creep);
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
                     creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
-
+                    creep.memory.harvesting = true;
                 }
             }
         }
