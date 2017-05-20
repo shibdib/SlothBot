@@ -27,7 +27,7 @@ var roleDumpTruck = {
         if (creep.carry.energy >= 50) {
             creep.memory.hauling = true;
             var target = findBuilder(creep);
-            target = Game.getObjectById(target);
+            target = Game.getObjectById(creep.memory.builderID);
             if (target) {
                 target.memory.incomingEnergy = creep.id;
                 if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -93,6 +93,7 @@ function findNewBuilder(creep) {
     var stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
     if (stationaryBuilder) {
         creep.memory.builderID = stationaryBuilder.id;
+        creep.memory.haulCounter = 0;
         return stationaryBuilder.id;
     }
     return null;

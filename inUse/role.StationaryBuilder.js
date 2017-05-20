@@ -66,7 +66,7 @@ function dumpTruck(creep) {
     }
     if (creep.memory.incomingEnergy) {
         creep.memory.incomingCounter = creep.memory.incomingCounter+1;
-        if (creep.memory.incomingCounter > 25){
+        if (creep.memory.incomingCounter > 50){
             creep.memory.incomingEnergy = false;
         }
     }
