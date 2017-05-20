@@ -4,11 +4,11 @@
 
 const balanceCreeps = {
     /** @param  {Spawn} spawn  **/
-    run: function (room) {
+    run: function (spawnName) {
 
         //VARS
-        var sources = room.find(FIND_SOURCES);
-        var containers = room.find(FIND_STRUCTURES, {
+        var sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
+        var containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: { structureType: STRUCTURE_CONTAINER }
         });
 
@@ -24,23 +24,23 @@ const balanceCreeps = {
         }
 
         //Split up Expediter 1-1
-        var expediter = _.filter(room.creeps, (creep) => creep.memory.role === 'expediter');
+        var expediter = _.filter(room.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
         for (var i = 0; i < containers.length && i < expediter.length; i++){
             expediter[i].memory.assignedContainer = containers[i].id;
         }
 
         //Split up Haulers 1-1
-        var hauler = _.filter(room.creeps, (creep) => creep.memory.role === 'hauler');
+        var hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
         for (var i = 0; i < containers.length && i < hauler.length; i++){
             hauler[i].memory.assignedContainer = containers[i].id;
         }
 
         //Split up Remote Haulers 1-1
-        var remoteHauler = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHauler');
-        var remoteHarvester = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHarvester');
+       /**var remoteHauler = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.room === Game.spawns[spawnName].room);
+        var remoteHarvester = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHarvester' && creep.room === Game.spawns[spawnName].room);
         for (var i = 0; i < remoteHarvester.length && i < remoteHauler.length; i++){
             remoteHauler[i].memory.assignedHarvester = remoteHarvester[i].id;
-        }
+        }**/
     }
 }
 
