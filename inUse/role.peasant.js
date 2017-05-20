@@ -4,7 +4,7 @@ let rolePeasant = {
     run: function (creep) {
         if (creep.carry.energy < creep.carryCapacity) {
             if (creep.memory.source && creep.moveTo(Game.getObjectById(creep.memory.source)) !== ERR_NO_PATH){
-                source = Game.getObjectById(creep.memory.assignedSource);
+                source = Game.getObjectById(creep.memory.source);
             }else if (!source) {
                 var source = findSource(creep);
             }
