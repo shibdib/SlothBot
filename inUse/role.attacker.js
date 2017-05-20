@@ -9,12 +9,13 @@ var roleAttacker = {
             if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestHostileSpawn, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
-        } else
-
-        var closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (closestHostile) {
-            if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
+        }
+        if (!closestHostileSpawn) {
+            var closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            if (closestHostile) {
+                if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
+                }
             }
         } else if (attackers.length >= 3 || creep.memory.attackStarted === true){
             creep.memory.attackStarted = true;

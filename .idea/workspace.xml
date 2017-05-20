@@ -3,7 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/main.js" afterPath="$PROJECT_DIR$/inUse/main.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.attacker.js" afterPath="$PROJECT_DIR$/inUse/role.attacker.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -28,7 +28,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="main.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/main.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="362">
@@ -70,11 +70,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.attacker.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="role.attacker.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/role.attacker.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="323">
-              <caret line="19" column="46" lean-forward="true" selection-start-line="19" selection-start-column="46" selection-end-line="19" selection-end-column="46" />
+            <state relative-caret-position="510">
+              <caret line="30" column="3" lean-forward="true" selection-start-line="30" selection-start-column="3" selection-end-line="30" selection-end-column="3" />
               <folding />
             </state>
           </provider>
@@ -169,11 +169,11 @@
         <option value="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
         <option value="$PROJECT_DIR$/inUse/role.worker.js" />
         <option value="$PROJECT_DIR$/inUse/role.basicHauler.js" />
-        <option value="$PROJECT_DIR$/inUse/role.attacker.js" />
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
         <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
         <option value="$PROJECT_DIR$/inUse/main.js" />
+        <option value="$PROJECT_DIR$/inUse/role.attacker.js" />
       </list>
     </option>
   </component>
@@ -361,14 +361,7 @@
       <workItem from="1495003571152" duration="918000" />
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
-      <workItem from="1495258208933" duration="18257000" />
-    </task>
-    <task id="LOCAL-00017" summary="add remote haulers to count">
-      <created>1495189548564</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1495189548564</updated>
+      <workItem from="1495258208933" duration="18390000" />
     </task>
     <task id="LOCAL-00018" summary="var?">
       <created>1495189721121</created>
@@ -706,11 +699,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495277512992</updated>
     </task>
-    <option name="localTasksCounter" value="66" />
+    <task id="LOCAL-00066" summary="remove completed attack flags">
+      <created>1495277762555</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1495277762555</updated>
+    </task>
+    <option name="localTasksCounter" value="67" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="121833000" />
+    <option name="totallyTimeSpent" value="121966000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -743,7 +743,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="fix non peasants" />
     <MESSAGE value="multi room combat check" />
     <MESSAGE value="add basic hauler, make peasant more cpu efficient" />
     <MESSAGE value="typo" />
@@ -768,7 +767,8 @@
     <MESSAGE value="tweak construction queue" />
     <MESSAGE value="attacker test" />
     <MESSAGE value="tweak dump trucks" />
-    <option name="LAST_COMMIT_MESSAGE" value="tweak dump trucks" />
+    <MESSAGE value="remove completed attack flags" />
+    <option name="LAST_COMMIT_MESSAGE" value="remove completed attack flags" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1117,14 +1117,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.attacker.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="19" column="46" lean-forward="true" selection-start-line="19" selection-start-column="46" selection-end-line="19" selection-end-column="46" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="289">
@@ -1155,6 +1147,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="362">
           <caret line="41" column="38" lean-forward="false" selection-start-line="41" selection-start-column="38" selection-end-line="41" selection-end-column="38" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.attacker.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="510">
+          <caret line="30" column="3" lean-forward="true" selection-start-line="30" selection-start-column="3" selection-end-line="30" selection-end-column="3" />
           <folding />
         </state>
       </provider>
