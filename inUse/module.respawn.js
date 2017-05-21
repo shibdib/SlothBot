@@ -42,7 +42,7 @@ const respawnCreeps = {
         var attackers = _.filter(Game.creeps, (creep) => creep.memory.role === 'attacker' && creep.room === Game.spawns[spawnName].room);
 
 //MISC
-        var sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES);
+        var sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
         var containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_CONTAINER}
         });
