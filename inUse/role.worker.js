@@ -3,11 +3,10 @@ var roleWorker = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        //BORDER CHECK
-        let nextStepIntoRoom = require('module.borderChecks');
-        let isOnBorder = require('module.borderChecks');
-        if(isOnBorder.run(creep) === true){
-            nextStepIntoRoom.run(creep);
+//BORDER CHECK
+        let borderChecks = require('module.borderChecks');
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
         }
         if (rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
             creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});

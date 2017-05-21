@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.borderChecks.js" afterPath="$PROJECT_DIR$/inUse/module.borderChecks.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.DumpTruck.js" afterPath="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.Expediter.js" afterPath="$PROJECT_DIR$/inUse/role.Expediter.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.Hauler.js" afterPath="$PROJECT_DIR$/inUse/role.Hauler.js" />
@@ -33,61 +32,21 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="role.wallRepairer.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="role.worker.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/role.worker.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="153">
-              <caret line="9" column="12" lean-forward="true" selection-start-line="9" selection-start-column="12" selection-end-line="9" selection-end-column="39" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="role.DumpTruck.js" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="136">
-              <caret line="8" column="12" lean-forward="false" selection-start-line="8" selection-start-column="12" selection-end-line="8" selection-end-column="12" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="module.borderChecks.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/module.borderChecks.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="425">
-              <caret line="25" column="5" lean-forward="true" selection-start-line="25" selection-start-column="5" selection-end-line="25" selection-end-column="5" />
+            <state relative-caret-position="663">
+              <caret line="39" column="28" lean-forward="true" selection-start-line="39" selection-start-column="28" selection-end-line="39" selection-end-column="28" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.defenderRanged.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/role.defenderRanged.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="role.peasantBuilder.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="role.peasantBuilder.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
+            <state relative-caret-position="136">
+              <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
               <folding />
             </state>
           </provider>
@@ -96,8 +55,8 @@
       <file leaf-file-name="role.peasantUpgrader.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
+            <state relative-caret-position="136">
+              <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
               <folding />
             </state>
           </provider>
@@ -106,8 +65,8 @@
       <file leaf-file-name="role.upgrader.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/role.upgrader.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
+            <state relative-caret-position="136">
+              <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
               <folding />
             </state>
           </provider>
@@ -116,8 +75,8 @@
       <file leaf-file-name="role.harvester.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/role.harvester.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
+            <state relative-caret-position="153">
+              <caret line="9" column="8" lean-forward="false" selection-start-line="9" selection-start-column="8" selection-end-line="9" selection-end-column="8" />
               <folding />
             </state>
           </provider>
@@ -126,8 +85,8 @@
       <file leaf-file-name="role.peasant.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
+            <state relative-caret-position="136">
+              <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
               <folding />
             </state>
           </provider>
@@ -157,6 +116,8 @@
       <find>isOnBorder(creep</find>
       <find>isOnBorder(creep)</find>
       <find>nextStepIntoRoom(creep)</find>
+      <find>\/\/BORDER CHECK\n        let nextStepIntoRoom \= require\(\'module\.borderChecks\'\)\;\n        let isOnBorder \= require\(\'module\.borderChecks\'\)\;\n        if\(isOnBorder\.run\(creep\) \=\=\= true\)\{\n            nextStepIntoRoom\.run\(creep\)\;\n        \}</find>
+      <find>//BORDER CHECKlet borderChecks = require('module.borderChecks');if(borderChecks.isOnBorder(creep) === true){	borderChecks.nextStepIntoRoom(creep);}</find>
     </findStrings>
     <replaceStrings>
       <replace>apiData</replace>
@@ -169,6 +130,7 @@
       <replace>isOnBorder(creep</replace>
       <replace>isOnBorder.run(creep)</replace>
       <replace>nextStepIntoRoom.run(creep)</replace>
+      <replace>//BORDER CHECKlet borderChecks = require('module.borderChecks');if(borderChecks.isOnBorder(creep) === true){	borderChecks.nextStepIntoRoom(creep);}</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -214,20 +176,20 @@
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
         <option value="$PROJECT_DIR$/inUse/modules.borderChecks.js" />
         <option value="$PROJECT_DIR$/inUse/module.borderChecks.js" />
-        <option value="$PROJECT_DIR$/inUse/role.Expediter.js" />
         <option value="$PROJECT_DIR$/inUse/role.Hauler.js" />
         <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/role.basicHauler.js" />
         <option value="$PROJECT_DIR$/inUse/role.defender.js" />
         <option value="$PROJECT_DIR$/inUse/role.defenderRanged.js" />
-        <option value="$PROJECT_DIR$/inUse/role.harvester.js" />
-        <option value="$PROJECT_DIR$/inUse/role.peasant.js" />
-        <option value="$PROJECT_DIR$/inUse/role.peasantBuilder.js" />
-        <option value="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" />
-        <option value="$PROJECT_DIR$/inUse/role.upgrader.js" />
         <option value="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
         <option value="$PROJECT_DIR$/inUse/role.worker.js" />
         <option value="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
+        <option value="$PROJECT_DIR$/inUse/role.Expediter.js" />
+        <option value="$PROJECT_DIR$/inUse/role.peasantBuilder.js" />
+        <option value="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" />
+        <option value="$PROJECT_DIR$/inUse/role.upgrader.js" />
+        <option value="$PROJECT_DIR$/inUse/role.peasant.js" />
+        <option value="$PROJECT_DIR$/inUse/role.harvester.js" />
       </list>
     </option>
   </component>
@@ -417,14 +379,7 @@
       <workItem from="1495180962216" duration="8956000" />
       <workItem from="1495258208933" duration="19522000" />
       <workItem from="1495320725067" duration="6522000" />
-      <workItem from="1495329597838" duration="661000" />
-    </task>
-    <task id="LOCAL-00046" summary="remove debug lines">
-      <created>1495268071002</created>
-      <option name="number" value="00046" />
-      <option name="presentableId" value="LOCAL-00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1495268071002</updated>
+      <workItem from="1495329597838" duration="1285000" />
     </task>
     <task id="LOCAL-00047" summary="fix typo">
       <created>1495268155024</created>
@@ -762,11 +717,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495329840561</updated>
     </task>
-    <option name="localTasksCounter" value="95" />
+    <task id="LOCAL-00095" summary="check if stuck on border">
+      <created>1495330266776</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1495330266776</updated>
+    </task>
+    <option name="localTasksCounter" value="96" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="132395000" />
+    <option name="totallyTimeSpent" value="133019000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="3456" height="1416" extended-state="6" />
@@ -1099,14 +1061,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.Expediter.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.Hauler.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
@@ -1147,58 +1101,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.harvester.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.upgrader.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/module.borderChecks.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="425">
-          <caret line="25" column="5" lean-forward="true" selection-start-line="25" selection-start-column="5" selection-end-line="25" selection-end-column="5" />
+        <state relative-caret-position="136">
+          <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
           <folding />
         </state>
       </provider>
@@ -1206,7 +1112,7 @@
     <entry file="file://$PROJECT_DIR$/inUse/role.worker.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="153">
-          <caret line="9" column="12" lean-forward="true" selection-start-line="9" selection-start-column="12" selection-end-line="9" selection-end-column="39" />
+          <caret line="9" column="9" lean-forward="false" selection-start-line="9" selection-start-column="9" selection-end-line="9" selection-end-column="9" />
           <folding />
         </state>
       </provider>
@@ -1214,7 +1120,63 @@
     <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
-          <caret line="8" column="12" lean-forward="false" selection-start-line="8" selection-start-column="12" selection-end-line="8" selection-end-column="12" />
+          <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.Expediter.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/module.borderChecks.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="663">
+          <caret line="39" column="28" lean-forward="true" selection-start-line="39" selection-start-column="28" selection-end-line="39" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.harvester.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="9" column="8" lean-forward="false" selection-start-line="9" selection-start-column="8" selection-end-line="9" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.upgrader.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="9" lean-forward="false" selection-start-line="8" selection-start-column="9" selection-end-line="8" selection-end-column="9" />
           <folding />
         </state>
       </provider>

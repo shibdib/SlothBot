@@ -2,13 +2,12 @@ var roleHarvester = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        //BORDER CHECK
-        let nextStepIntoRoom = require('module.borderChecks');
-        let isOnBorder = require('module.borderChecks');
-        if(isOnBorder.run(creep) === true){
-            nextStepIntoRoom.run(creep);
-        }
-        if (creep.carry.energy < creep.carryCapacity || creep.carryCapacity === 0) {
+//BORDER CHECK
+        let borderChecks = require('module.borderChecks');
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        } if
+        (creep.carry.energy < creep.carryCapacity || creep.carryCapacity === 0) {
             if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
                 source = Game.getObjectById(creep.memory.assignedSource);
             }else if (!source) {
