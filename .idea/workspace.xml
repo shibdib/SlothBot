@@ -3,7 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/module.respawn.js" afterPath="$PROJECT_DIR$/inUse/module.respawn.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.wallRepairer.js" afterPath="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
     </list>
     <ignored path="E:\Documents\GitHub\screeps\.idea\shelf/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -19,7 +19,7 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="762">
@@ -27,6 +27,26 @@
               <folding>
                 <element signature="e#0#41#0" expanded="false" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="role.wallRepairer.js" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="680">
+              <caret line="40" column="13" lean-forward="false" selection-start-line="40" selection-start-column="13" selection-end-line="40" selection-end-column="13" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="role.peasantBuilder.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="85">
+              <caret line="5" column="41" lean-forward="true" selection-start-line="5" selection-start-column="41" selection-end-line="16" selection-end-column="17" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -116,8 +136,8 @@
         <option value="$PROJECT_DIR$/inUse/role.remoteHauler.js" />
         <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/role.upgrader.js" />
-        <option value="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
+        <option value="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
       </list>
     </option>
   </component>
@@ -306,14 +326,7 @@
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
       <workItem from="1495258208933" duration="19522000" />
-      <workItem from="1495320725067" duration="3971000" />
-    </task>
-    <task id="LOCAL-00042" summary="add 650+ harvester">
-      <created>1495266865502</created>
-      <option name="number" value="00042" />
-      <option name="presentableId" value="LOCAL-00042" />
-      <option name="project" value="LOCAL" />
-      <updated>1495266865502</updated>
+      <workItem from="1495320725067" duration="4702000" />
     </task>
     <task id="LOCAL-00043" summary="mem stuff">
       <created>1495267199858</created>
@@ -651,11 +664,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495326021333</updated>
     </task>
-    <option name="localTasksCounter" value="91" />
+    <task id="LOCAL-00091" summary="fix source count">
+      <created>1495326577018</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1495326577018</updated>
+    </task>
+    <option name="localTasksCounter" value="92" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="129183000" />
+    <option name="totallyTimeSpent" value="129914000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="3456" height="1416" extended-state="6" />
@@ -688,7 +708,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="keep basic haulers from taking up a mining spot" />
     <MESSAGE value="check if creep can be made" />
     <MESSAGE value="cap builders at 5" />
     <MESSAGE value="workers &gt; builders" />
@@ -713,7 +732,8 @@
     <MESSAGE value="tweak respawn" />
     <MESSAGE value="tweak" />
     <MESSAGE value="limit to 1 room" />
-    <option name="LAST_COMMIT_MESSAGE" value="limit to 1 room" />
+    <MESSAGE value="fix source count" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix source count" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1046,14 +1066,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="170">
-          <caret line="10" column="130" lean-forward="false" selection-start-line="10" selection-start-column="130" selection-end-line="10" selection-end-column="130" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="391">
@@ -1094,14 +1106,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="561">
-          <caret line="33" column="117" lean-forward="false" selection-start-line="33" selection-start-column="117" selection-end-line="33" selection-end-column="117" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="762">
@@ -1109,6 +1113,22 @@
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="85">
+          <caret line="5" column="41" lean-forward="true" selection-start-line="5" selection-start-column="41" selection-end-line="16" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="680">
+          <caret line="40" column="13" lean-forward="false" selection-start-line="40" selection-start-column="13" selection-end-line="40" selection-end-column="13" />
+          <folding />
         </state>
       </provider>
     </entry>

@@ -22,8 +22,22 @@ var roleWallRepairer = {
                     creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                 }
             } else
-            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            var target = Game.getObjectById(findConstruction(creep));
+            if (target) {
+                if (creep.build(target) === ERR_INVALID_TARGET) {
+                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                } else {
+                    if (creep.build(target) === ERR_NOT_IN_RANGE) {
+                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    }
+                }
+            } else {
+                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(creep.room.controller, {reusePath: 20}, {
+                        visualizePathStyle: {stroke: '#ffffff'},
+                        maxRooms: 1
+                    });
+                }
             }
         }
         else {
@@ -72,6 +86,18 @@ function findRepair(creep) {
         site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 25000});
     }
     if (site !== null && site !== undefined) {
+        return site.id;
+    }
+}
+
+function findConstruction(creep) {
+
+    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_WALL});
+    if (site === null) {
+        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
+    }
+    if (site !== null && site !== undefined) {
+        creep.memory.constructionSite = site.id;
         return site.id;
     }
 }
