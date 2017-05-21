@@ -25,16 +25,16 @@ var roleWallRepairer = {
             if (repairNeeded) {
                 repairNeeded = Game.getObjectById(repairNeeded);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             } else
             var target = Game.getObjectById(findConstruction(creep));
             if (target) {
                 if (creep.build(target) === ERR_INVALID_TARGET) {
-                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 } else {
                     if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 }
             } else {
@@ -51,7 +51,7 @@ var roleWallRepairer = {
             container = Game.getObjectById(container);
             if (container) {
                 if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
             if (!container) {

@@ -24,7 +24,7 @@ var roleStationaryBuilder = {
                     });
                 } else {
                     if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 }
             } else {
@@ -41,7 +41,7 @@ var roleStationaryBuilder = {
                     });
                 } else {
                     if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 }
             } else {

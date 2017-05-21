@@ -9,7 +9,7 @@ var roleWorker = {
             borderChecks.nextStepIntoRoom(creep);
         }
         if (rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
-            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             return null;
         }
 
@@ -26,10 +26,10 @@ var roleWorker = {
             if (repairNeeded) {
                 repairNeeded = Game.getObjectById(repairNeeded);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
         else {
@@ -37,19 +37,19 @@ var roleWorker = {
             container = Game.getObjectById(container);
             if (container) {
                 if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
             if (!container) {
                 var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
                 if (energy) {
                     if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 } else {
                     let source = findSource(creep);
                     if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                         creep.memory.harvesting = true;
                     }
                 }

@@ -13,10 +13,10 @@ module.exports.Defender = function (creep) {
     if (closestHostile) {
         creep.say('ATTACKING');
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
-        creep.moveTo(Game.flags.defender1, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+        creep.moveTo(Game.flags.defender1, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
     }
 };
 
@@ -32,10 +32,10 @@ module.exports.RangedDefender = function (creep) {
     if (closestHostile) {
         creep.say('ATTACKING');
         if (creep.rangedAttack(closestHostile) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
-        creep.moveTo(Game.flags.defender1, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+        creep.moveTo(Game.flags.defender1, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
     }
 };
 

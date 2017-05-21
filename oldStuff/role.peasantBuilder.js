@@ -14,10 +14,10 @@ let rolePeasantBuilder = {
                 target = Game.getObjectById(target);
                 if (target) {
                     if (creep.build(target) === ERR_INVALID_TARGET) {
-                        creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     } else {
                         if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                         }
                     }
                 }
@@ -28,7 +28,7 @@ let rolePeasantBuilder = {
                     var spawn = creepTools.findSpawn(creep);
                 }
                 if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         }

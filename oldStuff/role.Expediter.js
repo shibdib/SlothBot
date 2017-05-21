@@ -9,7 +9,7 @@ var roleExpediter = {
             borderChecks.nextStepIntoRoom(creep);
         }
         if (creepTools.rangeSource(creep) === 1) {
-            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             return null;
         }
         if (creepTools.rangeAssignment(creep) > 4) {
@@ -20,7 +20,7 @@ var roleExpediter = {
         var energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 8);
         if (energy) {
             if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(energy[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(energy[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
 
@@ -28,7 +28,7 @@ var roleExpediter = {
         var container = Game.getObjectById(creep.memory.assignedContainer);
         if (container && creep.carry.energy === creep.carryCapacity) {
             if (creep.transfer(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }

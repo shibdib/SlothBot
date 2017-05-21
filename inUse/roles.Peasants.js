@@ -16,7 +16,7 @@ module.exports.Peasant = function (creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
         const targets = creep.room.find(FIND_STRUCTURES, {
@@ -27,7 +27,7 @@ module.exports.Peasant = function (creep) {
         });
         if (targets.length > 0) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }
@@ -47,10 +47,10 @@ module.exports.PeasantBuilder = function (creep) {
             target = Game.getObjectById(target);
             if (target) {
                 if (creep.build(target) === ERR_INVALID_TARGET) {
-                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 } else {
                     if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 }
             }
@@ -61,7 +61,7 @@ module.exports.PeasantBuilder = function (creep) {
                 var spawn = creepTools.findSpawn(creep);
             }
             if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }
@@ -85,7 +85,7 @@ module.exports.PeasantUpgrader = function (creep) {
 
     if (creep.memory.upgrading) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
         if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
@@ -94,7 +94,7 @@ module.exports.PeasantUpgrader = function (creep) {
             var spawn = creepTools.findSpawn(creep);
         }
         if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     }
 

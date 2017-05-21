@@ -15,7 +15,7 @@ var roleHarvester = {
                 var source = creepTools.findSource(creep);
             }
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }

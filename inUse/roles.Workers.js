@@ -10,7 +10,7 @@ module.exports.Worker = function (creep) {
         borderChecks.nextStepIntoRoom(creep);
     }
     if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
-        creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+        creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return;
     }
 
@@ -27,10 +27,10 @@ module.exports.Worker = function (creep) {
         if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
             if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     }
     else {
@@ -38,19 +38,19 @@ module.exports.Worker = function (creep) {
         container = Game.getObjectById(container);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
         if (!container) {
             const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
             if (energy) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             } else {
                 let source = creepTools.findSource(creep);
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     creep.memory.harvesting = true;
                 }
             }
@@ -73,7 +73,7 @@ module.exports.Harvester = function (creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     }
 };
@@ -103,16 +103,16 @@ module.exports.wallRepairer = function (creep) {
         if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
             if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         } else
             var target = Game.getObjectById(creepTools.findConstruction(creep));
         if (target) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
-                creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         } else {
@@ -129,7 +129,7 @@ module.exports.wallRepairer = function (creep) {
         container = Game.getObjectById(container);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
         if (!container) {
@@ -158,7 +158,7 @@ module.exports.Upgrader = function (creep) {
 
     if (creep.memory.upgrading) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+            creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     }
 };
@@ -187,7 +187,7 @@ module.exports.Builder = function (creep) {
                 });
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         } else {
@@ -204,7 +204,7 @@ module.exports.Builder = function (creep) {
                 });
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         } else {
@@ -232,10 +232,10 @@ module.exports.RoadBuilder = function (creep) {
             target = Game.getObjectById(target);
             if (target) {
                 if (creep.build(target) === ERR_INVALID_TARGET) {
-                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 } else {
                     if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 }
             }
@@ -243,7 +243,7 @@ module.exports.RoadBuilder = function (creep) {
             let container = creepTools.findContainer(creep);
             if (container) {
                 if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             } else {
                 if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
@@ -252,7 +252,7 @@ module.exports.RoadBuilder = function (creep) {
                     var spawn = creepTools.findSpawn(creep);
                 }
                 if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         }

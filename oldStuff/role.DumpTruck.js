@@ -17,13 +17,13 @@ var roleDumpTruck = {
                 let closestContainer = Game.getObjectById(creep.memory.container);
                 if (closestContainer && creep.moveTo(creep.memory.container) !== ERR_NO_PATH) {
                     if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(closestContainer, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(closestContainer, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 } else {
                     var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY, {filter: (s) => s.amount > 50});
                     if (energy) {
                         if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                            creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                         }
                     }
                 }
@@ -46,10 +46,10 @@ var roleDumpTruck = {
                     newTarget.memory.incomingEnergy = creep.id;
                     newTarget.memory.incomingCounter = 0;
                     if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(newTarget, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                        creep.moveTo(newTarget, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                     }
                 }else {
-                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         }
