@@ -2,7 +2,10 @@ let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 
 module.exports.Defender = function (creep) {
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
 
@@ -18,7 +21,10 @@ module.exports.Defender = function (creep) {
 };
 
 module.exports.RangedDefender = function (creep) {
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
 

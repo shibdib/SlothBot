@@ -3,10 +3,12 @@ let creepTools = require('module.creepFunctions');
 
 module.exports.Hauler = function (creep) {
     //BORDER CHECK
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
         return;
@@ -51,10 +53,12 @@ module.exports.Hauler = function (creep) {
 
 module.exports.Expediter = function (creep) {
     //BORDER CHECK
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
         return;
@@ -82,10 +86,12 @@ module.exports.Expediter = function (creep) {
 
 module.exports.DumpTruck = function (creep) {
     //BORDER CHECK
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creep.carry.energy < 50) {
         creep.memory.hauling = false;
     }
@@ -138,10 +144,12 @@ module.exports.DumpTruck = function (creep) {
 
 module.exports.BasicHauler = function (creep) {
     //BORDER CHECK
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
         return;

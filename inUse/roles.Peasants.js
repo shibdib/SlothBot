@@ -3,10 +3,12 @@ let creepTools = require('module.creepFunctions');
 
 module.exports.Peasant = function (creep) {
     //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creep.carry.energy < creep.carryCapacity) {
         if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
             source = Game.getObjectById(creep.memory.assignedSource);
@@ -33,10 +35,12 @@ module.exports.Peasant = function (creep) {
 
 module.exports.PeasantBuilder = function (creep) {
     //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (!findSpawn(creep).memory.build === false) {
         if (creep.carry.energy > 0) {
             var target = creepTools.findConstruction(creep);
@@ -65,10 +69,12 @@ module.exports.PeasantBuilder = function (creep) {
 
 module.exports.PeasantUpgrader = function (creep) {
     //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
 
     if (creep.memory.upgrading && creep.carry.energy === 0) {
         creep.memory.upgrading = false;

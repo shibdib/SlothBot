@@ -3,10 +3,12 @@ let creepTools = require('module.creepFunctions');
 
 module.exports.Worker = function (creep) {
     //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
         return;
@@ -58,10 +60,12 @@ module.exports.Worker = function (creep) {
 
 module.exports.Harvester = function (creep) {
     //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creep.carry.energy < creep.carryCapacity || creep.carryCapacity === 0) {
         if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
             source = Game.getObjectById(creep.memory.assignedSource);
@@ -76,10 +80,12 @@ module.exports.Harvester = function (creep) {
 
 module.exports.wallRepairer = function (creep) {
 //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump);
         return null;
@@ -135,10 +141,12 @@ module.exports.wallRepairer = function (creep) {
 
 module.exports.Upgrader = function (creep) {
     //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    borderChecks.wrongRoom(creep);
     creepTools.dumpTruck(creep);
 
     if (creep.memory.upgrading && creep.carry.energy === 0) {
@@ -157,14 +165,16 @@ module.exports.Upgrader = function (creep) {
 
 module.exports.Builder = function (creep) {
     //BORDER CHECK
-    if(borderChecks.isOnBorder(creep) === true){
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump);
         return;
     }
-    borderChecks.wrongRoom(creep);
     creepTools.dumpTruck(creep);
 
     if (creep.memory.constructionSite && creep.carry.energy > 0) {
