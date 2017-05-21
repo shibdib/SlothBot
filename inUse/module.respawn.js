@@ -27,6 +27,7 @@ const respawnCreeps = {
         var upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.room === Game.spawns[spawnName].room);
         var wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer' && creep.room === Game.spawns[spawnName].room);
         var remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester' && creep.room === Game.spawns[spawnName].room);
+        var roadBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'roadBuilder' && creep.room === Game.spawns[spawnName].room);
 
 //Hauling Creeps
         var haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
@@ -57,6 +58,7 @@ const respawnCreeps = {
         console.log('Remote Haulers: ' + remoteHauler.length);
         console.log('Builders: ' + stationaryBuilders.length);
         console.log('Workers: ' + worker.length);
+         console.log('Road Builders: ' + roadBuilders.length);
         console.log('Upgraders: ' + upgraders.length);
         console.log('Haulers: ' + haulers.length);
         console.log('Expediters: ' + expediters.length);
@@ -180,6 +182,10 @@ const respawnCreeps = {
                         } else if (wallRepairers.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'wallRepairer'});
                             console.log('Spawning a wallRepairer');
+                            return;
+                        } else if (roadBuilders.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
+                            Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'roadBuilder'});
+                            console.log('Spawning a roadBuilder');
                             return;
                         }
                     }

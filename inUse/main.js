@@ -91,6 +91,9 @@ module.exports.loop = function () {
             if (creep.memory.role === 'worker') {
                 rolesWorkers.Worker(creep);
             }
+            if (creep.memory.role === 'roadBuilder') {
+                rolesWorkers.RoadBuilder(creep);
+            }
             if (creep.memory.role === 'upgrader') {
                 rolesWorkers.Upgrader(creep);
             }
