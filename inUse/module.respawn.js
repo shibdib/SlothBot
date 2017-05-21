@@ -124,7 +124,7 @@ const respawnCreeps = {
                     }
 
                     //HAULER RESPAWNS
-                    if (Game.flags.haulerBuild) {
+                    if (Game.flags.haulerBuild && stationaryHarvester.length >= sourceCount) {
                         if (expediters.length < containers.length && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
                             console.log('Spawning a expediter');
@@ -146,17 +146,17 @@ const respawnCreeps = {
 
                     //HARVESTER RESPAWNS
                     if (Game.flags.harvesterBuild) {
-                        if (stationaryHarvester.length < sourceCount.length && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, WORK, MOVE]) === OK) {
+                        if (stationaryHarvester.length < sourceCount && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, WORK, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
                             console.log('Spawning a stationaryHarvester');
                             return;
                         }
-                        if (stationaryHarvester.length < sourceCount.length && roomEnergyCapacity >= 550 && roomEnergyCapacity < 650 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, MOVE]) === OK) {
+                        if (stationaryHarvester.length < sourceCount && roomEnergyCapacity >= 550 && roomEnergyCapacity < 650 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
                             console.log('Spawning a stationaryHarvester');
                             return;
                         }
-                        if (stationaryHarvester.length < Math.ceil(sourceCount.length * 3) && roomEnergyCapacity < 550 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, MOVE]) === OK) {
+                        if (stationaryHarvester.length < Math.ceil(sourceCount * 3) && roomEnergyCapacity < 550 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([WORK, WORK, MOVE], undefined, {role: 'stationaryHarvester'});
                             console.log('Spawning a stationaryHarvester');
                             return;
