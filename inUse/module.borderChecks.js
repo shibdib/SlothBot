@@ -31,7 +31,7 @@ module.exports.nextStepIntoRoom = function(creep) {
     {
         creep.move(TOP);
     }
-}
+};
 
 module.exports.isOnBorder = function(creep) {
     if(creep.pos.x == 0 || creep.pos.y == 0 || creep.pos.x == 49 || creep.pos.y == 49)
@@ -41,5 +41,30 @@ module.exports.isOnBorder = function(creep) {
     else
     {
         return false;
+    }
+};
+
+module.exports.wrongRoom = function(creep) {
+    if(creep.memory.assignedSpawn) {
+        let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if (spawn.id !== creep.memory.assignedSpawn) {
+            let home = Game.getObjectById(creep.memory.assignedSpawn);
+            creep.moveTo(home, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        }
+        else {
+            return false;
+        }
+    } else {
+        let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if (spawn) {
+            if (creep.moveTo(spawn) !== ERR_NO_PATH) {
+                if (spawn.id) {
+                    creep.memory.assignedSpawn = spawn.id;
+                    return null;
+                }
+            }
+        } else {
+            creep.moveTo(Game.spawns['Spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        }
     }
 };

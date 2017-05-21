@@ -6,6 +6,7 @@ module.exports.Hauler = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
+    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
         return;
@@ -53,6 +54,7 @@ module.exports.Expediter = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
+    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
         return;
@@ -83,7 +85,7 @@ module.exports.DumpTruck = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-
+    borderChecks.wrongRoom(creep);
     if (creep.carry.energy < 50) {
         creep.memory.hauling = false;
     }
@@ -139,6 +141,7 @@ module.exports.BasicHauler = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
+    borderChecks.wrongRoom(creep);
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
         return;
