@@ -1,15 +1,21 @@
+
+let borderChecks = require('module.borderChecks');
 var roleHarvester = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        if (creep.carry.energy < creep.carryCapacity || creep.carryCapacity === 0) {
+//BORDER CHECK
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        } if
+        (creep.carry.energy < creep.carryCapacity || creep.carryCapacity === 0) {
             if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
                 source = Game.getObjectById(creep.memory.assignedSource);
             }else if (!source) {
                 var source = findSource(creep);
             }
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
+                creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         }
     }

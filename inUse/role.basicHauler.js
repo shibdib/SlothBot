@@ -3,34 +3,35 @@ var roleBasicHauler = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+//BORDER CHECKlet borderChecks = require('module.borderChecks');if(borderChecks.isOnBorder(creep) === true){	borderChecks.nextStepIntoRoom(creep);}
         if (rangeSource(creep) === 1) {
-            creep.moveTo(Game.flags.bump);
+            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             return null;
         }
-        if (creep.carry.energy !== creep.carryCapacity) {
+        if (creep.carry.energy === 0) {
             creep.memory.hauling = false;
         }
         if (creep.carry.energy === creep.carryCapacity) {
             creep.memory.hauling = true;
         }
         if (creep.memory.hauling === false) {
-                let goals = _.map(creep.room.find(FIND_DROPPED_ENERGY), function (source) {
-                return {pos: source.pos}});
-
-                var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
-                if (energy) {
-                    if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                        creep.move(creep.pos.getDirectionTo(pathFinder.run(creep,goals,false)));
-                    }
+            var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+            if (energy) {
+                if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                 }
-        } else {
-            if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
-                var spawn = Game.getObjectById(creep.memory.spawnID);
-            } else {
-                var spawn = findSpawn(creep);
             }
-            if (creep.transfer(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        } else {
+            var targets = creep.room.find(FIND_STRUCTURES, {
+                filter: (structure) => {
+                    return (structure.structureType === STRUCTURE_EXTENSION ||
+                        structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
+                }
+            })
+            if (targets.length > 0) {
+                if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
+                }
             }
         }
     }

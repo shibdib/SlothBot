@@ -1,12 +1,17 @@
+let borderChecks = require('module.borderChecks');
 var roleHauler = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+//BORDER CHECK
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        }
         if (rangeSource(creep) === 1) {
-            creep.moveTo(Game.flags.bump);
+            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             return null;
         }
-        if (creep.carry.energy !== creep.carryCapacity) {
+        if (creep.carry.energy === 0) {
             creep.memory.hauling = false;
         }
         if (creep.carry.energy === creep.carryCapacity) {
@@ -16,7 +21,7 @@ var roleHauler = {
             var container = Game.getObjectById(creep.memory.assignedContainer);
             if (container) {
                 if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(container, {visualizePathStyle: {stroke: '#ffaa00'}});
+                    creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                 }
             }
         }
@@ -31,13 +36,13 @@ var roleHauler = {
             })
             if (targets.length > 0) {
                 if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                    creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                 }
             }else{
                 var tower = Game.getObjectById(findTower(creep));
                 if (tower) {
                     if (creep.transfer(tower, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(tower, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                        creep.moveTo(tower, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                     }
                 }
             }

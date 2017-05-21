@@ -1,9 +1,14 @@
+let borderChecks = require('module.borderChecks');
 var roleExpediter = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+//BORDER CHECK
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        }
         if (rangeSource(creep) === 1) {
-            creep.moveTo(Game.flags.bump);
+            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             return null;
         }
         if (rangeAssignment(creep) > 4) {
@@ -11,10 +16,10 @@ var roleExpediter = {
             creep.moveTo(container);
             return null;
         }
-        var energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 5);
+        var energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 8);
         if (energy) {
             if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(energy[0], {visualizePathStyle: {stroke: '#ffaa00'}});
+                creep.moveTo(energy[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         }
 
@@ -22,7 +27,7 @@ var roleExpediter = {
         var container = Game.getObjectById(creep.memory.assignedContainer);
         if (container && creep.carry.energy === creep.carryCapacity) {
             if (creep.transfer(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(container, {visualizePathStyle: {stroke: '#ffffff'}});
+                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         }
     }
@@ -33,31 +38,6 @@ module.exports = roleExpediter;
 /**
  * Created by rober on 5/15/2017.
  */
-
-
-
-function findContainer(creep) {
-
-    container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER
-})
-    ;
-    if (container !== null) {
-        return container.id;
-    }
-    return null;
-}
-
-
-function findStationary(creep) {
-
-    harvester = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => s.memory.role === 'stationaryHarvester'
-})
-    ;
-    if (harvester !== null) {
-        return harvester.id;
-    }
-    return null;
-}
 
 function rangeSource(creep) {
     var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);

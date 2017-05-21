@@ -1,7 +1,13 @@
+
+let borderChecks = require('module.borderChecks');
 var roleUpgrader = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+//BORDER CHECK
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        }
         dumpTruck(creep);
 
         if (creep.memory.upgrading && creep.carry.energy === 0) {
@@ -13,7 +19,7 @@ var roleUpgrader = {
 
         if (creep.memory.upgrading) {
             if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
+                creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         }
     }

@@ -1,7 +1,13 @@
+
+let borderChecks = require('module.borderChecks');
 var roleDumpTruck = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+//BORDER CHECK
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        }
 
         if (creep.carry.energy < 50) {
             creep.memory.hauling = false;
@@ -11,13 +17,13 @@ var roleDumpTruck = {
                 let closestContainer = Game.getObjectById(creep.memory.container);
                 if (closestContainer && creep.moveTo(creep.memory.container) !== ERR_NO_PATH) {
                     if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(closestContainer, {visualizePathStyle: {stroke: '#ffaa00'}});
+                        creep.moveTo(closestContainer, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                     }
                 } else {
                     var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY, {filter: (s) => s.amount > 50});
                     if (energy) {
                         if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(energy, {visualizePathStyle: {stroke: '#ffaa00'}});
+                            creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                         }
                     }
                 }
@@ -40,10 +46,10 @@ var roleDumpTruck = {
                     newTarget.memory.incomingEnergy = creep.id;
                     newTarget.memory.incomingCounter = 0;
                     if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.moveTo(newTarget, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                        creep.moveTo(newTarget, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                     }
                 }else {
-                    creep.moveTo(Game.flags.haulers);
+                    creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                 }
             }
         }

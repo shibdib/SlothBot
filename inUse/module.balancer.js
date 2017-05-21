@@ -12,14 +12,23 @@ const balanceCreeps = {
             filter: { structureType: STRUCTURE_CONTAINER }
         });
 
-        //Split up harvesters
+        //Split up harvesters and peasants
         var stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
+        var peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant');
         var perSource = stationaryHarvester.length / sources.length;
         for (var i = 0; i < stationaryHarvester.length; i++){
             if (i < perSource){
                 stationaryHarvester[i].memory.assignedSource = sources[0].id;
             }else{
                 stationaryHarvester[i].memory.assignedSource = sources[1].id;
+            }
+        }
+        var perSource = peasant.length / sources.length;
+        for (var i = 0; i < peasant.length; i++){
+            if (i < perSource){
+                peasant[i].memory.assignedSource = sources[0].id;
+            }else{
+                peasant[i].memory.assignedSource = sources[1].id;
             }
         }
 

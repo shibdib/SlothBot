@@ -42,7 +42,7 @@ const respawnCreeps = {
         var attackers = _.filter(Game.creeps, (creep) => creep.memory.role === 'attacker' && creep.room === Game.spawns[spawnName].room);
 
 //MISC
-        var sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES);
+        var sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
         var containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_CONTAINER}
         });
@@ -65,14 +65,15 @@ const respawnCreeps = {
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
         if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
             if (!Game.spawns[spawnName].spawning) {
-                //ERRBODY DEAD??
+                //Always have 2 basic peasants
+                if (peasants.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE]) === OK) {
+                    Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
+                    console.log('Spawning a peasant');
+                    return;
+                }
+                //ERRBODY DEAD?? Build basic builders/upgraders
                 if (totalCreeps.length <= 2 || Game.spawns[spawnName].room.memory.peasant === true) {
                     Game.spawns[spawnName].room.memory.peasant = true;
-                    if (peasants.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE]) === OK) {
-                        Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasant'});
-                        console.log('Spawning a peasant');
-                        return;
-                    }
                     if (peasantBuilders.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE]) === OK) {
                         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], undefined, {role: 'peasantBuilder'});
                         console.log('Spawning a peasantBuilder');
@@ -85,10 +86,13 @@ const respawnCreeps = {
                 }
                 if (totalCreeps.length > 2) {
                     if (totalCreeps.length > 8) {
-                        //Kill peasants
+                        //Kill peasantBuilders and upgraders
                         Game.spawns[spawnName].room.memory.peasant = false;
-                        for (let i = 0; i < peasants.length; i++) {
-                            peasants[i].suicide();
+                        for (let i = 0; i < peasantBuilders.length; i++) {
+                            peasantBuilders[i].suicide();
+                        }
+                        for (let i = 0; i < peasantUpgraders.length; i++) {
+                            peasantUpgraders[i].suicide();
                         }
                     }
 
@@ -121,7 +125,7 @@ const respawnCreeps = {
 
                     //HAULER RESPAWNS
                     if (Game.flags.haulerBuild) {
-                        if (expediters.length < containers.length && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
+                        if (expediters.length < containers.length && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'expediter'});
                             console.log('Spawning a expediter');
                             return;
@@ -129,11 +133,11 @@ const respawnCreeps = {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'hauler'});
                             console.log('Spawning a hauler');
                             return;
-                        } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
+                        } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'dumpTruck'});
                             console.log('Spawning a dumpTruck');
                             return;
-                        } else if (basicHauler.length < 2 && haulers.lengt === 0 && expediters.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
+                        } else if (basicHauler.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined, {role: 'basicHauler'});
                             console.log('Spawning a basicHauler');
                             return;
@@ -160,7 +164,7 @@ const respawnCreeps = {
                     }
 
                     //WORKER RESPAWNS
-                    if (Game.flags.workerBuild) {
+                    if (Game.flags.workerBuild && stationaryHarvester.length >= sourceCount) {
                         if (worker.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE]) === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], undefined, {role: 'worker'});
                             console.log('Spawning a worker');
@@ -177,7 +181,7 @@ const respawnCreeps = {
                     }
 
                     //BUILDER RESPAWNS
-                    if (Game.flags.builderBuild) {
+                    if (Game.flags.builderBuild && stationaryHarvester.length >= sourceCount) {
                         let constructionSites = sources = Game.spawns[spawnName].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
                         if (roomEnergyCapacity >= 450) {
                             if (constructionSites.length === 0 && stationaryBuilders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
@@ -204,7 +208,7 @@ const respawnCreeps = {
                     }
 
                     //REMOTE RESPAWN
-                    if (Game.flags.remoteBuild) {
+                    if (Game.flags.remoteBuild && stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 5; i++) {
                             let remote = 'remote' + i;
                             if (Game.flags[remote]) {
@@ -227,7 +231,7 @@ const respawnCreeps = {
                     }
 
                     //SCOUT RESPAWNS
-                    if (Game.flags.scoutBuild) {
+                    if (Game.flags.scoutBuild && stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 5; i++) {
                             let scout = 'scout' + i;
                             if (Game.flags[scout]) {
