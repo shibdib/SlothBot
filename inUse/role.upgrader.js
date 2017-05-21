@@ -2,6 +2,12 @@ var roleUpgrader = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        //BORDER CHECK
+        let nextStepIntoRoom = require('module.borderChecks');
+        let isOnBorder = require('module.borderChecks');
+        if(isOnBorder(creep) === true){
+            nextStepIntoRoom(creep);
+        }
         dumpTruck(creep);
 
         if (creep.memory.upgrading && creep.carry.energy === 0) {

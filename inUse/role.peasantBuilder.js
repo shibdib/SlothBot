@@ -2,6 +2,12 @@ let rolePeasantBuilder = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        //BORDER CHECK
+        let nextStepIntoRoom = require('module.borderChecks');
+        let isOnBorder = require('module.borderChecks');
+        if(isOnBorder(creep) === true){
+            nextStepIntoRoom(creep);
+        }
         if (!findSpawn(creep).memory.build === false) {
             if (creep.carry.energy > 0) {
                 var target = findConstruction(creep);

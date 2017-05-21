@@ -3,6 +3,12 @@ var roleBasicHauler = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        //BORDER CHECK
+        let nextStepIntoRoom = require('module.borderChecks');
+        let isOnBorder = require('module.borderChecks');
+        if(isOnBorder(creep) === true){
+            nextStepIntoRoom(creep);
+        }
         if (rangeSource(creep) === 1) {
             creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             return null;

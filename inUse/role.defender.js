@@ -2,6 +2,12 @@ var roleDefender = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        //BORDER CHECK
+        let nextStepIntoRoom = require('module.borderChecks');
+        let isOnBorder = require('module.borderChecks');
+        if(isOnBorder(creep) === true){
+            nextStepIntoRoom(creep);
+        }
 
         var closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (closestHostile) {

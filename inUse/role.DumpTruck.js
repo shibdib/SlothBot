@@ -2,6 +2,12 @@ var roleDumpTruck = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        //BORDER CHECK
+        let nextStepIntoRoom = require('module.borderChecks');
+        let isOnBorder = require('module.borderChecks');
+        if(isOnBorder(creep) === true){
+            nextStepIntoRoom(creep);
+        }
 
         if (creep.carry.energy < 50) {
             creep.memory.hauling = false;
