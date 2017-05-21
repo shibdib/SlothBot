@@ -37,7 +37,7 @@ module.exports.loop = function () {
             //HOSTILE CHECK//
             let closestHostile = Game.spawns[name].room.find(FIND_HOSTILE_CREEPS);
             if (closestHostile[0]) {
-                var pos = new RoomPosition(2, 2, Game.spawns[name].room.name);
+                const pos = new RoomPosition(2, 2, Game.spawns[name].room.name);
                 pos.createFlag('combatBuild');
             } else if (Game.flags.combatBuild) {
                 Game.flags.combatBuild.remove();
@@ -60,13 +60,13 @@ module.exports.loop = function () {
         }
 
         //Tower Management
-        var tower = Game.getObjectById('591d48b421061c6c5b9bfaea');
+        const tower = Game.getObjectById('591d48b421061c6c5b9bfaea');
         if (tower) {
             towerControl.run(tower);
         }
 
         for (var name in Game.creeps) {
-            var creep = Game.creeps[name];
+            const creep = Game.creeps[name];
             if (creep.memory.role === 'peasant') {
                 rolesPeasants.Peasant(creep);
             }
@@ -126,4 +126,4 @@ module.exports.loop = function () {
             }
         }
     });
-}
+};

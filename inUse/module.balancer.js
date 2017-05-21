@@ -3,18 +3,20 @@
  */
 
 const balanceCreeps = {
-    /** @param  {Spawn} spawn  **/
+    /**   *
+     * @param spawnName
+     */
     run: function (spawnName) {
 
         //VARS
-        var sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
-        var containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
-            filter: { structureType: STRUCTURE_CONTAINER }
+        const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
+        const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
+            filter: {structureType: STRUCTURE_CONTAINER}
         });
 
         //Split up harvesters and peasants
-        var stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
-        var peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant');
+        const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
+        const peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant');
         var perSource = stationaryHarvester.length / sources.length;
         for (var i = 0; i < stationaryHarvester.length; i++){
             if (i < perSource){
@@ -33,13 +35,13 @@ const balanceCreeps = {
         }
 
         //Split up Expediter 1-1
-        var expediter = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
+        const expediter = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
         for (var i = 0; i < containers.length && i < expediter.length; i++){
             expediter[i].memory.assignedContainer = containers[i].id;
         }
 
         //Split up Haulers 1-1
-        var hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
+        const hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
         for (var i = 0; i < containers.length && i < hauler.length; i++){
             hauler[i].memory.assignedContainer = containers[i].id;
         }
@@ -51,6 +53,6 @@ const balanceCreeps = {
             remoteHauler[i].memory.assignedHarvester = remoteHarvester[i].id;
         }**/
     }
-}
+};
 
 module.exports = balanceCreeps;

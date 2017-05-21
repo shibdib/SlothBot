@@ -4,51 +4,51 @@
 
 const respawnCreeps = {
     /**   *
-     * @param room
+     * @param spawnName
      */
     run: function (spawnName) {
 
 ////////////////////////////////////////////Vars//////////////////////////////////////////////////
 
 //Total creeps
-        var totalCreeps = _.filter(Game.creeps, (creep) => creep.memory.role !== null && creep.room === Game.spawns[spawnName].room);
+        const totalCreeps = _.filter(Game.creeps, (creep) => creep.memory.role !== null && creep.room === Game.spawns[spawnName].room);
 
 //Peasant Creeps
-        var peasants = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant' && creep.room === Game.spawns[spawnName].room);
-        var peasantBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasantBuilder' && creep.room === Game.spawns[spawnName].room);
-        var peasantUpgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasantUpgrader' && creep.room === Game.spawns[spawnName].room);
+        const peasants = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant' && creep.room === Game.spawns[spawnName].room);
+        const peasantBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasantBuilder' && creep.room === Game.spawns[spawnName].room);
+        const peasantUpgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasantUpgrader' && creep.room === Game.spawns[spawnName].room);
 
 //Stationary Creeps
-        var stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
-        var stationaryBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryBuilder' && creep.room === Game.spawns[spawnName].room);
+        const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+        const stationaryBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryBuilder' && creep.room === Game.spawns[spawnName].room);
 
 //Worker Creeps
-        var worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.room === Game.spawns[spawnName].room);
-        var upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.room === Game.spawns[spawnName].room);
-        var wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer' && creep.room === Game.spawns[spawnName].room);
-        var remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester' && creep.room === Game.spawns[spawnName].room);
-        var roadBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'roadBuilder' && creep.room === Game.spawns[spawnName].room);
+        const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.room === Game.spawns[spawnName].room);
+        const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.room === Game.spawns[spawnName].room);
+        const wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer' && creep.room === Game.spawns[spawnName].room);
+        const remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester' && creep.room === Game.spawns[spawnName].room);
+        const roadBuilders = _.filter(Game.creeps, (creep) => creep.memory.role === 'roadBuilder' && creep.room === Game.spawns[spawnName].room);
 
 //Hauling Creeps
-        var haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
-        var expediters = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
-        var dumpTrucks = _.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck' && creep.room === Game.spawns[spawnName].room);
-        var remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.room === Game.spawns[spawnName].room);
-        var basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
+        const haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
+        const expediters = _.filter(Game.creeps, (creep) => creep.memory.role === 'expediter' && creep.room === Game.spawns[spawnName].room);
+        const dumpTrucks = _.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck' && creep.room === Game.spawns[spawnName].room);
+        const remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.room === Game.spawns[spawnName].room);
+        const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
 
 //Combat Creeps
-        var rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender' && creep.room === Game.spawns[spawnName].room);
-        var defenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'defender' && creep.room === Game.spawns[spawnName].room);
-        var scout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout' && creep.room === Game.spawns[spawnName].room);
-        var attackers = _.filter(Game.creeps, (creep) => creep.memory.role === 'attacker' && creep.room === Game.spawns[spawnName].room);
+        const rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender' && creep.room === Game.spawns[spawnName].room);
+        const defenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'defender' && creep.room === Game.spawns[spawnName].room);
+        const scout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout' && creep.room === Game.spawns[spawnName].room);
+        const attackers = _.filter(Game.creeps, (creep) => creep.memory.role === 'attacker' && creep.room === Game.spawns[spawnName].room);
 
 //MISC
-        var sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
-        var containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
+        const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
+        const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_CONTAINER}
         });
-        var roomEnergyCapacity = Game.spawns[spawnName].room.energyCapacityAvailable;
-        var roomEnergy = Game.spawns[spawnName].room.energyAvailable;
+        const roomEnergyCapacity = Game.spawns[spawnName].room.energyCapacityAvailable;
+        const roomEnergy = Game.spawns[spawnName].room.energyAvailable;
 
         ///////////////////////////////////////////////COUNT TO CONSOLE///////////////////////////////////////
 
@@ -195,7 +195,7 @@ const respawnCreeps = {
                         let constructionSites = sources = Game.spawns[spawnName].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
                         if (roomEnergyCapacity >= 450) {
                             if (constructionSites.length === 0 && stationaryBuilders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
-                                Game.spawns[spawnName].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
+                                Game.spawns[spawnName].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
                                 console.log('Spawning a stationaryBuilder');
                                 return;
                             } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3) && stationaryBuilders.length < 5 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE]) === OK) {
@@ -206,7 +206,7 @@ const respawnCreeps = {
                         }
                         if (roomEnergyCapacity < 450) {
                             if (constructionSites.length === 0 && stationaryBuilders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, MOVE]) === OK) {
-                                Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, WORK, MOVE], undefined, {role: 'stationaryBuilder'})
+                                Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, WORK, MOVE], undefined, {role: 'stationaryBuilder'});
                                 console.log('Spawning a stationaryBuilder');
                                 return;
                             } else if (stationaryBuilders.length < Math.ceil(constructionSites.length / 3)  && stationaryBuilders.length < 5 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, MOVE]) === OK) {
@@ -268,5 +268,5 @@ const respawnCreeps = {
             }
         }
     }
-}
+};
 module.exports = respawnCreeps;

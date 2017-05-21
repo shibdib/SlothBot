@@ -54,5 +54,5 @@ const customPath = {
         return ret.path[0];
         //creep.move(creep.pos.getDirectionTo(pos));
     }
-}
+};
     module.exports = customPath;

@@ -23,7 +23,7 @@ module.exports.Worker = function (creep) {
     }
 
     if (creep.memory.working) {
-        var repairNeeded = creepTools.findRepair(creep);
+        let repairNeeded = creepTools.findRepair(creep);
         if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
             if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
@@ -34,7 +34,7 @@ module.exports.Worker = function (creep) {
         }
     }
     else {
-        var container = creepTools.findContainer(creep);
+        let container = creepTools.findContainer(creep);
         container = Game.getObjectById(container);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -42,7 +42,7 @@ module.exports.Worker = function (creep) {
             }
         }
         if (!container) {
-            var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+            const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
             if (energy) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                     creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
@@ -99,7 +99,7 @@ module.exports.wallRepairer = function (creep) {
     }
 
     if (creep.memory.working) {
-        var repairNeeded = creepTools.wallRepair(creep);
+        let repairNeeded = creepTools.wallRepair(creep);
         if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
             if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
@@ -125,7 +125,7 @@ module.exports.wallRepairer = function (creep) {
         }
     }
     else {
-        var container = creepTools.findContainer(creep);
+        let container = creepTools.findContainer(creep);
         container = Game.getObjectById(container);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -228,7 +228,7 @@ module.exports.RoadBuilder = function (creep) {
     }
     if (!creepTools.findSpawn(creep).memory.build === false) {
         if (creep.carry.energy > 0) {
-            var target = creepTools.findRoadWork(creep);
+            let target = creepTools.findRoadWork(creep);
             target = Game.getObjectById(target);
             if (target) {
                 if (creep.build(target) === ERR_INVALID_TARGET) {

@@ -9,16 +9,16 @@ const towerControl = {
     run: function (tower) {
         //Check if hostiles are in room
         if (Game.flags.combatBuild) {
-            var closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
             if (closestHostile) {
                 tower.attack(closestHostile);
             }
         } else {
-            var woundedCreep = Game.getObjectById(findWounded(tower));
+            const woundedCreep = Game.getObjectById(findWounded(tower));
             if (woundedCreep) {
                 tower.heal(woundedCreep);
             } else if (tower.energy > tower.energyCapacity/0.75){
-                var closestDamagedStructure = Game.getObjectById(findRepair(tower));
+                const closestDamagedStructure = Game.getObjectById(findRepair(tower));
                 if (closestDamagedStructure) {
                     tower.repair(closestDamagedStructure);
                 }
@@ -57,7 +57,7 @@ function findRepair(tower) {
 
 function findWounded(tower) {
 
-    var creep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => s.hits < s.hitsMax});
+    const creep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => s.hits < s.hitsMax});
     if (creep !== null && creep !== undefined) {
         return creep.id;
     }

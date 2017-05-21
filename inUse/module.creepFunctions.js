@@ -1,7 +1,7 @@
 
 
 module.exports.rangeSource = function (creep) {
-    var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
+    const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
     if (creep.pos.getRangeTo(source) === 1) {
         return 1;
     }
@@ -32,7 +32,7 @@ module.exports.findContainer = function (creep) {
 };
 
 module.exports.findBuilder = function (creep) {
-    var stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
+    const stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
     if (stationaryBuilder) {
         creep.memory.builderID = stationaryBuilder.id;
         return stationaryBuilder.id;
@@ -41,7 +41,7 @@ module.exports.findBuilder = function (creep) {
 };
 
 module.exports.findNewBuilder = function (creep) {
-    var stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
+    const stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
     if (stationaryBuilder) {
         creep.memory.builderID = stationaryBuilder.id;
         creep.memory.haulCounter = 0;
@@ -51,8 +51,8 @@ module.exports.findNewBuilder = function (creep) {
 };
 
 module.exports.rangeAssignment = function (creep) {
-    var container = Game.getObjectById(creep.memory.assignedContainer);
-    var assignment = creep.pos.getRangeTo(container);
+    const container = Game.getObjectById(creep.memory.assignedContainer);
+    const assignment = creep.pos.getRangeTo(container);
     if (assignment) {
         return assignment;
     }
@@ -60,7 +60,7 @@ module.exports.rangeAssignment = function (creep) {
 };
 
 module.exports.findSource = function (creep) {
-    var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
+    const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
     if (source) {
         if (creep.moveTo(source) !== ERR_NO_PATH) {
             if (source.id) {
@@ -74,7 +74,7 @@ module.exports.findSource = function (creep) {
 
 module.exports.findTower = function (creep) {
 
-    var tower = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy !== s.energyCapacity});
+    const tower = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy !== s.energyCapacity});
     if (tower) {
         return tower.id;
     }

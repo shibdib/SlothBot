@@ -9,7 +9,7 @@ module.exports.Defender = function (creep) {
         borderChecks.nextStepIntoRoom(creep);
     }
 
-    var closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (closestHostile) {
         creep.say('ATTACKING');
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
@@ -28,7 +28,7 @@ module.exports.RangedDefender = function (creep) {
         borderChecks.nextStepIntoRoom(creep);
     }
 
-    var closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (closestHostile) {
         creep.say('ATTACKING');
         if (creep.rangedAttack(closestHostile) === ERR_NOT_IN_RANGE) {
@@ -40,21 +40,21 @@ module.exports.RangedDefender = function (creep) {
 };
 
 module.exports.Scout = function (creep) {
-    var scout = creep.memory.destination;
+    const scout = creep.memory.destination;
     creep.moveTo(Game.flags[scout]);
 };
 
 module.exports.Attacker = function (creep) {
-    var attackers = _.filter(Game.creeps, (attackers) => attackers.memory.role === 'attacker' && attackers.room === creep.room);
+    const attackers = _.filter(Game.creeps, (attackers) => attackers.memory.role === 'attacker' && attackers.room === creep.room);
 
-    var closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
+    let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
     if (closestHostileSpawn) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
             creep.moveTo(closestHostileSpawn, {visualizePathStyle: {stroke: '#ffaa00'}});
         }
     } else
     if (!closestHostileSpawn) {
-        var closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (closestHostile) {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});

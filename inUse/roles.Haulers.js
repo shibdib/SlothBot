@@ -20,7 +20,7 @@ module.exports.Hauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        var container = Game.getObjectById(creep.memory.assignedContainer);
+        const container = Game.getObjectById(creep.memory.assignedContainer);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
@@ -30,18 +30,18 @@ module.exports.Hauler = function (creep) {
 
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
-        var targets = creep.room.find(FIND_STRUCTURES, {
+        const targets = creep.room.find(FIND_STRUCTURES, {
             filter: (structure) => {
                 return (structure.structureType === STRUCTURE_EXTENSION ||
                     structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
             }
-        })
+        });
         if (targets.length > 0) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         } else {
-            var tower = Game.getObjectById(creepTools.findTower(creep));
+            const tower = Game.getObjectById(creepTools.findTower(creep));
             if (tower) {
                 if (creep.transfer(tower, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.moveTo(tower, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
@@ -68,7 +68,7 @@ module.exports.Expediter = function (creep) {
         creep.moveTo(container);
         return;
     }
-    var energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 8);
+    const energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 8);
     if (energy) {
         if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
             creep.moveTo(energy[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
@@ -103,7 +103,7 @@ module.exports.DumpTruck = function (creep) {
                 creep.moveTo(closestContainer, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         } else {
-            var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY, {filter: (s) => s.amount > 50});
+            const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY, {filter: (s) => s.amount > 50});
             if (energy) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                     creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
@@ -123,7 +123,7 @@ module.exports.DumpTruck = function (creep) {
                 creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         } else {
-            var newTarget = creepTools.findNewBuilder(creep);
+            let newTarget = creepTools.findNewBuilder(creep);
             newTarget = Game.getObjectById(newTarget);
             if (newTarget) {
                 newTarget.memory.incomingEnergy = creep.id;
@@ -161,19 +161,19 @@ module.exports.BasicHauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        var energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+        const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
         if (energy) {
             if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         }
     } else {
-        var targets = creep.room.find(FIND_STRUCTURES, {
+        const targets = creep.room.find(FIND_STRUCTURES, {
             filter: (structure) => {
                 return (structure.structureType === STRUCTURE_EXTENSION ||
                     structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
             }
-        })
+        });
         if (targets.length > 0) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});

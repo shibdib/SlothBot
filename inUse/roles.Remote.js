@@ -23,6 +23,9 @@ module.exports.RHarvester = function (creep) {
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.RHauler = function (creep) {
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
