@@ -1,4 +1,3 @@
-
 let borderChecks = require('module.borderChecks');
 var roleExpediter = {
 

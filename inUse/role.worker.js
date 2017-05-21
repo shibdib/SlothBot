@@ -1,10 +1,10 @@
 let pathFinder = require('module.pathFinder');
+let borderChecks = require('module.borderChecks');
 var roleWorker = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
 //BORDER CHECK
-        let borderChecks = require('module.borderChecks');
         if(borderChecks.isOnBorder(creep) === true){
             borderChecks.nextStepIntoRoom(creep);
         }

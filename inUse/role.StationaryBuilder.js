@@ -1,8 +1,12 @@
+let borderChecks = require('module.borderChecks');
 var roleStationaryBuilder = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-//BORDER CHECKlet borderChecks = require('module.borderChecks');if(borderChecks.isOnBorder(creep) === true){	borderChecks.nextStepIntoRoom(creep);}
+//BORDER CHECK
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        }
         if (rangeSource(creep) === 1) {
             creep.moveTo(Game.flags.bump);
             return null;

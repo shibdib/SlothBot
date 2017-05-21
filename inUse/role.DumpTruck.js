@@ -1,9 +1,10 @@
+
+let borderChecks = require('module.borderChecks');
 var roleDumpTruck = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
 //BORDER CHECK
-        let borderChecks = require('module.borderChecks');
         if(borderChecks.isOnBorder(creep) === true){
             borderChecks.nextStepIntoRoom(creep);
         }
