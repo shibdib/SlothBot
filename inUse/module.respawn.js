@@ -52,15 +52,19 @@ const respawnCreeps = {
         ///////////////////////////////////////////////COUNT TO CONSOLE///////////////////////////////////////
 
         /**console.log('Creep Count');
-         console.log('Harvesters: ' + stationaryHarvester.length);
-         console.log('Remote Harvesters: ' + remoteHarvester.length);
-         console.log('Remote Haulers: ' + remoteHauler.length);
-         console.log('Builders: ' + stationaryBuilders.length);
-         console.log('Workers: ' + worker.length);
-         console.log('Upgraders: ' + upgraders.length);
-         console.log('Haulers: ' + haulers.length);
-         console.log('Expediters: ' + expediters.length);
-         console.log('Dump Trucks: ' + dumpTrucks.length);**/
+        console.log('Harvesters: ' + stationaryHarvester.length);
+        console.log('Remote Harvesters: ' + remoteHarvester.length);
+        console.log('Remote Haulers: ' + remoteHauler.length);
+        console.log('Builders: ' + stationaryBuilders.length);
+        console.log('Workers: ' + worker.length);
+        console.log('Upgraders: ' + upgraders.length);
+        console.log('Haulers: ' + haulers.length);
+        console.log('Expediters: ' + expediters.length);
+        console.log('Dump Trucks: ' + dumpTrucks.length);
+        console.log('Basic Hauler: ' + basicHauler.length);
+        console.log('Peasants: ' + peasants.length);
+        console.log('Peasant Builders: ' + peasantBuilders.length);
+        console.log('Peasant Upgraders: ' + peasantUpgraders.length);**/
 
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
         if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
