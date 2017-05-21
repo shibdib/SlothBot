@@ -47,12 +47,16 @@ module.exports.isOnBorder = function(creep) {
 module.exports.wrongRoom = function(creep) {
     if(creep.memory.assignedSpawn) {
         let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if (spawn.id !== creep.memory.assignedSpawn) {
+        if (spawn.id) {
+            if (spawn.id !== creep.memory.assignedSpawn) {
+                let home = Game.getObjectById(creep.memory.assignedSpawn);
+                creep.moveTo(home, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            } else {
+                return false;
+            }
+        } else {
             let home = Game.getObjectById(creep.memory.assignedSpawn);
             creep.moveTo(home, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        }
-        else {
-            return false;
         }
     } else {
         let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
