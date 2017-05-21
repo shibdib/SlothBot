@@ -177,7 +177,7 @@ module.exports.Builder = function (creep) {
     }
     creepTools.dumpTruck(creep);
 
-    if (creep.memory.constructionSite && creep.carry.energy > 0) {
+    if (creep.memory.constructionSite) {
         target = Game.getObjectById(creep.memory.constructionSite);
         if (target && target.progress < target.progressTotal) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
@@ -193,7 +193,7 @@ module.exports.Builder = function (creep) {
         } else {
             creep.memory.constructionSite = null;
         }
-    } else if (creep.carry.energy > 0) {
+    } else {
         var target = creepTools.findConstruction(creep);
         target = Game.getObjectById(target);
         if (target) {
