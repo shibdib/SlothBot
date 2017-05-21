@@ -1,5 +1,5 @@
-
 let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
 var roleUpgrader = {
 
     /** @param {Creep} creep **/
@@ -8,7 +8,7 @@ var roleUpgrader = {
         if(borderChecks.isOnBorder(creep) === true){
             borderChecks.nextStepIntoRoom(creep);
         }
-        dumpTruck(creep);
+        creepTools.dumpTruck(creep);
 
         if (creep.memory.upgrading && creep.carry.energy === 0) {
             creep.memory.upgrading = false;
@@ -26,23 +26,3 @@ var roleUpgrader = {
 };
 
 module.exports = roleUpgrader;
-
-function dumpTruck(creep) {
-    if (!creep.memory.incomingEnergy) {
-        creep.memory.incomingEnergy = false;
-    }
-    if (creep.memory.incomingEnergy) {
-        creep.memory.incomingCounter = creep.memory.incomingCounter+1;
-        if (creep.memory.incomingCounter > 25){
-            creep.memory.incomingEnergy = false;
-        }
-    }
-    if (creep.carry.energy < (creep.carryCapacity/2)) {
-        creep.memory.needEnergy = true;
-    }
-    if (creep.carry.energy > (creep.carryCapacity/2)) {
-        creep.memory.incomingCounter = 0;
-        creep.memory.needEnergy = false;
-        creep.memory.incomingEnergy = false;
-    }
-}

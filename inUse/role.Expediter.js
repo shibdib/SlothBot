@@ -1,4 +1,5 @@
 let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
 var roleExpediter = {
 
     /** @param {Creep} creep **/
@@ -7,11 +8,11 @@ var roleExpediter = {
         if(borderChecks.isOnBorder(creep) === true){
             borderChecks.nextStepIntoRoom(creep);
         }
-        if (rangeSource(creep) === 1) {
+        if (creepTools.rangeSource(creep) === 1) {
             creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             return null;
         }
-        if (rangeAssignment(creep) > 4) {
+        if (creepTools.rangeAssignment(creep) > 4) {
             var container = Game.getObjectById(creep.memory.assignedContainer);
             creep.moveTo(container);
             return null;
@@ -38,20 +39,3 @@ module.exports = roleExpediter;
 /**
  * Created by rober on 5/15/2017.
  */
-
-function rangeSource(creep) {
-    var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
-    if (creep.pos.getRangeTo(source) === 1) {
-        return 1;
-    }
-    return null;
-}
-
-function rangeAssignment(creep) {
-    var container = Game.getObjectById(creep.memory.assignedContainer);
-    var assignment = creep.pos.getRangeTo(container);
-    if (assignment) {
-        return assignment;
-    }
-    return null;
-}

@@ -1,5 +1,5 @@
-
 let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
 let rolePeasantUpgrader = {
 
     /** @param {Creep} creep **/
@@ -24,7 +24,7 @@ let rolePeasantUpgrader = {
             if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
                 var spawn = Game.getObjectById(creep.memory.spawnID);
             } else {
-                var spawn = findSpawn(creep);
+                var spawn = creepTools.findSpawn(creep);
             }
             if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(spawn, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
@@ -34,15 +34,3 @@ let rolePeasantUpgrader = {
 };
 
 module.exports = rolePeasantUpgrader;
-
-function findSpawn(creep) {
-    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-    if (spawn) {
-        if (creep.moveTo(spawn) !== ERR_NO_PATH) {
-            if (spawn.id) {
-                creep.memory.spawnID = spawn.id;
-                return spawn;
-            }
-        }
-    }
-}

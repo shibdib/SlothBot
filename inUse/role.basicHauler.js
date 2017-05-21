@@ -1,10 +1,15 @@
 let pathFinder = require('module.pathFinder');
+let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
 var roleBasicHauler = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-//BORDER CHECKlet borderChecks = require('module.borderChecks');if(borderChecks.isOnBorder(creep) === true){	borderChecks.nextStepIntoRoom(creep);}
-        if (rangeSource(creep) === 1) {
+//BORDER CHECK
+        if(borderChecks.isOnBorder(creep) === true){
+            borderChecks.nextStepIntoRoom(creep);
+        }
+        if (creepTools.rangeSource(creep) === 1) {
             creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             return null;
         }
@@ -42,23 +47,3 @@ module.exports = roleBasicHauler;
 /**
  * Created by rober on 5/15/2017.
  */
-
-function findSpawn(creep) {
-    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-    if (spawn) {
-        if (creep.moveTo(spawn) !== ERR_NO_PATH) {
-            if (spawn.id) {
-                creep.memory.spawnID = spawn.id;
-                return spawn;
-            }
-        }
-    }
-}
-
-function rangeSource(creep) {
-    var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
-    if (creep.pos.getRangeTo(source) === 1) {
-        return 1;
-    }
-    return null;
-}

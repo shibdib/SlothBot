@@ -1,3 +1,5 @@
+let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
 var roleRemoteHarvester = {
 
     /** @param {Creep} creep **/
@@ -13,7 +15,7 @@ var roleRemoteHarvester = {
             if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
                 source = Game.getObjectById(creep.memory.assignedSource);
             }else if (!source) {
-                var source = findSource(creep);
+                var source = creepTools.findSource(creep);
             }
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
@@ -25,16 +27,3 @@ var roleRemoteHarvester = {
 };
 
 module.exports = roleRemoteHarvester;
-
-function findSource(creep) {
-    var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
-    if (source) {
-        if (creep.moveTo(source) !== ERR_NO_PATH) {
-            if (source.id) {
-                creep.memory.source = source.id;
-                return source;
-            }
-        }
-    }
-    return null;
-}

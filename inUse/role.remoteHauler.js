@@ -1,8 +1,10 @@
+let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
 var roleRemoteHauler = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
-        if (rangeSource(creep) === 1) {
+        if (creepTools.rangeSource(creep) === 1) {
             creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             return null;
         }
@@ -41,11 +43,3 @@ module.exports = roleRemoteHauler;
 /**
  * Created by rober on 5/15/2017.
  */
-
-function rangeSource(creep) {
-    let source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
-    if (creep.pos.getRangeTo(source) === 1) {
-        return 1;
-    }
-    return null;
-}

@@ -1,5 +1,5 @@
-
 let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
 var roleDumpTruck = {
 
     /** @param {Creep} creep **/
@@ -13,7 +13,7 @@ var roleDumpTruck = {
             creep.memory.hauling = false;
         }
         if (creep.memory.hauling === false) {
-                findContainer(creep);
+            creepTools.findContainer(creep);
                 let closestContainer = Game.getObjectById(creep.memory.container);
                 if (closestContainer && creep.moveTo(creep.memory.container) !== ERR_NO_PATH) {
                     if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -32,7 +32,7 @@ var roleDumpTruck = {
         //Haul to spawn/extension
         if (creep.carry.energy >= 50) {
             creep.memory.hauling = true;
-            findBuilder(creep);
+            creepTools.findBuilder(creep);
             let target = Game.getObjectById(creep.memory.builderID);
             if (target) {
                 target.memory.incomingEnergy = creep.id;
@@ -40,7 +40,7 @@ var roleDumpTruck = {
                     creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }else{
-                var newTarget = findNewBuilder(creep);
+                var newTarget = creepTools.findNewBuilder(creep);
                 newTarget = Game.getObjectById(newTarget);
                 if (newTarget) {
                     newTarget.memory.incomingEnergy = creep.id;
@@ -61,47 +61,3 @@ module.exports = roleDumpTruck;
 /**
  * Created by rober on 5/15/2017.
  */
-
-
-
-function findContainer(creep) {
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 1000});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
-    }
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 500});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
-    }
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
-    }
-    creep.memory.container = null;
-    return null;
-}
-
-function findBuilder(creep) {
-    var stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
-    if (stationaryBuilder) {
-        creep.memory.builderID = stationaryBuilder.id;
-        return stationaryBuilder.id;
-    }
-    return null;
-}
-
-function findNewBuilder(creep) {
-    var stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
-    if (stationaryBuilder) {
-        creep.memory.builderID = stationaryBuilder.id;
-        creep.memory.haulCounter = 0;
-        return stationaryBuilder.id;
-    }
-    return null;
-}
