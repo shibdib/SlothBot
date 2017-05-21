@@ -59,16 +59,6 @@ module.exports.wrongRoom = function(creep) {
             creep.moveTo(home, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
-        let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if (spawn) {
-            if (creep.moveTo(spawn) !== ERR_NO_PATH) {
-                if (spawn.id) {
-                    creep.memory.assignedSpawn = spawn.id;
-                    return null;
-                }
-            }
-        } else {
-            creep.moveTo(Game.spawns['Spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        }
+        creep.suicide();
     }
 };
