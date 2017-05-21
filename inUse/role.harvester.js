@@ -9,7 +9,7 @@ var roleHarvester = {
                 var source = findSource(creep);
             }
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
+                creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         }
     }

@@ -3,7 +3,7 @@ var roleRemoteHauler = {
     /** @param {Creep} creep **/
     run: function (creep) {
         if (rangeSource(creep) === 1) {
-            creep.moveTo(Game.flags.bump);
+            creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             return null;
         }
         if (creep.carry.energy !== creep.carryCapacity) {

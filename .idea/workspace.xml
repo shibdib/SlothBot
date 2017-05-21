@@ -3,7 +3,22 @@
   <component name="ChangeListManager">
     <list default="true" id="6d9c2273-f42c-467c-8815-2284d02d3b32" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.DumpTruck.js" afterPath="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.Expediter.js" afterPath="$PROJECT_DIR$/inUse/role.Expediter.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.Hauler.js" afterPath="$PROJECT_DIR$/inUse/role.Hauler.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" afterPath="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.basicHauler.js" afterPath="$PROJECT_DIR$/inUse/role.basicHauler.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.defender.js" afterPath="$PROJECT_DIR$/inUse/role.defender.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.defenderRanged.js" afterPath="$PROJECT_DIR$/inUse/role.defenderRanged.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.harvester.js" afterPath="$PROJECT_DIR$/inUse/role.harvester.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.peasant.js" afterPath="$PROJECT_DIR$/inUse/role.peasant.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.peasantBuilder.js" afterPath="$PROJECT_DIR$/inUse/role.peasantBuilder.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" afterPath="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.remoteHarvester.js" afterPath="$PROJECT_DIR$/inUse/role.remoteHarvester.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.remoteHauler.js" afterPath="$PROJECT_DIR$/inUse/role.remoteHauler.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.upgrader.js" afterPath="$PROJECT_DIR$/inUse/role.upgrader.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.wallRepairer.js" afterPath="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/inUse/role.worker.js" afterPath="$PROJECT_DIR$/inUse/role.worker.js" />
     </list>
     <ignored path="E:\Documents\GitHub\screeps\.idea\shelf/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -19,108 +34,102 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="module.respawn.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/module.respawn.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2751">
-              <caret line="233" column="90" lean-forward="false" selection-start-line="233" selection-start-column="90" selection-end-line="233" selection-end-column="90" />
-              <folding>
-                <element signature="e#0#41#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="role.worker.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/role.worker.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="864">
-              <caret line="108" column="17" lean-forward="true" selection-start-line="108" selection-start-column="17" selection-end-line="108" selection-end-column="17" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="role.basicHauler.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/role.basicHauler.js">
+      <file leaf-file-name="role.defenderRanged.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.defenderRanged.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="153">
-              <caret line="9" column="16" lean-forward="false" selection-start-line="9" selection-start-column="12" selection-end-line="9" selection-end-column="36" />
+              <caret line="9" column="118" lean-forward="false" selection-start-line="9" selection-start-column="118" selection-end-line="9" selection-end-column="118" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.Expediter.js" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/inUse/role.Expediter.js">
+      <file leaf-file-name="role.DumpTruck.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="221">
-              <caret line="13" column="65" lean-forward="false" selection-start-line="13" selection-start-column="65" selection-end-line="13" selection-end-column="65" />
+              <caret line="13" column="128" lean-forward="false" selection-start-line="13" selection-start-column="128" selection-end-line="13" selection-end-column="128" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.Hauler.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/role.Hauler.js">
+      <file leaf-file-name="role.harvester.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.harvester.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="136">
-              <caret line="8" column="36" lean-forward="false" selection-start-line="8" selection-start-column="36" selection-end-line="8" selection-end-column="36" />
+            <state relative-caret-position="187">
+              <caret line="11" column="110" lean-forward="false" selection-start-line="11" selection-start-column="110" selection-end-line="11" selection-end-column="110" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name=".gitignore" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/.gitignore">
+      <file leaf-file-name="role.peasantBuilder.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="170">
+              <caret line="10" column="130" lean-forward="false" selection-start-line="10" selection-start-column="130" selection-end-line="10" selection-end-column="130" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="role.peasantUpgrader.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="391">
+              <caret line="23" column="109" lean-forward="false" selection-start-line="23" selection-start-column="109" selection-end-line="23" selection-end-column="109" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="role.remoteHarvester.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.remoteHarvester.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="102">
-              <caret line="6" column="0" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
+              <caret line="6" column="120" lean-forward="false" selection-start-line="6" selection-start-column="120" selection-end-line="6" selection-end-column="120" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="role.peasant.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
+      <file leaf-file-name="role.remoteHauler.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.remoteHauler.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="136">
-              <caret line="8" column="47" lean-forward="true" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
+            <state relative-caret-position="85">
+              <caret line="5" column="99" lean-forward="false" selection-start-line="5" selection-start-column="99" selection-end-line="5" selection-end-column="99" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.finders.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/module.finders.js">
+      <file leaf-file-name="role.StationaryBuilder.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+            <state relative-caret-position="255">
+              <caret line="15" column="130" lean-forward="false" selection-start-line="15" selection-start-column="130" selection-end-line="15" selection-end-column="130" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="module.balancer.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/module.balancer.js">
+      <file leaf-file-name="role.upgrader.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/inUse/role.upgrader.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="357">
-              <caret line="23" column="13" lean-forward="true" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
-              <folding>
-                <element signature="e#0#41#0" expanded="false" />
-              </folding>
+            <state relative-caret-position="255">
+              <caret line="15" column="125" lean-forward="false" selection-start-line="15" selection-start-column="125" selection-end-line="15" selection-end-column="125" />
+              <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/inUse/main.js">
+      <file leaf-file-name="role.wallRepairer.js" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="357">
-              <caret line="21" column="44" lean-forward="false" selection-start-line="21" selection-start-column="44" selection-end-line="21" selection-end-column="44" />
-              <folding>
-                <marker date="1495315102211" expanded="true" signature="4961:4989" ph="{...}" />
-              </folding>
+            <state relative-caret-position="561">
+              <caret line="33" column="117" lean-forward="false" selection-start-line="33" selection-start-column="117" selection-end-line="33" selection-end-column="117" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -185,30 +194,33 @@
         <option value="$PROJECT_DIR$/role.wallRepairer.js" />
         <option value="$PROJECT_DIR$/role.Tower.js" />
         <option value="$PROJECT_DIR$/main.js" />
-        <option value="$PROJECT_DIR$/inUse/role.upgrader.js" />
         <option value="$PROJECT_DIR$/inUse/respawn.js" />
         <option value="$PROJECT_DIR$/role.remoteHarvester.js" />
         <option value="$PROJECT_DIR$/inUse/remoteHauler.js" />
-        <option value="$PROJECT_DIR$/inUse/role.remoteHarvester.js" />
         <option value="$PROJECT_DIR$/inUse/module.autoBuild.js" />
         <option value="$PROJECT_DIR$/role.basicHauler.js" />
-        <option value="$PROJECT_DIR$/inUse/role.peasantBuilder.js" />
-        <option value="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" />
         <option value="$PROJECT_DIR$/inUse/module.pathFinder.js" />
-        <option value="$PROJECT_DIR$/inUse/role.remoteHauler.js" />
-        <option value="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
-        <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
         <option value="$PROJECT_DIR$/inUse/role.attacker.js" />
         <option value="$PROJECT_DIR$/inUse/main.js" />
-        <option value="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
         <option value="$PROJECT_DIR$/.gitignore" />
-        <option value="$PROJECT_DIR$/inUse/role.worker.js" />
         <option value="$PROJECT_DIR$/inUse/module.balancer.js" />
-        <option value="$PROJECT_DIR$/inUse/role.peasant.js" />
         <option value="$PROJECT_DIR$/inUse/module.respawn.js" />
-        <option value="$PROJECT_DIR$/inUse/role.basicHauler.js" />
-        <option value="$PROJECT_DIR$/inUse/role.Hauler.js" />
+        <option value="$PROJECT_DIR$/inUse/role.peasant.js" />
         <option value="$PROJECT_DIR$/inUse/role.Expediter.js" />
+        <option value="$PROJECT_DIR$/inUse/role.basicHauler.js" />
+        <option value="$PROJECT_DIR$/inUse/role.worker.js" />
+        <option value="$PROJECT_DIR$/inUse/role.Hauler.js" />
+        <option value="$PROJECT_DIR$/inUse/role.defender.js" />
+        <option value="$PROJECT_DIR$/inUse/role.defenderRanged.js" />
+        <option value="$PROJECT_DIR$/inUse/role.DumpTruck.js" />
+        <option value="$PROJECT_DIR$/inUse/role.harvester.js" />
+        <option value="$PROJECT_DIR$/inUse/role.peasantBuilder.js" />
+        <option value="$PROJECT_DIR$/inUse/role.peasantUpgrader.js" />
+        <option value="$PROJECT_DIR$/inUse/role.remoteHarvester.js" />
+        <option value="$PROJECT_DIR$/inUse/role.remoteHauler.js" />
+        <option value="$PROJECT_DIR$/inUse/role.StationaryBuilder.js" />
+        <option value="$PROJECT_DIR$/inUse/role.upgrader.js" />
+        <option value="$PROJECT_DIR$/inUse/role.wallRepairer.js" />
       </list>
     </option>
   </component>
@@ -397,14 +409,7 @@
       <workItem from="1495004723620" duration="30304000" />
       <workItem from="1495180962216" duration="8956000" />
       <workItem from="1495258208933" duration="19522000" />
-      <workItem from="1495320725067" duration="2483000" />
-    </task>
-    <task id="LOCAL-00040" summary="add basic hauler, make peasant more cpu efficient">
-      <created>1495266603351</created>
-      <option name="number" value="00040" />
-      <option name="presentableId" value="LOCAL-00040" />
-      <option name="project" value="LOCAL" />
-      <updated>1495266603351</updated>
+      <workItem from="1495320725067" duration="3414000" />
     </task>
     <task id="LOCAL-00041" summary="typo">
       <created>1495266743675</created>
@@ -742,11 +747,18 @@
       <option name="project" value="LOCAL" />
       <updated>1495325016944</updated>
     </task>
-    <option name="localTasksCounter" value="89" />
+    <task id="LOCAL-00089" summary="tweak">
+      <created>1495325082793</created>
+      <option name="number" value="00089" />
+      <option name="presentableId" value="LOCAL-00089" />
+      <option name="project" value="LOCAL" />
+      <updated>1495325082793</updated>
+    </task>
+    <option name="localTasksCounter" value="90" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="127695000" />
+    <option name="totallyTimeSpent" value="128626000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="3456" height="1416" extended-state="6" />
@@ -980,14 +992,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/module.finders.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/oldStuff/role.builder.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-428">
@@ -1016,13 +1020,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.remoteHarvester.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="357">
-          <caret line="21" column="40" lean-forward="false" selection-start-line="21" selection-start-column="40" selection-end-line="21" selection-end-column="40" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.autoBuild.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="204">
@@ -1030,73 +1027,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.upgrader.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="68">
-          <caret line="4" column="25" lean-forward="true" selection-start-line="4" selection-start-column="25" selection-end-line="17" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.harvester.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="663">
-          <caret line="39" column="1" lean-forward="true" selection-start-line="39" selection-start-column="1" selection-end-line="39" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="18" column="47" lean-forward="false" selection-start-line="18" selection-start-column="47" selection-end-line="18" selection-end-column="47" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="102">
-          <caret line="6" column="53" lean-forward="true" selection-start-line="6" selection-start-column="53" selection-end-line="6" selection-end-column="53" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.remoteHauler.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="85">
-          <caret line="5" column="36" lean-forward="false" selection-start-line="5" selection-start-column="36" selection-end-line="5" selection-end-column="36" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="85">
-          <caret line="5" column="36" lean-forward="false" selection-start-line="5" selection-start-column="36" selection-end-line="5" selection-end-column="36" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.defenderRanged.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="12" column="36" lean-forward="false" selection-start-line="12" selection-start-column="36" selection-end-line="12" selection-end-column="36" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inUse/module.pathFinder.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="408">
           <caret line="30" column="29" lean-forward="false" selection-start-line="30" selection-start-column="24" selection-end-line="30" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.defender.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="35" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="22" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="391">
-          <caret line="68" column="45" lean-forward="false" selection-start-line="68" selection-start-column="45" selection-end-line="68" selection-end-column="45" />
         </state>
       </provider>
     </entry>
@@ -1117,25 +1051,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="527">
-          <caret line="79" column="33" lean-forward="false" selection-start-line="79" selection-start-column="33" selection-end-line="79" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="102">
           <caret line="6" column="0" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.worker.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="864">
-          <caret line="108" column="17" lean-forward="true" selection-start-line="108" selection-start-column="17" selection-end-line="108" selection-end-column="17" />
           <folding />
         </state>
       </provider>
@@ -1147,30 +1066,6 @@
           <folding>
             <element signature="e#0#41#0" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="136">
-          <caret line="8" column="47" lean-forward="true" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.basicHauler.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="153">
-          <caret line="9" column="16" lean-forward="false" selection-start-line="9" selection-start-column="12" selection-end-line="9" selection-end-column="36" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/inUse/role.Hauler.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="136">
-          <caret line="8" column="36" lean-forward="false" selection-start-line="8" selection-start-column="36" selection-end-line="8" selection-end-column="36" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1186,8 +1081,136 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/inUse/role.Expediter.js">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="85">
+          <caret line="5" column="115" lean-forward="false" selection-start-line="5" selection-start-column="115" selection-end-line="5" selection-end-column="115" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.basicHauler.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="115" lean-forward="false" selection-start-line="6" selection-start-column="115" selection-end-line="6" selection-end-column="115" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.worker.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="115" lean-forward="false" selection-start-line="6" selection-start-column="115" selection-end-line="6" selection-end-column="115" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.Hauler.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="663">
+          <caret line="39" column="117" lean-forward="false" selection-start-line="39" selection-start-column="117" selection-end-line="39" selection-end-column="117" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/module.finders.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.peasant.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="11" column="38" lean-forward="true" selection-start-line="11" selection-start-column="35" selection-end-line="11" selection-end-column="110" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.defender.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="204">
+          <caret line="12" column="120" lean-forward="false" selection-start-line="12" selection-start-column="120" selection-end-line="12" selection-end-column="120" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.defenderRanged.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="9" column="118" lean-forward="false" selection-start-line="9" selection-start-column="118" selection-end-line="9" selection-end-column="118" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.DumpTruck.js">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="221">
-          <caret line="13" column="65" lean-forward="false" selection-start-line="13" selection-start-column="65" selection-end-line="13" selection-end-column="65" />
+          <caret line="13" column="128" lean-forward="false" selection-start-line="13" selection-start-column="128" selection-end-line="13" selection-end-column="128" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.harvester.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="11" column="110" lean-forward="false" selection-start-line="11" selection-start-column="110" selection-end-line="11" selection-end-column="110" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.peasantBuilder.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="170">
+          <caret line="10" column="130" lean-forward="false" selection-start-line="10" selection-start-column="130" selection-end-line="10" selection-end-column="130" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.peasantUpgrader.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="391">
+          <caret line="23" column="109" lean-forward="false" selection-start-line="23" selection-start-column="109" selection-end-line="23" selection-end-column="109" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.remoteHarvester.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="6" column="120" lean-forward="false" selection-start-line="6" selection-start-column="120" selection-end-line="6" selection-end-column="120" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.remoteHauler.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="85">
+          <caret line="5" column="99" lean-forward="false" selection-start-line="5" selection-start-column="99" selection-end-line="5" selection-end-column="99" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.StationaryBuilder.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="15" column="130" lean-forward="false" selection-start-line="15" selection-start-column="130" selection-end-line="15" selection-end-column="130" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.upgrader.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="15" column="125" lean-forward="false" selection-start-line="15" selection-start-column="125" selection-end-line="15" selection-end-column="125" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/inUse/role.wallRepairer.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="561">
+          <caret line="33" column="117" lean-forward="false" selection-start-line="33" selection-start-column="117" selection-end-line="33" selection-end-column="117" />
           <folding />
         </state>
       </provider>

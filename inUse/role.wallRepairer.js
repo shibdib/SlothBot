@@ -19,11 +19,11 @@ var roleWallRepairer = {
             if (repairNeeded) {
                 repairNeeded = Game.getObjectById(repairNeeded);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(repairNeeded, {visualizePathStyle: {stroke: '#ffffff'}});
+                    creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                 }
             } else
             if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
+                creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
             }
         }
         else {
@@ -31,7 +31,7 @@ var roleWallRepairer = {
             container = Game.getObjectById(container);
             if (container) {
                 if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(container, {visualizePathStyle: {stroke: '#ffaa00'}});
+                    creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                 }
             }
             if (!container) {

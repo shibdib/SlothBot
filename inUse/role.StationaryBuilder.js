@@ -13,10 +13,10 @@ var roleStationaryBuilder = {
                 target = Game.getObjectById(creep.memory.constructionSite);
                 if (target && target.progress < target.progressTotal) {
                     if (creep.build(target) === ERR_INVALID_TARGET) {
-                        creep.moveTo(Game.flags.haulers);
+                        creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                     } else {
                         if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                         }
                     }
                 } else {
@@ -27,15 +27,15 @@ var roleStationaryBuilder = {
                 target = Game.getObjectById(target);
                 if (target) {
                     if (creep.build(target) === ERR_INVALID_TARGET) {
-                        creep.moveTo(Game.flags.haulers);
+                        creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                     } else {
                         if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                            creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                         }
                     }
                 } else {
                     if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
-                        creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
+                        creep.moveTo(creep.room.controller, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}, maxRooms: 1});
                     }
                 }
             }
