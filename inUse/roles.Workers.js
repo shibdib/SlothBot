@@ -99,23 +99,25 @@ module.exports.wallRepairer = function (creep) {
     }
 
     if (creep.memory.working) {
+        let build = Game.getObjectById(creepTools.wallBuilding(creep));
         let repairNeeded = creepTools.wallRepair(creep);
-        if (repairNeeded) {
-            repairNeeded = Game.getObjectById(repairNeeded);
-            if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-            }
-        } else
-            var target = Game.getObjectById(creepTools.findConstruction(creep));
-        if (target) {
-            if (creep.build(target) === ERR_INVALID_TARGET) {
+        if (build) {
+            if (creep.build(build) === ERR_INVALID_TARGET) {
                 creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             } else {
-                if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.build(build) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(build, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         } else {
+            if (repairNeeded) {
+                repairNeeded = Game.getObjectById(repairNeeded);
+                if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                }
+            }
+        }
+        if (!repairNeeded && !build){
             if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(creep.room.controller, {reusePath: 20}, {
                     visualizePathStyle: {stroke: '#ffffff'},

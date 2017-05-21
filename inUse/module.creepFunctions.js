@@ -185,3 +185,18 @@ module.exports.wallRepair = function (creep) {
         return site.id;
     }
 };
+
+module.exports.wallBuilding = function (creep) {
+
+    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_WALL});
+    if (site === null) {
+        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
+    }
+    if (site === null) {
+        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES);
+    }
+    if (site !== null && site !== undefined) {
+        creep.memory.constructionSite = site.id;
+        return site.id;
+    }
+};
