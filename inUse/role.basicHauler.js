@@ -7,7 +7,7 @@ var roleBasicHauler = {
             creep.moveTo(Game.flags.bump);
             return null;
         }
-        if (creep.carry.energy !== creep.carryCapacity) {
+        if (creep.carry.energy === 0) {
             creep.memory.hauling = false;
         }
         if (creep.carry.energy === creep.carryCapacity) {
