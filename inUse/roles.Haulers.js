@@ -98,7 +98,7 @@ module.exports.DumpTruck = function (creep) {
     if (creep.memory.hauling === false) {
         creepTools.findContainer(creep);
         let closestContainer = Game.getObjectById(creep.memory.container);
-        if (closestContainer && creep.moveTo(creep.memory.container) !== ERR_NO_PATH) {
+        if (closestContainer) {
             if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestContainer, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }

@@ -139,7 +139,7 @@ module.exports.dumpTruck = function (creep) {
     if (creep.carry.energy < (creep.carryCapacity / 2)) {
         creep.memory.needEnergy = true;
     }
-    if (creep.carry.energy > (creep.carryCapacity / 2)) {
+    if (creep.carry.energy > (creep.carryCapacity * 0.75)) {
         creep.memory.incomingCounter = 0;
         creep.memory.needEnergy = false;
         creep.memory.incomingEnergy = false;
