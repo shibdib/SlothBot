@@ -46,6 +46,7 @@ module.exports.isOnBorder = function(creep) {
 
 module.exports.wrongRoom = function(creep) {
     if(creep.memory.assignedSpawn === null) {
+        creep.say('1');
         let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
         if (spawn) {
             creep.memory.assignedSpawn = spawn.id;
