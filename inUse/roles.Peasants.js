@@ -41,7 +41,7 @@ module.exports.PeasantBuilder = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (!findSpawn(creep).memory.build === false) {
+    if (!creepTools.findSpawn(creep).memory.build === false) {
         if (creep.carry.energy > 0) {
             var target = creepTools.findConstruction(creep);
             target = Game.getObjectById(target);

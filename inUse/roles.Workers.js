@@ -226,7 +226,7 @@ module.exports.RoadBuilder = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (!findSpawn(creep).memory.build === false) {
+    if (!creepTools.findSpawn(creep).memory.build === false) {
         if (creep.carry.energy > 0) {
             var target = creepTools.findRoadWork(creep);
             target = Game.getObjectById(target);
