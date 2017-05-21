@@ -5,8 +5,8 @@ var roleUpgrader = {
         //BORDER CHECK
         let nextStepIntoRoom = require('module.borderChecks');
         let isOnBorder = require('module.borderChecks');
-        if(isOnBorder(creep) === true){
-            nextStepIntoRoom(creep);
+        if(isOnBorder.run(creep) === true){
+            nextStepIntoRoom.run(creep);
         }
         dumpTruck(creep);
 

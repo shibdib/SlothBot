@@ -5,8 +5,8 @@ let rolePeasant = {
         //BORDER CHECK
         let nextStepIntoRoom = require('module.borderChecks');
         let isOnBorder = require('module.borderChecks');
-        if(isOnBorder(creep) === true){
-            nextStepIntoRoom(creep);
+        if(isOnBorder.run(creep) === true){
+            nextStepIntoRoom.run(creep);
         }
         if (creep.carry.energy < creep.carryCapacity) {
             if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
