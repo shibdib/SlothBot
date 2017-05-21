@@ -11,7 +11,7 @@ var roleExpediter = {
             creep.moveTo(container);
             return null;
         }
-        var energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 5);
+        var energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 8);
         if (energy) {
             if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(energy[0], {visualizePathStyle: {stroke: '#ffaa00'}});
