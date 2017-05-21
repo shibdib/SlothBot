@@ -1,21 +1,9 @@
-let rolePeasant = require('role.peasant');
-let rolePeasantBuilder = require('role.peasantBuilder');
-let rolePeasantUpgrader = require('role.peasantUpgrader');
-let roleBasicHauler = require('role.basicHauler');
-let roleHarvester = require('role.harvester');
-let roleUpgrader = require('role.upgrader');
-let roleDefenderRanged = require('role.defenderRanged');
-let roleDefender = require('role.defender');
-let roleHauler = require('role.Hauler');
-let roleExpediter = require('role.Expediter');
-let roleScout = require('role.Scout');
-let roleDumpTruck = require('role.DumpTruck');
-let roleWorker = require('role.worker');
-let roleWallRepairer = require('role.wallRepairer');
-let roleStationaryBuilder = require('role.StationaryBuilder');
-let roleRemoteHarvester = require('role.remoteHarvester');
-let roleRemoteHauler = require('role.remoteHauler');
-let roleAttacker = require('role.attacker');
+//Roles
+let rolesHaulers = require('roles.Haulers');
+let rolesPeasants = require('roles.Peasants');
+let rolesWorkers = require('roles.Workers');
+let rolesMilitary = require('roles.Military');
+let rolesRemote = require('roles.Remote');
 let towerControl = require('module.Tower');
 let profiler = require('screeps-profiler');
 let creepBalancer = require('module.balancer');
@@ -80,58 +68,58 @@ module.exports.loop = function () {
         for (var name in Game.creeps) {
             var creep = Game.creeps[name];
             if (creep.memory.role === 'peasant') {
-                rolePeasant.run(creep);
+                rolesPeasants.Peasant.run(creep);
             }
             if (creep.memory.role === 'peasantBuilder') {
-                rolePeasantBuilder.run(creep);
+                rolesPeasants.PeasantBuilder.run(creep);
             }
             if (creep.memory.role === 'peasantUpgrader') {
-                rolePeasantUpgrader.run(creep);
-            }
-            if (creep.memory.role === 'stationaryHarvester') {
-                roleHarvester.run(creep);
+                rolesPeasants.PeasantUpgrader.run(creep);
             }
             if (creep.memory.role === 'hauler') {
-                roleHauler.run(creep);
+                rolesHaulers.Hauler.run(creep);
             }
             if (creep.memory.role === 'expediter') {
-                roleExpediter.run(creep);
+                rolesHaulers.Expediter.run(creep);
             }
             if (creep.memory.role === 'dumpTruck') {
-                roleDumpTruck.run(creep);
-            }
-            if (creep.memory.role === 'worker') {
-                roleWorker.run(creep);
-            }
-            if (creep.memory.role === 'upgrader') {
-                roleUpgrader.run(creep);
-            }
-            if (creep.memory.role === 'wallRepairer') {
-                roleWallRepairer.run(creep);
-            }
-            if (creep.memory.role === 'stationaryBuilder') {
-                roleStationaryBuilder.run(creep);
-            }
-            if (creep.memory.role === 'rangedDefender') {
-                roleDefenderRanged.run(creep);
-            }
-            if (creep.memory.role === 'defender') {
-                roleDefender.run(creep);
-            }
-            if (creep.memory.role === 'scout') {
-                roleScout.run(creep);
-            }
-            if (creep.memory.role === 'remoteHarvester') {
-                roleRemoteHarvester.run(creep);
-            }
-            if (creep.memory.role === 'remoteHauler') {
-                roleRemoteHauler.run(creep);
+                rolesHaulers.DumpTruck.run(creep);
             }
             if (creep.memory.role === 'basicHauler') {
-                roleBasicHauler.run(creep);
+                rolesHaulers.BasicHauler.run(creep);
+            }
+            if (creep.memory.role === 'worker') {
+                rolesWorkers.Worker(creep);
+            }
+            if (creep.memory.role === 'upgrader') {
+                rolesWorkers.Upgrader(creep);
+            }
+            if (creep.memory.role === 'wallRepairer') {
+                rolesWorkers.wallRepairer(creep);
+            }
+            if (creep.memory.role === 'stationaryBuilder') {
+                rolesWorkers.Builder(creep);
+            }
+            if (creep.memory.role === 'stationaryHarvester') {
+                rolesWorkers.Harvester(creep);
+            }
+            if (creep.memory.role === 'rangedDefender') {
+                rolesMilitary.RangedDefender(creep);
+            }
+            if (creep.memory.role === 'defender') {
+                rolesMilitary.Defender(creep);
+            }
+            if (creep.memory.role === 'scout') {
+                rolesMilitary.Scout(creep);
             }
             if (creep.memory.role === 'attacker') {
-                roleAttacker.run(creep);
+                rolesMilitary.Attacker(creep);
+            }
+            if (creep.memory.role === 'remoteHarvester') {
+                rolesRemote.RHarvester(creep);
+            }
+            if (creep.memory.role === 'remoteHauler') {
+                rolesRemote.RHauler(creep);
             }
         }
     });

@@ -1,5 +1,5 @@
-let borderChecks = require('module.borderChecks');
-let creepTools = require('module.creepFunctions');
+let borderChecks = require('inUse/module.borderChecks');
+let creepTools = require('inUse/module.creepFunctions');
 let rolePeasant = {
 
     /** @param {Creep} creep **/

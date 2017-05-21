@@ -1,5 +1,5 @@
 
-let borderChecks = require('module.borderChecks');
+let borderChecks = require('inUse/module.borderChecks');
 var roleWallRepairer = {
 
     /** @param {Creep} creep **/

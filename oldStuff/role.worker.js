@@ -1,5 +1,5 @@
-let pathFinder = require('module.pathFinder');
-let borderChecks = require('module.borderChecks');
+let pathFinder = require('inUse/module.pathFinder');
+let borderChecks = require('inUse/module.borderChecks');
 var roleWorker = {
 
     /** @param {Creep} creep **/

@@ -1,6 +1,6 @@
-let pathFinder = require('module.pathFinder');
-let borderChecks = require('module.borderChecks');
-let creepTools = require('module.creepFunctions');
+let pathFinder = require('inUse/module.pathFinder');
+let borderChecks = require('inUse/module.borderChecks');
+let creepTools = require('inUse/module.creepFunctions');
 var roleBasicHauler = {
 
     /** @param {Creep} creep **/
