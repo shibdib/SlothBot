@@ -59,11 +59,11 @@ module.exports.Attacker = function (creep) {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
+        } else if (attackers.length >= 3 || creep.memory.attackStarted === true){
+            creep.memory.attackStarted = true;
+            creep.moveTo(Game.flags.attack1);
+        } else {
+            creep.moveTo(Game.flags.stage1);
         }
-    } else if (attackers.length >= 3 || creep.memory.attackStarted === true){
-        creep.memory.attackStarted = true;
-        creep.moveTo(Game.flags.attack1);
-    } else {
-        creep.moveTo(Game.flags.stage1);
     }
 };
