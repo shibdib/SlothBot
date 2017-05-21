@@ -68,25 +68,25 @@ module.exports.loop = function () {
         for (var name in Game.creeps) {
             var creep = Game.creeps[name];
             if (creep.memory.role === 'peasant') {
-                rolesPeasants.Peasant.run(creep);
+                rolesPeasants.Peasant(creep);
             }
             if (creep.memory.role === 'peasantBuilder') {
-                rolesPeasants.PeasantBuilder.run(creep);
+                rolesPeasants.PeasantBuilder(creep);
             }
             if (creep.memory.role === 'peasantUpgrader') {
-                rolesPeasants.PeasantUpgrader.run(creep);
+                rolesPeasants.PeasantUpgrader(creep);
             }
             if (creep.memory.role === 'hauler') {
-                rolesHaulers.Hauler.run(creep);
+                rolesHaulers.Hauler(creep);
             }
             if (creep.memory.role === 'expediter') {
-                rolesHaulers.Expediter.run(creep);
+                rolesHaulers.Expediter(creep);
             }
             if (creep.memory.role === 'dumpTruck') {
-                rolesHaulers.DumpTruck.run(creep);
+                rolesHaulers.DumpTruck(creep);
             }
             if (creep.memory.role === 'basicHauler') {
-                rolesHaulers.BasicHauler.run(creep);
+                rolesHaulers.BasicHauler(creep);
             }
             if (creep.memory.role === 'worker') {
                 rolesWorkers.Worker(creep);
