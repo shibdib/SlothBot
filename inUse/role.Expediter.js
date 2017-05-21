@@ -1,9 +1,10 @@
+
+let borderChecks = require('module.borderChecks');
 var roleExpediter = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
 //BORDER CHECK
-        let borderChecks = require('module.borderChecks');
         if(borderChecks.isOnBorder(creep) === true){
             borderChecks.nextStepIntoRoom(creep);
         }
@@ -38,31 +39,6 @@ module.exports = roleExpediter;
 /**
  * Created by rober on 5/15/2017.
  */
-
-
-
-function findContainer(creep) {
-
-    container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType == STRUCTURE_CONTAINER
-})
-    ;
-    if (container !== null) {
-        return container.id;
-    }
-    return null;
-}
-
-
-function findStationary(creep) {
-
-    harvester = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => s.memory.role === 'stationaryHarvester'
-})
-    ;
-    if (harvester !== null) {
-        return harvester.id;
-    }
-    return null;
-}
 
 function rangeSource(creep) {
     var source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
