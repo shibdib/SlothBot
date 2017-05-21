@@ -18,9 +18,7 @@ module.exports.nextStepIntoRoom = function(creep) {
     else if(creep.pos.x === 49)
     {
         if (creep.move(LEFT) !== ERR_NO_PATH) {
-            creep.move(LEFT);
         } else if (creep.move(TOP_LEFT) !== ERR_NO_PATH){
-            creep.move(TOP_LEFT);
         } else {
             creep.move(BOTTOM_LEFT);
         }
@@ -28,19 +26,14 @@ module.exports.nextStepIntoRoom = function(creep) {
     else if (creep.pos.x === 0)
     {
         if (creep.move(RIGHT) !== ERR_NO_PATH) {
-            creep.move(RIGHT);
         } else if (creep.move(TOP_RIGHT) !== ERR_NO_PATH){
-            creep.move(TOP_RIGHT);
         } else {
-            creep.move(BOTTOM_RIGHT);
         }
     }
     else if (creep.pos.y === 0)
     {
         if (creep.move(BOTTOM) !== ERR_NO_PATH) {
-            creep.move(BOTTOM);
         } else if (creep.move(BOTTOM_RIGHT) !== ERR_NO_PATH){
-            creep.move(BOTTOM_RIGHT);
         } else {
             creep.move(BOTTOM_LEFT);
         }
@@ -48,9 +41,7 @@ module.exports.nextStepIntoRoom = function(creep) {
     else if (creep.pos.y === 49)
     {
         if (creep.move(TOP) !== ERR_NO_PATH) {
-            creep.move(TOP);
         } else if (creep.move(TOP_RIGHT) !== ERR_NO_PATH){
-            creep.move(TOP_RIGHT);
         } else {
             creep.move(TOP_LEFT);
         }
