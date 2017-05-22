@@ -246,12 +246,12 @@ const respawnCreeps = {
                                     });
                                     console.log('Spawning a remoteHarvester');
                                     return;
-                                } else if (claimer.length === 0 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE], generatedNumber + 'claimer') === OK) {
-                                    Game.spawns[spawnName].createCreep([CLAIM, MOVE], generatedNumber + 'claimer', {
-                                        role: 'claimer',
+                                } else if (claimer.length === 0 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE], generatedNumber + 'reserver') === OK) {
+                                    Game.spawns[spawnName].createCreep([CLAIM, MOVE], generatedNumber + 'reserver', {
+                                        role: 'reserver',
                                         destination: remote
                                     });
-                                    console.log('Spawning a claimer');
+                                    console.log('Spawning a reserver');
                                     return;
                                 }
                             }

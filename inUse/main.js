@@ -129,7 +129,7 @@ module.exports.loop = function () {
                 rolesRemote.RHauler(creep);
             }
             if (creep.memory.role === 'claimer') {
-                rolesMilitary.Claimer(creep);
+                rolesMilitary.Reserver(creep);
             }
         }
     });
