@@ -1,4 +1,4 @@
-let borderChecks = require('module.borderChecks');
+let borderChecks = require('inUse/module.creepRestrictions');
 let creepTools = require('module.creepFunctions');
 
 module.exports.Defender = function (creep) {

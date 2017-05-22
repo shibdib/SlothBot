@@ -6,6 +6,8 @@ let rolesMilitary = require('roles.Military');
 let rolesRemote = require('roles.Remote');
 let towerControl = require('module.Tower');
 let profiler = require('screeps-profiler');
+
+//modules
 let creepBalancer = require('module.balancer');
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
