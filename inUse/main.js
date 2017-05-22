@@ -47,6 +47,14 @@ module.exports.loop = function () {
                 Game.flags.combatBuild.remove();
             }
 
+            //Tower Management
+            let towers = Game.spawns[name].room.find(FIND_STRUCTURES, {filter: (t) => t.structureType === STRUCTURE_TOWER});
+            for (let i = 0; towers.length < i; i++) {
+                if (towers[i]) {
+                    towerControl.run(towers[i]);
+                }
+            }
+
             //Every 5 ticks
             if (Game.time % 5 === 0) {
                 creepBalancer.run(name);
@@ -61,12 +69,6 @@ module.exports.loop = function () {
             if (Game.time % 100 === 0) {
                 //autoBuild.run(name);
             }
-        }
-
-        //Tower Management
-        const tower = Game.getObjectById('591d48b421061c6c5b9bfaea');
-        if (tower) {
-            towerControl.run(tower);
         }
 
         for (var name in Game.creeps) {
