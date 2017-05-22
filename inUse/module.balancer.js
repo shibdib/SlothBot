@@ -56,11 +56,11 @@ const balanceCreeps = {
         }
 
         //Split up Remote Haulers 1-1
-       /**var remoteHauler = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.room === Game.spawns[spawnName].room);
-        var remoteHarvester = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHarvester' && creep.room === Game.spawns[spawnName].room);
+        var remoteHauler = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHauler');
+        var remoteHarvester = _.filter(room.creeps, (creep) => creep.memory.role === 'remoteHarvester');
         for (var i = 0; i < remoteHarvester.length && i < remoteHauler.length; i++){
             remoteHauler[i].memory.assignedHarvester = remoteHarvester[i].id;
-        }**/
+        }
     }
 };
 
