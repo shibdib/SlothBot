@@ -73,6 +73,11 @@ module.exports.Harvester = function (creep) {
             if (container) {
                 creep.transfer(container, RESOURCE_ENERGY);
             }
+        } else {
+            let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+            if (buildSite) {
+                creep.build(buildSite);
+            }
         }
     }
     if (creep.carry.energy < creep.carryCapacity) {

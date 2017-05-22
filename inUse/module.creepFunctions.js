@@ -201,8 +201,18 @@ module.exports.wallBuilding = function (creep) {
     }
 };
 
+module.exports.containerBuilding = function (creep) {
+
+    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    if (site !== null && site !== undefined) {
+        if (creep.pos.getRangeTo(site) <= 1) {
+            return site.id;
+        }
+    }
+};
+
 module.exports.harvestDeposit = function (creep) {
-    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store < s.storeCapacity});
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (creep.pos.getRangeTo(container) <= 1) {
         return container.id;
     }
