@@ -77,6 +77,8 @@ module.exports.Harvester = function (creep) {
             let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
             if (buildSite) {
                 creep.build(buildSite);
+            } else {
+                creepTools.harvesterContainer(creep);
             }
         }
     }

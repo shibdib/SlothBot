@@ -218,3 +218,9 @@ module.exports.harvestDeposit = function (creep) {
     }
     return null;
 };
+
+module.exports.harvesterContainer = function (creep) {
+    if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
+        return null;
+    }
+};
