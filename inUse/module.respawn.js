@@ -237,13 +237,21 @@ const respawnCreeps = {
                         for (let i = 0; i < 5; i++) {
                             let remote = 'remote' + i;
                             if (Game.flags[remote]) {
-                                let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === remote);
-                                if (creep.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'remoteHarvester') === OK) {
+                                let harvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
+                                let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
+                                if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'remoteHarvester') === OK) {
                                     Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'remoteHarvester', {
                                         role: 'remoteHarvester',
                                         destination: remote
                                     });
                                     console.log('Spawning a remoteHarvester');
+                                    return;
+                                } else if (claimer.length === 0 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE], generatedNumber + 'claimer') === OK) {
+                                    Game.spawns[spawnName].createCreep([CLAIM, MOVE], generatedNumber + 'claimer', {
+                                        role: 'claimer',
+                                        destination: remote
+                                    });
+                                    console.log('Spawning a claimer');
                                     return;
                                 }
                             }

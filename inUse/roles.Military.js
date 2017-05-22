@@ -93,3 +93,19 @@ module.exports.Claimer = function (creep) {
         }
     }
 };
+
+module.exports.Reserver = function (creep) {
+    //Initial move
+    if (!creep.memory.destinationReached) {
+        creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+            creep.memory.destinationReached = true;
+        }
+    } else {
+        if (creep.room.controller) {
+            if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(creep.room.controller);
+            }
+        }
+    }
+};
