@@ -178,7 +178,7 @@ const respawnCreeps = {
                             Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], generatedNumber+' worker', {role: 'worker'});
                             console.log('Spawning a worker');
                             return;
-                        } else if (upgraders.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], generatedNumber+' upgrader') === OK) {
+                        } else if (upgraders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], generatedNumber+' upgrader') === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], generatedNumber+' upgrader', {role: 'upgrader'});
                             console.log('Spawning a upgrader');
                             return;
