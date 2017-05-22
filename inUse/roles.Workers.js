@@ -78,7 +78,7 @@ module.exports.Harvester = function (creep) {
             if (buildSite) {
                 creep.build(buildSite);
             } else {
-                creepTools.harvesterContainer(creep);
+                creepTools.harvesterContainerBuild(creep);
             }
         }
     }

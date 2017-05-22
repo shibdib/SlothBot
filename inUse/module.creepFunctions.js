@@ -216,10 +216,13 @@ module.exports.harvestDeposit = function (creep) {
     if (creep.pos.getRangeTo(container) <= 1) {
         return container.id;
     }
+    if (creep.pos.getRangeTo(container) <= 3) {
+        creep.moveTo(container);
+    }
     return null;
 };
 
-module.exports.harvesterContainer = function (creep) {
+module.exports.harvesterContainerBuild = function (creep) {
     if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
         return null;
     }
