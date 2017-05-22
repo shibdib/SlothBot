@@ -21,7 +21,7 @@ module.exports.Defender = function (creep) {
 };
 
 module.exports.Sentry = function (creep) {
-    let post = Game.getObjectById(memory.creep.assignedRampart);
+    let post = Game.getObjectById(creep.memory.assignedRampart);
     //Initial move
     if (post.pos !== creep.pos) {
         creep.moveTo(post, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
