@@ -1,4 +1,4 @@
-let borderChecks = require('inUse/module.creepRestrictions');
+let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 
 module.exports.RHarvester = function (creep) {

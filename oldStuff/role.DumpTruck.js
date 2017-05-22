@@ -1,4 +1,4 @@
-let borderChecks = require('inUse/module.creepRestrictions');
+let borderChecks = require('inUse/module.borderChecks');
 let creepTools = require('inUse/module.creepFunctions');
 var roleDumpTruck = {
 
