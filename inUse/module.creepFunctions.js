@@ -200,3 +200,11 @@ module.exports.wallBuilding = function (creep) {
         return site.id;
     }
 };
+
+module.exports.harvestDeposit = function (creep) {
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store < s.storeCapacity});
+    if (creep.pos.getRangeTo(container) <= 1) {
+        return container.id;
+    }
+    return null;
+};

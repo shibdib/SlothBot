@@ -66,7 +66,16 @@ module.exports.Harvester = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (creep.carry.energy < creep.carryCapacity || creep.carryCapacity === 0) {
+    if (creep.carry.energy > 0) {
+        let containerID = creepTools.harvestDeposit(creep);
+        if (containerID) {
+            let container = Game.getObjectById(containerID);
+            if (container) {
+                creep.transfer(container, RESOURCE_ENERGY);
+            }
+        }
+    }
+    if (creep.carry.energy < creep.carryCapacity) {
         if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
             source = Game.getObjectById(creep.memory.assignedSource);
         }else if (!source) {
