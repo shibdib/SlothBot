@@ -40,7 +40,7 @@ const respawnCreeps = {
         const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
 
 //Combat Creeps
-        const rangedDefenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'rangedDefender' && creep.room === Game.spawns[spawnName].room);
+        const sentry = _.filter(Game.creeps, (creep) => creep.memory.role === 'sentry' && creep.room === Game.spawns[spawnName].room);
         const defenders = _.filter(Game.creeps, (creep) => creep.memory.role === 'defender' && creep.room === Game.spawns[spawnName].room);
         const scout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout' && creep.room === Game.spawns[spawnName].room);
         const attackers = _.filter(Game.creeps, (creep) => creep.memory.role === 'attacker' && creep.room === Game.spawns[spawnName].room);
@@ -49,6 +49,9 @@ const respawnCreeps = {
         const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
         const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_CONTAINER}
+        });
+        const ramparts = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
+            filter: {structureType: STRUCTURE_RAMPART}
         });
         const roomEnergyCapacity = Game.spawns[spawnName].room.energyCapacityAvailable;
         const roomEnergy = Game.spawns[spawnName].room.energyAvailable;
@@ -116,6 +119,15 @@ const respawnCreeps = {
                                 console.log('Spawning a attacker');
                                 return;
                             }
+                        }
+                    }
+
+                    //SENTRY RESPAWNS
+                    if (Game.flags.sentryBuild && stationaryHarvester.length >= sourceCount) {
+                        if (sentry.length < ramparts.length && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry') === OK) {
+                            Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'rangedDefender', {role: 'sentry'});
+                            console.log('Spawning a sentry');
+                            return;
                         }
                     }
 

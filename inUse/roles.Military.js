@@ -20,22 +20,16 @@ module.exports.Defender = function (creep) {
     }
 };
 
-module.exports.RangedDefender = function (creep) {
-    if (borderChecks.wrongRoom(creep) !== false){
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
-
-    const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (closestHostile) {
-        creep.say('ATTACKING');
-        if (creep.rangedAttack(closestHostile) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        }
+module.exports.Sentry = function (creep) {
+    let post = Game.getObjectById(memory.creep.assignedRampart);
+    //Initial move
+    if (post.pos !== creep.pos) {
+        creep.moveTo(post, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
     } else {
-        creep.moveTo(Game.flags.defender1, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        if (creep.rangedAttack(closestHostile)) {
+            creep.say('ATTACKING');
+        }
     }
 };
 
