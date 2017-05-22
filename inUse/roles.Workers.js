@@ -116,7 +116,7 @@ module.exports.wallRepairer = function (creep) {
 
     if (creep.memory.working) {
         let build = Game.getObjectById(creepTools.wallBuilding(creep));
-        let repairNeeded = creepTools.wallRepair(creep);
+        let repairNeeded = Game.getObjectById(creepTools.wallRepair(creep));
         if (build) {
             if (creep.build(build) === ERR_INVALID_TARGET) {
                 creep.moveTo(Game.flags.haulers, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
@@ -127,7 +127,6 @@ module.exports.wallRepairer = function (creep) {
             }
         } else {
             if (repairNeeded) {
-                repairNeeded = Game.getObjectById(repairNeeded);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.moveTo(repairNeeded, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
