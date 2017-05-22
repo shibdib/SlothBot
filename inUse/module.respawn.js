@@ -134,11 +134,6 @@ const respawnCreeps = {
 
                     //HAULER RESPAWNS
                     if (Game.flags.haulerBuild && stationaryHarvester.length >= sourceCount) {
-                        /**if (expediters.length < containers.length && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'expediter') === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'expediter', {role: 'expediter'});
-                            console.log('Spawning a expediter');
-                            return;
-                        } else **/
                         if (haulers.length < containers.length && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'hauler') === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'hauler', {role: 'hauler'});
                             console.log('Spawning a hauler');
@@ -232,8 +227,8 @@ const respawnCreeps = {
                             let remote = 'remote' + i;
                             if (Game.flags[remote]) {
                                 let creep = _.filter(Game.creeps, (creep) => creep.memory.destination === remote);
-                                if (creep.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE], generatedNumber+'remoteHarvester') === OK) {
-                                    Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE], generatedNumber+'remoteHarvester', {
+                                if (creep.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber+'remoteHarvester') === OK) {
+                                    Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber+'remoteHarvester', {
                                         role: 'remoteHarvester',
                                         destination: remote
                                     });

@@ -9,7 +9,22 @@ module.exports.RHarvester = function (creep) {
             creep.memory.destinationReached = true;
         }
     } else
-    if (creep.carry.energy < creep.carryCapacity) {
+    if (creep.carry.energy > 0) {
+        let containerID = creepTools.harvestDeposit(creep);
+        if (containerID) {
+            let container = Game.getObjectById(containerID);
+            if (container) {
+                creep.transfer(container, RESOURCE_ENERGY);
+            }
+        } else {
+            let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+            if (buildSite) {
+                creep.build(buildSite);
+            } else {
+                creepTools.harvesterContainer(creep);
+            }
+        }
+    } else {
         if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
             source = Game.getObjectById(creep.memory.assignedSource);
         }else if (!source) {
@@ -18,8 +33,6 @@ module.exports.RHarvester = function (creep) {
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.moveTo(source, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
-    }else{
-        creep.drop(RESOURCE_ENERGY);
     }
 };
 
@@ -43,10 +56,10 @@ module.exports.RHauler = function (creep) {
             creep.moveTo(remoteHarvester, {visualizePathStyle: {stroke: '#ffaa00'}});
         }
         if (creep.pos.getRangeTo(remoteHarvester) === 1) {
-            let energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 5);
-            if (energy) {
-                if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(energy[0], {visualizePathStyle: {stroke: '#ffaa00'}});
+            let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})
+            if (container) {
+                if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(container, {visualizePathStyle: {stroke: '#ffaa00'}});
                 }
             }
         }
