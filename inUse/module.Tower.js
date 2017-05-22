@@ -7,21 +7,17 @@ const towerControl = {
      * @param tower
      */
     run: function (tower) {
+        const woundedCreep = Game.getObjectById(findWounded(tower));
+        const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         //Check if hostiles are in room
-        if (Game.flags.combatBuild) {
-            const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-            if (closestHostile) {
-                tower.attack(closestHostile);
-            }
-        } else {
-            const woundedCreep = Game.getObjectById(findWounded(tower));
-            if (woundedCreep) {
-                tower.heal(woundedCreep);
-            } else if (tower.energy > tower.energyCapacity/0.75){
-                const closestDamagedStructure = Game.getObjectById(findRepair(tower));
-                if (closestDamagedStructure) {
-                    tower.repair(closestDamagedStructure);
-                }
+        if (closestHostile) {
+            tower.attack(closestHostile);
+        } else if (woundedCreep) {
+            tower.heal(woundedCreep);
+        } else if (tower.energy > tower.energyCapacity * 0.75) {
+            const closestDamagedStructure = Game.getObjectById(findRepair(tower));
+            if (closestDamagedStructure) {
+                tower.repair(closestDamagedStructure);
             }
         }
     }
@@ -42,7 +38,7 @@ function findRepair(tower) {
         site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 1000});
     }
     if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax/2});
+        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2});
     }
     if (site === null) {
         site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 25000});
