@@ -21,14 +21,16 @@ module.exports.Defender = function (creep) {
 };
 
 module.exports.Sentry = function (creep) {
-    let post = Game.getObjectById(creep.memory.assignedRampart);
-    //Initial move
-    if (post.pos !== creep.pos) {
-        creep.moveTo(post, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-    } else {
-        const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (creep.rangedAttack(closestHostile)) {
-            creep.say('ATTACKING');
+    if (creep.memory.assignedRampart) {
+        let post = Game.getObjectById(creep.memory.assignedRampart);
+        //Initial move
+        if (post.pos !== creep.pos) {
+            creep.moveTo(post, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        } else {
+            const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            if (creep.rangedAttack(closestHostile)) {
+                creep.say('ATTACKING');
+            }
         }
     }
 };
