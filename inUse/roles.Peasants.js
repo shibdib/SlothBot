@@ -29,6 +29,14 @@ module.exports.Peasant = function (creep) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
+        } else {
+            let container = creepTools.findContainer(creep);
+            container = Game.getObjectById(container);
+            if (container && container.store < container.storeCapacity) {
+                if (creep.transfer(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                }
+            }
         }
     }
 };

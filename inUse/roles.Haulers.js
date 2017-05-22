@@ -114,7 +114,7 @@ module.exports.DumpTruck = function (creep) {
         }
     }
 
-    //Haul to spawn/extension
+    //Haul to builder/upgrader
     if (creep.carry.energy >= 50) {
         creep.memory.hauling = true;
         creepTools.findBuilder(creep);
