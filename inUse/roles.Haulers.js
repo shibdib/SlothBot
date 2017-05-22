@@ -11,10 +11,6 @@ module.exports.Hauler = function (creep) {
             borderChecks.nextStepIntoRoom(creep);
         }
     }
-    if (creepTools.rangeSource(creep) === 1) {
-        creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        return;
-    }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
@@ -28,6 +24,10 @@ module.exports.Hauler = function (creep) {
                 creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
+    }
+    if (creepTools.rangeSource(creep) === 1) {
+        creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        return;
     }
 
     //Haul to spawn/extension
