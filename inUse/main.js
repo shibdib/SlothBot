@@ -108,8 +108,8 @@ module.exports.loop = function () {
             if (creep.memory.role === 'stationaryHarvester') {
                 rolesWorkers.Harvester(creep);
             }
-            if (creep.memory.role === 'rangedDefender') {
-                rolesMilitary.RangedDefender(creep);
+            if (creep.memory.role === 'sentry') {
+                rolesMilitary.Sentry(creep);
             }
             if (creep.memory.role === 'defender') {
                 rolesMilitary.Defender(creep);
