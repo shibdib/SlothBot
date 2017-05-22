@@ -98,10 +98,10 @@ const respawnCreeps = {
                         //Kill peasantBuilders and upgraders
                         Game.spawns[spawnName].room.memory.peasant = false;
                         for (let i = 0; i < peasantBuilders.length; i++) {
-                            peasantBuilders[i].suicide();
+                            peasantBuilders[i].memory.role = 'worker';
                         }
                         for (let i = 0; i < peasantUpgraders.length; i++) {
-                            peasantUpgraders[i].suicide();
+                            peasantUpgraders[i].memory.role = 'worker';
                         }
                     }
 
