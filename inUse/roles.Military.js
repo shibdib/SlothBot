@@ -59,7 +59,7 @@ module.exports.Attacker = function (creep) {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
-        } else if (attackers.length >= 3 || creep.memory.attackStarted === true){
+        } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)){
             creep.memory.attackStarted = true;
             creep.moveTo(Game.flags.attack1);
         } else {
