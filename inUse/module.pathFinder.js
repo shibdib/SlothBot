@@ -1,4 +1,5 @@
 
+let functions = require('module.functions');
 module.exports.Move = function (creep, target, flee = false) {
     /*let goals = _.map(creep.room.find(FIND_SOURCES), function (source) {
      // We can't actually walk on sources-- set `range` to 1
@@ -6,7 +7,7 @@ module.exports.Move = function (creep, target, flee = false) {
      return {pos: source.pos, range: 1};
      });*/
 
-    let path = PathFinder.search(
+    let ret = PathFinder.search(
         creep.pos, target,
         {
             // We need to set the defaults costs higher so that we
@@ -45,5 +46,5 @@ module.exports.Move = function (creep, target, flee = false) {
         }
     );
 
-    return Room.serializePath(path);
+    return Room.serializePath(functions.convertPath(ret.path));
 };

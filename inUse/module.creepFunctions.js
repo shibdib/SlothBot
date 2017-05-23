@@ -253,3 +253,4 @@ module.exports.findNearbyConstruction = function (creep) {
         return false;
     }
 };
+
