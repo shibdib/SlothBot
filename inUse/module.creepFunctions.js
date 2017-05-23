@@ -216,7 +216,7 @@ module.exports.harvestDeposit = function (creep) {
     if (creep.pos.getRangeTo(container) <= 1) {
         if (container.hits < container.hitsMax*0.25){
             creep.repair(container);
-            creep.say(Fixing);
+            creep.say('Fixing');
         }
         return container.id;
     } else
