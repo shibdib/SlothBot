@@ -73,7 +73,7 @@ module.exports.RHauler = function (creep) {
 
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
-        if (creep.room = Game.spawns[creep.memory.resupply].pos.roomName) {
+        if (creep.room.id === Game.spawns[creep.memory.resupply].room.id) {
             const targets = creep.room.find(FIND_STRUCTURES, {
                 filter: (structure) => {
                     return (structure.structureType === STRUCTURE_EXTENSION ||
