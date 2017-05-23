@@ -56,7 +56,7 @@ module.exports.RHauler = function (creep) {
                 creep.memory.path = null;
             }
         } else {
-            const path = spawn.pos.findPathTo(Game.flags[creep.memory.destination]);
+            const path = creep.pos.findPathTo(Game.flags[creep.memory.destination]);
             creep.memory.path = Room.serializePath(path);
         }
         return null;
@@ -102,7 +102,7 @@ module.exports.RHauler = function (creep) {
             if (creep.memory.path) {
                 creep.moveByPath(creep.memory.path);
             } else {
-                const path = spawn.pos.findPathTo(Game.flags[creep.memory.resupply]);
+                const path = creep.pos.findPathTo(Game.flags[creep.memory.resupply]);
                 creep.memory.path = Room.serializePath(path);
             }
         }
