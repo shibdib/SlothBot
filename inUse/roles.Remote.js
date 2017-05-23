@@ -40,6 +40,9 @@ module.exports.RHarvester = function (creep) {
  * @return {null}
  */
 module.exports.RHauler = function (creep) {
+    if (creep.memory.resupply === null){
+        creep.memory.resupply = 'Spawn1';
+    }
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return null;
@@ -69,8 +72,27 @@ module.exports.RHauler = function (creep) {
 
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
-        if (creep.transfer(Game.spawns['Spawn1'], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(Game.spawns['Spawn1'], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        if (creep.room = Game.spawns[creep.memory.resupply].pos.roomName) {
+            const targets = creep.room.find(FIND_STRUCTURES, {
+                filter: (structure) => {
+                    return (structure.structureType === STRUCTURE_EXTENSION ||
+                        structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
+                }
+            });
+            if (targets.length > 0) {
+                if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                }
+            } else {
+                const tower = Game.getObjectById(creepTools.findTower(creep));
+                if (tower) {
+                    if (creep.transfer(tower, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        creep.moveTo(tower, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                    }
+                }
+            }
+        } else {
+            creep.moveTo(Game.spawns[creep.memory.resupply], {visualizePathStyle: {stroke: '#ffaa00'}});
         }
     }
 };
