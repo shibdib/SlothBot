@@ -16,6 +16,13 @@ const balanceCreeps = {
         const ramparts = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_RAMPART}
         });
+        let sentryRamparts = [];
+        for (i=0; i < ramparts.length; i++) {
+            const nearbyRamparts = ramparts[i].pos.findInRange(STRUCTURE_RAMPART, 1);
+            if (nearbyRamparts.length === 1) {
+                sentryRamparts.push(ramparts[i]);
+            }
+        }
 
         //Split up harvesters and peasants
         const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester');
@@ -51,8 +58,8 @@ const balanceCreeps = {
 
         //Station Sentries
         const sentry = _.filter(Game.creeps, (creep) => creep.memory.role === 'sentry' && creep.room === Game.spawns[spawnName].room);
-        for (var i = 0; i < ramparts.length && i < sentry.length; i++){
-            sentry[i].memory.assignedRampart = ramparts[i].id;
+        for (var i = 0; i < sentryRamparts.length && i < sentry.length; i++){
+            sentry[i].memory.assignedRampart = sentryRamparts[i].id;
         }
 
         //Split up Remote Haulers 1-1

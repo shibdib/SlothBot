@@ -52,6 +52,13 @@ const respawnCreeps = {
         const ramparts = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_RAMPART}
         });
+        let sentryRamparts = [];
+        for (i=0; i < ramparts.length; i++) {
+            const nearbyRamparts = ramparts[i].pos.findInRange(STRUCTURE_RAMPART, 1);
+            if (nearbyRamparts.length === 1) {
+                sentryRamparts.push(ramparts[i]);
+            }
+        }
         const roomEnergyCapacity = Game.spawns[spawnName].room.energyCapacityAvailable;
         const roomEnergy = Game.spawns[spawnName].room.energyAvailable;
 
@@ -123,7 +130,7 @@ const respawnCreeps = {
 
                     //SENTRY RESPAWNS
                     if (Game.flags.sentryBuild && stationaryHarvester.length >= sourceCount) {
-                        if (sentry.length < ramparts.length && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry') === OK) {
+                        if (sentry.length < sentryRamparts.length && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry') === OK) {
                             Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'rangedDefender', {role: 'sentry'});
                             console.log('Spawning a sentry');
                             return;
