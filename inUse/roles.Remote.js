@@ -97,7 +97,7 @@ module.exports.RHauler = function (creep) {
                 }
             }
         } else {
-            if (creep.moveByPath(creep.memory.path) !== 0 || !creep.memory.path) {
+            if (creep.moveByPath(creep.memory.path) !== 0 || creep.memory.path === null) {
                 if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                     creep.memory.destinationReached = true;
                 }
