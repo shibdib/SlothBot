@@ -246,7 +246,7 @@ const respawnCreeps = {
                                     });
                                     console.log('Spawning a remoteHarvester');
                                     return;
-                                } else if (reserver.length === 0 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE], generatedNumber + 'reserver') === OK) {
+                                } else if (reserver.length < 2 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE], generatedNumber + 'reserver') === OK) {
                                     Game.spawns[spawnName].createCreep([CLAIM, MOVE], generatedNumber + 'reserver', {
                                         role: 'reserver',
                                         destination: remote
