@@ -18,7 +18,6 @@ module.exports.Hauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        creep.memory.path = null;
         const container = Game.getObjectById(creep.memory.assignedContainer);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -40,13 +39,8 @@ module.exports.Hauler = function (creep) {
             }
         });
         if (targets.length > 0) {
-            if (creep.memory.path) {
-                if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveByPath(creep.memory.path);
-                }
-            } else {
-                const path = creep.pos.findPathTo(targets[0]);
-                creep.memory.path = Room.serializePath(path);
+            if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         } else {
             const tower = Game.getObjectById(creepTools.findTower(creep));
@@ -55,6 +49,39 @@ module.exports.Hauler = function (creep) {
                     creep.moveTo(tower, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
+        }
+    }
+};
+
+module.exports.Expediter = function (creep) {
+    //BORDER CHECK
+    if (borderChecks.wrongRoom(creep) !== false){
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
+        borderChecks.nextStepIntoRoom(creep);
+    }
+    if (creepTools.rangeSource(creep) === 1) {
+        creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        return;
+    }
+    if (creepTools.rangeAssignment(creep) > 4) {
+        var container = Game.getObjectById(creep.memory.assignedContainer);
+        creep.moveTo(container);
+        return;
+    }
+    const energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 8);
+    if (energy) {
+        if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
+            creep.moveTo(energy[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        }
+    }
+
+    //Haul to container
+    var container = Game.getObjectById(creep.memory.assignedContainer);
+    if (container && creep.carry.energy === creep.carryCapacity) {
+        if (creep.transfer(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+            creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     }
 };
@@ -135,7 +162,6 @@ module.exports.BasicHauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        creep.memory.path = null;
         const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
         if (energy) {
             if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
@@ -150,13 +176,8 @@ module.exports.BasicHauler = function (creep) {
             }
         });
         if (targets.length > 0) {
-            if (creep.memory.path) {
-                if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveByPath(creep.memory.path);
-                }
-            } else {
-                const path = creep.pos.findPathTo(targets[0]);
-                creep.memory.path = Room.serializePath(path);
+            if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
     }
