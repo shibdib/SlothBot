@@ -245,6 +245,7 @@ const respawnCreeps = {
                             let remote = 'remote' + i;
                             if (Game.flags[remote]) {
                                 let harvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
+                                let longRoadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'longRoadBuilder');
                                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'reserver');
                                 if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'remoteHarvester') === OK && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE])){
                                     Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'remoteHarvester', {
@@ -259,6 +260,14 @@ const respawnCreeps = {
                                         destination: remote
                                     });
                                     console.log('Spawning a reserver');
+                                    return;
+                                } else if (longRoadBuilder.length < 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE], generatedNumber + 'longRoadBuilder') === OK) {
+                                    Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE], generatedNumber + 'longRoadBuilder', {
+                                        role: 'longRoadBuilder',
+                                        destination: remote,
+                                        resupply: spawnName
+                                    });
+                                    console.log('Spawning a longRoadBuilder');
                                     return;
                                 }
                             }

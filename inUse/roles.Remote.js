@@ -72,3 +72,30 @@ module.exports.RHauler = function (creep) {
         }
     }
 };
+
+
+module.exports.LongRoadBuilder = function (creep) {
+    //Initial move
+    if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) === 0) {
+        creep.memory.destinationReached = true;
+        creep.memory.returnTrip = false;
+    }
+    if (!creep.memory.destinationReached) {
+        if (creep.carry.energy > 0) {
+            if (creepTools.findRoad(creep) === false) {
+                creep.pos.createConstructionSite(STRUCTURE_ROAD);
+            }
+            if (creepTools.findNearbyConstruction(creep) !== false) {
+                creep.build(Game.getObjectById(creep.memory.constructionSite));
+            }
+            creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        } else {
+            let spawn = Game.spawns[creep.memory.resupply];
+            if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(spawn, {visualizePathStyle: {stroke: '#ffaa00'}});
+            }
+        }
+    } else {
+        creep.suicide();
+    }
+};

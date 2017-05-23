@@ -123,6 +123,8 @@ module.exports.findRoadWork = function (creep) {
     if (site !== null && site !== undefined) {
         creep.memory.constructionSite = site.id;
         return site.id;
+    } else {
+        return null;
     }
 };
 
@@ -230,5 +232,24 @@ module.exports.harvestDeposit = function (creep) {
 module.exports.harvesterContainerBuild = function (creep) {
     if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
         return null;
+    }
+};
+
+module.exports.findRoad = function (creep) {
+        const roads = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_ROAD});
+        if (roads.length >= 2) {
+            return true;
+        } else {
+            return false;
+        }
+};
+
+module.exports.findNearbyConstruction = function (creep) {
+    const site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1);
+    if (site) {
+        creep.memory.constructionSite = site.id;
+        return site.id;
+    } else {
+        return false;
     }
 };

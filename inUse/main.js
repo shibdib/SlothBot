@@ -1,5 +1,4 @@
 //Roles
-let startingCpu = Game.cpu.getUsed();
 let rolesHaulers = require('roles.Haulers');
 let rolesPeasants = require('roles.Peasants');
 let rolesWorkers = require('roles.Workers');
@@ -123,14 +122,17 @@ module.exports.loop = function () {
             if (creep.memory.role === 'attacker') {
                 rolesMilitary.Attacker(creep);
             }
+            if (creep.memory.role === 'reserver') {
+                rolesMilitary.Reserver(creep);
+            }
             if (creep.memory.role === 'remoteHarvester') {
                 rolesRemote.RHarvester(creep);
             }
             if (creep.memory.role === 'remoteHauler') {
                 rolesRemote.RHauler(creep);
             }
-            if (creep.memory.role === 'reserver') {
-                rolesMilitary.Reserver(creep);
+            if (creep.memory.role === 'longRoadBuilder') {
+                rolesRemote.LongRoadBuilder(creep);
             }
         }
     });
