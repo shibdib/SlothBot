@@ -50,7 +50,7 @@ module.exports.RHauler = function (creep) {
         return null;
     }
     if (!creep.memory.destinationReached) {
-        if (creep.moveByPath(creep.memory.path)) {
+        if (creep.moveByPath(creep.memory.path) !== OK || !creep.memory.path) {
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                 creep.memory.destinationReached = true;
             }
