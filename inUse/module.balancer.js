@@ -61,13 +61,6 @@ const balanceCreeps = {
         for (var i = 0; i < sentryRamparts.length && i < sentry.length; i++){
             sentry[i].memory.assignedRampart = sentryRamparts[i].id;
         }
-
-        //Split up Remote Haulers 1-1
-        var remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler');
-        var remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHarvester');
-        for (var i = 0; i < remoteHarvester.length && i < remoteHauler.length; i++){
-            remoteHauler[i].memory.assignedHarvester = remoteHarvester[i].id;
-        }
     }
 };
 
