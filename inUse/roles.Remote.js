@@ -59,12 +59,10 @@ module.exports.RHauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        if (creep.pos.getRangeTo(remoteHarvester) === 1) {
-            let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})
-            if (container) {
-                if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(container, {visualizePathStyle: {stroke: '#ffaa00'}});
-                }
+        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})
+        if (container) {
+            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(container, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
         }
     }
