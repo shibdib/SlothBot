@@ -85,10 +85,13 @@ module.exports.LongRoadBuilder = function (creep) {
     if (!creep.memory.destinationReached) {
         if (creep.carry.energy > 0) {
             if (creepTools.findRoad(creep) === false && spawn !== home) {
-                creep.pos.createConstructionSite(STRUCTURE_ROAD);
+                if (creep.pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+                    return;
+                }
             }
             if (creepTools.findNearbyConstruction(creep) !== false) {
                 creep.build(Game.getObjectById(creep.memory.constructionSite));
+                return;
             }
             creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         } else {
