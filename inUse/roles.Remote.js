@@ -44,7 +44,7 @@ module.exports.RHauler = function (creep) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return null;
     }
-    if (creep.carry.energy !== creep.carryCapacity) {
+    if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
     if (creep.carry.energy === creep.carryCapacity) {
