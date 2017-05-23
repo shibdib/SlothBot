@@ -98,7 +98,7 @@ module.exports.Reserver = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+        if (creep.room.name === Game.flags[creep.memory.destination].name) {
             creep.memory.destinationReached = true;
         }
     } else {

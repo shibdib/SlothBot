@@ -238,7 +238,7 @@ const respawnCreeps = {
                             let remote = 'remote' + i;
                             if (Game.flags[remote]) {
                                 let harvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
-                                let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
+                                let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'reserver');
                                 if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'remoteHarvester') === OK) {
                                     Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'remoteHarvester', {
                                         role: 'remoteHarvester',
@@ -246,7 +246,7 @@ const respawnCreeps = {
                                     });
                                     console.log('Spawning a remoteHarvester');
                                     return;
-                                } else if (claimer.length === 0 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE], generatedNumber + 'reserver') === OK) {
+                                } else if (reserver.length === 0 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE], generatedNumber + 'reserver') === OK) {
                                     Game.spawns[spawnName].createCreep([CLAIM, MOVE], generatedNumber + 'reserver', {
                                         role: 'reserver',
                                         destination: remote

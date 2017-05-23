@@ -128,7 +128,7 @@ module.exports.loop = function () {
             if (creep.memory.role === 'remoteHauler') {
                 rolesRemote.RHauler(creep);
             }
-            if (creep.memory.role === 'claimer') {
+            if (creep.memory.role === 'reserver') {
                 rolesMilitary.Reserver(creep);
             }
         }
