@@ -13,9 +13,9 @@ module.exports.convertPath = function (path)
             dir = (dir + 4) & 7;
         }
         result.push({
-            x: pox.x,
+            x: pos.x,
             y: pos.y,
-            dir,
+            direction: dir,
         });
     }
     return result;
