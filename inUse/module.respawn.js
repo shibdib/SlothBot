@@ -54,8 +54,8 @@ const respawnCreeps = {
         });
         let sentryRamparts = [];
         for (i=0; i < ramparts.length; i++) {
-            const nearbyRamparts = ramparts[i].pos.findInRange(STRUCTURE_RAMPART, 1);
-            if (nearbyRamparts.length === 1) {
+            const nearbyRamparts = ramparts[i].pos.findInRange(FIND_MY_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+            if (nearbyRamparts.length <= 1) {
                 sentryRamparts.push(ramparts[i]);
             }
         }
