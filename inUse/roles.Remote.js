@@ -5,9 +5,12 @@ let pathing = require('module.pathFinder');
 module.exports.RHarvester = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
-        creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
-            creep.memory.destinationReached = true;
+        if (creep.moveByPath(creep.memory.path) === OK) {
+            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+                creep.memory.destinationReached = true;
+            }
+        } else {
+            creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
         }
     } else
     if (creep.carry.energy > 0) {
@@ -50,7 +53,7 @@ module.exports.RHauler = function (creep) {
         return null;
     }
     if (!creep.memory.destinationReached) {
-        if (creep.moveByPath(creep.memory.path) !== 0 || !creep.memory.path) {
+        if (creep.moveByPath(creep.memory.path) === OK) {
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                 creep.memory.destinationReached = true;
             }
@@ -97,7 +100,7 @@ module.exports.RHauler = function (creep) {
                 }
             }
         } else {
-            if (creep.moveByPath(creep.memory.path) !== 0 || creep.memory.path === null) {
+            if (creep.moveByPath(creep.memory.path) === OK) {
                 if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                     creep.memory.destinationReached = true;
                 }
@@ -128,7 +131,13 @@ module.exports.LongRoadBuilder = function (creep) {
                 creep.build(Game.getObjectById(creep.memory.constructionSite));
                 return;
             }
-            creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            if (creep.moveByPath(creep.memory.path) === OK) {
+                if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+                    creep.memory.destinationReached = true;
+                }
+            } else {
+                creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
+            }
         } else {
             let spawn = Game.spawns[creep.memory.resupply];
             if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {

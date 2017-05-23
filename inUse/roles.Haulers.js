@@ -1,5 +1,6 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
+let pathing = require('module.pathFinder');
 
 module.exports.Hauler = function (creep) {
     //BORDER CHECK
@@ -73,7 +74,10 @@ module.exports.Expediter = function (creep) {
     const energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 8);
     if (energy) {
         if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(energy[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            if (creep.moveByPath(creep.memory.path) === OK) {
+            } else {
+                creep.memory.path = pathing.Move(creep,energy[0]);
+            }
         }
     }
 
@@ -81,7 +85,10 @@ module.exports.Expediter = function (creep) {
     var container = Game.getObjectById(creep.memory.assignedContainer);
     if (container && creep.carry.energy === creep.carryCapacity) {
         if (creep.transfer(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            if (creep.moveByPath(creep.memory.path) === OK) {
+            } else {
+                creep.memory.path = pathing.Move(creep,container);
+            }
         }
     }
 };
@@ -102,13 +109,19 @@ module.exports.DumpTruck = function (creep) {
         let closestContainer = Game.getObjectById(creep.memory.container);
         if (closestContainer) {
             if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(closestContainer, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.moveByPath(creep.memory.path) === OK) {
+                } else {
+                    creep.memory.path = pathing.Move(creep,closestContainer);
+                }
             }
         } else {
             const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY, {filter: (s) => s.amount > 50});
             if (energy) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                    if (creep.moveByPath(creep.memory.path) === OK) {
+                    } else {
+                        creep.memory.path = pathing.Move(creep,energy);
+                    }
                 }
             }
         }
@@ -131,7 +144,10 @@ module.exports.DumpTruck = function (creep) {
                 newTarget.memory.incomingEnergy = creep.id;
                 newTarget.memory.incomingCounter = 0;
                 if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(newTarget, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                    if (creep.moveByPath(creep.memory.path) === OK) {
+                    } else {
+                        creep.memory.path = pathing.Move(creep,newTarget);
+                    }
                 }
             } else {
                 creep.moveTo(Game.flags.haulers, {reusePath: 20}, {
@@ -165,7 +181,10 @@ module.exports.BasicHauler = function (creep) {
         const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
         if (energy) {
             if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(energy, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.moveByPath(creep.memory.path) === OK) {
+                } else {
+                    creep.memory.path = pathing.Move(creep,energy);
+                }
             }
         }
     } else {
@@ -177,7 +196,10 @@ module.exports.BasicHauler = function (creep) {
         });
         if (targets.length > 0) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.moveByPath(creep.memory.path) === OK) {
+                } else {
+                    creep.memory.path = pathing.Move(creep,targets[0]);
+                }
             }
         }
     }

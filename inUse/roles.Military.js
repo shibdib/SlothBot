@@ -1,5 +1,6 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
+let pathing = require('module.pathFinder');
 
 module.exports.Defender = function (creep) {
     if (borderChecks.wrongRoom(creep) !== false){
@@ -99,14 +100,20 @@ module.exports.Claimer = function (creep) {
 module.exports.Reserver = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
-        creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        if (creep.moveByPath(creep.memory.path) === OK) {
+        } else {
+            creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
+        }
         if (creep.room.name === Game.flags[creep.memory.destination].room.name) {
             creep.memory.destinationReached = true;
         }
     } else {
         if (creep.room.controller) {
             if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(creep.room.controller);
+                if (creep.moveByPath(creep.memory.path) === OK) {
+                } else {
+                    creep.memory.path = pathing.Move(creep,creep.room.controller);
+                }
             }
         }
     }
