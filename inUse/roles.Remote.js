@@ -9,8 +9,11 @@ module.exports.RHarvester = function (creep) {
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
                 creep.memory.destinationReached = true;
             }
+            return null;
         } else {
             creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
+            creep.moveByPath(creep.memory.path);
+            return null;
         }
     } else
     if (creep.carry.energy > 0) {
@@ -57,10 +60,12 @@ module.exports.RHauler = function (creep) {
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                 creep.memory.destinationReached = true;
             }
+            return null;
         } else {
             creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
+            creep.moveByPath(creep.memory.path);
+            return null;
         }
-        return null;
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -104,8 +109,11 @@ module.exports.RHauler = function (creep) {
                 if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                     creep.memory.destinationReached = true;
                 }
+                return null;
             } else {
                 creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
+                creep.moveByPath(creep.memory.path);
+                return null;
             }
         }
     }
@@ -135,8 +143,11 @@ module.exports.LongRoadBuilder = function (creep) {
                 if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                     creep.memory.destinationReached = true;
                 }
+                return null;
             } else {
                 creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
+                creep.moveByPath(creep.memory.path);
+                return null;
             }
         } else {
             let spawn = Game.spawns[creep.memory.resupply];

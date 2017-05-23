@@ -54,6 +54,9 @@ module.exports.Hauler = function (creep) {
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Expediter = function (creep) {
     //BORDER CHECK
     if (borderChecks.wrongRoom(creep) !== false){
@@ -75,9 +78,11 @@ module.exports.Expediter = function (creep) {
     if (energy) {
         if (creep.pickup(energy[0]) === ERR_NOT_IN_RANGE) {
             if (creep.moveByPath(creep.memory.path) === OK) {
+                return null;
             } else {
                 creep.memory.path = pathing.Move(creep,energy[0]);
                 creep.moveByPath(creep.memory.path);
+                return null;
             }
         }
     }
@@ -87,14 +92,19 @@ module.exports.Expediter = function (creep) {
     if (container && creep.carry.energy === creep.carryCapacity) {
         if (creep.transfer(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
             if (creep.moveByPath(creep.memory.path) === OK) {
+                return null;
             } else {
                 creep.memory.path = pathing.Move(creep,container);
                 creep.moveByPath(creep.memory.path);
+                return null;
             }
         }
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.DumpTruck = function (creep) {
     //BORDER CHECK
     if (borderChecks.wrongRoom(creep) !== false){
@@ -112,9 +122,11 @@ module.exports.DumpTruck = function (creep) {
         if (closestContainer) {
             if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 if (creep.moveByPath(creep.memory.path) === OK) {
+                    return null;
                 } else {
                     creep.memory.path = pathing.Move(creep,closestContainer);
                     creep.moveByPath(creep.memory.path);
+                    return null;
                 }
             }
         } else {
@@ -122,9 +134,11 @@ module.exports.DumpTruck = function (creep) {
             if (energy) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                     if (creep.moveByPath(creep.memory.path) === OK) {
+                        return null;
                     } else {
                         creep.memory.path = pathing.Move(creep,energy);
                         creep.moveByPath(creep.memory.path);
+                        return null;
                     }
                 }
             }
@@ -149,9 +163,11 @@ module.exports.DumpTruck = function (creep) {
                 newTarget.memory.incomingCounter = 0;
                 if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     if (creep.moveByPath(creep.memory.path) === OK) {
+                        return null;
                     } else {
                         creep.memory.path = pathing.Move(creep,newTarget);
                         creep.moveByPath(creep.memory.path);
+                        return null;
                     }
                 }
             } else {
@@ -164,6 +180,9 @@ module.exports.DumpTruck = function (creep) {
 
 };
 
+/**
+ * @return {null}
+ */
 module.exports.BasicHauler = function (creep) {
     //BORDER CHECK
     if (borderChecks.wrongRoom(creep) !== false){
@@ -187,9 +206,11 @@ module.exports.BasicHauler = function (creep) {
         if (energy) {
             if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                 if (creep.moveByPath(creep.memory.path) === OK) {
+                    return null;
                 } else {
                     creep.memory.path = pathing.Move(creep,energy);
                     creep.moveByPath(creep.memory.path);
+                    return null;
                 }
             }
         }
@@ -203,9 +224,11 @@ module.exports.BasicHauler = function (creep) {
         if (targets.length > 0) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 if (creep.moveByPath(creep.memory.path) === OK) {
+                    return null;
                 } else {
                     creep.memory.path = pathing.Move(creep,targets[0]);
                     creep.moveByPath(creep.memory.path);
+                    return null;
                 }
             }
         }
