@@ -49,9 +49,15 @@ module.exports.RHauler = function (creep) {
         return null;
     }
     if (!creep.memory.destinationReached) {
-        creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 5) {
-            creep.memory.destinationReached = true;
+        if (creep.memory.path) {
+            creep.moveByPath(creep.memory.path);
+            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+                creep.memory.destinationReached = true;
+                creep.memory.path = null;
+            }
+        } else {
+            const path = spawn.pos.findPathTo(Game.flags[creep.memory.destination]);
+            creep.memory.path = Room.serializePath(path);
         }
         return null;
     }
@@ -93,7 +99,12 @@ module.exports.RHauler = function (creep) {
                 }
             }
         } else {
-            creep.moveTo(Game.spawns[creep.memory.resupply], {visualizePathStyle: {stroke: '#ffaa00'}});
+            if (creep.memory.path) {
+                creep.moveByPath(creep.memory.path);
+            } else {
+                const path = spawn.pos.findPathTo(Game.flags[creep.memory.resupply]);
+                creep.memory.path = Room.serializePath(path);
+            }
         }
     }
 };
