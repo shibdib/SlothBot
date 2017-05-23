@@ -1,5 +1,6 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
+let pathing = require('module.pathFinder');
 
 module.exports.RHarvester = function (creep) {
     //Initial move
@@ -49,15 +50,12 @@ module.exports.RHauler = function (creep) {
         return null;
     }
     if (!creep.memory.destinationReached) {
-        if (creep.memory.path) {
-            creep.moveByPath(creep.memory.path);
+        if (creep.moveByPath(creep.memory.path)) {
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
                 creep.memory.destinationReached = true;
-                creep.memory.path = null;
             }
         } else {
-            const path = creep.pos.findPathTo(Game.flags[creep.memory.destination]);
-            creep.memory.path = Room.serializePath(path);
+            creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
         }
         return null;
     }
@@ -99,11 +97,12 @@ module.exports.RHauler = function (creep) {
                 }
             }
         } else {
-            if (creep.memory.path) {
-                creep.moveByPath(creep.memory.path);
+            if (creep.moveByPath(creep.memory.path)) {
+                if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+                    creep.memory.destinationReached = true;
+                }
             } else {
-                const path = creep.pos.findPathTo(Game.flags[creep.memory.resupply]);
-                creep.memory.path = Room.serializePath(path);
+                creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
             }
         }
     }
