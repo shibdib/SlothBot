@@ -131,7 +131,7 @@ const respawnCreeps = {
                     //SENTRY RESPAWNS
                     if (Game.flags.sentryBuild && stationaryHarvester.length >= sourceCount) {
                         if (sentry.length < sentryRamparts.length && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry') === OK) {
-                            Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'rangedDefender', {role: 'sentry'});
+                            Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry', {role: 'sentry'});
                             console.log('Spawning a sentry');
                             return;
                         }
