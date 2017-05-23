@@ -1,4 +1,6 @@
 //Roles
+let startingCpu = Game.cpu.getUsed();
+console.log('Starting- '+startingCpu);
 let rolesHaulers = require('roles.Haulers');
 let rolesPeasants = require('roles.Peasants');
 let rolesWorkers = require('roles.Workers');
@@ -13,7 +15,7 @@ let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
 
 // This line monkey patches the global prototypes.
-//profiler.enable();
+profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
@@ -35,11 +37,13 @@ module.exports.loop = function () {
                 }
             }
         }
+        console.log('After Attack Checks- '+Game.cpu.getUsed() - startingCpu);
 
         //Room Management
         for(let name in Game.spawns) {
             //HOSTILE CHECK//
             let closestHostile = Game.spawns[name].room.find(FIND_HOSTILE_CREEPS);
+            console.log('After Hostile Checks- '+Game.cpu.getUsed() - startingCpu);
             if (closestHostile[0]) {
                 const pos = new RoomPosition(2, 2, Game.spawns[name].room.name);
                 pos.createFlag('combatBuild');
@@ -50,11 +54,13 @@ module.exports.loop = function () {
             //Every 5 ticks
             if (Game.time % 5 === 0) {
                 creepBalancer.run(name);
+                console.log('After Balancer Checks- '+Game.cpu.getUsed() - startingCpu);
             }
 
             //Every 15 ticks
             if (Game.time % 15 === 0) {
                 respawnCreeps.run(name);
+                console.log('After Respawn Checks- '+(Game.cpu.getUsed() - startingCpu));
             }
 
             //Every 100 ticks
@@ -131,6 +137,7 @@ module.exports.loop = function () {
             if (creep.memory.role === 'reserver') {
                 rolesMilitary.Reserver(creep);
             }
+            console.log('After Role Checks- '+Game.cpu.getUsed() - startingCpu);
         }
     });
 };
