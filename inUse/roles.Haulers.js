@@ -77,6 +77,7 @@ module.exports.Expediter = function (creep) {
             if (creep.moveByPath(creep.memory.path) === OK) {
             } else {
                 creep.memory.path = pathing.Move(creep,energy[0]);
+                creep.moveByPath(creep.memory.path);
             }
         }
     }
@@ -88,6 +89,7 @@ module.exports.Expediter = function (creep) {
             if (creep.moveByPath(creep.memory.path) === OK) {
             } else {
                 creep.memory.path = pathing.Move(creep,container);
+                creep.moveByPath(creep.memory.path);
             }
         }
     }
@@ -112,6 +114,7 @@ module.exports.DumpTruck = function (creep) {
                 if (creep.moveByPath(creep.memory.path) === OK) {
                 } else {
                     creep.memory.path = pathing.Move(creep,closestContainer);
+                    creep.moveByPath(creep.memory.path);
                 }
             }
         } else {
@@ -121,6 +124,7 @@ module.exports.DumpTruck = function (creep) {
                     if (creep.moveByPath(creep.memory.path) === OK) {
                     } else {
                         creep.memory.path = pathing.Move(creep,energy);
+                        creep.moveByPath(creep.memory.path);
                     }
                 }
             }
@@ -147,6 +151,7 @@ module.exports.DumpTruck = function (creep) {
                     if (creep.moveByPath(creep.memory.path) === OK) {
                     } else {
                         creep.memory.path = pathing.Move(creep,newTarget);
+                        creep.moveByPath(creep.memory.path);
                     }
                 }
             } else {
@@ -184,6 +189,7 @@ module.exports.BasicHauler = function (creep) {
                 if (creep.moveByPath(creep.memory.path) === OK) {
                 } else {
                     creep.memory.path = pathing.Move(creep,energy);
+                    creep.moveByPath(creep.memory.path);
                 }
             }
         }
@@ -199,6 +205,7 @@ module.exports.BasicHauler = function (creep) {
                 if (creep.moveByPath(creep.memory.path) === OK) {
                 } else {
                     creep.memory.path = pathing.Move(creep,targets[0]);
+                    creep.moveByPath(creep.memory.path);
                 }
             }
         }
