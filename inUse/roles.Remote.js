@@ -44,17 +44,21 @@ module.exports.RHauler = function (creep) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return null;
     }
+    if (!creep.memory.destinationReached) {
+        creep.moveTo(Game.flags[creep.memory.destination], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 5) {
+            creep.memory.destinationReached = true;
+        }
+        return null;
+    }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
+        creep.memory.destinationReached = false;
     }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        let remoteHarvester = Game.getObjectById(creep.memory.assignedHarvester);
-        if (remoteHarvester && creep.memory.hauling === false) {
-            creep.moveTo(remoteHarvester, {visualizePathStyle: {stroke: '#ffaa00'}});
-        }
         if (creep.pos.getRangeTo(remoteHarvester) === 1) {
             let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})
             if (container) {
