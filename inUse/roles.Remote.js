@@ -53,7 +53,7 @@ module.exports.RHauler = function (creep) {
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
-        creep.memory.destinationReached = false;
+        creep.memory.destinationReached = null;
     }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
