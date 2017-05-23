@@ -236,9 +236,9 @@ module.exports.harvesterContainerBuild = function (creep) {
 };
 
 module.exports.findRoad = function (creep) {
-        const roads = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_ROAD});
-        if (roads.length >= 2) {
-            return true;
+        const roads = creep.pos.findInRange(FIND_STRUCTURES, 2, {filter: (r) => r.structureType === STRUCTURE_ROAD});
+        if (roads.length >= 3) {
+            return roads[0].id;
         } else {
             return false;
         }
@@ -246,9 +246,9 @@ module.exports.findRoad = function (creep) {
 
 module.exports.findNearbyConstruction = function (creep) {
     const site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1);
-    if (site) {
-        creep.memory.constructionSite = site.id;
-        return site.id;
+    if (site.length > 0) {
+        creep.memory.constructionSite = site[0].id;
+        return site[0].id;
     } else {
         return false;
     }

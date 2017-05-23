@@ -261,8 +261,8 @@ const respawnCreeps = {
                                     });
                                     console.log('Spawning a reserver');
                                     return;
-                                } else if (longRoadBuilder.length < 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE], generatedNumber + 'longRoadBuilder') === OK) {
-                                    Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE], generatedNumber + 'longRoadBuilder', {
+                                } else if (longRoadBuilder.length < 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'longRoadBuilder') === OK) {
+                                    Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'longRoadBuilder', {
                                         role: 'longRoadBuilder',
                                         destination: remote,
                                         resupply: spawnName

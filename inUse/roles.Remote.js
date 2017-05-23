@@ -76,13 +76,15 @@ module.exports.RHauler = function (creep) {
 
 module.exports.LongRoadBuilder = function (creep) {
     //Initial move
+    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+    let home = Game.spawns[creep.memory.resupply];
     if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) === 0) {
         creep.memory.destinationReached = true;
         creep.memory.returnTrip = false;
     }
     if (!creep.memory.destinationReached) {
         if (creep.carry.energy > 0) {
-            if (creepTools.findRoad(creep) === false) {
+            if (creepTools.findRoad(creep) === false && spawn !== home) {
                 creep.pos.createConstructionSite(STRUCTURE_ROAD);
             }
             if (creepTools.findNearbyConstruction(creep) !== false) {
