@@ -84,8 +84,8 @@ const respawnCreeps = {
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
         if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
             if (!Game.spawns[spawnName].spawning) {
-                //Always have 2 basic peasants
-                if (peasants.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber+'peasant') === OK) {
+                //Always have 1 basic peasant
+                if (peasants.length < 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber+'peasant', {role: 'peasant'});
                     console.log('Spawning a peasant');
                     return;
