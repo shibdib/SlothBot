@@ -151,12 +151,23 @@ const respawnCreeps = {
                     }
 
                     //HAULER RESPAWNS
+                    if (Game.flags.remoteBuild && stationaryHarvester.length >= sourceCount) {
+                        for (let i = 0; i < containers.length; i++) {
+                            let hauler = _.filter(Game.creeps, (creep) => creep.memory.assignedContainer === containers[i].id && creep.memory.role === 'hauler');
+                            if (hauler.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
+                                Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
+                                    role: 'hauler',
+                                    assignedContainer: containers[i].id
+                                });
+                                console.log('Spawning a hauler');
+                                return;
+                            }
+                        }
+                    }
+
+                    //MISC HAULER RESPAWNS
                     if (Game.flags.haulerBuild && stationaryHarvester.length >= sourceCount) {
-                        if (haulers.length < containers.length && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'hauler') === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'hauler', {role: 'hauler'});
-                            console.log('Spawning a hauler');
-                            return;
-                        } else if (dumpTrucks.length < stationaryBuilders.length + upgraders.length && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'dumpTruck') === OK) {
+                        if (dumpTrucks.length < stationaryBuilders.length + upgraders.length && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'dumpTruck') === OK) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber+'dumpTruck', {role: 'dumpTruck'});
                             console.log('Spawning a dumpTruck');
                             return;

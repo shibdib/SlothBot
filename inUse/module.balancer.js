@@ -50,12 +50,6 @@ const balanceCreeps = {
             expediter[i].memory.assignedContainer = containers[i].id;
         }
 
-        //Split up Haulers 1-1
-        const hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
-        for (var i = 0; i < containers.length && i < hauler.length; i++){
-            hauler[i].memory.assignedContainer = containers[i].id;
-        }
-
         //Station Sentries
         const sentry = _.filter(Game.creeps, (creep) => creep.memory.role === 'sentry' && creep.room === Game.spawns[spawnName].room);
         for (var i = 0; i < sentryRamparts.length && i < sentry.length; i++){
