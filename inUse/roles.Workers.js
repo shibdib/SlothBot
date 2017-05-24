@@ -59,7 +59,7 @@ module.exports.Worker = function (creep) {
  * @return {null}
  */
 module.exports.Harvester = function (creep) {
-    if (creep.carry.energy > 0) {
+    if (creep.carry.energy === creep.carryCapacity) {
         let containerID = creepTools.harvestDeposit(creep);
         if (containerID) {
             let container = Game.getObjectById(containerID);
