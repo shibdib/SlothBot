@@ -314,7 +314,7 @@ const respawnCreeps = {
             } else if (Game.spawns[spawnName].spawning) {
                 let spawningCreep = Game.creeps[Game.spawns[spawnName].spawning.name];
                 Game.spawns[spawnName].room.visual.text(
-                    '🛠' + spawningCreep.memory.role,
+                    spawningCreep.memory.role,
                     Game.spawns[spawnName].pos.x + 1,
                     Game.spawns[spawnName].pos.y,
                     {align: 'left', opacity: 0.8});
