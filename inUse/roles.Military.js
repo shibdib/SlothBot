@@ -54,7 +54,7 @@ module.exports.Scout = function (creep) {
  * @return {null}
  */
 module.exports.Attacker = function (creep) {
-    let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack] && creep.memory.role === 'attacker');
+    let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
 
     let armedHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1});
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
