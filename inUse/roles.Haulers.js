@@ -22,6 +22,8 @@ module.exports.Hauler = function (creep) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, container, 3);
             }
+        } else {
+            pathing.Move(creep, Game.flags.haulers, 5);
         }
     }
     if (creepTools.rangeSource(creep) === 1) {
@@ -72,6 +74,8 @@ module.exports.DumpTruck = function (creep) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                     pathing.Move(creep, energy, 3);
                 }
+            } else {
+                pathing.Move(creep, Game.flags.haulers, 5);
             }
         }
     }
@@ -123,6 +127,8 @@ module.exports.BasicHauler = function (creep) {
             if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, energy);
             }
+        } else {
+            pathing.Move(creep, Game.flags.haulers, 5);
         }
     } else {
         const targets = creep.room.find(FIND_STRUCTURES, {
