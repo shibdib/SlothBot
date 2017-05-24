@@ -60,7 +60,6 @@ module.exports.RHauler = function (creep) {
         pathing.Move(creep, Game.flags[creep.memory.destination], 30);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
-            creep.memory.set = false;
         }
         return null;
     }
@@ -115,9 +114,8 @@ module.exports.LongRoadBuilder = function (creep) {
     //Initial move
     let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
     let home = Game.spawns[creep.memory.resupply];
-    if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) === 0) {
+    if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
         creep.memory.destinationReached = true;
-        creep.memory.returnTrip = false;
     }
     if (!creep.memory.destinationReached) {
         if (creep.carry.energy > 0) {
