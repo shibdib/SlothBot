@@ -109,12 +109,9 @@ module.exports.RHauler = function (creep) {
             }
         } else {
             if (creep.moveByPath(creep.memory.path) === OK) {
-                if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
-                    creep.memory.destinationReached = true;
-                }
                 return null;
             } else {
-                creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
+                creep.memory.path = pathing.Move(creep, Game.flags[creep.memory.resupply]);
                 creep.moveByPath(creep.memory.path);
                 return null;
             }
