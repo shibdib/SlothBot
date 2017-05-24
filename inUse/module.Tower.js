@@ -14,7 +14,7 @@ const towerControl = {
             tower.attack(closestHostile);
         } else if (woundedCreep) {
             tower.heal(woundedCreep);
-        } else if (tower.energy > tower.energyCapacity * 0.75) {
+        } else if (tower.energy > tower.energyCapacity * 0.25) {
             const closestDamagedStructure = Game.getObjectById(findRepair(tower));
             if (closestDamagedStructure) {
                 tower.repair(closestDamagedStructure);
@@ -28,6 +28,9 @@ module.exports = towerControl;
 function findRepair(tower) {
 
     site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax});
+    if (site === null) {
+        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000});
+    }
     if (site === null) {
         site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax});
     }
