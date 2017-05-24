@@ -39,7 +39,7 @@ module.exports.Hauler = function (creep) {
         });
         if (targets.length > 0) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, targets[0], 2);
+                pathing.Move(creep, targets[0], 2, true);
             }
         } else {
             const tower = Game.getObjectById(creepTools.findTower(creep));

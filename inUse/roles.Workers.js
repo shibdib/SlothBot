@@ -76,7 +76,7 @@ module.exports.Harvester = function (creep) {
         }
     }
     if (creep.carry.energy < creep.carryCapacity) {
-        if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
+        if (creep.memory.assignedSource) {
             source = Game.getObjectById(creep.memory.assignedSource);
         }else if (!source) {
             var source = creepTools.findSource(creep);
