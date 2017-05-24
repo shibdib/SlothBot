@@ -117,10 +117,10 @@ module.exports.Claimer = function (creep) {
 module.exports.Reserver = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
-        if (creep.room.name === Game.flags[creep.memory.destination].room.name) {
+        pathing.Move(creep, Game.flags[creep.memory.destination], 45);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
             creep.memory.destinationReached = true;
         }
-        pathing.Move(creep, Game.flags[creep.memory.destination]);
     } else {
         if (creep.room.controller) {
             if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {

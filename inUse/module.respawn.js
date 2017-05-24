@@ -115,12 +115,15 @@ const respawnCreeps = {
                     }
 
                     //ATTACK RESPAWNS
-                    for (let i = 0; i < 5; i++) {
+                    for (let i = 0; i < 10; i++) {
                         let attack = 'attack' + i;
                         if (Game.flags[attack]) {
-                            if (attackers.length < 4 && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, ATTACK, ATTACK, MOVE, MOVE], generatedNumber+'attacker') === OK) {
+                            let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].id && creep.memory.role === 'attacker');
+                            if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, ATTACK, ATTACK, MOVE, MOVE], generatedNumber + 'attacker') === OK) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, ATTACK, ATTACK, MOVE, MOVE], generatedNumber+'attacker', {
-                                    role: 'attacker'
+                                    role: 'attacker',
+                                    attackTarget: Game.flags[attack].id,
+                                    waitFor: (i * 2)
                                 });
                                 console.log('Spawning a attacker');
                                 return;
