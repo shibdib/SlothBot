@@ -22,7 +22,7 @@ module.exports.Peasant = function (creep) {
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             if (creep.moveByPath(creep.memory.path) === OK) {
             } else {
-                creep.memory.path = pathing.Move(source);
+                creep.memory.path = pathing.Move(creep, source);
                 creep.moveByPath(source);
                 return null;
             }
