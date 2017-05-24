@@ -31,21 +31,10 @@ module.exports.Worker = function (creep) {
         if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
             if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                if (creep.moveByPath(creep.memory.path) === OK) {
-                    return null;
-                } else {
-                    creep.memory.path = pathing.Move(creep,repairNeeded);
-                    creep.moveByPath(creep.memory.path);
-                    return null;
-                }
+                pathing.Move(creep, repairNeeded);
             }
         } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            if (creep.moveByPath(creep.memory.path) === OK) {
-            } else {
-                creep.memory.path = pathing.Move(creep,creep.room.controller);
-                creep.moveByPath(creep.memory.path);
-                return null;
-            }
+            pathing.Move(creep, creep.room.controller);
         }
     }
     else {
@@ -53,38 +42,20 @@ module.exports.Worker = function (creep) {
         container = Game.getObjectById(container);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                if (creep.moveByPath(creep.memory.path) === OK) {
-                    return null;
-                } else {
-                    creep.memory.path = pathing.Move(creep,container);
-                    creep.moveByPath(creep.memory.path);
-                    return null;
-                }
+                pathing.Move(creep, container);
             }
         }
         if (!container) {
             const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
             if (energy) {
                 if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,energy);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, energy);
                 }
             } else {
                 let source = creepTools.findSource(creep);
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
                     creep.memory.harvesting = true;
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,source);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, source);
                 }
             }
         }
@@ -125,13 +96,7 @@ module.exports.Harvester = function (creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            if (creep.moveByPath(creep.memory.path) === OK) {
-                return null;
-            } else {
-                creep.memory.path = pathing.Move(creep,source);
-                creep.moveByPath(creep.memory.path);
-                return null;
-            }
+            pathing.Move(creep, source);
         }
     }
 };
@@ -161,46 +126,22 @@ module.exports.wallRepairer = function (creep) {
         let repairNeeded = Game.getObjectById(creepTools.wallRepair(creep));
         if (build) {
             if (creep.build(build) === ERR_INVALID_TARGET) {
-                if (creep.moveByPath(creep.memory.path) === OK) {
-                    return null;
-                } else {
-                    creep.memory.path = pathing.Move(creep,build);
-                    creep.moveByPath(creep.memory.path);
-                    return null;
-                }
+                pathing.Move(creep, build);
             } else {
                 if (creep.build(build) === ERR_NOT_IN_RANGE) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,build);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, build);
                 }
             }
         } else {
             if (repairNeeded) {
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,repairNeeded);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, repairNeeded);
                 }
             }
         }
         if (!repairNeeded && !build){
             if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                if (creep.moveByPath(creep.memory.path) === OK) {
-                    return null;
-                } else {
-                    creep.memory.path = pathing.Move(creep,creep.room.controller);
-                    creep.moveByPath(creep.memory.path);
-                    return null;
-                }
+                pathing.Move(creep, creep.room.controller);
             }
         }
     }
@@ -209,22 +150,11 @@ module.exports.wallRepairer = function (creep) {
         container = Game.getObjectById(container);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                if (creep.moveByPath(creep.memory.path) === OK) {
-                    return null;
-                } else {
-                    creep.memory.path = pathing.Move(creep,container);
-                    creep.moveByPath(creep.memory.path);
-                    return null;
-                }
+                pathing.Move(creep, container);
             }
         }
         if (!container) {
-            if (creep.moveByPath(creep.memory.path) === OK) {
-            } else {
-                creep.memory.path = pathing.Move(Game.flags.haulers);
-                creep.moveByPath(creep.memory.path);
-                return null;
-            }
+            pathing.Move(creep, Game.flags.haulers);
         }
     }
 
@@ -252,13 +182,7 @@ module.exports.Upgrader = function (creep) {
 
     if (creep.memory.upgrading) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            if (creep.moveByPath(creep.memory.path) === OK) {
-                return null;
-            } else {
-                creep.memory.path = pathing.Move(creep,creep.room.controller);
-                creep.moveByPath(creep.memory.path);
-                return null;
-            }
+            pathing.Move(creep, creep.room.controller);
         }
     }
 };
@@ -289,13 +213,7 @@ module.exports.Builder = function (creep) {
                 });
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,target);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, target);
                 }
             }
         } else {
@@ -306,29 +224,15 @@ module.exports.Builder = function (creep) {
         target = Game.getObjectById(target);
         if (target) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
-                creep.moveTo(Game.flags.haulers, {reusePath: 20}, {
-                    visualizePathStyle: {stroke: '#ffffff'}
-                });
+                pathing.Move(creep, Game.flags.haulers);
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,target);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, target);
                 }
             }
         }
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            if (creep.moveByPath(creep.memory.path) === OK) {
-                return null;
-            } else {
-                creep.memory.path = pathing.Move(creep,creep.room.controller);
-                creep.moveByPath(creep.memory.path);
-                return null;
-            }
+            pathing.Move(creep, creep.room.controller);
         }
     }
 };
@@ -350,36 +254,18 @@ module.exports.RoadBuilder = function (creep) {
             target = Game.getObjectById(target);
             if (target) {
                 if (creep.build(target) === ERR_INVALID_TARGET) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,target);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, target);
                 } else {
                     if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        if (creep.moveByPath(creep.memory.path) === OK) {
-                            return null;
-                        } else {
-                            creep.memory.path = pathing.Move(creep,target);
-                            creep.moveByPath(creep.memory.path);
-                            return null;
-                        }
+                        pathing.Move(creep, target);
                     }
                 }
             }
         } else {
             let container = creepTools.findContainer(creep);
             if (container) {
-                if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,spawn);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, container);
                 }
             } else {
                 if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
@@ -388,13 +274,7 @@ module.exports.RoadBuilder = function (creep) {
                     var spawn = creepTools.findSpawn(creep);
                 }
                 if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    if (creep.moveByPath(creep.memory.path) === OK) {
-                        return null;
-                    } else {
-                        creep.memory.path = pathing.Move(creep,spawn);
-                        creep.moveByPath(creep.memory.path);
-                        return null;
-                    }
+                    pathing.Move(creep, spawn);
                 }
             }
         }

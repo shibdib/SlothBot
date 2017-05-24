@@ -52,13 +52,7 @@ module.exports.Sentry = function (creep) {
  */
 module.exports.Scout = function (creep) {
     const scout = creep.memory.destination;
-    if (creep.moveByPath(creep.memory.path) === OK) {
-        return null;
-    } else {
-        creep.memory.path = pathing.Move(creep, Game.flags[scout]);
-        creep.moveByPath(creep.memory.path);
-        return null;
-    }
+    pathing.Move(creep, Game.flags[scout]);
 };
 
 /**
@@ -87,22 +81,9 @@ module.exports.Attacker = function (creep) {
             }
         } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)){
             creep.memory.attackStarted = true;
-            if (creep.moveByPath(creep.memory.path) === OK) {
-                return null;
-            } else {
-                creep.memory.path = pathing.Move(creep, Game.flags.attack1);
-                creep.moveByPath(Game.flags.attack1);
-                return null;
-            }
+            pathing.Move(creep, Game.flags.attack1);
         } else {
-            creep.moveTo(Game.flags.stage1);
-            if (creep.moveByPath(creep.memory.path) === OK) {
-                return null;
-            } else {
-                creep.memory.path = pathing.Move(creep, Game.flags.stage1);
-                creep.moveByPath(creep.memory.path);
-                return null;
-            }
+            pathing.Move(creep, Game.flags.stage1);
         }
     }
 };
@@ -127,15 +108,9 @@ module.exports.Claimer = function (creep) {
             }
         } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)){
             creep.memory.attackStarted = true;
-            if (creep.moveByPath(creep.memory.path) === OK) {
-                return null;
-            } else {
-                creep.memory.path = pathing.Move(creep, Game.flags.attack1);
-                creep.moveByPath(creep.memory.path);
-                return null;
-            }
+            pathing.Move(creep, Game.flags.attack1);
         } else {
-            creep.moveTo(Game.flags.stage1);
+            pathing.Move(creep, Game.flags.stage1);
         }
     }
 };
@@ -149,23 +124,11 @@ module.exports.Reserver = function (creep) {
         if (creep.room.name === Game.flags[creep.memory.destination].room.name) {
             creep.memory.destinationReached = true;
         }
-        if (creep.moveByPath(creep.memory.path) === OK) {
-            return null;
-        } else {
-            creep.memory.path = pathing.Move(creep, Game.flags[creep.memory.destination]);
-            creep.moveByPath(creep.memory.path);
-            return null;
-        }
+        pathing.Move(creep, Game.flags[creep.memory.destination]);
     } else {
         if (creep.room.controller) {
             if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                if (creep.moveByPath(creep.memory.path) === OK) {
-                    return null;
-                } else {
-                    creep.memory.path = pathing.Move(creep, creep.room.controller);
-                    creep.moveByPath(creep.memory.path);
-                    return null;
-                }
+                pathing.Move(creep, creep.room.controller);
             }
         }
     }
