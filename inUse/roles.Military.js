@@ -54,7 +54,7 @@ module.exports.Scout = function (creep) {
  * @return {null}
  */
 module.exports.Attacker = function (creep) {
-    if (creep.memory.attackTarget) {
+    if (!creep.memory.attackTarget) {
         creep.suicide();
     }
     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
