@@ -54,7 +54,7 @@ module.exports.Scout = function (creep) {
  * @return {null}
  */
 module.exports.Attacker = function (creep) {
-    if (!creep.memory.attackTarget) {
+    if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
@@ -81,7 +81,7 @@ module.exports.Attacker = function (creep) {
         }
     } else if (attackers.length >= creep.memory.waitFor || creep.memory.attackStarted === true) {
             creep.memory.attackStarted = true;
-        pathing.Move(creep, creep.memory.attackTarget);
+        pathing.Move(creep, Game.flags[creep.memory.attackTarget]);
         } else {
             pathing.Move(creep, Game.flags.stage1);
         }

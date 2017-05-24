@@ -18,7 +18,7 @@ module.exports.Hauler = function (creep) {
     }
     if (creep.memory.hauling === false) {
         const container = Game.getObjectById(creep.memory.assignedContainer);
-        if (container) {
+        if (container && container.store[RESOURCE_ENERGY] > 50) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, container, 3);
             }

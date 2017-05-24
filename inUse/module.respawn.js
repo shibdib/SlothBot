@@ -119,11 +119,11 @@ const respawnCreeps = {
                     for (let i = 0; i < 10; i++) {
                         let attack = 'attack' + i;
                         if (Game.flags[attack]) {
-                            let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack] && creep.memory.role === 'attacker');
+                            let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
                             if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'attacker') === OK) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, ATTACK, ATTACK, MOVE, MOVE], generatedNumber+'attacker', {
                                     role: 'attacker',
-                                    attackTarget: Game.flags[attack],
+                                    attackTarget: Game.flags[attack].name,
                                     waitFor: (i * 2)
                                 });
                                 console.log('Spawning a attacker');
@@ -276,7 +276,7 @@ const respawnCreeps = {
 
                     //REMOTE RESPAWN
                     if (Game.flags.remoteBuild && stationaryHarvester.length >= sourceCount) {
-                        for (let i = 0; i < 5; i++) {
+                        for (let i = 0; i < 10; i++) {
                             let remote = 'remote' + i;
                             if (Game.flags[remote]) {
                                 let harvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
