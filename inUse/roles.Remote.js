@@ -11,7 +11,7 @@ module.exports.RHarvester = function (creep) {
         creep.memory.harvesting = true;
     }
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination]);
+        pathing.Move(creep, Game.flags[creep.memory.destination], 45);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
             creep.memory.set = false;
@@ -57,7 +57,7 @@ module.exports.RHauler = function (creep) {
         return null;
     }
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination]);
+        pathing.Move(creep, Game.flags[creep.memory.destination], 30);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
             creep.memory.set = false;
@@ -74,7 +74,7 @@ module.exports.RHauler = function (creep) {
         let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container);
+                pathing.Move(creep, container, 5);
             }
         }
     }
@@ -90,18 +90,18 @@ module.exports.RHauler = function (creep) {
             });
             if (targets.length > 0) {
                 if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, targets[0]);
+                    pathing.Move(creep, targets[0], 2);
                 }
             } else {
                 const tower = Game.getObjectById(creepTools.findTower(creep));
                 if (tower) {
                     if (creep.transfer(tower, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        pathing.Move(creep, tower);
+                        pathing.Move(creep, tower, 2);
                     }
                 }
             }
         } else {
-            pathing.Move(creep, Game.spawns[creep.memory.resupply]);
+            pathing.Move(creep, Game.spawns[creep.memory.resupply], 30);
         }
     }
 };

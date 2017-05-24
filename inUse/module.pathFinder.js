@@ -1,9 +1,8 @@
-
-module.exports.Move = function (creep, target) {
+module.exports.Move = function (creep, target, checkRate = 10) {
     if (creep.memory.pathAge === null || creep.memory.pathAge === undefined) {
         creep.memory.pathAge = 0;
     }
-    if (creep.memory.pathAge >= 10) {
+    if (creep.memory.pathAge >= checkRate) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             maxOps: 20000, serialize: true
         });
