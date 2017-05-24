@@ -206,7 +206,6 @@ module.exports.Builder = function (creep) {
  * @return {null}
  */
 module.exports.RoadBuilder = function (creep) {
-    if (!creepTools.findSpawn(creep).memory.build === false) {
         if (creep.carry.energy > 0) {
             let target = creepTools.findRoadWork(creep);
             target = Game.getObjectById(target);
@@ -236,5 +235,4 @@ module.exports.RoadBuilder = function (creep) {
                 }
             }
         }
-    }
 };
