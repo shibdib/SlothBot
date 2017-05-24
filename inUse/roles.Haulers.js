@@ -6,7 +6,7 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.Hauler = function (creep) {
-    if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
+    if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return;
     }
@@ -25,10 +25,6 @@ module.exports.Hauler = function (creep) {
         } else {
             pathing.Move(creep, Game.flags.haulers, 5);
         }
-    }
-    if (creepTools.rangeSource(creep) === 1) {
-        pathing.Move(creep, Game.flags.bump);
-        return;
     }
 
     //Haul to spawn/extension
