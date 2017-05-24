@@ -3,7 +3,7 @@ module.exports.Move = function (creep, target) {
     if (creep.memory.pathAge === null || creep.memory.pathAge === undefined) {
         creep.memory.pathAge = 0;
     }
-    if (creep.memory.target !== target.pos) {
+    if (creep.memory.desto !== target.pos) {
         creep.memory.pathAge = 11;
     }
     if (creep.memory.pathAge >= 10) {
@@ -12,7 +12,7 @@ module.exports.Move = function (creep, target) {
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
-        creep.memory.target = target.pos;
+        creep.memory.desto = target.pos;
     }
     creep.memory.pathAge++;
     if (creep.moveByPath(creep.memory.path) !== OK) {
@@ -21,7 +21,7 @@ module.exports.Move = function (creep, target) {
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
-        creep.memory.target = target.pos;
+        creep.memory.desto = target.pos;
     }
 };
 module.exports.AttackMove = function (creep, target) {
