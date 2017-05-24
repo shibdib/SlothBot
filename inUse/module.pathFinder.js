@@ -12,6 +12,12 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
                 for (let i = 0; i < roads.length; i++) {
                     costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0.5);
                 }
+                for (let i = 0; i < 20; i++) {
+                    let avoid = 'avoid' + i;
+                    if (Game.flags[avoid]) {
+                        costMatrix.set(avoid[i].pos.x, avoid[i].pos.y, 100);
+                    }
+                }
                 if (exempt === true) {
                     const source = creep.room.find(FIND_SOURCES);
                     for (let i = 0; i < source.length; i++) {
