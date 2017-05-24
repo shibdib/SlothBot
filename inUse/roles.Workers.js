@@ -35,6 +35,7 @@ module.exports.Worker = function (creep) {
                     return null;
                 } else {
                     creep.memory.path = pathing.Move(creep,repairNeeded);
+                    creep.moveByPath(creep.memory.path);
                     return null;
                 }
             }
@@ -76,6 +77,7 @@ module.exports.Worker = function (creep) {
             } else {
                 let source = creepTools.findSource(creep);
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                    creep.memory.harvesting = true;
                     if (creep.moveByPath(creep.memory.path) === OK) {
                         return null;
                     } else {
@@ -83,13 +85,15 @@ module.exports.Worker = function (creep) {
                         creep.moveByPath(creep.memory.path);
                         return null;
                     }
-                    creep.memory.harvesting = true;
                 }
             }
         }
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Harvester = function (creep) {
     //BORDER CHECK
     if (borderChecks.wrongRoom(creep) !== false){
@@ -215,12 +219,20 @@ module.exports.wallRepairer = function (creep) {
             }
         }
         if (!container) {
-            creep.moveTo(Game.flags.haulers);
+            if (creep.moveByPath(creep.memory.path) === OK) {
+            } else {
+                creep.memory.path = pathing.Move(Game.flags.haulers);
+                creep.moveByPath(creep.memory.path);
+                return null;
+            }
         }
     }
 
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Upgrader = function (creep) {
     //BORDER CHECK
     if (borderChecks.wrongRoom(creep) !== false){
@@ -251,6 +263,9 @@ module.exports.Upgrader = function (creep) {
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Builder = function (creep) {
     //BORDER CHECK
     if (borderChecks.wrongRoom(creep) !== false){
@@ -318,6 +333,9 @@ module.exports.Builder = function (creep) {
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.RoadBuilder = function (creep) {
     //BORDER CHECK
     if (borderChecks.wrongRoom(creep) !== false){

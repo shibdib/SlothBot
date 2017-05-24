@@ -2,6 +2,9 @@ let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 
+/**
+ * @return {null}
+ */
 module.exports.Hauler = function (creep) {
     //BORDER CHECK
     if (creep.memory.hauling === true) {
@@ -22,7 +25,13 @@ module.exports.Hauler = function (creep) {
         const container = Game.getObjectById(creep.memory.assignedContainer);
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(container, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.moveByPath(creep.memory.path) === OK) {
+                    return null;
+                } else {
+                    creep.memory.path = pathing.Move(creep, container);
+                    creep.moveByPath(creep.memory.path);
+                    return null;
+                }
             }
         }
     }
@@ -41,13 +50,25 @@ module.exports.Hauler = function (creep) {
         });
         if (targets.length > 0) {
             if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.moveByPath(creep.memory.path) === OK) {
+                    return null;
+                } else {
+                    creep.memory.path = pathing.Move(creep, targets[0]);
+                    creep.moveByPath(creep.memory.path);
+                    return null;
+                }
             }
         } else {
             const tower = Game.getObjectById(creepTools.findTower(creep));
             if (tower) {
                 if (creep.transfer(tower, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(tower, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                    if (creep.moveByPath(creep.memory.path) === OK) {
+                        return null;
+                    } else {
+                        creep.memory.path = pathing.Move(creep, tower);
+                        creep.moveByPath(creep.memory.path);
+                        return null;
+                    }
                 }
             }
         }

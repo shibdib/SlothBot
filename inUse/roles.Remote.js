@@ -2,6 +2,9 @@ let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 
+/**
+ * @return {null}
+ */
 module.exports.RHarvester = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
@@ -75,7 +78,7 @@ module.exports.RHauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})
+        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(container, {visualizePathStyle: {stroke: '#ffaa00'}});
@@ -85,7 +88,7 @@ module.exports.RHauler = function (creep) {
 
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
-        if (creep.room.id === Game.spawns[creep.memory.resupply].room.id) {
+        if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
             const targets = creep.room.find(FIND_STRUCTURES, {
                 filter: (structure) => {
                     return (structure.structureType === STRUCTURE_EXTENSION ||
@@ -120,6 +123,9 @@ module.exports.RHauler = function (creep) {
 };
 
 
+/**
+ * @return {null}
+ */
 module.exports.LongRoadBuilder = function (creep) {
     //Initial move
     let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
