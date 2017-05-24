@@ -1,4 +1,4 @@
-module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
+module.exports.Move = function (creep, target, checkRate = 10, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
         return;
     }
@@ -37,7 +37,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
                     }
                 }
             },
-            maxOps: 100000, serialize: true, ignoreCreeps: false
+            maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
@@ -75,7 +75,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
                     }
                 }
             },
-            maxOps: 100000, serialize: true, ignoreCreeps: false
+            maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
