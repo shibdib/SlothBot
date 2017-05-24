@@ -81,9 +81,9 @@ module.exports.Attacker = function (creep) {
         }
     } else if (attackers.length >= creep.memory.waitFor || creep.memory.attackStarted === true) {
             creep.memory.attackStarted = true;
-        pathing.Move(creep, Game.flags[creep.memory.attackTarget]);
+        pathing.Move(creep, Game.flags[creep.memory.attackTarget], 25, false, 16);
         } else {
-            pathing.Move(creep, Game.flags.stage1);
+        pathing.Move(creep, Game.flags.stage1, 25, false, 16);
         }
 };
 
@@ -120,7 +120,7 @@ module.exports.Claimer = function (creep) {
 module.exports.Reserver = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], 45);
+        pathing.Move(creep, Game.flags[creep.memory.destination], 45, false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
             creep.memory.destinationReached = true;
         }
