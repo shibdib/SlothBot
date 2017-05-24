@@ -33,7 +33,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
                     }
                 }
             },
-            maxOps: 20000, serialize: true
+            maxOps: 10000, serialize: true, ignoreCreeps: false
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
@@ -59,7 +59,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
                     costMatrix.set(source[i].pos.x - 1, source[i].pos.y + 1, 35);
                 }
             },
-            maxOps: 20000, serialize: true
+            maxOps: 10000, serialize: true, ignoreCreeps: false
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
@@ -70,11 +70,11 @@ module.exports.AttackMove = function (creep, target) {
         return;
     }
     creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
-        maxOps: 20000, serialize: true
+        maxOps: 10000, serialize: true, ignoreCreeps: false
     });
     if (creep.moveByPath(creep.memory.path) !== OK) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
-            maxOps: 20000, serialize: true, ignoreDestructibleStructures: true
+            maxOps: 10000, serialize: true, ignoreCreeps: false, ignoreDestructibleStructures: true
         });
         creep.moveByPath(creep.memory.path);
     }
