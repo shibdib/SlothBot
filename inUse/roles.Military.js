@@ -21,13 +21,22 @@ module.exports.Defender = function (creep) {
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Sentry = function (creep) {
     if (creep.memory.assignedRampart) {
         let post = Game.getObjectById(creep.memory.assignedRampart);
         //Initial move
         if (post) {
             if (post.pos !== creep.pos) {
-                creep.moveTo(post, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                if (creep.moveByPath(creep.memory.path) === OK) {
+                    return null;
+                } else {
+                    creep.memory.path = pathing.Move(creep, post);
+                    creep.moveByPath(creep.memory.path);
+                    return null;
+                }
             } else {
                 const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
                 if (creep.rangedAttack(closestHostile)) {
@@ -38,11 +47,23 @@ module.exports.Sentry = function (creep) {
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Scout = function (creep) {
     const scout = creep.memory.destination;
-    creep.moveTo(Game.flags[scout]);
+    if (creep.moveByPath(creep.memory.path) === OK) {
+        return null;
+    } else {
+        creep.memory.path = pathing.Move(creep, Game.flags[scout]);
+        creep.moveByPath(creep.memory.path);
+        return null;
+    }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Attacker = function (creep) {
     const attackers = _.filter(Game.creeps, (attackers) => attackers.memory.role === 'attacker' && attackers.room === creep.room);
 
@@ -66,13 +87,29 @@ module.exports.Attacker = function (creep) {
             }
         } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)){
             creep.memory.attackStarted = true;
-            creep.moveTo(Game.flags.attack1);
+            if (creep.moveByPath(creep.memory.path) === OK) {
+                return null;
+            } else {
+                creep.memory.path = pathing.Move(creep, Game.flags.attack1);
+                creep.moveByPath(Game.flags.attack1);
+                return null;
+            }
         } else {
             creep.moveTo(Game.flags.stage1);
+            if (creep.moveByPath(creep.memory.path) === OK) {
+                return null;
+            } else {
+                creep.memory.path = pathing.Move(creep, Game.flags.stage1);
+                creep.moveByPath(creep.memory.path);
+                return null;
+            }
         }
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Claimer = function (creep) {
     const attackers = _.filter(Game.creeps, (attackers) => attackers.memory.role === 'claimer' && attackers.room === creep.room);
 
@@ -90,29 +127,44 @@ module.exports.Claimer = function (creep) {
             }
         } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)){
             creep.memory.attackStarted = true;
-            creep.moveTo(Game.flags.attack1);
+            if (creep.moveByPath(creep.memory.path) === OK) {
+                return null;
+            } else {
+                creep.memory.path = pathing.Move(creep, Game.flags.attack1);
+                creep.moveByPath(creep.memory.path);
+                return null;
+            }
         } else {
             creep.moveTo(Game.flags.stage1);
         }
     }
 };
 
+/**
+ * @return {null}
+ */
 module.exports.Reserver = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
-        if (creep.moveByPath(creep.memory.path) === OK) {
-        } else {
-            creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
-        }
         if (creep.room.name === Game.flags[creep.memory.destination].room.name) {
             creep.memory.destinationReached = true;
+        }
+        if (creep.moveByPath(creep.memory.path) === OK) {
+            return null;
+        } else {
+            creep.memory.path = pathing.Move(creep, Game.flags[creep.memory.destination]);
+            creep.moveByPath(creep.memory.path);
+            return null;
         }
     } else {
         if (creep.room.controller) {
             if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 if (creep.moveByPath(creep.memory.path) === OK) {
+                    return null;
                 } else {
-                    creep.memory.path = pathing.Move(creep,creep.room.controller);
+                    creep.memory.path = pathing.Move(creep, creep.room.controller);
+                    creep.moveByPath(creep.memory.path);
+                    return null;
                 }
             }
         }
