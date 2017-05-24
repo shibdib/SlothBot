@@ -30,8 +30,3 @@ module.exports.AttackMove = function (creep, target) {
         creep.moveByPath(creep.memory.path);
     }
 };
-
-if (creep.memory.move <= 3) {
-    creep.move(TOP);
-    creep.memory.move++;
-}
