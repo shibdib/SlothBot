@@ -6,16 +6,21 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.RHarvester = function (creep) {
+    if (creep.memory.set === false) {
+        creep.memory.path = null;
+    }
     //Initial move
     if (!creep.memory.destinationReached) {
         if (creep.moveByPath(creep.memory.path) === OK) {
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
                 creep.memory.destinationReached = true;
+                creep.memory.set = false;
             }
             return null;
         } else {
             creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
             creep.moveByPath(creep.memory.path);
+            creep.memory.set = true;
             return null;
         }
     } else
@@ -58,15 +63,21 @@ module.exports.RHauler = function (creep) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return null;
     }
+    if (creep.memory.set === false) {
+        creep.memory.path = null;
+    }
+    //Initial move
     if (!creep.memory.destinationReached) {
         if (creep.moveByPath(creep.memory.path) === OK) {
-            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
                 creep.memory.destinationReached = true;
+                creep.memory.set = false;
             }
             return null;
         } else {
             creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
             creep.moveByPath(creep.memory.path);
+            creep.memory.set = true;
             return null;
         }
     }
@@ -113,6 +124,7 @@ module.exports.RHauler = function (creep) {
             } else {
                 creep.memory.path = pathing.Move(creep, Game.spawns[creep.memory.resupply]);
                 creep.moveByPath(creep.memory.path);
+                creep.memory.set = true;
                 return null;
             }
         }
@@ -150,6 +162,7 @@ module.exports.LongRoadBuilder = function (creep) {
             } else {
                 creep.memory.path = pathing.Move(creep,Game.flags[creep.memory.destination]);
                 creep.moveByPath(creep.memory.path);
+                creep.memory.set = true;
                 return null;
             }
         } else {
