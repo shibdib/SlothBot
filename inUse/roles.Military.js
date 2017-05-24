@@ -17,7 +17,7 @@ module.exports.Defender = function (creep) {
             creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
-        creep.moveTo(Game.flags.defender1, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        pathing.Move(creep, Game.flags.defender1);
     }
 };
 
@@ -30,13 +30,7 @@ module.exports.Sentry = function (creep) {
         //Initial move
         if (post) {
             if (post.pos !== creep.pos) {
-                if (creep.moveByPath(creep.memory.path) === OK) {
-                    return null;
-                } else {
-                    creep.memory.path = pathing.Move(creep, post);
-                    creep.moveByPath(creep.memory.path);
-                    return null;
-                }
+                pathing.Move(creep, post);
             } else {
                 const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
                 if (creep.rangedAttack(closestHostile)) {
@@ -63,29 +57,30 @@ module.exports.Attacker = function (creep) {
 
     let armedHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1});
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
+    let closestHostileTower = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
+    let closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (armedHostile) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(armedHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
+            pathing.AttackMove(creep, armedHostile);
         }
-    } else
-    if (closestHostileSpawn) {
+    } else if (closestHostileTower) {
+        if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+            pathing.AttackMove(creep, closestHostileTower);
+        }
+    } else if (closestHostileSpawn) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(closestHostileSpawn, {visualizePathStyle: {stroke: '#ffaa00'}});
+            pathing.AttackMove(creep, closestHostileSpawn);
         }
-    } else
-    if (!closestHostileSpawn) {
-        const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (closestHostile) {
-            if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
-            }
+    } else if (closestHostile) {
+        if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+            pathing.AttackMove(creep, closestHostile);
+        }
         } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)){
             creep.memory.attackStarted = true;
             pathing.Move(creep, Game.flags.attack1);
         } else {
             pathing.Move(creep, Game.flags.stage1);
         }
-    }
 };
 
 /**

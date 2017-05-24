@@ -19,3 +19,19 @@ module.exports.Move = function (creep, target) {
         creep.memory.pathAge = 0;
     }
 };
+module.exports.AttackMove = function (creep, target) {
+    creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
+        maxOps: 20000, serialize: true
+    });
+    if (creep.moveByPath(creep.memory.path) !== OK) {
+        creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
+            maxOps: 20000, serialize: true, ignoreDestructibleStructures: true
+        });
+        creep.moveByPath(creep.memory.path);
+    }
+};
+
+if (creep.memory.move <= 3) {
+    creep.move(TOP);
+    creep.memory.move++;
+}
