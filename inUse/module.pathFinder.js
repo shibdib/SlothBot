@@ -21,15 +21,15 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
                 if (exempt === true) {
                     const source = creep.room.find(FIND_SOURCES);
                     for (let i = 0; i < source.length; i++) {
-                        costMatrix.set(source[i].pos.x, source[i].pos.y, 100);
-                        costMatrix.set(source[i].pos.x + 1, source[i].pos.y, 100);
-                        costMatrix.set(source[i].pos.x, source[i].pos.y + 1, 100);
-                        costMatrix.set(source[i].pos.x - 1, source[i].pos.y, 100);
-                        costMatrix.set(source[i].pos.x, source[i].pos.y - 1, 100);
-                        costMatrix.set(source[i].pos.x - 1, source[i].pos.y - 1, 100);
-                        costMatrix.set(source[i].pos.x + 1, source[i].pos.y + 1, 100);
-                        costMatrix.set(source[i].pos.x + 1, source[i].pos.y - 1, 100);
-                        costMatrix.set(source[i].pos.x - 1, source[i].pos.y + 1, 100);
+                        costMatrix.set(source[i].pos.x, source[i].pos.y, 35);
+                        costMatrix.set(source[i].pos.x + 1, source[i].pos.y, 35);
+                        costMatrix.set(source[i].pos.x, source[i].pos.y + 1, 35);
+                        costMatrix.set(source[i].pos.x - 1, source[i].pos.y, 35);
+                        costMatrix.set(source[i].pos.x, source[i].pos.y - 1, 35);
+                        costMatrix.set(source[i].pos.x - 1, source[i].pos.y - 1, 35);
+                        costMatrix.set(source[i].pos.x + 1, source[i].pos.y + 1, 35);
+                        costMatrix.set(source[i].pos.x + 1, source[i].pos.y - 1, 35);
+                        costMatrix.set(source[i].pos.x - 1, source[i].pos.y + 1, 35);
                     }
                 }
             },
@@ -48,15 +48,15 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false) {
                 }
                 const source = creep.room.find(FIND_SOURCES);
                 for (let i = 0; i < source.length; i++) {
-                    costMatrix.set(source[i].pos.x, source[i].pos.y, 100);
-                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y, 100);
-                    costMatrix.set(source[i].pos.x, source[i].pos.y + 1, 100);
-                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y, 100);
-                    costMatrix.set(source[i].pos.x, source[i].pos.y - 1, 100);
-                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y - 1, 100);
-                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y + 1, 100);
-                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y - 1, 100);
-                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y + 1, 100);
+                    costMatrix.set(source[i].pos.x, source[i].pos.y, 35);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y, 35);
+                    costMatrix.set(source[i].pos.x, source[i].pos.y + 1, 35);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y, 35);
+                    costMatrix.set(source[i].pos.x, source[i].pos.y - 1, 35);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y - 1, 35);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y + 1, 35);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y - 1, 35);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y + 1, 35);
                 }
             },
             maxOps: 20000, serialize: true
