@@ -111,7 +111,7 @@ module.exports.RHauler = function (creep) {
             if (creep.moveByPath(creep.memory.path) === OK) {
                 return null;
             } else {
-                creep.memory.path = pathing.Move(creep, Game.flags[creep.memory.resupply]);
+                creep.memory.path = pathing.Move(creep, Game.spawns[creep.memory.resupply]);
                 creep.moveByPath(creep.memory.path);
                 return null;
             }
