@@ -193,8 +193,8 @@ const respawnCreeps = {
 
                     //WORKER RESPAWNS
                     if (Game.flags.workerBuild && stationaryHarvester.length >= sourceCount) {
-                        if (worker.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE], generatedNumber+'worker') === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE], generatedNumber+'worker', {role: 'worker'});
+                        if (worker.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE, MOVE, MOVE], generatedNumber + 'worker') === OK) {
+                            Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE, MOVE, MOVE], generatedNumber + 'worker', {role: 'worker'});
                             console.log('Spawning a worker');
                             return;
                         } else if (upgraders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE], generatedNumber+'upgrader') === OK) {
