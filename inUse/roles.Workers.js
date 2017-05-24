@@ -82,7 +82,7 @@ module.exports.Harvester = function (creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, source);
+            pathing.Move(creep, source, 2, true);
         }
     }
 };
