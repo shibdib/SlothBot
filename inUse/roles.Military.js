@@ -54,6 +54,9 @@ module.exports.Scout = function (creep) {
  * @return {null}
  */
 module.exports.Attacker = function (creep) {
+    if (creep.memory.attackTarget) {
+        creep.suicide();
+    }
     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
 
     let armedHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1});
@@ -76,9 +79,9 @@ module.exports.Attacker = function (creep) {
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostile);
         }
-    } else if (Game.flags.attack1 && (attackers.length >= creep.memory.waitFor || creep.memory.attackStarted === true)) {
+    } else if (attackers.length >= creep.memory.waitFor || creep.memory.attackStarted === true) {
             creep.memory.attackStarted = true;
-        pathing.Move(creep, Game.flags[creep.memory.attackTarget]);
+        pathing.Move(creep, creep.memory.attackTarget);
         } else {
             pathing.Move(creep, Game.flags.stage1);
         }
