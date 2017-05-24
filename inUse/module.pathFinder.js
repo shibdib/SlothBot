@@ -22,7 +22,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
                         costMatrix.set(Game.flags[avoid].pos.x, Game.flags[avoid].pos.y, 100);
                     }
                 }
-                if (exempt === true) {
+                if (exempt !== true) {
                     const source = creep.room.find(FIND_SOURCES);
                     for (let i = 0; i < source.length; i++) {
                         costMatrix.set(source[i].pos.x, source[i].pos.y, 35);
@@ -60,7 +60,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
                         costMatrix.set(Game.flags[avoid].pos.x, Game.flags[avoid].pos.y, 100);
                     }
                 }
-                if (exempt === true) {
+                if (exempt !== true) {
                     const source = creep.room.find(FIND_SOURCES);
                     for (let i = 0; i < source.length; i++) {
                         costMatrix.set(source[i].pos.x, source[i].pos.y, 35);
