@@ -7,13 +7,17 @@ let pathing = require('module.pathFinder');
  */
 module.exports.RHarvester = function (creep) {
     //Initial move
+    if (creep.carry.energy === 0) {
+        creep.memory.harvesting = true;
+    }
     if (!creep.memory.destinationReached) {
         pathing.Move(creep, Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
             creep.memory.set = false;
         }
-    } else if (creep.carry.energy === creep.carryCapacity) {
+    } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
+        creep.memory.harvesting = false;
         let containerID = creepTools.harvestDeposit(creep);
         if (containerID) {
             let container = Game.getObjectById(containerID);
