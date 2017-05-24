@@ -144,19 +144,9 @@ module.exports.wallRepairer = function (creep) {
  */
 module.exports.Upgrader = function (creep) {
     creepTools.dumpTruck(creep);
-
-    if (creep.memory.upgrading && creep.carry.energy === 0) {
-        creep.memory.upgrading = false;
-    }
-    if (!creep.memory.upgrading && creep.carry.energy > 0) {
-        creep.memory.upgrading = true;
-    }
-
-    if (creep.memory.upgrading) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, creep.room.controller);
         }
-    }
 };
 
 /**
@@ -219,7 +209,7 @@ module.exports.RoadBuilder = function (creep) {
                 }
             }
         } else {
-            let container = creepTools.findContainer(creep);
+            let container = Game.getObjectById(creepTools.findContainer(creep));
             if (container) {
                 if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     pathing.Move(creep, container);
