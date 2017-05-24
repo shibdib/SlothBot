@@ -12,6 +12,18 @@ module.exports.Move = function (creep, target, checkRate = 10) {
                 for (let i = 0; i < roads.length; i++) {
                     costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0.5);
                 }
+                const source = creep.room.find(FIND_SOURCES);
+                for (let i = 0; i < source.length; i++) {
+                    costMatrix.set(source[i].pos.x, source[i].pos.y, 100);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y, 100);
+                    costMatrix.set(source[i].pos.x, source[i].pos.y + 1, 100);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y, 100);
+                    costMatrix.set(source[i].pos.x, source[i].pos.y - 1, 100);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y - 1, 100);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y + 1, 100);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y - 1, 100);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y + 1, 100);
+                }
             },
             maxOps: 20000, serialize: true
         });
@@ -25,6 +37,18 @@ module.exports.Move = function (creep, target, checkRate = 10) {
                 const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
                 for (let i = 0; i < roads.length; i++) {
                     costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0.5);
+                }
+                const source = creep.room.find(FIND_SOURCES);
+                for (let i = 0; i < source.length; i++) {
+                    costMatrix.set(source[i].pos.x, source[i].pos.y, 100);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y, 100);
+                    costMatrix.set(source[i].pos.x, source[i].pos.y + 1, 100);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y, 100);
+                    costMatrix.set(source[i].pos.x, source[i].pos.y - 1, 100);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y - 1, 100);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y + 1, 100);
+                    costMatrix.set(source[i].pos.x + 1, source[i].pos.y - 1, 100);
+                    costMatrix.set(source[i].pos.x - 1, source[i].pos.y + 1, 100);
                 }
             },
             maxOps: 20000, serialize: true

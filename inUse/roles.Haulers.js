@@ -6,6 +6,10 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.Hauler = function (creep) {
+    if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
+        creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+        return;
+    }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
