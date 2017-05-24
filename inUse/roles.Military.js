@@ -32,9 +32,10 @@ module.exports.Sentry = function (creep) {
             if (post.pos !== creep.pos) {
                 pathing.Move(creep, post);
             } else {
-                const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-                if (creep.rangedAttack(closestHostile)) {
-                    creep.say('ATTACKING');
+                const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3);
+                if (targets.length > 0) {
+                    creep.rangedMassAttack();
+                    creep.say('Attacking')
                 }
             }
         }
