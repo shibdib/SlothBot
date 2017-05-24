@@ -14,8 +14,8 @@ module.exports.RHarvester = function (creep) {
         pathing.Move(creep, Game.flags[creep.memory.destination], 45);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
-            creep.memory.set = false;
         }
+        return null;
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
         creep.memory.harvesting = false;
         let containerID = creepTools.harvestDeposit(creep);
@@ -62,6 +62,7 @@ module.exports.RHauler = function (creep) {
             creep.memory.destinationReached = true;
             creep.memory.set = false;
         }
+        return null;
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
