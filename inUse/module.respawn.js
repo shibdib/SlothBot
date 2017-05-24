@@ -46,6 +46,7 @@ const respawnCreeps = {
 
 //MISC
         const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
+        const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
         const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
             filter: {structureType: STRUCTURE_CONTAINER}
         });
@@ -133,10 +134,16 @@ const respawnCreeps = {
 
                     //SENTRY RESPAWNS
                     if (Game.flags.sentryBuild && stationaryHarvester.length >= sourceCount) {
-                        if (sentry.length < sentryRamparts.length && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry') === OK) {
-                            Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry', {role: 'sentry'});
-                            console.log('Spawning a sentry');
-                            return;
+                        for (let i = 0; i < sentryRamparts.length; i++) {
+                            let sentry = _.filter(Game.creeps, (creep) => creep.memory.assignedRampart === sentryRamparts[i].id && creep.memory.role === 'sentry');
+                            if (sentry.length < 2 && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry') === OK) {
+                                Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE], generatedNumber + 'sentry', {
+                                    role: 'sentry',
+                                    assignedRampart: sentryRamparts[i].id
+                                });
+                                console.log('Spawning a sentry');
+                                return;
+                            }
                         }
                     }
 
@@ -154,7 +161,7 @@ const respawnCreeps = {
                     }
 
                     //HAULER RESPAWNS
-                    if (Game.flags.remoteBuild && stationaryHarvester.length >= sourceCount) {
+                    if (Game.flags.haulerBuild && stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < containers.length; i++) {
                             let hauler = _.filter(Game.creeps, (creep) => creep.memory.assignedContainer === containers[i].id && creep.memory.role === 'hauler');
                             if (hauler.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
@@ -183,25 +190,39 @@ const respawnCreeps = {
 
                     //HARVESTER RESPAWNS
                     if (Game.flags.harvesterBuild) {
-                        if (stationaryHarvester.length < sourceCount && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester') === OK) {
-                            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester', {role: 'stationaryHarvester'});
-                            console.log('Spawning a stationaryHarvester');
-                            return;
-                        }
-                        if (stationaryHarvester.length < sourceCount && roomEnergyCapacity >= 600 && roomEnergyCapacity < 700 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester') === OK) {
-                            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester', {role: 'stationaryHarvester'});
-                            console.log('Spawning a stationaryHarvester');
-                            return;
-                        }
-                        if (stationaryHarvester.length < sourceCount && roomEnergyCapacity >= 500 && roomEnergyCapacity < 600 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester') === OK) {
-                            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester', {role: 'stationaryHarvester'});
-                            console.log('Spawning a stationaryHarvester');
-                            return;
-                        }
-                        if (stationaryHarvester.length < Math.ceil(sourceCount * 3) && roomEnergyCapacity < 500 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester') === OK) {
-                            Game.spawns[spawnName].createCreep([WORK, WORK, CARRY, MOVE], generatedNumber+'stationaryHarvester', {role: 'stationaryHarvester'});
-                            console.log('Spawning a stationaryHarvester');
-                            return;
+                        for (let i = 0; i < sources.length; i++) {
+                            let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+                            if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+                                Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester', {
+                                    role: 'stationaryHarvester',
+                                    assignedSource: sources[i].id
+                                });
+                                console.log('Spawning a stationaryHarvester');
+                                return;
+                            } else if (harvester.length === 0 && roomEnergyCapacity >= 600 && roomEnergyCapacity < 700 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+                                Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester', {
+                                    role: 'stationaryHarvester',
+                                    assignedSource: sources[i].id
+                                });
+                                console.log('Spawning a stationaryHarvester');
+                                return;
+                            }
+                            if (harvester.length === 0 && roomEnergyCapacity >= 500 && roomEnergyCapacity < 600 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+                                Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester', {
+                                    role: 'stationaryHarvester',
+                                    assignedSource: sources[i].id
+                                });
+                                console.log('Spawning a stationaryHarvester');
+                                return;
+                            }
+                            if (harvester.length === 0 && roomEnergyCapacity < 500 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+                                Game.spawns[spawnName].createCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester', {
+                                    role: 'stationaryHarvester',
+                                    assignedSource: sources[i].id
+                                });
+                                console.log('Spawning a stationaryHarvester');
+                                return;
+                            }
                         }
                     }
 
@@ -228,7 +249,7 @@ const respawnCreeps = {
 
                     //BUILDER RESPAWNS
                     if (Game.flags.builderBuild && stationaryHarvester.length >= sourceCount) {
-                        let constructionSites = sources = Game.spawns[spawnName].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
+                        let constructionSites = Game.spawns[spawnName].room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_WALL || STRUCTURE_ROAD || STRUCTURE_RAMPART});
                         if (roomEnergyCapacity >= 450) {
                             if (constructionSites.length === 0 && stationaryBuilders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], generatedNumber+'stationaryBuilder') === OK) {
                                 Game.spawns[spawnName].createCreep([CARRY, CARRY, WORK, WORK, WORK, MOVE], generatedNumber+'stationaryBuilder', {role: 'stationaryBuilder'});

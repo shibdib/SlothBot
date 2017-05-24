@@ -8,7 +8,6 @@ let towerControl = require('module.Tower');
 let profiler = require('screeps-profiler');
 
 //modules
-let creepBalancer = require('module.balancer');
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
 
@@ -45,11 +44,6 @@ module.exports.loop = function () {
                 pos.createFlag('combatBuild');
             } else if (Game.flags.combatBuild) {
                 Game.flags.combatBuild.remove();
-            }
-
-            //Every 5 ticks
-            if (Game.time % 5 === 0) {
-                creepBalancer.run(name);
             }
 
             //Every 15 ticks
