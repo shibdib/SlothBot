@@ -100,11 +100,13 @@ module.exports.findDefensivePosition = function (creep) {
 };
 
 module.exports.activateDefense = function (spawn, scout) {
-    if (scout && spawn.room.findPath(spawn.pos, scout.memory.enemyPos).length < 125) {
-        spawn.memory.defenseMode = true;
-        spawn.memory.defenseModeTicker = 0;
-        spawn.memory.enemyCount = scout.memory.enemyCount;
-        enemyCount = scout.memory.enemyCount;
+    if (scout) {
+        if (spawn.room.findPath(spawn.pos, scout.memory.enemyPos).length < 125) {
+            spawn.memory.defenseMode = true;
+            spawn.memory.defenseModeTicker = 0;
+            spawn.memory.enemyCount = scout.memory.enemyCount;
+            enemyCount = scout.memory.enemyCount;
+        }
     } else {
         let HostileCreeps = spawn.room.find(FIND_HOSTILE_CREEPS);
         if (HostileCreeps.length > 0) {
