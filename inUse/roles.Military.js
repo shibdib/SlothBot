@@ -55,7 +55,7 @@ module.exports.Scout = function (creep) {
             creep.memory.destinationReached = true;
         }
     } else {
-        let HostileCreeps = spawn.room.find(FIND_HOSTILE_CREEPS);
+        let HostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS);
         if (HostileCreeps.length > 0) {
             creep.memory.enemyCount = HostileCreeps.length;
             creep.memory.enemyPos = HostileCreeps[0].pos;
