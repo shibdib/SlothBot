@@ -18,7 +18,7 @@ const towerControl = {
             tower.attack(closestHostile);
         } else if (woundedCreep) {
             tower.heal(woundedCreep);
-        } else if (tower.energy > tower.energyCapacity * 0.25) {
+        } else if (tower.energy > tower.energyCapacity * 0.75) {
             const closestDamagedStructure = Game.getObjectById(findRepair(tower));
             if (closestDamagedStructure) {
                 tower.repair(closestDamagedStructure);
