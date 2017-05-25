@@ -1,5 +1,4 @@
 module.exports.buildWalls = function (spawn) {
-    for (let i = 2; i < 47; i++) {
         if (Game.constructionSites.length > 75) {
             return null;
         }
@@ -22,7 +21,25 @@ module.exports.buildWalls = function (spawn) {
             build.createConstructionSite(STRUCTURE_RAMPART);
             spawn.memory.wallCheck = false;
         } else {
-            spawn.memory.wallCheck = true;
+            let path = spawn.room.findPath(spawn.room.controller.pos, pos, {
+                costCallback: function (roomName, costMatrix) {
+                    const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                    for (let i = 0; i < rampart.length; i++) {
+                        costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
+                    }
+                    const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                    for (let i = 0; i < construction.length; i++) {
+                        costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
+                    }
+                },
+                maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
+            });
+            if (path[4] !== undefined) {
+                let build = new RoomPosition(path[7].x, path[7].y, spawn.room.name);
+                build.createConstructionSite(STRUCTURE_RAMPART);
+                spawn.memory.wallCheck = false;
+            } else {
+                spawn.memory.wallCheck = true;
+            }
         }
-    }
 };
