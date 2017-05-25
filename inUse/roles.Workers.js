@@ -85,6 +85,7 @@ module.exports.Worker = function (creep) {
  */
 module.exports.Harvester = function (creep) {
     if (creepTools.renewal(creep) === true) {
+        creep.drop(RESOURCE_ENERGY);
         return null;
     }
     if (creep.carry.energy === creep.carryCapacity) {
