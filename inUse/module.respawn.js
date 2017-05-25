@@ -108,7 +108,7 @@ const respawnCreeps = {
                         for (let i = 0; i < 20; i++) {
                             let scout = 'scout' + i;
                             if (Game.flags[scout]) {
-                                let scouts = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[scout].name && creep.memory.role === 'scout');
+                                let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[scout].name && creep.memory.role === 'scout');
                                 if (scouts.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE], generatedNumber + 'scout') === OK) {
                                     Game.spawns[spawnName].createCreep([MOVE, MOVE], generatedNumber + 'scout', {
                                         role: 'scout',
