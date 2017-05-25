@@ -84,7 +84,7 @@ module.exports.RHauler = function (creep) {
         let energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 1);
         if (energy) {
             if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energy);
+                pathing.Move(creep, energy, 1, false, 1);
             }
         } else
         if (container) {
