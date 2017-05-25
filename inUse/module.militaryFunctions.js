@@ -9,6 +9,10 @@ module.exports.buildWalls = function (spawn) {
                 for (let i = 0; i < rampart.length; i++) {
                     costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                 }
+                const nonRampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType !== STRUCTURE_RAMPART});
+                for (let i = 0; i < rampart.length; i++) {
+                    costMatrix.set(nonRampart[i].pos.x, nonRampart[i].pos.y, 0);
+                }
                 const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
                 for (let i = 0; i < construction.length; i++) {
                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
@@ -26,6 +30,10 @@ module.exports.buildWalls = function (spawn) {
                     const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
                     for (let i = 0; i < rampart.length; i++) {
                         costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
+                    }
+                    const nonRampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType !== STRUCTURE_RAMPART});
+                    for (let i = 0; i < rampart.length; i++) {
+                        costMatrix.set(nonRampart[i].pos.x, nonRampart[i].pos.y, 0);
                     }
                     const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
                     for (let i = 0; i < construction.length; i++) {
