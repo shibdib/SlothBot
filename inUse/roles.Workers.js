@@ -9,15 +9,18 @@ module.exports.Worker = function (creep) {
     //BORDER CHECK
     if (creep.memory.hauling === true) {
         if (borderChecks.wrongRoom(creep) !== false) {
-            return;
+            return null;
         }
         if (borderChecks.isOnBorder(creep) === true) {
             borderChecks.nextStepIntoRoom(creep);
         }
     }
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
     if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        return;
+        return null;
     }
     creepTools.dumpTruck(creep);
 
@@ -121,6 +124,9 @@ module.exports.wallRepairer = function (creep) {
     }
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump);
+        return null;
+    }
+    if (creepTools.renewal(creep) === true) {
         return null;
     }
 
