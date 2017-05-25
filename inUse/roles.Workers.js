@@ -192,6 +192,9 @@ module.exports.Upgrader = function (creep) {
             borderChecks.nextStepIntoRoom(creep);
         }
     }
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
     creepTools.dumpTruck(creep);
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, creep.room.controller);
