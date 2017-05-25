@@ -261,13 +261,14 @@ module.exports.renewal = function (creep) {
         }
     } else {
         if (creep.ticksToLive < 120) {
-            creep.say('Need to renew');
+            creep.say('Renewing');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
             creep.memory.renew = true;
             pathing.Move(creep, home);
             return true;
-        } else {
+        } else if (creep.ticksToLive > 1000) {
             creep.memory.renew = false;
+        } else {
             return false;
         }
     }

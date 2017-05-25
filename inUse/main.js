@@ -46,6 +46,18 @@ module.exports.loop = function () {
                 Game.flags.combatBuild.remove();
             }
 
+            //Every tick check for renewals
+            if (!Game.spawns[name].spawning) {
+                let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.ticksToLive < 125 && c.memory.renew === true});
+                if (creep[0]) {
+                    Game.spawns[spawnName].renewCreep(creep[0]);
+                    if (creep[0].ticksToLive > 1000) {
+                        creep[0].memory.renew = false;
+                    }
+                    return;
+                }
+            }
+
             //Every 15 ticks
             if (Game.time % 15 === 0) {
                 respawnCreeps.run(name);
