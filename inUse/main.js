@@ -37,7 +37,7 @@ module.exports.loop = function () {
         }
 
         //Room Management
-        for(let name in Game.spawns) {
+        for (let name in Game.spawns) {
             //HOSTILE CHECK//
             let closestHostile = Game.spawns[name].room.find(FIND_HOSTILE_CREEPS);
             if (closestHostile[0]) {
@@ -54,16 +54,16 @@ module.exports.loop = function () {
 
             //Every tick check for renewals and recycles
             if (!Game.spawns[name].spawning) {
-                let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.renew === true});
+                let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.recycle === true});
                 if (creep[0]) {
-                    Game.spawns[name].renewCreep(creep[0]);
-                    if (creep[0].ticksToLive > 1000) {
-                        creep[0].memory.renew = false;
-                    }
+                    Game.spawns[name].recycleCreep(creep[0]);
                 } else {
-                    let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.recycle === true});
+                    let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.renew === true});
                     if (creep[0]) {
-                        Game.spawns[name].recycleCreep(creep[0]);
+                        Game.spawns[name].renewCreep(creep[0]);
+                        if (creep[0].ticksToLive > 1000) {
+                            creep[0].memory.renew = false;
+                        }
                     }
                 }
             }
