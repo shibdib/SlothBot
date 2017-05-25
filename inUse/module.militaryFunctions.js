@@ -15,7 +15,7 @@ module.exports.buildWalls = function (spawn) {
                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                 }
             },
-            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1
+            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
         });
         if (path[7] !== undefined) {
             let build = new RoomPosition(path[7].x, path[7].y, spawn.room.name);
