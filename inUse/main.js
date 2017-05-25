@@ -54,7 +54,6 @@ module.exports.loop = function () {
                     if (creep[0].ticksToLive > 1000) {
                         creep[0].memory.renew = false;
                     }
-                    return;
                 }
             }
 
