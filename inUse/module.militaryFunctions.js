@@ -52,15 +52,15 @@ module.exports.buildWalls = function (spawn) {
     } else {
         let path = spawn.room.findPath(spawn.room.controller.pos, pos, {
             costCallback: function (roomName, costMatrix) {
-                const nonRampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType !== STRUCTURE_RAMPART});
+                const nonRampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType !== STRUCTURE_RAMPART || r.structureType !== STRUCTURE_WALL});
                 for (let i = 0; i < nonRampart.length; i++) {
                     costMatrix.set(nonRampart[i].pos.x, nonRampart[i].pos.y, 0);
                 }
-                const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
                 for (let i = 0; i < rampart.length; i++) {
                     costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                 }
-                const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
                 for (let i = 0; i < construction.length; i++) {
                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                 }

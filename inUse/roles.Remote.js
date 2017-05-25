@@ -81,12 +81,6 @@ module.exports.RHauler = function (creep) {
     }
     if (creep.memory.hauling === false) {
         let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        let energy = creep.pos.findInRange(FIND_DROPPED_ENERGY, 1);
-        if (energy) {
-            if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energy, 1, false, 1);
-            }
-        } else
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, container, 5, false, 1);
