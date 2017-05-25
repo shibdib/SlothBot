@@ -6,7 +6,7 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.RHarvester = function (creep) {
-    if (creepTools.renewal(creep, 200) === true) {
+    if (creepTools.renewal(creep, 150) === true) {
         creep.memory.destinationReached = null;
         return null;
     }
@@ -52,7 +52,7 @@ module.exports.RHarvester = function (creep) {
  * @return {null}
  */
 module.exports.RHauler = function (creep) {
-    if (creepTools.renewal(creep, 200) === true) {
+    if (creepTools.renewal(creep, 120) === true) {
         creep.memory.destinationReached = null;
         creep.memory.hauling = false;
         return null;
