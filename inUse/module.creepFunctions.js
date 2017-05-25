@@ -264,7 +264,7 @@ module.exports.renewal = function (creep) {
             creep.say('Renewing');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
             creep.memory.renew = true;
-            pathing.Move(creep, home);
+            pathing.Move(creep, home, 3);
             if (creep.ticksToLive > 1000) {
                 creep.memory.renew = false;
             }
