@@ -22,7 +22,6 @@ module.exports.Worker = function (creep) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return null;
     }
-    creepTools.dumpTruck(creep);
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
@@ -53,7 +52,7 @@ module.exports.Worker = function (creep) {
             pathing.Move(creep, creep.room.controller);
         }
     }
-    else if (_.filter(Game.creeps, (dumpTruck) => dumpTruck.memory.role === 'dumpTruck' && dumpTruck.room === creep.room).length === 0) {
+    else {
         let container = creepTools.findContainer(creep);
         container = Game.getObjectById(container);
         if (container) {

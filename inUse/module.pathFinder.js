@@ -8,6 +8,10 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
     if (creep.memory.pathAge >= checkRate) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
+                const noRoads = creep.room.find(!FIND_STRUCTURES);
+                for (let i = 0; i < noRoads.length; i++) {
+                    costMatrix.set(noRoads[i].pos.x, noRoads[i].pos.y, 50);
+                }
                 const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
                 for (let i = 0; i < roads.length; i++) {
                     costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
@@ -46,6 +50,10 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
     if (creep.moveByPath(creep.memory.path) !== OK) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
+                const noRoads = creep.room.find(!FIND_STRUCTURES);
+                for (let i = 0; i < noRoads.length; i++) {
+                    costMatrix.set(noRoads[i].pos.x, noRoads[i].pos.y, 50);
+                }
                 const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
                 for (let i = 0; i < roads.length; i++) {
                     costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
