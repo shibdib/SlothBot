@@ -278,3 +278,21 @@ module.exports.renewal = function (creep, breakingPoint = 120) {
     }
 };
 
+module.exports.recycle = function (creep) {
+    if (!creep.memory.assignedSpawn) {
+        let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if (spawn) {
+            creep.memory.assignedSpawn = spawn.id;
+        }
+    } else {
+        if (creep.memory.recycle === true) {
+            creep.say('Recycling');
+            let home = Game.getObjectById(creep.memory.assignedSpawn);
+            pathing.Move(creep, home, 3);
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+

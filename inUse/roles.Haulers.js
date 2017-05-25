@@ -19,6 +19,11 @@ module.exports.Hauler = function (creep) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return null;
     }
+    if (!Game.getObjectById(creep.memory.assignedContainer)) {
+        creep.memory.recycle = true;
+        creepTools.recycle(creep);
+        return null;
+    }
     if (creepTools.renewal(creep) === true) {
         return null;
     }
