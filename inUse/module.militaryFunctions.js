@@ -3,19 +3,23 @@ module.exports.buildWalls = function (spawn) {
         if (Game.constructionSites.length > 75) {
             return null;
         }
-        let pos = new RoomPosition(47, i, spawn.room.name);
-        const look = pos.look();
-        look.forEach(function (lookObject) {
-            if (lookObject[LOOK_TERRAIN] !== 'wall') {
-                if (!lookObject[LOOK_CONSTRUCTION_SITES] && !lookObject[LOOK_STRUCTURES]) {
-                    if (i & 1) {
-                        pos.createConstructionSite(STRUCTURE_WALL);// ODD
-                    }
-                    else {
-                        pos.createConstructionSite(STRUCTURE_RAMPART);// EVEN
-                    }
+        let pos = new RoomPosition(39, 14, spawn.room.name);
+        let path = spawn.room.findPath(spawn.pos, pos, {
+            costCallback: function (roomName, costMatrix) {
+                const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                for (let i = 0; i < rampart.length; i++) {
+                    costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                 }
-            }
+                const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                for (let i = 0; i < construction.length; i++) {
+                    costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
+                }
+            },
+            maxOps: 100000, serialize: false, ignoreCreeps: true, maxRooms: 1
         });
+        if (path[7] !== undefined) {
+            let build = new RoomPosition(path[7].x, path[7].y, spawn.room.name);
+            build.createConstructionSite(STRUCTURE_RAMPART);
+        }
     }
 };
