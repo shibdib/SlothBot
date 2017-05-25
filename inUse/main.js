@@ -40,13 +40,13 @@ module.exports.loop = function () {
         for (let name in Game.spawns) {
             //HOSTILE CHECK//
             let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
-            if (attackDetected[0] || Game.spawns[spawnName].memory.defenseMode === true) {
+            if (attackDetected[0] || Game.spawns[name].memory.defenseMode === true) {
                 militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
             }
-            if (Game.spawns[spawnName].memory.defenseMode === true) {
+            if (Game.spawns[name].memory.defenseMode === true) {
                 spawn.memory.defenseModeTicker++;
                 if (spawn.memory.defenseModeTicker > 250) {
-                    Game.spawns[spawnName].memory.defenseMode = false;
+                    Game.spawns[name].memory.defenseMode = false;
                 }
             }
 
