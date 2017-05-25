@@ -253,14 +253,14 @@ module.exports.findNearbyConstruction = function (creep) {
     }
 };
 
-module.exports.renewal = function (creep) {
+module.exports.renewal = function (creep, breakingPoint = 120) {
     if (!creep.memory.assignedSpawn) {
         let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
         if (spawn) {
             creep.memory.assignedSpawn = spawn.id;
         }
     } else {
-        if (creep.ticksToLive < 120 || creep.memory.renew === true) {
+        if (creep.ticksToLive < breakingPoint || creep.memory.renew === true) {
             creep.say('Renewing');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
             creep.memory.renew = true;

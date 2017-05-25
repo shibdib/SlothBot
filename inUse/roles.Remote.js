@@ -6,6 +6,10 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.RHarvester = function (creep) {
+    if (creepTools.renewal(creep, 200) === true) {
+        creep.memory.destinationReached = null;
+        return null;
+    }
     //Initial move
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
@@ -48,6 +52,11 @@ module.exports.RHarvester = function (creep) {
  * @return {null}
  */
 module.exports.RHauler = function (creep) {
+    if (creepTools.renewal(creep, 200) === true) {
+        creep.memory.destinationReached = null;
+        creep.memory.hauling = false;
+        return null;
+    }
     if (creep.memory.resupply === null || creep.memory.resupply === undefined){
         creep.memory.resupply = 'Spawn1';
         return null;
