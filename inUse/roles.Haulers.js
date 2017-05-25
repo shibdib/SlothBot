@@ -75,6 +75,9 @@ module.exports.DumpTruck = function (creep) {
             borderChecks.nextStepIntoRoom(creep);
         }
     }
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
     if (creep.carry.energy < 50) {
         creep.memory.hauling = false;
     }
