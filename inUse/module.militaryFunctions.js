@@ -30,7 +30,7 @@ module.exports.buildWalls = function (spawn) {
         const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
         if (constructionCheck.length > 0) {
             spawn.memory.wallCheck = false;
-        } else if (roadCheck.length > 0) {
+        } else if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
             build.createConstructionSite(STRUCTURE_RAMPART);
             spawn.memory.wallCheck = false;
         } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
@@ -59,13 +59,16 @@ module.exports.buildWalls = function (spawn) {
             maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
         });
         if (path[2] !== undefined) {
-            let build = new RoomPosition(path[4].x, path[4].y, spawn.room.name);
+            let build = new RoomPosition(path[2].x, path[2].y, spawn.room.name);
             let nearbyRamps = build.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
             let nearbyWalls = build.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
             const buildRamps = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
             const buildWalls = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
-            if (roadCheck.length > 0) {
+            const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+            if (constructionCheck.length > 0) {
+                spawn.memory.wallCheck = false;
+            } else if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
                 build.createConstructionSite(STRUCTURE_RAMPART);
                 spawn.memory.wallCheck = false;
             } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
