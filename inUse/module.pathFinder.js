@@ -41,7 +41,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
                     }
                 }
             },
-            maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms
+            maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
@@ -83,7 +83,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
                     }
                 }
             },
-            maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms
+            maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
