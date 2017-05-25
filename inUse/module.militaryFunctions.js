@@ -116,12 +116,12 @@ module.exports.roadNetwork = function (spawn) {
                     }
                 }
             }
-            let path = spawn.room.findPath(pos, spawn.pos, {
+            let returnPath = spawn.room.findPath(pos, spawn.pos, {
                 maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
             });
-            for (let i = 0; i < path.length; i++) {
-                if (path[i] !== undefined) {
-                    let build = new RoomPosition(path[i].x, path[i].y, pos.room.name);
+            for (let i = 0; i < returnPath.length; i++) {
+                if (returnPath[i] !== undefined) {
+                    let build = new RoomPosition(returnPath[i].x, returnPath[i].y, pos.room.name);
                     const roadCheck = build.lookFor(LOOK_STRUCTURES);
                     const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
                     if (constructionCheck.length > 0 || roadCheck.length > 0) {
