@@ -8,10 +8,13 @@ const towerControl = {
      */
     run: function (tower) {
         const ramp = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 100});
+        const wall = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 100});
         const woundedCreep = Game.getObjectById(findWounded(tower));
         const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (ramp) {
             tower.repair(ramp);
+        } else if (wall) {
+            tower.repair(wall);
         } else
         //Check if hostiles are in room
         if (closestHostile) {
