@@ -1,3 +1,9 @@
+let borderChecks = require('module.borderChecks');
+let creepTools = require('module.creepFunctions');
+let pathing = require('module.pathFinder');
+let militaryFunctions = require('module.militaryFunctions');
+
+
 module.exports.buildWalls = function (spawn) {
     if (Game.constructionSites.length > 75) {
         return null;
@@ -87,3 +93,63 @@ module.exports.buildWalls = function (spawn) {
         }
     }
 };
+
+module.exports.findDefensivePosition = function (creep) {
+    let closestEnemy = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
+    let bestRampart = closestEnemy.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.getRangeTo(creep.memory.assignedSpawn) <= 4 && !r.pos.lookFor(LOOK_CREEPS)});
+    pathing.Move(creep, bestRampart, 1, true);
+};
+
+module.exports.activateDefense = function (spawn, scout) {
+    if (spawn.room.findPath(spawn.pos, scout.memory.enemyPos).length < 125) {
+        spawn.memory.defenseMode = true;
+        spawn.memory.defenseModeTicker = 0;
+        spawn.memory.enemyCount = scout.memory.enemyCount;
+        enemyCount = scout.memory.enemyCount;
+    } else {
+        let HostileCreeps = spawn.room.find(FIND_HOSTILE_CREEPS);
+        if (HostileCreeps.length > 0) {
+            for (i = 0; i < HostileCreeps.length; i++) {
+                let attackParts = HostileCreeps[i].getActiveBodyparts(ATTACK);
+                let RangedAttackParts = HostileCreeps[i].getActiveBodyparts(RANGED_ATTACK);
+                let healParts = HostileCreeps[i].getActiveBodyparts(HEAL);
+                if (attackParts.length > 0 || RangedAttackParts.length > 0 || healParts.length > 0) {
+                    spawn.memory.defenseMode = true;
+                    var enemyCount = HostileCreeps.length;
+                }
+            }
+        }
+    }
+    if (spawn.memory.defenseMode === true) {
+        spawnDefenders(spawn, enemyCount);
+    }
+};
+
+function spawnDefenders(spawn, count) { //SENTRY RESPAWNS
+    let sentry = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === spawn.name && creep.memory.role === 'sentry');
+    if (sentry.length < count * 2 && Game.spawns[spawnName].canCreateCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE], generatedNumber + 'sentry') === OK) {
+        Game.spawns[spawnName].createCreep([RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE], generatedNumber + 'sentry', {
+            role: 'sentry',
+            assignedSpawn: spawn.name
+        });
+        console.log('Spawning a sentry');
+        return;
+    }
+    let defender = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === spawn.name && creep.memory.role === 'defender');
+    if (defender.length < count * 2 && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'defender') === OK) {
+        Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'defender', {
+            role: 'defender',
+            assignedSpawn: spawn.name
+        });
+        console.log('Spawning a defender');
+        return;
+    }
+    let healer = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === spawn.name && creep.memory.role === 'healer');
+    if (healer.length < count && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'healer') === OK) {
+        Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'healer', {
+            role: 'healer',
+            assignedSpawn: spawn.name
+        });
+        console.log('Spawning a healer');
+    }
+}

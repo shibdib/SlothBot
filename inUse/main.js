@@ -39,12 +39,15 @@ module.exports.loop = function () {
         //Room Management
         for (let name in Game.spawns) {
             //HOSTILE CHECK//
-            let closestHostile = Game.spawns[name].room.find(FIND_HOSTILE_CREEPS);
-            if (closestHostile[0]) {
-                const pos = new RoomPosition(2, 2, Game.spawns[name].room.name);
-                pos.createFlag('combatBuild');
-            } else if (Game.flags.combatBuild) {
-                Game.flags.combatBuild.remove();
+            let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
+            if (attackDetected[0] || Game.spawns[spawnName].memory.defenseMode === true) {
+                militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
+            }
+            if (Game.spawns[spawnName].memory.defenseMode === true) {
+                spawn.memory.defenseModeTicker++;
+                if (spawn.memory.defenseModeTicker > 250) {
+                    Game.spawns[spawnName].memory.defenseMode = false;
+                }
             }
 
             //REBUILD RAMPARTS IF FALSE/INITIAL
@@ -129,6 +132,9 @@ module.exports.loop = function () {
             }
             if (creep.memory.role === 'sentry') {
                 rolesMilitary.Sentry(creep);
+            }
+            if (creep.memory.role === 'healer') {
+                rolesMilitary.Healer(creep);
             }
             if (creep.memory.role === 'defender') {
                 rolesMilitary.Defender(creep);

@@ -1,23 +1,18 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
+let militaryFunctions = require('module.militaryFunctions');
 
 module.exports.Defender = function (creep) {
-    if (borderChecks.wrongRoom(creep) !== false){
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
-
+    const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 10);
     const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (closestHostile) {
+    if (targets.length > 0) {
         creep.say('ATTACKING');
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
             creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
-        pathing.Move(creep, Game.flags.defender1);
+        pathing.Move(creep, creep.memory.assignedSpawn, 1);
     }
 };
 
@@ -25,20 +20,28 @@ module.exports.Defender = function (creep) {
  * @return {null}
  */
 module.exports.Sentry = function (creep) {
-    if (creep.memory.assignedRampart) {
-        let post = Game.getObjectById(creep.memory.assignedRampart);
-        //Initial move
-        if (post) {
-            if (post.pos !== creep.pos) {
-                pathing.Move(creep, post);
-            } else {
-                const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3);
-                if (targets.length > 0) {
-                    creep.rangedMassAttack();
-                    creep.say('Attacking')
-                }
+    const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3);
+    if (targets.length > 0) {
+        creep.rangedMassAttack();
+        creep.say('ATTACKING')
+    } else {
+        militaryFunctions.findDefensivePosition(creep);
+    }
+};
+
+/**
+ * @return {null}
+ */
+module.exports.Healer = function (creep) {
+    const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
+    if (targets[0]) {
+        if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
+            if (creep.rangedHeal(targets[0]) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
+    } else {
+        militaryFunctions.findDefensivePosition(creep);
     }
 };
 
@@ -46,8 +49,21 @@ module.exports.Sentry = function (creep) {
  * @return {null}
  */
 module.exports.Scout = function (creep) {
-    const scout = creep.memory.destination;
-    pathing.Move(creep, Game.flags[scout]);
+    if (creep.memory.destinationReached !== true) {
+        pathing.Move(creep, Game.flags[creep.memory.destination]);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+            creep.memory.destinationReached = true;
+        }
+    } else {
+        let HostileCreeps = spawn.room.find(FIND_HOSTILE_CREEPS);
+        if (HostileCreeps.length > 0) {
+            creep.memory.enemyCount = HostileCreeps.length;
+            creep.memory.enemyPos = HostileCreeps[0].pos;
+        } else {
+            creep.memory.enemyCount = null;
+            creep.memory.enemyPos = null;
+        }
+    }
 };
 
 /**
