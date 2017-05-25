@@ -19,6 +19,7 @@ module.exports.Worker = function (creep) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         return;
     }
+    creepTools.dumpTruck(creep);
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
@@ -30,16 +31,28 @@ module.exports.Worker = function (creep) {
 
     if (creep.memory.working) {
         let repairNeeded = creepTools.findRepair(creep);
+        let construction = creepTools.findConstruction(creep);
         if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
             if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, repairNeeded);
             }
-        } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, creep.room.controller);
+        } else if (construction) {
+            construction = Game.getObjectById(construction);
+            if (construction) {
+                if (creep.build(construction) === ERR_INVALID_TARGET) {
+                    pathing.Move(creep, Game.flags.haulers);
+                } else {
+                    if (creep.build(construction) === ERR_NOT_IN_RANGE) {
+                        pathing.Move(creep, construction);
+                    }
+                }
+            } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, creep.room.controller);
+            }
         }
     }
-    else {
+    else if (_.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck' && creep.room === Game.spawns[spawnName].room).length === 0) {
         let container = creepTools.findContainer(creep);
         container = Game.getObjectById(container);
         if (container) {
