@@ -95,8 +95,10 @@ module.exports.buildWalls = function (spawn) {
 
 module.exports.findDefensivePosition = function (creep) {
     let closestEnemy = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
-    let bestRampart = closestEnemy.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.getRangeTo(creep.memory.assignedSpawn) <= 4 && !r.pos.lookFor(LOOK_CREEPS)});
-    pathing.Move(creep, bestRampart, 1, true);
+    if (closestEnemy) {
+        let bestRampart = closestEnemy.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.getRangeTo(creep.memory.assignedSpawn) <= 4 && !r.pos.lookFor(LOOK_CREEPS)});
+        pathing.Move(creep, bestRampart, 1, true);
+    }
 };
 
 module.exports.activateDefense = function (spawn, scout) {
