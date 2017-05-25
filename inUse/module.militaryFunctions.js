@@ -100,7 +100,7 @@ module.exports.findDefensivePosition = function (creep) {
 };
 
 module.exports.activateDefense = function (spawn, scout) {
-    if (scout) {
+    if (scout.memory.enemyPos !== undefined) {
         if (spawn.room.findPath(spawn.pos, scout.memory.enemyPos).length < 125) {
             spawn.memory.defenseMode = true;
             spawn.memory.defenseModeTicker = 0;
