@@ -1,7 +1,6 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
-let militaryFunctions = require('module.militaryFunctions');
 
 
 module.exports.buildWalls = function (spawn) {
