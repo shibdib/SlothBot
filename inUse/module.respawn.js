@@ -84,6 +84,19 @@ const respawnCreeps = {
         ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
         if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
             if (!Game.spawns[spawnName].spawning) {
+                let creep = Game.spawns[spawnName].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.ticksToLive < 125 && c.memory.renew === true});
+                if (creep !== null && creep !== undefined) {
+                    Game.spawns[spawnName].renewCreep(creep);
+                    creep.memory.renew = false;
+                    return;
+                }
+                /** else {
+                        let creep = Game.spawns[spawnName].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.recycle === true});
+                        if (creep !== null && creep !== undefined) {
+                            Game.spawns[spawnName].recycleCreep(creep);
+                            return;
+                        }
+                    }**/
                 if (roomEnergyCapacity >= 800) {
                     //ATTACK RESPAWNS
                     for (let i = 0; i < 10; i++) {

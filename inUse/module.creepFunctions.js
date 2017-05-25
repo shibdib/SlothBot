@@ -1,4 +1,4 @@
-
+let pathing = require('module.pathFinder');
 
 module.exports.rangeSource = function (creep) {
     const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
@@ -216,13 +216,12 @@ module.exports.containerBuilding = function (creep) {
 module.exports.harvestDeposit = function (creep) {
     let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (creep.pos.getRangeTo(container) <= 1) {
-        if (container.hits < container.hitsMax*0.25){
+        if (container.hits < container.hitsMax * 0.25) {
             creep.repair(container);
             creep.say('Fixing');
         }
         return container.id;
-    } else
-    if (creep.pos.getRangeTo(container) <= 3) {
+    } else if (creep.pos.getRangeTo(container) <= 3) {
         creep.moveTo(container);
         return container.id;
     }
@@ -236,12 +235,12 @@ module.exports.harvesterContainerBuild = function (creep) {
 };
 
 module.exports.findRoad = function (creep) {
-        const roads = creep.pos.findInRange(FIND_STRUCTURES, 2, {filter: (r) => r.structureType === STRUCTURE_ROAD});
-        if (roads.length >= 3) {
-            return roads[0].id;
-        } else {
-            return false;
-        }
+    const roads = creep.pos.findInRange(FIND_STRUCTURES, 2, {filter: (r) => r.structureType === STRUCTURE_ROAD});
+    if (roads.length >= 3) {
+        return roads[0].id;
+    } else {
+        return false;
+    }
 };
 
 module.exports.findNearbyConstruction = function (creep) {
@@ -251,6 +250,26 @@ module.exports.findNearbyConstruction = function (creep) {
         return site[0].id;
     } else {
         return false;
+    }
+};
+
+module.exports.renewal = function (creep) {
+    if (!creep.memory.assignedSpawn) {
+        let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if (spawn) {
+            creep.memory.assignedSpawn = spawn.id;
+        }
+    } else {
+        if (creep.ticksToLive < 120) {
+            creep.say('Need to renew');
+            let home = Game.getObjectById(creep.memory.assignedSpawn);
+            creep.memory.renew = true;
+            pathing.Move(creep, home);
+            return true;
+        } else {
+            creep.memory.renew = false;
+            return false;
+        }
     }
 };
 

@@ -9,7 +9,7 @@ module.exports.Hauler = function (creep) {
     //BORDER CHECK
     if (creep.memory.hauling === true) {
         if (borderChecks.wrongRoom(creep) !== false) {
-            return;
+            return null;
         }
         if (borderChecks.isOnBorder(creep) === true) {
             borderChecks.nextStepIntoRoom(creep);
@@ -17,7 +17,10 @@ module.exports.Hauler = function (creep) {
     }
     if (creepTools.rangeSource(creep) === 1) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        return;
+        return null;
+    }
+    if (creepTools.renewal(creep) === true) {
+        return null;
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
