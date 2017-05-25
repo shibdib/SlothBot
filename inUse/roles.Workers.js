@@ -52,7 +52,7 @@ module.exports.Worker = function (creep) {
             }
         }
     }
-    else if (_.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck' && creep.room === Game.spawns[spawnName].room).length === 0) {
+    else if (_.filter(Game.creeps, (dumpTruck) => dumpTruck.memory.role === 'dumpTruck' && dumpTruck.room === creep.room).length === 0) {
         let container = creepTools.findContainer(creep);
         container = Game.getObjectById(container);
         if (container) {
