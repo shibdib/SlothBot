@@ -216,7 +216,7 @@ module.exports.containerBuilding = function (creep) {
 module.exports.harvestDeposit = function (creep) {
     let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (creep.pos.getRangeTo(container) <= 1) {
-        if (container.hits < container.hitsMax * 0.25) {
+        if (container.hits < 10000) {
             creep.repair(container);
             creep.say('Fixing');
         }
