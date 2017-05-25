@@ -35,12 +35,7 @@ module.exports.Worker = function (creep) {
     if (creep.memory.working) {
         let repairNeeded = creepTools.findRepair(creep);
         let construction = creepTools.findConstruction(creep);
-        if (repairNeeded) {
-            repairNeeded = Game.getObjectById(repairNeeded);
-            if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, repairNeeded);
-            }
-        } else if (construction) {
+        if (construction) {
             construction = Game.getObjectById(construction);
             if (construction) {
                 if (creep.build(construction) === ERR_INVALID_TARGET) {
@@ -49,6 +44,11 @@ module.exports.Worker = function (creep) {
                     if (creep.build(construction) === ERR_NOT_IN_RANGE) {
                         pathing.Move(creep, construction);
                     }
+                }
+            } else if (repairNeeded) {
+                repairNeeded = Game.getObjectById(repairNeeded);
+                if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, repairNeeded);
                 }
             } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, creep.room.controller);
