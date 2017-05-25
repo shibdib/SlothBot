@@ -150,14 +150,11 @@ module.exports.wallRepairer = function (creep) {
                     pathing.Move(creep, build);
                 }
             }
-        } else {
-            if (repairNeeded) {
-                if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, repairNeeded);
-                }
+        } else if (repairNeeded) {
+            if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, repairNeeded);
             }
-        }
-        if (!repairNeeded && !build) {
+        } else {
             if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, creep.room.controller);
             }
