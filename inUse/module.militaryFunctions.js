@@ -35,7 +35,7 @@ module.exports.buildWalls = function (spawn) {
                 maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
             });
             if (path[4] !== undefined) {
-                let build = new RoomPosition(path[7].x, path[7].y, spawn.room.name);
+                let build = new RoomPosition(path[4].x, path[4].y, spawn.room.name);
                 build.createConstructionSite(STRUCTURE_RAMPART);
                 spawn.memory.wallCheck = false;
             } else {
