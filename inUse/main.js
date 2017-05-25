@@ -44,8 +44,8 @@ module.exports.loop = function () {
                 militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
             }
             if (Game.spawns[name].memory.defenseMode === true) {
-                spawn.memory.defenseModeTicker++;
-                if (spawn.memory.defenseModeTicker > 250) {
+                Game.spawns[name].memory.defenseModeTicker++;
+                if (Game.spawns[name].memory.defenseModeTicker > 250) {
                     Game.spawns[name].memory.defenseMode = false;
                 }
             }
