@@ -15,11 +15,14 @@ module.exports.buildWalls = function (spawn) {
                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                 }
             },
-            maxOps: 100000, serialize: false, ignoreCreeps: true, maxRooms: 1
+            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1
         });
         if (path[7] !== undefined) {
             let build = new RoomPosition(path[7].x, path[7].y, spawn.room.name);
             build.createConstructionSite(STRUCTURE_RAMPART);
+            spawn.memory.wallCheck = false;
+        } else {
+            spawn.memory.wallCheck = true;
         }
     }
 };

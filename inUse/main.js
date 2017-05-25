@@ -10,6 +10,7 @@ let profiler = require('screeps-profiler');
 //modules
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
+let militaryFunctions = require('module.militaryFunctions');
 
 // This line monkey patches the global prototypes.
 profiler.enable();
@@ -46,6 +47,11 @@ module.exports.loop = function () {
                 Game.flags.combatBuild.remove();
             }
 
+            //REBUILD RAMPARTS IF FALSE/INITIAL
+            if (Game.spawns[name].memory.wallCheck !== true) {
+                militaryFunctions.buildWalls(Game.spawns[name]);
+            }
+
             //Every tick check for renewals
             if (!Game.spawns[name].spawning) {
                 let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.renew === true});
@@ -65,6 +71,7 @@ module.exports.loop = function () {
             //Every 100 ticks
             if (Game.time % 100 === 0) {
                 //autoBuild.run(name);
+                militaryFunctions.buildWalls(Game.spawns[name]);
             }
         }
 
