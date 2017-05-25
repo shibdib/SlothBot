@@ -80,6 +80,7 @@ module.exports.loop = function () {
             if (Game.time % 100 === 0) {
                 //autoBuild.run(name);
                 militaryFunctions.buildWalls(Game.spawns[name]);
+                militaryFunctions.roadNetwork(Game.spawns[name]);
             }
         }
 

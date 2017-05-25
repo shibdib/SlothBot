@@ -97,6 +97,29 @@ module.exports.buildWalls = function (spawn) {
     }
 };
 
+module.exports.roadNetwork = function (spawn) {
+    for (let i = 0; i < 10; i++) {
+        let remote = 'remote' + i;
+        if (Game.flags[remote]) {
+            let pos = Game.flags[remote].pos;
+            let path = spawn.room.findPath(spawn.pos, pos, {
+                maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 16, ignoreRoads: false
+            });
+            for (let i = 0; i < path.length; i++) {
+                if (path[i] !== undefined) {
+                    let build = new RoomPosition(path[i].x, path[i].y, path[i].roomName);
+                    const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                    const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                    if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                    } else {
+                        build.createConstructionSite(STRUCTURE_ROAD);
+                    }
+                }
+            }
+        }
+    }
+};
+
 module.exports.findDefensivePosition = function (creep) {
     let closestEnemy = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
     if (closestEnemy) {
