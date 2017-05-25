@@ -50,7 +50,7 @@ module.exports.Healer = function (creep) {
  */
 module.exports.Scout = function (creep) {
     if (creep.memory.destinationReached !== true) {
-        pathing.Move(creep, Game.flags[creep.memory.destination]);
+        pathing.Move(creep, Game.flags[creep.memory.destination], 30, false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
