@@ -110,7 +110,7 @@ module.exports.RHauler = function (creep) {
                 }
             }
         } else {
-            pathing.Move(creep, Game.spawns[creep.memory.resupply], 30, false, 16);
+            pathing.Move(creep, Game.spawns[creep.memory.resupply], 10, false, 16);
         }
     }
 };
