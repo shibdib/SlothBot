@@ -147,7 +147,7 @@ module.exports.BasicHauler = function (creep) {
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
-    if (creep.carry.energy === creep.carryCapacity) {
+    if (creep.carry.energy > creep.carryCapacity / 2) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
