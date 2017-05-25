@@ -28,7 +28,9 @@ module.exports.buildWalls = function (spawn) {
         const buildWalls = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
         const roadCheck = build.lookFor(LOOK_STRUCTURES);
         const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-        if (constructionCheck.length > 0) {
+        if (roadCheck[0].structureType === STRUCTURE_WALL) {
+            spawn.memory.wallCheck = false;
+        } else if (constructionCheck.length > 0) {
             spawn.memory.wallCheck = false;
         } else if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
             build.createConstructionSite(STRUCTURE_RAMPART);
@@ -66,7 +68,9 @@ module.exports.buildWalls = function (spawn) {
             const buildWalls = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (constructionCheck.length > 0) {
+            if (roadCheck[0].structureType === STRUCTURE_WALL) {
+                spawn.memory.wallCheck = false;
+            } else if (constructionCheck.length > 0) {
                 spawn.memory.wallCheck = false;
             } else if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
                 build.createConstructionSite(STRUCTURE_RAMPART);
