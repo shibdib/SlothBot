@@ -169,9 +169,6 @@ module.exports.loop = function () {
             if (creep.memory.role === 'hauler') {
                 rolesHaulers.Hauler(creep);
             }
-            if (creep.memory.role === 'expediter') {
-                rolesHaulers.Expediter(creep);
-            }
             if (creep.memory.role === 'dumpTruck') {
                 rolesHaulers.DumpTruck(creep);
             }
