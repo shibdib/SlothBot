@@ -50,11 +50,6 @@ module.exports.loop = function () {
                 }
             }
 
-            //REBUILD RAMPARTS/WALLS IF FALSE/INITIAL
-            if (Game.spawns[name].memory.wallCheck !== true) {
-                militaryFunctions.buildWalls(Game.spawns[name]);
-            }
-
             //RENEWAL/RECYCLE CHECK
             if (!Game.spawns[name].spawning) {
                 let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.recycle === true});
@@ -126,6 +121,10 @@ module.exports.loop = function () {
                 }
                 if (level === 8) {
                     autoBuild.rcl4(name)
+                }
+                //REBUILD RAMPARTS/WALLS IF FALSE/INITIAL
+                if (Game.spawns[name].memory.wallCheck !== true && level >= 2) {
+                    militaryFunctions.buildWalls(Game.spawns[name]);
                 }
             }
 
