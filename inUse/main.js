@@ -141,8 +141,10 @@ module.exports.loop = function () {
             //Every 100 ticks
             if (Game.time % 100 === 0) {
                 //autoBuild.run(name);
-                militaryFunctions.buildWalls(Game.spawns[name]);
-                militaryFunctions.roadNetwork(Game.spawns[name]);
+                if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
+                    militaryFunctions.buildWalls(Game.spawns[name]);
+                    militaryFunctions.roadNetwork(Game.spawns[name]);
+                }
             }
         }
 
