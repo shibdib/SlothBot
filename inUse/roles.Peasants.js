@@ -64,13 +64,9 @@ module.exports.PeasantBuilder = function (creep) {
                 }
             }
         } else {
-            if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
-                var spawn = Game.getObjectById(creep.memory.spawnID);
-            } else {
-                var spawn = creepTools.findSpawn(creep);
-            }
-            if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, spawn, 1);
+            let source = creepTools.findSource(creep);
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, source, 1, true);
             }
         }
     }
