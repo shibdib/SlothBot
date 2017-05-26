@@ -106,76 +106,6 @@ function roadsSpawn(spawn) {
             pos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x+1, spawn.pos.y+i, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x-1, spawn.pos.y+i, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x-i, spawn.pos.y+1, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x+i, spawn.pos.y-1, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x+i, spawn.pos.y+1, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x+i, spawn.pos.y-1, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x-i, spawn.pos.y-1, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x+1, spawn.pos.y-i, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    for (i = 1; i < 4; i++) {
-        let pos = new RoomPosition(spawn.pos.x-1, spawn.pos.y-i, spawn.room.name);
-        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            pos.createConstructionSite(STRUCTURE_ROAD);
-        }
-    }
-    let pos = new RoomPosition(spawn.pos.x-2, spawn.pos.y-2, spawn.room.name);
-    if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-        pos.createConstructionSite(STRUCTURE_ROAD);
-    }
-    let pos2 = new RoomPosition(spawn.pos.x+2, spawn.pos.y+2, spawn.room.name);
-    if (pos2.lookFor(LOOK_STRUCTURES).length === 0 && pos2.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-        pos2.createConstructionSite(STRUCTURE_ROAD);
-    }
-    let pos3 = new RoomPosition(spawn.pos.x-2, spawn.pos.y+2, spawn.room.name);
-    if (pos3.lookFor(LOOK_STRUCTURES).length === 0 && pos3.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-        pos3.createConstructionSite(STRUCTURE_ROAD);
-    }
-    let pos4 = new RoomPosition(spawn.pos.x+2, spawn.pos.y-2, spawn.room.name);
-    if (pos4.lookFor(LOOK_STRUCTURES).length === 0 && pos4.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-        pos4.createConstructionSite(STRUCTURE_ROAD);
-    }
 }
 
 function roadSources(spawn){
@@ -215,8 +145,8 @@ function rcl2Extensions(spawn) {
             let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-            } else {
+            const spawnDistance = build.getRangeTo(spawn);
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -239,8 +169,8 @@ function rcl3Extensions(spawn) {
             let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-            } else {
+            const spawnDistance = build.getRangeTo(spawn);
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -263,8 +193,8 @@ function rcl4Extensions(spawn) {
             let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-            } else {
+            const spawnDistance = build.getRangeTo(spawn);
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -284,8 +214,8 @@ function rcl4Extensions(spawn) {
             let build = new RoomPosition(path2[i].x, path2[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-            } else {
+            const spawnDistance = build.getRangeTo(spawn);
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -303,13 +233,13 @@ function rcl3Tower(spawn) {
         },
         maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
     });
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         if (path[i] !== undefined) {
             let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-            } else {
+            const spawnDistance = build.getRangeTo(spawn);
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
                 build.createConstructionSite(STRUCTURE_TOWER);
             }
         }
@@ -327,13 +257,13 @@ function rcl4Storage(spawn) {
         },
         maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
     });
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         if (path[i] !== undefined) {
             let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-            } else {
+            const spawnDistance = build.getRangeTo(spawn);
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
                 build.createConstructionSite(STRUCTURE_STORAGE);
             }
         }
