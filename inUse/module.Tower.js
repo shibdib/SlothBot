@@ -7,8 +7,8 @@ const towerControl = {
      * @param tower
      */
     run: function (tower) {
-        const ramp = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 100});
-        const wall = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 100});
+        const ramp = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 500});
+        const wall = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 500});
         const woundedCreep = Game.getObjectById(findWounded(tower));
         const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (ramp) {
