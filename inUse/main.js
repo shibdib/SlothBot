@@ -88,16 +88,45 @@ module.exports.loop = function () {
                 respawnCreeps.rcl4(name)
             }
             if (level === 5) {
-                respawnCreeps.rcl3(name)
+                respawnCreeps.rcl4(name)
             }
             if (level === 6) {
-                respawnCreeps.rcl3(name)
+                respawnCreeps.rcl4(name)
             }
             if (level === 7) {
-                respawnCreeps.rcl3(name)
+                respawnCreeps.rcl4(name)
             }
             if (level === 8) {
-                respawnCreeps.rcl3(name)
+                respawnCreeps.rcl4(name)
+            }
+
+
+            if (Game.time % 50 === 0) {
+                //BASE BUILDING
+                if (level === 1) {
+                    autoBuild.rcl1(name)
+                }
+                if (level === 2) {
+                    autoBuild.rcl2(name)
+                }
+                if (level === 3) {
+                    autoBuild.rcl3(name)
+                }
+                if (level === 4) {
+                    autoBuild.rcl4(name)
+                }
+                if (level === 5) {
+                    autoBuild.rcl4(name)
+                }
+                if (level === 6) {
+                    autoBuild.rcl4(name)
+                }
+                if (level === 7) {
+                    autoBuild.rcl4(name)
+                }
+                if (level === 8) {
+                    autoBuild.rcl4(name)
+                }
             }
 
             //Mark old creeps for recycling
@@ -105,7 +134,7 @@ module.exports.loop = function () {
             for (let i = 0; i < legacyCreeps.length; i++){
                 legacyCreeps[i].memory.level = level;
             }
-            let recycleCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level < level);
+            let recycleCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level < level && creep.memory.level !== 0);
             for (let i = 0; i < recycleCreeps.length; i++){
                 recycleCreeps[i].memory.recycle = true;
             }

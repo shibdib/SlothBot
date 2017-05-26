@@ -23,7 +23,7 @@ module.exports.rcl1 = function (spawnName) {
                             role: 'peasant',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedSource: sources[i].id,
-                            level: 1
+                            level: 0
                         });
                         console.log('Spawning a peasant');
                         return;
@@ -34,7 +34,7 @@ module.exports.rcl1 = function (spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
                         role: 'peasantBuilder',
                         assignedSpawn: Game.spawns[spawnName].id,
-                        level: 1
+                        level: 0
                     });
                     console.log('Spawning a peasantBuilder');
                     return;
@@ -44,7 +44,7 @@ module.exports.rcl1 = function (spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
                         role: 'peasantUpgrader',
                         assignedSpawn: Game.spawns[spawnName].id,
-                        level: 1
+                        level: 0
                     });
                     console.log('Spawning a peasantBuilder');
                     return;
@@ -76,7 +76,7 @@ module.exports.rcl2 = function (spawnName) {
                             role: 'peasant',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedSource: sources[i].id,
-                            level: 2
+                            level: 0
                         });
                         console.log('Spawning a peasant');
                         return;
@@ -87,7 +87,7 @@ module.exports.rcl2 = function (spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
                         role: 'peasantBuilder',
                         assignedSpawn: Game.spawns[spawnName].id,
-                        level: 2
+                        level: 0
                     });
                     console.log('Spawning a peasantBuilder');
                     return;
@@ -97,7 +97,7 @@ module.exports.rcl2 = function (spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
                         role: 'peasantUpgrader',
                         assignedSpawn: Game.spawns[spawnName].id,
-                        level: 2
+                        level: 0
                     });
                     console.log('Spawning a peasantUpgrader');
                     return;
