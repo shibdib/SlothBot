@@ -118,7 +118,7 @@ module.exports.rcl2 = function (spawnName) {
                 }
 
                 //HAULER RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
+                if (stationaryHarvester.length > 0) {
                     for (let i = 0; i < containers.length; i++) {
                         let hauler = _.filter(Game.creeps, (creep) => creep.memory.assignedContainer === containers[i].id && creep.memory.role === 'hauler');
                         if (hauler.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
