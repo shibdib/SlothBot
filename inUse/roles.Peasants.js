@@ -7,9 +7,9 @@ let pathing = require('module.pathFinder');
  */
 module.exports.Peasant = function (creep) {
     if (creep.carry.energy < creep.carryCapacity) {
-        if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
+        if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH) {
             source = Game.getObjectById(creep.memory.assignedSource);
-        }else if (!source) {
+        } else if (!source) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
@@ -92,13 +92,9 @@ module.exports.PeasantUpgrader = function (creep) {
             pathing.Move(creep, creep.room.controller, 1);
         }
     } else {
-        if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
-            var spawn = Game.getObjectById(creep.memory.spawnID);
-        } else {
-            var spawn = creepTools.findSpawn(creep);
-        }
-        if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, spawn, 1);
+        let source = creepTools.findSource(creep);
+        if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+            pathing.Move(creep, source, 1, true);
         }
     }
 
