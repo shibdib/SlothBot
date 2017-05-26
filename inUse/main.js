@@ -156,6 +156,7 @@ module.exports.loop = function () {
         }
 
         for (var name in Game.creeps) {
+            console.log('begin role');
             const creep = Game.creeps[name];
             if (creep.memory.role === 'peasant') {
                 rolesPeasants.Peasant(creep);
@@ -220,6 +221,7 @@ module.exports.loop = function () {
             if (creep.memory.role === 'longRoadBuilder') {
                 rolesRemote.LongRoadBuilder(creep);
             }
+            console.log('end role');
         }
     });
 };

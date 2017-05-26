@@ -71,6 +71,7 @@ module.exports.rcl2 = function (spawnName) {
 
     ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
     if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
+        console.log('begin spawn');
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
                 const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
@@ -194,6 +195,7 @@ module.exports.rcl2 = function (spawnName) {
                     {align: 'left', opacity: 0.8});
             }
         }
+        console.log('end spawn');
     }
 };
 
