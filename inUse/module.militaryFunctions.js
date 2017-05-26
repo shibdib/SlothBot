@@ -67,30 +67,9 @@ module.exports.buildWalls = function (spawn) {
             },
             maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
         });
-        if (path[2] !== undefined) {
-            let build = new RoomPosition(path[2].x, path[2].y, spawn.room.name);
-            let nearbyRamps = build.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-            let nearbyWalls = build.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-            const buildRamps = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-            const buildWalls = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-            const roadCheck = build.lookFor(LOOK_STRUCTURES);
-            const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (roadCheck[0]) {
-                if (roadCheck[0].structureType === STRUCTURE_WALL) {
-                    spawn.memory.wallCheck = false;
-                }
-            } else if (constructionCheck.length > 0) {
-                spawn.memory.wallCheck = false;
-            } else if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
-                build.createConstructionSite(STRUCTURE_RAMPART);
-                spawn.memory.wallCheck = false;
-            } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
-                build.createConstructionSite(STRUCTURE_WALL);
-                spawn.memory.wallCheck = false;
-            } else {
-                build.createConstructionSite(STRUCTURE_RAMPART);
-                spawn.memory.wallCheck = false;
-            }
+        if (path[0] !== undefined) {
+            let build = new RoomPosition(path[0].x, path[0].y, spawn.room.name);
+            build.createConstructionSite(STRUCTURE_WALL);
         } else {
             spawn.memory.wallCheck = true;
         }
@@ -114,20 +93,19 @@ module.exports.roadNetwork = function (spawn) {
                     } else {
                         build.createConstructionSite(STRUCTURE_ROAD);
                     }
-                } else {
-                    let returnPath = spawn.room.findPath(pos, spawn.pos, {
-                        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
-                    });
-                    for (let i = 0; i < returnPath.length; i++) {
-                        if (returnPath[i] !== undefined) {
-                            let build = new RoomPosition(returnPath[i].x, returnPath[i].y, pos.room.name);
-                            const roadCheck = build.lookFor(LOOK_STRUCTURES);
-                            const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-                            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-                            } else {
-                                build.createConstructionSite(STRUCTURE_ROAD);
-                            }
-                        }
+                }
+            }
+            let returnPath = spawn.room.findPath(pos, spawn.pos, {
+                maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+            });
+            for (let i = 0; i < returnPath.length; i++) {
+                if (returnPath[i] !== undefined) {
+                    let build = new RoomPosition(returnPath[i].x, returnPath[i].y, pos.room.name);
+                    const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                    const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                    if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                    } else {
+                        build.createConstructionSite(STRUCTURE_ROAD);
                     }
                 }
             }
