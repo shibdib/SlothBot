@@ -2,6 +2,9 @@
  * Created by rober on 5/16/2017.
  */
 module.exports.rcl1 = function (spawnName) {
+    if (Game.constructionSites.length > 75) {
+        return null;
+    }
     //Spawn
     let spawn = Game.spawns[spawnName];
 
@@ -10,14 +13,23 @@ module.exports.rcl1 = function (spawnName) {
 };
 
 module.exports.rcl2 = function (spawnName) {
+    if (Game.constructionSites.length > 75) {
+        return null;
+    }
     //Spawn
     let spawn = Game.spawns[spawnName];
 
     //RCL2 Extensions
     rcl2Extensions(spawn);
+
+    //RCL2 Roads
+    roadSources(spawn);
 };
 
 module.exports.rcl3 = function (spawnName) {
+    if (Game.constructionSites.length > 75) {
+        return null;
+    }
     //Spawn
     let spawn = Game.spawns[spawnName];
 
@@ -26,6 +38,9 @@ module.exports.rcl3 = function (spawnName) {
 
     //RCL2 Extensions
     rcl2Extensions(spawn);
+
+    //RCL2 Roads
+    roadSources(spawn);
 
     //RCL3 Extensions
     rcl3Extensions(spawn);
@@ -35,6 +50,9 @@ module.exports.rcl3 = function (spawnName) {
 };
 
 module.exports.rcl4 = function (spawnName) {
+    if (Game.constructionSites.length > 75) {
+        return null;
+    }
     //Spawn
     let spawn = Game.spawns[spawnName];
 
@@ -43,6 +61,9 @@ module.exports.rcl4 = function (spawnName) {
 
     //RCL2 Extensions
     rcl2Extensions(spawn);
+
+    //RCL2 Roads
+    roadSources(spawn);
 
     //RCL3 Extensions
     rcl3Extensions(spawn);
@@ -152,6 +173,27 @@ function roadsSpawn(spawn) {
     if (pos4.lookFor(LOOK_STRUCTURES).length === 0 && pos4.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
         pos4.createConstructionSite(STRUCTURE_ROAD);
     }
+}
+
+function roadSources(spawn){
+    const sources = spawn.room.find(FIND_SOURCES);
+    for (i=0;i<sources.length;i++) {
+        let path = spawn.room.findPath(spawn.pos, sources[i], {
+            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+        });
+        for (let i = 0; i < path.length; i++) {
+            if (path[i] !== undefined) {
+                let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
+                const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                } else {
+                    build.createConstructionSite(STRUCTURE_ROAD);
+                }
+            }
+        }
+    }
+
 }
 
 function rcl2Extensions(spawn) {
