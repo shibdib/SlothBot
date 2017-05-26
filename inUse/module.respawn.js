@@ -74,12 +74,13 @@ module.exports.rcl2 = function (spawnName) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
                 const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+                const creeps = _.filter(Game.creeps);
                 const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
                 const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400) {
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400 || creeps.length === 0) {
                     //PEASANT RESPAWNS
                     for (let i = 0; i < sources.length; i++) {
                         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
@@ -175,6 +176,42 @@ module.exports.rcl3 = function (spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
+                if (creeps.length <= 5) {
+                    //PEASANT RESPAWNS
+                    for (let i = 0; i < sources.length; i++) {
+                        let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
+                        if (peasant.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
+                            Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant', {
+                                role: 'peasant',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedSource: sources[i].id,
+                                level: 0
+                            });
+                            console.log('Spawning a peasant');
+                            return;
+                        }
+                    }
+                    let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
+                    if (peasantUpgrader.length < 3 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
+                            role: 'peasantUpgrader',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 0
+                        });
+                        console.log('Spawning a peasantUpgrader');
+                        return;
+                    }
+                    let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
+                    if (peasantBuilder.length < 3 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
+                        Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
+                            role: 'peasantBuilder',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 0
+                        });
+                        console.log('Spawning a peasantBuilder');
+                        return;
+                    }
+                }
 
                 //SCOUT RESPAWNS
                 for (let i = 0; i < 20; i++) {
