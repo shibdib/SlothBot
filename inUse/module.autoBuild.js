@@ -122,6 +122,7 @@ function roadSources(spawn){
         });
         for (let i = 0; i < path.length; i++) {
             if (path[i] !== undefined) {
+                console.log(spawn.room.name);
                 let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
                 const roadCheck = build.lookFor(LOOK_STRUCTURES);
                 const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
