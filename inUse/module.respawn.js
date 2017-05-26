@@ -74,7 +74,7 @@ module.exports.rcl2 = function (spawnName) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
                 const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
-                let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
+                let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasant');
                 const creeps = _.filter(Game.creeps);
                 const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
                 const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
