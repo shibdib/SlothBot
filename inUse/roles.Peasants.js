@@ -6,7 +6,13 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.Peasant = function (creep) {
-    if (creep.carry.energy < creep.carryCapacity) {
+    if (creep.memory.harvesting && creep.carry.energy === 0) {
+        creep.memory.harvesting = false;
+    }
+    if (!creep.memory.harvesting && creep.carry.energy === creep.carryCapacity) {
+        creep.memory.harvesting = true;
+    }
+    if (creep.memory.harvesting) {
         if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH) {
             source = Game.getObjectById(creep.memory.assignedSource);
         } else if (!source) {
