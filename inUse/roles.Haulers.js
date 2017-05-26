@@ -154,7 +154,7 @@ module.exports.BasicHauler = function (creep) {
     if (creepTools.renewal(creep) === true) {
         return null;
     }
-    
+
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
