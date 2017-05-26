@@ -83,7 +83,7 @@ module.exports.DumpTruck = function (creep) {
     if (creepTools.renewal(creep) === true) {
         return null;
     }
-    if (creep.carry.energy <= 100) {
+    if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
     if (creep.memory.hauling === false) {
