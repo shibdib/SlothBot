@@ -71,6 +71,8 @@ module.exports.loop = function () {
                 }
             }
 
+            autoBuild.rcl1(name);
+
             //CREEP SPAWNING
             let level = Game.spawns[name].room.controller.level;
             if (level === 1) {
