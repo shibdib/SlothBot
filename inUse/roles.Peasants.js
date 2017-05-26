@@ -50,24 +50,28 @@ module.exports.Peasant = function (creep) {
  * @return {null}
  */
 module.exports.PeasantBuilder = function (creep) {
-    if (!creepTools.findSpawn(creep).memory.build === false) {
-        if (creep.carry.energy > 0) {
-            let target = creepTools.findConstruction(creep);
-            target = Game.getObjectById(target);
-            if (target) {
-                if (creep.build(target) === ERR_INVALID_TARGET) {
-                    pathing.Move(creep, Game.flags.haulers, 1);
-                } else {
-                    if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                        pathing.Move(creep, target, 1);
-                    }
+    if (creep.memory.building && creep.carry.energy === 0) {
+        creep.memory.building = false;
+    }
+    if (!creep.memory.building && creep.carry.energy === creep.carryCapacity) {
+        creep.memory.building = true;
+    }
+    if (creep.memory.building) {
+        let target = creepTools.findConstruction(creep);
+        target = Game.getObjectById(target);
+        if (target) {
+            if (creep.build(target) === ERR_INVALID_TARGET) {
+                pathing.Move(creep, Game.flags.haulers, 1);
+            } else {
+                if (creep.build(target) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, target, 1);
                 }
             }
-        } else {
-            let source = creepTools.findSource(creep);
-            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, source, 1, true);
-            }
+        }
+    } else {
+        let source = creepTools.findSource(creep);
+        if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+            pathing.Move(creep, source, 1, true);
         }
     }
 };
@@ -79,7 +83,7 @@ module.exports.PeasantUpgrader = function (creep) {
     if (creep.memory.upgrading && creep.carry.energy === 0) {
         creep.memory.upgrading = false;
     }
-    if (!creep.memory.upgrading && creep.carry.energy > 0) {
+    if (!creep.memory.upgrading && creep.carry.energy === creep.carryCapacity) {
         creep.memory.upgrading = true;
     }
 
