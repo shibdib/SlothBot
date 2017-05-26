@@ -71,21 +71,25 @@ module.exports.Hauler = function (creep) {
  * @return {null}
  */
 module.exports.DumpTruck = function (creep) {
-    //BORDER CHECK
-    if (creep.memory.hauling === true) {
-        if (borderChecks.wrongRoom(creep) !== false) {
-            return;
-        }
-        if (borderChecks.isOnBorder(creep) === true) {
-            borderChecks.nextStepIntoRoom(creep);
-        }
+    //INITIAL CHECKS
+    if (borderChecks.wrongRoom(creep) !== false) {
+        return;
+    }
+    if (borderChecks.isOnBorder(creep) === true) {
+        borderChecks.nextStepIntoRoom(creep);
     }
     if (creepTools.renewal(creep) === true) {
         return null;
     }
+
+    //SET HAULING STATE
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
+    } else if (creep.carry.energy > 0){
+        creep.memory.hauling = true;
     }
+
+    //GET ENERGY
     if (creep.memory.hauling === false) {
         creepTools.findContainer(creep);
         let closestContainer = Game.getObjectById(creep.memory.container);
@@ -113,8 +117,7 @@ module.exports.DumpTruck = function (creep) {
     }
 
     //Haul to builder/upgrader
-    if (creep.carry.energy > 100) {
-        creep.memory.hauling = true;
+    if (creep.memory.hauling === true) {
         creepTools.findBuilder(creep);
         let target = Game.getObjectById(creep.memory.builderID);
         if (target) {

@@ -32,20 +32,20 @@ module.exports.findContainer = function (creep) {
 };
 
 module.exports.findBuilder = function (creep) {
-    const stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
-    if (stationaryBuilder) {
-        creep.memory.builderID = stationaryBuilder.id;
-        return stationaryBuilder.id;
+    const needsEnergy = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
+    if (needsEnergy) {
+        creep.memory.builderID = needsEnergy.id;
+        return needsEnergy.id;
     }
     return null;
 };
 
 module.exports.findNewBuilder = function (creep) {
-    const stationaryBuilder = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
-    if (stationaryBuilder) {
-        creep.memory.builderID = stationaryBuilder.id;
+    const needsEnergy = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
+    if (needsEnergy) {
+        creep.memory.builderID = needsEnergy.id;
         creep.memory.haulCounter = 0;
-        return stationaryBuilder.id;
+        return needsEnergy.id;
     }
     return null;
 };
