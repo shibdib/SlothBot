@@ -125,6 +125,7 @@ module.exports.loop = function () {
                 //REBUILD RAMPARTS/WALLS IF FALSE/INITIAL
                 if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
                     militaryFunctions.buildWalls(Game.spawns[name]);
+                    militaryFunctions.borderWalls(Game.spawns[name])
                 }
             }
 
