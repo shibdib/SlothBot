@@ -121,6 +121,8 @@ module.exports.rcl3 = function (spawnName) {
     if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
+                const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+                
                 //SCOUT RESPAWNS
                 for (let i = 0; i < 20; i++) {
                     let scout = 'scout' + i;
