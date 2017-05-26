@@ -75,9 +75,17 @@ module.exports.PeasantBuilder = function (creep) {
             }
         }
     } else {
-        let source = creepTools.findSource(creep);
-        if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, source, 1, true);
+        let container = creepTools.findContainer(creep);
+        container = Game.getObjectById(container);
+        if (container) {
+            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, container);
+            }
+        } else {
+            let source = creepTools.findSource(creep);
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, source, 1, true);
+            }
         }
     }
 };
@@ -98,9 +106,17 @@ module.exports.PeasantUpgrader = function (creep) {
             pathing.Move(creep, creep.room.controller, 1);
         }
     } else {
-        let source = creepTools.findSource(creep);
-        if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, source, 1, true);
+        let container = creepTools.findContainer(creep);
+        container = Game.getObjectById(container);
+        if (container) {
+            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, container);
+            }
+        } else {
+            let source = creepTools.findSource(creep);
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, source, 1, true);
+            }
         }
     }
 
