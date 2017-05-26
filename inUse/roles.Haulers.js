@@ -83,7 +83,7 @@ module.exports.DumpTruck = function (creep) {
     if (creepTools.renewal(creep) === true) {
         return null;
     }
-    if (creep.carry.energy <= 150) {
+    if (creep.carry.energy <= 100) {
         creep.memory.hauling = false;
     }
     if (creep.memory.hauling === false) {
@@ -106,7 +106,7 @@ module.exports.DumpTruck = function (creep) {
     }
 
     //Haul to builder/upgrader
-    if (creep.carry.energy > 150) {
+    if (creep.carry.energy > 100) {
         creep.memory.hauling = true;
         creepTools.findBuilder(creep);
         let target = Game.getObjectById(creep.memory.builderID);
