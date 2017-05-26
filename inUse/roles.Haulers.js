@@ -100,7 +100,14 @@ module.exports.DumpTruck = function (creep) {
                     pathing.Move(creep, energy, 3);
                 }
             } else {
-                pathing.Move(creep, Game.flags.haulers, 5);
+                let spawn = creepTools.findSpawn(creep);
+                if (spawn) {
+                    if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        pathing.Move(creep, spawn);
+                    }
+                } else {
+                    pathing.Move(creep, Game.flags.haulers, 5);
+                }
             }
         }
     }
