@@ -20,13 +20,19 @@ module.exports.rcl2 = function (spawnName) {
     let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
+    console.log('start spawn');
     roadsSpawn(spawn);
+    console.log('end spawn');
 
     //RCL2 Extensions
+    console.log('start ext');
     rcl2Extensions(spawn);
+    console.log('end ext');
 
     //RCL2 Roads
+    console.log('start sources');
     roadSources(spawn);
+    console.log('end sources');
 };
 
 module.exports.rcl3 = function (spawnName) {
