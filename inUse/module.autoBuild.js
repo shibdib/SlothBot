@@ -9,7 +9,7 @@ module.exports.rcl1 = function (spawnName) {
     let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
-    roadsSpawn(spawn);
+    //roadsSpawn(spawn);
 };
 
 module.exports.rcl2 = function (spawnName) {
@@ -18,6 +18,9 @@ module.exports.rcl2 = function (spawnName) {
     }
     //Spawn
     let spawn = Game.spawns[spawnName];
+
+    //Auto Build Spawn Roads
+    //roadsSpawn(spawn);
 
     //RCL2 Extensions
     rcl2Extensions(spawn);
@@ -34,7 +37,7 @@ module.exports.rcl3 = function (spawnName) {
     let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
-    roadsSpawn(spawn);
+    //roadsSpawn(spawn);
 
     //RCL2 Extensions
     rcl2Extensions(spawn);
@@ -57,7 +60,7 @@ module.exports.rcl4 = function (spawnName) {
     let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
-    roadsSpawn(spawn);
+    //roadsSpawn(spawn);
 
     //RCL2 Extensions
     rcl2Extensions(spawn);
