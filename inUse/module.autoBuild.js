@@ -32,9 +32,9 @@ module.exports.rcl1 = function (spawnName) {
     }
 };
 
-module.exports.rcl2 = function (spawn) {
+module.exports.rcl2 = function (spawnName) {
     //Spawn
-    let spawn = Game.spawns[spawn];
+    let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
     for (i = 1; i < 3; i++) {
@@ -81,9 +81,9 @@ module.exports.rcl2 = function (spawn) {
     }
 };
 
-module.exports.rcl2 = function (spawn) {
+module.exports.rcl3 = function (spawnName) {
     //Spawn
-    let spawn = Game.spawns[spawn];
+    let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
     for (i = 1; i < 3; i++) {
