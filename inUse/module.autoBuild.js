@@ -247,26 +247,9 @@ function rcl3Tower(spawn) {
 }
 
 function rcl4Storage(spawn) {
-    const pos = new RoomPosition(spawn.pos.x-3, spawn.pos.y+3, spawn.room.name);
-    let path = spawn.room.findPath(spawn.pos, pos, {
-        costCallback: function (roomName, costMatrix) {
-            const structures = spawn.room.find(FIND_STRUCTURES);
-            for (let i = 0; i < structures.length; i++) {
-                costMatrix.set(structures[i].pos.x, structures[i].pos.y, 0);
-            }
-        },
-        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
-    });
-    for (let i = 0; i < 5; i++) {
-        if (path[i] !== undefined) {
-            let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
-            const roadCheck = build.lookFor(LOOK_STRUCTURES);
-            const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            const spawnDistance = build.getRangeTo(spawn);
-            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
-                build.createConstructionSite(STRUCTURE_STORAGE);
-            }
-        }
+    let pos = new RoomPosition(spawn.pos.x - 2, spawn.pos.y - 2, spawn.room.name);
+    if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+        pos.createConstructionSite(STRUCTURE_STORAGE);
     }
 }
 
