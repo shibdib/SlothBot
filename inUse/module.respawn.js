@@ -117,25 +117,8 @@ module.exports.rcl2 = function (spawnName) {
                     }
                 }
 
-                //HARVESTER RESPAWNS
-                if (Game.flags.harvesterBuild) {
-                    for (let i = 0; i < sources.length; i++) {
-                        let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-                        if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
-                            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
-                                role: 'stationaryHarvester',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                level: 2,
-                                assignedSource: sources[i].id
-                            });
-                            console.log('Spawning a stationaryHarvester');
-                            return;
-                        }
-                    }
-                }
-
                 //HAULER RESPAWNS
-                if (Game.flags.haulerBuild && stationaryHarvester.length >= sourceCount) {
+                if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < containers.length; i++) {
                         let hauler = _.filter(Game.creeps, (creep) => creep.memory.assignedContainer === containers[i].id && creep.memory.role === 'hauler');
                         if (hauler.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
@@ -148,6 +131,21 @@ module.exports.rcl2 = function (spawnName) {
                             console.log('Spawning a hauler');
                             return;
                         }
+                    }
+                }
+
+                //HARVESTER RESPAWNS
+                for (let i = 0; i < sources.length; i++) {
+                    let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+                    if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+                        Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
+                            role: 'stationaryHarvester',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 2,
+                            assignedSource: sources[i].id
+                        });
+                        console.log('Spawning a stationaryHarvester');
+                        return;
                     }
                 }
 
