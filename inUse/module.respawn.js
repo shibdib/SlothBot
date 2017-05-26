@@ -81,7 +81,7 @@ module.exports.rcl2 = function (spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400 || creeps.length < 3 || peasant.length + stationaryHarvester.length === 0) {
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400 || creeps.length < 3 || peasant.length === 0) {
                     //PEASANT RESPAWNS
                     for (let i = 0; i < sources.length; i++) {
                         if (peasant.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
