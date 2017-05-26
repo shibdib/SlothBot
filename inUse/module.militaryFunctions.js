@@ -26,8 +26,8 @@ module.exports.buildWalls = function (spawn) {
         },
         maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
     });
-    if (path[4] !== undefined) {
-        let build = new RoomPosition(path[4].x, path[4].y, spawn.room.name);
+    if (path[6] !== undefined) {
+        let build = new RoomPosition(path[6].x, path[6].y, spawn.room.name);
         let nearbyRamps = build.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
         let nearbyWalls = build.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
         const buildRamps = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
@@ -141,7 +141,7 @@ module.exports.roadNetwork = function (spawn) {
 module.exports.findDefensivePosition = function (creep) {
     let closestEnemy = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
     if (closestEnemy) {
-        let bestRampart = closestEnemy.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.getRangeTo(creep.memory.assignedSpawn) <= 4 && !r.pos.lookFor(LOOK_CREEPS)});
+        let bestRampart = closestEnemy.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.getRangeTo(creep.memory.assignedSpawn) <= 6 && !r.pos.lookFor(LOOK_CREEPS)});
         pathing.Move(creep, bestRampart, 1, true);
     }
 };
