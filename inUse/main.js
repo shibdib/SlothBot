@@ -38,7 +38,7 @@ module.exports.loop = function () {
 
         //Room Management
         for (let name in Game.spawns) {
-            //HOSTILE CHECK//
+            //DEFENSE MODE
             let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
             if (attackDetected[0] || Game.spawns[name].memory.defenseMode === true) {
                 militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
@@ -50,12 +50,12 @@ module.exports.loop = function () {
                 }
             }
 
-            //REBUILD RAMPARTS IF FALSE/INITIAL
+            //REBUILD RAMPARTS/WALLS IF FALSE/INITIAL
             if (Game.spawns[name].memory.wallCheck !== true) {
                 militaryFunctions.buildWalls(Game.spawns[name]);
             }
 
-            //Every tick check for renewals and recycles
+            //RENEWAL/RECYCLE CHECK
             if (!Game.spawns[name].spawning) {
                 let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.recycle === true});
                 if (creep[0]) {
@@ -71,9 +71,41 @@ module.exports.loop = function () {
                 }
             }
 
-            //Every 15 ticks
-            if (Game.time % 15 === 0) {
-                respawnCreeps.run(name);
+            //CREEP SPAWNING
+            let level = Game.spawns[name].room.controller.level;
+            if (level === 1) {
+                respawnCreeps.rcl1(name)
+            }
+            if (level === 2) {
+                respawnCreeps.rcl2(name)
+            }
+            if (level === 3) {
+                respawnCreeps.rcl3(name)
+            }
+            if (level === 4) {
+                respawnCreeps.rcl4(name)
+            }
+            if (level === 5) {
+                respawnCreeps.rcl3(name)
+            }
+            if (level === 6) {
+                respawnCreeps.rcl3(name)
+            }
+            if (level === 7) {
+                respawnCreeps.rcl3(name)
+            }
+            if (level === 8) {
+                respawnCreeps.rcl3(name)
+            }
+
+            //Mark old creeps for recycling
+            let legacyCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level === undefined || creep.memory.level === null);
+            for (let i = 0; i < legacyCreeps.length; i++){
+                legacyCreeps[i].memory.level = level;
+            }
+            let recycleCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level < level);
+            for (let i = 0; i < recycleCreeps.length; i++){
+                recycleCreeps[i].memory.recycle = true;
             }
 
             //Every 100 ticks
