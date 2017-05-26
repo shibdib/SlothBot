@@ -73,6 +73,12 @@ module.exports.rcl2 = function (spawnName) {
     if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
+                const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+                const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
+                const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
+                const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
+                    filter: {structureType: STRUCTURE_CONTAINER}
+                });
 
                 //PEASANT RESPAWNS
                 for (let i = 0; i < sources.length; i++) {
