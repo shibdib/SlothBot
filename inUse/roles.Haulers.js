@@ -83,7 +83,7 @@ module.exports.DumpTruck = function (creep) {
     //SET HAULING STATE
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
-    } else if (creep.carry.energy > 0){
+    } else if (creep.carry.energy > 0) {
         creep.memory.hauling = true;
     }
 
@@ -96,48 +96,40 @@ module.exports.DumpTruck = function (creep) {
                 pathing.Move(creep, closestContainer, 3);
             }
         } else {
-            const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY, {filter: (s) => s.amount > 50});
-            if (energy) {
-                if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, energy, 3);
-                }
-            } else {
-                let spawn = creepTools.findSpawn(creep);
-                if (spawn) {
-                    if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        pathing.Move(creep, spawn);
-                    }
-                } else {
-                    pathing.Move(creep, Game.flags.haulers, 5);
-                }
-            }
-        }
-    }
-
-    //Haul to builder/upgrader
-    if (creep.memory.hauling === true) {
-        creepTools.findBuilder(creep);
-        let target = Game.getObjectById(creep.memory.builderID);
-        if (target) {
-            target.memory.incomingEnergy = creep.id;
-            if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, target, 1);
-            }
-        } else {
-            let newTarget = creepTools.findNewBuilder(creep);
-            newTarget = Game.getObjectById(newTarget);
-            if (newTarget) {
-                newTarget.memory.incomingEnergy = creep.id;
-                newTarget.memory.incomingCounter = 0;
-                if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, newTarget, 1);
+            let spawn = creepTools.findSpawn(creep);
+            if (spawn) {
+                if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, spawn);
                 }
             } else {
                 pathing.Move(creep, Game.flags.haulers, 5);
             }
         }
     }
+}
 
+//Haul to builder/upgrader
+if (creep.memory.hauling === true) {
+    creepTools.findBuilder(creep);
+    let target = Game.getObjectById(creep.memory.builderID);
+    if (target) {
+        target.memory.incomingEnergy = creep.id;
+        if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+            pathing.Move(creep, target, 1);
+        }
+    } else {
+        let newTarget = creepTools.findNewBuilder(creep);
+        newTarget = Game.getObjectById(newTarget);
+        if (newTarget) {
+            newTarget.memory.incomingEnergy = creep.id;
+            newTarget.memory.incomingCounter = 0;
+            if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, newTarget, 1);
+            }
+        } else {
+            pathing.Move(creep, Game.flags.haulers, 5);
+        }
+    }
 };
 
 /**
@@ -162,7 +154,7 @@ module.exports.BasicHauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+        const energy = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
         if (energy) {
             if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, energy);
