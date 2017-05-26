@@ -42,11 +42,11 @@ module.exports.rcl1 = function (spawnName) {
                         assignedSpawn: Game.spawns[spawnName].id,
                         level: 0
                     });
-                    console.log('Spawning a peasantBuilder');
+                    console.log('Spawning a peasantUpgrader');
                     return;
                 }
                 let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
-                if (peasantBuilder.length < 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
+                if (peasantBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
                         role: 'peasantBuilder',
                         assignedSpawn: Game.spawns[spawnName].id,
@@ -99,7 +99,7 @@ module.exports.rcl2 = function (spawnName) {
                     return;
                 }
                 let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
-                if (peasantBuilder.length < 1 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
+                if (peasantBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
                     Game.spawns[spawnName].createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
                         role: 'peasantBuilder',
                         assignedSpawn: Game.spawns[spawnName].id,
