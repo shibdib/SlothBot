@@ -1,9 +1,9 @@
 /**
  * Created by rober on 5/16/2017.
  */
-module.exports.rcl1 = function (spawn) {
+module.exports.rcl1 = function (spawnName) {
     //Spawn
-    let spawn = Game.spawns[spawn];
+    let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
     for (i = 1; i < 3; i++) {
