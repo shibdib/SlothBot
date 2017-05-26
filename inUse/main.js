@@ -123,7 +123,7 @@ module.exports.loop = function () {
                     autoBuild.rcl4(name)
                 }
                 //REBUILD RAMPARTS/WALLS IF FALSE/INITIAL
-                if (Game.spawns[name].memory.wallCheck !== true && level >= 2) {
+                if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
                     militaryFunctions.buildWalls(Game.spawns[name]);
                 }
             }
