@@ -54,7 +54,7 @@ module.exports.RHarvester = function (creep) {
 module.exports.RHauler = function (creep) {
     if (creepTools.renewal(creep, 120) === true) {
         creep.memory.destinationReached = null;
-        creep.memory.hauling = false;
+        creep.memory.hauling = true;
         return null;
     }
     if (creep.memory.resupply === null || creep.memory.resupply === undefined){
