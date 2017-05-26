@@ -106,28 +106,28 @@ module.exports.DumpTruck = function (creep) {
             }
         }
     }
-}
 
 //Haul to builder/upgrader
-if (creep.memory.hauling === true) {
-    creepTools.findBuilder(creep);
-    let target = Game.getObjectById(creep.memory.builderID);
-    if (target) {
-        target.memory.incomingEnergy = creep.id;
-        if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, target, 1);
-        }
-    } else {
-        let newTarget = creepTools.findNewBuilder(creep);
-        newTarget = Game.getObjectById(newTarget);
-        if (newTarget) {
-            newTarget.memory.incomingEnergy = creep.id;
-            newTarget.memory.incomingCounter = 0;
-            if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, newTarget, 1);
+    if (creep.memory.hauling === true) {
+        creepTools.findBuilder(creep);
+        let target = Game.getObjectById(creep.memory.builderID);
+        if (target) {
+            target.memory.incomingEnergy = creep.id;
+            if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, target, 1);
             }
         } else {
-            pathing.Move(creep, Game.flags.haulers, 5);
+            let newTarget = creepTools.findNewBuilder(creep);
+            newTarget = Game.getObjectById(newTarget);
+            if (newTarget) {
+                newTarget.memory.incomingEnergy = creep.id;
+                newTarget.memory.incomingCounter = 0;
+                if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, newTarget, 1);
+                }
+            } else {
+                pathing.Move(creep, Game.flags.haulers, 5);
+            }
         }
     }
 };
