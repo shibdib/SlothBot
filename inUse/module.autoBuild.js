@@ -20,19 +20,13 @@ module.exports.rcl2 = function (spawnName) {
     let spawn = Game.spawns[spawnName];
 
     //Auto Build Spawn Roads
-    console.log('start spawn');
     roadsSpawn(spawn);
-    console.log('end spawn');
 
     //RCL2 Extensions
-    console.log('start ext');
     rcl2Extensions(spawn);
-    console.log('end ext');
 
     //RCL2 Roads
-    console.log('start sources');
     roadSources(spawn);
-    console.log('end sources');
 };
 
 module.exports.rcl3 = function (spawnName) {
@@ -117,12 +111,11 @@ function roadsSpawn(spawn) {
 function roadSources(spawn){
     const sources = spawn.room.find(FIND_SOURCES);
     for (i=0;i<sources.length;i++) {
-        let path = spawn.room.findPath(spawn.pos, sources[i], {
+        let path = spawn.room.findPath(spawn.pos, sources[i].pos, {
             maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
         });
         for (let i = 0; i < path.length; i++) {
             if (path[i] !== undefined) {
-                console.log(spawn.room.name);
                 let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
                 const roadCheck = build.lookFor(LOOK_STRUCTURES);
                 const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
