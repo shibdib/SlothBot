@@ -7,29 +7,6 @@
     //Number generator
 const generatedNumber = Math.floor((Math.random() * 100000) + 1);
 
-//Stationary Creeps
-const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
-
-//MISC
-const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
-const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
-const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
-    filter: {structureType: STRUCTURE_CONTAINER}
-});
-const ramparts = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
-    filter: {structureType: STRUCTURE_RAMPART}
-});
-let sentryRamparts = [];
-for (i = 0; i < ramparts.length; i++) {
-    const nearbyRamparts = ramparts[i].pos.findInRange(FIND_MY_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-    if (nearbyRamparts.length <= 1) {
-        sentryRamparts.push(ramparts[i]);
-    }
-}
-const roomEnergyCapacity = Game.spawns[spawnName].room.energyCapacityAvailable;
-const roomEnergy = Game.spawns[spawnName].room.energyAvailable;
-
-
 //RCL1
 module.exports.rcl1 = function (spawnName) {
 
