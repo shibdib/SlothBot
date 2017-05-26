@@ -53,7 +53,7 @@ module.exports.rcl1 = function (spawnName) {
                         level: 0
                     });
                     console.log('Spawning a peasantBuilder');
-                    return;
+
                 }
 
             } else if (Game.spawns[spawnName].spawning) {
@@ -80,7 +80,7 @@ module.exports.rcl2 = function (spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400 || creeps.length === 0) {
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400 || creeps.length < 3) {
                     //PEASANT RESPAWNS
                     for (let i = 0; i < sources.length; i++) {
                         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
@@ -117,10 +117,45 @@ module.exports.rcl2 = function (spawnName) {
                     }
                 }
 
+                //HARVESTER RESPAWNS
+                if (Game.flags.harvesterBuild) {
+                    for (let i = 0; i < sources.length; i++) {
+                        let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+                        if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+                            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
+                                role: 'stationaryHarvester',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                level: 2,
+                                assignedSource: sources[i].id
+                            });
+                            console.log('Spawning a stationaryHarvester');
+                            return;
+                        }
+                    }
+                }
+
+                //HAULER RESPAWNS
+                if (Game.flags.haulerBuild && stationaryHarvester.length >= sourceCount) {
+                    for (let i = 0; i < containers.length; i++) {
+                        let hauler = _.filter(Game.creeps, (creep) => creep.memory.assignedContainer === containers[i].id && creep.memory.role === 'hauler');
+                        if (hauler.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
+                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
+                                role: 'hauler',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                level: 2,
+                                assignedContainer: containers[i].id
+                            });
+                            console.log('Spawning a hauler');
+                            return;
+                        }
+                    }
+                }
+
                 //PEASANT RESPAWNS
                 for (let i = 0; i < sources.length; i++) {
+                    let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
                     let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
-                    if (peasant.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
+                    if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
                         Game.spawns[spawnName].createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant', {
                             role: 'peasant',
                             assignedSpawn: Game.spawns[spawnName].id,
@@ -149,7 +184,7 @@ module.exports.rcl2 = function (spawnName) {
                         level: 0
                     });
                     console.log('Spawning a peasantBuilder');
-                    return;
+
                 }
 
             } else if (Game.spawns[spawnName].spawning) {
@@ -258,7 +293,7 @@ module.exports.rcl3 = function (spawnName) {
                             Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                                 role: 'hauler',
                                 assignedSpawn: Game.spawns[spawnName].id,
-                                level: 0,
+                                level: 3,
                                 assignedContainer: containers[i].id
                             });
                             console.log('Spawning a hauler');
@@ -298,7 +333,7 @@ module.exports.rcl3 = function (spawnName) {
                             Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
                                 role: 'stationaryHarvester',
                                 assignedSpawn: Game.spawns[spawnName].id,
-                                level: 0,
+                                level: 3,
                                 assignedSource: sources[i].id
                             });
                             console.log('Spawning a stationaryHarvester');
