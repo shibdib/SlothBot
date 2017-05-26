@@ -6,10 +6,10 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.Peasant = function (creep) {
-    if (creep.memory.harvesting && creep.carry.energy === 0) {
+    if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
     }
-    if (!creep.memory.harvesting && creep.carry.energy === creep.carryCapacity) {
+    if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.harvesting = false;
     }
     if (creep.memory.harvesting) {
