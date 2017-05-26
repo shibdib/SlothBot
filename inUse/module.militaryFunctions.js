@@ -7,6 +7,7 @@ module.exports.buildWalls = function (spawn) {
     if (Game.constructionSites.length > 75) {
         return null;
     }
+    const sources = spawn.room.find(FIND_SOURCES);
     let pos = new RoomPosition(39, 14, spawn.room.name);
     let path = spawn.room.findPath(spawn.pos, pos, {
         costCallback: function (roomName, costMatrix) {
@@ -69,9 +70,33 @@ module.exports.buildWalls = function (spawn) {
         });
         if (path[0] !== undefined) {
             let build = new RoomPosition(path[0].x, path[0].y, spawn.room.name);
-            build.createConstructionSite(STRUCTURE_WALL);
+            build.createConstructionSite(STRUCTURE_RAMPART);
         } else {
-            spawn.memory.wallCheck = true;
+            for (i = 0; i < sources.length; i++) {
+                let path = spawn.room.findPath(sources[i].pos, spawn.pos, {
+                    costCallback: function (roomName, costMatrix) {
+                        const nonRampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType !== STRUCTURE_RAMPART || r.structureType !== STRUCTURE_WALL});
+                        for (let i = 0; i < nonRampart.length; i++) {
+                            costMatrix.set(nonRampart[i].pos.x, nonRampart[i].pos.y, 0);
+                        }
+                        const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                        for (let i = 0; i < rampart.length; i++) {
+                            costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
+                        }
+                        const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                        for (let i = 0; i < construction.length; i++) {
+                            costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
+                        }
+                    },
+                    maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
+                });
+                if (path[0] !== undefined) {
+                    let build = new RoomPosition(path[0].x, path[0].y, spawn.room.name);
+                    build.createConstructionSite(STRUCTURE_RAMPART);
+                } else {
+                    spawn.memory.wallCheck = true;
+                }
+            }
         }
     }
 };
