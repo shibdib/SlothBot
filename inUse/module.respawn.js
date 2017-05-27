@@ -212,11 +212,25 @@ module.exports.rcl3 = function (spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
                 if (creeps.length <= 5 || Game.spawns[spawnName].room.energyCapacityAvailable < 800 || peasant === 0) {
+                    //300 RESPAWNS
+                    for (let i = 0; i < sources.length; i++) {
+                        let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+                        if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].room.energyAvailable <= 300 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
+                            Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant', {
+                                role: 'peasant',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedSource: sources[i].id,
+                                level: 0
+                            });
+                            console.log('Spawning a peasant');
+                            return;
+                        }
+                    }
                     //PEASANT RESPAWNS
                     for (let i = 0; i < sources.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-                        if (peasant.length < sourceCount && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasant') === OK) {
-                            Game.spawns[spawnName].createCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasant', {
+                        if (peasant.length < sourceCount && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'peasant') === OK) {
+                            Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'peasant', {
                                 role: 'peasant',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedSource: sources[i].id,
