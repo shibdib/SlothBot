@@ -8,29 +8,6 @@ module.exports.rangeSource = function (creep) {
     return null;
 };
 
-module.exports.findContainer = function (creep) {
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 1000});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
-    }
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 500});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
-    }
-
-    var container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100});
-    if (container) {
-        creep.memory.container = container.id;
-        return container.id;
-    }
-    creep.memory.container = null;
-    return null;
-};
-
 module.exports.findBuilder = function (creep) {
     const needsEnergy = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
     if (needsEnergy) {
