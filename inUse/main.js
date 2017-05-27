@@ -38,6 +38,10 @@ module.exports.loop = function () {
 
         //Room Management
         for (let name in Game.spawns) {
+            //SAFE MODE
+            if (Game.spawns[name].hits < Game.spawns[name].hitsMax/2){
+                Game.spawns[name].room.controller.activateSafeMode();
+            }
             //DEFENSE MODE
             let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
             if (attackDetected[0] || Game.spawns[name].memory.defenseMode === true) {
