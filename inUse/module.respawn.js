@@ -165,7 +165,7 @@ module.exports.rcl2 = function (spawnName) {
                     }
                 }
                 let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
-                if (peasantUpgrader.length < 3 && Game.spawns[spawnName].canCreateCreep([MOVE * 3, WORK * 3, CARRY * 2], generatedNumber + 'peasantUpgrader') === OK) {
+                if (peasantUpgrader.length < 5 && Game.spawns[spawnName].canCreateCreep([MOVE * 3, WORK * 3, CARRY * 2], generatedNumber + 'peasantUpgrader') === OK) {
                     Game.spawns[spawnName].createCreep([MOVE * 3, WORK * 3, CARRY * 2], generatedNumber + 'peasantUpgrader', {
                         role: 'peasantUpgrader',
                         assignedSpawn: Game.spawns[spawnName].id,
