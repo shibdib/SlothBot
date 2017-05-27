@@ -44,24 +44,7 @@ module.exports.Hauler = function (creep) {
 
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
-        const targets = creep.room.find(FIND_STRUCTURES, {
-            filter: (structure) => {
-                return (structure.structureType === STRUCTURE_EXTENSION ||
-                    structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
-            }
-        });
-        if (targets.length > 0) {
-            if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, targets[0], 2, true);
-            }
-        } else {
-            const tower = Game.getObjectById(creepTools.findTower(creep));
-            if (tower) {
-                if (creep.transfer(tower, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, tower, 3);
-                }
-            }
-        }
+        creepTools.findStorage(creep);
     }
 };
 
@@ -89,22 +72,7 @@ module.exports.DumpTruck = function (creep) {
 
     //GET ENERGY
     if (creep.memory.hauling === false) {
-        creepTools.findContainer(creep);
-        let closestContainer = Game.getObjectById(creep.memory.container);
-        if (closestContainer) {
-            if (creep.withdraw(closestContainer, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, closestContainer, 3);
-            }
-        } else {
-            let spawn = creepTools.findSpawn(creep);
-            if (spawn) {
-                if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, spawn);
-                }
-            } else {
-                pathing.Move(creep, Game.flags.haulers, 5);
-            }
-        }
+        creepTools.findEnergy(creep);
     }
 
 //Haul to builder/upgrader
@@ -163,16 +131,6 @@ module.exports.BasicHauler = function (creep) {
             pathing.Move(creep, Game.flags.haulers, 5);
         }
     } else {
-        const targets = creep.room.find(FIND_STRUCTURES, {
-            filter: (structure) => {
-                return (structure.structureType === STRUCTURE_EXTENSION ||
-                    structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
-            }
-        });
-        if (targets.length > 0) {
-            if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, targets[0]);
-            }
-        }
+        creepTools.findStorage(creep);
     }
 };

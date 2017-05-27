@@ -29,25 +29,7 @@ module.exports.Peasant = function (creep) {
                 creep.transfer(container, RESOURCE_ENERGY);
             }
         } else {
-            const targets = creep.room.find(FIND_STRUCTURES, {
-                filter: (structure) => {
-                    return (structure.structureType === STRUCTURE_EXTENSION ||
-                        structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
-                }
-            });
-            if (targets.length > 0) {
-                if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, targets[0], 1);
-                }
-            } else {
-                let container = creepTools.findContainer(creep);
-                container = Game.getObjectById(container);
-                if (container && container.store < container.storeCapacity) {
-                    if (creep.transfer(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        pathing.Move(creep, container, 1);
-                    }
-                }
-            }
+            creepTools.findStorage(creep);
         }
     }
 };
