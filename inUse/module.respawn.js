@@ -210,7 +210,7 @@ module.exports.rcl3 = function (spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                if (creeps.length <= 5) {
+                if (creeps.length <= 5 || Game.spawns[spawnName].room.energyCapacityAvailable < 800) {
                     //PEASANT RESPAWNS
                     for (let i = 0; i < sources.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
@@ -245,6 +245,16 @@ module.exports.rcl3 = function (spawnName) {
                         });
                         console.log('Spawning a peasantBuilder');
 
+                    }
+                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
+                    if (basicHauler.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
+                            role: 'basicHauler',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 3,
+                        });
+                        console.log('Spawning a basicHauler');
+                        return;
                     }
                 }
 
