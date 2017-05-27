@@ -319,7 +319,7 @@ module.exports.findEnergy = function (creep, hauler = true) {
         }
     }
     //Extension
-    if (spawns === true) {
+    if (hauler === true) {
         let extension = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy > 0});
         if (extension) {
             const extensionDistWeighted = extension.pos.getRangeTo(creep) * 3.5;
