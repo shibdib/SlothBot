@@ -91,24 +91,7 @@ module.exports.RHauler = function (creep) {
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
         if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
-            const targets = creep.room.find(FIND_STRUCTURES, {
-                filter: (structure) => {
-                    return (structure.structureType === STRUCTURE_EXTENSION ||
-                        structure.structureType === STRUCTURE_SPAWN) && structure.energy < structure.energyCapacity;
-                }
-            });
-            if (targets.length > 0) {
-                if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, targets[0], 2, false, 1);
-                }
-            } else {
-                const tower = Game.getObjectById(creepTools.findTower(creep));
-                if (tower) {
-                    if (creep.transfer(tower, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        pathing.Move(creep, tower, 2, false, 1);
-                    }
-                }
-            }
+            creepTools.findStorage(creep);
         } else {
             pathing.Move(creep, Game.spawns[creep.memory.resupply], 10, false, 16);
         }
