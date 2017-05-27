@@ -150,9 +150,10 @@ module.exports.loop = function () {
         }
 
         //Tower Management
-        const tower = Game.getObjectById('592341a59c43ea7509d6edb4');
-        if (tower) {
-            towerControl.run(tower);
+        for (let structure of _.values(Game.structures)) {
+            if (structure.structureType === STRUCTURE_TOWER) {
+                towerControl.run(structure);
+            }
         }
 
         for (var name in Game.creeps) {
