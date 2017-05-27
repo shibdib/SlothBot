@@ -425,8 +425,8 @@ module.exports.findStorage = function (creep) {
     }
     //Storage
     let sStorage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] - s.storeCapacity > creep.carryCapacity});
-    if (storage) {
-        const storageDistWeighted = storage.pos.getRangeTo(creep) * 0.45;
+    if (sStorage) {
+        const storageDistWeighted = sStorage.pos.getRangeTo(creep) * 0.45;
         storage.push({
             id: sStorage.id,
             distWeighted: storageDistWeighted
