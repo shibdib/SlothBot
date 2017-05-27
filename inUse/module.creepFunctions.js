@@ -274,12 +274,12 @@ module.exports.recycle = function (creep) {
 };
 
 
-module.exports.findEnergy = function (creep, hauler = true) {
+module.exports.findEnergy = function (creep, hauler = false) {
     let energy = [];
     //Container
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
     if (container) {
-        const containerDistWeighted = container.pos.getRangeTo(creep) * 0.75;
+        const containerDistWeighted = container.pos.getRangeTo(creep) * 0.65;
         energy.push({
             id: container.id,
             distWeighted: containerDistWeighted,
@@ -307,10 +307,10 @@ module.exports.findEnergy = function (creep, hauler = true) {
         });
     }
     //Spawn
-    if (hauler === true) {
+    if (hauler === false) {
         let spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS, {filter: (s) => s.energy > 250});
         if (spawn) {
-            const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 3.5;
+            const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 5.5;
             energy.push({
                 id: spawn.id,
                 distWeighted: spawnDistWeighted,
@@ -319,10 +319,10 @@ module.exports.findEnergy = function (creep, hauler = true) {
         }
     }
     //Extension
-    if (hauler === true) {
+    if (hauler === false) {
         let extension = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy > 0});
         if (extension) {
-            const extensionDistWeighted = extension.pos.getRangeTo(creep) * 3.5;
+            const extensionDistWeighted = extension.pos.getRangeTo(creep) * 4.5;
             energy.push({
                 id: extension.id,
                 distWeighted: extensionDistWeighted,
@@ -331,7 +331,7 @@ module.exports.findEnergy = function (creep, hauler = true) {
         }
     }
     //Storage
-    if (hauler === true) {
+    if (hauler === false) {
         let storage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
         if (storage) {
             const storageDistWeighted = storage.pos.getRangeTo(creep) * 0.5;

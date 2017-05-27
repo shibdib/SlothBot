@@ -128,7 +128,7 @@ module.exports.BasicHauler = function (creep) {
                 pathing.Move(creep, energy);
             }
         } else {
-            creepTools.findEnergy(creep, false);
+            creepTools.findEnergy(creep, true);
         }
     } else {
         creepTools.findStorage(creep);
