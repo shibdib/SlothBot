@@ -274,7 +274,7 @@ module.exports.recycle = function (creep) {
 };
 
 
-module.exports.findEnergy = function (creep) {
+module.exports.findEnergy = function (creep, hauler = true) {
     let energy = [];
     //Container
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
@@ -307,34 +307,40 @@ module.exports.findEnergy = function (creep) {
         });
     }
     //Spawn
-    let spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS, {filter: (s) => s.energy > 250});
-    if (spawn) {
-        const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 3.5;
-        energy.push({
-            id: spawn.id,
-            distWeighted: spawnDistWeighted,
-            harvest: false
-        });
+    if (hauler === true) {
+        let spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS, {filter: (s) => s.energy > 250});
+        if (spawn) {
+            const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 3.5;
+            energy.push({
+                id: spawn.id,
+                distWeighted: spawnDistWeighted,
+                harvest: false
+            });
+        }
     }
     //Extension
-    let extension = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy > 0});
-    if (extension) {
-        const extensionDistWeighted = extension.pos.getRangeTo(creep) * 3.5;
-        energy.push({
-            id: extension.id,
-            distWeighted: extensionDistWeighted,
-            harvest: false
-        });
+    if (spawns === true) {
+        let extension = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy > 0});
+        if (extension) {
+            const extensionDistWeighted = extension.pos.getRangeTo(creep) * 3.5;
+            energy.push({
+                id: extension.id,
+                distWeighted: extensionDistWeighted,
+                harvest: false
+            });
+        }
     }
     //Storage
-    let storage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
-    if (storage) {
-        const storageDistWeighted = storage.pos.getRangeTo(creep) * 0.5;
-        energy.push({
-            id: storage.id,
-            distWeighted: storageDistWeighted,
-            harvest: false
-        });
+    if (hauler === true) {
+        let storage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
+        if (storage) {
+            const storageDistWeighted = storage.pos.getRangeTo(creep) * 0.5;
+            energy.push({
+                id: storage.id,
+                distWeighted: storageDistWeighted,
+                harvest: false
+            });
+        }
     }
 
     let sorted = _.sortBy(energy, s => s.distWeighted);
