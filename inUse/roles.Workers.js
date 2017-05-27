@@ -13,7 +13,12 @@ module.exports.Worker = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (creepTools.renewal(creep) === true) {
+    //Check if creep can make the trip
+    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
+    if (steps > creep.ticksToLive) {
+        creep.memory.renew = true;
+    }
+    if (creepTools.renewal(creep, 30) === true) {
         return null;
     }
 
@@ -67,7 +72,12 @@ module.exports.Harvester = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (creepTools.renewal(creep) === true) {
+    //Check if creep can make the trip
+    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
+    if (steps > creep.ticksToLive) {
+        creep.memory.renew = true;
+    }
+    if (creepTools.renewal(creep, 30) === true) {
         creep.drop(RESOURCE_ENERGY);
         return null;
     }
@@ -108,7 +118,12 @@ module.exports.wallRepairer = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (creepTools.renewal(creep) === true) {
+    //Check if creep can make the trip
+    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
+    if (steps > creep.ticksToLive) {
+        creep.memory.renew = true;
+    }
+    if (creepTools.renewal(creep, 30) === true) {
         return null;
     }
 
@@ -163,7 +178,12 @@ module.exports.Upgrader = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (creepTools.renewal(creep) === true) {
+    //Check if creep can make the trip
+    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
+    if (steps > creep.ticksToLive) {
+        creep.memory.renew = true;
+    }
+    if (creepTools.renewal(creep, 50) === true) {
         return null;
     }
 

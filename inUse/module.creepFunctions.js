@@ -233,7 +233,7 @@ module.exports.findNearbyConstruction = function (creep) {
     }
 };
 
-module.exports.renewal = function (creep, breakingPoint = 120) {
+module.exports.renewal = function (creep, breakingPoint = 75) {
     if (!creep.memory.assignedSpawn) {
         let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
         if (spawn) {
