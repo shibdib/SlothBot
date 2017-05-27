@@ -298,11 +298,6 @@ module.exports.recycle = function (creep) {
 
 
 module.exports.findEnergy = function (creep) {
-    Array.prototype.sortBy = function (p) {
-        return this.slice(0).sort(function (a, b) {
-            return (a[p] > b[p]) ? 1 : (a[p] < b[p]) ? -1 : 0;
-        });
-    }
     let energy = [];
     //Container
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
@@ -347,7 +342,7 @@ module.exports.findEnergy = function (creep) {
     //Extension
     let extension = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy > 0});
     if (extension) {
-        const extensionDistWeighted = extension.pos.getRangeTo(creep) * 2.2;
+        const extensionDistWeighted = extension.pos.getRangeTo(creep) * 0.1;
         energy.push({
             id: extension.id,
             distWeighted: extensionDistWeighted,
@@ -365,7 +360,7 @@ module.exports.findEnergy = function (creep) {
         });
     }
 
-    let sorted = energy.sortBy('distWeighted');
+    let sorted = _.sortBy(energy, s => s.distWeighted);
 
     if (sorted[0].harvest === false) {
         let energyItem = Game.getObjectById(sorted[0].id);
@@ -390,11 +385,6 @@ module.exports.findEnergy = function (creep) {
 };
 
 module.exports.findStorage = function (creep) {
-    Array.prototype.sortBy = function (p) {
-        return this.slice(0).sort(function (a, b) {
-            return (a[p] > b[p]) ? 1 : (a[p] < b[p]) ? -1 : 0;
-        });
-    };
     let storage = [];
     //Container
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] - s.storeCapacity > creep.carry.energy});
@@ -433,7 +423,7 @@ module.exports.findStorage = function (creep) {
         });
     }
 
-    let sorted = storage.sortBy('distWeighted');
+    let sorted = _.sortBy(storage, s => s.distWeighted);
     if (sorted[0]) {
         let storageItem = Game.getObjectById(sorted[0].id);
         if (storageItem) {
