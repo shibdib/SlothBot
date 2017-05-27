@@ -296,3 +296,82 @@ module.exports.recycle = function (creep) {
     }
 };
 
+
+
+module.exports.findEnergy = function (creep) {
+    let energy = [];
+    //Container
+    let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 0});
+    if (container) {
+        const containerDistWeighted = container.pos.getRangeTo(creep) * 1;
+        energy.push({
+            id: container.id,
+            distWeighted: containerDistWeighted,
+            harvest: false
+        });
+    }
+    //Source
+    let source = creep.pos.findClosestByPath(FIND_SOURCES_ACTIVE);
+    if (source) {
+        const sourceDistWeighted = source.pos.getRangeTo(creep * 7.5);
+        energy.push({
+            id: source.id,
+            distWeighted: sourceDistWeighted,
+            harvest: true
+        });
+    }
+    //Spawn
+    let spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS, {filter: (s) => s.energy > 0});
+    if (spawn) {
+        const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 2.5;
+        energy.push({
+            id: spawn.id,
+            distWeighted: spawnDistWeighted,
+            harvest: false
+        });
+    }
+    //Extension
+    let extension = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy > 0});
+    if (extension) {
+        const extensionDistWeighted = extension.pos.getRangeTo(creep) * 2.2;
+        energy.push({
+            id: extension.id,
+            distWeighted: extensionDistWeighted,
+            harvest: false
+        });
+    }
+    //Storage
+    let storage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
+    if (storage) {
+        const storageDistWeighted = storage.pos.getRangeTo(creep) * 0.9;
+        energy.push({
+            id: storage.id,
+            distWeighted: storageDistWeighted,
+            harvest: false
+        });
+    }
+
+    let sorted = energy.sortBy('distWeighted');
+
+    if (sorted[0].harvest !== true){
+        let energyItem = Game.getObjectById(sorted[0].id);
+        if (energyItem) {
+            if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, energyItem);
+            }
+        }
+    } else {
+        let energyItem = Game.getObjectById(sorted[0].id);
+        if (energyItem) {
+            if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, energyItem);
+            }
+        }
+    }
+
+        Array.prototype.sortBy = function(p) {
+            return this.slice(0).sort(function(a,b) {
+                return (a[p] > b[p]) ? 1 : (a[p] < b[p]) ? -1 : 0;
+            });
+        }
+};
