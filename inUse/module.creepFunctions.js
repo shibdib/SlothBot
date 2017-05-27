@@ -434,10 +434,12 @@ module.exports.findStorage = function (creep) {
     }
 
     let sorted = storage.sortBy('distWeighted');
-    let storageItem = Game.getObjectById(sorted[0].id);
-    if (storageItem) {
-        if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, storageItem);
+    if (sorted[0]) {
+        let storageItem = Game.getObjectById(sorted[0].id);
+        if (storageItem) {
+            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, storageItem);
+            }
         }
     }
 };
