@@ -2,8 +2,9 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
         return;
     }
-    if (creep.memory.pathAge === null || creep.memory.pathAge === undefined) {
+    if (creep.memory.pathAge === null || creep.memory.pathAge === undefined || creep.memory.pathLimit === null || creep.memory.pathLimit === undefined) {
         creep.memory.pathAge = 0;
+        creep.memory.pathLimit = 0;
     }
     if (creep.memory.pathAge >= creep.memory.pathLimit) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
