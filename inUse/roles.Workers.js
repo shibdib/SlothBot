@@ -120,6 +120,12 @@ module.exports.wallRepairer = function (creep) {
     }
 
     if (creep.memory.working) {
+        let ramp = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 2500});
+        if (ramp) {
+            if (creep.repair(ramp) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, ramp);
+            }
+        }
         let build = Game.getObjectById(creepTools.wallBuilding(creep));
         let repairNeeded = Game.getObjectById(creepTools.wallRepair(creep));
         if (build) {
