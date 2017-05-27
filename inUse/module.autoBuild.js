@@ -82,25 +82,25 @@ module.exports.rcl4 = function (spawnName) {
 };
 
 function roadsSpawn(spawn) {
-    for (i = 1; i < 7; i++) {
+    for (i = 1; i < 8; i++) {
         let pos = new RoomPosition(spawn.pos.x, spawn.pos.y+i, spawn.room.name);
         if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
             pos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
-    for (i = 1; i < 7; i++) {
+    for (i = 1; i < 8; i++) {
         let pos = new RoomPosition(spawn.pos.x, spawn.pos.y-i, spawn.room.name);
         if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
             pos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
-    for (i = 1; i < 7; i++) {
+    for (i = 1; i < 8; i++) {
         let pos = new RoomPosition(spawn.pos.x+i, spawn.pos.y, spawn.room.name);
         if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
             pos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
-    for (i = 1; i < 7; i++) {
+    for (i = 1; i < 8; i++) {
         let pos = new RoomPosition(spawn.pos.x-i, spawn.pos.y, spawn.room.name);
         if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
             pos.createConstructionSite(STRUCTURE_ROAD);
