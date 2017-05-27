@@ -349,20 +349,20 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let energyItem = Game.getObjectById(sorted[0].id);
         if (energyItem) {
             if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energyItem, 2);
+                pathing.Move(creep, energyItem, 6);
             }
         }
     } else if (sorted[0].harvest === true) {
         let energyItem = Game.getObjectById(sorted[0].id);
         if (energyItem) {
             if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energyItem, 2);
+                pathing.Move(creep, energyItem, 6);
             }
         }
     } else {
         let energyItem = Game.getObjectById(sorted[0].id);
         if (creep.pickup(energyItem) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, energyItem, 2);
+            pathing.Move(creep, energyItem, 6);
         }
     }
 };
@@ -420,7 +420,8 @@ module.exports.findStorage = function (creep) {
         let storageItem = Game.getObjectById(sorted[0].id);
         if (storageItem) {
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, storageItem, 2);
+                creep.memory.storageDestination = storageItem.id;
+                pathing.Move(creep, storageItem, 6);
             }
         }
     }
