@@ -405,6 +405,15 @@ module.exports.findStorage = function (creep) {
             distWeighted: storageDistWeighted
         });
     }
+    //Tower
+    let tower = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity});
+    if (tower) {
+        const towerDistWeighted = tower.pos.getRangeTo(creep) * 0.30;
+        storage.push({
+            id: sStorage.id,
+            distWeighted: towerDistWeighted
+        });
+    }
 
     let sorted = _.sortBy(storage, s => s.distWeighted);
     if (sorted[0]) {
