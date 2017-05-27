@@ -52,27 +52,7 @@ module.exports.Worker = function (creep) {
         }
     }
     else {
-        let container = creepTools.findContainer(creep);
-        container = Game.getObjectById(container);
-        if (container) {
-            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container);
-            }
-        }
-        if (!container) {
-            const energy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
-            if (energy) {
-                if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, energy);
-                }
-            } else {
-                let source = creepTools.findSource(creep);
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                    creep.memory.harvesting = true;
-                    pathing.Move(creep, source);
-                }
-            }
-        }
+        creepTools.findEnergy(creep);
     }
 };
 
@@ -161,16 +141,7 @@ module.exports.wallRepairer = function (creep) {
         }
     }
     else {
-        let container = creepTools.findContainer(creep);
-        container = Game.getObjectById(container);
-        if (container) {
-            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container);
-            }
-        }
-        if (!container) {
-            pathing.Move(creep, Game.flags.haulers);
-        }
+        creepTools.findEnergy(creep);
     }
 
 };
@@ -229,7 +200,7 @@ module.exports.Builder = function (creep) {
             creep.memory.constructionSite = null;
         }
     } else {
-        var target = creepTools.findConstruction(creep);
+        let target = creepTools.findConstruction(creep);
         target = Game.getObjectById(target);
         if (target) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
@@ -274,20 +245,6 @@ module.exports.RoadBuilder = function (creep) {
             }
         }
     } else {
-        let container = Game.getObjectById(creepTools.findContainer(creep));
-        if (container) {
-            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container);
-            }
-        } else {
-            if (creep.memory.spawnID && Game.getObjectById(creep.memory.spawnID)) {
-                var spawn = Game.getObjectById(creep.memory.spawnID);
-            } else {
-                var spawn = creepTools.findSpawn(creep);
-            }
-            if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, spawn);
-            }
-        }
+        creepTools.findEnergy(creep);
     }
 };

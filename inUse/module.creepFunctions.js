@@ -306,13 +306,23 @@ module.exports.findEnergy = function (creep) {
     }
     let energy = [];
     //Container
-    let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 0});
+    let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
     if (container) {
         const containerDistWeighted = container.pos.getRangeTo(creep) * 1;
         energy.push({
             id: container.id,
             distWeighted: containerDistWeighted,
             harvest: false
+        });
+    }
+    //Dropped Energy
+    let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
+    if (dropped) {
+        const droppedDistWeighted = container.pos.getRangeTo(creep) * 1;
+        energy.push({
+            id: dropped.id,
+            distWeighted: droppedDistWeighted,
+            harvest: null
         });
     }
     //Source
@@ -326,7 +336,7 @@ module.exports.findEnergy = function (creep) {
         });
     }
     //Spawn
-    let spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS, {filter: (s) => s.energy > 0});
+    let spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS, {filter: (s) => s.energy > 250});
     if (spawn) {
         const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 2.5;
         energy.push({
@@ -346,7 +356,7 @@ module.exports.findEnergy = function (creep) {
         });
     }
     //Storage
-    let storage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
+    let storage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
     if (storage) {
         const storageDistWeighted = storage.pos.getRangeTo(creep) * 0.9;
         energy.push({
@@ -358,19 +368,24 @@ module.exports.findEnergy = function (creep) {
 
     let sorted = energy.sortBy('distWeighted');
 
-    if (sorted[0].harvest !== true){
+    if (sorted[0].harvest === false){
         let energyItem = Game.getObjectById(sorted[0].id);
         if (energyItem) {
             if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, energyItem);
             }
         }
-    } else {
+    } else if (sorted[0].harvest === true){
         let energyItem = Game.getObjectById(sorted[0].id);
         if (energyItem) {
             if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, energyItem);
             }
+        }
+    } else {
+        let energyItem = Game.getObjectById(sorted[0].id);
+        if (creep.pickup(energyItem) === ERR_NOT_IN_RANGE) {
+            pathing.Move(creep, energyItem);
         }
     }
 };
