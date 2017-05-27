@@ -295,7 +295,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
     //Dropped Energy
     let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
     if (dropped) {
-        const droppedDistWeighted = container.pos.getRangeTo(creep) * 0.1;
+        const droppedDistWeighted = dropped.pos.getRangeTo(creep) * 0.1;
         energy.push({
             id: dropped.id,
             distWeighted: droppedDistWeighted,
@@ -416,7 +416,7 @@ module.exports.findStorage = function (creep) {
     if (tower) {
         const towerDistWeighted = tower.pos.getRangeTo(creep) * 0.30;
         storage.push({
-            id: sStorage.id,
+            id: tower.id,
             distWeighted: towerDistWeighted
         });
     }
