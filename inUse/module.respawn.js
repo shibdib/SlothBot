@@ -215,8 +215,8 @@ module.exports.rcl3 = function (spawnName) {
                     for (let i = 0; i < sources.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
                         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
-                        if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
-                            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant', {
+                        if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasant') === OK) {
+                            Game.spawns[spawnName].createCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasant', {
                                 role: 'peasant',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedSource: sources[i].id,
@@ -227,8 +227,8 @@ module.exports.rcl3 = function (spawnName) {
                         }
                     }
                     let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
-                    if (peasantUpgrader.length < 5 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader') === OK) {
-                        Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
+                    if (peasantUpgrader.length < 5 && Game.spawns[spawnName].canCreateCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasantUpgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasantUpgrader', {
                             role: 'peasantUpgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0
@@ -237,8 +237,8 @@ module.exports.rcl3 = function (spawnName) {
                         return;
                     }
                     let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
-                    if (peasantBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
-                        Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
+                    if (peasantBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasantBuilder') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasantBuilder', {
                             role: 'peasantBuilder',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0
@@ -281,8 +281,8 @@ module.exports.rcl3 = function (spawnName) {
                     let attack = 'attack' + i;
                     if (Game.flags[attack]) {
                         let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'attacker') === OK) {
-                            Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'attacker', {
+                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL,HEAL,HEAL], generatedNumber + 'attacker') === OK) {
+                            Game.spawns[spawnName].createCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL,HEAL,HEAL], generatedNumber + 'attacker', {
                                 role: 'attacker',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 level: 3,
@@ -294,8 +294,8 @@ module.exports.rcl3 = function (spawnName) {
                             return;
                         }
                         let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
-                        if (healer.length < i && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'healer') === OK) {
-                            Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'healer', {
+                        if (healer.length < i && Game.spawns[spawnName].canCreateCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL], generatedNumber + 'healer') === OK) {
+                            Game.spawns[spawnName].createCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL], generatedNumber + 'healer', {
                                 role: 'healer',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 level: 3,
@@ -455,11 +455,60 @@ module.exports.rcl4 = function (spawnName) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
                 const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+                const creeps = _.filter(Game.creeps);
                 const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
                 const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
+
+                if (creeps.length <= 5 || Game.spawns[spawnName].room.energyCapacityAvailable < 1300) {
+                    //PEASANT RESPAWNS
+                    for (let i = 0; i < sources.length; i++) {
+                        let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+                        let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
+                        if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
+                            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'peasant', {
+                                role: 'peasant',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedSource: sources[i].id,
+                                level: 0
+                            });
+                            console.log('Spawning a peasant');
+                            return;
+                        }
+                    }
+                    let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
+                    if (peasantUpgrader.length < 5 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
+                            role: 'peasantUpgrader',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 0
+                        });
+                        console.log('Spawning a peasantUpgrader');
+                        return;
+                    }
+                    let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
+                    if (peasantBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
+                        Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
+                            role: 'peasantBuilder',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 0
+                        });
+                        console.log('Spawning a peasantBuilder');
+
+                    }
+                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
+                    if (basicHauler.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
+                            role: 'basicHauler',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 3,
+                        });
+                        console.log('Spawning a basicHauler');
+                        return;
+                    }
+                }
 
                 //SCOUT RESPAWNS
                 for (let i = 0; i < 20; i++) {
@@ -484,13 +533,27 @@ module.exports.rcl4 = function (spawnName) {
                     let attack = 'attack' + i;
                     if (Game.flags[attack]) {
                         let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'attacker') === OK) {
-                            Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'attacker', {
+                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK], generatedNumber + 'attacker') === OK) {
+                            Game.spawns[spawnName].createCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK], generatedNumber + 'attacker', {
                                 role: 'attacker',
                                 assignedSpawn: Game.spawns[spawnName].id,
-                                level: 4,
+                                level: 3,
                                 attackTarget: Game.flags[attack].name,
-                                waitFor: (i * 2)
+                                waitForHealers: (i),
+                                waitForAttackers: (i * 2)
+                            });
+                            console.log('Spawning a attacker');
+                            return;
+                        }
+                        let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
+                        if (healer.length < i && Game.spawns[spawnName].canCreateCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL,HEAL,HEAL], generatedNumber + 'healer') === OK) {
+                            Game.spawns[spawnName].createCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL,HEAL,HEAL], generatedNumber + 'healer', {
+                                role: 'healer',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                level: 3,
+                                attackTarget: Game.flags[attack].name,
+                                waitForHealers: (i),
+                                waitForAttackers: (i * 2)
                             });
                             console.log('Spawning a attacker');
                             return;
@@ -558,24 +621,24 @@ module.exports.rcl4 = function (spawnName) {
                     const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.room === Game.spawns[spawnName].room);
                     const wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer' && creep.room === Game.spawns[spawnName].room);
                     const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.room === Game.spawns[spawnName].room);
-                    if (worker.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'worker') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'worker', {
+                    if (worker.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, MOVE, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'worker') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, MOVE, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'worker', {
                             role: 'worker',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
                         console.log('Spawning a worker');
                         return;
-                    } else if (upgraders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'upgrader') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'upgrader', {
+                    } else if (upgraders.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, MOVE, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'upgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, MOVE, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'upgrader', {
                             role: 'upgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
                         console.log('Spawning a upgrader');
                         return;
-                    } else if (wallRepairers.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'wallRepairer') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'wallRepairer', {
+                    } else if (wallRepairers.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, MOVE, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'wallRepairer') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, MOVE, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK], generatedNumber + 'wallRepairer', {
                             role: 'wallRepairer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
