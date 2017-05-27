@@ -596,7 +596,7 @@ function collapsePrevention(spawnName) {
 
     for (let i = 0; i < sources.length; i++) {
         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
-        if (peasant.length === 0 && stationaryHarvester === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
+        if (peasant.length === 0 && stationaryHarvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
             Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant', {
                 role: 'peasant',
                 assignedSpawn: Game.spawns[spawnName].id,
@@ -610,7 +610,7 @@ function collapsePrevention(spawnName) {
 
     for (let i = 0; i < sources.length; i++) {
         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
-        if (peasant.length === 0 && stationaryHarvester === 0 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
+        if (peasant.length === 0 && stationaryHarvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
             Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant', {
                 role: 'peasant',
                 assignedSpawn: Game.spawns[spawnName].id,
@@ -621,10 +621,10 @@ function collapsePrevention(spawnName) {
             return;
         }
     }
-    
+
     for (let i = 0; i < sources.length; i++) {
         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-        if (peasant.length > 0 && stationaryHarvester === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+        if (peasant.length > 0 && stationaryHarvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
             Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
                 role: 'stationaryHarvester',
                 assignedSpawn: Game.spawns[spawnName].id,
@@ -637,7 +637,7 @@ function collapsePrevention(spawnName) {
     }
 
     let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
-    if (peasantUpgrader.length < 2 && peasant.length >= 1 && stationaryHarvester >= 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader') === OK) {
+    if (peasantUpgrader.length < 2 && peasant.length >= 1 && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader') === OK) {
         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
             role: 'peasantUpgrader',
             assignedSpawn: Game.spawns[spawnName].id,
@@ -648,7 +648,7 @@ function collapsePrevention(spawnName) {
     }
 
     let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
-    if (peasantBuilder.length < 2 && peasant.length >= 1 && stationaryHarvester >= 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
+    if (peasantBuilder.length < 2 && peasant.length >= 1 && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
             role: 'peasantBuilder',
             assignedSpawn: Game.spawns[spawnName].id,
