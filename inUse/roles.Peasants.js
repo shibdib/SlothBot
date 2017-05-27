@@ -55,6 +55,10 @@ module.exports.PeasantBuilder = function (creep) {
                     pathing.Move(creep, target, 1);
                 }
             }
+        } else {
+            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, creep.room.controller, 1);
+            }
         }
     } else {
         creepTools.findEnergy(creep);
