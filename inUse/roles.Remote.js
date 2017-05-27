@@ -15,7 +15,7 @@ module.exports.RHarvester = function (creep) {
         creep.memory.harvesting = true;
     }
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], 45, false, 16);
+        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
@@ -66,7 +66,7 @@ module.exports.RHauler = function (creep) {
         return null;
     }
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], 30, false, 16);
+        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
@@ -83,7 +83,7 @@ module.exports.RHauler = function (creep) {
         let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container, 5, false, 1);
+                pathing.Move(creep, container, false, 1);
             }
         }
     }
@@ -93,7 +93,7 @@ module.exports.RHauler = function (creep) {
         if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
             creepTools.findStorage(creep);
         } else {
-            pathing.Move(creep, Game.spawns[creep.memory.resupply], 10, false, 16);
+            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
         }
     }
 };
@@ -124,7 +124,7 @@ module.exports.LongRoadBuilder = function (creep) {
         } else {
             let spawn = Game.spawns[creep.memory.resupply];
             if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, spawn, 25, false, 16);
+                pathing.Move(creep, spawn, false, 16);
             }
         }
     } else {

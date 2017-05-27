@@ -95,7 +95,7 @@ module.exports.Harvester = function (creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, source, 2, true);
+            pathing.Move(creep, source, true);
         }
         if (source.energy === 0 && source.ticksToRegeneration > 50) {
             creep.memory.renew = true;

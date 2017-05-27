@@ -35,10 +35,10 @@ module.exports.Hauler = function (creep) {
         const container = Game.getObjectById(creep.memory.assignedContainer);
         if (container && container.store[RESOURCE_ENERGY] > 50) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container, 3);
+                pathing.Move(creep, container);
             }
         } else {
-            pathing.Move(creep, Game.flags.haulers, 5);
+            pathing.Move(creep, Game.flags.haulers);
         }
     }
 
@@ -82,7 +82,7 @@ module.exports.DumpTruck = function (creep) {
         if (target) {
             target.memory.incomingEnergy = creep.id;
             if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, target, 1);
+                pathing.Move(creep, target);
             }
         } else {
             let newTarget = creepTools.findNewBuilder(creep);
@@ -91,10 +91,10 @@ module.exports.DumpTruck = function (creep) {
                 newTarget.memory.incomingEnergy = creep.id;
                 newTarget.memory.incomingCounter = 0;
                 if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, newTarget, 1);
+                    pathing.Move(creep, newTarget);
                 }
             } else {
-                pathing.Move(creep, Game.flags.haulers, 5);
+                pathing.Move(creep, Game.flags.haulers);
             }
         }
     }

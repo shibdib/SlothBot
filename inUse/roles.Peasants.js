@@ -19,7 +19,7 @@ module.exports.Peasant = function (creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, source, 1, true);
+            pathing.Move(creep, source, true);
         }
     } else {
         let containerID = creepTools.harvestDeposit(creep);
@@ -49,10 +49,10 @@ module.exports.PeasantBuilder = function (creep) {
         target = Game.getObjectById(target);
         if (target) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
-                pathing.Move(creep, Game.flags.haulers, 1);
+                pathing.Move(creep, Game.flags.haulers);
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, target, 1);
+                    pathing.Move(creep, target);
                 }
             }
         } else {
@@ -78,7 +78,7 @@ module.exports.PeasantUpgrader = function (creep) {
 
     if (creep.memory.upgrading) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, creep.room.controller, 1);
+            pathing.Move(creep, creep.room.controller);
         }
     } else {
         creepTools.findEnergy(creep);

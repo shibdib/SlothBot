@@ -1,11 +1,11 @@
-module.exports.Move = function (creep, target, checkRate = 10, exempt = false, maxRooms = 1) {
+module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
         return;
     }
     if (creep.memory.pathAge === null || creep.memory.pathAge === undefined) {
         creep.memory.pathAge = 0;
     }
-    if (creep.memory.pathAge >= checkRate) {
+    if (creep.memory.pathAge >= creep.memory.pathLimit) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
                 const noRoads = creep.room.find(!FIND_STRUCTURES);
@@ -45,6 +45,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
+        creep.memory.pathLimit = (Room.deserializePath(creep.memory.path).length / 2);
     }
     creep.memory.pathAge++;
     if (creep.moveByPath(creep.memory.path) !== OK) {
@@ -87,6 +88,7 @@ module.exports.Move = function (creep, target, checkRate = 10, exempt = false, m
         });
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
+        creep.memory.pathLimit = (Room.deserializePath(creep.memory.path).length / 2);
     }
 };
 module.exports.AttackMove = function (creep, target) {

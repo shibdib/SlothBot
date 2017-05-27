@@ -12,7 +12,7 @@ module.exports.Defender = function (creep) {
             creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
-        pathing.Move(creep, creep.memory.assignedSpawn, 1);
+        pathing.Move(creep, creep.memory.assignedSpawn);
     }
 };
 
@@ -47,7 +47,7 @@ module.exports.Healer = function (creep) {
         } else {
             let spawn = creepTools.findSpawn(creep);
             let pos = new RoomPosition(spawn.pos.x + 5, spawn.pos.y, spawn.room.name);
-            pathing.Move(creep, pos, 5, false, 1);
+            pathing.Move(creep, pos, false, 1);
         }
     }
 };
@@ -57,7 +57,7 @@ module.exports.Healer = function (creep) {
  */
 module.exports.Scout = function (creep) {
     if (creep.memory.destinationReached !== true) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], 30, false, 16);
+        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
@@ -109,14 +109,14 @@ module.exports.Attacker = function (creep) {
     } else if (creep.memory.attackStarted !== true) {
         let spawn = creepTools.findSpawn(creep);
         let pos = new RoomPosition(spawn.pos.x + 5, spawn.pos.y, spawn.room.name);
-        pathing.Move(creep, pos, 5, false, 1);
+        pathing.Move(creep, pos, false, 1);
         let nearbyAttackers = creep.pos.findInRange(attackers, 5);
         let nearbyHealers = creep.pos.findInRange(healers, 5);
         if (nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers){
             creep.memory.attackStarted = true;
         }
     } else {
-        pathing.Move(creep, Game.flags[creep.memory.attackTarget], 25, false, 16);
+        pathing.Move(creep, Game.flags[creep.memory.attackTarget], false, 16);
     }
 };
 

@@ -249,7 +249,7 @@ module.exports.renewal = function (creep, breakingPoint = 75) {
             creep.say('Renewing');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
             creep.memory.renew = true;
-            pathing.Move(creep, home, 15);
+            pathing.Move(creep, home);
             if (creep.ticksToLive > 1000) {
                 creep.memory.renew = false;
             }
@@ -270,7 +270,7 @@ module.exports.recycle = function (creep) {
         if (creep.memory.recycle === true) {
             creep.say('Recycling');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
-            pathing.Move(creep, home, 3);
+            pathing.Move(creep, home);
             return true;
         } else {
             return false;
@@ -355,20 +355,20 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let energyItem = Game.getObjectById(sorted[0].id);
         if (energyItem) {
             if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energyItem, 6);
+                pathing.Move(creep, energyItem);
             }
         }
     } else if (sorted[0].harvest === true) {
         let energyItem = Game.getObjectById(sorted[0].id);
         if (energyItem) {
             if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energyItem, 6);
+                pathing.Move(creep, energyItem);
             }
         }
     } else {
         let energyItem = Game.getObjectById(sorted[0].id);
         if (creep.pickup(energyItem) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, energyItem, 6);
+            pathing.Move(creep, energyItem);
         }
     }
 };
@@ -427,7 +427,7 @@ module.exports.findStorage = function (creep) {
         if (storageItem) {
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.memory.storageDestination = storageItem.id;
-                pathing.Move(creep, storageItem, 6);
+                pathing.Move(creep, storageItem);
             }
         }
     }
