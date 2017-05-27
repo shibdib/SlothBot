@@ -84,6 +84,7 @@ module.exports.rcl2 = function (spawnName) {
 
                 if (creeps.length <= 6 || Game.spawns[spawnName].room.energyCapacityAvailable < 400 || (peasant === 0 && stationaryHarvester === 0)) {
                     collapsePrevention(spawnName);
+                    return;
                 }
 
                 //HAULER RESPAWNS
@@ -182,6 +183,7 @@ module.exports.rcl3 = function (spawnName) {
                 });
                 if (creeps.length <= 6 || Game.spawns[spawnName].room.energyCapacityAvailable < 800 || (peasant === 0 && stationaryHarvester === 0)) {
                     collapsePrevention(spawnName);
+                    return;
                 }
 
                 //SCOUT RESPAWNS
@@ -392,6 +394,7 @@ module.exports.rcl4 = function (spawnName) {
 
                 if (creeps.length <= 6 || Game.spawns[spawnName].room.energyCapacityAvailable < 1000 || (peasant === 0 && stationaryHarvester === 0)) {
                     collapsePrevention(spawnName);
+                    return;
                 }
 
                 //SCOUT RESPAWNS
