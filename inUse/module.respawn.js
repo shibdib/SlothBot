@@ -275,7 +275,21 @@ module.exports.rcl3 = function (spawnName) {
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 level: 3,
                                 attackTarget: Game.flags[attack].name,
-                                waitFor: (i * 2)
+                                waitForHealers: (i),
+                                waitForAttackers: (i * 2)
+                            });
+                            console.log('Spawning a attacker');
+                            return;
+                        }
+                        let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
+                        if (healer.length < i && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'healer') === OK) {
+                            Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'healer', {
+                                role: 'healer',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                level: 3,
+                                attackTarget: Game.flags[attack].name,
+                                waitForHealers: (i),
+                                waitForAttackers: (i * 2)
                             });
                             console.log('Spawning a attacker');
                             return;
@@ -304,7 +318,7 @@ module.exports.rcl3 = function (spawnName) {
                 if (stationaryHarvester.length >= sourceCount) {
                     const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
                     const dumpTrucks = _.filter(Game.creeps, (creep) => creep.memory.role === 'dumpTruck' && creep.room === Game.spawns[spawnName].room);
-                    if (dumpTrucks.length < 2 && stationaryHarvester.length >= 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'dumpTruck') === OK) {
+                    if (dumpTrucks.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'dumpTruck') === OK) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'dumpTruck', {
                             role: 'dumpTruck',
                             assignedSpawn: Game.spawns[spawnName].id,

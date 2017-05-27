@@ -33,6 +33,7 @@ module.exports.Sentry = function (creep) {
  * @return {null}
  */
 module.exports.Healer = function (creep) {
+    let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
     const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
     if (targets[0]) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
@@ -41,7 +42,13 @@ module.exports.Healer = function (creep) {
             }
         }
     } else {
-        militaryFunctions.findDefensivePosition(creep);
+        if (attackers[0]) {
+            pathing.Move(creep, attackers[0], 1, false, 16);
+        } else {
+            let spawn = creepTools.findSpawn(creep);
+            let pos = new RoomPosition(spawn.pos.x + 5, spawn.pos.y, spawn.room.name);
+            pathing.Move(creep, pos, 5, false, 1);
+        }
     }
 };
 
@@ -74,6 +81,7 @@ module.exports.Attacker = function (creep) {
         creep.suicide();
     }
     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
+    let healers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'healer');
 
     let armedHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1});
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
@@ -95,12 +103,18 @@ module.exports.Attacker = function (creep) {
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostile);
         }
-    } else if (attackers.length >= creep.memory.waitFor || creep.memory.attackStarted === true) {
+    } else if (creep.memory.attackStarted !== true) {
+        let spawn = creepTools.findSpawn(creep);
+        let pos = new RoomPosition(spawn.pos.x + 5, spawn.pos.y, spawn.room.name);
+        pathing.Move(creep, pos, 5, false, 1);
+        let nearbyAttackers = creep.pos.findInRange(attackers, 5);
+        let nearbyHealers = creep.pos.findInRange(healers, 5);
+        if (nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers){
             creep.memory.attackStarted = true;
-        pathing.Move(creep, Game.flags[creep.memory.attackTarget], 25, false, 16);
-        } else {
-        pathing.Move(creep, Game.flags.stage1, 25, false, 16);
         }
+    } else {
+        pathing.Move(creep, Game.flags[creep.memory.attackTarget], 25, false, 16);
+    }
 };
 
 /**
@@ -114,14 +128,13 @@ module.exports.Claimer = function (creep) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
             creep.moveTo(closestHostileSpawn, {visualizePathStyle: {stroke: '#ffaa00'}});
         }
-    } else
-    if (!closestHostileSpawn) {
+    } else if (!closestHostileSpawn) {
         const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (closestHostile) {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
-        } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)){
+        } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)) {
             creep.memory.attackStarted = true;
             pathing.Move(creep, Game.flags.attack1);
         } else {
