@@ -631,7 +631,7 @@ function collapsePrevention(spawnName) {
                 assignedSource: sources[i].id,
                 level: 0
             });
-            console.log('Spawning a peasant');
+            console.log('Spawning a stationaryHarvester');
             return;
         }
     }
