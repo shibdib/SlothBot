@@ -299,6 +299,11 @@ module.exports.recycle = function (creep) {
 
 
 module.exports.findEnergy = function (creep) {
+    Array.prototype.sortBy = function(p) {
+        return this.slice(0).sort(function(a,b) {
+            return (a[p] > b[p]) ? 1 : (a[p] < b[p]) ? -1 : 0;
+        });
+    }
     let energy = [];
     //Container
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 0});
@@ -368,10 +373,4 @@ module.exports.findEnergy = function (creep) {
             }
         }
     }
-
-        Array.prototype.sortBy = function(p) {
-            return this.slice(0).sort(function(a,b) {
-                return (a[p] > b[p]) ? 1 : (a[p] < b[p]) ? -1 : 0;
-            });
-        }
 };
