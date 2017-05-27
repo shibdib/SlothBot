@@ -215,7 +215,7 @@ module.exports.rcl3 = function (spawnName) {
                     //PEASANT RESPAWNS
                     for (let i = 0; i < sources.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-                        if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasant') === OK) {
+                        if (peasant.length < sourceCount && harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasant') === OK) {
                             Game.spawns[spawnName].createCreep([MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], generatedNumber + 'peasant', {
                                 role: 'peasant',
                                 assignedSpawn: Game.spawns[spawnName].id,
