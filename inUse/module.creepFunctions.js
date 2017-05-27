@@ -282,6 +282,12 @@ module.exports.recycle = function (creep) {
 
 
 module.exports.findEnergy = function (creep, hauler = false) {
+    //If old path is still good, keep going
+    if (creep.memory.pathAge <= creep.memory.pathLimit) {
+        creep.moveByPath(creep.memory.path);
+        return;
+    }
+
     let energy = [];
     //Container
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
@@ -376,6 +382,12 @@ module.exports.findEnergy = function (creep, hauler = false) {
 };
 
 module.exports.findStorage = function (creep) {
+    //If old path is still good, keep going
+    if (creep.memory.pathAge <= creep.memory.pathLimit) {
+        creep.moveByPath(creep.memory.path);
+        return;
+    }
+
     let storage = [];
     //Container
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] - s.storeCapacity > creep.carry.energy});
