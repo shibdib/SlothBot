@@ -13,11 +13,6 @@ module.exports.Worker = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
-    }
     if (creepTools.renewal(creep, 30) === true) {
         return null;
     }
@@ -72,11 +67,6 @@ module.exports.Harvester = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
-    }
     if (creepTools.renewal(creep, 30) === true) {
         creep.drop(RESOURCE_ENERGY);
         return null;
@@ -107,6 +97,9 @@ module.exports.Harvester = function (creep) {
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, source, 2, true);
         }
+        if (source.energy === 0 && source.ticksToRegeneration > 50) {
+            creep.memory.renew = true;
+        }
     }
 };
 
@@ -117,11 +110,6 @@ module.exports.wallRepairer = function (creep) {
     }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
-    }
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
     }
     if (creepTools.renewal(creep, 30) === true) {
         return null;
@@ -177,11 +165,6 @@ module.exports.Upgrader = function (creep) {
     }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
-    }
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
     }
     if (creepTools.renewal(creep, 50) === true) {
         return null;

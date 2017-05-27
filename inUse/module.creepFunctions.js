@@ -240,6 +240,11 @@ module.exports.renewal = function (creep, breakingPoint = 75) {
             creep.memory.assignedSpawn = spawn.id;
         }
     } else {
+        //Check if creep can make the trip
+        let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.03) * 2);
+        if (steps > creep.ticksToLive) {
+            creep.memory.renew = true;
+        }
         if (creep.ticksToLive < breakingPoint || creep.memory.renew === true) {
             creep.say('Renewing');
             let home = Game.getObjectById(creep.memory.assignedSpawn);

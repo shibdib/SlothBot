@@ -13,11 +13,6 @@ module.exports.Hauler = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
-    }
     if (creepTools.renewal(creep, 20) === true) {
         return null;
     }
@@ -63,11 +58,6 @@ module.exports.DumpTruck = function (creep) {
     }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
-    }
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
     }
     if (creepTools.renewal(creep, 20) === true) {
         return null;
@@ -120,11 +110,6 @@ module.exports.BasicHauler = function (creep) {
     }
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
-    }
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
     }
     if (creepTools.renewal(creep, 20) === true) {
         return null;

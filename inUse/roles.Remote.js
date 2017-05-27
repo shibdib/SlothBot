@@ -52,11 +52,6 @@ module.exports.RHarvester = function (creep) {
  * @return {null}
  */
 module.exports.RHauler = function (creep) {
-    //Check if creep can make the trip
-    let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.05) * 2);
-    if (steps > creep.ticksToLive) {
-        creep.memory.renew = true;
-    }
     if (creepTools.renewal(creep, 60) === true) {
         creep.memory.destinationReached = null;
         creep.memory.hauling = true;
