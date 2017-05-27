@@ -211,7 +211,7 @@ module.exports.rcl3 = function (spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                if (creeps.length <= 5 || Game.spawns[spawnName].room.energyCapacityAvailable < 550 || peasant === 0) {
+                if (creeps.length <= 5 || Game.spawns[spawnName].room.energyCapacityAvailable < 800 || peasant === 0) {
                     //PEASANT RESPAWNS
                     for (let i = 0; i < sources.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
