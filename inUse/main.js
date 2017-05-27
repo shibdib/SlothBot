@@ -144,7 +144,7 @@ module.exports.loop = function () {
                 //autoBuild.run(name);
                 if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
                     militaryFunctions.buildWalls(Game.spawns[name]);
-                    militaryFunctions.roadNetwork(Game.spawns[name]);
+                    //militaryFunctions.roadNetwork(Game.spawns[name]);
                 }
             }
         }
