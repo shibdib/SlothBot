@@ -594,7 +594,20 @@ function collapsePrevention(spawnName) {
         filter: {structureType: STRUCTURE_CONTAINER}
     });
 
-    //PEASANT RESPAWNS
+    for (let i = 0; i < sources.length; i++) {
+        let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
+        if (peasant.length === 0 && stationaryHarvester === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
+            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant', {
+                role: 'peasant',
+                assignedSpawn: Game.spawns[spawnName].id,
+                assignedSource: sources[i].id,
+                level: 0
+            });
+            console.log('Spawning a peasant');
+            return;
+        }
+    }
+
     for (let i = 0; i < sources.length; i++) {
         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
         if (peasant.length === 0 && stationaryHarvester === 0 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
@@ -608,6 +621,7 @@ function collapsePrevention(spawnName) {
             return;
         }
     }
+    
     for (let i = 0; i < sources.length; i++) {
         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
         if (peasant.length > 0 && stationaryHarvester === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
