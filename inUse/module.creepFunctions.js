@@ -238,7 +238,7 @@ module.exports.renewal = function (creep) {
         pathing.Move(creep, Game.spawns[creep.memory.assignedSpawn]);
     } else
     if (Game.time % 15 === 0) {
-        creep.memory.returnPath = pathing.FindPath(creep, Game.spawns[creep.memory.assignedSpawn],true);
+        creep.memory.returnPath = pathing.FindPath(creep, Game.spawns.id[creep.memory.assignedSpawn],true);
         let deathTick = (creep.memory.returnPath.length + 3) + ((creep.memory.returnPath.length + 3) * 0.05) + 15;
         if (deathTick <= creep.ticksToLive) {
             creep.memory.renew = true;
