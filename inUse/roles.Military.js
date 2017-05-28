@@ -188,10 +188,10 @@ module.exports.Raider = function (creep) {
         creep.memory.destinationReached = false;
     }
     if (creep.memory.returning === true) {
-        if (creep.room.name === Game.spawns[creep.memory.assignedSpawn].pos.roomName) {
+        if (creep.room.name === Game.getObjectById(creep.memory.assignedSpawn).pos.roomName) {
             creepTools.findStorage(creep);
         } else {
-            pathing.Move(creep, Game.spawns[creep.memory.assignedSpawn], false, 16);
+            pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
             return null;
         }
         if (creep.carry.energy === 0) {
