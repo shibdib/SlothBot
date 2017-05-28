@@ -237,23 +237,6 @@ module.exports.rcl3 = function (spawnName) {
                     }
                 }
 
-                //HAULER RESPAWNS
-                if (stationaryHarvester.length > 0) {
-                    for (let i = 0; i < containers.length; i++) {
-                        let hauler = _.filter(Game.creeps, (creep) => creep.memory.assignedContainer === containers[i].id && creep.memory.role === 'hauler');
-                        if (hauler.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
-                                role: 'hauler',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                level: 3,
-                                assignedContainer: containers[i].id
-                            });
-                            console.log('Spawning a hauler');
-                            return;
-                        }
-                    }
-                }
-
                 //MISC HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
                     const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
@@ -266,7 +249,8 @@ module.exports.rcl3 = function (spawnName) {
                         });
                         console.log('Spawning a dumpTruck');
                         return;
-                    } else if (basicHauler.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
+                    }
+                    if (basicHauler.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
                             role: 'basicHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
@@ -305,16 +289,16 @@ module.exports.rcl3 = function (spawnName) {
                         });
                         console.log('Spawning a worker');
                         return;
-                    } else if (upgraders.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE], generatedNumber + 'upgrader') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE], generatedNumber + 'upgrader', {
+                    } else if (upgraders.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader', {
                             role: 'upgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 3,
                         });
                         console.log('Spawning a upgrader');
                         return;
-                    } else if (wallRepairers.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, WORK, WORK, MOVE, MOVE, MOVE], generatedNumber + 'wallRepairer') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, WORK, WORK, MOVE, MOVE, MOVE], generatedNumber + 'wallRepairer', {
+                    } else if (wallRepairers.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'wallRepairer') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'wallRepairer', {
                             role: 'wallRepairer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 3,

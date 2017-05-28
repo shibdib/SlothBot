@@ -150,78 +150,16 @@ module.exports.Upgrader = function (creep) {
         return null;
     }
 
-    creepTools.dumpTruck(creep);
-    if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-        pathing.Move(creep, creep.room.controller);
+    if (creep.carry.energy === 0) {
+        creep.memory.working = null;
     }
-};
-
-/**
- * @return {null}
- */
-module.exports.Builder = function (creep) {
-    //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep) === true) {
-        return null;
+    if (creep.carry.energy === creep.carryCapacity) {
+        creep.memory.working = true;
     }
 
-    creepTools.dumpTruck(creep);
-
-    if (creep.memory.constructionSite) {
-        target = Game.getObjectById(creep.memory.constructionSite);
-        if (target && target.progress < target.progressTotal) {
-            if (creep.build(target) === ERR_INVALID_TARGET) {
-                creep.moveTo(Game.flags.haulers, {reusePath: 20}, {
-                    visualizePathStyle: {stroke: '#ffffff'}
-                });
-            } else {
-                if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, target);
-                }
-            }
-        } else {
-            creep.memory.constructionSite = null;
-        }
-    } else {
-        let target = creepTools.findConstruction(creep);
-        target = Game.getObjectById(target);
-        if (target) {
-            if (creep.build(target) === ERR_INVALID_TARGET) {
-                pathing.Move(creep, Game.flags.haulers);
-            } else {
-                if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, target);
-                }
-            }
-        }
+    if (creep.memory.working === true){
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, creep.room.controller);
-        }
-    }
-};
-
-/**
- * @return {null}
- */
-module.exports.RoadBuilder = function (creep) {
-    //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
-
-    if (creep.carry.energy > 0) {
-        let target = creepTools.findRoadWork(creep);
-        target = Game.getObjectById(target);
-        if (target) {
-            if (creep.build(target) === ERR_INVALID_TARGET) {
-                pathing.Move(creep, target);
-            } else {
-                if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, target);
-                }
-            }
         }
     } else {
         creepTools.findEnergy(creep);
