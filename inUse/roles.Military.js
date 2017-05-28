@@ -55,7 +55,7 @@ module.exports.Healer = function (creep) {
         }
     } else {
         if (attackers.length > 0) {
-            pathing.Move(creep, attackers[0], 1, false, 16);
+            pathing.Move(creep, attackers[0], false, 16);
         } else {
             let closestTower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
             pathing.Move(creep, closestTower, false, 1);
