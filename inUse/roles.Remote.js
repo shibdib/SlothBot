@@ -6,6 +6,10 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.RHarvester = function (creep) {
+    if (!Game.flags[creep.memory.destination]){
+        creepTools.recycle(creep);
+        return null;
+    }
     if (creepTools.renewal(creep, 75) === true) {
         creep.memory.destinationReached = null;
         return null;
