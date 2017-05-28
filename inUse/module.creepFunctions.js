@@ -353,7 +353,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
 
     let sorted = _.sortBy(energy, s => s.distWeighted);
 
-    if (sorted) {
+    if (sorted.length > 0) {
         if (sorted[0].harvest === false) {
             let energyItem = Game.getObjectById(sorted[0].id);
             if (energyItem) {
@@ -428,7 +428,7 @@ module.exports.findStorage = function (creep) {
     }
 
     let sorted = _.sortBy(storage, s => s.distWeighted);
-    if (sorted) {
+    if (sorted.length > 0) {
         let storageItem = Game.getObjectById(sorted[0].id);
         if (storageItem) {
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {

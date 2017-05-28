@@ -44,7 +44,7 @@ module.exports.loop = function () {
             }
             //DEFENSE MODE
             let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
-            if (attackDetected || Game.spawns[name].memory.defenseMode === true) {
+            if (attackDetected.length > 0 || Game.spawns[name].memory.defenseMode === true) {
                 militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
             }
             if (Game.spawns[name].memory.defenseMode === true) {
