@@ -382,7 +382,7 @@ module.exports.findStorage = function (creep) {
     //Spawn
     let spawn = creep.pos.findClosestByPath(FIND_MY_SPAWNS, {filter: (s) => s.energy < s.energyCapacity});
     if (spawn) {
-        const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 0.25;
+        const spawnDistWeighted = spawn.pos.getRangeTo(creep) * 0.15;
         storage.push({
             id: spawn.id,
             distWeighted: spawnDistWeighted
@@ -391,7 +391,7 @@ module.exports.findStorage = function (creep) {
     //Extension
     let extension = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy < s.energyCapacity});
     if (extension) {
-        const extensionDistWeighted = extension.pos.getRangeTo(creep) * 0.25;
+        const extensionDistWeighted = extension.pos.getRangeTo(creep) * 0.15;
         storage.push({
             id: extension.id,
             distWeighted: extensionDistWeighted
@@ -410,7 +410,7 @@ module.exports.findStorage = function (creep) {
     let tower = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity});
     if (tower) {
         const towerAmountWeighted = 1 - (tower.energy / tower.energyCapacity);
-        const towerDistWeighted = (tower.pos.getRangeTo(creep) * 0.05) + towerAmountWeighted;
+        const towerDistWeighted = (tower.pos.getRangeTo(creep) * 0.2) + towerAmountWeighted;
         storage.push({
             id: tower.id,
             distWeighted: towerDistWeighted
