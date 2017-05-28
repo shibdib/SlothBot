@@ -52,7 +52,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     }
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
-        creep.memory.pathLimit = (creep.memory.returnPath.length + 3) / 2;
+        creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
     creep.memory.pathAge++;
     if (creep.moveByPath(creep.memory.path) !== OK) {
@@ -96,7 +96,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         cache.cachePath(creep.pos, target.pos, creep.memory.path);
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
-        creep.memory.pathLimit = (creep.memory.returnPath.length + 3) / 2;
+        creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
 };
 module.exports.AttackMove = function (creep, target) {
