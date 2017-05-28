@@ -117,8 +117,9 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
     if (cache.getPath(creep.pos, target.pos)) {
         if (serialize === true) {
             return cache.getPath(creep.pos, target.pos);
+        } else {
+            return Room.deserializePath(cache.getPath(creep.pos, target.pos));
         }
-        return Room.deserializePath(cache.getPath(creep.pos, target.pos));
     }
     let path = creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
