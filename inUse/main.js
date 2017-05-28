@@ -21,7 +21,12 @@ module.exports.loop = function () {
     profiler.wrap(function () {
 
         //CLEANUP
-        _.forEach(_.remove(this.memory.currentCreeps, s => !_.has(Game.creeps, s)), s => delete Memory.creeps[s]);
+        for (let name in Memory.creeps) {
+            if (!Game.creeps[name]) {
+                delete Memory.creeps[name];
+                console.log('Clearing dead creep memory:' + name);
+            }
+        }
         cache.cleanPathCache(); //clean path cache
 
         //ATTACK CHECKS
