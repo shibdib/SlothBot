@@ -249,6 +249,7 @@ module.exports.renewal = function (creep) {
             let fatigueWeight = 2 * ((totalParts - moveParts) * 1.25 - moveParts) / (Math.ceil(1.25 * (totalParts - moveParts) / moveParts));
             let deathTick = ((creep.memory.returnPath.length + 3) * fatigueWeight) + ((creep.memory.returnPath.length + 3) * 0.02) + 15;
             if (creep.ticksToLive <= deathTick) {
+                creep.memory.pathAge = 200;
                 creep.memory.renew = true;
             }
         }
