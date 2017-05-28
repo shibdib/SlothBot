@@ -353,24 +353,26 @@ module.exports.findEnergy = function (creep, hauler = false) {
 
     let sorted = _.sortBy(energy, s => s.distWeighted);
 
-    if (sorted[0].harvest === false) {
-        let energyItem = Game.getObjectById(sorted[0].id);
-        if (energyItem) {
-            if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+    if (sorted) {
+        if (sorted[0].harvest === false) {
+            let energyItem = Game.getObjectById(sorted[0].id);
+            if (energyItem) {
+                if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, energyItem);
+                }
+            }
+        } else if (sorted[0].harvest === true) {
+            let energyItem = Game.getObjectById(sorted[0].id);
+            if (energyItem) {
+                if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, energyItem);
+                }
+            }
+        } else {
+            let energyItem = Game.getObjectById(sorted[0].id);
+            if (creep.pickup(energyItem) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, energyItem);
             }
-        }
-    } else if (sorted[0].harvest === true) {
-        let energyItem = Game.getObjectById(sorted[0].id);
-        if (energyItem) {
-            if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energyItem);
-            }
-        }
-    } else {
-        let energyItem = Game.getObjectById(sorted[0].id);
-        if (creep.pickup(energyItem) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, energyItem);
         }
     }
 };
@@ -426,7 +428,7 @@ module.exports.findStorage = function (creep) {
     }
 
     let sorted = _.sortBy(storage, s => s.distWeighted);
-    if (sorted[0]) {
+    if (sorted) {
         let storageItem = Game.getObjectById(sorted[0].id);
         if (storageItem) {
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {

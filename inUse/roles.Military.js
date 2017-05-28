@@ -42,7 +42,7 @@ module.exports.Healer = function (creep) {
             }
         }
     } else {
-        if (attackers[0]) {
+        if (attackers) {
             pathing.Move(creep, attackers[0], 1, false, 16);
         } else {
             let spawn = creepTools.findSpawn(creep);

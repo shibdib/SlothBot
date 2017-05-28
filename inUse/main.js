@@ -44,7 +44,7 @@ module.exports.loop = function () {
             }
             //DEFENSE MODE
             let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
-            if (attackDetected[0] || Game.spawns[name].memory.defenseMode === true) {
+            if (attackDetected || Game.spawns[name].memory.defenseMode === true) {
                 militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
             }
             if (Game.spawns[name].memory.defenseMode === true) {
@@ -57,11 +57,11 @@ module.exports.loop = function () {
             //RENEWAL/RECYCLE CHECK
             if (!Game.spawns[name].spawning) {
                 let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.recycle === true});
-                if (creep[0]) {
+                if (creep) {
                     Game.spawns[name].recycleCreep(creep[0]);
                 } else {
                     let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.renew === true});
-                    if (creep[0]) {
+                    if (creep) {
                         Game.spawns[name].renewCreep(creep[0]);
                         if (creep[0].ticksToLive > 1000) {
                             creep[0].memory.renew = false;

@@ -34,7 +34,7 @@ module.exports.buildWalls = function (spawn) {
         const buildWalls = build.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
         const roadCheck = build.lookFor(LOOK_STRUCTURES);
         const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-        if (roadCheck[0]) {
+        if (roadCheck) {
             if (roadCheck[0].structureType === STRUCTURE_WALL) {
                 spawn.memory.wallCheck = false;
             }
