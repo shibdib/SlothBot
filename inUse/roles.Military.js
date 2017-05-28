@@ -166,7 +166,7 @@ module.exports.Claimer = function (creep) {
 module.exports.Reserver = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], 45, false, 16);
+        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
             creep.memory.destinationReached = true;
         }
