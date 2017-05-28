@@ -45,7 +45,7 @@ module.exports.Healer = function (creep) {
     //RENEWAL
     creepTools.renewal(creep);
 
-    let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === Game.flags[creep.memory.attackTarget] && a.memory.role === 'attacker');
+    let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
     if (targets) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
@@ -98,8 +98,8 @@ module.exports.Attacker = function (creep) {
     if (creep.hits < creep.hitsMax){
         creep.heal(creep);
     }
-    let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === Game.flags[creep.memory.attackTarget] && a.memory.role === 'attacker');
-    let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === Game.flags[creep.memory.attackTarget] && h.memory.role === 'healer');
+    let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
+    let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer');
 
     let armedHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1});
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
