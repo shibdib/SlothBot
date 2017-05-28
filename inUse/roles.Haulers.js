@@ -114,14 +114,7 @@ module.exports.BasicHauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        const energy = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
-        if (energy) {
-            if (creep.pickup(energy) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energy);
-            }
-        } else {
-            creepTools.findEnergy(creep, true);
-        }
+        creepTools.findEnergy(creep, true);
     } else {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
