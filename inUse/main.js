@@ -66,7 +66,7 @@ module.exports.loop = function () {
                     Game.spawns[name].recycleCreep(creep[0]);
                 } else {
                     let creep = _.min(Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.renew === true}), 'ticksToLive');
-                    if (creep) {
+                    if (creep.length > 0) {
                         let cost = _.sum(creep.body, p => BODYPART_COST[p]);
                         let totalParts = creep.body.length;
                         let renewPerTick = Math.floor(600 / totalParts);
