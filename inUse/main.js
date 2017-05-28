@@ -60,8 +60,8 @@ module.exports.loop = function () {
                 if (creep.length) {
                     Game.spawns[name].recycleCreep(creep[0]);
                 } else {
-                    let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.renew === true});
-                    if (creep.length) {
+                    let creep = _.min(Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.renew === true}), 'ticksToLive');
+                    if (creep) {
                         Game.spawns[name].renewCreep(creep[0]);
                         if (creep[0].ticksToLive > 1000) {
                             creep[0].memory.renew = false;
