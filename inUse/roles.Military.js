@@ -178,3 +178,57 @@ module.exports.Reserver = function (creep) {
         }
     }
 };
+
+/**
+ * @return {null}
+ */
+module.exports.Raider = function (creep) {
+    if (creep.memory.returning === true) {
+        if (creep.transfer(Game.spawns[creep.memory.assignedSpawn], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+            pathing.Move(creep, Game.spawns[creep.memory.assignedSpawn]);
+        }
+        if (creep.carry.energy > 0) {
+            creep.memory.returning = false;
+        }
+        return null;
+    }
+    //Initial move
+    if (!creep.memory.destinationReached) {
+        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+            creep.memory.destinationReached = true;
+        }
+    } else {
+        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] !== 0});
+        if (container) {
+            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, container);
+            }
+        } else {
+            let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] !== 0});
+            if (storage) {
+                if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, storage);
+                }
+            } else {
+                let extension = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy !== 0});
+                if (extension) {
+                    if (creep.withdraw(extension, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        pathing.Move(creep, extension);
+                    }
+                } else {
+                    let spawn = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.energy !== 0});
+                    if (spawn) {
+                        if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                            pathing.Move(creep, spawn);
+                        }
+                    } else {
+                        if (creep.carry.energy > 0) {
+                            creep.memory.returning = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+};

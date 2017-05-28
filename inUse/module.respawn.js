@@ -204,13 +204,31 @@ module.exports.rcl3 = function (spawnName) {
                     }
                 }
 
+                //RAIDER RESPAWNS
+                for (let i = 0; i < 10; i++) {
+                    let raid = 'raid' + i;
+                    if (Game.flags[raid]) {
+                        let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[raid].name && creep.memory.role === 'raider');
+                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'raider') === OK) {
+                            Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'raider', {
+                                role: 'raider',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                level: 3,
+                                attackTarget: Game.flags[raid].name,
+                            });
+                            console.log('Spawning a raider');
+                            return;
+                        }
+                    }
+                }
+
                 //ATTACK RESPAWNS
                 for (let i = 0; i < 10; i++) {
                     let attack = 'attack' + i;
                     if (Game.flags[attack]) {
                         let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,HEAL], generatedNumber + 'attacker') === OK) {
-                            Game.spawns[spawnName].createCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,HEAL], generatedNumber + 'attacker', {
+                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker') === OK) {
+                            Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
                                 role: 'attacker',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 level: 3,

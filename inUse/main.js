@@ -224,6 +224,9 @@ module.exports.loop = function () {
             if (creep.memory.role === 'reserver') {
                 rolesMilitary.Reserver(creep);
             }
+            if (creep.memory.role === 'raider') {
+                rolesMilitary.Raider(creep);
+            }
             if (creep.memory.role === 'remoteHarvester') {
                 rolesRemote.RHarvester(creep);
             }
