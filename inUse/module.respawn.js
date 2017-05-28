@@ -598,37 +598,9 @@ function collapsePrevention(spawnName) {
     });
 
     for (let i = 0; i < sources.length; i++) {
-        let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
-        if (peasant.length === 0 && stationaryHarvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
-            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant', {
-                role: 'peasant',
-                assignedSpawn: Game.spawns[spawnName].id,
-                assignedSource: sources[i].id,
-                level: 0
-            });
-            console.log('Spawning a peasant');
-            return;
-        }
-    }
-
-    for (let i = 0; i < sources.length; i++) {
-        let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
-        if (peasant.length === 0 && stationaryHarvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant') === OK) {
-            Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant', {
-                role: 'peasant',
-                assignedSpawn: Game.spawns[spawnName].id,
-                assignedSource: sources[i].id,
-                level: 0
-            });
-            console.log('Spawning a peasant');
-            return;
-        }
-    }
-
-    for (let i = 0; i < sources.length; i++) {
         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-        if (peasant.length > 0 && stationaryHarvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
-            Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
+        if (stationaryHarvester.length < sourceCount && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+            Game.spawns[spawnName].createCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester', {
                 role: 'stationaryHarvester',
                 assignedSpawn: Game.spawns[spawnName].id,
                 assignedSource: sources[i].id,
@@ -661,7 +633,7 @@ function collapsePrevention(spawnName) {
 
     }
 
-    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
+    let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
     if (basicHauler.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
             role: 'basicHauler',
