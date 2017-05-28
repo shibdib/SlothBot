@@ -1,3 +1,5 @@
+//Credit - https://gist.github.com/derofim/72b7a5e1a57b77877892
+
 module.exports.cachePath = function (from, to, path) {
     let key = getPathKey(from, to);
     let cache = Memory.pathCache || {};
