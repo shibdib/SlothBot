@@ -48,7 +48,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
             },
             maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
-        cache.cachePath(creep, target, creep.memory.path);
+        cache.cachePath(creep.pos, target.pos, creep.memory.path);
     }
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
@@ -93,7 +93,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
             },
             maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
-        cache.cachePath(creep, target, creep.memory.path);
+        cache.cachePath(creep.pos, target.pos, creep.memory.path);
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (Room.deserializePath(creep.memory.path).length / 2);
