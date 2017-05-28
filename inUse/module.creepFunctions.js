@@ -238,7 +238,7 @@ module.exports.renewal = function (creep) {
         return;
     }
     if (creep.memory.renew === true) {
-        creep.say('⛑');
+        creep.say('Renew');
         pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
         return true;
     } else if (Game.time % 15 === 0) {
@@ -263,7 +263,7 @@ module.exports.recycle = function (creep) {
         }
     } else {
         if (creep.memory.recycle === true) {
-            creep.say('☠');
+            creep.say('Recycle');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
             pathing.Move(creep, home);
             return true;
