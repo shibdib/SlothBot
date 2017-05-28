@@ -67,7 +67,7 @@ module.exports.Harvester = function (creep) {
     if (borderChecks.isOnBorder(creep) === true) {
         borderChecks.nextStepIntoRoom(creep);
     }
-    if (creepTools.renewal(creep, 30) === true) {
+    if (creepTools.renewal(creep, 50) === true) {
         creep.drop(RESOURCE_ENERGY);
         return null;
     }
