@@ -47,7 +47,7 @@ module.exports.Healer = function (creep) {
 
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
-    if (targets) {
+    if (targets.length > 0) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
             if (creep.rangedHeal(targets[0]) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
@@ -183,6 +183,11 @@ module.exports.Reserver = function (creep) {
  * @return {null}
  */
 module.exports.Raider = function (creep) {
+
+    if (!Game.flags[creep.memory.attackTarget]) {
+        creepTools.recycle(creep);
+        return null;
+    }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.returning = true;
         creep.memory.destinationReached = false;
