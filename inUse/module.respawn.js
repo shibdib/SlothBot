@@ -181,7 +181,7 @@ module.exports.rcl3 = function (spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                if (creeps.length <= 6 || Game.spawns[spawnName].room.energyCapacityAvailable < 800 || (peasant === 0 && stationaryHarvester === 0)) {
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 800 || (peasant === 0 && stationaryHarvester === 0)) {
                     collapsePrevention(spawnName);
                     return;
                 }
