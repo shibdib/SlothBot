@@ -107,7 +107,7 @@ module.exports.AttackMove = function (creep, target) {
     }
 };
 module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
-    let path = creep.room.findPath(creep.pos, target.pos, {
+    return creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
             const noRoads = creep.room.find(!FIND_STRUCTURES);
             for (let i = 0; i < noRoads.length; i++) {
