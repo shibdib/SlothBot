@@ -278,7 +278,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
     let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
     if (container) {
         const containerAmountWeighted = (container.store[RESOURCE_ENERGY] / container.storeCapacity);
-        const containerDistWeighted = container.pos.getRangeTo(creep) * (0.65-containerAmountWeighted);
+        const containerDistWeighted = container.pos.getRangeTo(creep) * (1.01 - containerAmountWeighted);
         energy.push({
             id: container.id,
             distWeighted: containerDistWeighted,
