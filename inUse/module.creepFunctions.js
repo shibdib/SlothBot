@@ -245,7 +245,10 @@ module.exports.renewal = function (creep) {
     if (Game.time % 15 === 0) {
         creep.memory.returnPath = pathing.FindPath(creep, Game.getObjectById(creep.memory.assignedSpawn),true);
         if (creep.memory.returnPath) {
-            let deathTick = (creep.memory.returnPath.length + 3) + ((creep.memory.returnPath.length + 3) * 0.05) + 15;
+            let totalParts = creep.body.length;
+            let moveParts = creep.getActiveBodyparts(MOVE);
+            let fatigueWeight = 2 * ((totalParts - moveParts) * 1.25 - moveParts) / (Math.ceil(1.25 * (totalParts - moveParts) / moveParts));
+            let deathTick = ((creep.memory.returnPath.length + 3) * fatigueWeight) + ((creep.memory.returnPath.length + 3) * 0.02) + 15;
             if (creep.ticksToLive <= deathTick) {
                 creep.memory.renew = true;
             }
