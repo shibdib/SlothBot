@@ -157,10 +157,10 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
         },
         maxOps: 100000, serialize: serialize, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
     });
-    if (serialize === true) {
-        cache.cachePath(creep.pos, target.pos, path);
-    } else {
+    if (Array.isArray(path)) {
         cache.cachePath(creep.pos, target.pos, Room.serializePath(path));
+    } else {
+        cache.cachePath(creep.pos, target.pos, path);
     }
     return path;
 };
