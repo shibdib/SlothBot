@@ -209,8 +209,8 @@ module.exports.rcl3 = function (spawnName) {
                     let attack = 'attack' + i;
                     if (Game.flags[attack]) {
                         let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL], generatedNumber + 'attacker') === OK) {
-                            Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL], generatedNumber + 'attacker', {
+                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,HEAL], generatedNumber + 'attacker') === OK) {
+                            Game.spawns[spawnName].createCreep([TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,HEAL], generatedNumber + 'attacker', {
                                 role: 'attacker',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 level: 3,
@@ -231,7 +231,7 @@ module.exports.rcl3 = function (spawnName) {
                                 waitForHealers: (i),
                                 waitForAttackers: (i * 2)
                             });
-                            console.log('Spawning a attacker');
+                            console.log('Spawning a healer');
                             return;
                         }
                     }
