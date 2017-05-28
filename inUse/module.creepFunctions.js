@@ -234,6 +234,9 @@ module.exports.findNearbyConstruction = function (creep) {
 };
 
 module.exports.renewal = function (creep) {
+    if (creep.memory.level === 0) {
+        return;
+    }
     if (creep.memory.renew === true) {
         creep.say('🤒');
         pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
