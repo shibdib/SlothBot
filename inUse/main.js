@@ -5,12 +5,14 @@ let rolesWorkers = require('roles.Workers');
 let rolesMilitary = require('roles.Military');
 let rolesRemote = require('roles.Remote');
 let towerControl = require('module.Tower');
+let cache = require('module.cache');
 let profiler = require('screeps-profiler');
 
 //modules
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
 let militaryFunctions = require('module.militaryFunctions');
+let _ = require('lodash');
 
 // This line monkey patches the global prototypes.
 profiler.enable();
@@ -18,12 +20,10 @@ profiler.enable();
 module.exports.loop = function () {
     profiler.wrap(function () {
 
-        for (var name in Memory.creeps) {
-            if (!Game.creeps[name]) {
-                delete Memory.creeps[name];
-                console.log('Clearing non-existing creep memory:' + name);
-            }
-        }
+        //CLEANUP
+        _.forEach(_.remove(this.memory.currentCreeps, s => !_.has(Game.creeps, s)), s => delete Memory.creeps[s]);
+        cache.cleanPathCache(); //clean path cache
+
         //ATTACK CHECKS
         for (let i = 0; i < 5; i++) {
             let attack = 'attack' + i;

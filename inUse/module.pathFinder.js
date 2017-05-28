@@ -1,3 +1,4 @@
+let cache = require('module.cache');
 module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
         return;
@@ -7,6 +8,9 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathLimit = 0;
     }
     if (creep.memory.pathAge >= creep.memory.pathLimit) {
+    if (cache.getPath(creep, target)){
+        creep.memory.path = cache.getPath(creep, target);
+    } else {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
                 const noRoads = creep.room.find(!FIND_STRUCTURES);
@@ -44,6 +48,8 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
             },
             maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
+        cache.cachePath(creep, target, creep.memory.path);
+    }
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (Room.deserializePath(creep.memory.path).length / 2);
@@ -87,6 +93,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
             },
             maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
+        cache.cachePath(creep, target, creep.memory.path);
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (Room.deserializePath(creep.memory.path).length / 2);
