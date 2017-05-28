@@ -37,9 +37,9 @@ module.exports.RHarvester = function (creep) {
             }
         }
     } else {
-        if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH){
-            source = Game.getObjectById(creep.memory.assignedSource);
-        }else if (!source) {
+        if (creep.memory.source){
+            source = Game.getObjectById(creep.memory.source);
+        } else if (!source) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
