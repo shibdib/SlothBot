@@ -4,6 +4,10 @@ let pathing = require('module.pathFinder');
 let militaryFunctions = require('module.militaryFunctions');
 
 module.exports.Defender = function (creep) {
+
+    //RENEWAL
+    creepTools.renewal(creep);
+
     const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 10);
     const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (targets.length > 0) {
@@ -20,6 +24,10 @@ module.exports.Defender = function (creep) {
  * @return {null}
  */
 module.exports.Sentry = function (creep) {
+
+    //RENEWAL
+    creepTools.renewal(creep);
+
     const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3);
     if (targets.length > 0) {
         creep.rangedMassAttack();
@@ -33,6 +41,10 @@ module.exports.Sentry = function (creep) {
  * @return {null}
  */
 module.exports.Healer = function (creep) {
+
+    //RENEWAL
+    creepTools.renewal(creep);
+
     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
     const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
     if (targets) {
@@ -76,6 +88,10 @@ module.exports.Scout = function (creep) {
  * @return {null}
  */
 module.exports.Attacker = function (creep) {
+
+    //RENEWAL
+    creepTools.renewal(creep);
+
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }

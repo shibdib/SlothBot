@@ -8,9 +8,9 @@ let pathing = require('module.pathFinder');
 module.exports.Hauler = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep, 20) === true) {
-        return null;
-    }
+
+    //RENEWAL
+    creepTools.renewal(creep);
 
     if (!Game.getObjectById(creep.memory.assignedContainer)) {
         creep.memory.recycle = true;
@@ -49,9 +49,9 @@ module.exports.Hauler = function (creep) {
 module.exports.DumpTruck = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep, 20) === true) {
-        return null;
-    }
+
+    //RENEWAL
+    creepTools.renewal(creep);
 
     //SET HAULING STATE
     if (creep.carry.energy === 0) {
@@ -96,9 +96,9 @@ module.exports.DumpTruck = function (creep) {
 module.exports.BasicHauler = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep, 20) === true) {
-        return null;
-    }
+
+    //RENEWAL
+    creepTools.renewal(creep);
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;

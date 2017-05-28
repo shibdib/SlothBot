@@ -233,31 +233,15 @@ module.exports.findNearbyConstruction = function (creep) {
     }
 };
 
-module.exports.renewal = function (creep, breakingPoint = 75) {
-    if (!creep.memory.assignedSpawn) {
-        let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if (spawn) {
-            creep.memory.assignedSpawn = spawn.id;
-        }
-    } else {
-        //Check if creep can make the trip
-        if (creep.memory.path) {
-            let steps = (Room.deserializePath(creep.memory.path).length + (Room.deserializePath(creep.memory.path).length * 0.03) * 2);
-            if (steps > creep.ticksToLive) {
-                creep.memory.renew = true;
-            }
-        }
-        if (creep.ticksToLive < breakingPoint || creep.memory.renew === true) {
-            creep.say('Renewing');
-            let home = Game.getObjectById(creep.memory.assignedSpawn);
+module.exports.renewal = function (creep) {
+    if (creep.memory.renew === true) {
+        pathing.Move(creep, Game.spawns[creep.memory.assignedSpawn]);
+    } else
+    if (Game.time % 15 === 0) {
+        creep.memory.returnPath = pathing.FindPath(creep, Game.spawns[creep.memory.assignedSpawn],true);
+        let deathTick = (creep.memory.returnPath.length + 3) + ((creep.memory.returnPath.length + 3) * 0.05) + 15;
+        if (deathTick <= creep.ticksToLive) {
             creep.memory.renew = true;
-            pathing.Move(creep, home);
-            if (creep.ticksToLive > 1000) {
-                creep.memory.renew = false;
-            }
-            return true;
-        } else {
-            return false;
         }
     }
 };

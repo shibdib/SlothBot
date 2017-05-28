@@ -8,9 +8,9 @@ let pathing = require('module.pathFinder');
 module.exports.Worker = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep, 30) === true) {
-        return null;
-    }
+
+    //RENEWAL
+    creepTools.renewal(creep);
 
     if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
@@ -57,10 +57,9 @@ module.exports.Worker = function (creep) {
 module.exports.Harvester = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep, 50) === true) {
-        creep.drop(RESOURCE_ENERGY);
-        return null;
-    }
+
+    //RENEWAL
+    creepTools.renewal(creep);
 
     if (creep.carry.energy === creep.carryCapacity) {
         let containerID = creepTools.harvestDeposit(creep);
@@ -96,9 +95,9 @@ module.exports.Harvester = function (creep) {
 module.exports.wallRepairer = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep, 30) === true) {
-        return null;
-    }
+
+    //RENEWAL
+    creepTools.renewal(creep);
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
@@ -146,9 +145,9 @@ module.exports.wallRepairer = function (creep) {
 module.exports.Upgrader = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    if (creepTools.renewal(creep, 50) === true) {
-        return null;
-    }
+
+    //RENEWAL
+    creepTools.renewal(creep);
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
