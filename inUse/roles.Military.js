@@ -185,6 +185,7 @@ module.exports.Reserver = function (creep) {
 module.exports.Raider = function (creep) {
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.returning = true;
+        creep.memory.destinationReached = false;
     }
     if (creep.memory.returning === true) {
         if (creep.transfer(Game.spawns[creep.memory.assignedSpawn], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
