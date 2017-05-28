@@ -240,9 +240,11 @@ module.exports.renewal = function (creep) {
     } else
     if (Game.time % 15 === 0) {
         creep.memory.returnPath = pathing.FindPath(creep, Game.getObjectById(creep.memory.assignedSpawn),true);
-        let deathTick = (creep.memory.returnPath.length + 3) + ((creep.memory.returnPath.length + 3) * 0.05) + 15;
-        if (creep.ticksToLive <= deathTick) {
-            creep.memory.renew = true;
+        if (creep.memory.returnPath) {
+            let deathTick = (creep.memory.returnPath.length + 3) + ((creep.memory.returnPath.length + 3) * 0.05) + 15;
+            if (creep.ticksToLive <= deathTick) {
+                creep.memory.renew = true;
+            }
         }
     }
 };
