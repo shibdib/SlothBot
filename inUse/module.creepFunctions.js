@@ -289,7 +289,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
         });
     }
     //Dropped Energy
-    let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
+    let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= creep.carryCapacity});
     if (dropped) {
         const droppedDistWeighted = dropped.pos.getRangeTo(creep) * 0.1;
         energy.push({
