@@ -8,8 +8,8 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathLimit = 0;
     }
     if (creep.memory.pathAge >= creep.memory.pathLimit) {
-    if (cache.getPath(creep, target)){
-        creep.memory.path = cache.getPath(creep, target);
+    if (cache.getPath(creep.pos, target.pos)){
+        creep.memory.path = cache.getPath(creep.pos, target.pos);
     } else {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
