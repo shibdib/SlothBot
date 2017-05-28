@@ -72,7 +72,7 @@ module.exports.loop = function () {
                         let renewPerTick = Math.floor(600 / totalParts);
                         let costPerRenew = Math.ceil(cost / 2.5 / totalParts);
                         let renewCost = ((1000 - creep.ticksToLive) / renewPerTick) * costPerRenew;
-                        if (renewCost < cost - (cost * 0.05)) {
+                        if (renewCost < cost - (cost * 0.34)) {
                             Game.spawns[name].renewCreep(creep);
                             if (creep.ticksToLive > 1000) {
                                 creep.memory.renew = false;
