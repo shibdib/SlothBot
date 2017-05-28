@@ -45,9 +45,8 @@ module.exports.Healer = function (creep) {
         if (attackers) {
             pathing.Move(creep, attackers[0], 1, false, 16);
         } else {
-            let spawn = creepTools.findSpawn(creep);
-            let pos = new RoomPosition(spawn.pos.x + 5, spawn.pos.y, spawn.room.name);
-            pathing.Move(creep, pos, false, 1);
+            let closestTower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
+            pathing.Move(creep, closestTower, false, 1);
         }
     }
 };
@@ -107,9 +106,8 @@ module.exports.Attacker = function (creep) {
             pathing.AttackMove(creep, closestHostile);
         }
     } else if (creep.memory.attackStarted !== true) {
-        let spawn = creepTools.findSpawn(creep);
-        let pos = new RoomPosition(spawn.pos.x + 5, spawn.pos.y, spawn.room.name);
-        pathing.Move(creep, pos, false, 1);
+        let closestTower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
+        pathing.Move(creep, closestTower, false, 1);
         let nearbyAttackers = creep.pos.findInRange(attackers, 5);
         let nearbyHealers = creep.pos.findInRange(healers, 5);
         if (nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers){
