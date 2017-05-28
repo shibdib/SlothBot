@@ -191,7 +191,7 @@ module.exports.Raider = function (creep) {
         if (creep.transfer(Game.spawns[creep.memory.assignedSpawn], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, Game.spawns[creep.memory.assignedSpawn]);
         }
-        if (creep.carry.energy > 0) {
+        if (creep.carry.energy === 0) {
             creep.memory.returning = false;
         }
         return null;
