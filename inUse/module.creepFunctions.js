@@ -338,25 +338,25 @@ module.exports.findEnergy = function (creep, hauler = false) {
         }
     }
 
-    let sorted = _.sortBy(energy, s => s.distWeighted);
+    let sorted = _.min(energy, 'distWeighted');
 
-    if (sorted.length > 0) {
-        if (sorted[0].harvest === false) {
-            let energyItem = Game.getObjectById(sorted[0].id);
+    if (sorted) {
+        if (sorted.harvest === false) {
+            let energyItem = Game.getObjectById(sorted.id);
             if (energyItem) {
                 if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     pathing.Move(creep, energyItem);
                 }
             }
-        } else if (sorted[0].harvest === true) {
-            let energyItem = Game.getObjectById(sorted[0].id);
+        } else if (sorted.harvest === true) {
+            let energyItem = Game.getObjectById(sorted.id);
             if (energyItem) {
                 if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
                     pathing.Move(creep, energyItem);
                 }
             }
         } else {
-            let energyItem = Game.getObjectById(sorted[0].id);
+            let energyItem = Game.getObjectById(sorted.id);
             if (creep.pickup(energyItem) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, energyItem);
             }
@@ -414,9 +414,9 @@ module.exports.findStorage = function (creep) {
         });
     }
 
-    let sorted = _.sortBy(storage, s => s.distWeighted);
-    if (sorted.length > 0) {
-        let storageItem = Game.getObjectById(sorted[0].id);
+    let sorted = _.min(storage, 'distWeighted');
+    if (sorted) {
+        let storageItem = Game.getObjectById(sorted.id);
         if (storageItem) {
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.memory.storageDestination = storageItem.id;

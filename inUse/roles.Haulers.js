@@ -117,6 +117,15 @@ module.exports.BasicHauler = function (creep) {
             creepTools.findEnergy(creep, true);
         }
     } else {
+        if (creep.memory.storageDestination) {
+            let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, storageItem);
+            } else {
+                creep.memory.storageDestination = null;
+            }
+            return null;
+        }
         creepTools.findStorage(creep);
     }
 };
