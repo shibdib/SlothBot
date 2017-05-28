@@ -235,6 +235,7 @@ module.exports.findNearbyConstruction = function (creep) {
 
 module.exports.renewal = function (creep) {
     if (creep.memory.renew === true) {
+        creep.say('🤒');
         pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
     } else
     if (Game.time % 15 === 0) {
@@ -254,7 +255,7 @@ module.exports.recycle = function (creep) {
         }
     } else {
         if (creep.memory.recycle === true) {
-            creep.say('Recycling');
+            creep.say('👹');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
             pathing.Move(creep, home);
             return true;

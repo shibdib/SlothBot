@@ -39,6 +39,7 @@ module.exports.Hauler = function (creep) {
 
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
+        creep.say('🚚');
         creepTools.findStorage(creep);
     }
 };
