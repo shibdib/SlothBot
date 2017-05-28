@@ -194,8 +194,8 @@ module.exports.Raider = function (creep) {
     }
     //Initial move
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+        pathing.Move(creep, Game.flags[creep.memory.attackTarget], false, 16);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.attackTarget]) <= 3) {
             creep.memory.destinationReached = true;
         }
     } else {
@@ -225,6 +225,7 @@ module.exports.Raider = function (creep) {
                     } else {
                         if (creep.carry.energy > 0) {
                             creep.memory.returning = true;
+                            creep.memory.destinationReached = false;
                         }
                     }
                 }
