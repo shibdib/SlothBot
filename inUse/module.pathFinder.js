@@ -116,9 +116,9 @@ module.exports.AttackMove = function (creep, target) {
 module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
     if (cache.getPath(creep.pos, target.pos)) {
         if (serialize === true) {
-            return Room.serializePath(cache.getPath(creep.pos, target.pos));
+            return cache.getPath(creep.pos, target.pos);
         }
-        return cache.getPath(creep.pos, target.pos);
+        return Room.deserializePath(cache.getPath(creep.pos, target.pos));
     }
     let path = creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
