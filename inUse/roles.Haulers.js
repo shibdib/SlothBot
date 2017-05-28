@@ -7,12 +7,7 @@ let pathing = require('module.pathFinder');
  */
 module.exports.Hauler = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep, 20) === true) {
         return null;
     }
@@ -53,12 +48,7 @@ module.exports.Hauler = function (creep) {
  */
 module.exports.DumpTruck = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep, 20) === true) {
         return null;
     }
@@ -105,12 +95,7 @@ module.exports.DumpTruck = function (creep) {
  */
 module.exports.BasicHauler = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep, 20) === true) {
         return null;
     }

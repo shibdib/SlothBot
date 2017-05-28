@@ -7,12 +7,7 @@ let pathing = require('module.pathFinder');
  */
 module.exports.Worker = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep, 30) === true) {
         return null;
     }
@@ -61,12 +56,7 @@ module.exports.Worker = function (creep) {
  */
 module.exports.Harvester = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep, 50) === true) {
         creep.drop(RESOURCE_ENERGY);
         return null;
@@ -105,12 +95,7 @@ module.exports.Harvester = function (creep) {
 
 module.exports.wallRepairer = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep, 30) === true) {
         return null;
     }
@@ -160,12 +145,7 @@ module.exports.wallRepairer = function (creep) {
  */
 module.exports.Upgrader = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep, 50) === true) {
         return null;
     }
@@ -181,12 +161,7 @@ module.exports.Upgrader = function (creep) {
  */
 module.exports.Builder = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep) === true) {
         return null;
     }
@@ -231,12 +206,7 @@ module.exports.Builder = function (creep) {
  */
 module.exports.RoadBuilder = function (creep) {
     //INITIAL CHECKS
-    if (borderChecks.wrongRoom(creep) !== false) {
-        return;
-    }
-    if (borderChecks.isOnBorder(creep) === true) {
-        borderChecks.nextStepIntoRoom(creep);
-    }
+    borderChecks.borderCheck(creep);
     if (creepTools.renewal(creep) === true) {
         return null;
     }

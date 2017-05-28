@@ -6,6 +6,7 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.Peasant = function (creep) {
+    borderChecks.borderCheck(creep);
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
     }
@@ -38,6 +39,7 @@ module.exports.Peasant = function (creep) {
  * @return {null}
  */
 module.exports.PeasantBuilder = function (creep) {
+    borderChecks.borderCheck(creep);
     if (creep.memory.building && creep.carry.energy === 0) {
         creep.memory.building = false;
     }
@@ -69,6 +71,7 @@ module.exports.PeasantBuilder = function (creep) {
  * @return {null}
  */
 module.exports.PeasantUpgrader = function (creep) {
+    borderChecks.borderCheck(creep);
     if (creep.memory.upgrading && creep.carry.energy === 0) {
         creep.memory.upgrading = false;
     }

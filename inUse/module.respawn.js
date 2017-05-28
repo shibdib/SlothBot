@@ -266,11 +266,11 @@ module.exports.rcl3 = function (spawnName) {
                         });
                         console.log('Spawning a dumpTruck');
                         return;
-                    } else if (basicHauler.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
+                    } else if (basicHauler.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
                             role: 'basicHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
-                            level: 3,
+                            level: 0,
                         });
                         console.log('Spawning a basicHauler');
                         return;
