@@ -114,7 +114,13 @@ module.exports.AttackMove = function (creep, target) {
     }
 };
 module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
-    return creep.room.findPath(creep.pos, target.pos, {
+    if (cache.getPath(creep.pos, target.pos)) {
+        if (serialize === true) {
+            return Room.serializePath(cache.getPath(creep.pos, target.pos));
+        }
+        return cache.getPath(creep.pos, target.pos);
+    }
+    let path = creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
             const noRoads = creep.room.find(!FIND_STRUCTURES);
             for (let i = 0; i < noRoads.length; i++) {
@@ -151,4 +157,6 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
         },
         maxOps: 100000, serialize: serialize, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
     });
+    cache.cachePath(creep, target, Room.serializePath(path));
+    return path;
 };
