@@ -19,6 +19,8 @@ module.exports.getPath = function (from, to) {
             Memory.pathCache = cache;
             return cachedPath;
         }
+    } else {
+        return null;
     }
 };
 
