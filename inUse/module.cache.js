@@ -1,3 +1,4 @@
+//Path Cache
 //Credit - https://gist.github.com/derofim/72b7a5e1a57b77877892
 
 module.exports.cachePath = function (from, to, path) {
@@ -52,3 +53,28 @@ function getPathKey(from, to) {
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
+
+//Room Cache
+///////////////////////////////////////////////////
+module.exports.cacheRoomObjects = function (id, type, room) {
+    let cache = Memory.room.roomCache || {};
+    cache[id] = {
+        id: id,
+        type: type
+    };
+    Memory.room.roomCache = cache;
+};
+
+module.exports.getRoomObjects = function (type, room) {
+    let cache = Memory.pathCache;
+    if (cache) {
+        let cachedPath = cache[getPathKey(from, to)];
+        if (cachedPath) {
+            cachedPath.uses += 1;
+            Memory.pathCache = cache;
+            return cachedPath;
+        }
+    } else {
+        return null;
+    }
+};

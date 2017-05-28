@@ -209,7 +209,7 @@ module.exports.rcl3 = function (spawnName) {
                     let raid = 'raid' + i;
                     if (Game.flags[raid]) {
                         let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[raid].name && creep.memory.role === 'raider');
-                        if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'raider') === OK) {
+                        if (attackers.length < i && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'raider') === OK) {
                             Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'raider', {
                                 role: 'raider',
                                 assignedSpawn: Game.spawns[spawnName].id,
