@@ -10,7 +10,9 @@ module.exports.Worker = function (creep) {
     borderChecks.borderCheck(creep);
 
     //RENEWAL
-    creepTools.renewal(creep);
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
 
     if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
         creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
@@ -59,7 +61,9 @@ module.exports.Harvester = function (creep) {
     borderChecks.borderCheck(creep);
 
     //RENEWAL
-    creepTools.renewal(creep);
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
 
     if (creep.carry.energy === creep.carryCapacity) {
         let containerID = creepTools.harvestDeposit(creep);
@@ -97,7 +101,9 @@ module.exports.wallRepairer = function (creep) {
     borderChecks.borderCheck(creep);
 
     //RENEWAL
-    creepTools.renewal(creep);
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
@@ -147,7 +153,9 @@ module.exports.Upgrader = function (creep) {
     borderChecks.borderCheck(creep);
 
     //RENEWAL
-    creepTools.renewal(creep);
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;

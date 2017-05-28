@@ -240,7 +240,7 @@ module.exports.renewal = function (creep) {
     if (creep.memory.renew === true) {
         creep.say('Renew');
         pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
-        return null;
+        return true;
     } else
     if (Game.time % 15 === 0) {
         creep.memory.returnPath = pathing.FindPath(creep, Game.getObjectById(creep.memory.assignedSpawn),true);

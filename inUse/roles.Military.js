@@ -43,7 +43,9 @@ module.exports.Sentry = function (creep) {
 module.exports.Healer = function (creep) {
 
     //RENEWAL
-    creepTools.renewal(creep);
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
 
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
@@ -90,7 +92,9 @@ module.exports.Scout = function (creep) {
 module.exports.Attacker = function (creep) {
 
     //RENEWAL
-    creepTools.renewal(creep);
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
 
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();

@@ -10,8 +10,7 @@ module.exports.RHarvester = function (creep) {
         creepTools.recycle(creep);
         return null;
     }
-    if (creepTools.renewal(creep, 75) === true) {
-        creep.memory.destinationReached = null;
+    if (creepTools.renewal(creep) === true) {
         return null;
     }
     //Initial move
@@ -56,9 +55,7 @@ module.exports.RHarvester = function (creep) {
  * @return {null}
  */
 module.exports.RHauler = function (creep) {
-    if (creepTools.renewal(creep, 60) === true) {
-        creep.memory.destinationReached = null;
-        creep.memory.hauling = true;
+    if (creepTools.renewal(creep) === true) {
         return null;
     }
     if (creep.memory.resupply === null || creep.memory.resupply === undefined){
