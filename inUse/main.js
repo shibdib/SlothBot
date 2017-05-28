@@ -185,6 +185,9 @@ module.exports.loop = function () {
             if (creep.memory.role === 'basicHauler') {
                 rolesHaulers.BasicHauler(creep);
             }
+            if (creep.memory.role === 'basicHaulerLarge') {
+                rolesHaulers.BasicHauler(creep);
+            }
             if (creep.memory.role === 'worker') {
                 rolesWorkers.Worker(creep);
             }

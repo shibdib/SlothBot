@@ -237,9 +237,10 @@ module.exports.rcl3 = function (spawnName) {
                     }
                 }
 
-                //MISC HAULER RESPAWNS
+                //HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
                     const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
+                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHaulerLarge' && creep.room === Game.spawns[spawnName].room);
                     if (basicHauler.length < 3 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
                             role: 'basicHauler',
@@ -247,6 +248,15 @@ module.exports.rcl3 = function (spawnName) {
                             level: 0,
                         });
                         console.log('Spawning a basicHauler');
+                        return;
+                    }
+                    if (basicHauler.length >= 3 && basicHaulerLarge.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'basicHaulerLarge') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'basicHaulerLarge', {
+                            role: 'basicHaulerLarge',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 3,
+                        });
+                        console.log('Spawning a basicHaulerLarge');
                         return;
                     }
                 }
