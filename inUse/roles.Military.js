@@ -188,8 +188,11 @@ module.exports.Raider = function (creep) {
         creep.memory.destinationReached = false;
     }
     if (creep.memory.returning === true) {
-        if (creep.transfer(Game.spawns[creep.memory.assignedSpawn], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, Game.spawns[creep.memory.assignedSpawn]);
+        if (creep.room.name === Game.spawns[creep.memory.assignedSpawn].pos.roomName) {
+            creepTools.findStorage(creep);
+        } else {
+            pathing.Move(creep, Game.spawns[creep.memory.assignedSpawn], false, 16);
+            return null;
         }
         if (creep.carry.energy === 0) {
             creep.memory.returning = false;
