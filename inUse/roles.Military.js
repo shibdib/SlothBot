@@ -35,7 +35,7 @@ module.exports.Sentry = function (creep) {
 module.exports.Healer = function (creep) {
     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[creep.memory.attackTarget] && creep.memory.role === 'attacker');
     const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
-    if (targets[0]) {
+    if (targets) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
             if (creep.rangedHeal(targets[0]) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
