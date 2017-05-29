@@ -57,6 +57,7 @@ module.exports.Harvester = function (creep) {
 
     //RENEWAL
     if (creepTools.renewal(creep) === true) {
+        creep.drop(RESOURCE_ENERGY);
         return null;
     }
 
