@@ -98,7 +98,7 @@ module.exports.loop = function () {
                 respawnCreeps.rcl3(name)
             }
             if (level === 4) {
-                respawnCreeps.rcl4(name)
+                respawnCreeps.rcl3(name)
             }
             if (level === 5) {
                 respawnCreeps.rcl4(name)
