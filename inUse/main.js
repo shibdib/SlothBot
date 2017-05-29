@@ -154,7 +154,7 @@ module.exports.loop = function () {
             }
             let recycleCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level < level && creep.memory.level !== 0);
             for (let i = 0; i < recycleCreeps.length; i++){
-                recycleCreeps[i].memory.recycle = true;
+                //recycleCreeps[i].memory.recycle = true;
             }
 
             //Every 100 ticks
