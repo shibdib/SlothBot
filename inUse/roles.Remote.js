@@ -29,7 +29,12 @@ module.exports.RHarvester = function (creep) {
         if (containerID) {
             let container = Game.getObjectById(containerID);
             if (container) {
-                creep.transfer(container, RESOURCE_ENERGY);
+                if (container.hits < 25000) {
+                    creep.repair(container);
+                    creep.say('Fixing');
+                } else {
+                    creep.transfer(container, RESOURCE_ENERGY);
+                }
             }
         } else {
             let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
