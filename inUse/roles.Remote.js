@@ -62,10 +62,6 @@ module.exports.RHauler = function (creep) {
         creep.memory.resupply = 'Spawn1';
         return null;
     }
-    if (creepTools.rangeSource(creep) === 1) {
-        pathing.Move(creep, Game.flags.bump);
-        return null;
-    }
     if (!creep.memory.destinationReached) {
         pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
