@@ -278,7 +278,7 @@ module.exports.recycle = function (creep) {
 module.exports.findEnergy = function (creep, hauler = false) {
     let energy = [];
     //Container
-    let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity});
+    let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > creep.carryCapacity / 2});
     if (container) {
         const containerAmountWeighted = (container.store[RESOURCE_ENERGY] / container.storeCapacity);
         const containerDistWeighted = container.pos.getRangeTo(creep) * (1.01 - containerAmountWeighted);
