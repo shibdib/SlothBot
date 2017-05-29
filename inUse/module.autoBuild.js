@@ -247,9 +247,32 @@ function rcl3Tower(spawn) {
 }
 
 function rcl4Storage(spawn) {
-    let pos = new RoomPosition(spawn.pos.x - 2, spawn.pos.y - 2, spawn.room.name);
-    if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-        pos.createConstructionSite(STRUCTURE_STORAGE);
+    let pos = new RoomPosition(spawn.room.controller.pos.x, spawn.room.controller.pos.y - 2, spawn.room.name);
+    if (Game.map.getTerrainAt(pos) !== 'wall') {
+        if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+            pos.createConstructionSite(STRUCTURE_STORAGE);
+        }
+    } else {
+        let pos = new RoomPosition(spawn.room.controller.pos.x, spawn.room.controller.pos.y + 2, spawn.room.name);
+        if (Game.map.getTerrainAt(pos) !== 'wall') {
+            if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+                pos.createConstructionSite(STRUCTURE_STORAGE);
+            }
+        } else {
+            let pos = new RoomPosition(spawn.room.controller.pos.x - 2, spawn.room.controller.pos.y, spawn.room.name);
+            if (Game.map.getTerrainAt(pos) !== 'wall') {
+                if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+                    pos.createConstructionSite(STRUCTURE_STORAGE);
+                }
+            } else {
+                let pos = new RoomPosition(spawn.room.controller.pos.x + 2, spawn.room.controller.pos.y, spawn.room.name);
+                if (Game.map.getTerrainAt(pos) !== 'wall') {
+                    if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+                        pos.createConstructionSite(STRUCTURE_STORAGE);
+                    }
+                }
+            }
+        }
     }
 }
 
