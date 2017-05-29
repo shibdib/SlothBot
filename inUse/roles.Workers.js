@@ -14,11 +14,6 @@ module.exports.Worker = function (creep) {
         return null;
     }
 
-    if (creepTools.rangeSource(creep) === 1 && creep.memory.harvesting !== true) {
-        creep.moveTo(Game.flags.bump, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
-        return null;
-    }
-
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
@@ -27,7 +22,7 @@ module.exports.Worker = function (creep) {
         creep.memory.working = true;
     }
 
-    if (creep.memory.working) {
+    if (creep.memory.working === true) {
         let repairNeeded = creepTools.findRepair(creep);
         let construction = creepTools.findConstruction(creep);
         if (construction) {
