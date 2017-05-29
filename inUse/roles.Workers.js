@@ -44,7 +44,11 @@ module.exports.Worker = function (creep) {
         }
     }
     else {
-        creepTools.findEnergy(creep);
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, false);
+        }
     }
 };
 
@@ -136,7 +140,11 @@ module.exports.wallRepairer = function (creep) {
         }
     }
     else {
-        creepTools.findEnergy(creep);
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, false);
+        }
     }
 
 };
@@ -165,6 +173,10 @@ module.exports.Upgrader = function (creep) {
             pathing.Move(creep, creep.room.controller);
         }
     } else {
-        creepTools.findEnergy(creep);
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, false);
+        }
     }
 };

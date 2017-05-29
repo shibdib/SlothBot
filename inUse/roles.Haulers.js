@@ -67,7 +67,11 @@ module.exports.DumpTruck = function (creep) {
 
     //GET ENERGY
     if (creep.memory.hauling === false) {
-        creepTools.findEnergy(creep);
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, true);
+        }
     }
 
 //Haul to builder/upgrader
@@ -114,7 +118,11 @@ module.exports.BasicHauler = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        creepTools.findEnergy(creep, true);
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, true);
+        }
     } else {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);

@@ -63,7 +63,11 @@ module.exports.PeasantBuilder = function (creep) {
             }
         }
     } else {
-        creepTools.findEnergy(creep);
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, false);
+        }
     }
 };
 
@@ -84,7 +88,11 @@ module.exports.PeasantUpgrader = function (creep) {
             pathing.Move(creep, creep.room.controller);
         }
     } else {
-        creepTools.findEnergy(creep);
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, false);
+        }
     }
 
 };

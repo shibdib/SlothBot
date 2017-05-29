@@ -274,6 +274,21 @@ module.exports.recycle = function (creep) {
     }
 };
 
+module.exports.withdrawEnergy = function (creep) {
+    if (!creep.memory.energyDestination) {
+        return null;
+    } else {
+        let energyItem = Game.getObjectById(creep.memory.energyDestination);
+        if (energyItem.structureType !== null || energyItem.structureType !== undefined) {
+            if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, energyItem);
+            } else {
+                creep.memory.energyDestination = null;
+            }
+        }
+    }
+};
+
 
 module.exports.findEnergy = function (creep, hauler = false) {
     let energy = [];
@@ -351,9 +366,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
         if (sorted.harvest === false) {
             let energyItem = Game.getObjectById(sorted.id);
             if (energyItem) {
-                if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, energyItem);
-                }
+                creep.memory.energyDestination = energyItem.id;
             }
         } else if (sorted.harvest === true) {
             let energyItem = Game.getObjectById(sorted.id);
