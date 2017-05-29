@@ -256,11 +256,11 @@ module.exports.rcl3 = function (spawnName) {
                 }
 
                 //RESERVE RESPAWNS
-                /**for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 10; i++) {
                     let reserve = 'reserve' + i;
                     if (Game.flags[reserve]) {
                         let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
-                        if (reserver.length < 2 && Game.flags[reserve].room.memory.sendReserver <= Game.time && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
+                        if (reserver.length < 2 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
                             Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
                                 role: 'reserver',
                                 assignedSpawn: Game.spawns[spawnName].id,
@@ -271,7 +271,7 @@ module.exports.rcl3 = function (spawnName) {
                             return;
                         }
                     }
-                }**/
+                }
 
                 //HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {

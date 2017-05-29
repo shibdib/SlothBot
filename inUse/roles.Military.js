@@ -176,9 +176,6 @@ module.exports.Reserver = function (creep) {
         }
     } else {
         if (creep.room.controller) {
-            if (creep.ticksToLive < 10) {
-                creep.room.memory.sendReserver = Game.time + 500 - (creep.room.controller.reservation.ticksToEnd - (pathing.FindPath(creep, Game.getObjectById(creep.memory.assignedSpawn), true).length + 25));
-            }
             if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, creep.room.controller);
             }
