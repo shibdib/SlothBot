@@ -255,6 +255,24 @@ module.exports.rcl3 = function (spawnName) {
                     }
                 }
 
+                //RESERVE RESPAWNS
+                for (let i = 0; i < 10; i++) {
+                    let reserve = 'reserve' + i;
+                    if (Game.flags[reserve]) {
+                        let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
+                        if (reserver.length < 2 && Game.flags[reserve].room.controller.reservation.ticksToEnd < 500 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
+                            Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
+                                role: 'reserver',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                level: 3,
+                                destination: reserve
+                            });
+                            console.log('Spawning a reserver');
+                            return;
+                        }
+                    }
+                }
+
                 //HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
                     const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
@@ -352,15 +370,6 @@ module.exports.rcl3 = function (spawnName) {
                                     destination: remote
                                 });
                                 console.log('Spawning a remoteHauler');
-                                return;
-                            } else if (reserver.length === 0 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
-                                Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
-                                    role: 'reserver',
-                                    assignedSpawn: Game.spawns[spawnName].id,
-                                    level: 3,
-                                    destination: remote
-                                });
-                                console.log('Spawning a reserver');
                                 return;
                             }
                         }
