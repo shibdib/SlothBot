@@ -121,7 +121,8 @@ module.exports.BasicHauler = function (creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            creepTools.findEnergy(creep, true);
+            let spawn = Game.getObjectById(creep.memory.assignedSpawn);
+            pathing.Move(creep, RoomPosition(spawn.pos.x + 2, spawn.pos.y, spawn.room.name))
         }
     } else {
         if (creep.memory.storageDestination) {
