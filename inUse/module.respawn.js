@@ -566,7 +566,7 @@ function rcl4(spawnName) {
                         });
                         console.log('Spawning a worker');
                         return;
-                    } else if (upgraders.length < 3 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
+                    } else if (upgraders.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
                             role: 'upgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
