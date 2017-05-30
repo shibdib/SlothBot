@@ -1,7 +1,34 @@
 /**
  * Created by rober on 5/16/2017.
  */
-module.exports.rcl1 = function (spawnName) {
+module.exports.roomBuilding = function (spawnName) {
+    let level = Game.spawns[spawnName].room.controller.level;
+    if (level === 1) {
+        rcl1(spawnName);
+    }
+    if (level === 2) {
+        rcl2(spawnName);
+    }
+    if (level === 3) {
+        rcl3(spawnName);
+    }
+    if (level === 4) {
+        rcl4(spawnName);
+    }
+    if (level === 5) {
+        rcl4(spawnName);
+    }
+    if (level === 6) {
+        rcl4(spawnName);
+    }
+    if (level === 7) {
+        rcl4(spawnName);
+    }
+    if (level === 8) {
+        rcl4(spawnName);
+    }
+};
+function rcl1(spawnName) {
     if (Game.constructionSites.length > 75) {
         return null;
     }
@@ -10,9 +37,9 @@ module.exports.rcl1 = function (spawnName) {
 
     //Auto Build Spawn Roads
     roadsSpawn(spawn);
-};
+}
 
-module.exports.rcl2 = function (spawnName) {
+function rcl2(spawnName) {
     if (Game.constructionSites.length > 75) {
         return null;
     }
@@ -27,9 +54,9 @@ module.exports.rcl2 = function (spawnName) {
 
     //RCL2 Roads
     roadSources(spawn);
-};
+}
 
-module.exports.rcl3 = function (spawnName) {
+function rcl3(spawnName) {
     if (Game.constructionSites.length > 75) {
         return null;
     }
@@ -50,9 +77,9 @@ module.exports.rcl3 = function (spawnName) {
 
     //RCL3 Tower
     rcl3Tower(spawn);
-};
+}
 
-module.exports.rcl4 = function (spawnName) {
+function rcl4(spawnName) {
     if (Game.constructionSites.length > 75) {
         return null;
     }
@@ -79,7 +106,7 @@ module.exports.rcl4 = function (spawnName) {
 
     //RCL4 Storage
     rcl4Storage(spawn);
-};
+}
 
 function roadsSpawn(spawn) {
     for (i = 1; i < 8; i++) {

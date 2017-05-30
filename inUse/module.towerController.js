@@ -2,29 +2,28 @@
  * Created by rober on 5/16/2017.
  */
 
-const towerControl = {
-    /**   *
-     * @param tower
-     */
-    run: function (tower) {
-        const ramp = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 500});
-        const wall = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 500});
-        const woundedCreep = Game.getObjectById(findWounded(tower));
-        const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (ramp) {
-            tower.repair(ramp);
-        } else if (wall) {
-            tower.repair(wall);
-        } else
-        //Check if hostiles are in room
-        if (closestHostile) {
-            tower.attack(closestHostile);
-        } else if (woundedCreep) {
-            tower.heal(woundedCreep);
-        } else if (tower.energy > tower.energyCapacity * 0.75) {
-            const closestDamagedStructure = Game.getObjectById(findRepair(tower));
-            if (closestDamagedStructure) {
-                tower.repair(closestDamagedStructure);
+module.exports.towerControl = function () {
+    for (let structure of _.values(Game.structures)) {
+        if (structure.structureType === STRUCTURE_TOWER) {
+            const ramp = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 500});
+            const wall = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 500});
+            const woundedCreep = Game.getObjectById(findWounded(tower));
+            const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            if (ramp) {
+                tower.repair(ramp);
+            } else if (wall) {
+                tower.repair(wall);
+            } else
+            //Check if hostiles are in room
+            if (closestHostile) {
+                tower.attack(closestHostile);
+            } else if (woundedCreep) {
+                tower.heal(woundedCreep);
+            } else if (tower.energy > tower.energyCapacity * 0.75) {
+                const closestDamagedStructure = Game.getObjectById(findRepair(tower));
+                if (closestDamagedStructure) {
+                    tower.repair(closestDamagedStructure);
+                }
             }
         }
     }
