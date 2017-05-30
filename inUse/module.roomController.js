@@ -64,8 +64,10 @@ module.exports.roomControl = function () {
                         if (creep.ticksToLive > 1000) {
                             creep.memory.renew = false;
                         }
+                        return;
                     } else {
                         Game.spawns[name].recycleCreep(creep);
+                        return;
                     }
                 }
             }
