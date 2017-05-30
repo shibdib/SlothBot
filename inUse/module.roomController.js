@@ -49,8 +49,8 @@ module.exports.roomControl = function () {
         }
         if (!Game.spawns[name].spawning) {
             let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1);
-            if (creep.length > 0) {
-                Game.spawns[name].recycleCreep(creep[0] && creep.memory.recycle === true);
+            if (creep.length > 0 && creep[0].memory.recycle === true) {
+                Game.spawns[name].recycleCreep(creep[0]);
             } else {
                 let creep = _.min(Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1), 'ticksToLive');
                 if (creep.body && creep.memory.renew === true) {
