@@ -26,9 +26,9 @@ module.exports.getPath = function (from, to) {
 };
 
 module.exports.cleanPathCache = function () {
-    if (Memory.pathCache && Memory.pathCache.length > 2500) {
-        for (i = 5; Memory.pathCache.length < 2500; i++) {
-            if (Memory.pathCache.length > 2500) { //1500 entries ~= 100kB
+    if (Memory.pathCache && _.size(Memory.pathCache) > 1500) {
+        for (i = 5; Memory.pathCache < 1500; i++) {
+            if (_.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
                 console.log('Cleaning path cache (usage == ' + i + ')...');
                 let counter = 0;
                 for (let key in Memory.pathCache) {
@@ -60,7 +60,7 @@ function getPosKey(pos) {
 module.exports.cacheRoomStructure = function (id) {
     let structure = Game.getObjectById(id);
     let room = structure.room;
-    let cache = room.memory.structureCache || {};
+    let cache = room.structureCache || {};
     let key = room.name + '.' + structure.pos.x + '.' + structure.pos.y;
     cache[key] = {
         id: structure.id,
@@ -69,7 +69,7 @@ module.exports.cacheRoomStructure = function (id) {
         posX: structure.pos.x,
         posY: structure.pos.y
     };
-    room.memory.structureCache = cache;
+    Memory.room.structureCache = cache;
 };
 
 module.exports.getRoomStructures = function (id, room) {
