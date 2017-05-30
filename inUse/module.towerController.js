@@ -3,8 +3,8 @@
  */
 
 module.exports.towerControl = function () {
-    for (let structure of _.values(Game.structures)) {
-        if (structure.structureType === STRUCTURE_TOWER) {
+    for (let tower of _.values(Game.structures)) {
+        if (tower.structureType === STRUCTURE_TOWER) {
             const ramp = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 500});
             const wall = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 500});
             const woundedCreep = Game.getObjectById(findWounded(tower));
