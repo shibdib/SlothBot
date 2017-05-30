@@ -95,7 +95,15 @@ module.exports.RHauler = function (creep) {
         if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
             creepTools.findStorage(creep);
         } else {
-            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
+            if (creep.pos.lookFor(LOOK_STRUCTURES).length === 0) {
+                creep.pos.createConstructionSite(STRUCTURE_ROAD)
+            } else if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)) {
+                let site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 0);
+                creep.build(site);
+                return null;
+            } else {
+                pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
+            }
         }
     }
 };
