@@ -603,7 +603,7 @@ function rcl4(spawnName) {
                                 });
                                 console.log('Spawning a remoteHauler');
                                 return;
-                            } else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'roadBuilder') === OK) {
+                            } else if (roadBuilder.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'roadBuilder') === OK) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'roadBuilder', {
                                     role: 'roadBuilder',
                                     assignedSpawn: Game.spawns[spawnName].id,
