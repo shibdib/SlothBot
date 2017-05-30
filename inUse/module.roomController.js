@@ -80,11 +80,11 @@ module.exports.roomControl = function () {
         autoBuild.roomBuilding(name);
 
         //Cache Buildings
-            for (let structures of _.values(Game.structures)) {
+        /**for (let structures of _.values(Game.structures)) {
                 if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
                     cache.cacheRoomStructure(structures.id);
                 }
-            }
+            }**/
 
         //Hauling
 
