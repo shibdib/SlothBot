@@ -43,6 +43,7 @@ module.exports.loop = function () {
 
         //Room Management
         for (let name in Game.spawns) {
+            let level = Game.spawns[name].room.controller.level;
             //SAFE MODE
             if (Game.spawns[name].hits < Game.spawns[name].hitsMax/2){
                 Game.spawns[name].room.controller.activateSafeMode();
@@ -89,7 +90,6 @@ module.exports.loop = function () {
 
             //Every 50 ticks
             if (Game.time % 50 === 0) {
-                let level = Game.spawns[name].room.controller.level;
                 //BASE BUILDING
                 if (level === 1) {
                     autoBuild.rcl1(name)

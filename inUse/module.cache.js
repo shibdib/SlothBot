@@ -46,7 +46,6 @@ module.exports.cleanPathCache = function () {
 
 
 function getPathKey(from, to) {
-    //console.log("getPathKey= "+getPosKey(from) + '$' + getPosKey(to));
     return getPosKey(from) + '$' + getPosKey(to);
 }
 
@@ -56,22 +55,26 @@ function getPosKey(pos) {
 
 //Room Cache
 ///////////////////////////////////////////////////
-module.exports.cacheRoomObjects = function (id, type, room) {
-    let cache = Memory.room.roomCache || {};
+//STRUCTURE CACHE
+///////////////////////////////////////////////////
+module.exports.cacheRoomStructures = function (id, type, quantity, room) {
+    let cache = Memory.room.structureCache || {};
+    let key = id + '.' + room.name;
     cache[id] = {
         id: id,
-        type: type
+        type: type,
+        quantity: quantity
     };
-    Memory.room.roomCache = cache;
+    Memory.room.structureCache = cache;
 };
 
-module.exports.getRoomObjects = function (type, room) {
-    let cache = Memory.pathCache;
+module.exports.getRoomStructures = function (type, room) {
+    let cache = Memory.room.structureCache;
     if (cache) {
         let cachedPath = cache[getPathKey(from, to)];
         if (cachedPath) {
             cachedPath.uses += 1;
-            Memory.pathCache = cache;
+            Memory.room.structureCache = cache;
             return cachedPath;
         }
     } else {
