@@ -385,7 +385,7 @@ module.exports.findStorage = function (creep) {
 
     let storage = [];
     //Container
-    let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] - s.storeCapacity > creep.carry.energy});
+    let container = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] < s.storeCapacity});
     if (container) {
         const containerDistWeighted = container.pos.getRangeTo(creep) * 10;
         storage.push({
@@ -412,7 +412,7 @@ module.exports.findStorage = function (creep) {
         });
     }
     //Storage
-    let sStorage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] - s.storeCapacity > creep.carryCapacity});
+    let sStorage = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] < s.storeCapacity});
     if (sStorage) {
         const storageDistWeighted = sStorage.pos.getRangeTo(creep) * 0.45;
         storage.push({
