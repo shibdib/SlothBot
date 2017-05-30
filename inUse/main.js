@@ -84,37 +84,12 @@ module.exports.loop = function () {
                 }
             }
 
-            autoBuild.rcl1(name);
+            //Creep spawning
+            respawnCreeps.creepRespawn(name);
 
-            //CREEP SPAWNING
-            let level = Game.spawns[name].room.controller.level;
-            if (level === 1) {
-                respawnCreeps.rcl1(name)
-            }
-            if (level === 2) {
-                respawnCreeps.rcl2(name)
-            }
-            if (level === 3) {
-                respawnCreeps.rcl3(name)
-            }
-            if (level === 4) {
-                respawnCreeps.rcl3(name)
-            }
-            if (level === 5) {
-                respawnCreeps.rcl4(name)
-            }
-            if (level === 6) {
-                respawnCreeps.rcl4(name)
-            }
-            if (level === 7) {
-                respawnCreeps.rcl4(name)
-            }
-            if (level === 8) {
-                respawnCreeps.rcl4(name)
-            }
-
-
+            //Every 50 ticks
             if (Game.time % 50 === 0) {
+                let level = Game.spawns[name].room.controller.level;
                 //BASE BUILDING
                 if (level === 1) {
                     autoBuild.rcl1(name)
@@ -154,7 +129,7 @@ module.exports.loop = function () {
             }
             let recycleCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level < level && creep.memory.level !== 0);
             for (let i = 0; i < recycleCreeps.length; i++){
-                //recycleCreeps[i].memory.recycle = true;
+                recycleCreeps[i].memory.recycle = true;
             }
 
             //Every 100 ticks
