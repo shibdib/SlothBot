@@ -95,17 +95,7 @@ module.exports.RHauler = function (creep) {
         if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
             creepTools.findStorage(creep);
         } else {
-            if (creep.pos.lookFor(LOOK_STRUCTURES).length === 0 && creep.pos.lookFor(LOOK_CONSTRUCTION_SITES) === 0) {
-                creep.pos.createConstructionSite(STRUCTURE_ROAD);
-                return null;
-            }
-            if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES) > 0) {
-                let site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 0);
-                creep.build(site);
-                return null;
-            } else {
-                pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
-            }
+            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
         }
     }
 };
@@ -115,31 +105,52 @@ module.exports.RHauler = function (creep) {
  * @return {null}
  */
 module.exports.LongRoadBuilder = function (creep) {
-    //Initial move
-    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-    let home = Game.spawns[creep.memory.resupply];
-    if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
-        creep.memory.destinationReached = true;
+    if (creepTools.renewal(creep) === true) {
+        return null;
+    }
+    if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
+        creep.memory.resupply = 'Spawn1';
+        return null;
     }
     if (!creep.memory.destinationReached) {
-        if (creep.carry.energy > 0) {
-            if (creepTools.findRoad(creep) === false && spawn !== home) {
-                if (creep.pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
-                    return null;
-                }
-            }
-            if (creepTools.findNearbyConstruction(creep) !== false) {
-                creep.build(Game.getObjectById(creep.memory.constructionSite));
-                return null;
-            }
-            pathing.Move(creep, Game.flags[creep.memory.destination], 25, false, 16);
-        } else {
-            let spawn = Game.spawns[creep.memory.resupply];
-            if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, spawn, false, 16);
+        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+            creep.memory.destinationReached = true;
+        }
+        return null;
+    }
+    if (creep.carry.energy === 0) {
+        creep.memory.hauling = false;
+        creep.memory.destinationReached = null;
+    }
+    if (creep.carry.energy === creep.carryCapacity) {
+        creep.memory.hauling = true;
+    }
+    if (creep.memory.hauling === false) {
+        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+        if (container) {
+            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, container, false, 1);
             }
         }
-    } else {
-        creep.suicide();
+    }
+
+    //Haul to spawn/extension
+    if (creep.memory.hauling === true) {
+        if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
+            creepTools.findStorage(creep);
+        } else {
+            if (creep.pos.lookFor(LOOK_STRUCTURES).length === 0 && creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+                creep.pos.createConstructionSite(STRUCTURE_ROAD);
+                return null;
+            }
+            if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) {
+                let site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 0);
+                creep.build(site[0]);
+                return null;
+            } else {
+                pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
+            }
+        }
     }
 };
