@@ -78,29 +78,14 @@ module.exports.roomControl = function () {
         autoBuild.roomBuilding(name);
 
         //Cache Buildings
-        if (Game.time % 25 === 0) {
             for (let structures of _.values(Game.structures)) {
                 if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
                     cache.cacheRoomStructure(structures.id);
                 }
             }
-        }
 
         //Hauling
-        let roomStructures = Game.spawns[name].room.memory.structureCache;
-        if (roomStructures.length > 0) {
-            for (i = 0; i < roomStructures.length; i++) {
-                if (roomStructures.type === 'container' && Game.getObjectById(roomStructures.id).store > 100) {
-                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[name].room && creep.memory.energyDestination === null && creep.memory.hauling === false);
-                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHaulerLarge' && creep.room === Game.spawns[name].room && creep.memory.energyDestination === null && creep.memory.hauling === false);
-                    if (basicHaulerLarge.length !== 0) {
-                        basicHaulerLarge[0].memory.energyDestination = roomStructures[i].id;
-                    } else if (basicHauler.length > 0) {
-                        basicHauler[0].memory.energyDestination = roomStructures[i].id;
-                    }
-                }
-            }
-        }
+
 
     }
 };
