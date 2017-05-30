@@ -70,7 +70,7 @@ module.exports.roomControl = function () {
                         return;
                     }
                 } else {
-                    let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.level !== 0 && creep.ticksToLive < 1000});
+                    let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.level !== 0 && c.ticksToLive < 1000});
                     if (creep.length < 0) {
                         Game.spawns[name].renewCreep(creep);
                     }
