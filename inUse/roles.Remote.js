@@ -6,7 +6,7 @@ let pathing = require('module.pathFinder');
  * @return {null}
  */
 module.exports.RHarvester = function (creep) {
-    if (!Game.flags[creep.memory.destination]){
+    if (!Game.flags[creep.memory.destination]) {
         creepTools.recycle(creep);
         return null;
     }
@@ -45,7 +45,7 @@ module.exports.RHarvester = function (creep) {
             }
         }
     } else {
-        if (creep.memory.source){
+        if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
         } else if (!source) {
             var source = creepTools.findSource(creep);
@@ -63,7 +63,7 @@ module.exports.RHauler = function (creep) {
     if (creepTools.renewal(creep) === true) {
         return null;
     }
-    if (creep.memory.resupply === null || creep.memory.resupply === undefined){
+    if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
         creep.memory.resupply = 'Spawn1';
         return null;
     }
@@ -135,22 +135,18 @@ module.exports.roadBuilder = function (creep) {
         }
     }
 
-    //Haul to spawn/extension
+    //Haul to spawn/extension and build a road
     if (creep.memory.hauling === true) {
-        if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
-            creepTools.findStorage(creep);
+        if (creep.pos.lookFor(LOOK_STRUCTURES).length === 0 && creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+            creep.pos.createConstructionSite(STRUCTURE_ROAD);
+            return null;
+        }
+        if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) {
+            let site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 0);
+            creep.build(site[0]);
+            return null;
         } else {
-            if (creep.pos.lookFor(LOOK_STRUCTURES).length === 0 && creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-                creep.pos.createConstructionSite(STRUCTURE_ROAD);
-                return null;
-            }
-            if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) {
-                let site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 0);
-                creep.build(site[0]);
-                return null;
-            } else {
-                pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
-            }
+            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
         }
     }
 };
