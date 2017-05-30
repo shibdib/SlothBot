@@ -78,8 +78,8 @@ module.exports.creepControl = function () {
         if (creep.memory.role === 'remoteHauler') {
             rolesRemote.RHauler(creep);
         }
-        if (creep.memory.role === 'longRoadBuilder') {
-            rolesRemote.LongRoadBuilder(creep);
+        if (creep.memory.role === 'roadBuilder') {
+            rolesRemote.roadBuilder(creep);
         }
     }
 

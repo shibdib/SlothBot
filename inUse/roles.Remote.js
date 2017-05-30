@@ -104,7 +104,7 @@ module.exports.RHauler = function (creep) {
 /**
  * @return {null}
  */
-module.exports.LongRoadBuilder = function (creep) {
+module.exports.roadBuilder = function (creep) {
     if (creepTools.renewal(creep) === true) {
         return null;
     }
