@@ -26,9 +26,9 @@ module.exports.getPath = function (from, to) {
 };
 
 module.exports.cleanPathCache = function () {
-    if (Memory.pathCache && _.size(Memory.pathCache) > 1500) {
-        for (i = 5; Memory.pathCache < 1500; i++) {
-            if (_.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
+    if (Memory.pathCache && Memory.pathCache.length > 2500) {
+        for (i = 5; Memory.pathCache.length < 2500; i++) {
+            if (Memory.pathCache.length > 2500) { //1500 entries ~= 100kB
                 console.log('Cleaning path cache (usage == ' + i + ')...');
                 let counter = 0;
                 for (let key in Memory.pathCache) {
