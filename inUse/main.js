@@ -35,13 +35,6 @@ module.exports.loop = function () {
             }
         }
 
-        //Tower Management
-        for (let structure of _.values(Game.structures)) {
-            if (structure.structureType === STRUCTURE_TOWER) {
-                towerControl.run(structure);
-            }
-        }
-
         //Room Management
         roomController.roomControl();
 
