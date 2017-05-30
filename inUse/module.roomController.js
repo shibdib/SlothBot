@@ -2,6 +2,7 @@
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
 let militaryFunctions = require('module.militaryFunctions');
+let cache = require('module.cache');
 
 module.exports.roomControl = function () {
 
@@ -76,5 +77,17 @@ module.exports.roomControl = function () {
         //Room Building
         autoBuild.roomBuilding(name);
 
+        //Cache Buildings
+        if (Game.time % 20 === 0) {
+            for (let structures of _.values(Game.structures)) {
+                if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
+                    cache.cacheRoomStructure(structures.id);
+                }
+            }
+        }
+
+        //Hauling
+
+
     }
-}
+};
