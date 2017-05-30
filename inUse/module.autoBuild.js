@@ -103,7 +103,6 @@ function rcl4(spawnName) {
 
     //RCL4 Extensions
     rcl4Extensions(spawn);
-    rcl4Extensions2(spawn);
 
     //RCL4 Storage
     rcl4Storage(spawn);
@@ -174,7 +173,7 @@ function rcl2Extensions(spawn) {
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
             const spawnDistance = build.getRangeTo(spawn);
-            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 8) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -198,7 +197,7 @@ function rcl3Extensions(spawn) {
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
             const spawnDistance = build.getRangeTo(spawn);
-            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 8) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -222,7 +221,7 @@ function rcl4Extensions(spawn) {
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
             const spawnDistance = build.getRangeTo(spawn);
-            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 8) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -243,31 +242,7 @@ function rcl4Extensions(spawn) {
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
             const spawnDistance = build.getRangeTo(spawn);
-            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
-                build.createConstructionSite(STRUCTURE_EXTENSION);
-            }
-        }
-    }
-}
-
-function rcl4Extensions2(spawn) {
-    const pos2 = new RoomPosition(spawn.pos.x - 4, spawn.pos.y - 4, spawn.room.name);
-    let path2 = spawn.room.findPath(spawn.pos, pos2, {
-        costCallback: function (roomName, costMatrix) {
-            const structures = spawn.room.find(FIND_STRUCTURES);
-            for (let i = 0; i < structures.length; i++) {
-                costMatrix.set(structures[i].pos.x, structures[i].pos.y, 0);
-            }
-        },
-        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
-    });
-    for (let i = 0; i < 5; i++) {
-        if (path2[i] !== undefined) {
-            let build = new RoomPosition(path2[i].x, path2[i].y, spawn.room.name);
-            const roadCheck = build.lookFor(LOOK_STRUCTURES);
-            const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-            const spawnDistance = build.getRangeTo(spawn);
-            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 8) {
                 build.createConstructionSite(STRUCTURE_EXTENSION);
             }
         }
@@ -291,7 +266,7 @@ function rcl3Tower(spawn) {
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
             const spawnDistance = build.getRangeTo(spawn);
-            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 4) {
+            if (constructionCheck.length === 0 && roadCheck.length === 0 && spawnDistance > 2 && spawnDistance < 8) {
                 build.createConstructionSite(STRUCTURE_TOWER);
             }
         }
