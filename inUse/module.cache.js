@@ -60,7 +60,7 @@ function getPosKey(pos) {
 module.exports.cacheRoomStructure = function (id) {
     let structure = Game.getObjectById(id);
     let room = structure.room;
-    let cache = Memory.room.structureCache || {};
+    let cache = room.memory.structureCache || {};
     let key = room.name + '.' + structure.pos.x + '.' + structure.pos.y;
     cache[key] = {
         id: structure.id,
@@ -69,7 +69,7 @@ module.exports.cacheRoomStructure = function (id) {
         posX: structure.pos.x,
         posY: structure.pos.y
     };
-    Memory.room.structureCache = cache;
+    room.memory.structureCache = cache;
 };
 
 module.exports.getRoomStructures = function (id, room) {
