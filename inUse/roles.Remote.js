@@ -97,7 +97,8 @@ module.exports.RHauler = function (creep) {
         } else {
             if (creep.pos.lookFor(LOOK_STRUCTURES).length === 0 && creep.pos.lookFor(LOOK_CONSTRUCTION_SITES) === 0) {
                 creep.pos.createConstructionSite(STRUCTURE_ROAD)
-            } else if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES) > 0) {
+            }
+            if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES) > 0) {
                 let site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 0);
                 creep.build(site);
                 return null;
