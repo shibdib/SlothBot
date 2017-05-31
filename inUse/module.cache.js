@@ -61,7 +61,7 @@ module.exports.cacheRoomStructures = function (id) {
     let structure = Game.getObjectById(id);
     if (structure) {
         let room = structure.room;
-        let cache = room.structureCache || {};
+        let cache = room.memory.structureCache || {};
         let key = room.name + '.' + structure.pos.x + '.' + structure.pos.y;
         cache[key] = {
             id: structure.id,

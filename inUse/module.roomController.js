@@ -82,7 +82,10 @@ module.exports.roomControl = function () {
         //Cache Buildings
         for (let structures of _.values(Game.structures)) {
             if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
-                cache.cacheRoomStructures(structures.id);
+                if (Game.spawns[name].room.memory.structureCount !== structures.length) {
+                    Game.spawns[name].room.memory.structureCount = structures.length;
+                    cache.cacheRoomStructures(structures.id);
+                }
             }
         }
 
