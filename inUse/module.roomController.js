@@ -82,10 +82,9 @@ module.exports.roomControl = function () {
         }
 
         //Cache Buildings
-        for (let structures of Game.spawns[name].room.find(FIND_STRUCTURES)) {
-            if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART && structures.structureType !== STRUCTURE_ROAD) {
-                if (Game.spawns[name].memory.structureCount !== structures.length) {
-                    Game.spawns[name].memory.structureCount = structures.length;
+        if (Game.time % 50 === 0) {
+            for (let structures of Game.spawns[name].room.find(FIND_STRUCTURES)) {
+                if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART && structures.structureType !== STRUCTURE_ROAD) {
                     cache.cacheRoomStructures(structures.id);
                 }
             }
