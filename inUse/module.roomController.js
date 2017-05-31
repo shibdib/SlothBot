@@ -77,7 +77,9 @@ module.exports.roomControl = function () {
         respawnCreeps.creepRespawn(name);
 
         //Room Building
-        autoBuild.roomBuilding(name);
+        if (Game.time % 30 === 0) {
+            autoBuild.roomBuilding(name);
+        }
 
         //Cache Buildings
         for (let structures of _.values(Game.structures)) {
