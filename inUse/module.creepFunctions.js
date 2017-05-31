@@ -362,7 +362,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let storages = [];
         for (i = 0; i < storage.length; i++) {
             const object = Game.getObjectById(storage[i]);
-            const storageDistWeighted = object.pos.getRangeTo(creep) * 0.75;
+            const storageDistWeighted = object.pos.getRangeTo(creep) * 1.2;
             storages.push({
                 id: storage[i],
                 distWeighted: storageDistWeighted,
