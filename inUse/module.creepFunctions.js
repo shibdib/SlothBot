@@ -476,7 +476,7 @@ module.exports.findStorage = function (creep) {
         });
     }
     //Storage
-    if (creep.room.energyAvailable > creep.room.energyCapacityAvailable) {
+    if (creep.room.energyAvailable >= creep.room.energyCapacityAvailable) {
         let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
         if (sStorage.length > 0) {
             let storages = [];
@@ -498,7 +498,7 @@ module.exports.findStorage = function (creep) {
         }
     }
     //Tower
-    if (creep.room.energyAvailable > creep.room.energyCapacityAvailable) {
+    if (creep.room.energyAvailable >= creep.room.energyCapacityAvailable) {
         let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
         if (tower.length > 0) {
             let towers = [];
