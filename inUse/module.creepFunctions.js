@@ -374,7 +374,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
             if (object.store[RESOURCE_ENERGY] === 0) {
                 continue;
             }
-            const storageDistWeighted = object.pos.getRangeTo(creep) * 1.2;
+            const storageDistWeighted = object.pos.getRangeTo(creep) * 0.5;
             storages.push({
                 id: storage[i],
                 distWeighted: storageDistWeighted,
