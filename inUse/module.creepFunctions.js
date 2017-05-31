@@ -476,45 +476,49 @@ module.exports.findStorage = function (creep) {
         });
     }
     //Storage
-    let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-    if (sStorage.length > 0) {
-        let storages = [];
-        for (i = 0; i < sStorage.length; i++) {
-            const object = Game.getObjectById(sStorage[i]);
-            const storageDistWeighted = object.pos.getRangeTo(creep) * 0.25;
-            storages.push({
-                id: sStorage[i],
-                distWeighted: storageDistWeighted,
+    if (creep.room.energyAvailable > creep.room.energyCapacityAvailable) {
+        let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+        if (sStorage.length > 0) {
+            let storages = [];
+            for (i = 0; i < sStorage.length; i++) {
+                const object = Game.getObjectById(sStorage[i]);
+                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.25;
+                storages.push({
+                    id: sStorage[i],
+                    distWeighted: storageDistWeighted,
+                    harvest: false
+                });
+            }
+            let bestStorage = _.min(storages, 'distWeighted');
+            storage.push({
+                id: bestStorage.id,
+                distWeighted: bestStorage.distWeighted,
                 harvest: false
             });
         }
-        let bestStorage = _.min(storages, 'distWeighted');
-        storage.push({
-            id: bestStorage.id,
-            distWeighted: bestStorage.distWeighted,
-            harvest: false
-        });
     }
     //Tower
-    let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
-    if (tower.length > 0) {
-        let towers = [];
-        for (i = 0; i < tower.length; i++) {
-            const object = Game.getObjectById(tower[i]);
-            const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-            const towerDistWeighted = (object.pos.getRangeTo(creep) * 0.55) - towerAmountWeighted;
-            towers.push({
-                id: tower[i],
-                distWeighted: towerDistWeighted,
+    if (creep.room.energyAvailable > creep.room.energyCapacityAvailable) {
+        let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
+        if (tower.length > 0) {
+            let towers = [];
+            for (i = 0; i < tower.length; i++) {
+                const object = Game.getObjectById(tower[i]);
+                const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
+                const towerDistWeighted = (object.pos.getRangeTo(creep) * 0.55) - towerAmountWeighted;
+                towers.push({
+                    id: tower[i],
+                    distWeighted: towerDistWeighted,
+                    harvest: false
+                });
+            }
+            let bestTower = _.min(towers, 'distWeighted');
+            storage.push({
+                id: bestTower.id,
+                distWeighted: bestTower.distWeighted,
                 harvest: false
             });
         }
-        let bestTower = _.min(towers, 'distWeighted');
-        storage.push({
-            id: bestTower.id,
-            distWeighted: bestTower.distWeighted,
-            harvest: false
-        });
     }
 
     let sorted = _.min(storage, 'distWeighted');
@@ -527,4 +531,5 @@ module.exports.findStorage = function (creep) {
             }
         }
     }
+
 };
