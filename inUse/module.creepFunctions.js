@@ -357,26 +357,24 @@ module.exports.findEnergy = function (creep, hauler = false) {
         }
     }
     //Storage
-    if (creep.room.energyAvailable < creep.room.energyCapacityAvailable * 0.75) {
-        let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-        if (storage.length > 0) {
-            let storages = [];
-            for (i = 0; i < storage.length; i++) {
-                const object = Game.getObjectById(storage[i]);
-                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.25;
-                storages.push({
-                    id: storage[i],
-                    distWeighted: storageDistWeighted,
-                    harvest: false
-                });
-            }
-            let bestStorage = _.min(storages, 'distWeighted');
-            energy.push({
-                id: bestStorage.id,
-                distWeighted: bestStorage.distWeighted,
+    let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+    if (storage.length > 0) {
+        let storages = [];
+        for (i = 0; i < storage.length; i++) {
+            const object = Game.getObjectById(storage[i]);
+            const storageDistWeighted = object.pos.getRangeTo(creep) * 0.25;
+            storages.push({
+                id: storage[i],
+                distWeighted: storageDistWeighted,
                 harvest: false
             });
         }
+        let bestStorage = _.min(storages, 'distWeighted');
+        energy.push({
+            id: bestStorage.id,
+            distWeighted: bestStorage.distWeighted,
+            harvest: false
+        });
     }
 
     let sorted = _.min(energy, 'distWeighted');
