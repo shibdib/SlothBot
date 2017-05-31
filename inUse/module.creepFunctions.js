@@ -297,6 +297,9 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let containers = [];
         for (i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
+            if (object.store[RESOURCE_ENERGY] === 0) {
+                continue;
+            }
             const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
             const containerDistWeighted = object.pos.getRangeTo(creep) * (1 - containerAmountWeighted);
             containers.push({
@@ -319,6 +322,9 @@ module.exports.findEnergy = function (creep, hauler = false) {
             let spawns = [];
             for (i = 0; i < spawn.length; i++) {
                 const object = Game.getObjectById(spawn[i]);
+                if (object.energy === 0) {
+                    continue;
+                }
                 const spawnDistWeighted = object.pos.getRangeTo(creep) * 5.5;
                 spawns.push({
                     id: spawn[i],
@@ -341,6 +347,9 @@ module.exports.findEnergy = function (creep, hauler = false) {
             let extensions = [];
             for (i = 0; i < extension.length; i++) {
                 const object = Game.getObjectById(extension[i]);
+                if (object.energy === 0) {
+                    continue;
+                }
                 const extensionDistWeighted = object.pos.getRangeTo(creep) * 5.5;
                 extensions.push({
                     id: extension[i],
@@ -362,6 +371,9 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let storages = [];
         for (i = 0; i < storage.length; i++) {
             const object = Game.getObjectById(storage[i]);
+            if (object.store[RESOURCE_ENERGY] === 0) {
+                continue;
+            }
             const storageDistWeighted = object.pos.getRangeTo(creep) * 1.2;
             storages.push({
                 id: storage[i],
