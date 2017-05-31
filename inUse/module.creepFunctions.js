@@ -357,7 +357,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
         }
     }
     //Storage
-    if (creep.room.energyAvailable < creep.room.energyCapacityAvailable) {
+    if (creep.room.energyAvailable < creep.room.energyCapacityAvailable * 0.75) {
         let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
         if (storage.length > 0) {
             let storages = [];
