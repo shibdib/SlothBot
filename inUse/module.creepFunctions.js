@@ -491,7 +491,7 @@ module.exports.findStorage = function (creep) {
             let storages = [];
             for (i = 0; i < sStorage.length; i++) {
                 const object = Game.getObjectById(sStorage[i]);
-                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.25;
+                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.15;
                 storages.push({
                     id: sStorage[i],
                     distWeighted: storageDistWeighted,
