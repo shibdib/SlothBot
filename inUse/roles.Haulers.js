@@ -130,6 +130,7 @@ module.exports.BasicHauler = function (creep) {
                 pathing.Move(creep, storageItem);
             } else {
                 creep.memory.storageDestination = null;
+                creep.memory.path = null;
             }
             return null;
         }
