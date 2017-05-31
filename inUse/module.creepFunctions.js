@@ -448,7 +448,7 @@ module.exports.findStorage = function (creep) {
             if (object.energy === object.energyCapacity) {
                 continue;
             }
-            const spawnDistWeighted = object.pos.getRangeTo(creep) * 0.15;
+            const spawnDistWeighted = object.pos.getRangeTo(creep) * 0.01;
             spawns.push({
                 id: spawn[i],
                 distWeighted: spawnDistWeighted,
@@ -471,7 +471,7 @@ module.exports.findStorage = function (creep) {
             if (object.energy === object.energyCapacity) {
                 continue;
             }
-            const extensionDistWeighted = object.pos.getRangeTo(creep) * 0.15;
+            const extensionDistWeighted = object.pos.getRangeTo(creep) * 0.01;
             extensions.push({
                 id: extension[i],
                 distWeighted: extensionDistWeighted,
@@ -486,7 +486,6 @@ module.exports.findStorage = function (creep) {
         });
     }
     //Storage
-    if (creep.room.energyAvailable >= creep.room.energyCapacityAvailable) {
         let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
         if (sStorage.length > 0) {
             let storages = [];
@@ -506,9 +505,7 @@ module.exports.findStorage = function (creep) {
                 harvest: false
             });
         }
-    }
     //Tower
-    if (creep.room.energyAvailable >= creep.room.energyCapacityAvailable) {
         let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
         if (tower.length > 0) {
             let towers = [];
@@ -529,7 +526,6 @@ module.exports.findStorage = function (creep) {
                 harvest: false
             });
         }
-    }
 
     let sorted = _.min(storage, 'distWeighted');
     if (sorted) {
