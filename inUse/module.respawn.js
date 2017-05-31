@@ -416,7 +416,7 @@ function rcl4(spawnName) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
                 const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
-                const creeps = _.filter(Game.creeps);
+                const creeps = _.filter(Game.creeps, (creep) => creep.room === Game.spawns[spawnName].room);
                 const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
                 const peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant' && creep.room === Game.spawns[spawnName].room);
                 const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
@@ -424,7 +424,7 @@ function rcl4(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 1000 || (peasant === 0 && stationaryHarvester === 0)) {
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 1000 || (peasant === 0 && stationaryHarvester === 0) || creeps.length < 4) {
                     collapsePrevention(spawnName);
                     return;
                 }
