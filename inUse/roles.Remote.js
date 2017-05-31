@@ -57,9 +57,6 @@ module.exports.RHarvester = function (creep) {
  * @return {null}
  */
 module.exports.RHauler = function (creep) {
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
     if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
         creep.memory.resupply = 'Spawn1';
         return null;
@@ -102,9 +99,6 @@ module.exports.RHauler = function (creep) {
  * @return {null}
  */
 module.exports.roadBuilder = function (creep) {
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
     if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
         creep.memory.resupply = 'Spawn1';
         return null;

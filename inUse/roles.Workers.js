@@ -9,11 +9,6 @@ module.exports.Worker = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
 
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
-
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
@@ -59,12 +54,6 @@ module.exports.Harvester = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
 
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        creep.drop(RESOURCE_ENERGY);
-        return null;
-    }
-
     if (creep.carry.energy === creep.carryCapacity) {
         let containerID = creepTools.harvestDeposit(creep);
         if (containerID) {
@@ -104,11 +93,6 @@ module.exports.Harvester = function (creep) {
 module.exports.wallRepairer = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
@@ -160,11 +144,6 @@ module.exports.wallRepairer = function (creep) {
 module.exports.Upgrader = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;

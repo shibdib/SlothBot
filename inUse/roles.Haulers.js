@@ -9,10 +9,6 @@ module.exports.Hauler = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
 
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
 
     if (!Game.getObjectById(creep.memory.assignedContainer)) {
         creep.memory.recycle = true;
@@ -52,11 +48,6 @@ module.exports.Hauler = function (creep) {
 module.exports.DumpTruck = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
 
     //SET HAULING STATE
     if (creep.carry.energy === 0) {
@@ -105,11 +96,6 @@ module.exports.DumpTruck = function (creep) {
 module.exports.BasicHauler = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
