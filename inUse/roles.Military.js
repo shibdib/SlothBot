@@ -144,6 +144,10 @@ module.exports.Attacker = function (creep) {
 module.exports.Claimer = function (creep) {
     const attackers = _.filter(Game.creeps, (attackers) => attackers.memory.role === 'claimer' && attackers.room === creep.room);
 
+    if (!Game.flags[creep.memory.attackTarget]) {
+        creep.suicide();
+    }
+
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
     if (closestHostileSpawn) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
@@ -169,6 +173,10 @@ module.exports.Claimer = function (creep) {
  */
 module.exports.Reserver = function (creep) {
     //Initial move
+
+    if (!Game.flags[creep.memory.destination]) {
+        creep.suicide();
+    }
     if (!creep.memory.destinationReached) {
         pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
