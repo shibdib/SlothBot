@@ -448,7 +448,7 @@ module.exports.findStorage = function (creep) {
             if (object.energy === object.energyCapacity) {
                 continue;
             }
-            const spawnDistWeighted = object.pos.getRangeTo(creep) * 0.05;
+            const spawnDistWeighted = object.pos.getRangeTo(creep) * 0;
             spawns.push({
                 id: spawn[i],
                 distWeighted: spawnDistWeighted,
@@ -471,7 +471,7 @@ module.exports.findStorage = function (creep) {
             if (object.energy === object.energyCapacity) {
                 continue;
             }
-            const extensionDistWeighted = object.pos.getRangeTo(creep) * 0.05;
+            const extensionDistWeighted = object.pos.getRangeTo(creep) * 0;
             extensions.push({
                 id: extension[i],
                 distWeighted: extensionDistWeighted,
