@@ -650,8 +650,8 @@ function collapsePrevention(spawnName) {
     });
 
     for (let i = 0; i < sources.length; i++) {
-        const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
-        if (stationaryHarvester.length < sourceCount && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
+        let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+        if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester') === OK) {
             Game.spawns[spawnName].createCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester', {
                 role: 'stationaryHarvester',
                 assignedSpawn: Game.spawns[spawnName].id,
