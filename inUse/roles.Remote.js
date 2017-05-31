@@ -10,9 +10,6 @@ module.exports.RHarvester = function (creep) {
         creepTools.recycle(creep);
         return null;
     }
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
     //Initial move
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
