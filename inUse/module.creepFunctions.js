@@ -491,12 +491,14 @@ module.exports.findStorage = function (creep) {
             let storages = [];
             for (i = 0; i < sStorage.length; i++) {
                 const object = Game.getObjectById(sStorage[i]);
-                const storageDistWeighted = object.pos.getRangeTo(creep) * 2;
-                storages.push({
-                    id: sStorage[i],
-                    distWeighted: storageDistWeighted,
-                    harvest: false
-                });
+                if (object.pos.getRangeTo(creep) !== 1) {
+                    const storageDistWeighted = object.pos.getRangeTo(creep) * 2;
+                    storages.push({
+                        id: sStorage[i],
+                        distWeighted: storageDistWeighted,
+                        harvest: false
+                    });
+                }
             }
             let bestStorage = _.min(storages, 'distWeighted');
             storage.push({
