@@ -157,8 +157,9 @@ function roadSources(spawn){
 }
 
 function rcl2Extensions(spawn) {
-    const pos = new RoomPosition(spawn.pos.x-4, spawn.pos.y-4, spawn.room.name);
-    let path = spawn.room.findPath(spawn.pos, pos, {
+    const pos = new RoomPosition(spawn.pos.x - 2, spawn.pos.y - 1, spawn.room.name);
+    const pos2 = new RoomPosition(spawn.pos.x - 2, spawn.pos.y - 5, spawn.room.name);
+    let path = spawn.room.findPath(pos, pos2, {
         costCallback: function (roomName, costMatrix) {
             const structures = spawn.room.find(FIND_STRUCTURES);
             for (let i = 0; i < structures.length; i++) {
@@ -167,7 +168,7 @@ function rcl2Extensions(spawn) {
         },
         maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
     });
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
         if (path[i] !== undefined) {
             let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
@@ -250,7 +251,7 @@ function rcl4Extensions(spawn) {
 }
 
 function rcl3Tower(spawn) {
-    const pos = new RoomPosition(spawn.pos.x-4, spawn.pos.y+4, spawn.room.name);
+    const pos = new RoomPosition(spawn.pos.x - 2, spawn.pos.y + 2, spawn.room.name);
     let path = spawn.room.findPath(spawn.pos, pos, {
         costCallback: function (roomName, costMatrix) {
             const structures = spawn.room.find(FIND_STRUCTURES);
@@ -260,7 +261,7 @@ function rcl3Tower(spawn) {
         },
         maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
     });
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
         if (path[i] !== undefined) {
             let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
             const roadCheck = build.lookFor(LOOK_STRUCTURES);
@@ -274,25 +275,25 @@ function rcl3Tower(spawn) {
 }
 
 function rcl4Storage(spawn) {
-    let pos = new RoomPosition(spawn.room.controller.pos.x, spawn.room.controller.pos.y - 2, spawn.room.name);
+    let pos = new RoomPosition(spawn.room.controller.pos.x, spawn.room.controller.pos.y - 4, spawn.room.name);
     if (Game.map.getTerrainAt(pos) !== 'wall') {
         if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
             pos.createConstructionSite(STRUCTURE_STORAGE);
         }
     } else {
-        let pos = new RoomPosition(spawn.room.controller.pos.x, spawn.room.controller.pos.y + 2, spawn.room.name);
+        let pos = new RoomPosition(spawn.room.controller.pos.x, spawn.room.controller.pos.y + 4, spawn.room.name);
         if (Game.map.getTerrainAt(pos) !== 'wall') {
             if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
                 pos.createConstructionSite(STRUCTURE_STORAGE);
             }
         } else {
-            let pos = new RoomPosition(spawn.room.controller.pos.x - 2, spawn.room.controller.pos.y, spawn.room.name);
+            let pos = new RoomPosition(spawn.room.controller.pos.x - 4, spawn.room.controller.pos.y, spawn.room.name);
             if (Game.map.getTerrainAt(pos) !== 'wall') {
                 if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
                     pos.createConstructionSite(STRUCTURE_STORAGE);
                 }
             } else {
-                let pos = new RoomPosition(spawn.room.controller.pos.x + 2, spawn.room.controller.pos.y, spawn.room.name);
+                let pos = new RoomPosition(spawn.room.controller.pos.x + 4, spawn.room.controller.pos.y, spawn.room.name);
                 if (Game.map.getTerrainAt(pos) !== 'wall') {
                     if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
                         pos.createConstructionSite(STRUCTURE_STORAGE);

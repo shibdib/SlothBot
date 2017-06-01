@@ -479,7 +479,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
                                     role: 'attacker',
                                     assignedSpawn: Game.spawns[spawnName].id,
-                                    level: 3,
+                                    level: 4,
                                     attackTarget: Game.flags[attack].name,
                                     waitForHealers: (i),
                                     waitForAttackers: (i * 2)
