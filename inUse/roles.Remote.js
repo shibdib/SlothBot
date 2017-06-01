@@ -87,7 +87,14 @@ module.exports.RHauler = function (creep) {
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
         if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
-            creepTools.findStorage(creep);
+            let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
+            if (storage) {
+                if (creep.transfer(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, storage, false, 1);
+                }
+            } else {
+                creepTools.findStorage(creep);
+            }
         } else {
             pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
         }
