@@ -47,6 +47,10 @@ module.exports.Healer = function (creep) {
         return null;
     }
 
+    if (!Game.flags[creep.memory.destination]) {
+        creep.suicide();
+    }
+
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
     if (targets.length > 0) {
