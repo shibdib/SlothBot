@@ -13,6 +13,7 @@ module.exports.roomControl = function () {
             //autoBuild.run(name);
             if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
                 militaryFunctions.buildWalls(Game.spawns[name]);
+                militaryFunctions.borderWalls(Game.spawns[name]);
                 //militaryFunctions.roadNetwork(Game.spawns[name]);
             }
         }
