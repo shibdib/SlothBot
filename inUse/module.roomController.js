@@ -54,22 +54,9 @@ module.exports.roomControl = function () {
                 Game.spawns[name].recycleCreep(creep[0]);
             } else {
                 let creep = _.min(Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1), 'ticksToLive');
-                if (creep.body && creep.memory.renew === true) {
-                    let cost = _.sum(creep.body, p => BODYPART_COST[p.type]);
-                    let totalParts = creep.body.length;
-                    let renewPerTick = Math.floor(600 / totalParts);
-                    let costPerRenew = Math.ceil(cost / 2.5 / totalParts);
-                    let renewCost = ((1000 - creep.ticksToLive) / renewPerTick) * costPerRenew;
-                    if (renewCost < cost - (cost * 0.34)) {
-                        Game.spawns[name].renewCreep(creep);
-                        if (creep.ticksToLive > 1000) {
-                            creep.memory.renew = false;
-                        }
-                        return;
-                    } else {
-                        Game.spawns[name].recycleCreep(creep);
-                        return;
-                    }
+                if (creep.ticksToLive < 1000) {
+                    Game.spawns[name].renewCreep(creep);
+                    return;
                 }
             }
         }
@@ -95,4 +82,5 @@ module.exports.roomControl = function () {
 
 
     }
-};
+}
+;
