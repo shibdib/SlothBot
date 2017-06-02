@@ -424,7 +424,7 @@ function rcl4(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 1000 || (peasant === 0 && stationaryHarvester === 0) || creeps.length < 4) {
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 1000 || (peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
                     return;
                 }
