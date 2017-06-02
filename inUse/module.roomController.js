@@ -52,13 +52,14 @@ module.exports.roomControl = function () {
             let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1);
             if (creep.length > 0 && creep[0].memory.recycle === true) {
                 Game.spawns[name].recycleCreep(creep[0]);
-            } else {
+            }
+            /** else {
                 let creep = _.min(Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1), 'ticksToLive');
                 if (creep.ticksToLive < 1000) {
                     Game.spawns[name].renewCreep(creep);
                     return;
                 }
-            }
+            }**/
         }
 
         //Creep spawning
