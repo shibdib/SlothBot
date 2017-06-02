@@ -389,6 +389,30 @@ module.exports.findEnergy = function (creep, hauler = false) {
         });
     }
 
+    //Tower
+    let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
+    if (tower.length > 0) {
+        let towers = [];
+        for (i = 0; i < tower.length; i++) {
+            const object = Game.getObjectById(tower[i]);
+            if (object.store[RESOURCE_ENERGY] === 0) {
+                continue;
+            }
+            const towerDistWeighted = object.pos.getRangeTo(creep) * 100;
+            towers.push({
+                id: tower[i],
+                distWeighted: towerDistWeighted,
+                harvest: false
+            });
+        }
+        let bestTower = _.min(towers, 'distWeighted');
+        energy.push({
+            id: bestTower.id,
+            distWeighted: bestTower.distWeighted,
+            harvest: false
+        });
+    }
+
     let sorted = _.min(energy, 'distWeighted');
 
     if (sorted) {
