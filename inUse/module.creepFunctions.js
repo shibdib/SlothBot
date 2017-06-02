@@ -500,7 +500,7 @@ module.exports.findStorage = function (creep) {
                 if (object.energy === object.energyCapacity) {
                     continue;
                 }
-                const extensionDistWeighted = object.pos.getRangeTo(creep) * 0.5;
+                const extensionDistWeighted = object.pos.getRangeTo(creep) * 0.3;
                 extensions.push({
                     id: extension[i],
                     distWeighted: extensionDistWeighted,
