@@ -395,7 +395,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let towers = [];
         for (i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
-            if (object.store[RESOURCE_ENERGY] === 0) {
+            if (object.energy === 0) {
                 continue;
             }
             const towerDistWeighted = object.pos.getRangeTo(creep) * 100;
