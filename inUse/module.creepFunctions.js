@@ -297,16 +297,18 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let containers = [];
         for (i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
-            if (object.store[RESOURCE_ENERGY] === 0) {
-                continue;
+            if (object) {
+                if (object.store[RESOURCE_ENERGY] === 0) {
+                    continue;
+                }
+                const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
+                const containerDistWeighted = object.pos.getRangeTo(creep) * (1 - containerAmountWeighted);
+                containers.push({
+                    id: container[i],
+                    distWeighted: containerDistWeighted,
+                    harvest: false
+                });
             }
-            const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-            const containerDistWeighted = object.pos.getRangeTo(creep) * (1 - containerAmountWeighted);
-            containers.push({
-                id: container[i],
-                distWeighted: containerDistWeighted,
-                harvest: false
-            });
         }
         let bestContainer = _.min(containers, 'distWeighted');
         energy.push({
@@ -322,15 +324,17 @@ module.exports.findEnergy = function (creep, hauler = false) {
             let spawns = [];
             for (i = 0; i < spawn.length; i++) {
                 const object = Game.getObjectById(spawn[i]);
-                if (object.energy === 0) {
-                    continue;
+                if (object) {
+                    if (object.energy === 0) {
+                        continue;
+                    }
+                    const spawnDistWeighted = object.pos.getRangeTo(creep) * 5.5;
+                    spawns.push({
+                        id: spawn[i],
+                        distWeighted: spawnDistWeighted,
+                        harvest: false
+                    });
                 }
-                const spawnDistWeighted = object.pos.getRangeTo(creep) * 5.5;
-                spawns.push({
-                    id: spawn[i],
-                    distWeighted: spawnDistWeighted,
-                    harvest: false
-                });
             }
             let bestSpawn = _.min(spawns, 'distWeighted');
             energy.push({
@@ -347,15 +351,17 @@ module.exports.findEnergy = function (creep, hauler = false) {
             let extensions = [];
             for (i = 0; i < extension.length; i++) {
                 const object = Game.getObjectById(extension[i]);
-                if (object.energy === 0) {
-                    continue;
+                if (object) {
+                    if (object.energy === 0) {
+                        continue;
+                    }
+                    const extensionDistWeighted = object.pos.getRangeTo(creep) * 5.5;
+                    extensions.push({
+                        id: extension[i],
+                        distWeighted: extensionDistWeighted,
+                        harvest: false
+                    });
                 }
-                const extensionDistWeighted = object.pos.getRangeTo(creep) * 5.5;
-                extensions.push({
-                    id: extension[i],
-                    distWeighted: extensionDistWeighted,
-                    harvest: false
-                });
             }
             let bestExtension = _.min(extensions, 'distWeighted');
             energy.push({
@@ -371,15 +377,18 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let storages = [];
         for (i = 0; i < storage.length; i++) {
             const object = Game.getObjectById(storage[i]);
-            if (object.store[RESOURCE_ENERGY] === 0) {
-                continue;
+
+            if (object) {
+                if (object.store[RESOURCE_ENERGY] === 0) {
+                    continue;
+                }
+                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.5;
+                storages.push({
+                    id: storage[i],
+                    distWeighted: storageDistWeighted,
+                    harvest: false
+                });
             }
-            const storageDistWeighted = object.pos.getRangeTo(creep) * 0.5;
-            storages.push({
-                id: storage[i],
-                distWeighted: storageDistWeighted,
-                harvest: false
-            });
         }
         let bestStorage = _.min(storages, 'distWeighted');
         energy.push({
@@ -395,15 +404,18 @@ module.exports.findEnergy = function (creep, hauler = false) {
         let towers = [];
         for (i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
-            if (object.energy === 0) {
-                continue;
+
+            if (object) {
+                if (object.energy === 0) {
+                    continue;
+                }
+                const towerDistWeighted = object.pos.getRangeTo(creep) * 100;
+                towers.push({
+                    id: tower[i],
+                    distWeighted: towerDistWeighted,
+                    harvest: false
+                });
             }
-            const towerDistWeighted = object.pos.getRangeTo(creep) * 100;
-            towers.push({
-                id: tower[i],
-                distWeighted: towerDistWeighted,
-                harvest: false
-            });
         }
         let bestTower = _.min(towers, 'distWeighted');
         energy.push({
