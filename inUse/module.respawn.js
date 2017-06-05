@@ -416,6 +416,8 @@ function rcl4(spawnName) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
                 const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+                const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.room === Game.spawns[spawnName].room);
+                const upgrader = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.room === Game.spawns[spawnName].room);
                 const creeps = _.filter(Game.creeps, (creep) => creep.room === Game.spawns[spawnName].room);
                 const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
                 const peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant' && creep.room === Game.spawns[spawnName].room);
@@ -430,7 +432,7 @@ function rcl4(spawnName) {
                 }
 
                 //SCOUT RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 20; i++) {
                         let scout = 'scout' + i;
                         if (Game.flags[scout]) {
@@ -450,7 +452,7 @@ function rcl4(spawnName) {
                 }
 
                 //RAIDER RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let raid = 'raid' + i;
                         if (Game.flags[raid]) {
@@ -470,7 +472,7 @@ function rcl4(spawnName) {
                 }
 
                 //ATTACK RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let attack = 'attack' + i;
                         if (Game.flags[attack]) {
@@ -505,7 +507,7 @@ function rcl4(spawnName) {
                 }
 
                 //RESERVE RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let reserve = 'reserve' + i;
                         if (Game.flags[reserve]) {
@@ -587,7 +589,7 @@ function rcl4(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (stationaryHarvester.length >= sourceCount) {
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
                         if (Game.flags[remote]) {
