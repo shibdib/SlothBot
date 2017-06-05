@@ -43,7 +43,7 @@ module.exports.checkPos = function (pos) {
             case LOOK_RESOURCES:
             case LOOK_FLAGS:
             case LOOK_CONSTRUCTION_SITES:
-                if (atPos[i].lookFor(LOOK_CONSTRUCTION_SITES).length > 0)
+                if (atPos[i].constructionSite !== undefined)
                     return false;
                 break;
             default:
