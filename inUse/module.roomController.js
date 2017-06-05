@@ -39,15 +39,6 @@ module.exports.roomControl = function () {
         }
 
         //RENEWAL/RECYCLE CHECK
-        //Mark old creeps for recycling
-        let legacyCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level === undefined || creep.memory.level === null);
-        for (let i = 0; i < legacyCreeps.length; i++) {
-            legacyCreeps[i].memory.level = level;
-        }
-        let recycleCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[name].id && creep.memory.level < level && creep.memory.level !== 0);
-        for (let i = 0; i < recycleCreeps.length; i++) {
-            recycleCreeps[i].memory.recycle = true;
-        }
         if (!Game.spawns[name].spawning) {
             let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1);
             if (creep.length > 0 && creep[0].memory.recycle === true) {
