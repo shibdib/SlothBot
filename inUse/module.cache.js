@@ -32,7 +32,7 @@ module.exports.cleanPathCache = function () {
     let tick = Game.time;
     for (let key in Memory.pathCache) {
         let cached = Memory.pathCache[key];
-        if (cached.tick + 100 < tick) {
+        if (cached.tick + 100 < tick || cached.tick === undefined) {
             Memory.pathCache[key] = undefined;
             counter += 1;
         }
