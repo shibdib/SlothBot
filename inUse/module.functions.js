@@ -20,3 +20,34 @@ module.exports.convertPath = function (path)
     }
     return result;
 };
+
+module.exports.checkPos = function (pos) {
+    let atPos = pos.look();
+    let SWAMP = "swamp";
+    let PLAIN = "plain";
+    for (let i = 0; i < atPos.length; i++) {
+        switch (atPos[i].type) {
+            case LOOK_TERRAIN:
+                if (atPos[i].terrain !== PLAIN && atPos[i].terrain !== SWAMP)
+                    return false;
+                break;
+            case LOOK_STRUCTURES:
+                if (OBSTACLE_OBJECT_TYPES.includes(atPos[i].structure.structureType))
+                    return false;
+                break;
+            case LOOK_CREEPS:
+            case LOOK_SOURCES:
+            case LOOK_MINERALS:
+            case LOOK_NUKES:
+            case LOOK_ENERGY:
+            case LOOK_RESOURCES:
+            case LOOK_FLAGS:
+            case LOOK_CONSTRUCTION_SITES:
+                if (atPos[i].lookFor(LOOK_CONSTRUCTION_SITES).length > 0)
+                    return false;
+                break;
+            default:
+        }
+    }
+    return true;
+};
