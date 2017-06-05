@@ -4,18 +4,20 @@
 module.exports.cachePath = function (from, to, path) {
     let key = getPathKey(from, to);
     let cache = Memory.pathCache || {};
+    let tick = Game.time;
     cache[key] = {
         path: path,
-        uses: 1
+        uses: 1,
+        tick: tick
     };
     Memory.pathCache = cache;
 };
 
 module.exports.getPath = function (from, to) {
     let cache = Memory.pathCache;
-    if(cache) {
+    if (cache) {
         let cachedPath = cache[getPathKey(from, to)];
-        if(cachedPath) {
+        if (cachedPath) {
             cachedPath.uses += 1;
             Memory.pathCache = cache;
             return cachedPath;
@@ -26,20 +28,13 @@ module.exports.getPath = function (from, to) {
 };
 
 module.exports.cleanPathCache = function () {
-    if (Memory.pathCache && _.size(Memory.pathCache) > 1500) {
-        for (i = 5; Memory.pathCache < 1500; i++) {
-            if (_.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
-                console.log('Cleaning path cache (usage == ' + i + ')...');
-                let counter = 0;
-                for (let key in Memory.pathCache) {
-                    let cached = Memory.pathCache[key];
-                    if (cached.uses <= i) {
-                        Memory.pathCache[key] = undefined;
-                        counter += 1;
-                    }
-                }
-                Game.notify('Path cache of usage ' + i + ' cleaned! ' + counter + ' paths removed', 6 * 60);
-            }
+    let counter = 0;
+    let tick = Game.time;
+    for (let key in Memory.pathCache) {
+        let cached = Memory.pathCache[key];
+        if (cached.tick + 100 < tick) {
+            Memory.pathCache[key] = undefined;
+            counter += 1;
         }
     }
 };

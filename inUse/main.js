@@ -15,7 +15,7 @@ module.exports.loop = function () {
     profiler.wrap(function () {
 
         //CLEANUP
-        //cache.cleanPathCache(); //clean path cache
+        cache.cleanPathCache(); //clean path cache
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
                 delete Memory.creeps[name];
