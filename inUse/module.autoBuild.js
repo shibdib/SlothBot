@@ -117,7 +117,8 @@ function buildLinks(spawn) {
     let containers = spawn.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (storage.length > 0) {
         let storageLink = storage[0].pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
-        if (storageLink.length === 0) {
+        let storageLinkInBuild = storage[0].pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
+        if (storageLink.length === 0 && storageLinkInBuild.length === 0) {
             const pos = new RoomPosition(storage[0].pos.x + 1, storage[0].pos.y, storage[0].room.name);
             const pos2 = new RoomPosition(storage[0].pos.x - 1, storage[0].pos.y, storage[0].room.name);
             if (functions.checkPos(pos) !== false) {
@@ -131,7 +132,8 @@ function buildLinks(spawn) {
     if (containers.length > 0) {
         for (let i = 0; i < containers.length; i++) {
             let containerLink = containers[i].pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
-            if (containerLink.length === 0) {
+            let containerLinkInBuild = storage[0].pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
+            if (containerLink.length === 0 && containerLinkInBuild.length === 0) {
                 const pos = new RoomPosition(containers[i].pos.x + 1, containers[i].pos.y, containers[i].room.name);
                 const pos2 = new RoomPosition(containers[i].pos.x - 1, containers[i].pos.y, containers[i].room.name);
                 if (functions.checkPos(pos) !== false) {
