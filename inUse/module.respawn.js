@@ -22,16 +22,16 @@ module.exports.creepRespawn = function (spawnName) {
         rcl4(spawnName);
     }
     if (level === 5) {
-        rcl4(spawnName);
+        rcl5(spawnName);
     }
     if (level === 6) {
-        rcl4(spawnName);
+        rcl5(spawnName);
     }
     if (level === 7) {
-        rcl4(spawnName);
+        rcl5(spawnName);
     }
     if (level === 8) {
-        rcl4(spawnName);
+        rcl5(spawnName);
     }
 };
 
@@ -111,8 +111,13 @@ function rcl2(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if (creeps.length <= 6 || Game.spawns[spawnName].room.energyCapacityAvailable < 400 || (peasant === 0 && stationaryHarvester === 0)) {
+                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
+                    return;
+                }
+
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400) {
+                    rcl1(spawnName);
                     return;
                 }
 
@@ -210,8 +215,14 @@ function rcl3(spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 800 || (peasant.length === 0 && stationaryHarvester.length === 0)) {
+
+                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
+                    return;
+                }
+
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 800) {
+                    rcl2(spawnName);
                     return;
                 }
 
@@ -426,8 +437,13 @@ function rcl4(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 1000 || (peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
+                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
+                    return;
+                }
+
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 1300) {
+                    rcl3(spawnName);
                     return;
                 }
 
@@ -607,6 +623,243 @@ function rcl4(spawnName) {
                                 return;
                             } else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler') === OK) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
+                                    role: 'remoteHauler',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 4,
+                                    destination: remote
+                                });
+                                console.log('Spawning a remoteHauler');
+                                return;
+                            }
+                            /**else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'remoteHauler') === OK) {
+                                Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'remoteHauler', {
+                                    role: 'remoteHauler',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 3,
+                                    destination: remote
+                                });
+                                console.log('Spawning a remoteHauler');
+                                return;
+                            }**/
+                        }
+                    }
+                }
+
+            } else if (Game.spawns[spawnName].spawning) {
+                let spawningCreep = Game.creeps[Game.spawns[spawnName].spawning.name];
+                Game.spawns[spawnName].room.visual.text(
+                    spawningCreep.memory.role,
+                    Game.spawns[spawnName].pos.x + 1,
+                    Game.spawns[spawnName].pos.y,
+                    {align: 'left', opacity: 0.8});
+            }
+        }
+    }
+}
+
+function rcl5(spawnName) {
+
+    ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
+    if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
+        if (Game.spawns[spawnName].memory.defenseMode !== true) {
+            if (!Game.spawns[spawnName].spawning) {
+                const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+                const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.room === Game.spawns[spawnName].room);
+                const upgrader = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.room === Game.spawns[spawnName].room);
+                const creeps = _.filter(Game.creeps, (creep) => creep.room === Game.spawns[spawnName].room);
+                const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
+                const peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant' && creep.room === Game.spawns[spawnName].room);
+                const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
+                const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
+                    filter: {structureType: STRUCTURE_CONTAINER}
+                });
+
+                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
+                    collapsePrevention(spawnName);
+                    return;
+                }
+
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 1800) {
+                    rcl4(spawnName);
+                    return;
+                }
+
+                //SCOUT RESPAWNS
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
+                    for (let i = 0; i < 20; i++) {
+                        let scout = 'scout' + i;
+                        if (Game.flags[scout]) {
+                            let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[scout].name && creep.memory.role === 'scout');
+                            if (scouts.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE], generatedNumber + 'scout') === OK) {
+                                Game.spawns[spawnName].createCreep([MOVE, MOVE], generatedNumber + 'scout', {
+                                    role: 'scout',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 0,
+                                    destination: Game.flags[scout].name,
+                                });
+                                console.log('Spawning a scout');
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                //RAIDER RESPAWNS
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
+                    for (let i = 0; i < 10; i++) {
+                        let raid = 'raid' + i;
+                        if (Game.flags[raid]) {
+                            let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[raid].name && creep.memory.role === 'raider');
+                            if (attackers.length < i && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, HEAL], generatedNumber + 'raider') === OK) {
+                                Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, HEAL], generatedNumber + 'raider', {
+                                    role: 'raider',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 4,
+                                    attackTarget: Game.flags[raid].name,
+                                });
+                                console.log('Spawning a raider');
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                //ATTACK RESPAWNS
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
+                    for (let i = 0; i < 10; i++) {
+                        let attack = 'attack' + i;
+                        if (Game.flags[attack]) {
+                            let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
+                            if (attackers.length < (i * 2) && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker') === OK) {
+                                Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
+                                    role: 'attacker',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 4,
+                                    attackTarget: Game.flags[attack].name,
+                                    waitForHealers: (i),
+                                    waitForAttackers: (i * 2)
+                                });
+                                console.log('Spawning a attacker');
+                                return;
+                            }
+                            let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
+                            if (healer.length < i && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL, HEAL], generatedNumber + 'healer') === OK) {
+                                Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL, HEAL], generatedNumber + 'healer', {
+                                    role: 'healer',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 4,
+                                    attackTarget: Game.flags[attack].name,
+                                    waitForHealers: (i),
+                                    waitForAttackers: (i * 2)
+                                });
+                                console.log('Spawning a healer');
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                //RESERVE RESPAWNS
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
+                    for (let i = 0; i < 10; i++) {
+                        let reserve = 'reserve' + i;
+                        if (Game.flags[reserve]) {
+                            let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
+                            if (reserver.length < 1 && Game.spawns[spawnName].canCreateCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
+                                Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
+                                    role: 'reserver',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 4,
+                                    destination: reserve
+                                });
+                                console.log('Spawning a reserver');
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                //HAULER RESPAWNS
+                if (stationaryHarvester.length >= sourceCount) {
+                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
+                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHaulerLarge' && creep.room === Game.spawns[spawnName].room);
+                    if (basicHauler.length < 3 && basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
+                            role: 'basicHauler',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 0,
+                        });
+                        console.log('Spawning a basicHauler');
+                        return;
+                    }
+                    if (basicHaulerLarge.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'basicHaulerLarge') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'basicHaulerLarge', {
+                            role: 'basicHaulerLarge',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a basicHaulerLarge');
+                        return;
+                    }
+                }
+
+                //HARVESTER RESPAWNS
+                for (let i = 0; i < sources.length; i++) {
+                    let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+                    if (harvester.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester', {
+                            role: 'stationaryHarvester',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                            assignedSource: sources[i].id
+                        });
+                        console.log('Spawning a stationaryHarvester');
+                        return;
+                    }
+                }
+
+                //WORKER RESPAWNS
+                if (stationaryHarvester.length >= sourceCount) {
+                    const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.room === Game.spawns[spawnName].room);
+                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.room === Game.spawns[spawnName].room);
+                    if (worker.length < 1 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
+                            role: 'worker',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a worker');
+                        return;
+                    } else if (upgraders.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader', {
+                            role: 'upgrader',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a upgrader');
+                        return;
+                    }
+                }
+
+                //REMOTE RESPAWN
+                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
+                    for (let i = 0; i < 10; i++) {
+                        let remote = 'remote' + i;
+                        if (Game.flags[remote]) {
+                            let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
+                            let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
+                            let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
+                            if (remoteHarvester.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'remoteHarvester') === OK) {
+                                Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'remoteHarvester', {
+                                    role: 'remoteHarvester',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    level: 4,
+                                    destination: remote
+                                });
+                                console.log('Spawning a remoteHarvester');
+                                return;
+                            } else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler') === OK) {
+                                Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
                                     role: 'remoteHauler',
                                     assignedSpawn: Game.spawns[spawnName].id,
                                     level: 4,
