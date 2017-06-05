@@ -63,6 +63,7 @@ module.exports.roomControl = function () {
 
         //Cache Buildings
         if (Game.time % 50 === 0) {
+            Game.spawns[name].room.memory.structureCache = undefined;
             for (let structures of Game.spawns[name].room.find(FIND_STRUCTURES)) {
                 if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART && structures.structureType !== STRUCTURE_ROAD) {
                     cache.cacheRoomStructures(structures.id);
