@@ -127,21 +127,20 @@ function buildLinks(spawn) {
                 pos2.createConstructionSite(STRUCTURE_LINK);
             }
             return null;
-        }
-    }
-    if (containers.length > 0) {
-        for (let i = 0; i < containers.length; i++) {
-            let containerLink = containers[i].pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
-            let containerLinkInBuild = storage[0].pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
-            if (containerLink.length === 0 && containerLinkInBuild.length === 0) {
-                const pos = new RoomPosition(containers[i].pos.x + 1, containers[i].pos.y, containers[i].room.name);
-                const pos2 = new RoomPosition(containers[i].pos.x - 1, containers[i].pos.y, containers[i].room.name);
-                if (functions.checkPos(pos) !== false) {
-                    pos.createConstructionSite(STRUCTURE_LINK);
-                } else if (functions.checkPos(pos2) !== false) {
-                    pos2.createConstructionSite(STRUCTURE_LINK);
+        } else if (containers.length > 0) {
+            for (let i = 0; i < containers.length; i++) {
+                let containerLink = containers[i].pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
+                let containerLinkInBuild = storage[0].pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
+                if (containerLink.length === 0 && containerLinkInBuild.length === 0) {
+                    const pos = new RoomPosition(containers[i].pos.x + 1, containers[i].pos.y, containers[i].room.name);
+                    const pos2 = new RoomPosition(containers[i].pos.x - 1, containers[i].pos.y, containers[i].room.name);
+                    if (functions.checkPos(pos) !== false) {
+                        pos.createConstructionSite(STRUCTURE_LINK);
+                    } else if (functions.checkPos(pos2) !== false) {
+                        pos2.createConstructionSite(STRUCTURE_LINK);
+                    }
+                    return null;
                 }
-                return null;
             }
         }
     }
