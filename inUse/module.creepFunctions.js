@@ -196,14 +196,17 @@ module.exports.containerBuilding = function (creep) {
 module.exports.harvestDeposit = function (creep) {
     let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK});
     let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (link.length > 0 && link[0].energyCapacity !== link[0].energy) {
-        if (creep.pos.getRangeTo(link) <= 1) {
-            return link.id;
-        } else if (creep.pos.getRangeTo(link) <= 3) {
-            pathing.Move(creep, link);
-            return link.id;
+    if (link) {
+        if (link.length > 0 && link[0].energyCapacity !== link[0].energy) {
+            if (creep.pos.getRangeTo(link) <= 1) {
+                return link.id;
+            } else if (creep.pos.getRangeTo(link) <= 3) {
+                pathing.Move(creep, link);
+                return link.id;
+            }
         }
-    } else if (container.length > 0) {
+    }
+    if (container.length > 0) {
         if (creep.pos.getRangeTo(container) <= 1) {
             return container.id;
         } else if (creep.pos.getRangeTo(container) <= 3) {
@@ -544,54 +547,54 @@ module.exports.findStorage = function (creep) {
         });
     }
     //Storage
-        let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-        if (sStorage.length > 0) {
-            let storages = [];
-            for (i = 0; i < sStorage.length; i++) {
-                const object = Game.getObjectById(sStorage[i]);
-                if (object) {
-                    if (object.pos.getRangeTo(creep) !== 1) {
-                        const storageDistWeighted = object.pos.getRangeTo(creep) * 2;
-                        storages.push({
-                            id: sStorage[i],
-                            distWeighted: storageDistWeighted,
-                            harvest: false
-                        });
-                    }
+    let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+    if (sStorage.length > 0) {
+        let storages = [];
+        for (i = 0; i < sStorage.length; i++) {
+            const object = Game.getObjectById(sStorage[i]);
+            if (object) {
+                if (object.pos.getRangeTo(creep) !== 1) {
+                    const storageDistWeighted = object.pos.getRangeTo(creep) * 2;
+                    storages.push({
+                        id: sStorage[i],
+                        distWeighted: storageDistWeighted,
+                        harvest: false
+                    });
                 }
             }
-            let bestStorage = _.min(storages, 'distWeighted');
-            storage.push({
-                id: bestStorage.id,
-                distWeighted: bestStorage.distWeighted,
-                harvest: false
-            });
         }
+        let bestStorage = _.min(storages, 'distWeighted');
+        storage.push({
+            id: bestStorage.id,
+            distWeighted: bestStorage.distWeighted,
+            harvest: false
+        });
+    }
     //Tower
-        let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
-        if (tower.length > 0) {
-            let towers = [];
-            for (i = 0; i < tower.length; i++) {
-                const object = Game.getObjectById(tower[i]);
-                if (object) {
-                    if (object.pos.getRangeTo(creep) !== 1) {
-                        const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = (object.pos.getRangeTo(creep) * 2) - towerAmountWeighted;
-                        towers.push({
-                            id: tower[i],
-                            distWeighted: towerDistWeighted,
-                            harvest: false
-                        });
-                    }
+    let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
+    if (tower.length > 0) {
+        let towers = [];
+        for (i = 0; i < tower.length; i++) {
+            const object = Game.getObjectById(tower[i]);
+            if (object) {
+                if (object.pos.getRangeTo(creep) !== 1) {
+                    const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
+                    const towerDistWeighted = (object.pos.getRangeTo(creep) * 2) - towerAmountWeighted;
+                    towers.push({
+                        id: tower[i],
+                        distWeighted: towerDistWeighted,
+                        harvest: false
+                    });
                 }
             }
-            let bestTower = _.min(towers, 'distWeighted');
-            storage.push({
-                id: bestTower.id,
-                distWeighted: bestTower.distWeighted,
-                harvest: false
-            });
         }
+        let bestTower = _.min(towers, 'distWeighted');
+        storage.push({
+            id: bestTower.id,
+            distWeighted: bestTower.distWeighted,
+            harvest: false
+        });
+    }
 
     let sorted = _.min(storage, 'distWeighted');
     if (sorted) {
