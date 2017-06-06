@@ -107,9 +107,7 @@ module.exports.BasicHauler = function (creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            if (creepTools.findEnergy(creep, true) !== true) {
-                creepTools.findDroppedEnergy(creep);
-            }
+            creepTools.findEnergy(creep, true);
         }
     } else {
         if (creep.memory.storageDestination) {

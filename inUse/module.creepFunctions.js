@@ -8,6 +8,25 @@ module.exports.rangeSource = function (creep) {
     return null;
 };
 
+module.exports.findBuilder = function (creep) {
+    const needsEnergy = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
+    if (needsEnergy) {
+        creep.memory.builderID = needsEnergy.id;
+        return needsEnergy.id;
+    }
+    return null;
+};
+
+module.exports.findNewBuilder = function (creep) {
+    const needsEnergy = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
+    if (needsEnergy) {
+        creep.memory.builderID = needsEnergy.id;
+        creep.memory.haulCounter = 0;
+        return needsEnergy.id;
+    }
+    return null;
+};
+
 module.exports.rangeAssignment = function (creep) {
     const container = Game.getObjectById(creep.memory.assignedContainer);
     const assignment = creep.pos.getRangeTo(container);
@@ -47,15 +66,6 @@ module.exports.findSpawn = function (creep) {
                 creep.memory.spawnID = spawn.id;
                 return spawn;
             }
-        }
-    }
-};
-
-module.exports.findDroppedEnergy = function (creep) {
-    let energy = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
-    if (energy && energy.resourceType === RESOURCE_ENERGY) {
-        if (creep.pickup(energy) !== ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, energy);
         }
     }
 };
@@ -461,7 +471,6 @@ module.exports.findEnergy = function (creep, hauler = false) {
             let energyItem = Game.getObjectById(sorted.id);
             if (energyItem) {
                 creep.memory.energyDestination = energyItem.id;
-                return true;
             }
         }
     }
