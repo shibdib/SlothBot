@@ -486,7 +486,7 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) !== 1) {
+                if (object.pos.getRangeTo(creep) > 1) {
                     if (object.store[RESOURCE_ENERGY] === object.storeCapacity) {
                         continue;
                     }
@@ -513,7 +513,7 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < spawn.length; i++) {
             const object = Game.getObjectById(spawn[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) !== 1) {
+                if (object.pos.getRangeTo(creep) > 1) {
                     if (object.energy === object.energyCapacity) {
                         continue;
                     }
@@ -540,7 +540,7 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < extension.length; i++) {
             const object = Game.getObjectById(extension[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) !== 1) {
+                if (object.pos.getRangeTo(creep) > 1) {
                     if (object.energy === object.energyCapacity) {
                         continue;
                     }
@@ -567,7 +567,7 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < sStorage.length; i++) {
             const object = Game.getObjectById(sStorage[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) !== 1) {
+                if (object.pos.getRangeTo(creep) > 1) {
                     const storageDistWeighted = object.pos.getRangeTo(creep) * 2;
                     storages.push({
                         id: sStorage[i],
@@ -591,7 +591,7 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) !== 1) {
+                if (object.pos.getRangeTo(creep) > 1) {
                     const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
                     const towerDistWeighted = (object.pos.getRangeTo(creep) * 2) - towerAmountWeighted;
                     towers.push({
