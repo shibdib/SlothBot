@@ -456,7 +456,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
     if (sorted) {
         if (sorted.harvest === false) {
             let energyItem = Game.getObjectById(sorted.id);
-            if (energyItem) {
+            if (energyItem !== null) {
                 creep.memory.energyDestination = energyItem.id;
                 return true;
             }
