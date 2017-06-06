@@ -469,18 +469,6 @@ module.exports.findEnergy = function (creep, hauler = false) {
             if (energyItem) {
                 creep.memory.energyDestination = energyItem.id;
             }
-        } else if (sorted.harvest === true) {
-            let energyItem = Game.getObjectById(sorted.id);
-            if (energyItem) {
-                if (creep.harvest(energyItem) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, energyItem);
-                }
-            }
-        } else {
-            let energyItem = Game.getObjectById(sorted.id);
-            if (creep.pickup(energyItem) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, energyItem);
-            }
         }
     }
 };
