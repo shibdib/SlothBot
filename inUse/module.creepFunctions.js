@@ -194,25 +194,12 @@ module.exports.containerBuilding = function (creep) {
 };
 
 module.exports.harvestDeposit = function (creep) {
-    let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK});
     let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (link) {
-        if (link.length > 0 && link[0].energyCapacity !== link[0].energy) {
-            if (creep.pos.getRangeTo(link) <= 1) {
-                return link.id;
-            } else if (creep.pos.getRangeTo(link) <= 3) {
-                pathing.Move(creep, link);
-                return link.id;
-            }
-        }
-    }
-    if (container.length > 0) {
-        if (creep.pos.getRangeTo(container) <= 1) {
-            return container.id;
-        } else if (creep.pos.getRangeTo(container) <= 3) {
-            pathing.Move(creep, container);
-            return container.id;
-        }
+    if (creep.pos.getRangeTo(container) <= 1) {
+        return container.id;
+    } else if (creep.pos.getRangeTo(container) <= 3) {
+        creep.moveTo(container);
+        return container.id;
     }
     return null;
 };
