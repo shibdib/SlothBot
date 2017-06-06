@@ -81,6 +81,9 @@ module.exports.creepControl = function () {
         if (creep.memory.role === 'roadBuilder') {
             rolesRemote.roadBuilder(creep);
         }
+        if (creep.memory.role === 'spawnBuilder') {
+            rolesRemote.spawnBuilder(creep);
+        }
     }
 
 }

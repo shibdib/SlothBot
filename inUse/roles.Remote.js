@@ -148,3 +148,36 @@ module.exports.roadBuilder = function (creep) {
         }
     }
 };
+
+/**
+ * @return {null}
+ */
+module.exports.spawnBuilder = function (creep) {
+    if (creep.carry.energy === 0) {
+        creep.memory.hauling = false;
+        creep.memory.destinationReached = null;
+    }
+    if (creep.carry.energy === creep.carryCapacity) {
+        creep.memory.hauling = true;
+    }
+    if (creep.memory.hauling === false) {
+        if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
+            if (creep.memory.energyDestination) {
+                creepTools.withdrawEnergy(creep);
+            } else {
+                creepTools.findEnergy(creep, false);
+            }
+        } else {
+            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
+        }
+    }
+    if (!creep.memory.destinationReached) {
+        pathing.Move(creep, Game.getObjectById(creep.memory.target), false, 16);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+            creep.memory.destinationReached = true;
+        }
+    } else {
+        creep.build(Game.getObjectById(creep.memory.target));
+        return null;
+    }
+};
