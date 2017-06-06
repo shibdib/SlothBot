@@ -57,13 +57,13 @@ module.exports.Harvester = function (creep) {
     if (creep.carry.energy === creep.carryCapacity) {
         let containerID = creepTools.harvestDeposit(creep);
         if (containerID) {
-            let container = Game.getObjectById(containerID);
-            if (container) {
-                if (container.hits < 25000) {
-                    creep.repair(container);
+            let storageItem = Game.getObjectById(containerID);
+            if (storageItem) {
+                if (storageItem.hits < storageItem.hitsMax * 0.25) {
+                    creep.repair(storageItem);
                     creep.say('Fixing');
                 } else {
-                    creep.transfer(container, RESOURCE_ENERGY);
+                    creep.transfer(storageItem, RESOURCE_ENERGY);
                 }
             }
         } else {
