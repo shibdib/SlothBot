@@ -382,7 +382,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
     }
     //Links
     if (hauler === false) {
-        let link = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'extension'), 'id');
+        let link = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'link'), 'id');
         if (link.length > 0) {
             let links = [];
             for (i = 0; i < link.length; i++) {
