@@ -66,6 +66,9 @@ module.exports.creepControl = function () {
         if (creep.memory.role === 'reserver') {
             rolesMilitary.Reserver(creep);
         }
+        if (creep.memory.role === 'claimer') {
+            rolesMilitary.Claimer(creep);
+        }
         if (creep.memory.role === 'raider') {
             rolesMilitary.Raider(creep);
         }

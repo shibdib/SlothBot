@@ -146,28 +146,21 @@ module.exports.Attacker = function (creep) {
  * @return {null}
  */
 module.exports.Claimer = function (creep) {
-    const attackers = _.filter(Game.creeps, (attackers) => attackers.memory.role === 'claimer' && attackers.room === creep.room);
+    //Initial move
 
-    if (!Game.flags[creep.memory.attackTarget]) {
+    if (!Game.flags[creep.memory.destination]) {
         creep.suicide();
     }
-
-    let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
-    if (closestHostileSpawn) {
-        if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(closestHostileSpawn, {visualizePathStyle: {stroke: '#ffaa00'}});
+    if (!creep.memory.destinationReached) {
+        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+            creep.memory.destinationReached = true;
         }
-    } else if (!closestHostileSpawn) {
-        const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (closestHostile) {
-            if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(closestHostile, {visualizePathStyle: {stroke: '#ffaa00'}});
+    } else {
+        if (creep.room.controller) {
+            if (creep.claimController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, creep.room.controller);
             }
-        } else if (Game.flags.attack1 && (attackers.length >= 3 || creep.memory.attackStarted === true)) {
-            creep.memory.attackStarted = true;
-            pathing.Move(creep, Game.flags.attack1);
-        } else {
-            pathing.Move(creep, Game.flags.stage1);
         }
     }
 };

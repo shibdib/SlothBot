@@ -313,6 +313,24 @@ function rcl3(spawnName) {
                     }
                 }
 
+                //CLAIM RESPAWNS
+                for (let i = 0; i < 10; i++) {
+                    let claim = 'claim' + i;
+                    if (Game.flags[claim]) {
+                        let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[claim].name && creep.memory.role === 'claimer');
+                        if (claimer.length < 1 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE, MOVE], generatedNumber + 'claimer') === OK) {
+                            Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'claimer', {
+                                role: 'claimer',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                level: 3,
+                                destination: reserve
+                            });
+                            console.log('Spawning a claimer');
+                            return;
+                        }
+                    }
+                }
+
                 //HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
                     const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
