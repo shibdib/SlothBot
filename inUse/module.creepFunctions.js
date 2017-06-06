@@ -52,8 +52,8 @@ module.exports.findSpawn = function (creep) {
 };
 
 module.exports.findDroppedEnergy = function (creep) {
-    let energy = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
-    if (energy) {
+    let energy = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
+    if (energy && energy.resourceType === RESOURCE_ENERGY) {
         if (creep.pickup(energy) !== ERR_NOT_IN_RANGE) {
             pathing.Move(creep, energy);
         }
