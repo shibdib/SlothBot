@@ -113,7 +113,7 @@ module.exports.BasicHauler = function (creep) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, storageItem);
+                creep.moveTo(storageItem);
             } else {
                 creep.memory.storageDestination = null;
                 creep.memory.path = null;
