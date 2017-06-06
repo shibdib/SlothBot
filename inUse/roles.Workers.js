@@ -59,7 +59,7 @@ module.exports.Harvester = function (creep) {
         if (containerID) {
             let storageItem = Game.getObjectById(containerID);
             if (storageItem) {
-                if (storageItem.hits < storageItem.hitsMax * 0.75) {
+                if (storageItem.hits < storageItem.hitsMax * 0.25) {
                     creep.repair(storageItem);
                     creep.say('Fixing');
                 } else {
