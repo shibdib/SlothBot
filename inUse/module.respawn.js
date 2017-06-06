@@ -323,7 +323,7 @@ function rcl3(spawnName) {
                                 role: 'claimer',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 level: 3,
-                                destination: reserve
+                                destination: claim
                             });
                             console.log('Spawning a claimer');
                             return;
