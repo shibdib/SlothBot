@@ -16,14 +16,15 @@ module.exports.linkControl = function () {
             }
             if (link.room.memory.storageLink) {
                 let storageLink = Game.getObjectById(link.room.memory.storageLink);
-                link.transferEnergy(storageLink);
-                if (link.energy === 0) {
-                    continue;
+                if (storageLink.energy < 700) {
+                    link.transferEnergy(storageLink);
                 }
             }
             if (link.room.memory.spawnLink) {
                 let spawnLink = Game.getObjectById(link.room.memory.spawnLink);
-                link.transferEnergy(spawnLink);
+                if (spawnLink.energy < 700) {
+                    link.transferEnergy(spawnLink);
+                }
             }
         }
     }
