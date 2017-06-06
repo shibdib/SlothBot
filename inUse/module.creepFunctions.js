@@ -203,13 +203,12 @@ module.exports.harvestDeposit = function (creep) {
             pathing.Move(creep, link);
             return link.id;
         }
-    } else if (container) {
-        if (creep.pos.getRangeTo(container) <= 1) {
-            return container.id;
-        } else if (creep.pos.getRangeTo(container) <= 3) {
-            pathing.Move(creep, container);
-            return container.id;
-        }
+    }
+    if (creep.pos.getRangeTo(container) <= 1) {
+        return container.id;
+    } else if (creep.pos.getRangeTo(container) <= 3) {
+        pathing.Move(creep, container);
+        return container.id;
     }
     return null;
 };
