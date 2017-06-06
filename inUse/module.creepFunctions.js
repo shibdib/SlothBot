@@ -380,6 +380,33 @@ module.exports.findEnergy = function (creep, hauler = false) {
             });
         }
     }
+    //Links
+    if (hauler === false) {
+        let link = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'extension'), 'id');
+        if (link.length > 0) {
+            let links = [];
+            for (i = 0; i < link.length; i++) {
+                const object = Game.getObjectById(link[i]);
+                if (object) {
+                    if (object.energy === 0) {
+                        continue;
+                    }
+                    const linkDistWeighted = object.pos.getRangeTo(creep) * 0.55;
+                    links.push({
+                        id: link[i],
+                        distWeighted: linkDistWeighted,
+                        harvest: false
+                    });
+                }
+            }
+            let bestLink = _.min(links, 'distWeighted');
+            energy.push({
+                id: bestLink.id,
+                distWeighted: bestLink.distWeighted,
+                harvest: false
+            });
+        }
+    }
     //Storage
     let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
     if (storage.length > 0) {
