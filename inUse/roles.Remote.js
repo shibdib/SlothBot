@@ -168,8 +168,10 @@ module.exports.spawnBuilder = function (creep) {
         if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
             if (creep.memory.energyDestination) {
                 creepTools.withdrawEnergy(creep);
+                return null;
             } else {
                 creepTools.findEnergy(creep, false);
+                return null;
             }
         } else {
             pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
