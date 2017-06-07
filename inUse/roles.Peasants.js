@@ -7,7 +7,7 @@ let pathing = require('module.pathFinder');
  */
 module.exports.Peasant = function (creep) {
     borderChecks.borderCheck(creep);
-    if (creep.carry.energy === 0) {
+    if (creep.carry.energy !== creep.carryCapacity) {
         creep.memory.harvesting = true;
     }
     if (creep.carry.energy === creep.carryCapacity) {
