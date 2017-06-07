@@ -907,7 +907,7 @@ function rcl5(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
+                if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
                         if (Game.flags[remote]) {
