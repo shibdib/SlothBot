@@ -153,6 +153,10 @@ module.exports.roadBuilder = function (creep) {
  * @return {null}
  */
 module.exports.spawnBuilder = function (creep) {
+    if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
+        creep.memory.resupply = 'Spawn1';
+        return null;
+    }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
         creep.memory.destinationReached = null;
