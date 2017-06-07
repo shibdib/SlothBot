@@ -175,7 +175,7 @@ module.exports.spawnBuilder = function (creep) {
             pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
         }
     }
-    if (!creep.memory.destinationReached) {
+    if (!creep.memory.destinationReached && creep.memory.hauling === true) {
         pathing.Move(creep, Game.getObjectById(creep.memory.target), false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
