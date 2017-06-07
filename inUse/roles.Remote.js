@@ -178,11 +178,11 @@ module.exports.spawnBuilder = function (creep) {
         }
     }
     if (!creep.memory.destinationReached && creep.memory.hauling === true) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.target), false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
-    } else {
+        pathing.Move(creep, Game.getObjectById(creep.memory.target), false, 16);
+    } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
         creep.build(Game.getObjectById(creep.memory.target));
         return null;
     }
