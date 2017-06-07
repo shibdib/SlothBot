@@ -8,6 +8,9 @@ module.exports.roomControl = function () {
 
     for (let name in Game.spawns) {
 
+        //RCL
+        let level = Game.spawns[name].room.controller.level;
+
         //Every 100 ticks
         if (Game.time % 100 === 0) {
             //autoBuild.run(name);
@@ -17,9 +20,6 @@ module.exports.roomControl = function () {
                 //militaryFunctions.roadNetwork(Game.spawns[name]);
             }
         }
-
-        //RCL
-        let level = Game.spawns[name].room.controller.level;
 
         //SAFE MODE
         if (Game.spawns[name].hits < Game.spawns[name].hitsMax / 2) {
