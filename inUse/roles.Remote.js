@@ -57,10 +57,6 @@ module.exports.RHarvester = function (creep) {
  * @return {null}
  */
 module.exports.RHauler = function (creep) {
-    if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
-        creep.memory.resupply = 'Spawn1';
-        return null;
-    }
     if (!creep.memory.destinationReached) {
         pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
@@ -96,7 +92,7 @@ module.exports.RHauler = function (creep) {
                 creepTools.findStorage(creep);
             }
         } else {
-            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
+            pathing.Move(creep, Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], false, 16);
         }
     }
 };
@@ -153,10 +149,6 @@ module.exports.roadBuilder = function (creep) {
  * @return {null}
  */
 module.exports.spawnBuilder = function (creep) {
-    if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
-        creep.memory.resupply = 'Spawn1';
-        return null;
-    }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
         creep.memory.destinationReached = null;
@@ -174,7 +166,7 @@ module.exports.spawnBuilder = function (creep) {
                 return null;
             }
         } else {
-            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
+            pathing.Move(creep, Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], false, 16);
         }
     }
     if (!creep.memory.destinationReached && creep.memory.hauling === true) {
