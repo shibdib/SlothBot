@@ -116,7 +116,7 @@ function rcl2(spawnName) {
                     return;
                 }
 
-                if (Game.spawns[spawnName].room.energyCapacityAvailable < 400) {
+                if (Game.spawns[spawnName].room.energyCapacityAvailable < 550) {
                     rcl1(spawnName);
                     return;
                 }
