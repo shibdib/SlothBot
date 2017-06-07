@@ -157,7 +157,7 @@ module.exports.spawnBuilder = function (creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        if (creep.room.name === Game.spawns[creep.memory.resupply].pos.roomName) {
+        if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
             if (creep.memory.energyDestination) {
                 creepTools.withdrawEnergy(creep);
                 return null;
