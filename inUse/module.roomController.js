@@ -15,7 +15,7 @@ module.exports.roomControl = function () {
         if (Game.time % 100 === 0) {
             //autoBuild.run(name);
             if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
-                militaryFunctions.buildWalls(Game.spawns[name]);
+                //militaryFunctions.buildWalls(Game.spawns[name]);
                 militaryFunctions.borderWalls(Game.spawns[name]);
                 //militaryFunctions.roadNetwork(Game.spawns[name]);
             }
