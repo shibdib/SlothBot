@@ -4,7 +4,7 @@
 let functions = require('module.functions');
 module.exports.roomBuilding = function (spawnName) {
     let spawn = Game.spawns[spawnName];
-    roadSources(spawn);
+    //roadSources(spawn);
     buildExtensions(spawn);
     buildTower(spawn);
     buildStorage(spawn);
