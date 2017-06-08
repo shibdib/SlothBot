@@ -10,6 +10,9 @@ module.exports.claimedControl = function () {
             if (!Game.rooms[name].memory.neighboringRooms) {
                 Game.rooms[name].memory.neighboringRooms = Game.map.describeExits(name);
             }
+            if (Game.rooms[name].memory.neighboringRooms['1']) {
+                let topRoom = Game.rooms[Game.rooms[name].memory.neighboringRooms['1']]
+            }
         }
     }
 
