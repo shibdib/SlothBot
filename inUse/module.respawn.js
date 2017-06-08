@@ -168,16 +168,6 @@ function rcl2(spawnName) {
                         return;
                     }
                 }
-                let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
-                if (peasantUpgrader.length < 5 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader') === OK) {
-                    Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
-                        role: 'peasantUpgrader',
-                        assignedSpawn: Game.spawns[spawnName].id,
-                        level: 0
-                    });
-                    console.log('Spawning a peasantUpgrader');
-                    return;
-                }
                 let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
                 if (peasantBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder') === OK) {
                     Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
@@ -186,6 +176,16 @@ function rcl2(spawnName) {
                         level: 0
                     });
                     console.log('Spawning a peasantBuilder');
+
+                }
+                let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
+                if (peasantUpgrader.length < 3 && Game.spawns[spawnName].canCreateCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader') === OK) {
+                    Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
+                        role: 'peasantUpgrader',
+                        assignedSpawn: Game.spawns[spawnName].id,
+                        level: 0
+                    });
+                    console.log('Spawning a peasantUpgrader');
 
                 }
 
