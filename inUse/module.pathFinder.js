@@ -21,6 +21,10 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
                     for (let i = 0; i < roads.length; i++) {
                         costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
                     }
+                    const impassible = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === OBSTACLE_OBJECT_TYPES});
+                    for (let i = 0; i < impassible.length; i++) {
+                        costMatrix.set(impassible[i].pos.x, impassible[i].pos.y, 255);
+                    }
                     const creeps = creep.room.find(FIND_CREEPS);
                     for (let i = 0; i < creeps.length; i++) {
                         costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
