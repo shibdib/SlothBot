@@ -81,7 +81,10 @@ module.exports.PeasantBuilder = function (creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            creepTools.findEnergy(creep, false);
+            let source = creepTools.findSource(creep);
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, source, true);
+            }
         }
     }
 };
@@ -106,7 +109,10 @@ module.exports.PeasantUpgrader = function (creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            creepTools.findEnergy(creep, false);
+            let source = creepTools.findSource(creep);
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, source, true);
+            }
         }
     }
 
