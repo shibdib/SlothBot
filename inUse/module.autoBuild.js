@@ -33,8 +33,8 @@ function roadSources(spawn) {
 }
 
 function buildExtensions(spawn) {
-    for (let i = getRandomInt(-3, 3); i < 6; i++) {
-        const pos = new RoomPosition(spawn.pos.x + i, spawn.pos.y - getRandomInt(-3, 3), spawn.room.name);
+    for (let i = getRandomInt(-6, 6); i < 6; i++) {
+        const pos = new RoomPosition(spawn.pos.x + i, spawn.pos.y - getRandomInt(-6, 6), spawn.room.name);
         const pos2 = new RoomPosition(pos.x + 1, pos.y + 1, spawn.room.name);
         const pos3 = new RoomPosition(pos.x + 1, pos.y - 1, spawn.room.name);
         const pos4 = new RoomPosition(pos.x + 1, pos.y, spawn.room.name);
