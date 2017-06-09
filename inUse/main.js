@@ -9,6 +9,8 @@ let remoteController = require('module.remoteController');
 let cache = require('module.cache');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
+let pebble = require('pebble');
+let resources = require('resources');
 
 // This line monkey patches the global prototypes.
 profiler.enable();
@@ -69,3 +71,4 @@ function showCacheUsage() {
     console.log('howManyTimesCacheUsed: ' + howManyTimesCacheUsed);
     console.log('cache size: ' + _.size(Memory.pathCache));
 }
+let screepsplus = require('screepsplus');
