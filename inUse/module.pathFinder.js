@@ -1,8 +1,7 @@
 let cache = require('module.cache');
 module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
-        creep.room.visual.circle(creep.pos,
-            {fill: 'transparent', radius: 0.55, stroke: 'red'});
+        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
         return;
     }
     if (creep.memory.pathAge === null || creep.memory.pathAge === undefined || creep.memory.pathLimit === null || creep.memory.pathLimit === undefined) {
@@ -62,6 +61,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     }
     creep.memory.pathAge++;
     if (creep.moveByPath(creep.memory.path) !== OK) {
+        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'red'});
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
                 const noRoads = creep.room.find(!FIND_STRUCTURES);
@@ -104,6 +104,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
+    creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'green'});
 };
 module.exports.AttackMove = function (creep, target) {
     if (creep.fatigue > 0) {
