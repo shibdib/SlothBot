@@ -66,6 +66,7 @@ module.exports.loop = function () {
 
         //GRAFANA
         screepsplus.collect_stats();
+        Memory.stats.cpu.used = Game.cpu.getUsed();
     });
 };
 
