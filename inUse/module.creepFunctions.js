@@ -203,6 +203,14 @@ module.exports.harvestDeposit = function (creep) {
                 pathing.Move(creep, container);
                 return container.id;
             }
+        } else if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy !== s.energyCapacity})) {
+            let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy !== s.energyCapacity});
+            if (creep.pos.getRangeTo(link) <= 1) {
+                return link.id;
+            } else if (creep.pos.getRangeTo(link) <= 3) {
+                pathing.Move(creep, link);
+                return link.id;
+            }
         }
     }
     return null;
