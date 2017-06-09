@@ -124,19 +124,16 @@ function rcl2(spawnName) {
 
                 //HAULER RESPAWNS
                 if (stationaryHarvester.length > 0) {
-                    for (let i = 0; i < containers.length; i++) {
                         let hauler = _.filter(Game.creeps, (creep) => creep.memory.assignedContainer === containers[i].id && creep.memory.role === 'hauler');
                         if (hauler.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
-                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
+                            Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                                 role: 'hauler',
                                 assignedSpawn: Game.spawns[spawnName].id,
-                                level: 2,
-                                assignedContainer: containers[i].id
+                                level: 2
                             });
                             console.log('Spawning a hauler');
                             return;
                         }
-                    }
                 }
 
                 //HARVESTER RESPAWNS
