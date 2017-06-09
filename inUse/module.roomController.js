@@ -74,9 +74,6 @@ module.exports.roomControl = function () {
 
         //Hauling
 
-        //Grafana
-        resources.summarize_room(Game.spawns[name].room.name);
-
 
     }
 }

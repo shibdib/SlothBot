@@ -18,6 +18,13 @@ profiler.enable();
 module.exports.loop = function () {
     profiler.wrap(function () {
 
+        //Grafana
+        for (let name in Game.rooms) {
+            if (Game.rooms[name].find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_SPAWN}}).length) {
+                resources.summarize_room(name);
+            }
+        }
+
         //CLEANUP
         if (Game.time % 150 === 0) {
             cache.cleanPathCache(); //clean path cache
