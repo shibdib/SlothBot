@@ -14,10 +14,6 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         } else {
             creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
                 costCallback: function (roomName, costMatrix) {
-                    const noRoads = creep.room.find(!FIND_STRUCTURES);
-                    for (let i = 0; i < noRoads.length; i++) {
-                        costMatrix.set(noRoads[i].pos.x, noRoads[i].pos.y, 50);
-                    }
                     const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
                     for (let i = 0; i < roads.length; i++) {
                         costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
@@ -28,7 +24,9 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
                     }
                     const creeps = creep.room.find(FIND_CREEPS);
                     for (let i = 0; i < creeps.length; i++) {
-                        costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                        if (creep.getRangeTo(creeps[i]) <= 2) {
+                            costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                        }
                     }
                     for (let i = 0; i < 20; i++) {
                         let avoid = 'avoid' + i;
@@ -51,7 +49,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
                         }
                     }
                 },
-                maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+                maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
             });
             cache.cachePath(creep.pos, target.pos, creep.memory.path);
         }
@@ -64,17 +62,19 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'red'});
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
-                const noRoads = creep.room.find(!FIND_STRUCTURES);
-                for (let i = 0; i < noRoads.length; i++) {
-                    costMatrix.set(noRoads[i].pos.x, noRoads[i].pos.y, 50);
-                }
                 const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
                 for (let i = 0; i < roads.length; i++) {
-                    costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
+                    costMatrix.set(roads[i].pos.x, roads[i].pos.y, 1);
+                }
+                const impassible = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === OBSTACLE_OBJECT_TYPES});
+                for (let i = 0; i < impassible.length; i++) {
+                    costMatrix.set(impassible[i].pos.x, impassible[i].pos.y, 255);
                 }
                 const creeps = creep.room.find(FIND_CREEPS);
                 for (let i = 0; i < creeps.length; i++) {
-                    costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                    if (creep.getRangeTo(creeps[i]) <= 2) {
+                        costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                    }
                 }
                 for (let i = 0; i < 20; i++) {
                     let avoid = 'avoid' + i;
@@ -97,14 +97,13 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
                     }
                 }
             },
-            maxOps: 100000, serialize: true, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+            maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
         cache.cachePath(creep.pos, target.pos, creep.memory.path);
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
-    creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'green'});
 };
 module.exports.AttackMove = function (creep, target) {
     if (creep.fatigue > 0) {
@@ -123,17 +122,19 @@ module.exports.AttackMove = function (creep, target) {
 module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
     return creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
-            const noRoads = creep.room.find(!FIND_STRUCTURES);
-            for (let i = 0; i < noRoads.length; i++) {
-                costMatrix.set(noRoads[i].pos.x, noRoads[i].pos.y, 50);
-            }
             const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
             for (let i = 0; i < roads.length; i++) {
                 costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
             }
+            const impassible = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === OBSTACLE_OBJECT_TYPES});
+            for (let i = 0; i < impassible.length; i++) {
+                costMatrix.set(impassible[i].pos.x, impassible[i].pos.y, 255);
+            }
             const creeps = creep.room.find(FIND_CREEPS);
             for (let i = 0; i < creeps.length; i++) {
-                costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                if (creep.getRangeTo(creeps[i]) <= 2) {
+                    costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                }
             }
             for (let i = 0; i < 20; i++) {
                 let avoid = 'avoid' + i;
@@ -156,6 +157,6 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
                 }
             }
         },
-        maxOps: 100000, serialize: serialize, ignoreCreeps: false, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+        maxOps: 100000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
     });
 };
