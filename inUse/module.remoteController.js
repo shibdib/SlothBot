@@ -11,12 +11,6 @@ module.exports.claimedControl = function () {
                 Game.rooms[name].memory.neighboringRooms = Game.map.describeExits(name);
             }
         }
-
-
-        //GRAFANANANANANA
-        Memory.stats["room." + name + ".energyAvailable"] = Game.rooms[name].energyAvailable;
-        Memory.stats["room." + name + ".energyCapacityAvailable"] = Game.rooms[name].energyCapacityAvailable;
-        Memory.stats["room." + name + ".controllerProgress"] = Game.rooms[name].controller.progress;
     }
 
 };

@@ -74,6 +74,12 @@ module.exports.roomControl = function () {
         //Hauling
 
 
+        //GRAFANANANANANA
+        Memory.stats["room." + name + ".energyAvailable"] = Game.spawns[name].room.energyAvailable;
+        Memory.stats["room." + name + ".energyCapacityAvailable"] = Game.spawns[name].room.energyCapacityAvailable;
+        Memory.stats["room." + name + ".controllerProgress"] = Game.spawns[name].room.controller.progress;
+
+
     }
 }
 ;
