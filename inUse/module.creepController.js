@@ -27,11 +27,11 @@ module.exports.creepControl = function () {
         if (creep.memory.role === 'dumpTruck') {
             rolesHaulers.DumpTruck(creep);
         }
-        if (creep.memory.role === 'basicHauler') {
-            rolesHaulers.BasicHauler(creep);
+        if (creep.memory.role === 'hauler') {
+            rolesHaulers.Hauler(creep);
         }
-        if (creep.memory.role === 'basicHaulerLarge') {
-            rolesHaulers.BasicHauler(creep);
+        if (creep.memory.role === 'largeHauler') {
+            rolesHaulers.Hauler(creep);
         }
         if (creep.memory.role === 'worker') {
             rolesWorkers.Worker(creep);

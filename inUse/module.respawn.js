@@ -332,24 +332,24 @@ function rcl3(spawnName) {
 
                 //HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
-                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
-                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHaulerLarge' && creep.room === Game.spawns[spawnName].room);
-                    if (basicHauler.length < 2 && basicHaulerLarge.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
-                            role: 'basicHauler',
+                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
+                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.room === Game.spawns[spawnName].room);
+                    if (basicHauler.length < 2 && basicHaulerLarge.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
+                            role: 'hauler',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0,
                         });
-                        console.log('Spawning a basicHauler');
+                        console.log('Spawning a hauler');
                         return;
                     }
-                    if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'basicHaulerLarge') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'basicHaulerLarge', {
-                            role: 'basicHaulerLarge',
+                    if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'largeHauler') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'largeHauler', {
+                            role: 'largeHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 3,
                         });
-                        console.log('Spawning a basicHaulerLarge');
+                        console.log('Spawning a largeHauler');
                         return;
                     }
                 }
@@ -588,24 +588,24 @@ function rcl4(spawnName) {
 
                 //HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
-                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
-                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHaulerLarge' && creep.room === Game.spawns[spawnName].room);
-                    if (basicHauler.length < 3 && basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
-                            role: 'basicHauler',
+                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
+                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.room === Game.spawns[spawnName].room);
+                    if (basicHauler.length < 3 && basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
+                            role: 'hauler',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0,
                         });
                         console.log('Spawning a basicHauler');
                         return;
                     }
-                    if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'basicHaulerLarge') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'basicHaulerLarge', {
-                            role: 'basicHaulerLarge',
+                    if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
+                            role: 'largeHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a basicHaulerLarge');
+                        console.log('Spawning a largeHauler');
                         return;
                     }
                 }
@@ -843,24 +843,24 @@ function rcl5(spawnName) {
 
                 //HAULER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
-                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
-                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHaulerLarge' && creep.room === Game.spawns[spawnName].room);
-                    if (basicHauler.length < 2 && basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
-                            role: 'basicHauler',
+                    const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
+                    const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.room === Game.spawns[spawnName].room);
+                    if (basicHauler.length < 2 && basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
+                            role: 'hauler',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0,
                         });
-                        console.log('Spawning a basicHauler');
+                        console.log('Spawning a hauler');
                         return;
                     }
-                    if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'basicHaulerLarge') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'basicHaulerLarge', {
-                            role: 'basicHaulerLarge',
+                    if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
+                            role: 'largeHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a basicHaulerLarge');
+                        console.log('Spawning a largeHauler');
                         return;
                     }
                 }
@@ -1013,14 +1013,14 @@ function collapsePrevention(spawnName) {
 
     }
 
-    let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.room === Game.spawns[spawnName].room);
-    if (basicHauler.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler') === OK) {
-        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'basicHauler', {
-            role: 'basicHauler',
+    let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.room === Game.spawns[spawnName].room);
+    if (basicHauler.length < 2 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler') === OK) {
+        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
+            role: 'hauler',
             assignedSpawn: Game.spawns[spawnName].id,
             level: 0,
         });
-        console.log('Spawning a basicHauler');
+        console.log('Spawning a hauler');
 
     }
 }
