@@ -11,7 +11,7 @@ let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let pebble = require('pebble');
 let resources = require('resources');
-Memory.stats.cpu.init = Game.cpu.getUsed();
+Memory.stats.cpuInit = Game.cpu.getUsed();
 
 // This line monkey patches the global prototypes.
 profiler.enable();
@@ -51,27 +51,27 @@ module.exports.loop = function () {
 
         //Room Management
         roomController.roomControl();
-        Memory.stats.cpu.roomController = Game.cpu.getUsed();
+        Memory.stats.cpuroomController = Game.cpu.getUsed();
 
         //Creep Management
         creepController.creepControl();
-        Memory.stats.cpu.creepController = Game.cpu.getUsed();
+        Memory.stats.cpucreepController = Game.cpu.getUsed();
 
         //Tower Management
         towerController.towerControl();
-        Memory.stats.cpu.towerController = Game.cpu.getUsed();
+        Memory.stats.cputowerController = Game.cpu.getUsed();
 
         //Link Management
         linkController.linkControl();
-        Memory.stats.cpu.linkController = Game.cpu.getUsed();
+        Memory.stats.cpulinkController = Game.cpu.getUsed();
 
         //Remote Management
         remoteController.claimedControl();
-        Memory.stats.cpu.remoteController = Game.cpu.getUsed();
+        Memory.stats.cpuremoteController = Game.cpu.getUsed();
 
         //GRAFANA
         screepsplus.collect_stats();
-        Memory.stats.cpu.used = Game.cpu.getUsed();
+        Memory.stats.cpuused = Game.cpu.getUsed();
     });
 };
 
