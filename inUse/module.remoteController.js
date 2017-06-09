@@ -10,10 +10,13 @@ module.exports.claimedControl = function () {
             if (!Game.rooms[name].memory.neighboringRooms) {
                 Game.rooms[name].memory.neighboringRooms = Game.map.describeExits(name);
             }
-            if (Game.rooms[name].memory.neighboringRooms['1']) {
-                let topRoom = Game.rooms[Game.rooms[name].memory.neighboringRooms['1']]
-            }
         }
+
+
+        //GRAFANANANANANA
+        Memory.stats["room." + room.name + ".energyAvailable"] = Game.rooms[name].energyAvailable;
+        Memory.stats["room." + room.name + ".energyCapacityAvailable"] = Game.rooms[name].energyCapacityAvailable;
+        Memory.stats["room." + room.name + ".controllerProgress"] = Game.rooms[name].controller.progress;
     }
 
 };
