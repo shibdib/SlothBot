@@ -85,6 +85,9 @@ module.exports.PeasantBuilder = function (creep) {
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, source, true);
             }
+            if (!source) {
+                creepTools.findEnergy(creep, false);
+            }
         }
     }
 };
@@ -112,6 +115,9 @@ module.exports.PeasantUpgrader = function (creep) {
             let source = creepTools.findSource(creep);
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, source, true);
+            }
+            if (!source) {
+                creepTools.findEnergy(creep, false);
             }
         }
     }
