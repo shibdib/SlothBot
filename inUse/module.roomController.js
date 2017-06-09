@@ -2,6 +2,7 @@
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
 let militaryFunctions = require('module.militaryFunctions');
+let resources = require('resources');
 let cache = require('module.cache');
 
 module.exports.roomControl = function () {
@@ -72,6 +73,9 @@ module.exports.roomControl = function () {
         }
 
         //Hauling
+
+        //Grafana
+        resources.summarize_room(Game.spawns[name].room.name);
 
 
     }
