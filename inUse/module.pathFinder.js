@@ -24,7 +24,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
                     }
                     const creeps = creep.room.find(FIND_CREEPS);
                     for (let i = 0; i < creeps.length; i++) {
-                        if (creep.getRangeTo(creeps[i]) <= 2) {
+                        if (creep.pos.getRangeTo(creeps[i]) <= 2) {
                             costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
                         }
                     }
@@ -72,7 +72,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
                 }
                 const creeps = creep.room.find(FIND_CREEPS);
                 for (let i = 0; i < creeps.length; i++) {
-                    if (creep.getRangeTo(creeps[i]) <= 2) {
+                    if (creep.pos.getRangeTo(creeps[i]) <= 2) {
                         costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
                     }
                 }
@@ -132,7 +132,7 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
             }
             const creeps = creep.room.find(FIND_CREEPS);
             for (let i = 0; i < creeps.length; i++) {
-                if (creep.getRangeTo(creeps[i]) <= 2) {
+                if (creep.pos.getRangeTo(creeps[i]) <= 2) {
                     costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
                 }
             }
