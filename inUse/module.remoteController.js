@@ -14,9 +14,9 @@ module.exports.claimedControl = function () {
 
 
         //GRAFANANANANANA
-        Memory.stats["room." + room.name + ".energyAvailable"] = Game.rooms[name].energyAvailable;
-        Memory.stats["room." + room.name + ".energyCapacityAvailable"] = Game.rooms[name].energyCapacityAvailable;
-        Memory.stats["room." + room.name + ".controllerProgress"] = Game.rooms[name].controller.progress;
+        Memory.stats["room." + name + ".energyAvailable"] = Game.rooms[name].energyAvailable;
+        Memory.stats["room." + name + ".energyCapacityAvailable"] = Game.rooms[name].energyCapacityAvailable;
+        Memory.stats["room." + name + ".controllerProgress"] = Game.rooms[name].controller.progress;
     }
 
 };
