@@ -55,6 +55,10 @@ module.exports.loop = function () {
 
         //Remote Management
         remoteController.claimedControl();
+
+        //GRAFANA
+        screepsplus.collect_stats();
+        Memory.stats.cpu.used = Game.cpu.getUsed();
     });
 };
 
