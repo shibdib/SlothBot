@@ -1,6 +1,8 @@
 let cache = require('module.cache');
 module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
+        creep.room.visual.circle(creep.pos,
+            {fill: 'transparent', radius: 0.55, stroke: 'red'});
         return;
     }
     if (creep.memory.pathAge === null || creep.memory.pathAge === undefined || creep.memory.pathLimit === null || creep.memory.pathLimit === undefined) {
