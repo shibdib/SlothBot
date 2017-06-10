@@ -55,16 +55,6 @@ module.exports.roomControl = function () {
         }
 
         //Creep spawning
-        //Check if important roles needed
-        const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[name].room);
-        for (i = 0; i < stationaryHarvester.length; i++) {
-            if (stationaryHarvester[i].ticksToLive < 150) {
-                Game.spawns[name].room.memory.spawning.spawnHarvester = true;
-                break;
-            } else {
-                Game.spawns[name].room.memory.spawning.spawnHarvester = false;
-            }
-        }
         respawnCreeps.creepRespawn(name);
 
         //Room Building

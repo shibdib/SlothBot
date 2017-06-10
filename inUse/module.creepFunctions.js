@@ -303,6 +303,23 @@ module.exports.withdrawEnergy = function (creep) {
     }
 };
 
+module.exports.noHarvesterProtocol = function (creep) {
+    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    if (harvester.length === 0) {
+        if (creep.memory.storageDestination) {
+            let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, storageItem);
+            } else {
+                creep.memory.storageDestination = null;
+                creep.memory.path = null;
+            }
+            return null;
+        }
+        creepTools.findStorage(creep);
+    }
+};
+
 
 module.exports.findEnergy = function (creep, hauler = false) {
     let energy = [];
