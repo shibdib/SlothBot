@@ -203,6 +203,16 @@ module.exports.Raider = function (creep) {
     }
     if (creep.memory.returning === true) {
         if (creep.room.name === Game.getObjectById(creep.memory.assignedSpawn).pos.roomName) {
+            if (creep.memory.storageDestination) {
+                let storageItem = Game.getObjectById(creep.memory.storageDestination);
+                if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, storageItem);
+                } else {
+                    creep.memory.storageDestination = null;
+                    creep.memory.path = null;
+                }
+                return null;
+            }
             creepTools.findStorage(creep);
         } else {
             pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
