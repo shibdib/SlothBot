@@ -112,7 +112,7 @@ function rcl2(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
+                if ((peasant.length === 0 && stationaryHarvester.length === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
                     return;
                 }
@@ -215,7 +215,7 @@ function rcl3(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
+                if ((peasant.length === 0 && stationaryHarvester.length === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
                     return;
                 }
@@ -473,7 +473,7 @@ function rcl4(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
+                if ((peasant.length === 0 && stationaryHarvester.length === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
                     return;
                 }
@@ -730,7 +730,7 @@ function rcl5(spawnName) {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
 
-                if ((peasant === 0 && stationaryHarvester === 0) || creeps.length < 2) {
+                if ((peasant.length === 0 && stationaryHarvester.length === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
                     return;
                 }
