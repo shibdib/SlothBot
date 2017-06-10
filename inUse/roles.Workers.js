@@ -8,7 +8,10 @@ let pathing = require('module.pathFinder');
 module.exports.Worker = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    creepTools.noHarvesterProtocol(creep);
+    if (creepTools.noHarvesterProtocol(creep)) {
+        creepTools.findStorage(creep);
+        return null;
+    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
@@ -79,7 +82,10 @@ module.exports.Harvester = function (creep) {
 module.exports.Upgrader = function (creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
-    creepTools.noHarvesterProtocol(creep);
+    if (creepTools.noHarvesterProtocol(creep)) {
+        creepTools.findStorage(creep);
+        return null;
+    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
