@@ -22,25 +22,7 @@ module.exports.RHarvester = function (creep) {
         return null;
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
         creep.memory.harvesting = false;
-        let containerID = creepTools.harvestDepositContainer(creep);
-        if (containerID) {
-            let container = Game.getObjectById(containerID);
-            if (container) {
-                if (container.hits < 25000) {
-                    creep.repair(container);
-                    creep.say('Fixing');
-                } else {
-                    creep.transfer(container, RESOURCE_ENERGY);
-                }
-            }
-        } else {
-            let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
-            if (buildSite) {
-                creep.build(buildSite);
-            } else {
-                creepTools.harvesterContainerBuild(creep);
-            }
-        }
+        depositEnergy(creep);
     } else {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
@@ -182,3 +164,40 @@ module.exports.spawnBuilder = function (creep) {
         return null;
     }
 };
+
+function depositEnergy(creep) {
+    if (!creep.memory.containerID) {
+        creep.memory.containerID = creepTools.harvestDepositContainer(creep);
+    }
+    if (creep.memory.containerID) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container) {
+            if (container.hits < container.hitsMax * 0.25) {
+                creep.repair(container);
+                creep.say('Fixing');
+            } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
+                creep.transfer(container, RESOURCE_ENERGY);
+            } else if (!creep.memory.linkID) {
+                creep.memory.linkID = creepTools.harvestDepositLink(creep);
+            }
+            if (creep.memory.linkID) {
+                let link = Game.getObjectById(creep.memory.linkID);
+                if (link) {
+                    if (link.hits < link.hitsMax * 0.25) {
+                        creep.repair(link);
+                        creep.say('Fixing');
+                    } else if (link.energy !== link.energyCapacity) {
+                        creep.transfer(link, RESOURCE_ENERGY);
+                    }
+                }
+            }
+        }
+    } else {
+        let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+        if (buildSite) {
+            creep.build(buildSite);
+        } else {
+            creepTools.harvesterContainerBuild(creep);
+        }
+    }
+}
