@@ -23,7 +23,7 @@ module.exports.Peasant = function (creep) {
             pathing.Move(creep, source, true);
         }
     } else {
-        let containerID = creepTools.harvestDeposit(creep);
+        let containerID = creepTools.harvestDepositContainer(creep);
         if (containerID) {
             let container = Game.getObjectById(containerID);
             if (container) {

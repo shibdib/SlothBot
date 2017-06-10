@@ -22,7 +22,7 @@ module.exports.RHarvester = function (creep) {
         return null;
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
         creep.memory.harvesting = false;
-        let containerID = creepTools.harvestDeposit(creep);
+        let containerID = creepTools.harvestDepositContainer(creep);
         if (containerID) {
             let container = Game.getObjectById(containerID);
             if (container) {

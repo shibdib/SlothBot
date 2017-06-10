@@ -59,25 +59,7 @@ module.exports.Harvester = function (creep) {
 
     if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
-        let containerID = creepTools.harvestDeposit(creep);
-        if (containerID) {
-            let storageItem = Game.getObjectById(containerID);
-            if (storageItem) {
-                if (storageItem.hits < storageItem.hitsMax * 0.25) {
-                    creep.repair(storageItem);
-                    creep.say('Fixing');
-                } else {
-                    creep.transfer(storageItem, RESOURCE_ENERGY);
-                }
-            }
-        } else {
-            let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
-            if (buildSite) {
-                creep.build(buildSite);
-            } else {
-                creepTools.harvesterContainerBuild(creep);
-            }
-        }
+        depositEnergy(creep);
     } else if (creep.memory.hauling !== true) {
         if (creep.memory.assignedSource) {
             source = Game.getObjectById(creep.memory.assignedSource);
@@ -86,9 +68,6 @@ module.exports.Harvester = function (creep) {
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, source, true);
-        }
-        if (source.energy === 0 && source.ticksToRegeneration > 50) {
-            creep.memory.renew = true;
         }
     }
 };
@@ -155,7 +134,7 @@ module.exports.Upgrader = function (creep) {
         creep.memory.working = true;
     }
 
-    if (creep.memory.working === true){
+    if (creep.memory.working === true) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, creep.room.controller);
         }
@@ -174,3 +153,40 @@ module.exports.Upgrader = function (creep) {
         }
     }
 };
+
+function depositEnergy(creep) {
+    if (!creep.memory.containerID) {
+        creep.memory.containerID = creepTools.harvestDepositContainer(creep);
+    }
+    if (creep.memory.containerID) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container) {
+            if (container.hits < container.hitsMax * 0.25) {
+                creep.repair(container);
+                creep.say('Fixing');
+            } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
+                creep.transfer(container, RESOURCE_ENERGY);
+            } else if (!creep.memory.linkID) {
+                creep.memory.linkID = creepTools.harvestDepositLink(creep);
+            }
+            if (creep.memory.linkID) {
+                let link = Game.getObjectById(creep.memory.linkID);
+                if (link) {
+                    if (link.hits < link.hitsMax * 0.25) {
+                        creep.repair(link);
+                        creep.say('Fixing');
+                    } else if (link.energy !== link.energyCapacity) {
+                        creep.transfer(link, RESOURCE_ENERGY);
+                    }
+                }
+            }
+        }
+    } else {
+        let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+        if (buildSite) {
+            creep.build(buildSite);
+        } else {
+            creepTools.harvesterContainerBuild(creep);
+        }
+    }
+}
