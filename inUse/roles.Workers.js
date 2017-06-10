@@ -72,54 +72,6 @@ module.exports.Harvester = function (creep) {
     }
 };
 
-module.exports.wallRepairer = function (creep) {
-    //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-
-    if (creep.carry.energy === 0) {
-        creep.memory.working = null;
-    }
-    if (creep.carry.energy === creep.carryCapacity) {
-        creep.memory.working = true;
-    }
-
-    if (creep.memory.working) {
-        let ramp = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 2500});
-        if (ramp) {
-            if (creep.repair(ramp) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, ramp);
-            }
-        }
-        let build = Game.getObjectById(creepTools.wallBuilding(creep));
-        let repairNeeded = Game.getObjectById(creepTools.wallRepair(creep));
-        if (build) {
-            if (creep.build(build) === ERR_INVALID_TARGET) {
-                pathing.Move(creep, build);
-            } else {
-                if (creep.build(build) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, build);
-                }
-            }
-        } else if (repairNeeded) {
-            if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, repairNeeded);
-            }
-        } else {
-            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, creep.room.controller);
-            }
-        }
-    }
-    else {
-        if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
-        } else {
-            creepTools.findEnergy(creep, false);
-        }
-    }
-
-};
-
 /**
  * @return {null}
  */

@@ -39,12 +39,6 @@ module.exports.creepControl = function () {
         if (creep.memory.role === 'upgrader') {
             rolesWorkers.Upgrader(creep);
         }
-        if (creep.memory.role === 'wallRepairer') {
-            rolesWorkers.wallRepairer(creep);
-        }
-        if (creep.memory.role === 'stationaryBuilder') {
-            rolesWorkers.Builder(creep);
-        }
         if (creep.memory.role === 'stationaryHarvester') {
             rolesWorkers.Harvester(creep);
         }
