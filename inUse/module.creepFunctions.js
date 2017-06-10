@@ -349,60 +349,6 @@ module.exports.findEnergy = function (creep, hauler = false) {
             harvest: false
         });
     }
-    //Spawn
-    if (hauler === false) {
-        let spawn = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'spawn'), 'id');
-        if (spawn.length > 0) {
-            let spawns = [];
-            for (i = 0; i < spawn.length; i++) {
-                const object = Game.getObjectById(spawn[i]);
-                if (object) {
-                    if (object.energy === 0) {
-                        continue;
-                    }
-                    const spawnDistWeighted = object.pos.getRangeTo(creep) * 5.5;
-                    spawns.push({
-                        id: spawn[i],
-                        distWeighted: spawnDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
-            let bestSpawn = _.min(spawns, 'distWeighted');
-            energy.push({
-                id: bestSpawn.id,
-                distWeighted: bestSpawn.distWeighted,
-                harvest: false
-            });
-        }
-    }
-    //Extension
-    if (hauler === false) {
-        let extension = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'extension'), 'id');
-        if (extension.length > 0) {
-            let extensions = [];
-            for (i = 0; i < extension.length; i++) {
-                const object = Game.getObjectById(extension[i]);
-                if (object) {
-                    if (object.energy === 0) {
-                        continue;
-                    }
-                    const extensionDistWeighted = object.pos.getRangeTo(creep) * 5.5;
-                    extensions.push({
-                        id: extension[i],
-                        distWeighted: extensionDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
-            let bestExtension = _.min(extensions, 'distWeighted');
-            energy.push({
-                id: bestExtension.id,
-                distWeighted: bestExtension.distWeighted,
-                harvest: false
-            });
-        }
-    }
     //Links
     if (hauler === false) {
         let link = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'link'), 'id');
