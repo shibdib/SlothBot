@@ -383,7 +383,7 @@ function rcl3(spawnName) {
                 if (stationaryHarvester.length >= sourceCount) {
                     const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     const wallRepairers = _.filter(Game.creeps, (creep) => creep.memory.role === 'wallRepairer' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName]);
+                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     if (worker.length < 1 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker') === OK) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker', {
                             role: 'worker',
@@ -980,6 +980,26 @@ function rcl5(spawnName) {
         }
     }
 }
+
+function harvestingPower(spawnName) {
+    const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
+    const peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant' && creep.room === Game.spawns[spawnName].room);
+    let power = 0;
+    for (let i = 0; i < stationaryHarvester.length; i++) {
+        let harvestingPower = stationaryHarvester[i].getActiveBodyparts(WORK) * HARVEST_POWER;
+        for (let c = 0; c < harvestingPower; c++) {
+            power++;
+        }
+    }
+    for (let i = 0; i < peasant.length; i++) {
+        let harvestingPower = peasant[i].getActiveBodyparts(WORK) * HARVEST_POWER;
+        for (let c = 0; c < harvestingPower; c++) {
+            power++;
+        }
+    }
+
+
+};
 
 function collapsePrevention(spawnName) {
     const stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.role === 'stationaryHarvester' && creep.room === Game.spawns[spawnName].room);
