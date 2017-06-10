@@ -379,30 +379,6 @@ function rcl3(spawnName) {
                     }
                 }
 
-                //WORKER RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
-                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 800) * 0.175) / 2);
-                    const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                    if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker', {
-                            role: 'worker',
-                            assignedSpawn: Game.spawns[spawnName].id,
-                            level: 3,
-                        });
-                        console.log('Spawning a worker');
-                        return;
-                    } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader') === OK) {
-                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader', {
-                            role: 'upgrader',
-                            assignedSpawn: Game.spawns[spawnName].id,
-                            level: 3,
-                        });
-                        console.log('Spawning a upgrader');
-                        return;
-                    }
-                }
-
                 //REMOTE RESPAWN
                 if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
@@ -441,6 +417,30 @@ function rcl3(spawnName) {
                                 return;
                             }**/
                         }
+                    }
+                }
+
+                //WORKER RESPAWNS
+                if (stationaryHarvester.length >= sourceCount) {
+                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 800) * 0.175) / 2);
+                    const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker', {
+                            role: 'worker',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 3,
+                        });
+                        console.log('Spawning a worker');
+                        return;
+                    } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader', {
+                            role: 'upgrader',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 3,
+                        });
+                        console.log('Spawning a upgrader');
+                        return;
                     }
                 }
 
@@ -637,30 +637,6 @@ function rcl4(spawnName) {
                     }
                 }
 
-                //WORKER RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
-                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1300) * 0.175) / 2);
-                    const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                    if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
-                            role: 'worker',
-                            assignedSpawn: Game.spawns[spawnName].id,
-                            level: 4,
-                        });
-                        console.log('Spawning a worker');
-                        return;
-                    } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
-                            role: 'upgrader',
-                            assignedSpawn: Game.spawns[spawnName].id,
-                            level: 4,
-                        });
-                        console.log('Spawning a upgrader');
-                        return;
-                    }
-                }
-
                 //REMOTE RESPAWN
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
@@ -699,6 +675,30 @@ function rcl4(spawnName) {
                                 return;
                             }**/
                         }
+                    }
+                }
+
+                //WORKER RESPAWNS
+                if (stationaryHarvester.length >= sourceCount) {
+                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1300) * 0.175) / 2);
+                    const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
+                            role: 'worker',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a worker');
+                        return;
+                    } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
+                            role: 'upgrader',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a upgrader');
+                        return;
                     }
                 }
 
@@ -895,41 +895,6 @@ function rcl5(spawnName) {
                     }
                 }
 
-                //WORKER RESPAWNS
-                if (stationaryHarvester.length >= sourceCount) {
-                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1800) * 0.175) / 2);
-                    const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                    const spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
-                    const spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
-                    if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
-                            role: 'worker',
-                            assignedSpawn: Game.spawns[spawnName].id,
-                            level: 4,
-                        });
-                        console.log('Spawning a worker');
-                        return;
-                    } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader', {
-                            role: 'upgrader',
-                            assignedSpawn: Game.spawns[spawnName].id,
-                            level: 4,
-                        });
-                        console.log('Spawning a upgrader');
-                        return;
-                    } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
-                            role: 'spawnBuilder',
-                            assignedSpawn: Game.spawns[spawnName].id,
-                            target: spawnSite[0].id,
-                            level: 4,
-                        });
-                        console.log('Spawning a spawnBuilder');
-                        return;
-                    }
-                }
-
                 //REMOTE RESPAWN
                 if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
@@ -968,6 +933,41 @@ function rcl5(spawnName) {
                                 return;
                             }**/
                         }
+                    }
+                }
+
+                //WORKER RESPAWNS
+                if (stationaryHarvester.length >= sourceCount) {
+                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1800) * 0.175) / 2);
+                    const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    const spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
+                    const spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
+                    if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
+                            role: 'worker',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a worker');
+                        return;
+                    } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader', {
+                            role: 'upgrader',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a upgrader');
+                        return;
+                    } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
+                            role: 'spawnBuilder',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            target: spawnSite[0].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a spawnBuilder');
+                        return;
                     }
                 }
 
