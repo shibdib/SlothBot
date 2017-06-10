@@ -381,7 +381,7 @@ function rcl3(spawnName) {
 
                 //WORKER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
-                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 800) * 0.45) / 2);
+                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 800) * 0.25) / 2);
                     const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker') === OK) {
@@ -639,7 +639,7 @@ function rcl4(spawnName) {
 
                 //WORKER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
-                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1300) * 0.45) / 2);
+                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1300) * 0.25) / 2);
                     const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
@@ -897,7 +897,7 @@ function rcl5(spawnName) {
 
                 //WORKER RESPAWNS
                 if (stationaryHarvester.length >= sourceCount) {
-                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1800) * 0.45) / 2);
+                    const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1800) * 0.25) / 2);
                     const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     const spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
