@@ -1,4 +1,5 @@
 let pathing = require('module.pathFinder');
+let creepTools = require('module.creepFunctions');
 
 module.exports.rangeSource = function (creep) {
     const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
