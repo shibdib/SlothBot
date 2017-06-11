@@ -403,33 +403,6 @@ module.exports.findEnergy = function (creep, hauler = false) {
         });
     }
 
-    //Tower
-    let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
-    if (tower.length > 0) {
-        let towers = [];
-        for (i = 0; i < tower.length; i++) {
-            const object = Game.getObjectById(tower[i]);
-
-            if (object) {
-                if (object.energy === 0) {
-                    continue;
-                }
-                const towerDistWeighted = object.pos.getRangeTo(creep) * 100;
-                towers.push({
-                    id: tower[i],
-                    distWeighted: towerDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestTower = _.min(towers, 'distWeighted');
-        energy.push({
-            id: bestTower.id,
-            distWeighted: bestTower.distWeighted,
-            harvest: false
-        });
-    }
-
     let sorted = _.min(energy, 'distWeighted');
 
     if (sorted) {
@@ -559,7 +532,7 @@ module.exports.findStorage = function (creep) {
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {
                     const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                    const towerDistWeighted = (object.pos.getRangeTo(creep) * 2) - towerAmountWeighted;
+                    const towerDistWeighted = (object.pos.getRangeTo(creep) * 1.25) - towerAmountWeighted;
                     towers.push({
                         id: tower[i],
                         distWeighted: towerDistWeighted,
