@@ -47,7 +47,7 @@ module.exports.Healer = function (creep) {
         return null;
     }
 
-    if (!Game.flags[creep.memory.destination]) {
+    if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
 
