@@ -334,7 +334,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.getRangeTo(creep) * (1 - containerAmountWeighted);
+                const containerDistWeighted = object.pos.getRangeTo(creep) * (1.2 - containerAmountWeighted);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
@@ -384,10 +384,10 @@ module.exports.findEnergy = function (creep, hauler = false) {
             const object = Game.getObjectById(storage[i]);
 
             if (object) {
-                if (object.store[RESOURCE_ENERGY] === 0) {
+                if (object.store[RESOURCE_ENERGY] < 200) {
                     continue;
                 }
-                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.5;
+                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.2;
                 storages.push({
                     id: storage[i],
                     distWeighted: storageDistWeighted,
