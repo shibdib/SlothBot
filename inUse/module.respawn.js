@@ -657,8 +657,8 @@ function rcl4(spawnName) {
                 //HARVESTER RESPAWNS
                 for (let i = 0; i < sources.length; i++) {
                     let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-                    if ((harvester.length === 0 || harvester.ticksToLive < 150) && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester', {
+                    if ((harvester.length === 0 || harvester.ticksToLive < 150) && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester', {
                             role: 'stationaryHarvester',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
@@ -931,8 +931,8 @@ function rcl5(spawnName) {
                 //HARVESTER RESPAWNS
                 for (let i = 0; i < sources.length; i++) {
                     let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-                    if ((harvester.length === 0 || harvester.ticksToLive < 150) && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester') === OK) {
-                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester', {
+                    if ((harvester.length === 0 || harvester.ticksToLive < 150) && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester', {
                             role: 'stationaryHarvester',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
