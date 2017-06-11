@@ -715,6 +715,8 @@ function rcl4(spawnName) {
                     const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1300) * 0.2) / 2);
                     const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                     const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    const spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
+                    const spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
                     if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                             role: 'worker',
