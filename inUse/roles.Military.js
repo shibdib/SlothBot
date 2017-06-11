@@ -169,6 +169,7 @@ module.exports.Claimer = function (creep) {
  * @return {null}
  */
 module.exports.Reserver = function (creep) {
+    invaderCheck(creep);
     //Initial move
 
     if (!Game.flags[creep.memory.destination]) {
@@ -264,3 +265,55 @@ module.exports.Raider = function (creep) {
         }
     }
 };
+
+/**
+ * @return {null}
+ */
+module.exports.Responder = function (creep) {
+    if (creep.hits < creep.hitsMax / 2) {
+        creep.heal(creep);
+    }
+
+    let armedHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1});
+    let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
+    let closestHostileTower = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
+    let closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    let friendlies = creep.pos.findInRange(FIND_MY_CREEPS, 35, {filter: (c) => c.hits < c.hitsMax});
+    if (armedHostile) {
+        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
+            pathing.AttackMove(creep, armedHostile);
+        }
+    } else if (closestHostileTower) {
+        if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+            pathing.AttackMove(creep, closestHostileTower);
+        }
+    } else if (closestHostileSpawn) {
+        if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
+            pathing.AttackMove(creep, closestHostileSpawn);
+        }
+    } else if (closestHostile) {
+        if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+            pathing.AttackMove(creep, closestHostile);
+        }
+    } else if (friendlies.length > 0) {
+        if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
+            if (creep.rangedHeal(friendlies[0]) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(friendlies[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+            }
+        }
+    } else if (creep.memory.destinationReached !== true) {
+        if (creep.pos.roomName === creep.memory.responseTarget) {
+            creep.memory.destinationReached = true;
+        }
+        pathing.Move(creep, Game.rooms[creep.memory.responseTarget].controller, false, 16);
+    }
+};
+
+function invaderCheck(creep) {
+    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (invader) {
+        creep.memory.invaderDetected = true;
+    } else {
+        creep.memory.invaderDetected = undefined;
+    }
+}

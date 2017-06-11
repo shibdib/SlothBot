@@ -10,6 +10,8 @@ module.exports.RHarvester = function (creep) {
         creepTools.recycle(creep);
         return null;
     }
+    //Invader detection
+    invaderCheck(creep);
     //Initial move
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
@@ -199,5 +201,14 @@ function depositEnergy(creep) {
         } else {
             creepTools.harvesterContainerBuild(creep);
         }
+    }
+}
+
+function invaderCheck(creep) {
+    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (invader) {
+        creep.memory.invaderDetected = true;
+    } else {
+        creep.memory.invaderDetected = undefined;
     }
 }
