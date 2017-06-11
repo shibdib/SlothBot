@@ -153,7 +153,14 @@ module.exports.spawnBuilder = function (creep) {
                 return null;
             }
         } else {
-            pathing.Move(creep, Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], false, 16);
+            if (creep.memory.assignedSource) {
+                source = Game.getObjectById(creep.memory.assignedSource);
+            } else if (!source) {
+                var source = creepTools.findSource(creep);
+            }
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, source, true);
+            }
         }
     }
     if (!creep.memory.destinationReached && creep.memory.hauling === true) {

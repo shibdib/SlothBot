@@ -731,6 +731,15 @@ function rcl4(spawnName) {
                         });
                         console.log('Spawning a upgrader');
 
+                    } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder') === OK) {
+                        Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
+                            role: 'spawnBuilder',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            target: spawnSite[0].id,
+                            level: 4,
+                        });
+                        console.log('Spawning a spawnBuilder');
+
                     }
                 }
 
