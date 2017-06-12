@@ -169,6 +169,9 @@ module.exports.spawnBuilder = function (creep) {
         }
         pathing.Move(creep, Game.getObjectById(creep.memory.target), false, 16);
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
+        if (!Game.getObjectById(creep.memory.target)) {
+            creep.memory.role = "peasantBuilder";
+        }
         creep.build(Game.getObjectById(creep.memory.target));
         return null;
     }
