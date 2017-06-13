@@ -15,10 +15,10 @@ let screepsPlus = require('screepsplus');
 
 module.exports.loop = function () {
     profiler.wrap(function () {
-        Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //GRAFANA
         screepsPlus.collect_stats();
+        Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //CLEANUP
         if (Game.time % 150 === 0) {
