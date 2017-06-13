@@ -3,6 +3,7 @@
  */
 
 ////////////////////////////////////////////Vars//////////////////////////////////////////////////
+let pathing = require('module.pathFinder');
 
     //Number generator
 const generatedNumber = Math.floor((Math.random() * 100000) + 1);
@@ -399,7 +400,7 @@ function rcl3(spawnName) {
                 if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
-                        if (Game.flags[remote]) {
+                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[remote], false, false, 5).length < 100) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                             let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
@@ -488,7 +489,6 @@ function rcl4(spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
-                const roomName = Game.spawns[spawnName].room.name;
 
                 if ((peasant.length === 0 && stationaryHarvester.length === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
@@ -503,7 +503,7 @@ function rcl4(spawnName) {
                 //SCOUT RESPAWNS
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 20; i++) {
-                        let scout = 'scout' + roomName + i;
+                        let scout = 'scout' + i;
                         if (Game.flags[scout]) {
                             let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[scout].name && creep.memory.role === 'scout');
                             if (scouts.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE], generatedNumber + 'scout') === OK) {
@@ -674,7 +674,7 @@ function rcl4(spawnName) {
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
-                        if (Game.flags[remote]) {
+                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[remote], false, false, 5).length < 100) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                             let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
@@ -959,7 +959,7 @@ function rcl5(spawnName) {
                 if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
-                        if (Game.flags[remote]) {
+                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[remote], false, false, 5).length < 100) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                             let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');

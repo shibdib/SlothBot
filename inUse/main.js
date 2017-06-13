@@ -5,7 +5,6 @@ let roomController = require('module.roomController');
 let creepController = require('module.creepController');
 let towerController = require('module.towerController');
 let linkController = require('module.linkController');
-let remoteController = require('module.remoteController');
 let cache = require('module.cache');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
@@ -51,9 +50,6 @@ module.exports.loop = function () {
 
         //Link Management
         linkController.linkControl();
-
-        //Remote Management
-        remoteController.remoteControl();
 
         //GRAFANA
         screepsPlus.collect_stats();
