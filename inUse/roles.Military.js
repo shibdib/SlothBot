@@ -37,8 +37,7 @@ function defender(creep) {
     } else {
         pathing.Move(creep, creep.memory.assignedSpawn);
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -50,8 +49,7 @@ function sentry(creep) {
     } else {
         militaryFunctions.findDefensivePosition(creep);
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -82,8 +80,7 @@ function healer(creep) {
             pathing.Move(creep, closestTower, false, 1);
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -103,8 +100,7 @@ function scout(creep) {
             creep.memory.enemyPos = null;
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -149,8 +145,7 @@ function attacker(creep) {
     } else {
         pathing.Move(creep, Game.flags[creep.memory.attackTarget], false, 16);
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -172,8 +167,7 @@ function claimer(creep) {
             }
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -196,8 +190,7 @@ function reserver(creep) {
             }
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -273,8 +266,7 @@ function raider(creep) {
             }
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -315,14 +307,13 @@ function responder(creep) {
             }
         }
     } else if (creep.memory.destinationReached !== true) {
-        if (creep.pos.roomName === Game.flags[creep.memory.responseTarget].room.name) {
+        if (creep.pos.roomName === Game.flags[creep.memory.responseTarget].pos.roomName) {
             Game.flags[creep.memory.responseTarget].remove();
             creep.memory.destinationReached = true;
         }
         pathing.Move(creep, Game.flags[creep.memory.responseTarget], false, 16);
     }
-};
-
+}
 function invaderCheck(creep) {
     let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (invader && creep.memory.invaderDetected !== true) {
