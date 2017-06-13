@@ -17,6 +17,9 @@ Memory.stats.cpu.init = Game.cpu.getUsed();
 module.exports.loop = function () {
     profiler.wrap(function () {
 
+        //GRAFANA
+        screepsPlus.collect_stats();
+
         //CLEANUP
         if (Game.time % 150 === 0) {
             cache.cleanPathCache(); //clean path cache
@@ -56,8 +59,6 @@ module.exports.loop = function () {
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
         linkController.linkControl();
 
-        //GRAFANA
-        screepsPlus.collect_stats();
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
 };
