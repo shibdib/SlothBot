@@ -46,8 +46,7 @@ function harvester(creep) {
             pathing.Move(creep, source);
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -93,8 +92,7 @@ function hauler(creep) {
             pathing.Move(creep, Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], false, 16);
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -138,8 +136,7 @@ function spawnBuilder(creep) {
         creep.build(Game.getObjectById(creep.memory.target));
         return null;
     }
-};
-
+}
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
         creep.memory.containerID = creepTools.harvestDepositContainer(creep);
@@ -179,8 +176,9 @@ function depositEnergy(creep) {
 
 function invaderCheck(creep) {
     let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (invader) {
+    if (invader && creep.memory.invaderDetected !== true) {
         creep.memory.invaderDetected = true;
+        creep.pos.createFlag(creep.id);
     } else {
         creep.memory.invaderDetected = undefined;
     }
