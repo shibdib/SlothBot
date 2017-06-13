@@ -122,10 +122,6 @@ module.exports.AttackMove = function (creep, target) {
 module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
     return creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
-            const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
-            for (let i = 0; i < roads.length; i++) {
-                costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
-            }
             const impassible = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === OBSTACLE_OBJECT_TYPES});
             for (let i = 0; i < impassible.length; i++) {
                 costMatrix.set(impassible[i].pos.x, impassible[i].pos.y, 255);
@@ -157,6 +153,6 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
                 }
             }
         },
-        maxOps: 100000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+        maxOps: 100000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms
     });
 };
