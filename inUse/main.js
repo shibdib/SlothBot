@@ -9,22 +9,13 @@ let remoteController = require('module.remoteController');
 let cache = require('module.cache');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
-let pebble = require('pebble');
-let resources = require('resources');
-let screepsplus = require('screepsplus');
+let screepsPlus = require('screepsplus');
 
 // This line monkey patches the global prototypes.
-profiler.enable();
+//profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
-
-        //Grafana
-        for (let name in Game.rooms) {
-            if (Game.rooms[name].find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_SPAWN}}).length) {
-                resources.summarize_room(name);
-            }
-        }
 
         //CLEANUP
         if (Game.time % 150 === 0) {
@@ -65,7 +56,7 @@ module.exports.loop = function () {
         remoteController.claimedControl();
 
         //GRAFANA
-        screepsplus.collect_stats();
+        screepsPlus.collect_stats();
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
 };
