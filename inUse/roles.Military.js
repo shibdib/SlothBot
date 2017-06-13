@@ -5,23 +5,23 @@ let militaryFunctions = require('module.militaryFunctions');
 
 
 module.exports.Manager = function (creep) {
-    if (creep.memory.role = "defender") {
+    if (creep.memory.role === "defender") {
         defender(creep);
-    } else if (creep.memory.role = "sentry") {
+    } else if (creep.memory.role === "sentry") {
         sentry(creep);
-    } else if (creep.memory.role = "healer") {
+    } else if (creep.memory.role === "healer") {
         healer(creep);
-    } else if (creep.memory.role = "scout") {
+    } else if (creep.memory.role === "scout") {
         scout(creep);
-    } else if (creep.memory.role = "attacker") {
+    } else if (creep.memory.role === "attacker") {
         attacker(creep);
-    } else if (creep.memory.role = "claimer") {
+    } else if (creep.memory.role === "claimer") {
         claimer(creep);
-    } else if (creep.memory.role = "reserver") {
+    } else if (creep.memory.role === "reserver") {
         reserver(creep);
-    } else if (creep.memory.role = "raider") {
+    } else if (creep.memory.role === "raider") {
         raider(creep);
-    } else if (creep.memory.role = "responder") {
+    } else if (creep.memory.role === "responder") {
         responder(creep);
     }
 };

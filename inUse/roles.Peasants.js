@@ -4,11 +4,11 @@ let pathing = require('module.pathFinder');
 
 
 module.exports.Manager = function (creep) {
-    if (creep.memory.role = "peasant") {
+    if (creep.memory.role === "peasant") {
         peasant(creep);
-    } else if (creep.memory.role = "peasantBuilder") {
+    } else if (creep.memory.role === "peasantBuilder") {
         peasantBuilder(creep);
-    } else if (creep.memory.role = "peasantUpgrader") {
+    } else if (creep.memory.role === "peasantUpgrader") {
         peasantUpgrader(creep);
     }
 };
