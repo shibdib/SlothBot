@@ -13,14 +13,14 @@ module.exports.roomControl = function () {
         let level = Game.spawns[name].room.controller.level;
 
         //Every 100 ticks
-        if (Game.time % 100 === 0) {
+        /**if (Game.time % 100 === 0) {
             //autoBuild.run(name);
             if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
                 //militaryFunctions.buildWalls(Game.spawns[name]);
                 militaryFunctions.borderWalls(Game.spawns[name]);
                 //militaryFunctions.roadNetwork(Game.spawns[name]);
             }
-        }
+        }**/
 
         //SAFE MODE
         if (Game.spawns[name].hits < Game.spawns[name].hitsMax / 2) {
