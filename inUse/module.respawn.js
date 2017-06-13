@@ -58,6 +58,7 @@ function rcl1(spawnName) {
                         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasant', {
                             role: 'peasant',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             assignedSource: sources[i].id,
                             level: 0
                         });
@@ -70,6 +71,7 @@ function rcl1(spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
                         role: 'peasantUpgrader',
                         assignedSpawn: Game.spawns[spawnName].id,
+                        assignedRoom: Game.spawns[spawnName].room.name,
                         level: 0
                     });
                     console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantUpgrader');
@@ -80,6 +82,7 @@ function rcl1(spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
                         role: 'peasantBuilder',
                         assignedSpawn: Game.spawns[spawnName].id,
+                        assignedRoom: Game.spawns[spawnName].room.name,
                         level: 0
                     });
                     console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantBuilder');
@@ -130,6 +133,7 @@ function rcl2(spawnName) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                             role: 'hauler',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 2
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
@@ -145,6 +149,7 @@ function rcl2(spawnName) {
                         Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
                             role: 'stationaryHarvester',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 2,
                             assignedSource: sources[i].id
                         });
@@ -161,6 +166,7 @@ function rcl2(spawnName) {
                         Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant', {
                             role: 'peasant',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             assignedSource: sources[i].id,
                             level: 0
                         });
@@ -173,6 +179,7 @@ function rcl2(spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
                         role: 'peasantBuilder',
                         assignedSpawn: Game.spawns[spawnName].id,
+                        assignedRoom: Game.spawns[spawnName].room.name,
                         level: 0
                     });
                     console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantBuilder');
@@ -183,6 +190,7 @@ function rcl2(spawnName) {
                     Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
                         role: 'peasantUpgrader',
                         assignedSpawn: Game.spawns[spawnName].id,
+                        assignedRoom: Game.spawns[spawnName].room.name,
                         level: 0
                     });
                     console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantUpgrader');
@@ -236,6 +244,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE], generatedNumber + 'scout', {
                                     role: 'scout',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 0,
                                     destination: Game.flags[scout].name,
                                 });
@@ -254,6 +263,7 @@ function rcl3(spawnName) {
                         Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
                             role: 'responder',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 3,
                             responseTarget: assistNeeded[0].id
                         });
@@ -272,6 +282,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'raider', {
                                     role: 'raider',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     attackTarget: Game.flags[raid].name,
                                 });
@@ -292,6 +303,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
                                     role: 'attacker',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     attackTarget: Game.flags[attack].name,
                                     waitForHealers: (i),
@@ -305,6 +317,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL], generatedNumber + 'healer', {
                                     role: 'healer',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     attackTarget: Game.flags[attack].name,
                                     waitForHealers: (i),
@@ -327,6 +340,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
                                     role: 'reserver',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     destination: reserve
                                 });
@@ -347,6 +361,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'claimer', {
                                     role: 'claimer',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     destination: claim
                                 });
@@ -365,6 +380,7 @@ function rcl3(spawnName) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                             role: 'hauler',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 0,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
@@ -374,6 +390,7 @@ function rcl3(spawnName) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'largeHauler', {
                             role: 'largeHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 3,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a largeHauler');
@@ -388,6 +405,7 @@ function rcl3(spawnName) {
                         Game.spawns[spawnName].createCreep([WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'stationaryHarvester', {
                             role: 'stationaryHarvester',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 3,
                             assignedSource: sources[i].id
                         });
@@ -408,6 +426,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'remoteHarvester', {
                                     role: 'remoteHarvester',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: remote
                                 });
@@ -417,6 +436,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
                                     role: 'remoteHauler',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: remote
                                 });
@@ -427,6 +447,7 @@ function rcl3(spawnName) {
                                 Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'remoteHauler', {
                                     role: 'remoteHauler',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     destination: remote
                                 });
@@ -446,6 +467,7 @@ function rcl3(spawnName) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker', {
                             role: 'worker',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 3,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
@@ -454,6 +476,7 @@ function rcl3(spawnName) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader', {
                             role: 'upgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 3,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
@@ -510,6 +533,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE], generatedNumber + 'scout', {
                                     role: 'scout',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 0,
                                     destination: Game.flags[scout].name,
                                 });
@@ -528,6 +552,7 @@ function rcl4(spawnName) {
                         Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
                             role: 'responder',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                             responseTarget: assistNeeded[0].id
                         });
@@ -546,6 +571,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, HEAL], generatedNumber + 'raider', {
                                     role: 'raider',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     attackTarget: Game.flags[raid].name,
                                 });
@@ -566,6 +592,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
                                     role: 'attacker',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     attackTarget: Game.flags[attack].name,
                                     waitForHealers: (i),
@@ -579,6 +606,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL], generatedNumber + 'healer', {
                                     role: 'healer',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     attackTarget: Game.flags[attack].name,
                                     waitForHealers: (i),
@@ -601,6 +629,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
                                     role: 'reserver',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: reserve
                                 });
@@ -621,6 +650,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'claimer', {
                                     role: 'claimer',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     destination: claim
                                 });
@@ -639,6 +669,7 @@ function rcl4(spawnName) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                             role: 'hauler',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 0,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a basicHauler');
@@ -648,6 +679,7 @@ function rcl4(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
                             role: 'largeHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a largeHauler');
@@ -662,6 +694,7 @@ function rcl4(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester', {
                             role: 'stationaryHarvester',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                             assignedSource: sources[i].id
                         });
@@ -682,6 +715,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'remoteHarvester', {
                                     role: 'remoteHarvester',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: remote
                                 });
@@ -691,6 +725,7 @@ function rcl4(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
                                     role: 'remoteHauler',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: remote
                                 });
@@ -722,6 +757,7 @@ function rcl4(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
                             role: 'spawnBuilder',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             target: spawnSite[0].id,
                             level: 4,
                         });
@@ -731,6 +767,7 @@ function rcl4(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                             role: 'worker',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
@@ -739,6 +776,7 @@ function rcl4(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
                             role: 'upgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
@@ -795,6 +833,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE], generatedNumber + 'scout', {
                                     role: 'scout',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 0,
                                     destination: Game.flags[scout].name,
                                 });
@@ -813,6 +852,7 @@ function rcl5(spawnName) {
                         Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
                             role: 'responder',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                             responseTarget: assistNeeded[0].id
                         });
@@ -831,6 +871,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, HEAL], generatedNumber + 'raider', {
                                     role: 'raider',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     attackTarget: Game.flags[raid].name,
                                 });
@@ -851,6 +892,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
                                     role: 'attacker',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     attackTarget: Game.flags[attack].name,
                                     waitForHealers: (i),
@@ -864,6 +906,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL, HEAL], generatedNumber + 'healer', {
                                     role: 'healer',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     attackTarget: Game.flags[attack].name,
                                     waitForHealers: (i),
@@ -886,6 +929,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
                                     role: 'reserver',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: reserve
                                 });
@@ -906,6 +950,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'claimer', {
                                     role: 'claimer',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 3,
                                     destination: claim
                                 });
@@ -924,6 +969,7 @@ function rcl5(spawnName) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                             role: 'hauler',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 0,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
@@ -933,6 +979,7 @@ function rcl5(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
                             role: 'largeHauler',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a largeHauler');
@@ -947,6 +994,7 @@ function rcl5(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'stationaryHarvester', {
                             role: 'stationaryHarvester',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                             assignedSource: sources[i].id
                         });
@@ -967,6 +1015,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'remoteHarvester', {
                                     role: 'remoteHarvester',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: remote
                                 });
@@ -976,6 +1025,7 @@ function rcl5(spawnName) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
                                     role: 'remoteHauler',
                                     assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     destination: remote
                                 });
@@ -1007,6 +1057,7 @@ function rcl5(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                             role: 'worker',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
@@ -1015,6 +1066,7 @@ function rcl5(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader', {
                             role: 'upgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             level: 4,
                         });
                         console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
@@ -1023,6 +1075,7 @@ function rcl5(spawnName) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
                             role: 'spawnBuilder',
                             assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
                             target: spawnSite[0].id,
                             level: 4,
                         });
@@ -1079,6 +1132,7 @@ function collapsePrevention(spawnName) {
             Game.spawns[spawnName].createCreep([WORK, WORK, CARRY, MOVE], generatedNumber + 'stationaryHarvester', {
                 role: 'stationaryHarvester',
                 assignedSpawn: Game.spawns[spawnName].id,
+                assignedRoom: Game.spawns[spawnName].room.name,
                 assignedSource: sources[i].id,
                 level: 0
             });
@@ -1092,6 +1146,7 @@ function collapsePrevention(spawnName) {
         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
             role: 'peasantUpgrader',
             assignedSpawn: Game.spawns[spawnName].id,
+            assignedRoom: Game.spawns[spawnName].room.name,
             level: 0
         });
         console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantUpgrader');
@@ -1103,6 +1158,7 @@ function collapsePrevention(spawnName) {
         Game.spawns[spawnName].createCreep([WORK, CARRY, CARRY, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
             role: 'peasantBuilder',
             assignedSpawn: Game.spawns[spawnName].id,
+            assignedRoom: Game.spawns[spawnName].room.name,
             level: 0
         });
         console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantBuilder');
@@ -1114,6 +1170,7 @@ function collapsePrevention(spawnName) {
         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
             role: 'hauler',
             assignedSpawn: Game.spawns[spawnName].id,
+            assignedRoom: Game.spawns[spawnName].room.name,
             level: 0,
         });
         console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
