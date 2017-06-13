@@ -9,13 +9,13 @@ let cache = require('module.cache');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
-Memory.stats.cpu.init = Game.cpu.getUsed();
 
 // This line monkey patches the global prototypes.
 //profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
+        Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //GRAFANA
         screepsPlus.collect_stats();
