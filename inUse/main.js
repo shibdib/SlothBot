@@ -9,6 +9,7 @@ let cache = require('module.cache');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
+Memory.stats.cpu.init = Game.cpu.getUsed();
 
 // This line monkey patches the global prototypes.
 //profiler.enable();
@@ -40,15 +41,19 @@ module.exports.loop = function () {
         }
 
         //Room Management
+        Memory.stats.cpu.preRoom = Game.cpu.getUsed();
         roomController.roomControl();
 
         //Creep Management
+        Memory.stats.cpu.preCreep = Game.cpu.getUsed();
         creepController.creepControl();
 
         //Tower Management
+        Memory.stats.cpu.preTower = Game.cpu.getUsed();
         towerController.towerControl();
 
         //Link Management
+        Memory.stats.cpu.preLink = Game.cpu.getUsed();
         linkController.linkControl();
 
         //GRAFANA
