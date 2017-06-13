@@ -488,6 +488,7 @@ function rcl4(spawnName) {
                 const containers = Game.spawns[spawnName].room.find(FIND_STRUCTURES, {
                     filter: {structureType: STRUCTURE_CONTAINER}
                 });
+                const roomName = Game.spawns[spawnName].room.name;
 
                 if ((peasant.length === 0 && stationaryHarvester.length === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
@@ -502,7 +503,7 @@ function rcl4(spawnName) {
                 //SCOUT RESPAWNS
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 20; i++) {
-                        let scout = 'scout' + i;
+                        let scout = 'scout' + roomName + i;
                         if (Game.flags[scout]) {
                             let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[scout].name && creep.memory.role === 'scout');
                             if (scouts.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE], generatedNumber + 'scout') === OK) {

@@ -53,7 +53,7 @@ module.exports.loop = function () {
         linkController.linkControl();
 
         //Remote Management
-        remoteController.claimedControl();
+        remoteController.remoteControl();
 
         //GRAFANA
         screepsPlus.collect_stats();
