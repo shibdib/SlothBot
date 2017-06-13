@@ -311,17 +311,19 @@ function responder(creep) {
             }
         }
     } else if (creep.memory.destinationReached !== true) {
-        if (creep.pos.roomName === creep.memory.responseTarget) {
+        if (creep.pos.roomName === Game.flags[creep.memory.responseTarget].room.name) {
+            Game.flags[creep.memory.responseTarget].remove();
             creep.memory.destinationReached = true;
         }
-        pathing.Move(creep, Game.rooms[creep.memory.responseTarget].controller, false, 16);
+        pathing.Move(creep, Game.flags[creep.memory.responseTarget], false, 16);
     }
 };
 
 function invaderCheck(creep) {
     let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (invader) {
+    if (invader && creep.memory.invaderDetected !== true) {
         creep.memory.invaderDetected = true;
+        creep.pos.createFlag(creep.id);
     } else {
         creep.memory.invaderDetected = undefined;
     }

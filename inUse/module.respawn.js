@@ -255,7 +255,7 @@ function rcl3(spawnName) {
                             role: 'responder',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 3,
-                            responseTarget: assistNeeded[0].pos.roomName
+                            responseTarget: assistNeeded[0].id
                         });
                         console.log('Spawning a responder');
                         return;
@@ -529,7 +529,7 @@ function rcl4(spawnName) {
                             role: 'responder',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
-                            responseTarget: assistNeeded[0].pos.roomName
+                            responseTarget: assistNeeded[0].id
                         });
                         console.log('Spawning a responder');
                         return;
@@ -814,7 +814,7 @@ function rcl5(spawnName) {
                             role: 'responder',
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
-                            responseTarget: assistNeeded[0].pos.roomName
+                            responseTarget: assistNeeded[0].id
                         });
                         console.log('Spawning a responder');
                         return;
