@@ -3,11 +3,30 @@ let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 let militaryFunctions = require('module.militaryFunctions');
 
-module.exports.Defender = function (creep) {
 
-    //RENEWAL
-    creepTools.renewal(creep);
+module.exports.Manager = function (creep) {
+    if (creep.memory.role = "defender") {
+        defender(creep);
+    } else if (creep.memory.role = "sentry") {
+        sentry(creep);
+    } else if (creep.memory.role = "healer") {
+        healer(creep);
+    } else if (creep.memory.role = "scout") {
+        scout(creep);
+    } else if (creep.memory.role = "attacker") {
+        attacker(creep);
+    } else if (creep.memory.role = "claimer") {
+        claimer(creep);
+    } else if (creep.memory.role = "reserver") {
+        reserver(creep);
+    } else if (creep.memory.role = "raider") {
+        raider(creep);
+    } else if (creep.memory.role = "responder") {
+        responder(creep);
+    }
+};
 
+function defender(creep) {
     const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 10);
     const closestHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (targets.length > 0) {
@@ -23,11 +42,7 @@ module.exports.Defender = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Sentry = function (creep) {
-
-    //RENEWAL
-    creepTools.renewal(creep);
-
+function sentry(creep) {
     const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3);
     if (targets.length > 0) {
         creep.rangedMassAttack();
@@ -40,7 +55,7 @@ module.exports.Sentry = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Healer = function (creep) {
+function healer(creep) {
 
     //RENEWAL
     if (creepTools.renewal(creep) === true) {
@@ -72,7 +87,7 @@ module.exports.Healer = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Scout = function (creep) {
+function scout(creep) {
     if (creep.memory.destinationReached !== true) {
         pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
@@ -93,13 +108,7 @@ module.exports.Scout = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Attacker = function (creep) {
-
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
-
+function attacker(creep) {
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
@@ -145,7 +154,7 @@ module.exports.Attacker = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Claimer = function (creep) {
+function claimer(creep) {
     //Initial move
 
     if (!Game.flags[creep.memory.destination]) {
@@ -168,7 +177,7 @@ module.exports.Claimer = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Reserver = function (creep) {
+function reserver(creep) {
     invaderCheck(creep);
     //Initial move
 
@@ -192,7 +201,7 @@ module.exports.Reserver = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Raider = function (creep) {
+function raider(creep) {
 
     if (!Game.flags[creep.memory.attackTarget]) {
         creepTools.recycle(creep);
@@ -269,7 +278,7 @@ module.exports.Raider = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Responder = function (creep) {
+function responder(creep) {
     if (creep.hits < creep.hitsMax / 2) {
         creep.heal(creep);
     }

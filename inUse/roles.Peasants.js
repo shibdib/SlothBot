@@ -2,10 +2,20 @@ let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 
+
+module.exports.Manager = function (creep) {
+    if (creep.memory.role = "peasant") {
+        peasant(creep);
+    } else if (creep.memory.role = "peasantBuilder") {
+        peasantBuilder(creep);
+    } else if (creep.memory.role = "peasantUpgrader") {
+        peasantUpgrader(creep);
+    }
+};
 /**
  * @return {null}
  */
-module.exports.Peasant = function (creep) {
+function peasant(creep) {
     borderChecks.borderCheck(creep);
     if (creep.carry.energy !== creep.carryCapacity) {
         creep.memory.harvesting = true;
@@ -53,7 +63,7 @@ module.exports.Peasant = function (creep) {
 /**
  * @return {null}
  */
-module.exports.PeasantBuilder = function (creep) {
+function peasantBuilder(creep) {
     borderChecks.borderCheck(creep);
     if (creep.memory.building && creep.carry.energy === 0) {
         creep.memory.building = false;
@@ -95,7 +105,7 @@ module.exports.PeasantBuilder = function (creep) {
 /**
  * @return {null}
  */
-module.exports.PeasantUpgrader = function (creep) {
+function peasantUpgrader(creep) {
     borderChecks.borderCheck(creep);
     if (creep.memory.upgrading && creep.carry.energy === 0) {
         creep.memory.upgrading = false;

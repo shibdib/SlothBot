@@ -2,10 +2,21 @@ let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 
+
+module.exports.Manager = function (creep) {
+    if (creep.memory.role = "worker") {
+        worker(creep);
+    } else if (creep.memory.role = "upgrader") {
+        upgrader(creep);
+    } else if (creep.memory.role = "stationaryHarvester") {
+        harvester(creep);
+    }
+};
+
 /**
  * @return {null}
  */
-module.exports.Worker = function (creep) {
+function worker(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     if (creepTools.noHarvesterProtocol(creep)) {
@@ -54,7 +65,7 @@ module.exports.Worker = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Harvester = function (creep) {
+function harvester(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     if (creep.carry.energy === 0) {
@@ -79,7 +90,7 @@ module.exports.Harvester = function (creep) {
 /**
  * @return {null}
  */
-module.exports.Upgrader = function (creep) {
+function upgrader(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     if (creepTools.noHarvesterProtocol(creep)) {

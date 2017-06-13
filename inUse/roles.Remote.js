@@ -2,10 +2,21 @@ let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 
+
+module.exports.Manager = function (creep) {
+    if (creep.memory.role = "remoteHarvester") {
+        harvester(creep);
+    } else if (creep.memory.role = "remoteHauler") {
+        hauler(creep);
+    } else if (creep.memory.role = "spawnBuilder") {
+        spawnBuilder(creep);
+    }
+};
+
 /**
  * @return {null}
  */
-module.exports.RHarvester = function (creep) {
+function harvester(creep) {
     if (!Game.flags[creep.memory.destination]) {
         creepTools.recycle(creep);
         return null;
@@ -40,7 +51,7 @@ module.exports.RHarvester = function (creep) {
 /**
  * @return {null}
  */
-module.exports.RHauler = function (creep) {
+function hauler(creep) {
     if (!creep.memory.destinationReached) {
         pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
@@ -84,58 +95,10 @@ module.exports.RHauler = function (creep) {
     }
 };
 
-
 /**
  * @return {null}
  */
-module.exports.roadBuilder = function (creep) {
-    if (creep.memory.resupply === null || creep.memory.resupply === undefined) {
-        creep.memory.resupply = 'Spawn1';
-        return null;
-    }
-    if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
-            creep.memory.destinationReached = true;
-        }
-        return null;
-    }
-    if (creep.carry.energy === 0) {
-        creep.memory.hauling = false;
-        creep.memory.destinationReached = null;
-    }
-    if (creep.carry.energy === creep.carryCapacity) {
-        creep.memory.hauling = true;
-    }
-    if (creep.memory.hauling === false) {
-        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (container) {
-            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container, false, 1);
-            }
-        }
-    }
-
-    //Haul to spawn/extension and build a road
-    if (creep.memory.hauling === true) {
-        if (creep.pos.lookFor(LOOK_STRUCTURES).length === 0 && creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-            creep.pos.createConstructionSite(STRUCTURE_ROAD);
-            return null;
-        }
-        if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) {
-            let site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 0);
-            creep.build(site[0]);
-            return null;
-        } else {
-            pathing.Move(creep, Game.spawns[creep.memory.resupply], false, 16);
-        }
-    }
-};
-
-/**
- * @return {null}
- */
-module.exports.spawnBuilder = function (creep) {
+function spawnBuilder(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
         creep.memory.destinationReached = null;

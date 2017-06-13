@@ -12,75 +12,24 @@ module.exports.creepControl = function () {
 
     for (let name in Game.creeps) {
         const creep = Game.creeps[name];
-        if (creep.memory.role === 'peasant') {
-            rolesPeasants.Peasant(creep);
+        if (creep.memory.role === 'peasant' || creep.memory.role === 'peasantBuilder' || creep.memory.role === 'peasantUpgrader') {
+            rolesPeasants.Manager(creep);
+            continue;
         }
-        if (creep.memory.role === 'peasantBuilder') {
-            rolesPeasants.PeasantBuilder(creep);
+        if (creep.memory.role === 'hauler' || creep.memory.role === 'largeHauler') {
+            rolesHaulers.Manager(creep);
+            continue;
         }
-        if (creep.memory.role === 'peasantUpgrader') {
-            rolesPeasants.PeasantUpgrader(creep);
+        if (creep.memory.role === 'worker' || creep.memory.role === 'upgrader' || creep.memory.role === 'stationaryHarvester') {
+            rolesWorkers.Manager(creep);
+            continue;
         }
-        if (creep.memory.role === 'hauler') {
-            rolesHaulers.Hauler(creep);
+        if (creep.memory.role === 'sentry' || creep.memory.role === 'healer' || creep.memory.role === 'defender' || creep.memory.role === 'scout' || creep.memory.role === 'attacker' || creep.memory.role === 'reserver' || creep.memory.role === 'claimer' || creep.memory.role === 'responder' || creep.memory.role === 'raider') {
+            rolesMilitary.Manager(creep);
+            continue;
         }
-        if (creep.memory.role === 'dumpTruck') {
-            rolesHaulers.DumpTruck(creep);
-        }
-        if (creep.memory.role === 'hauler') {
-            rolesHaulers.Hauler(creep);
-        }
-        if (creep.memory.role === 'largeHauler') {
-            rolesHaulers.Hauler(creep);
-        }
-        if (creep.memory.role === 'worker') {
-            rolesWorkers.Worker(creep);
-        }
-        if (creep.memory.role === 'upgrader') {
-            rolesWorkers.Upgrader(creep);
-        }
-        if (creep.memory.role === 'stationaryHarvester') {
-            rolesWorkers.Harvester(creep);
-        }
-        if (creep.memory.role === 'sentry') {
-            rolesMilitary.Sentry(creep);
-        }
-        if (creep.memory.role === 'healer') {
-            rolesMilitary.Healer(creep);
-        }
-        if (creep.memory.role === 'defender') {
-            rolesMilitary.Defender(creep);
-        }
-        if (creep.memory.role === 'scout') {
-            rolesMilitary.Scout(creep);
-        }
-        if (creep.memory.role === 'attacker') {
-            rolesMilitary.Attacker(creep);
-        }
-        if (creep.memory.role === 'reserver') {
-            rolesMilitary.Reserver(creep);
-        }
-        if (creep.memory.role === 'claimer') {
-            rolesMilitary.Claimer(creep);
-        }
-        if (creep.memory.role === 'responder') {
-            rolesMilitary.Responder(creep);
-        }
-        if (creep.memory.role === 'raider') {
-            rolesMilitary.Raider(creep);
-        }
-        if (creep.memory.role === 'remoteHarvester') {
-            rolesRemote.RHarvester(creep);
-        }
-        if (creep.memory.role === 'remoteHauler') {
-            rolesRemote.RHauler(creep);
-        }
-        if (creep.memory.role === 'roadBuilder') {
-            rolesRemote.roadBuilder(creep);
-        }
-        if (creep.memory.role === 'spawnBuilder') {
-            rolesRemote.spawnBuilder(creep);
+        if (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'remoteHauler' || creep.memory.role === 'spawnBuilder') {
+            rolesRemote.Manager(creep);
         }
     }
-
-}
+};

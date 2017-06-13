@@ -2,10 +2,15 @@ let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 
+
+module.exports.Manager = function (creep) {
+    hauler(creep);
+}
+
 /**
  * @return {null}
  */
-module.exports.Hauler = function (creep) {
+function hauler(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
 
@@ -34,86 +39,4 @@ module.exports.Hauler = function (creep) {
         }
         creepTools.findStorage(creep);
     }
-};
-
-/**
- * @return {null}
- */
-module.exports.DumpTruck = function (creep) {
-    //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-
-    //SET HAULING STATE
-    if (creep.carry.energy === 0) {
-        creep.memory.hauling = false;
-    } else if (creep.carry.energy > 0) {
-        creep.memory.hauling = true;
-    }
-
-    //GET ENERGY
-    if (creep.memory.hauling === false) {
-        if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
-        } else {
-            creepTools.findEnergy(creep, true);
-        }
-    }
-
-//Haul to builder/upgrader
-    if (creep.memory.hauling === true) {
-        creepTools.findBuilder(creep);
-        let target = Game.getObjectById(creep.memory.builderID);
-        if (target) {
-            target.memory.incomingEnergy = creep.id;
-            if (creep.transfer(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, target);
-            }
-        } else {
-            let newTarget = creepTools.findNewBuilder(creep);
-            newTarget = Game.getObjectById(newTarget);
-            if (newTarget) {
-                newTarget.memory.incomingEnergy = creep.id;
-                newTarget.memory.incomingCounter = 0;
-                if (creep.transfer(newTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, newTarget);
-                }
-            } else {
-                pathing.Move(creep, Game.flags.haulers);
-            }
-        }
-    }
-};
-
-/**
- * @return {null}
- */
-module.exports.BasicHauler = function (creep) {
-    //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-
-    if (creep.carry.energy === 0) {
-        creep.memory.hauling = false;
-    }
-    if (creep.carry.energy > creep.carryCapacity / 2) {
-        creep.memory.hauling = true;
-    }
-    if (creep.memory.hauling === false) {
-        if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
-        } else {
-            creepTools.findEnergy(creep, true);
-        }
-    } else {
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, storageItem);
-            } else {
-                creep.memory.storageDestination = null;
-                creep.memory.path = null;
-            }
-            return null;
-        }
-        creepTools.findStorage(creep);
-    }
-};
+}
