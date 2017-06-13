@@ -140,6 +140,9 @@ module.exports.spawnBuilder = function (creep) {
         creep.memory.hauling = false;
         creep.memory.destinationReached = null;
     }
+    if (!Game.getObjectById(creep.memory.target)) {
+        creep.memory.role = "peasantBuilder";
+    }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
     }
