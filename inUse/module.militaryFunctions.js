@@ -329,7 +329,7 @@ function spawnDefenders(spawn, count) { //SENTRY RESPAWNS
             role: 'sentry',
             assignedSpawn: spawn.name
         });
-        console.log('Spawning a sentry');
+        console.log(Game.spawns[spawnName].room.name + ' Spawning a sentry');
         return;
     }
     let defender = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === spawn.name && creep.memory.role === 'defender');
@@ -338,7 +338,7 @@ function spawnDefenders(spawn, count) { //SENTRY RESPAWNS
             role: 'defender',
             assignedSpawn: spawn.name
         });
-        console.log('Spawning a defender');
+        console.log(Game.spawns[spawnName].room.name + ' Spawning a defender');
         return;
     }
     let healer = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === spawn.name && creep.memory.role === 'healer');
@@ -347,6 +347,6 @@ function spawnDefenders(spawn, count) { //SENTRY RESPAWNS
             role: 'healer',
             assignedSpawn: spawn.name
         });
-        console.log('Spawning a healer');
+        console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
     }
 }

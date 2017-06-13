@@ -61,7 +61,7 @@ function rcl1(spawnName) {
                             assignedSource: sources[i].id,
                             level: 0
                         });
-                        console.log('Spawning a peasant');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a peasant');
                         return;
                     }
                 }
@@ -72,7 +72,7 @@ function rcl1(spawnName) {
                         assignedSpawn: Game.spawns[spawnName].id,
                         level: 0
                     });
-                    console.log('Spawning a peasantUpgrader');
+                    console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantUpgrader');
                     return;
                 }
                 let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
@@ -82,7 +82,7 @@ function rcl1(spawnName) {
                         assignedSpawn: Game.spawns[spawnName].id,
                         level: 0
                     });
-                    console.log('Spawning a peasantBuilder');
+                    console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantBuilder');
 
                 }
 
@@ -132,7 +132,7 @@ function rcl2(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 2
                         });
-                        console.log('Spawning a hauler');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                         return;
                     }
                 }
@@ -148,7 +148,7 @@ function rcl2(spawnName) {
                             level: 2,
                             assignedSource: sources[i].id
                         });
-                        console.log('Spawning a stationaryHarvester');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a stationaryHarvester');
                         return;
                     }
                 }
@@ -164,7 +164,7 @@ function rcl2(spawnName) {
                             assignedSource: sources[i].id,
                             level: 0
                         });
-                        console.log('Spawning a peasant');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a peasant');
                         return;
                     }
                 }
@@ -175,7 +175,7 @@ function rcl2(spawnName) {
                         assignedSpawn: Game.spawns[spawnName].id,
                         level: 0
                     });
-                    console.log('Spawning a peasantBuilder');
+                    console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantBuilder');
 
                 }
                 let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
@@ -185,7 +185,7 @@ function rcl2(spawnName) {
                         assignedSpawn: Game.spawns[spawnName].id,
                         level: 0
                     });
-                    console.log('Spawning a peasantUpgrader');
+                    console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantUpgrader');
 
                 }
 
@@ -239,7 +239,7 @@ function rcl3(spawnName) {
                                     level: 0,
                                     destination: Game.flags[scout].name,
                                 });
-                                console.log('Spawning a scout');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a scout');
                                 return;
                             }
                         }
@@ -257,7 +257,7 @@ function rcl3(spawnName) {
                             level: 3,
                             responseTarget: assistNeeded[0].id
                         });
-                        console.log('Spawning a responder');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
                         return;
                     }
                 }
@@ -275,7 +275,7 @@ function rcl3(spawnName) {
                                     level: 3,
                                     attackTarget: Game.flags[raid].name,
                                 });
-                                console.log('Spawning a raider');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a raider');
                                 return;
                             }
                         }
@@ -297,7 +297,7 @@ function rcl3(spawnName) {
                                     waitForHealers: (i),
                                     waitForAttackers: (i * 2)
                                 });
-                                console.log('Spawning a attacker');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                 return;
                             }
                             let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
@@ -310,7 +310,7 @@ function rcl3(spawnName) {
                                     waitForHealers: (i),
                                     waitForAttackers: (i * 2)
                                 });
-                                console.log('Spawning a healer');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
                                 return;
                             }
                         }
@@ -330,7 +330,7 @@ function rcl3(spawnName) {
                                     level: 3,
                                     destination: reserve
                                 });
-                                console.log('Spawning a reserver');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
                                 return;
                             }
                         }
@@ -350,7 +350,7 @@ function rcl3(spawnName) {
                                     level: 3,
                                     destination: claim
                                 });
-                                console.log('Spawning a claimer');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a claimer');
                                 return;
                             }
                         }
@@ -367,7 +367,7 @@ function rcl3(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0,
                         });
-                        console.log('Spawning a hauler');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                         return;
                     }
                     if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'largeHauler') === OK) {
@@ -376,7 +376,7 @@ function rcl3(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 3,
                         });
-                        console.log('Spawning a largeHauler');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a largeHauler');
                         return;
                     }
                 }
@@ -391,7 +391,7 @@ function rcl3(spawnName) {
                             level: 3,
                             assignedSource: sources[i].id
                         });
-                        console.log('Spawning a stationaryHarvester');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a stationaryHarvester');
                         return;
                     }
                 }
@@ -411,7 +411,7 @@ function rcl3(spawnName) {
                                     level: 4,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHarvester');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHarvester');
                                 return;
                             } else if (remoteHauler.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler') === OK) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
@@ -420,7 +420,7 @@ function rcl3(spawnName) {
                                     level: 4,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHauler');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHauler');
                                 return;
                             }
                             /**else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'remoteHauler') === OK) {
@@ -430,7 +430,7 @@ function rcl3(spawnName) {
                                     level: 3,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHauler');
+                                console.log(Game.spawns[spawnName].room.name +' Spawning a remoteHauler');
                                 return;
                             }**/
                         }
@@ -448,7 +448,7 @@ function rcl3(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 3,
                         });
-                        console.log('Spawning a worker');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
 
                     } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader') === OK) {
                         Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader', {
@@ -456,7 +456,7 @@ function rcl3(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 3,
                         });
-                        console.log('Spawning a upgrader');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
 
                     }
                 }
@@ -513,7 +513,7 @@ function rcl4(spawnName) {
                                     level: 0,
                                     destination: Game.flags[scout].name,
                                 });
-                                console.log('Spawning a scout');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a scout');
                                 return;
                             }
                         }
@@ -531,7 +531,7 @@ function rcl4(spawnName) {
                             level: 4,
                             responseTarget: assistNeeded[0].id
                         });
-                        console.log('Spawning a responder');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
                         return;
                     }
                 }
@@ -549,7 +549,7 @@ function rcl4(spawnName) {
                                     level: 4,
                                     attackTarget: Game.flags[raid].name,
                                 });
-                                console.log('Spawning a raider');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a raider');
                                 return;
                             }
                         }
@@ -571,7 +571,7 @@ function rcl4(spawnName) {
                                     waitForHealers: (i),
                                     waitForAttackers: (i * 2)
                                 });
-                                console.log('Spawning a attacker');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                 return;
                             }
                             let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
@@ -584,7 +584,7 @@ function rcl4(spawnName) {
                                     waitForHealers: (i),
                                     waitForAttackers: (i * 2)
                                 });
-                                console.log('Spawning a healer');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
                                 return;
                             }
                         }
@@ -604,7 +604,7 @@ function rcl4(spawnName) {
                                     level: 4,
                                     destination: reserve
                                 });
-                                console.log('Spawning a reserver');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
                                 return;
                             }
                         }
@@ -624,7 +624,7 @@ function rcl4(spawnName) {
                                     level: 3,
                                     destination: claim
                                 });
-                                console.log('Spawning a claimer');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a claimer');
                                 return;
                             }
                         }
@@ -641,7 +641,7 @@ function rcl4(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0,
                         });
-                        console.log('Spawning a basicHauler');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a basicHauler');
                         return;
                     }
                     if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler') === OK) {
@@ -650,7 +650,7 @@ function rcl4(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a largeHauler');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a largeHauler');
                         return;
                     }
                 }
@@ -665,7 +665,7 @@ function rcl4(spawnName) {
                             level: 4,
                             assignedSource: sources[i].id
                         });
-                        console.log('Spawning a stationaryHarvester');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a stationaryHarvester');
                         return;
                     }
                 }
@@ -685,7 +685,7 @@ function rcl4(spawnName) {
                                     level: 4,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHarvester');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHarvester');
                                 return;
                             } else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler') === OK) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
@@ -694,7 +694,7 @@ function rcl4(spawnName) {
                                     level: 4,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHauler');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHauler');
                                 return;
                             }
                             /**else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'remoteHauler') === OK) {
@@ -704,7 +704,7 @@ function rcl4(spawnName) {
                                     level: 3,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHauler');
+                                console.log(Game.spawns[spawnName].room.name +' Spawning a remoteHauler');
                                 return;
                             }**/
                         }
@@ -725,7 +725,7 @@ function rcl4(spawnName) {
                             target: spawnSite[0].id,
                             level: 4,
                         });
-                        console.log('Spawning a spawnBuilder');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
 
                     } else if (worker.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker') === OK) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
@@ -733,7 +733,7 @@ function rcl4(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a worker');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
 
                     } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
@@ -741,7 +741,7 @@ function rcl4(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a upgrader');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
 
                     }
                 }
@@ -798,7 +798,7 @@ function rcl5(spawnName) {
                                     level: 0,
                                     destination: Game.flags[scout].name,
                                 });
-                                console.log('Spawning a scout');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a scout');
                                 return;
                             }
                         }
@@ -816,7 +816,7 @@ function rcl5(spawnName) {
                             level: 4,
                             responseTarget: assistNeeded[0].id
                         });
-                        console.log('Spawning a responder');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
                         return;
                     }
                 }
@@ -834,7 +834,7 @@ function rcl5(spawnName) {
                                     level: 4,
                                     attackTarget: Game.flags[raid].name,
                                 });
-                                console.log('Spawning a raider');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a raider');
                                 return;
                             }
                         }
@@ -856,7 +856,7 @@ function rcl5(spawnName) {
                                     waitForHealers: (i),
                                     waitForAttackers: (i * 2)
                                 });
-                                console.log('Spawning a attacker');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                 return;
                             }
                             let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
@@ -869,7 +869,7 @@ function rcl5(spawnName) {
                                     waitForHealers: (i),
                                     waitForAttackers: (i * 2)
                                 });
-                                console.log('Spawning a healer');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
                                 return;
                             }
                         }
@@ -889,7 +889,7 @@ function rcl5(spawnName) {
                                     level: 4,
                                     destination: reserve
                                 });
-                                console.log('Spawning a reserver');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
                                 return;
                             }
                         }
@@ -909,7 +909,7 @@ function rcl5(spawnName) {
                                     level: 3,
                                     destination: claim
                                 });
-                                console.log('Spawning a claimer');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a claimer');
                                 return;
                             }
                         }
@@ -926,7 +926,7 @@ function rcl5(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 0,
                         });
-                        console.log('Spawning a hauler');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                         return;
                     }
                     if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler') === OK) {
@@ -935,7 +935,7 @@ function rcl5(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a largeHauler');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a largeHauler');
                         return;
                     }
                 }
@@ -950,7 +950,7 @@ function rcl5(spawnName) {
                             level: 4,
                             assignedSource: sources[i].id
                         });
-                        console.log('Spawning a stationaryHarvester');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a stationaryHarvester');
                         return;
                     }
                 }
@@ -970,7 +970,7 @@ function rcl5(spawnName) {
                                     level: 4,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHarvester');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHarvester');
                                 return;
                             } else if (remoteHauler.length === 0 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler') === OK) {
                                 Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
@@ -979,7 +979,7 @@ function rcl5(spawnName) {
                                     level: 4,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHauler');
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHauler');
                                 return;
                             }
                             /**else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].canCreateCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'remoteHauler') === OK) {
@@ -989,7 +989,7 @@ function rcl5(spawnName) {
                                     level: 3,
                                     destination: remote
                                 });
-                                console.log('Spawning a remoteHauler');
+                                console.log(Game.spawns[spawnName].room.name +' Spawning a remoteHauler');
                                 return;
                             }**/
                         }
@@ -1009,7 +1009,7 @@ function rcl5(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a worker');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
 
                     } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader', {
@@ -1017,7 +1017,7 @@ function rcl5(spawnName) {
                             assignedSpawn: Game.spawns[spawnName].id,
                             level: 4,
                         });
-                        console.log('Spawning a upgrader');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
 
                     } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder') === OK) {
                         Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
@@ -1026,7 +1026,7 @@ function rcl5(spawnName) {
                             target: spawnSite[0].id,
                             level: 4,
                         });
-                        console.log('Spawning a spawnBuilder');
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
 
                     }
                 }
@@ -1082,7 +1082,7 @@ function collapsePrevention(spawnName) {
                 assignedSource: sources[i].id,
                 level: 0
             });
-            console.log('Spawning a stationaryHarvester');
+            console.log(Game.spawns[spawnName].room.name + ' Spawning a stationaryHarvester');
             return;
         }
     }
@@ -1094,7 +1094,7 @@ function collapsePrevention(spawnName) {
             assignedSpawn: Game.spawns[spawnName].id,
             level: 0
         });
-        console.log('Spawning a peasantUpgrader');
+        console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantUpgrader');
         return;
     }
 
@@ -1105,7 +1105,7 @@ function collapsePrevention(spawnName) {
             assignedSpawn: Game.spawns[spawnName].id,
             level: 0
         });
-        console.log('Spawning a peasantBuilder');
+        console.log(Game.spawns[spawnName].room.name + ' Spawning a peasantBuilder');
 
     }
 
@@ -1116,7 +1116,7 @@ function collapsePrevention(spawnName) {
             assignedSpawn: Game.spawns[spawnName].id,
             level: 0,
         });
-        console.log('Spawning a hauler');
+        console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
 
     }
 }
