@@ -400,7 +400,7 @@ function rcl3(spawnName) {
                 if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
-                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[remote], false, false, 5).length < 100) {
+                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName], Game.flags[remote], false, false, 5).length < 100) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                             let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
@@ -674,7 +674,7 @@ function rcl4(spawnName) {
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
-                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[remote], false, false, 5).length < 100) {
+                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName], Game.flags[remote], false, false, 5).length < 100) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                             let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
@@ -880,7 +880,7 @@ function rcl5(spawnName) {
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let reserve = 'reserve' + i;
-                        if (Game.flags[reserve] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[reserve], false, false, 5).length < 100) {
+                        if (Game.flags[reserve] && pathing.FindPath(Game.spawns[spawnName], Game.flags[reserve], false, false, 5).length < 100) {
                             let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
                             if (reserver.length < 1 && Game.spawns[spawnName].canCreateCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
                                 Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
@@ -959,7 +959,7 @@ function rcl5(spawnName) {
                 if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
                         let remote = 'remote' + i;
-                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[remote], false, false, 5).length < 100) {
+                        if (Game.flags[remote] && pathing.FindPath(Game.spawns[spawnName], Game.flags[remote], false, false, 5).length < 100) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                             let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
