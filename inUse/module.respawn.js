@@ -321,7 +321,7 @@ function rcl3(spawnName) {
                 if (stationaryHarvester.length >= sourceCount) {
                     for (let i = 0; i < 10; i++) {
                         let reserve = 'reserve' + i;
-                        if (Game.flags[reserve]) {
+                        if (Game.flags[reserve] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[reserve], false, false, 5).length < 100) {
                             let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
                             if (reserver.length < 1 && Game.spawns[spawnName].canCreateCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
                                 Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
@@ -595,7 +595,7 @@ function rcl4(spawnName) {
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let reserve = 'reserve' + i;
-                        if (Game.flags[reserve]) {
+                        if (Game.flags[reserve] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[reserve], false, false, 5).length < 100) {
                             let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
                             if (reserver.length < 1 && Game.spawns[spawnName].canCreateCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
                                 Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
@@ -806,7 +806,7 @@ function rcl5(spawnName) {
                 }
 
                 //Defense Force Spawn
-                let assistNeeded = _.filter(Game.creeps, (creep) => creep.memory.invaderDetected === true);
+                let assistNeeded = _.filter(Game.creeps, (creep) => creep.memory.invaderDetected === true && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                 if (assistNeeded.length > 0) {
                     let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].name && creep.memory.role === 'responder');
                     if (responder.length === 0 && Game.spawns[spawnName].canCreateCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder') === OK) {
@@ -880,7 +880,7 @@ function rcl5(spawnName) {
                 if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                     for (let i = 0; i < 10; i++) {
                         let reserve = 'reserve' + i;
-                        if (Game.flags[reserve]) {
+                        if (Game.flags[reserve] && pathing.FindPath(Game.spawns[spawnName].pos, Game.flags[reserve], false, false, 5).length < 100) {
                             let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
                             if (reserver.length < 1 && Game.spawns[spawnName].canCreateCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver') === OK) {
                                 Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
