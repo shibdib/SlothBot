@@ -161,7 +161,7 @@ function rcl2(spawnName) {
                     for (let i = 0; i < sources.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
                         let peasant = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'peasant');
-                        if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasant', {
+                        if (peasant.length === 0 && harvester.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY], generatedNumber + 'peasant', {
                                 role: 'peasant',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -173,7 +173,7 @@ function rcl2(spawnName) {
                         }
                     }
                     let peasantBuilder = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantBuilder');
-                    if (peasantBuilder.length < 2 && Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantBuilder', {
+                    if (peasantBuilder.length < 2 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY], generatedNumber + 'peasantBuilder', {
                             role: 'peasantBuilder',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
@@ -183,7 +183,7 @@ function rcl2(spawnName) {
                         return;
                     }
                     let peasantUpgrader = _.filter(Game.creeps, (creep) => creep.memory.assignedSpawn === Game.spawns[spawnName].id && creep.memory.role === 'peasantUpgrader');
-                    if (peasantUpgrader.length < 5 && Game.spawns[spawnName].createCreep([WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'peasantUpgrader', {
+                    if (peasantUpgrader.length < 5 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY], generatedNumber + 'peasantUpgrader', {
                             role: 'peasantUpgrader',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
@@ -447,12 +447,12 @@ function rcl3(spawnName) {
                 }
 
                 //WORKER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 800) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 750) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 800) * 0.2) / 2);
                         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                        if (worker.length < limit && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'worker', {
+                        if (worker.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                                 role: 'worker',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -460,7 +460,7 @@ function rcl3(spawnName) {
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
 
-                        } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'upgrader', {
+                        } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
                                 role: 'upgrader',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -744,7 +744,7 @@ function rcl4(spawnName) {
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
 
-                        } else if (worker.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
+                        } else if (worker.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                                 role: 'worker',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -752,7 +752,7 @@ function rcl4(spawnName) {
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
 
-                        } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
+                        } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
                                 role: 'upgrader',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -1027,20 +1027,19 @@ function rcl5(spawnName) {
                         const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         const spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
                         const spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
-                        if (worker.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
+                        if (worker.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                                 role: 'worker',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
-                        } else if (upgraders.length < limit && Game.spawns[spawnName].canCreateCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader') === OK) {
-                            Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader', {
+                        } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
                                 role: 'upgrader',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
-                            });
+                            }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
                         } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
                                 role: 'spawnBuilder',
