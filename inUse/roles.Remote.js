@@ -1,14 +1,13 @@
-let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let pathing = require('module.pathFinder');
 
 
 module.exports.Manager = function (creep) {
-    if (creep.memory.role = "remoteHarvester") {
+    if (creep.memory.role === "remoteHarvester") {
         harvester(creep);
-    } else if (creep.memory.role = "remoteHauler") {
+    } else if (creep.memory.role === "remoteHauler") {
         hauler(creep);
-    } else if (creep.memory.role = "spawnBuilder") {
+    } else if (creep.memory.role === "spawnBuilder") {
         spawnBuilder(creep);
     }
 };
