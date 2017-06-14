@@ -1139,9 +1139,9 @@ function collapsePrevention(spawnName) {
 
 function neighborCheck(spawnName, remote) {
     let neighboringRooms = Game.map.describeExits(Game.spawns[spawnName].pos.roomName);
-    return isInArray(neighboringRooms, Game.flags[remote].pos.roomName);
-}
-
-function isInArray(haystack, needle) {
-    return haystack.indexOf(needle) > -1;
+    for (let i = 0; i < neighboringRooms.length; i++) {
+        if (neighboringRooms[i] === Game.flags[remote].pos.roomName) {
+            return true;
+        }
+    }
 }
