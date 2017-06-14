@@ -58,7 +58,7 @@ module.exports.roomControl = function () {
         respawnCreeps.creepRespawn(name);
 
         //Room Building
-        if (Game.time % 30 === 0) {
+        if (Game.time % 75 === 0) {
             autoBuild.roomBuilding(name);
         }
 
