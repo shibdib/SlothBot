@@ -254,7 +254,7 @@ function rcl3(spawnName) {
                     let assistNeeded = _.filter(Game.creeps, (creep) => creep.memory.invaderDetected === true);
                     if (assistNeeded.length > 0) {
                         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].name && creep.memory.role === 'responder');
-                        if (responder.length === 0 && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                        if (responder.length === 0 && Game.spawns[spawnName].createCreep([TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
                                 role: 'responder',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -535,7 +535,7 @@ function rcl4(spawnName) {
                     let assistNeeded = _.filter(Game.creeps, (creep) => creep.memory.invaderDetected === true);
                     if (assistNeeded.length > 0) {
                         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].name && creep.memory.role === 'responder');
-                        if (responder.length === 0 && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                        if (responder.length === 0 && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
                                 role: 'responder',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
