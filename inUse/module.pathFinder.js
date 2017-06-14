@@ -104,6 +104,11 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
+    if (creep.memory.pathPos === creep.pos) {
+        creep.memory.pathAge = 999;
+    } else {
+        creep.memory.pathPos = creep.pos;
+    }
 };
 module.exports.AttackMove = function (creep, target) {
     if (creep.fatigue > 0) {
