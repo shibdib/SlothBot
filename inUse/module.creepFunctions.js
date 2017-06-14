@@ -532,7 +532,7 @@ module.exports.findStorage = function (creep) {
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {
                     const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                    const towerDistWeighted = (object.pos.getRangeTo(creep) * 1.25) - towerAmountWeighted;
+                    const towerDistWeighted = (object.pos.getRangeTo(creep) * 1.5) - towerAmountWeighted;
                     towers.push({
                         id: tower[i],
                         distWeighted: towerDistWeighted,
