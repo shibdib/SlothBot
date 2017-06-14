@@ -1,8 +1,6 @@
 //modules
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
-let militaryFunctions = require('module.militaryFunctions');
-let resources = require('resources');
 let cache = require('module.cache');
 
 module.exports.roomControl = function () {
@@ -10,7 +8,7 @@ module.exports.roomControl = function () {
     for (let name in Game.spawns) {
 
         //RCL
-        let level = Game.spawns[name].room.controller.level;
+        //let level = Game.spawns[name].room.controller.level;
 
         //Every 100 ticks
         /**if (Game.time % 100 === 0) {
@@ -56,10 +54,12 @@ module.exports.roomControl = function () {
 
         //Creep spawning
         respawnCreeps.creepRespawn(name);
+        Memory.stats.cpu.postCreepRespawn = Game.cpu.getUsed();
 
         //Room Building
         if (Game.time % 75 === 0) {
             autoBuild.roomBuilding(name);
+            Memory.stats.cpu.postRoomBuilding = Game.cpu.getUsed();
         }
 
         //Cache Buildings
@@ -68,6 +68,7 @@ module.exports.roomControl = function () {
             for (let structures of Game.spawns[name].room.find(FIND_STRUCTURES)) {
                 if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART && structures.structureType !== STRUCTURE_ROAD) {
                     cache.cacheRoomStructures(structures.id);
+                    Memory.stats.cpu.postCacheRoom = Game.cpu.getUsed();
                 }
             }
         }
