@@ -28,7 +28,7 @@ module.exports.roomControl = function () {
         }
 
         //DEFENSE MODE
-        let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
+        /**let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
         if (attackDetected.length > 0 || Game.spawns[name].memory.defenseMode === true) {
             militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
         }
@@ -37,7 +37,7 @@ module.exports.roomControl = function () {
             if (Game.spawns[name].memory.defenseModeTicker > 250) {
                 Game.spawns[name].memory.defenseMode = false;
             }
-        }
+        }**/
 
         //RENEWAL/RECYCLE CHECK
         if (!Game.spawns[name].spawning) {
