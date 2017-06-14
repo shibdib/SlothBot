@@ -418,7 +418,7 @@ function rcl3(spawnName) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let remote = 'remote' + i;
-                            if (Game.flags[remote] && Game.map.findRoute(Game.spawns[spawnName].pos.roomName, Game.flags[remote].pos.roomName) !== ERR_NO_PATH) {
+                            if (Game.flags[remote] && Game.map.findExit(Game.spawns[spawnName].pos.roomName, Game.flags[remote].pos.roomName) !== ERR_NO_PATH) {
                                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                                 let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
@@ -699,7 +699,7 @@ function rcl4(spawnName) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         for (let i = 0; i < 10; i++) {
                             let remote = 'remote' + i;
-                            if (Game.flags[remote] && Game.map.findRoute(Game.spawns[spawnName].pos.roomName, Game.flags[remote].pos.roomName) !== ERR_NO_PATH) {
+                            if (Game.flags[remote] && Game.map.findExit(Game.spawns[spawnName].pos.roomName, Game.flags[remote].pos.roomName) !== ERR_NO_PATH) {
                                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                                 let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
@@ -991,7 +991,7 @@ function rcl5(spawnName) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let remote = 'remote' + i;
-                            if (Game.flags[remote] && Game.map.findRoute(Game.spawns[spawnName].pos.roomName, Game.flags[remote].pos.roomName) !== ERR_NO_PATH) {
+                            if (Game.flags[remote] && Game.map.findExit(Game.spawns[spawnName].pos.roomName, Game.flags[remote].pos.roomName) !== ERR_NO_PATH) {
                                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                                 let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
