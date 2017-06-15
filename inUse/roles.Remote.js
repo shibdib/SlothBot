@@ -76,6 +76,10 @@ function hauler(creep) {
     //Haul to spawn/extension
     if (creep.memory.hauling === true) {
         if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
+            let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+            if (storage.length > 0) {
+                creep.memory.storageDestination = storage[0];
+            }
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
