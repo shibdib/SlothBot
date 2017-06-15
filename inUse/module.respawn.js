@@ -374,7 +374,6 @@ function rcl3(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 300) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                        const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         if (basicHauler.length < 2 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                                 role: 'hauler',
                                 assignedSpawn: Game.spawns[spawnName].id,
