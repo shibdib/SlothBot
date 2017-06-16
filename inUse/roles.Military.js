@@ -275,7 +275,7 @@ function responder(creep) {
         creep.heal(creep);
     }
 
-    if (!Game.flags[creep.memory.responseTarget]) {
+    if (!Game.flags["hostile" + creep.memory.responseTarget]) {
         creep.memory.destinationReached = true;
     }
 
