@@ -302,7 +302,7 @@ function responder(creep) {
         }
     } else if (friendlies.length > 0) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
-            if (creep.rangedHeal(friendlies[0]) === ERR_NOT_IN_RANGE) {
+            if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(friendlies[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
