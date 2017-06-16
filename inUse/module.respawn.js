@@ -259,7 +259,7 @@ function rcl3(spawnName) {
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 3,
-                                responseTarget: assistNeeded[0].id
+                                responseTarget: assistNeeded[0].memory.invaderID
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
                             return;
@@ -822,7 +822,7 @@ function rcl5(spawnName) {
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
-                                responseTarget: assistNeeded[0].id
+                                responseTarget: assistNeeded[0].memory.invaderID
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
                             return;
