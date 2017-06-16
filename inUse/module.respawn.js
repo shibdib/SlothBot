@@ -1024,7 +1024,7 @@ function rcl5(spawnName) {
                                 level: 4,
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
-                        } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'upgrader', {
+                        } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([[MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY]], generatedNumber + 'upgrader', {
                                 role: 'upgrader',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
