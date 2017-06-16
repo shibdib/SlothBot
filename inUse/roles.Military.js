@@ -307,19 +307,25 @@ function responder(creep) {
             }
         }
     } else if (creep.memory.destinationReached !== true) {
-        if (creep.pos.roomName === Game.flags[creep.memory.responseTarget].pos.roomName) {
-            Game.flags[creep.memory.responseTarget].remove();
+        if (creep.pos.roomName === Game.flags["hostile" + creep.memory.responseTarget].pos.roomName) {
+            Game.flags["hostile" + creep.memory.responseTarget].remove();
             creep.memory.destinationReached = true;
         }
-        pathing.Move(creep, Game.flags[creep.memory.responseTarget], false, 16);
+        pathing.Move(creep, Game.flags["hostile" + creep.memory.responseTarget], false, 16);
     }
 }
+
 function invaderCheck(creep) {
     let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (invader && creep.memory.invaderDetected !== true) {
+        let hostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         creep.memory.invaderDetected = true;
-        creep.pos.createFlag(creep.id);
+        creep.memory.invaderID = hostile.id;
+        if (!Game.flags["hostile" + hostile.id]) {
+            creep.pos.createFlag("hostile" + hostile.id);
+        }
     } else {
         creep.memory.invaderDetected = undefined;
+        creep.memory.invaderID = undefined;
     }
 }
