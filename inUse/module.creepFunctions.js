@@ -334,7 +334,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.getRangeTo(creep) * (1.2 - containerAmountWeighted);
+                const containerDistWeighted = object.pos.getRangeTo(creep) * (1.1 - containerAmountWeighted);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
@@ -360,7 +360,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
                     if (object.energy === 0) {
                         continue;
                     }
-                    const linkDistWeighted = object.pos.getRangeTo(creep) * 0.2;
+                    const linkDistWeighted = object.pos.getRangeTo(creep) * 0.3;
                     links.push({
                         id: link[i],
                         distWeighted: linkDistWeighted,
@@ -387,7 +387,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
                 if (object.store[RESOURCE_ENERGY] < 200) {
                     continue;
                 }
-                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.2;
+                const storageDistWeighted = object.pos.getRangeTo(creep) * 0.3;
                 storages.push({
                     id: storage[i],
                     distWeighted: storageDistWeighted,
