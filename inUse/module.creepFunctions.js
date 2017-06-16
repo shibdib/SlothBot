@@ -360,7 +360,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
                     if (object.energy === 0) {
                         continue;
                     }
-                    const linkDistWeighted = object.pos.getRangeTo(creep) * 0.01;
+                    const linkDistWeighted = object.pos.getRangeTo(creep) * 0.2;
                     links.push({
                         id: link[i],
                         distWeighted: linkDistWeighted,
