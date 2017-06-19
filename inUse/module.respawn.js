@@ -685,7 +685,7 @@ function rcl4(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (Game.spawns[spawnName].room.energyAvailable >= 1150) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1000) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         for (let i = 0; i < 10; i++) {
                             let remote = 'remote' + i;
@@ -702,7 +702,7 @@ function rcl4(spawnName) {
                                     }) === OK) {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHarvester');
                                     return;
-                                } else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
+                                } else if (remoteHauler.length === 0 && remoteHarvester.length > 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
                                         role: 'remoteHauler',
                                         assignedSpawn: Game.spawns[spawnName].id,
                                         assignedRoom: Game.spawns[spawnName].room.name,
