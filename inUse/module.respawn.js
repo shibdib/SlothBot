@@ -1275,7 +1275,7 @@ function rcl6(spawnName) {
                                 role: 'mineralHarvester',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 4,
+                                level: 6,
                                 assignedMineral: minerals[i].id
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHarvester');
