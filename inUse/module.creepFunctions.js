@@ -548,6 +548,33 @@ module.exports.findStorage = function (creep) {
             harvest: false
         });
     }
+    //Terminal
+    let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
+    if (terminal.length > 0) {
+        let terminals = [];
+        for (i = 0; i < terminal.length; i++) {
+            const object = Game.getObjectById(terminal[i]);
+            if (object) {
+                if (object.pos.getRangeTo(creep) > 1) {
+                    if (RESOURCE_ENERGY in terminal.store >= 500) {
+                        continue;
+                    }
+                    const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.01;
+                    terminals.push({
+                        id: terminal[i],
+                        distWeighted: terminalDistWeighted,
+                        harvest: false
+                    });
+                }
+            }
+        }
+        let bestTerminal = _.min(terminals, 'distWeighted');
+        storage.push({
+            id: bestTerminal.id,
+            distWeighted: bestTerminal.distWeighted,
+            harvest: false
+        });
+    }
 
     let sorted = _.min(storage, 'distWeighted');
     if (sorted) {
