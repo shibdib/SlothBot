@@ -91,8 +91,6 @@ function harvester(creep) {
  * @return {null}
  */
 function mineralHarvester(creep) {
-    //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
