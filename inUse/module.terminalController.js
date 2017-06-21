@@ -19,12 +19,27 @@ function fillBuyOrders(terminal) {
             if (terminal.store[resourceType] > 1000 && resourceType !== RESOURCE_ENERGY) {
                 let buyOrders = Game.market.getAllOrders(order => order.resourceType === resourceType &&
                 order.type === ORDER_BUY && order.remainingAmount >= 1000 &&
-                Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) < 500);
+                Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 500);
                 if (buyOrders.length > 0) {
                     for (let i = 0; i < buyOrders.length; i++) {
                         if (Game.market.deal(buyOrders.id, 1000, terminal.pos.roomName) === OK) {
-                            console.log('buyOrderFilled - 1000' + resourceType + 'for' + buyOrders[i].price * 1000);
+                            console.log('buyOrderFilled - 1000 ' + resourceType + ' for ' + buyOrders[i].price * 1000);
                         }
+                    }
+                } else {
+                    console.log('Unable to find buy orders at 500 energy for ' + resourceType + ' trying at 1000');
+                    let buyOrders = Game.market.getAllOrders(order => order.resourceType === resourceType &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 1000 &&
+                    Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 1000);
+                    if (buyOrders.length > 0) {
+                        for (let i = 0; i < buyOrders.length; i++) {
+                            if (Game.market.deal(buyOrders.id, 1000, terminal.pos.roomName) === OK) {
+                                console.log('buyOrderFilled - 1000 ' + resourceType + ' for ' + buyOrders[i].price * 1000);
+                            }
+                        }
+
+                    } else {
+                        console.log('Unable to find buy orders at 1000 energy for ' + resourceType);
                     }
                 }
             }
