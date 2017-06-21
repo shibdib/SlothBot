@@ -14,7 +14,7 @@ module.exports.terminalControl = function () {
 };
 
 function fillBuyOrders(terminal) {
-    if (RESOURCE_ENERGY in terminal.store >= 500) {
+    if (terminal.store[RESOURCE_ENERGY] >= 500) {
         for (const resourceType in terminal.store) {
             if (resourceType.amount > 1000 && resourceType !== RESOURCE_ENERGY) {
                 let buyOrders = Game.market.getAllOrders(order => order.resourceType === resourceType &&
