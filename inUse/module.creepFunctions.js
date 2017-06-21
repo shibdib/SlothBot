@@ -555,17 +555,15 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) > 1) {
-                    if (RESOURCE_ENERGY in terminal.store >= 500) {
-                        continue;
-                    }
-                    const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.01;
-                    terminals.push({
-                        id: terminal[i],
-                        distWeighted: terminalDistWeighted,
-                        harvest: false
-                    });
+                if (RESOURCE_ENERGY in terminal.store >= 500) {
+                    continue;
                 }
+                const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.01;
+                terminals.push({
+                    id: terminal[i],
+                    distWeighted: terminalDistWeighted,
+                    harvest: false
+                });
             }
         }
         let bestTerminal = _.min(terminals, 'distWeighted');
