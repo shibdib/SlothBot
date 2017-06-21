@@ -20,7 +20,7 @@ module.exports.creepControl = function () {
             rolesHaulers.Manager(creep);
             continue;
         }
-        if (creep.memory.role === 'worker' || creep.memory.role === 'upgrader' || creep.memory.role === 'stationaryHarvester') {
+        if (creep.memory.role === 'worker' || creep.memory.role === 'upgrader' || creep.memory.role === 'stationaryHarvester' || creep.memory.role === 'mineralHarvester') {
             rolesWorkers.Manager(creep);
             continue;
         }

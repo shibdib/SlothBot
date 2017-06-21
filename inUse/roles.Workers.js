@@ -10,6 +10,8 @@ module.exports.Manager = function (creep) {
         upgrader(creep);
     } else if (creep.memory.role === "stationaryHarvester") {
         harvester(creep);
+    } else if (creep.memory.role === "mineralHarvester") {
+        mineralHarvester(creep);
     }
 };
 
@@ -60,8 +62,7 @@ function worker(creep) {
             creepTools.findEnergy(creep, false);
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -85,8 +86,29 @@ function harvester(creep) {
             pathing.Move(creep, source, true);
         }
     }
-};
+}
+/**
+ * @return {null}
+ */
+function mineralHarvester(creep) {
+    //INITIAL CHECKS
+    borderChecks.borderCheck(creep);
+    if (_.sum(creep.carry) === 0) {
+        creep.memory.hauling = false;
+    }
 
+    if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.hauling === true) {
+        creep.memory.hauling = true;
+        depositMineral(creep);
+    } else if (creep.memory.hauling !== true) {
+        if (creep.memory.assignedMineral) {
+            var mineral = Game.getObjectById(creep.memory.assignedMineral);
+        }
+        if (creep.harvest(mineral) === ERR_NOT_IN_RANGE) {
+            pathing.Move(creep, mineral, true);
+        }
+    }
+}
 /**
  * @return {null}
  */
@@ -123,8 +145,7 @@ function upgrader(creep) {
             }
         }
     }
-};
-
+}
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
         creep.memory.containerID = creepTools.harvestDepositContainer(creep);
@@ -158,6 +179,23 @@ function depositEnergy(creep) {
             creep.build(buildSite);
         } else {
             creepTools.harvesterContainerBuild(creep);
+        }
+    }
+}
+
+function depositMineral(creep) {
+    if (!creep.memory.terminalID) {
+        let terminal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
+        creep.memory.terminalID = terminal.id;
+    }
+    if (creep.memory.terminalID) {
+        let terminal = Game.getObjectById(creep.memory.terminalID);
+        if (terminal) {
+            if (_.sum(terminal.store) !== terminal.storeCapacity) {
+                for (const resourceType in creep.carry) {
+                    creep.transfer(terminal, resourceType);
+                }
+            }
         }
     }
 }

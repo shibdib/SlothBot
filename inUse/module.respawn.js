@@ -1069,6 +1069,7 @@ function rcl6(spawnName) {
                 const sourceCount = Game.spawns[spawnName].room.find(FIND_SOURCES).length;
                 const peasant = _.filter(Game.creeps, (creep) => creep.memory.role === 'peasant' && creep.room === Game.spawns[spawnName].room);
                 const sources = Game.spawns[spawnName].room.find(FIND_SOURCES);
+                const minerals = Game.spawns[spawnName].room.find(FIND_MINERALS);
 
                 if ((peasant.length === 0 && stationaryHarvester.length === 0) || creeps.length < 2) {
                     collapsePrevention(spawnName);
@@ -1261,6 +1262,23 @@ function rcl6(spawnName) {
                                 assignedSource: sources[i].id
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a stationaryHarvester');
+                            return;
+                        }
+                    }
+                }
+
+                //MINERAL HARVESTER RESPAWNS
+                if (Game.spawns[spawnName].room.energyAvailable >= 1750) {
+                    for (let i = 0; i < minerals.length; i++) {
+                        let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals[i].id && creep.memory.role === 'mineralHarvester');
+                        if ((harvester.length < 2 || harvester.ticksToLive < 150) && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'mineralHarvester', {
+                                role: 'mineralHarvester',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedRoom: Game.spawns[spawnName].room.name,
+                                level: 4,
+                                assignedMineral: minerals[i].id
+                            }) === OK) {
+                            console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHarvester');
                             return;
                         }
                     }
