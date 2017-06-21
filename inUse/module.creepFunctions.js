@@ -555,7 +555,7 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] >= 500) {
+                if (object.store[RESOURCE_ENERGY] >= 1000) {
                     continue;
                 }
                 const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.01;
