@@ -7,7 +7,7 @@ module.exports.terminalControl = function () {
     for (let terminal of _.values(Game.structures)) {
         if (terminal.structureType === STRUCTURE_TERMINAL) {
             //if we have credits make sure we have energy
-            //buyEnergy(terminal);
+            buyEnergy(terminal);
 
             //Try to put up a sell, otherwise fill buy
             placeSellOrders(terminal);
@@ -43,10 +43,10 @@ function fillBuyOrders(terminal) {
 }
 
 function buyEnergy(terminal) {
-    for (const resourceType in terminal.store) {
-        if (terminal.store[resourceType] < 10000 && resourceType === RESOURCE_ENERGY) {
-            for (let key in Game.market.orders) {
-                if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_BUY) {
+    for (let key in Game.market.orders) {
+        for (const resourceType in terminal.store) {
+            if (terminal.store[resourceType] < 10000 && resourceType === RESOURCE_ENERGY) {
+                if (Game.market.orders[key].resourceType === RESOURCE_ENERGY && Game.market.orders[key].type === ORDER_BUY) {
                     if (Game.market.orders[key].remainingAmount < 10000) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, 10000 - Game.market.orders[key].remainingAmount) === OK) {
                             console.log('Extended energy buy order ' + Game.market.orders[key].id + ' an additional ' + 10000 - Game.market.orders[key].remainingAmount);
@@ -54,9 +54,6 @@ function buyEnergy(terminal) {
                         return;
                     }
                 }
-            }
-            if (Game.market.createOrder(ORDER_BUY, resourceType, 0.01, 10000, terminal.pos.roomName) === OK) {
-                console.log('Created energy buy order');
             }
         }
     }
