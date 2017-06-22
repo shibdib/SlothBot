@@ -15,6 +15,9 @@ module.exports.terminalControl = function () {
             //Try to put up a sell, otherwise fill buy
             placeSellOrders(terminal);
             fillBuyOrders(terminal);
+
+            //Place buy orders
+            placeBuyOrders(terminal);
         }
     }
 };
@@ -100,7 +103,7 @@ function placeSellOrders(terminal) {
         if (terminal.store[resourceType] >= 5000 && resourceType !== RESOURCE_ENERGY) {
             for (let key in Game.market.orders) {
                 if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
-                    break resource;
+                    continue resource;
                 }
             }
             let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
@@ -113,4 +116,56 @@ function placeSellOrders(terminal) {
             }
         }
     }
+}
+
+function extendBuyOrders(terminal) {
+    for (const resourceType in terminal.store) {
+        for (let key in Game.market.orders) {
+            if (resourceType !== RESOURCE_ENERGY) {
+                if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
+                    let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), "price");
+                    if (sellOrder.id && (_.round(sellOrder.price - 0.01, 2)) !== _.round(Game.market.orders[key].price, 2)) {
+                        if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
+                            console.log('Sell order price change ' + Game.market.orders[key].id + ' new/old ' + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price);
+                        }
+                        return;
+                    }
+                    if (terminal.store[resourceType] > Game.market.orders[key].remainingAmount) {
+                        if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
+                            console.log('Extended sell order ' + Game.market.orders[key].id + ' an additional ' + terminal.store[resourceType]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function placeBuyOrders(terminal) {
+    let basicMinerals = [RESOURCE_HYDROGEN,
+        RESOURCE_OXYGEN,
+        RESOURCE_UTRIUM,
+        RESOURCE_KEANIUM,
+        RESOURCE_LEMERGIUM,
+        RESOURCE_ZYNTHIUM];
+    resource:
+        for (let i=0; i<basicMinerals.length;i++) {
+            if (terminal.store[basicMinerals[i]] < 2000) {
+                for (let key in Game.market.orders) {
+                    if (Game.market.orders[key].resourceType === basicMinerals[i] && Game.market.orders[key].type === ORDER_SELL) {
+                        continue resource;
+                    }
+                }
+                let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === basicMinerals[i] &&
+                order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName, 'price'));
+                let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === basicMinerals[i] &&
+                order.type === ORDER_SELL && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName, 'price'));
+                if (buyOrder.id && (sellOrder.price - buyOrder.price)/buyOrder.price > 0.25) {
+                    if (Game.market.createOrder(ORDER_BUY, basicMinerals[i], buyOrder.price, 2000) === OK) {
+                        console.log('New Buy Order: ' + basicMinerals[i] + ' at/per ' + (buyOrder.price));
+                    }
+                }
+            }
+        }
 }
