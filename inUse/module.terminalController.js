@@ -45,10 +45,10 @@ function fillBuyOrders(terminal) {
 function buyEnergy(terminal) {
     for (const resourceType in terminal.store) {
         if (terminal.store[resourceType] < 10000 && resourceType === RESOURCE_ENERGY) {
-            for (let i = 0; i < Game.market.orders.length; i++) {
-                if (Game.market.orders[i].resourceType === resourceType && Game.market.orders[i].type === ORDER_BUY && Game.market.orders[i].remainingAmount < 10000) {
-                    if (Game.market.extendOrder(Game.market.orders[i].id, 10000 - Game.market.orders[i].remainingAmount) === OK) {
-                        console.log('Extended energy buy order ' + Game.market.orders[i].id + 'an additional' + 10000 - Game.market.orders[i].remainingAmount);
+            for (let key in Game.market.orders) {
+                if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_BUY && Game.market.orders[key].remainingAmount < 10000) {
+                    if (Game.market.extendOrder(Game.market.orders[key].id, 10000 - Game.market.orders[key].remainingAmount) === OK) {
+                        console.log('Extended energy buy order ' + Game.market.orders[key].id + 'an additional' + 10000 - Game.market.orders[key].remainingAmount);
                     }
                     break;
                 }
@@ -64,10 +64,10 @@ function placeSellOrders(terminal) {
     if (terminal.store[RESOURCE_ENERGY] >= 1000) {
         for (const resourceType in terminal.store) {
             if (terminal.store[resourceType] >= 1000 && resourceType !== RESOURCE_ENERGY) {
-                for (let i = 0; i < Game.market.orders.length; i++) {
-                    if (Game.market.orders[i].resourceType === resourceType && Game.market.orders[i].type === ORDER_SELL) {
-                        if (Game.market.extendOrder(Game.market.orders[i].id, terminal.store[resourceType]) === OK) {
-                            console.log('Extended sell order ' + Game.market.orders[i].id + 'an additional' + terminal.store[resourceType]);
+                for (let key in Game.market.orders) {
+                    if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
+                        if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
+                            console.log('Extended sell order ' + Game.market.orders[key].id + 'an additional' + terminal.store[resourceType]);
                         }
                         break;
                     }
