@@ -104,7 +104,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
-    if (creep.memory.pathPos.x === creep.pos.x && creep.memory.pathPos.y === creep.pos.y) {
+    if (creep.memory.pathPos.x && creep.memory.pathPos.x === creep.pos.x && creep.memory.pathPos.y === creep.pos.y) {
         creep.memory.pathPosTime++;
     } else {
         creep.memory.pathPos = creep.pos;
