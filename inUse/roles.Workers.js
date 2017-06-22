@@ -192,7 +192,7 @@ function depositMineral(creep) {
         creep.memory.terminalID = terminal.id;
     }
     if (!creep.memory.containerID) {
-        creep.memory.containerID = creepTools.harvestDepositContainer(creep);
+        creep.memory.containerID = mineralContainer(creep);
     }
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -206,8 +206,10 @@ function depositMineral(creep) {
         }
     } else {
         let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
-        if (!buildSite) {
+        if (!buildSite && creep.memory.containerBuilding !== true) {
             creepTools.harvesterContainerBuild(creep);
+        } else {
+            creep.memory.containerBuilding = true;
         }
     }
     if (creep.memory.terminalID) {
@@ -219,6 +221,20 @@ function depositMineral(creep) {
                         pathing.Move(creep, terminal, false, 1);
                     }
                 }
+            }
+        }
+    }
+}
+
+function mineralContainer(creep) {
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
+    if (container) {
+        if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
+            if (creep.pos.getRangeTo(container) <= 1) {
+                return container.id;
+            } else if (creep.pos.getRangeTo(container) <= 3) {
+                pathing.Move(creep, container);
+                return container.id;
             }
         }
     }

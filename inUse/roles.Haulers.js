@@ -62,7 +62,7 @@ function mineralHauler(creep) {
         if (creep.memory.mineralDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            let mineralContainer = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > 0 && i.store[RESOURCE_ENERGY] === 0});
+            let mineralContainer = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > 0 && s.store[RESOURCE_ENERGY] === 0});
             creep.memory.mineralDestination = mineralContainer.id;
         }
     } else {
