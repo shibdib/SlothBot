@@ -402,6 +402,31 @@ module.exports.findEnergy = function (creep, hauler = false) {
             harvest: false
         });
     }
+    //Terminal
+    let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
+    if (terminal.length > 0) {
+        let terminals = [];
+        for (i = 0; i < terminal.length; i++) {
+            const object = Game.getObjectById(terminal[i]);
+            if (object) {
+                if (object.store[RESOURCE_ENERGY] <= 10000) {
+                    continue;
+                }
+                const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.01;
+                terminals.push({
+                    id: terminal[i],
+                    distWeighted: terminalDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestTerminal = _.min(terminals, 'distWeighted');
+        energy.push({
+            id: bestTerminal.id,
+            distWeighted: bestTerminal.distWeighted,
+            harvest: false
+        });
+    }
 
     let sorted = _.min(energy, 'distWeighted');
 
