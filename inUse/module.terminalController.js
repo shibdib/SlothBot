@@ -74,6 +74,7 @@ function placeSellOrders(terminal) {
                         if (Game.market.changeOrderPrice(Game.market.orders[key].id, sellOrder.price - 0.01) === OK) {
                             console.log('Sell order price change ' + Game.market.orders[key].id + ' new/old ' + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price);
                         }
+                        break;
                     }
                     if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
                         console.log('Extended sell order ' + Game.market.orders[key].id + ' an additional ' + terminal.store[resourceType]);
