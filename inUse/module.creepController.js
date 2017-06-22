@@ -16,7 +16,7 @@ module.exports.creepControl = function () {
             rolesPeasants.Manager(creep);
             continue;
         }
-        if (creep.memory.role === 'hauler' || creep.memory.role === 'largeHauler') {
+        if (creep.memory.role === 'hauler' || creep.memory.role === 'largeHauler' || creep.memory.role === 'mineralHauler') {
             rolesHaulers.Manager(creep);
             continue;
         }

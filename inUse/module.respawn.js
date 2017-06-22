@@ -1228,6 +1228,7 @@ function rcl6(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 300) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                        const mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         if (basicHauler.length < 2 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                                 role: 'hauler',
@@ -1236,6 +1237,15 @@ function rcl6(spawnName) {
                                 level: 0,
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
+                            return;
+                        }
+                        if (basicHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
+                                role: 'mineralHauler',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedRoom: Game.spawns[spawnName].room.name,
+                                level: 0,
+                            }) === OK) {
+                            console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHauler');
                             return;
                         }
                         if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {

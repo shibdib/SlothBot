@@ -191,6 +191,25 @@ function depositMineral(creep) {
         let terminal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
         creep.memory.terminalID = terminal.id;
     }
+    if (!creep.memory.containerID) {
+        creep.memory.containerID = creepTools.harvestDepositContainer(creep);
+    }
+    if (creep.memory.containerID) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container) {
+            if (_.sum(container.store) !== container.storeCapacity) {
+                for (const resourceType in creep.carry) {
+                    creep.transfer(container, resourceType);
+                }
+                return;
+            }
+        }
+    } else {
+        let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+        if (!buildSite) {
+            creepTools.harvesterContainerBuild(creep);
+        }
+    }
     if (creep.memory.terminalID) {
         let terminal = Game.getObjectById(creep.memory.terminalID);
         if (terminal) {
