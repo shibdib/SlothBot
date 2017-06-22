@@ -1240,7 +1240,7 @@ function rcl6(spawnName) {
                             return;
                         }
                         for (let i = 0; i < minerals.length; i++) {
-                            if (mineralHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
+                            if (mineralHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
                                     role: 'mineralHauler',
                                     assignedSpawn: Game.spawns[spawnName].id,
                                     assignedRoom: Game.spawns[spawnName].room.name,
