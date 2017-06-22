@@ -153,15 +153,15 @@ function placeBuyOrders(terminal) {
         for (let i=0; i<basicMinerals.length;i++) {
             if (terminal.store[basicMinerals[i]] < 2000) {
                 for (let key in Game.market.orders) {
-                    if (Game.market.orders[key].resourceType === basicMinerals[i] && Game.market.orders[key].type === ORDER_SELL) {
+                    if (Game.market.orders[key].resourceType === basicMinerals[i] && Game.market.orders[key].type === ORDER_BUY) {
                         continue resource;
                     }
                 }
                 let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === basicMinerals[i] &&
-                order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName, 'price'));
+                order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
                 let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === basicMinerals[i] &&
-                order.type === ORDER_SELL && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName, 'price'));
-                if (buyOrder.id && (sellOrder.price - buyOrder.price)/buyOrder.price > 0.25) {
+                order.type === ORDER_SELL && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
+                if (buyOrder.id && (sellOrder.price - buyOrder.price) > 0.02) {
                     if (Game.market.createOrder(ORDER_BUY, basicMinerals[i], buyOrder.price, 2000) === OK) {
                         console.log('New Buy Order: ' + basicMinerals[i] + ' at/per ' + (buyOrder.price));
                     }
