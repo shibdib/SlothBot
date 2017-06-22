@@ -74,12 +74,8 @@ function mineralHauler(creep) {
             let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
             if (container.id) {
                 if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
-                    if (creep.pos.getRangeTo(container) <= 1) {
-                        creep.memory.mineralDestination = container.id;
-                    } else if (creep.pos.getRangeTo(container) <= 3) {
                         pathing.Move(creep, container);
                         creep.memory.mineralDestination = container.id;
-                    }
                 } else {
                     pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
                 }
