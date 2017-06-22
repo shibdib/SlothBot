@@ -8,7 +8,7 @@ module.exports.towerControl = function () {
             const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
             const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.25});
             const woundedCreep = Game.getObjectById(findWounded(tower));
-            const closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            const closestHostile = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => s.owner !== "Shibdib"});
             if (barriers) {
                 tower.repair(barriers);
             } else if (road) {
