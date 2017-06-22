@@ -83,6 +83,8 @@ function mineralHauler(creep) {
                 } else {
                     pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
                 }
+            } else {
+                pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
             }
         }
     } else {
