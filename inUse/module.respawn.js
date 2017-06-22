@@ -1239,7 +1239,7 @@ function rcl6(spawnName) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                             return;
                         }
-                        if (basicHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
+                        if (mineralHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
                                 role: 'mineralHauler',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
