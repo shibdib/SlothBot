@@ -71,7 +71,7 @@ function placeSellOrders(terminal) {
                     order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(terminal.store[resourceType], terminal.pos.roomName, order.roomName) <= 1000), 'price');
                     if (sellOrder.id && sellOrder.price <= Game.market.orders[key].price) {
-                        if (Game.market.changeOrderPrice(Game.market.orders[key].id, sellOrder.price - 0.01) === OK) {
+                        if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
                             console.log('Sell order price change ' + Game.market.orders[key].id + ' new/old ' + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price);
                         }
                         break;
