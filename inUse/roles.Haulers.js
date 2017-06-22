@@ -71,7 +71,19 @@ function mineralHauler(creep) {
                 }
             }
         } else {
-            let mineralContainer = mineralContainer(creep);
+            let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
+            if (container) {
+                if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
+                    if (creep.pos.getRangeTo(container) <= 1) {
+                        creep.memory.mineralDestination = mineralContainer.id;
+                    } else if (creep.pos.getRangeTo(container) <= 3) {
+                        pathing.Move(creep, container);
+                        creep.memory.mineralDestination = mineralContainer.id;
+                    }
+                } else {
+                    pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
+                }
+            }
         }
     } else {
         if (!creep.memory.terminalID) {
@@ -89,22 +101,6 @@ function mineralHauler(creep) {
                     }
                 }
             }
-        }
-    }
-}
-
-function mineralContainer(creep) {
-    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
-    if (container) {
-        if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
-            if (creep.pos.getRangeTo(container) <= 1) {
-                creep.memory.mineralDestination = mineralContainer.id;
-            } else if (creep.pos.getRangeTo(container) <= 3) {
-                pathing.Move(creep, container);
-                creep.memory.mineralDestination = mineralContainer.id;
-            }
-        } else {
-            pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
         }
     }
 }
