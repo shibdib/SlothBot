@@ -4,10 +4,10 @@ let pathing = require('module.pathFinder');
 
 
 module.exports.Manager = function (creep) {
-    if (creep.memory.role === "hauler" || "largeHauler") {
-        hauler(creep);
-    } else if (creep.memory.role === "mineralHauler") {
+    if (creep.memory.role === "mineralHauler") {
         mineralHauler(creep);
+    } else if (creep.memory.role === "hauler" || "largeHauler") {
+        hauler(creep);
     }
 }
 
@@ -71,8 +71,7 @@ function mineralHauler(creep) {
                 }
             }
         } else {
-            let mineralContainer = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > 0 && s.store[RESOURCE_ENERGY] === 0});
-            creep.memory.mineralDestination = mineralContainer.id;
+            let mineralContainer = mineralContainer(creep);
         }
     } else {
         if (!creep.memory.terminalID) {
@@ -90,6 +89,22 @@ function mineralHauler(creep) {
                     }
                 }
             }
+        }
+    }
+}
+
+function mineralContainer(creep) {
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
+    if (container) {
+        if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
+            if (creep.pos.getRangeTo(container) <= 1) {
+                creep.memory.mineralDestination = mineralContainer.id;
+            } else if (creep.pos.getRangeTo(container) <= 3) {
+                pathing.Move(creep, container);
+                creep.memory.mineralDestination = mineralContainer.id;
+            }
+        } else {
+            pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
         }
     }
 }
