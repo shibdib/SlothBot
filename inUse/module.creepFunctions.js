@@ -412,7 +412,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
                 if (object.store[RESOURCE_ENERGY] <= 10000) {
                     continue;
                 }
-                const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.01;
+                const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.3;
                 terminals.push({
                     id: terminal[i],
                     distWeighted: terminalDistWeighted,
