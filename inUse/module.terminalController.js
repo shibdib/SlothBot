@@ -22,7 +22,7 @@ module.exports.terminalControl = function () {
 function fillBuyOrders(terminal) {
     if (terminal.store[RESOURCE_ENERGY] >= 1000) {
         for (const resourceType in terminal.store) {
-            if (terminal.store[resourceType] >= 1000 && resourceType !== RESOURCE_ENERGY) {
+            if (terminal.store[resourceType] >= 2000 && resourceType !== RESOURCE_ENERGY) {
                 let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === resourceType &&
                 order.type === ORDER_BUY && order.remainingAmount >= 1000 &&
                 Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 500), 'price');
