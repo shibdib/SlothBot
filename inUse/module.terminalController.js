@@ -9,6 +9,9 @@ module.exports.terminalControl = function () {
             //if we have credits make sure we have energy
             buyEnergy(terminal);
 
+            //extend old orders first
+            extendSellOrders(terminal);
+
             //Try to put up a sell, otherwise fill buy
             placeSellOrders(terminal);
             fillBuyOrders(terminal);
@@ -59,9 +62,9 @@ function buyEnergy(terminal) {
     }
 }
 
-function placeSellOrders(terminal) {
-    for (let key in Game.market.orders) {
-        for (const resourceType in terminal.store) {
+function extendSellOrders(terminal) {
+    for (const resourceType in terminal.store) {
+        for (let key in Game.market.orders) {
             if (terminal.store[resourceType] >= 100 && resourceType !== RESOURCE_ENERGY) {
                 if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
                     let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
@@ -71,21 +74,25 @@ function placeSellOrders(terminal) {
                         if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
                             console.log('Sell order price change ' + Game.market.orders[key].id + ' new/old ' + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price);
                         }
-                        break;
                     }
                     if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
                         console.log('Extended sell order ' + Game.market.orders[key].id + ' an additional ' + terminal.store[resourceType]);
                     }
-                    break;
-                } else {
-                    let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
-                    order.type === ORDER_SELL && order.remainingAmount >= 1000 &&
-                    Game.market.calcTransactionCost(terminal.store[resourceType], terminal.pos.roomName, order.roomName) <= 1000), 'price');
-                    if (sellOrder.id) {
-                        if (Game.market.createOrder(ORDER_SELL, resourceType, sellOrder.price - 0.01, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                            console.log('sellOrderSetup - 1000 ' + resourceType + ' for ' + sellOrder.price - 0.01);
-                        }
-                    }
+                }
+            }
+        }
+    }
+}
+
+function placeSellOrders(terminal) {
+    for (const resourceType in terminal.store) {
+        if (terminal.store[resourceType] >= 1000 && resourceType !== RESOURCE_ENERGY) {
+            let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
+            order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
+            Game.market.calcTransactionCost(terminal.store[resourceType], terminal.pos.roomName, order.roomName) <= 1000), 'price');
+            if (sellOrder.id) {
+                if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType]) === OK) {
+                    console.log('New Sell Order: ' + Game.market.orders[key].id + ' Price ' + (sellOrder.price - 0.01));
                 }
             }
         }
