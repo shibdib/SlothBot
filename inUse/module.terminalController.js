@@ -48,18 +48,18 @@ function fillBuyOrders(terminal) {
 function buyEnergy(terminal) {
     let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === RESOURCE_ENERGY &&
     order.type === ORDER_SELL &&
-    Game.market.calcTransactionCost(100 * order.price, terminal.pos.roomName, order.roomName) <= 500), 'price');
+    Game.market.calcTransactionCost(100 / order.price, terminal.pos.roomName, order.roomName) <= 500), 'price');
     if (sellOrder.id) {
-        if (Game.market.deal(sellOrder.id, 100 * sellOrder.price, terminal.pos.roomName) === OK) {
-            console.log('energyPurchased -' + 100 * sellOrder.price + ' for ' + sellOrder.price * 1000);
+        if (Game.market.deal(sellOrder.id, 100 / sellOrder.price, terminal.pos.roomName) === OK) {
+            console.log('energyPurchased -' + 100 / sellOrder.price + ' for 100');
         }
     } else {
         let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === RESOURCE_ENERGY &&
         order.type === ORDER_SELL &&
-        Game.market.calcTransactionCost(100 * order.price, terminal.pos.roomName, order.roomName) <= 1000), 'price');
+        Game.market.calcTransactionCost(100 / order.price, terminal.pos.roomName, order.roomName) <= 1000), 'price');
         if (sellOrder.id) {
-            if (Game.market.deal(sellOrder.id, 100 * sellOrder.price, terminal.pos.roomName) === OK) {
-                console.log('energyPurchased -' + 100 * sellOrder.price + ' for ' + sellOrder.price * 1000);
+            if (Game.market.deal(sellOrder.id, 100 / sellOrder.price, terminal.pos.roomName) === OK) {
+                console.log('energyPurchased -' + 100 / sellOrder.price + ' for 100');
             }
         }
     }
