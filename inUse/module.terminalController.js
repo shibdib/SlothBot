@@ -50,6 +50,14 @@ function buyEnergy(terminal) {
         for (const resourceType in terminal.store) {
             if (terminal.store[resourceType] < 10000 && resourceType === RESOURCE_ENERGY) {
                 if (Game.market.orders[key].resourceType === RESOURCE_ENERGY && Game.market.orders[key].type === ORDER_BUY) {
+                    let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === resourceType &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), "price");
+                    if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(Game.market.orders[key].price, 2) && buyOrder.price < 0.05) {
+                        if (Game.market.changeOrderPrice(Game.market.orders[key].id, buyOrder.price) === OK) {
+                            console.log('Energy buy order price change ' + Game.market.orders[key].id + ' new/old ' + buyOrder.price + "/" + Game.market.orders[key].price);
+                        }
+                        return;
+                    }
                     if (Game.market.orders[key].remainingAmount < 10000) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, 10000 - Game.market.orders[key].remainingAmount) === OK) {
                             console.log('Extended energy buy order ' + Game.market.orders[key].id + ' an additional ' + 10000 - Game.market.orders[key].remainingAmount);
