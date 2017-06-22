@@ -60,7 +60,16 @@ function mineralHauler(creep) {
     }
     if (creep.memory.hauling === false) {
         if (creep.memory.mineralDestination) {
-            creepTools.withdrawEnergy(creep);
+            let mineralContainer = Game.getObjectById(creep.memory.mineralDestination);
+            if (mineralContainer) {
+                if (mineralContainer.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
+                    for (const resourceType in mineralContainer.store) {
+                        if (creep.withdraw(mineralContainer, resourceType) === ERR_NOT_IN_RANGE) {
+                            pathing.Move(creep, mineralContainer);
+                        }
+                    }
+                }
+            }
         } else {
             let mineralContainer = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > 0 && s.store[RESOURCE_ENERGY] === 0});
             creep.memory.mineralDestination = mineralContainer.id;

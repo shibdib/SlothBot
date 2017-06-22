@@ -1239,14 +1239,17 @@ function rcl6(spawnName) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                             return;
                         }
-                        if (mineralHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
-                                role: 'mineralHauler',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 0,
-                            }) === OK) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHauler');
-                            return;
+                        for (let i = 0; i < minerals.length; i++) {
+                            if (mineralHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
+                                    role: 'mineralHauler',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
+                                    level: 0,
+                                    assignedMineral: minerals[i].id
+                                }) === OK) {
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHauler');
+                                return;
+                            }
                         }
                         if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
                                 role: 'largeHauler',
