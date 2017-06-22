@@ -7,7 +7,7 @@ module.exports.terminalControl = function () {
     for (let terminal of _.values(Game.structures)) {
         if (terminal.structureType === STRUCTURE_TERMINAL) {
             //if we have credits make sure we have energy
-            //buyEnergy(terminal);
+            buyEnergy(terminal);
 
             //Try to put up a sell, otherwise fill buy
             placeSellOrders(terminal);
@@ -51,13 +51,12 @@ function buyEnergy(terminal) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, 10000 - Game.market.orders[key].remainingAmount) === OK) {
                             console.log('Extended energy buy order ' + Game.market.orders[key].id + 'an additional' + 10000 - Game.market.orders[key].remainingAmount);
                         }
-                        break;
-                    }
-                } else {
-                    if (Game.market.createOrder(ORDER_BUY, resourceType, 0.01, 10000, terminal.pos.roomName) === OK) {
-                        console.log('Created energy buy order');
+                        return;
                     }
                 }
+            }
+            if (Game.market.createOrder(ORDER_BUY, resourceType, 0.01, 10000, terminal.pos.roomName) === OK) {
+                console.log('Created energy buy order');
             }
         }
     }
@@ -69,6 +68,14 @@ function placeSellOrders(terminal) {
             if (terminal.store[resourceType] >= 1000 && resourceType !== RESOURCE_ENERGY) {
                 for (let key in Game.market.orders) {
                     if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
+                        let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
+                        order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
+                        Game.market.calcTransactionCost(terminal.store[resourceType], terminal.pos.roomName, order.roomName) <= 1000), 'price');
+                        if (sellOrder.id && sellOrder.price <= Game.market.orders[key].price) {
+                            if (Game.market.changeOrderPrice(Game.market.orders[key].id, sellOrder.price - 0.01) === OK) {
+                                console.log('Sell order price change ' + Game.market.orders[key].id + 'new/old' + sellOrder.price - 0.01 + "/" + Game.market.orders[key].price);
+                            }
+                        }
                         if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
                             console.log('Extended sell order ' + Game.market.orders[key].id + 'an additional' + terminal.store[resourceType]);
                         }
