@@ -68,12 +68,12 @@ function extendSellOrders(terminal) {
             if (resourceType !== RESOURCE_ENERGY) {
                 if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
                     let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
-                    order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
-                    Game.market.calcTransactionCost(terminal.store[resourceType], terminal.pos.roomName, order.roomName) <= 5000), 'price');
+                    order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName));
                     if (sellOrder.id && (_.round(sellOrder.price - 0.01, 2)) !== _.round(Game.market.orders[key].price, 2)) {
                         if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
                             console.log('Sell order price change ' + Game.market.orders[key].id + ' new/old ' + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price);
                         }
+                        return;
                     }
                     if (terminal.store[resourceType] > Game.market.orders[key].remainingAmount) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
