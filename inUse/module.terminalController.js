@@ -71,7 +71,7 @@ function buyEnergy(terminal) {
                     return;
                 }
                 if (Game.market.orders[key].remainingAmount < 20000 - terminal.store[resourceType]) {
-                    if (Game.market.extendOrder(Game.market.orders[key].id, Game.market.orders[key].remainingAmount - (20000 - terminal.store[resourceType])) === OK) {
+                    if (Game.market.extendOrder(Game.market.orders[key].id, 20000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount) === OK)) {
                         console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + Game.market.orders[key].id + " an additional " + Game.market.orders[key].remainingAmount - (20000 - terminal.store[resourceType]) + "</font>");
                     }
                     return;
