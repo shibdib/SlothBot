@@ -139,7 +139,7 @@ function extendBuyOrders(terminal) {
                         }
                         continue resource;
                     }
-                    if (terminal.store[resourceType] + Game.market.orders[key].remainingAmount < 2000) {
+                    if (terminal.store[resourceType] + Game.market.orders[key].remainingAmount < 2000 && ((sellOrder.price - 0.01) - buyOrder.price) > 0.02) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount)) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended Buy order " + Game.market.orders[key].id +  " an additional " + 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount + " " + resourceType + "</font>"));
                         }
