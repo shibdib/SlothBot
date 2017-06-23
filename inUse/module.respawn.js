@@ -1147,10 +1147,10 @@ function rcl6(spawnName) {
                 }
 
                 //RESERVE RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1300) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 2000) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'reserver');
-                        if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
+                        if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, CLAIM, MOVE, MOVE, MOVE], generatedNumber + 'reserver', {
                                 role: 'reserver',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
