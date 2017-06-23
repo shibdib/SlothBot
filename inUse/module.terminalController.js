@@ -106,7 +106,7 @@ function extendSellOrders(terminal) {
 function placeSellOrders(terminal) {
     resource:
         for (const resourceType in terminal.store) {
-        if (terminal.store[resourceType] >= 5000 && resourceType !== RESOURCE_ENERGY) {
+        if (resourceType !== RESOURCE_ENERGY) {
             for (let key in Game.market.orders) {
                 if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
                     continue resource;
