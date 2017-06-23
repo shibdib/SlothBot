@@ -6,7 +6,9 @@ let globalOrders = Game.market.getAllOrders();
 
 let reactionNeeds = [
     RESOURCE_HYDROGEN,
-    RESOURCE_GHODIUM
+    RESOURCE_GHODIUM,
+    RESOURCE_UTRIUM,
+    RESOURCE_OXYGEN
 ]
 
 module.exports.terminalControl = function () {
