@@ -326,28 +326,6 @@ function rcl3(spawnName) {
                     }
                 }
 
-                //RESERVE RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 700) {
-                    if (stationaryHarvester.length >= sourceCount) {
-                        for (let i = 0; i < 10; i++) {
-                            let reserve = 'reserve' + i;
-                            if (Game.flags[reserve] && remoteNeighborCheck(spawnName, reserve) === true) {
-                                let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
-                                if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
-                                        role: 'reserver',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 3,
-                                        destination: reserve
-                                    }) === OK) {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-
                 //CLAIM RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 700) {
                     if (stationaryHarvester.length >= sourceCount) {
@@ -600,21 +578,15 @@ function rcl4(spawnName) {
                 //RESERVE RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 1300) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        for (let i = 0; i < 10; i++) {
-                            let reserve = 'reserve' + i;
-                            if (Game.flags[reserve] && remoteNeighborCheck(spawnName, reserve) === true) {
-                                let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
-                                if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
-                                        role: 'reserver',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 4,
-                                        destination: reserve
-                                    }) === OK) {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
-                                    return;
-                                }
-                            }
+                        let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'reserver');
+                        if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
+                                role: 'reserver',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedRoom: Game.spawns[spawnName].room.name,
+                                level: 4
+                            }) === OK) {
+                            console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
+                            return;
                         }
                     }
                 }
@@ -1177,21 +1149,15 @@ function rcl6(spawnName) {
                 //RESERVE RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 1300) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        for (let i = 0; i < 10; i++) {
-                            let reserve = 'reserve' + i;
-                            if (Game.flags[reserve] && remoteNeighborCheck(spawnName, reserve) === true) {
-                                let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
-                                if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
-                                        role: 'reserver',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 4,
-                                        destination: reserve
-                                    }) === OK) {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
-                                    return;
-                                }
-                            }
+                        let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'reserver');
+                        if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
+                                role: 'reserver',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedRoom: Game.spawns[spawnName].room.name,
+                                level: 4
+                            }) === OK) {
+                            console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
+                            return;
                         }
                     }
                 }
