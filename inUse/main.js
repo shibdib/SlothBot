@@ -17,10 +17,11 @@ let screepsPlus = require('screepsplus');
 module.exports.loop = function () {
     profiler.wrap(function () {
 
-        if (!Memory.stats.tickLength){
-            Memory.stats.tickLength = Math.round(new Date() / 1000);
+        if (!Memory.stats.tickOldEpoch){
+            Memory.stats.tickOldEpoch = Math.round(new Date() / 1000);
+        } else {
+            Memory.stats.tickLength = Math.round(new Date() / 1000) - Memory.stats.tickOldEpoch;
         }
-        Memory.stats.tickLength = Memory.stats.tickLength - Math.round(new Date() / 1000);
 
         //GRAFANA
         screepsPlus.collect_stats();
