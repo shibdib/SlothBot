@@ -37,7 +37,7 @@ module.exports.roomControl = function () {
 
         //DEFENSE MODE
         //ramparts public unless needed
-        let rampart = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'rampart'), 'id');
+        let rampart = _.pluck(_.filter(Game.spawns[name].room.memory.structureCache, 'type', 'rampart'), 'id');
         if (rampart.length > 0) {
             let hostile = rampart[0].pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner) === -1});
             if (!hostile){
