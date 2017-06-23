@@ -133,9 +133,9 @@ function placeSellOrders(terminal) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
-                if (sellOrder.id && include(reactionNeeds, resourceType) === true && resourceType - 1000 > 0) {
+                if (sellOrder.id && include(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType - 1000 + " at/per " + (sellOrder.price - 0.01) + "</font>");
+                        console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
             }
