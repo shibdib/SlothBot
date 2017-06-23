@@ -20,7 +20,7 @@ module.exports.loop = function () {
         if (!Memory.stats.tickLength){
             Memory.stats.tickLength =0;
         }
-        Memory.stats.tickLength = Memory.stats.tickLength-date.getTime();
+        Memory.stats.tickLength = Memory.stats.tickLength - new Date() / 1000;
 
         //GRAFANA
         screepsPlus.collect_stats();
