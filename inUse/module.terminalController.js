@@ -114,8 +114,7 @@ function placeSellOrders(terminal) {
                 }
             }
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
-            order.type === ORDER_SELL && order.remainingAmount >= 5000 && order.roomName !== terminal.pos.roomName &&
-            Game.market.calcTransactionCost(terminal.store[resourceType], terminal.pos.roomName, order.roomName) <= 1000), 'price');
+            order.type === ORDER_SELL && order.remainingAmount >= 7500 && order.roomName !== terminal.pos.roomName), 'price');
             if (sellOrder.id) {
                 if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType]) === OK) {
                     console.log("<font color='#adff2f'>MARKET: New Sell Order: " + Game.market.orders[key].id + " Price " + (sellOrder.price - 0.01) + "</font>");
