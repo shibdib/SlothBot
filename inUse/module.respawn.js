@@ -892,21 +892,15 @@ function rcl5(spawnName) {
                 //RESERVE RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 1300) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        for (let i = 0; i < 10; i++) {
-                            let reserve = 'reserve' + i;
-                            if (Game.flags[reserve] && remoteNeighborCheck(spawnName, reserve) === true) {
-                                let reserver = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[reserve].name && creep.memory.role === 'reserver');
-                                if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
-                                        role: 'reserver',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 4,
-                                        destination: reserve
-                                    }) === OK) {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
-                                    return;
-                                }
-                            }
+                        let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'reserver');
+                        if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
+                                role: 'reserver',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedRoom: Game.spawns[spawnName].room.name,
+                                level: 4
+                            }) === OK) {
+                            console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
+                            return;
                         }
                     }
                 }
@@ -1284,7 +1278,7 @@ function rcl6(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 1450) {
                     for (let i = 0; i < minerals.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals[i].id && creep.memory.role === 'mineralHarvester');
-                        if ((harvester.length < 2 || harvester.ticksToLive < 150) && minerals[i].mineralAmount > 0 && Game.spawns[spawnName].createCreep([MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY], generatedNumber + 'mineralHarvester', {
+                        if ((harvester.length < 2 || harvester.ticksToLive < 150) && minerals[i].mineralAmount > 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'mineralHarvester', {
                                 role: 'mineralHarvester',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
