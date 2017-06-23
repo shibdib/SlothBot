@@ -25,9 +25,9 @@ module.exports.terminalControl = function () {
 function fillBuyOrders(terminal) {
     if (terminal.store[RESOURCE_ENERGY] >= 1000) {
         for (const resourceType in terminal.store) {
-            if (terminal.store[resourceType] >= 2000 && resourceType !== RESOURCE_ENERGY) {
+            if (terminal.store[resourceType] >= 2500 && resourceType !== RESOURCE_ENERGY) {
                 let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === resourceType &&
-                order.type === ORDER_BUY && order.remainingAmount >= 1000 &&
+                order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                 Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 500), 'price');
                 if (buyOrder.id) {
                     if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
@@ -35,7 +35,7 @@ function fillBuyOrders(terminal) {
                     }
                 } else {
                     let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === resourceType &&
-                    order.type === ORDER_BUY && order.remainingAmount >= 1000 &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 1000), 'price');
                     if (buyOrder.id) {
                         if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
