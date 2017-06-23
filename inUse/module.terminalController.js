@@ -157,7 +157,7 @@ function placeBuyOrders(terminal) {
         RESOURCE_ZYNTHIUM];
     resource:
         for (let i=0; i<basicMinerals.length;i++) {
-            if (terminal.store[basicMinerals[i]] < 2000) {
+            if (terminal.store[basicMinerals[i]] < 2000 || !terminal.store[basicMinerals[i]]) {
                 for (let key in Game.market.orders) {
                     if (Game.market.orders[key].resourceType === basicMinerals[i] && Game.market.orders[key].type === ORDER_BUY) {
                         continue resource;
