@@ -195,7 +195,7 @@ function reserver(creep) {
     if (creep.pos.roomName !== creep.memory.currentDestination) {
         pathing.MoveToPos(creep, new RoomPosition(25, 25, creep.memory.currentDestination), false, 16);
     } else {
-        if (creep.room.controller && ((creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1500) || !creep.room.controller.reservation)) {
+        if (creep.room.controller && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1500))) {
             if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, creep.room.controller);
             }
