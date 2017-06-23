@@ -42,11 +42,15 @@ module.exports.roomControl = function () {
             let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner) === -1});
             if (!hostile){
                 for (let i = 0; i < rampart.length; i++){
-                    Game.getObjectById(rampart[i]).setPublic = true;
+                    if (Game.getObjectById(rampart[i]).isPublic === false) {
+                        Game.getObjectById(rampart[i]).setPublic(true);
+                    }
                 }
             } else {
                 for (let i = 0; i < rampart.length; i++){
-                    Game.getObjectById(rampart[i]).setPublic = false;
+                    if (Game.getObjectById(rampart[i]).isPublic === true) {
+                        Game.getObjectById(rampart[i]).setPublic(false);
+                    }
                 }
             }
         }
