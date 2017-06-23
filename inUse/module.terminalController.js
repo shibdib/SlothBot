@@ -109,7 +109,7 @@ function placeSellOrders(terminal) {
         for (const resourceType in terminal.store) {
             if (resourceType !== RESOURCE_ENERGY) {
                 for (let key in Game.market.orders) {
-                    if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
+                    if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL && Game.market.orders[key].roomName === terminal.pos.roomName) {
                         continue resource;
                     }
                 }
