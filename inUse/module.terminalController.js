@@ -74,6 +74,7 @@ function buyEnergy(terminal) {
 }
 
 function extendSellOrders(terminal) {
+    resource:
     for (const resourceType in terminal.store) {
         for (let key in Game.market.orders) {
             if (resourceType !== RESOURCE_ENERGY && Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
@@ -85,13 +86,13 @@ function extendSellOrders(terminal) {
                     if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Sell order price change " + Game.market.orders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price + "</font>");
                     }
-                    return;
+                    continue resource;
                 }
                 if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(Game.market.orders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2)) {
                     if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Sell order price change " + Game.market.orders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price + "</font>");
                     }
-                    return;
+                    continue resource;
                 }
                 if (terminal.store[resourceType] > Game.market.orders[key].remainingAmount) {
                     if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
@@ -125,6 +126,7 @@ function placeSellOrders(terminal) {
 }
 
 function extendBuyOrders(terminal) {
+    resource:
     for (const resourceType in terminal.store) {
         for (let key in Game.market.orders) {
             if (resourceType !== RESOURCE_ENERGY && Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_BUY) {
@@ -136,7 +138,7 @@ function extendBuyOrders(terminal) {
                     if (Game.market.changeOrderPrice(Game.market.orders[key].id, (buyOrder.price)) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Buy order price change " + Game.market.orders[key].id + " new/old " + buyOrder.price + "/" + Game.market.orders[key].price + "</font>");
                     }
-                    return;
+                    continue resource;
                 }
                 if (terminal.store[resourceType] + Game.market.orders[key].remainingAmount < 2000) {
                     if (Game.market.extendOrder(Game.market.orders[key].id, 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount)) === OK) {
