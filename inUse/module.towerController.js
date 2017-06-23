@@ -16,7 +16,7 @@ module.exports.towerControl = function () {
     for (let tower of _.values(Game.structures)) {
         if (tower.structureType === STRUCTURE_TOWER) {
             const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
-            const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax/2});
+            const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax/2});
             const woundedCreep = Game.getObjectById(findWounded(tower));
             const closestHostile = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner['username']) === false});
             if (closestHostile) {
