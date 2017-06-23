@@ -124,7 +124,7 @@ function extendBuyOrders(terminal) {
     for (const resourceType in terminal.store) {
         for (let key in Game.market.orders) {
             if (resourceType !== RESOURCE_ENERGY) {
-                if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
+                if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_BUY) {
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                     let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
