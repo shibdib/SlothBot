@@ -162,7 +162,7 @@ function placeBuyOrders(terminal) {
                 let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === basicMinerals[i] &&
                 order.type === ORDER_SELL && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
                 if (buyOrder.id && (sellOrder.price - buyOrder.price) > 0.02) {
-                    if (Game.market.createOrder(ORDER_BUY, basicMinerals[i], buyOrder.price, 2000) === OK) {
+                    if (Game.market.createOrder(ORDER_BUY, basicMinerals[i], buyOrder.price, 2000, terminal.pos.roomName) === OK) {
                         console.log('New Buy Order: ' + basicMinerals[i] + ' at/per ' + (buyOrder.price));
                     }
                 }
