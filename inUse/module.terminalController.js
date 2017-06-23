@@ -16,7 +16,8 @@ module.exports.terminalControl = function () {
             placeSellOrders(terminal);
             fillBuyOrders(terminal);
 
-            //Place buy orders
+            //Extend/Place buy orders
+            extendBuyOrders(terminal);
             placeBuyOrders(terminal);
         }
     }
@@ -123,17 +124,17 @@ function extendBuyOrders(terminal) {
         for (let key in Game.market.orders) {
             if (resourceType !== RESOURCE_ENERGY) {
                 if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
-                    let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
-                    order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), "price");
-                    if (sellOrder.id && (_.round(sellOrder.price - 0.01, 2)) !== _.round(Game.market.orders[key].price, 2)) {
-                        if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
-                            console.log('Sell order price change ' + Game.market.orders[key].id + ' new/old ' + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price);
+                    let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === resourceType &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
+                    if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(Game.market.orders[key].price, 2)) {
+                        if (Game.market.changeOrderPrice(Game.market.orders[key].id, (buyOrder.price)) === OK) {
+                            console.log('Buy order price change ' + Game.market.orders[key].id + ' new/old ' + buyOrder.price + "/" + Game.market.orders[key].price);
                         }
                         return;
                     }
-                    if (terminal.store[resourceType] > Game.market.orders[key].remainingAmount) {
-                        if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
-                            console.log('Extended sell order ' + Game.market.orders[key].id + ' an additional ' + terminal.store[resourceType]);
+                    if (terminal.store[resourceType] + Game.market.orders[key].remainingAmount < 2000) {
+                        if (Game.market.extendOrder(Game.market.orders[key].id, 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount)) === OK) {
+                            console.log('Extended Buy order ' + Game.market.orders[key].id + ' an additional ' + 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount));
                         }
                     }
                 }
@@ -158,9 +159,9 @@ function placeBuyOrders(terminal) {
                     }
                 }
                 let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === basicMinerals[i] &&
-                order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
+                order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === basicMinerals[i] &&
-                order.type === ORDER_SELL && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
+                order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 if (buyOrder.id && ((sellOrder.price -0.01) - buyOrder.price) > 0.02) {
                     if (Game.market.createOrder(ORDER_BUY, basicMinerals[i], buyOrder.price, 2000, terminal.pos.roomName) === OK) {
                         console.log('New Buy Order: ' + basicMinerals[i] + ' at/per ' + (buyOrder.price));
