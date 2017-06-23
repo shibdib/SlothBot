@@ -84,19 +84,19 @@ function extendSellOrders(terminal) {
                     order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(Game.market.orders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) > _.round(buyOrder.price, 2)) {
                         if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + Game.market.orders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + Game.market.orders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price   + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(Game.market.orders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2)) {
                         if (Game.market.changeOrderPrice(Game.market.orders[key].id, (sellOrder.price - 0.01)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + Game.market.orders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + Game.market.orders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + Game.market.orders[key].price  + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
                     if (terminal.store[resourceType] > Game.market.orders[key].remainingAmount) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended sell order " + Game.market.orders[key].id + " an additional " + terminal.store[resourceType] + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Extended sell order " + Game.market.orders[key].id + " an additional " + terminal.store[resourceType]  + " " + resourceType + "</font>");
                         }
                     }
                 }
@@ -135,13 +135,13 @@ function extendBuyOrders(terminal) {
                     order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                     if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(Game.market.orders[key].price, 2) && ((sellOrder.price - 0.01) - buyOrder.price) > 0.02) {
                         if (Game.market.changeOrderPrice(Game.market.orders[key].id, (buyOrder.price)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Buy order price change " + Game.market.orders[key].id + " new/old " + buyOrder.price + "/" + Game.market.orders[key].price + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Buy order price change " + Game.market.orders[key].id + " new/old " + buyOrder.price + "/" + Game.market.orders[key].price  + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
                     if (terminal.store[resourceType] + Game.market.orders[key].remainingAmount < 2000) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + Game.market.orders[key].id + " an additional " + 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount + "</font>"));
+                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + Game.market.orders[key].id +  " an additional " + 2000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount + " " + resourceType + "</font>"));
                         }
                     }
                 }
