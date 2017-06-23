@@ -17,6 +17,11 @@ let screepsPlus = require('screepsplus');
 module.exports.loop = function () {
     profiler.wrap(function () {
 
+        if (!Memory.stats.tickLength){
+            Memory.stats.tickLength =0;
+        }
+        Memory.stats.tickLength = Memory.stats.tickLength-date.getTime();
+
         //GRAFANA
         screepsPlus.collect_stats();
         Memory.stats.cpu.init = Game.cpu.getUsed();
