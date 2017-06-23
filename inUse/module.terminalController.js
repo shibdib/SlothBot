@@ -126,7 +126,9 @@ function extendBuyOrders(terminal) {
                 if (Game.market.orders[key].resourceType === resourceType && Game.market.orders[key].type === ORDER_SELL) {
                     let buyOrder = _.max(Game.market.getAllOrders(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
-                    if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(Game.market.orders[key].price, 2)) {
+                    let sellOrder = _.min(Game.market.getAllOrders(order => order.resourceType === resourceType &&
+                    order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
+                    if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(Game.market.orders[key].price, 2) && ((sellOrder.price -0.01) - buyOrder.price) > 0.02) {
                         if (Game.market.changeOrderPrice(Game.market.orders[key].id, (buyOrder.price)) === OK) {
                             console.log('Buy order price change ' + Game.market.orders[key].id + ' new/old ' + buyOrder.price + "/" + Game.market.orders[key].price);
                         }
