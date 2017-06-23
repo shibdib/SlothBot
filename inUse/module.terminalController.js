@@ -155,7 +155,9 @@ function placeBuyOrders(terminal) {
         RESOURCE_UTRIUM,
         RESOURCE_KEANIUM,
         RESOURCE_LEMERGIUM,
-        RESOURCE_ZYNTHIUM];
+        RESOURCE_ZYNTHIUM,
+        RESOURCE_CATALYST,
+        RESOURCE_POWER];
     resource:
         for (let i = 0; i < basicMinerals.length; i++) {
             if (terminal.store[basicMinerals[i]] < 2000 || !terminal.store[basicMinerals[i]]) {
