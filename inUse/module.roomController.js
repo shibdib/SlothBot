@@ -39,7 +39,7 @@ module.exports.roomControl = function () {
         //ramparts public unless needed
         let rampart = _.pluck(_.filter(Game.spawns[name].room.memory.structureCache, 'type', 'rampart'), 'id');
         if (rampart.length > 0) {
-            let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner) === -1});
+            let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner) === false});
             if (!hostile){
                 for (let i = 0; i < rampart.length; i++){
                     if (Game.getObjectById(rampart[i]).isPublic === false) {
