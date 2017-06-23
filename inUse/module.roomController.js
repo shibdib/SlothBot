@@ -3,6 +3,16 @@ let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
 let cache = require('module.cache');
 
+let doNotAggress = [
+    //Alliance Members
+    'Shibdib',
+    'PostCrafter',
+    'Rising',
+    'wages123',
+
+    //Non aggression pacts
+    'droben'];
+
 module.exports.roomControl = function () {
 
     for (let name in Game.spawns) {
@@ -26,6 +36,20 @@ module.exports.roomControl = function () {
         }
 
         //DEFENSE MODE
+        //ramparts public unless needed
+        let rampart = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'rampart'), 'id');
+        if (rampart.length > 0) {
+            let hostile = rampart[0].pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner) === -1});
+            if (!hostile){
+                for (let i = 0; i < rampart.length; i++){
+                    rampart[i].setPublic = true;
+                }
+            } else {
+                for (let i = 0; i < rampart.length; i++){
+                    rampart[i].setPublic = false;
+                }
+            }
+        }
         /**let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
         if (attackDetected.length > 0 || Game.spawns[name].memory.defenseMode === true) {
             militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
@@ -66,7 +90,7 @@ module.exports.roomControl = function () {
         if (Game.time % 50 === 0) {
             Game.spawns[name].room.memory.structureCache = undefined;
             for (let structures of Game.spawns[name].room.find(FIND_STRUCTURES)) {
-                if (structures.room === Game.spawns[name].room && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART && structures.structureType !== STRUCTURE_ROAD) {
+                if (structures.room === Game.spawns[name].room) {
                     cache.cacheRoomStructures(structures.id);
                     Memory.stats.cpu.postCacheRoom = Game.cpu.getUsed();
                 }
@@ -79,3 +103,7 @@ module.exports.roomControl = function () {
     }
 }
 ;
+
+function include(arr,obj) {
+    return (arr.indexOf(obj) !== -1);
+}
