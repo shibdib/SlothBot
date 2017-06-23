@@ -178,16 +178,19 @@ function depositEnergy(creep) {
 }
 
 function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (invader && creep.memory.invaderDetected !== true) {
-        let hostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        creep.memory.invaderDetected = true;
-        creep.memory.invaderID = hostile.id;
-        if (!Game.flags["hostile" + hostile.id]) {
-            creep.pos.createFlag("hostile" + hostile.id);
+    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+    if (!spawn) {
+        let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        if (invader && creep.memory.invaderDetected !== true) {
+            let hostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            creep.memory.invaderDetected = true;
+            creep.memory.invaderID = hostile.id;
+            if (!Game.flags["hostile" + hostile.id]) {
+                creep.pos.createFlag("hostile" + hostile.id);
+            }
+        } else {
+            creep.memory.invaderDetected = undefined;
+            creep.memory.invaderID = undefined;
         }
-    } else {
-        creep.memory.invaderDetected = undefined;
-        creep.memory.invaderID = undefined;
     }
 }

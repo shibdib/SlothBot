@@ -183,20 +183,29 @@ function claimer(creep) {
  */
 function reserver(creep) {
     invaderCheck(creep);
-    //Initial move
-
-    if (!Game.flags[creep.memory.destination]) {
-        creep.suicide();
+    if (!creep.memory.targetRooms) {
+        creep.memory.targetRooms = Game.map.describeExits(creep.memory.assignedRoom)
     }
-    if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
-            creep.memory.destinationReached = true;
+    if (!creep.memory.currentDestination) {
+        for (let key in creep.memory.targetRooms) {
+            creep.memory.currentDestination = creep.memory.targetRooms[key];
         }
+        creep.memory.visitedRooms = [];
+    }
+    if (creep.pos.roomName !== creep.memory.currentDestination) {
+        pathing.MoveToPos(creep, new RoomPosition(25, 25, creep.memory.currentDestination), false, 16);
     } else {
-        if (creep.room.controller) {
+        if (creep.room.controller && creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1500) {
             if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 pathing.Move(creep, creep.room.controller);
+            }
+        } else {
+            creep.memory.visitedRooms.push(creep.memory.currentDestination);
+            creep.memory.currentDestination = undefined;
+            for (let key in creep.memory.targetRooms) {
+                if (include(creep.memory.visitedRooms,creep.memory.targetRooms[key]) === false) {
+                    creep.memory.currentDestination = creep.memory.targetRooms[key];
+                }
             }
         }
     }
@@ -326,17 +335,20 @@ function responder(creep) {
 }
 
 function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => include(doNotAggress,e.owner['username']) === false});
-    if (invader && creep.memory.invaderDetected !== true) {
-        let hostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => include(doNotAggress,e.owner['username']) === false});
-        creep.memory.invaderDetected = true;
-        creep.memory.invaderID = hostile.id;
-        if (!Game.flags["hostile" + hostile.id]) {
-            creep.pos.createFlag("hostile" + hostile.id);
+    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+    if (!spawn) {
+        let invader = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => include(doNotAggress, e.owner['username']) === false});
+        if (invader && creep.memory.invaderDetected !== true) {
+            let hostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => include(doNotAggress, e.owner['username']) === false});
+            creep.memory.invaderDetected = true;
+            creep.memory.invaderID = hostile.id;
+            if (!Game.flags["hostile" + hostile.id]) {
+                creep.pos.createFlag("hostile" + hostile.id);
+            }
+        } else {
+            creep.memory.invaderDetected = undefined;
+            creep.memory.invaderID = undefined;
         }
-    } else {
-        creep.memory.invaderDetected = undefined;
-        creep.memory.invaderID = undefined;
     }
 }
 
