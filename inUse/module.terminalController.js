@@ -15,7 +15,7 @@ module.exports.terminalControl = function () {
     for (let terminal of _.values(Game.structures)) {
         if (terminal.structureType === STRUCTURE_TERMINAL) {
             //if we have credits make sure we have energy
-            buyEnergy(terminal);
+            //buyEnergy(terminal);
 
             //extend old orders first
             extendSellOrders(terminal);
