@@ -37,7 +37,7 @@ function add_stats_callback(cbfunc) {
 function collect_stats() {
 
     // Don't overwrite things if other modules are putting stuff into Memory.stats
-    if (Memory.stats == null) {
+    if (Memory.stats === null) {
         Memory.stats = {tick: Game.time};
     }
 

@@ -37,7 +37,7 @@ function count_source_containers(room) {
 
     for (let source of room_sources) {
         let nearby_containers =
-            source.pos.findInRange(FIND_STRUCTURES, 2, {filter: s => s.structureType == STRUCTURE_CONTAINER});
+            source.pos.findInRange(FIND_STRUCTURES, 2, {filter: s => s.structureType === STRUCTURE_CONTAINER});
         // console.log(room.name + ', source: ' + source.id + ', nearby containers: ' + nearby_containers.length);
         for (let nc of nearby_containers) {
             if (nc.pos.getRangeTo(source) >= 2.0) {
@@ -58,10 +58,10 @@ function summarize_room_internal(room) {
     if (_.isString(room)) {
         room = Game.rooms[room];
     }
-    if (room == null) {
+    if (room === null) {
         return null;
     }
-    if (room.controller == null || !room.controller.my) {
+    if (room.controller === null || !room.controller.my) {
         // Can null even happen?
         return null;
     }
@@ -206,7 +206,7 @@ function summarize_rooms() {
     const now = Game.time;
 
     // First check if we cached it
-    if (global.summarized_room_timestamp == now) {
+    if (global.summarized_room_timestamp === now) {
         return global.summarized_rooms;
     }
 
@@ -228,7 +228,7 @@ function summarize_room(room) {
     if (_.isString(room)) {
         room = Game.rooms[room];
     }
-    if (room == null) {
+    if (room === null) {
         return null;
     }
 
