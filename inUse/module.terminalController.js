@@ -135,7 +135,7 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
                         continue resource;
                     }
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2)) {
-                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.01))) === OK) {
+                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round((buyOrder.price))) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.01)) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
