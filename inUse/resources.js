@@ -61,7 +61,7 @@ function summarize_room_internal(room) {
     if (room === null) {
         return null;
     }
-    if (room.controller === null || !room.controller.my) {
+    if (!room.controller || !room.controller.my) {
         // Can null even happen?
         return null;
     }
