@@ -158,7 +158,7 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType + "</font>");
                         }
                     }
-                    if (terminal.store[resourceType] - 1000 > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true) {
+                    if ((terminal.store[resourceType] - 1000) > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true) {
                         if (Game.market.extendOrder(myOrders[key].id, terminal.store[resourceType]) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] - 1000 + " " + resourceType + "</font>");
                         }
