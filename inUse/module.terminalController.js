@@ -143,13 +143,13 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
                     order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) > _.round(buyOrder.price, 2)) {
                         if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.01), 2)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.01)) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.01), 2) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2)) {
                         if (Game.market.changeOrderPrice(myOrders[key].id, _.round((buyOrder.price), 2)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.01)) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.01), 2) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
