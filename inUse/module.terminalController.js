@@ -37,14 +37,12 @@ module.exports.terminalControl = function () {
             fillBuyOrders(terminal, globalOrders);
 
             //Extend/Place buy orders if we have enough buffer cash
-            if (Game.market.credits > 500) {
                 extendBuyOrders(terminal, globalOrders, myOrders);
                 placeBuyOrders(terminal, globalOrders, myOrders);
                 buyReactionNeeds(terminal, globalOrders, myOrders);
 
                 //if we have credits make sure we have energy
                 buyEnergy(terminal, globalOrders, myOrders);
-            }
         }
     }
 };
@@ -98,35 +96,37 @@ function fillBuyOrders(terminal, globalOrders) {
 }
 
 function buyEnergy(terminal, globalOrders, myOrders) {
-    if (terminal.store[RESOURCE_ENERGY] < energyAmount / 2 || !terminal.store[RESOURCE_ENERGY]) {
-        for (let key in myOrders) {
-            if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
-                let currentSupply;
-                if (isNaN(terminal.store[RESOURCE_ENERGY]) === true) {
-                    currentSupply = 0;
-                } else {
-                    currentSupply = terminal.store[RESOURCE_ENERGY];
-                }
-                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
-                order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
-                if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(myOrders[key].price, 2) && buyOrder.price < 0.05) {
-                    if (Game.market.changeOrderPrice(myOrders[key].id, _.round(buyOrder.price)) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Energy buy order price change " + myOrders[key].id + " new/old " + _.round(buyOrder.price) + "/" + myOrders[key].price + "</font>");
+    if (Game.market.credits > 500) {
+        if (terminal.store[RESOURCE_ENERGY] < energyAmount / 2 || !terminal.store[RESOURCE_ENERGY]) {
+            for (let key in myOrders) {
+                if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
+                    let currentSupply;
+                    if (isNaN(terminal.store[RESOURCE_ENERGY]) === true) {
+                        currentSupply = 0;
+                    } else {
+                        currentSupply = terminal.store[RESOURCE_ENERGY];
                     }
-                }
-                if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
-                    if (Game.market.extendOrder(myOrders[key].id, energyAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (energyAmount - currentSupply) + "</font>");
+                    let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+                    order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
+                    if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(myOrders[key].price, 2) && buyOrder.price < 0.05) {
+                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round(buyOrder.price)) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Energy buy order price change " + myOrders[key].id + " new/old " + _.round(buyOrder.price) + "/" + myOrders[key].price + "</font>");
+                        }
                     }
+                    if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
+                        if (Game.market.extendOrder(myOrders[key].id, energyAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (energyAmount - currentSupply) + "</font>");
+                        }
+                    }
+                    return;
                 }
-                return;
             }
-        }
-        let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
-        order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
-        if (buyOrder.id) {
-            if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price, energyAmount, terminal.pos.roomName) === OK) {
-                console.log("<font color='#adff2f'>MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price) + "</font>");
+            let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+            order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
+            if (buyOrder.id) {
+                if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price, energyAmount, terminal.pos.roomName) === OK) {
+                    console.log("<font color='#adff2f'>MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price) + "</font>");
+                }
             }
         }
     }
@@ -197,7 +197,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < tradeTargets.length; i++) {
             for (let key in myOrders) {
-                if (tradeTargets[i] !== RESOURCE_ENERGY && myOrders[key].resourceType === tradeTargets[i] && myOrders[key].type === ORDER_BUY && myOrders[key].roomName === terminal.pos.roomName) {
+                if (tradeTargets[i] !== RESOURCE_ENERGY && myOrders[key].resourceType === tradeTargets[i] && myOrders[key].type === ORDER_BUY && myOrders[key].roomName === terminal.pos.roomName && Game.market.credits > 500) {
                     let currentSupply;
                     if (isNaN(terminal.store[tradeTargets[i]]) === true) {
                         currentSupply = 0;
@@ -227,7 +227,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
 function placeBuyOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < tradeTargets.length; i++) {
-            if (terminal.store[tradeTargets[i]] < tradeAmount || !terminal.store[tradeTargets[i]]) {
+            if (terminal.store[tradeTargets[i]] < tradeAmount || !terminal.store[tradeTargets[i]] && Game.market.credits > 500) {
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === tradeTargets[i] && myOrders[key].type === ORDER_BUY) {
                         continue resource;
@@ -249,7 +249,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
 function buyReactionNeeds(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
-            if (terminal.store[reactionNeeds[i]] < tradeAmount || !terminal.store[reactionNeeds[i]]) {
+            if (terminal.store[reactionNeeds[i]] < tradeAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === reactionNeeds[i] && myOrders[key].type === ORDER_BUY) {
                         continue resource;
