@@ -80,4 +80,4 @@ function wrongRoom(creep) {
             pathing.Move(creep,home);
         }
     }
-};
+}

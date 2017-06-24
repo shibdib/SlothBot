@@ -35,19 +35,18 @@ function count_source_containers(room) {
     // TODO: Prefer to pick one at a source that isn't already claimed.
     let retval = 0;
 
-    source_container_search:
-        for (let source of room_sources) {
-            let nearby_containers =
-                source.pos.findInRange(FIND_STRUCTURES, 2, {filter: s => s.structureType == STRUCTURE_CONTAINER});
-            // console.log(room.name + ', source: ' + source.id + ', nearby containers: ' + nearby_containers.length);
-            for (let nc of nearby_containers) {
-                if (nc.pos.getRangeTo(source) >= 2.0) {
-                    // We can't say 1.999 above I don't think, in the findInRange, so double check.
-                    continue;
-                }
-                retval++;
-            } // nearby_containers
-        } // room_sources
+    for (let source of room_sources) {
+        let nearby_containers =
+            source.pos.findInRange(FIND_STRUCTURES, 2, {filter: s => s.structureType == STRUCTURE_CONTAINER});
+        // console.log(room.name + ', source: ' + source.id + ', nearby containers: ' + nearby_containers.length);
+        for (let nc of nearby_containers) {
+            if (nc.pos.getRangeTo(source) >= 2.0) {
+                // We can't say 1.999 above I don't think, in the findInRange, so double check.
+                continue;
+            }
+            retval++;
+        } // nearby_containers
+    } // room_sources
 
     return retval;
 } // num_source_containers

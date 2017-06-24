@@ -57,7 +57,7 @@ function send_to_pebble() {
 
     let enemyText = '';
     let enemyColor = "#000000";
-    let enemyColor2 = "#000000"
+    let enemyColor2 = "#000000";
     let enemyBlink = false;
     let enemyProgress = 0;
 

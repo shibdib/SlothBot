@@ -58,8 +58,7 @@ function peasant(creep) {
             creepTools.findStorage(creep);
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -100,8 +99,7 @@ function peasantBuilder(creep) {
             }
         }
     }
-};
-
+}
 /**
  * @return {null}
  */
@@ -132,4 +130,4 @@ function peasantUpgrader(creep) {
         }
     }
 
-};
+}

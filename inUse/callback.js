@@ -33,7 +33,7 @@ Callback.prototype = {
             }
         });
     }
-}
+};
 
 module.exports = {
     Callback
