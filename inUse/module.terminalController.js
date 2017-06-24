@@ -9,7 +9,7 @@ let reactionNeeds = [
     RESOURCE_GHODIUM,
     RESOURCE_UTRIUM,
     RESOURCE_OXYGEN
-]
+];
 
 module.exports.terminalControl = function () {
     for (let terminal of _.values(Game.structures)) {
@@ -61,7 +61,7 @@ function fillBuyOrders(terminal) {
 function buyEnergy(terminal) {
     for (const resourceType in terminal.store) {
         for (let key in Game.market.orders) {
-            if (terminal.store[resourceType] < 10000 && resourceType === RESOURCE_ENERGY && Game.market.orders[key].resourceType === RESOURCE_ENERGY && Game.market.orders[key].type === ORDER_BUY) {
+            if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] < 10000 && Game.market.orders[key].resourceType === RESOURCE_ENERGY && Game.market.orders[key].type === ORDER_BUY) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                 order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), "price");
                 if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(Game.market.orders[key].price, 2) && buyOrder.price < 0.05) {
@@ -70,11 +70,10 @@ function buyEnergy(terminal) {
                     }
                     return;
                 }
-                if (Game.market.orders[key].remainingAmount < 20000 - terminal.store[resourceType]) {
+                if (Game.market.orders[key].remainingAmount < (20000 - terminal.store[resourceType])) {
                     if (Game.market.extendOrder(Game.market.orders[key].id, 20000 - (terminal.store[resourceType] + Game.market.orders[key].remainingAmount) === OK)) {
                         console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + Game.market.orders[key].id + " an additional " + Game.market.orders[key].remainingAmount - (20000 - terminal.store[resourceType]) + "</font>");
                     }
-                    return;
                 }
             }
         }
