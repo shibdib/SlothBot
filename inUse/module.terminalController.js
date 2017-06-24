@@ -29,9 +29,6 @@ module.exports.terminalControl = function () {
             //Cleanup broken or old order
             orderCleanup(myOrders);
 
-            //if we have credits make sure we have energy
-            buyEnergy(terminal, globalOrders, myOrders);
-
             //extend old orders first
             extendSellOrders(terminal, globalOrders, myOrders);
 
@@ -44,6 +41,9 @@ module.exports.terminalControl = function () {
                 extendBuyOrders(terminal, globalOrders, myOrders);
                 placeBuyOrders(terminal, globalOrders, myOrders);
                 buyReactionNeeds(terminal, globalOrders, myOrders);
+
+                //if we have credits make sure we have energy
+                buyEnergy(terminal, globalOrders, myOrders);
             }
         }
     }
