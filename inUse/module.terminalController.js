@@ -177,7 +177,7 @@ function extendBuyOrders(terminal) {
                     }
                     if (terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount < 2000 && ((sellOrder.price - 0.01) - buyOrder.price) > 0.02) {
                         if (Game.market.extendOrder(myOrders[key].id, 2000 - (terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + 2000 - (terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount) + " " + tradeTargets[i] + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + (2000 - (terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount)) + " " + tradeTargets[i] + "</font>");
                         }
                     }
                 }
