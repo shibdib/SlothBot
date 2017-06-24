@@ -269,7 +269,7 @@ function orderCleanup(myOrders) {
             } else {
                 if (myOrders[key].remainingAmount > energyAmount || Game.market.credits < 500) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + tradeAmount + "</font>");
+                        console.log("<font color='#adff2f'>MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + energyAmount + "</font>");
                     }
                 }
             }
