@@ -93,8 +93,8 @@ function buyEnergy(terminal) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
                 order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), "price");
                 if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(myOrders[key].price, 2) && buyOrder.price < 0.05) {
-                    if (Game.market.changeOrderPrice(myOrders[key].id, buyOrder.price) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Energy buy order price change " + myOrders[key].id + " new/old " + buyOrder.price + "/" + myOrders[key].price + "</font>");
+                    if (Game.market.changeOrderPrice(myOrders[key].id, _.round(buyOrder.price)) === OK) {
+                        console.log("<font color='#adff2f'>MARKET: Energy buy order price change " + myOrders[key].id + " new/old " + _.round(buyOrder.price) + "/" + myOrders[key].price + "</font>");
                     }
                 }
                 if (myOrders[key].remainingAmount < (20000 - currentSupply)) {
