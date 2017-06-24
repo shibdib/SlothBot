@@ -1,6 +1,7 @@
 /**
  * Created by rober on 6/21/2017.
  */
+let _ = require('lodash');
 
 let globalOrders = Game.market.getAllOrders();
 
@@ -101,12 +102,12 @@ function extendSellOrders(terminal) {
                         }
                         continue resource;
                     }
-                    if (terminal.store[resourceType] > Game.market.orders[key].remainingAmount && include(reactionNeeds, resourceType) === false) {
+                    if (terminal.store[resourceType] > Game.market.orders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === false) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + Game.market.orders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType + "</font>");
                         }
                     }
-                    if (terminal.store[resourceType] - 1000 > Game.market.orders[key].remainingAmount && include(reactionNeeds, resourceType) === true) {
+                    if (terminal.store[resourceType] - 1000 > Game.market.orders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true) {
                         if (Game.market.extendOrder(Game.market.orders[key].id, terminal.store[resourceType]) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + Game.market.orders[key].id + " an additional " + terminal.store[resourceType] - 1000 + " " + resourceType + "</font>");
                         }
@@ -127,12 +128,12 @@ function placeSellOrders(terminal) {
                 }
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
                 order.type === ORDER_SELL && order.remainingAmount >= 7500 && order.roomName !== terminal.pos.roomName), 'price');
-                if (sellOrder.id && include(reactionNeeds, resourceType) === false) {
+                if (sellOrder.id && _.includes(reactionNeeds, resourceType) === false) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType], terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
-                if (sellOrder.id && include(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
+                if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType], terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
@@ -216,8 +217,4 @@ function buyReactionNeeds(terminal) {
                 }
             }
         }
-}
-
-function include(arr, obj) {
-    return (arr.indexOf(obj) !== -1);
 }

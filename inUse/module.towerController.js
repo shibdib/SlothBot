@@ -1,6 +1,7 @@
 /**
  * Created by rober on 5/16/2017.
  */
+let _ = require('lodash');
 
 let doNotAggress = [
     //Alliance Members
@@ -18,7 +19,7 @@ module.exports.towerControl = function () {
             const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
             const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
             const woundedCreep = Game.getObjectById(findWounded(tower));
-            const closestHostile = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner['username']) === false});
+            const closestHostile = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
             if (closestHostile) {
                 tower.attack(closestHostile);
                 continue;
@@ -80,8 +81,4 @@ function findWounded(tower) {
     if (creep !== null && creep !== undefined) {
         return creep.id;
     }
-}
-
-function include(arr,obj) {
-    return (arr.indexOf(obj) !== -1);
 }

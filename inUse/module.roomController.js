@@ -2,6 +2,7 @@
 let autoBuild = require('module.autoBuild');
 let respawnCreeps = require('module.respawn');
 let cache = require('module.cache');
+let _ = require('lodash');
 
 let doNotAggress = [
     //Alliance Members
@@ -39,7 +40,7 @@ module.exports.roomControl = function () {
         //ramparts public unless needed
         let rampart = _.pluck(_.filter(Game.spawns[name].room.memory.structureCache, 'type', 'rampart'), 'id');
         if (rampart.length > 0) {
-            let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => include(doNotAggress,s.owner['username']) === false});
+            let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
             if (!hostile){
                 for (let i = 0; i < rampart.length; i++){
                     if (Game.getObjectById(rampart[i]).isPublic === false) {
@@ -105,9 +106,4 @@ module.exports.roomControl = function () {
 
 
     }
-}
-;
-
-function include(arr,obj) {
-    return (arr.indexOf(obj) !== -1);
-}
+};
