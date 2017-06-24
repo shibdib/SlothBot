@@ -73,6 +73,12 @@ function buyEnergy(terminal) {
     if (terminal.store[RESOURCE_ENERGY] < 10000 || !terminal.store[RESOURCE_ENERGY]) {
         for (let key in myOrders) {
             if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
+                let currentSupply;
+                if (isNaN(terminal.store[RESOURCE_ENERGY]) === true) {
+                    currentSupply = 0;
+                } else {
+                    currentSupply = terminal.store[tradeTargets[i]];
+                }
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
                 order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), "price");
                 if (buyOrder.id && (_.round(buyOrder.price, 2)) !== _.round(myOrders[key].price, 2) && buyOrder.price < 0.05) {
@@ -81,9 +87,9 @@ function buyEnergy(terminal) {
                     }
                     return;
                 }
-                if (myOrders[key].remainingAmount < (20000 - terminal.store[RESOURCE_ENERGY])) {
-                    if (Game.market.extendOrder(myOrders[key].id, 20000 - (terminal.store[RESOURCE_ENERGY] + myOrders[key].remainingAmount)) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (20000 - terminal.store[RESOURCE_ENERGY]) + "</font>");
+                if (myOrders[key].remainingAmount < (20000 - currentSupply)) {
+                    if (Game.market.extendOrder(myOrders[key].id, 20000 - (currentSupply + myOrders[key].remainingAmount)) === OK) {
+                        console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (20000 - currentSupply) + "</font>");
                     }
                 }
                 return;
@@ -165,6 +171,12 @@ function extendBuyOrders(terminal) {
         for (let i = 0; i < tradeTargets.length; i++) {
             for (let key in myOrders) {
                 if (tradeTargets[i] !== RESOURCE_ENERGY && myOrders[key].resourceType === tradeTargets[i] && myOrders[key].type === ORDER_BUY) {
+                    let currentSupply;
+                    if (isNaN(terminal.store[tradeTargets[i]]) === true) {
+                        currentSupply = 0;
+                    } else {
+                        currentSupply = terminal.store[tradeTargets[i]];
+                    }
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === tradeTargets[i] &&
                     order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                     let sellOrder = _.min(globalOrders.filter(order => order.resourceType === tradeTargets[i] &&
@@ -175,9 +187,9 @@ function extendBuyOrders(terminal) {
                         }
                         continue resource;
                     }
-                    if ((!terminal.store[tradeTargets[i]] || (terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount < 2000)) && _.round(((sellOrder.price - 0.01) - buyOrder.price), 2) > 0.02) {
-                        if (Game.market.extendOrder(myOrders[key].id, 2000 - (terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + (2000 - (terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount)) + " " + tradeTargets[i] + "</font>");
+                    if (currentSupply + myOrders[key].remainingAmount < 2000 && _.round(((sellOrder.price - 0.01) - buyOrder.price), 2) > 0.02) {
+                        if (Game.market.extendOrder(myOrders[key].id, 2000 - (currentSupply + myOrders[key].remainingAmount)) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + (2000 - (currentSupply + myOrders[key].remainingAmount)) + " " + tradeTargets[i] + "</font>");
                         }
                     }
                 }
