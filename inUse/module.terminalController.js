@@ -261,13 +261,13 @@ function orderCleanup(myOrders) {
     for (let key in myOrders) {
         if (myOrders[key].type === ORDER_BUY) {
             if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
-                if (myOrders[key].remainingAmount > tradeAmount) {
+                if (myOrders[key].remainingAmount > tradeAmount || Game.market.credits < 500) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + tradeAmount + "</font>");
                     }
                 }
             } else {
-                if (myOrders[key].remainingAmount > energyAmount) {
+                if (myOrders[key].remainingAmount > energyAmount || Game.market.credits < 500) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + tradeAmount + "</font>");
                     }
