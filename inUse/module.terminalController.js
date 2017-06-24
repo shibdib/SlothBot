@@ -158,7 +158,7 @@ function placeSellOrders(terminal) {
                     }
                 }
                 if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
-                    if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType], terminal.pos.roomName) === OK) {
+                    if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType] - 1000, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
