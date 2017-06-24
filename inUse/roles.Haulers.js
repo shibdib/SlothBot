@@ -6,6 +6,8 @@ let pathing = require('module.pathFinder');
 module.exports.Manager = function (creep) {
     if (creep.memory.role === "mineralHauler") {
         mineralHauler(creep);
+    } else if (creep.memory.role === "labTech") {
+        labTech(creep);
     } else if (creep.memory.role === "hauler" || "largeHauler") {
         hauler(creep);
     }
@@ -29,6 +31,53 @@ function hauler(creep) {
             creepTools.withdrawEnergy(creep);
         } else {
             creepTools.findEnergy(creep, true);
+        }
+    } else {
+        if (creep.memory.storageDestination) {
+            let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, storageItem);
+            } else {
+                creep.memory.storageDestination = null;
+                creep.memory.path = null;
+            }
+            return null;
+        }
+        creepTools.findStorage(creep);
+    }
+}
+
+/**
+ * @return {null}
+ */
+function labTech(creep) {
+    //INITIAL CHECKS
+    borderChecks.borderCheck(creep);
+
+    //Get reaction info
+    let activeReactions = [
+        RESOURCE_GHODIUM_HYDRIDE
+    ];
+    for (let i = 0; i < activeReactions.length; i++) {
+        let reaction = creep.room.memory.reactions[activeReactions[i]];
+        let lab1 = Game.getObjectById(reaction.lab1);
+        let lab2 = Game.getObjectById(reaction.lab2);
+        if (lab1.mineralAmount < 500) {
+
+        }
+    }
+
+    if (creep.carry.energy === 0) {
+        creep.memory.hauling = false;
+    }
+    if (creep.carry.energy > creep.carryCapacity / 2) {
+        creep.memory.hauling = true;
+    }
+    if (creep.memory.hauling === false) {
+        if (creep.memory.mineralDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creep.memory.mineralDestination = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
         }
     } else {
         if (creep.memory.storageDestination) {
