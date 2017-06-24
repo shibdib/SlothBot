@@ -9,6 +9,7 @@ module.exports.labControl = function () {
                 //Initial reaction setup in memory
                 if (!lab.room.memory.reactions) {
                     //Cache reaction
+                    let cache = lab.room.memory.reactions || {};
                     cache['GH'] = {
                         input1: RESOURCE_HYDROGEN,
                         input2: RESOURCE_GHODIUM,
