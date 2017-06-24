@@ -83,7 +83,7 @@ function fillBuyOrders(terminal, globalOrders) {
                             }
                         }
                     }
-                } else {
+                } else if (Game.market.credits > 500) {
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= terminal.store[RESOURCE_ENERGY]), 'price');
