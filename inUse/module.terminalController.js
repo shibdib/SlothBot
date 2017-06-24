@@ -92,7 +92,7 @@ function buyEnergy(terminal, globalOrders, myOrders) {
                 if (isNaN(terminal.store[RESOURCE_ENERGY]) === true) {
                     currentSupply = 0;
                 } else {
-                    currentSupply = terminal.store[tradeTargets[i]];
+                    currentSupply = terminal.store[RESOURCE_ENERGY];
                 }
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
                 order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
