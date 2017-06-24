@@ -3,7 +3,6 @@
  */
 
 ////////////////////////////////////////////Vars//////////////////////////////////////////////////
-let pathing = require('module.pathFinder');
 
 //Number generator
 const generatedNumber = Math.floor((Math.random() * 100000) + 1);

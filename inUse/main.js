@@ -1,11 +1,8 @@
 //modules
-let autoBuild = require('module.autoBuild');
-let militaryFunctions = require('module.militaryFunctions');
 let roomController = require('module.roomController');
 let creepController = require('module.creepController');
 let towerController = require('module.towerController');
 let linkController = require('module.linkController');
-let cache = require('module.cache');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
@@ -24,6 +21,7 @@ module.exports.loop = function () {
 
         //CLEANUP
         if (Game.time % 150 === 0) {
+            let cache = require('module.cache');
             cache.cleanPathCache(); //clean path cache
         }
         for (let name in Memory.creeps) {
