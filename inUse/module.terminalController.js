@@ -240,6 +240,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 if (buyOrder.id && ((sellOrder.price - 0.01) - buyOrder.price) > 0.02) {
                     if (Game.market.createOrder(ORDER_BUY, tradeTargets[i], buyOrder.price, tradeAmount, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Buy Order: " + tradeTargets[i] + " at/per " + (buyOrder.price) + "</font>");
+                        break;
                     }
                 }
             }
