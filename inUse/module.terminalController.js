@@ -85,14 +85,12 @@ function buyEnergy(terminal) {
                     if (Game.market.changeOrderPrice(myOrders[key].id, buyOrder.price) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Energy buy order price change " + myOrders[key].id + " new/old " + buyOrder.price + "/" + myOrders[key].price + "</font>");
                     }
-                    return;
                 }
                 if (myOrders[key].remainingAmount < (20000 - currentSupply)) {
                     if (Game.market.extendOrder(myOrders[key].id, 20000 - (currentSupply + myOrders[key].remainingAmount)) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (20000 - currentSupply) + "</font>");
                     }
                 }
-                return;
             }
         }
         let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
