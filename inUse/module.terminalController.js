@@ -77,14 +77,14 @@ function buyEnergy(terminal) {
                         console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (20000 - terminal.store[resourceType]) + "</font>");
                     }
                 }
-            } else {
-                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
-                order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), "price");
-                if (buyOrder.id) {
-                    if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price, 20000, terminal.pos.roomName) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price) + "</font>");
-                    }
-                }
+                return;
+            }
+        }
+        let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+        order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), "price");
+        if (buyOrder.id) {
+            if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price, 20000, terminal.pos.roomName) === OK) {
+                console.log("<font color='#adff2f'>MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price) + "</font>");
             }
         }
     }
