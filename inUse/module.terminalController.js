@@ -8,9 +8,7 @@ let myOrders = Game.market.orders;
 
 let reactionNeeds = [
     RESOURCE_HYDROGEN,
-    RESOURCE_GHODIUM,
-    RESOURCE_UTRIUM,
-    RESOURCE_OXYGEN
+    RESOURCE_GHODIUM
 ];
 
 let tradeTargets = [RESOURCE_HYDROGEN,
