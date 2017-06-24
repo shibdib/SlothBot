@@ -115,14 +115,14 @@ function extendSellOrders(terminal) {
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) > _.round(buyOrder.price, 2)) {
-                        if (Game.market.changeOrderPrice(myOrders[key].id, (sellOrder.price - 0.01)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.01))) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.01)) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2)) {
-                        if (Game.market.changeOrderPrice(myOrders[key].id, (sellOrder.price - 0.01)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + (sellOrder.price - 0.01) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.01))) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.01)) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
@@ -153,12 +153,12 @@ function placeSellOrders(terminal) {
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
                 order.type === ORDER_SELL && order.remainingAmount >= 7500 && order.roomName !== terminal.pos.roomName), 'price');
                 if (sellOrder.id && _.includes(reactionNeeds, resourceType) === false) {
-                    if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType], terminal.pos.roomName) === OK) {
+                    if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.01)), terminal.store[resourceType], terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
                 if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
-                    if (Game.market.createOrder(ORDER_SELL, resourceType, (sellOrder.price - 0.01), terminal.store[resourceType] - 1000, terminal.pos.roomName) === OK) {
+                    if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.01)), terminal.store[resourceType] - 1000, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
