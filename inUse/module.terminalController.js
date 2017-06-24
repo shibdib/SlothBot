@@ -20,7 +20,6 @@ let tradeTargets = [RESOURCE_HYDROGEN,
 
 let tradeAmount = 2500;
 let energyAmount = 20000;
-let sellOffAmount = 5000;
 
 module.exports.terminalControl = function () {
     let globalOrders = Game.market.getAllOrders();
@@ -54,7 +53,7 @@ function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (const resourceType in terminal.store) {
             if (resourceType !== RESOURCE_ENERGY) {
-                if (terminal.store[resourceType] < sellOffAmount) {
+                if (Game.market.credits > 500) {
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 500), 'price');
@@ -83,7 +82,7 @@ function fillBuyOrders(terminal, globalOrders) {
                             }
                         }
                     }
-                } else if (Game.market.credits > 500) {
+                } else {
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= terminal.store[RESOURCE_ENERGY]), 'price');
