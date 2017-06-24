@@ -20,7 +20,8 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_LEMERGIUM,
     RESOURCE_ZYNTHIUM,
     RESOURCE_CATALYST,
-    RESOURCE_POWER];
+    RESOURCE_POWER,
+    RESOURCE_HYDROXIDE];
 
 module.exports.terminalControl = function () {
     for (let terminal of _.values(Game.structures)) {
