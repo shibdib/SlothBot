@@ -39,10 +39,12 @@ module.exports.terminalControl = function () {
             placeSellOrders(terminal, globalOrders, myOrders);
             fillBuyOrders(terminal, globalOrders, myOrders);
 
-            //Extend/Place buy orders
-            extendBuyOrders(terminal, globalOrders, myOrders);
-            placeBuyOrders(terminal, globalOrders, myOrders);
-            buyReactionNeeds(terminal, globalOrders, myOrders);
+            //Extend/Place buy orders if we have enough buffer cash
+            if (Game.market.credits > 500) {
+                extendBuyOrders(terminal, globalOrders, myOrders);
+                placeBuyOrders(terminal, globalOrders, myOrders);
+                buyReactionNeeds(terminal, globalOrders, myOrders);
+            }
         }
     }
 };
