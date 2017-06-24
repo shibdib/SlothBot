@@ -91,6 +91,7 @@ function buyEnergy(terminal) {
                         console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (20000 - currentSupply) + "</font>");
                     }
                 }
+                return;
             }
         }
         let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
