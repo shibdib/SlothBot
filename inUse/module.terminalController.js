@@ -210,8 +210,10 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === tradeTargets[i] &&
                 order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 if (currentSupply + myOrders[key].remainingAmount < tradeAmount && _.round(((sellOrder.price - 0.01) - buyOrder.price), 2) > 0.02 && Game.market.credits - (_.round(((sellOrder.price - 0.01) - buyOrder.price), 2) * 0.05) > 200) {
-                    if (Game.market.extendOrder(myOrders[key].id, tradeAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + (tradeAmount - (currentSupply + myOrders[key].remainingAmount)) + " " + tradeTargets[i] + "</font>");
+                    if (Game.market.credits > (tradeAmount - (currentSupply + myOrders[key].remainingAmount)) * buyOrder.price) {
+                        if (Game.market.extendOrder(myOrders[key].id, tradeAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + (tradeAmount - (currentSupply + myOrders[key].remainingAmount)) + " " + tradeTargets[i] + "</font>");
+                        }
                     }
                 }
             }
@@ -233,9 +235,11 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === tradeTargets[i] &&
                 order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 if (buyOrder.id && _.round(((sellOrder.price - 0.01) - buyOrder.price), 2) > 0.02 && Game.market.credits - (_.round(((sellOrder.price - 0.01) - buyOrder.price), 2) * 0.05) > 100) {
-                    if (Game.market.createOrder(ORDER_BUY, tradeTargets[i], buyOrder.price, tradeAmount, terminal.pos.roomName) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: New Buy Order: " + tradeTargets[i] + " at/per " + (buyOrder.price) + " credits</font>");
-                        break;
+                    if (Game.market.credits > tradeAmount * buyOrder.price) {
+                        if (Game.market.createOrder(ORDER_BUY, tradeTargets[i], buyOrder.price, tradeAmount, terminal.pos.roomName) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: New Buy Order: " + tradeTargets[i] + " at/per " + (buyOrder.price) + " credits</font>");
+                            break;
+                        }
                     }
                 }
             }
@@ -251,8 +255,10 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                         currentSupply = terminal.store[RESOURCE_ENERGY];
                     }
                     if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
-                        if (Game.market.extendOrder(myOrders[key].id, energyAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (energyAmount - currentSupply) + "</font>");
+                        if (Game.market.credits > (energyAmount - (currentSupply + myOrders[key].remainingAmount)) * myOrders[key].price) {
+                            if (Game.market.extendOrder(myOrders[key].id, energyAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
+                                console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (energyAmount - currentSupply) + "</font>");
+                            }
                         }
                     }
                     return;
@@ -261,8 +267,10 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
             let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
             order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
             if (buyOrder.id) {
-                if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price, energyAmount, terminal.pos.roomName) === OK) {
-                    console.log("<font color='#adff2f'>MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price) + "</font>");
+                if (Game.market.credits > energyAmount * buyOrder.price) {
+                    if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price, energyAmount, terminal.pos.roomName) === OK) {
+                        console.log("<font color='#adff2f'>MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price) + "</font>");
+                    }
                 }
             }
         }
