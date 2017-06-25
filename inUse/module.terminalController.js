@@ -199,7 +199,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
-            } else if (terminal.store[resourceType] > energyAmount) {
+            }
+            /** else if (terminal.store[resourceType] > energyAmount) {
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL && myOrders[key].roomName === terminal.pos.roomName) {
                         continue resource;
@@ -212,7 +213,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + sellOrder.price + "</font>");
                     }
                 }
-            }
+            }**/
         }
 }
 
