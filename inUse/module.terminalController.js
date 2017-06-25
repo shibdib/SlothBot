@@ -145,7 +145,7 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
     resource:
         for (const resourceType in terminal.store) {
             for (let key in myOrders) {
-                if (resourceType !== RESOURCE_ENERGY && myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL) {
+                if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL) {
                     let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), "price");
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
@@ -196,6 +196,19 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                 }
                 if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.01)), terminal.store[resourceType] - 1000, terminal.pos.roomName) === OK) {
+                        console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
+                    }
+                }
+            } else if (terminal.store[resourceType] > energyAmount) {
+                for (let key in myOrders) {
+                    if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL && myOrders[key].roomName === terminal.pos.roomName) {
+                        continue resource;
+                    }
+                }
+                let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
+                order.type === ORDER_SELL && order.remainingAmount >= 7500 && order.roomName !== terminal.pos.roomName), 'price');
+                if (sellOrder.id && _.includes(reactionNeeds, resourceType) === false) {
+                    if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.01)), terminal.store[resourceType], terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.01) + "</font>");
                     }
                 }
