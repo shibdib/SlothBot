@@ -188,7 +188,14 @@ function claimer(creep) {
  * @return {null}
  */
 function reserver(creep) {
+    //Invader detection
     invaderCheck(creep);
+    if (creep.memory.invaderDetected === true) {
+        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+    }
+    if (Game.flags[creep.memory.destination].pos.roomName !== creep.pos.roomName) {
+        creep.memory.destinationReached = false;
+    }
     if (!creep.memory.targetRooms) {
         creep.memory.targetRooms = Game.map.describeExits(creep.memory.assignedRoom)
     }

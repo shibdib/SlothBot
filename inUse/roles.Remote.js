@@ -22,6 +22,12 @@ function harvester(creep) {
     }
     //Invader detection
     invaderCheck(creep);
+    if (creep.memory.invaderDetected === true) {
+        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+    }
+    if (Game.flags[creep.memory.destination].pos.roomName !== creep.pos.roomName) {
+        creep.memory.destinationReached = false;
+    }
     //Initial move
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
@@ -50,6 +56,14 @@ function harvester(creep) {
  * @return {null}
  */
 function hauler(creep) {
+    //Invader detection
+    invaderCheck(creep);
+    if (creep.memory.invaderDetected === true) {
+        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+    }
+    if (Game.flags[creep.memory.destination].pos.roomName !== creep.pos.roomName) {
+        creep.memory.destinationReached = false;
+    }
     if (!creep.memory.destinationReached) {
         pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
