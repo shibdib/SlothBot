@@ -73,10 +73,14 @@ function hauler(creep) {
         }
     }
 
-    //Haul to spawn/extension
+    //Haul to terminal -> spawn/extension
     if (creep.memory.hauling === true) {
         if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
+            let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+            if (terminal.length > 0) {
+                creep.memory.storageDestination = terminal[0];
+            } else
             if (storage.length > 0) {
                 creep.memory.storageDestination = storage[0];
             }
