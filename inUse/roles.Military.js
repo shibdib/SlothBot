@@ -188,7 +188,7 @@ function reserver(creep) {
         creep.memory.targetRooms = Game.map.describeExits(creep.memory.assignedRoom)
     }
     if (creep.memory.reserving) {
-        if (creep.room.controller.reservation['ticksToEnd'] >= 1500) {
+        if (creep.room.controller.reservation && creep.room.controller.reservation['ticksToEnd'] >= 1500) {
             creep.memory.reserving = undefined;
         }
         if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
