@@ -18,8 +18,8 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_POWER,
     RESOURCE_HYDROXIDE];
 
-let tradeAmount = 2500;
-let energyAmount = 20000;
+let tradeAmount = 1000;
+let energyAmount = 5000;
 
 module.exports.terminalControl = function () {
     let globalOrders = Game.market.getAllOrders();
@@ -88,6 +88,15 @@ function fillBuyOrders(terminal, globalOrders) {
                         if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
                             console.log("<font color='#adff2f'>MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + "</font>");
                         }
+                    }
+                }
+            } else if (Game.market.credits < 10) {
+                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
+                order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
+                Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= terminal.store[RESOURCE_ENERGY]), 'price');
+                if (buyOrder.id) {
+                    if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
+                        console.log("<font color='#adff2f'>MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + "</font>");
                     }
                 }
             }
