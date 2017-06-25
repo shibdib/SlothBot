@@ -187,6 +187,15 @@ function reserver(creep) {
     if (!creep.memory.targetRooms) {
         creep.memory.targetRooms = Game.map.describeExits(creep.memory.assignedRoom)
     }
+    if (creep.memory.reserving) {
+        if (creep.room.controller.reservation['ticksToEnd'] >= 1500) {
+            creep.memory.reserving = undefined;
+        }
+        if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+            pathing.Move(creep, creep.room.controller);
+        }
+        return null;
+    }
     if (!creep.memory.currentDestination) {
         for (let key in creep.memory.targetRooms) {
             creep.memory.currentDestination = creep.memory.targetRooms[key];
@@ -196,10 +205,8 @@ function reserver(creep) {
     if (creep.pos.roomName !== creep.memory.currentDestination) {
         pathing.MoveToPos(creep, new RoomPosition(25, 25, creep.memory.currentDestination), false, 16);
     } else {
-        if (creep.room.controller && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1500))) {
-            if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, creep.room.controller);
-            }
+        if (creep.room.controller && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1000))) {
+            creep.memory.reserving = true;
         } else {
             creep.memory.visitedRooms.push(creep.memory.currentDestination);
             creep.memory.currentDestination = undefined;
