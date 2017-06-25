@@ -162,16 +162,22 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
                         }
                         continue resource;
                     }
-                    if (terminal.store[resourceType] > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === false) {
+                    if (terminal.store[resourceType] > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === false && resourceType !== RESOURCE_ENERGY) {
                         if (Game.market.extendOrder(myOrders[key].id, terminal.store[resourceType]) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType + "</font>");
                         }
                         continue resource;
                     }
-                    if ((terminal.store[resourceType] - 1000) > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true) {
+                    if ((terminal.store[resourceType] - 1000) > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true && resourceType !== RESOURCE_ENERGY) {
                         if (Game.market.extendOrder(myOrders[key].id, (terminal.store[resourceType] - 1000)) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] - 1000 + " " + resourceType + "</font>");
                         }
+                    }
+                    if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] - myOrders[key].remainingAmount > energyAmount) {
+                        if (Game.market.extendOrder(myOrders[key].id, (terminal.store[resourceType] - myOrders[key].remainingAmount) - energyAmount) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType + "</font>");
+                        }
+                        continue resource;
                     }
                 }
             }
