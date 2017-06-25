@@ -215,7 +215,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
                         }
                         continue resource;
                     }
-                    if (currentSupply + myOrders[key].remainingAmount < tradeAmount && _.round(((sellOrder.price - 0.01) - buyOrder.price), 2) > 0.02) {
+                    if (currentSupply + myOrders[key].remainingAmount < tradeAmount && _.round(((sellOrder.price - 0.01) - buyOrder.price), 2) > 0.02 && Game.market.credits - (_.round(((sellOrder.price - 0.01) - buyOrder.price), 2) * 0.05) > 200) {
                         if (Game.market.extendOrder(myOrders[key].id, tradeAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + (tradeAmount - (currentSupply + myOrders[key].remainingAmount)) + " " + tradeTargets[i] + "</font>");
                         }
@@ -238,7 +238,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === tradeTargets[i] &&
                 order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
-                if (buyOrder.id && ((sellOrder.price - 0.01) - buyOrder.price) > 0.02) {
+                if (buyOrder.id && _.round(((sellOrder.price - 0.01) - buyOrder.price)) > 0.02 && Game.market.credits - (_.round(((sellOrder.price - 0.01) - buyOrder.price), 2) * 0.05) > 200) {
                     if (Game.market.createOrder(ORDER_BUY, tradeTargets[i], buyOrder.price, tradeAmount, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Buy Order: " + tradeTargets[i] + " at/per " + (buyOrder.price) + "</font>");
                         break;
