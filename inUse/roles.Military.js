@@ -236,6 +236,9 @@ function raider(creep) {
         creep.memory.returning = true;
         creep.memory.destinationReached = false;
     }
+    if (creep.carry.energy === 0) {
+        creep.memory.returning = false;
+    }
     if (creep.memory.returning === true) {
         if (creep.room.name === Game.getObjectById(creep.memory.assignedSpawn).pos.roomName) {
             let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
@@ -259,9 +262,6 @@ function raider(creep) {
         } else {
             pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
             return null;
-        }
-        if (creep.carry.energy === 0) {
-            creep.memory.returning = false;
         }
         return null;
     }
