@@ -190,8 +190,7 @@ function reserver(creep) {
     if (creep.memory.reserving) {
         if ((creep.room.controller.reservation && creep.room.controller.reservation['ticksToEnd'] >= 1500) || creep.room.controller.owner) {
             creep.memory.reserving = undefined;
-        } else
-        if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+        } else if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE || creep.signController(creep.room.controller, "Reserved Territory of Overlords - #overlords on Slack") === ERR_NOT_IN_RANGE) {
             pathing.Move(creep, creep.room.controller);
         }
         return null;
