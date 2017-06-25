@@ -350,7 +350,7 @@ function buyPriceUpdates(terminal, globalOrders, myOrders) {
 function orderCleanup(myOrders) {
     for (let key in myOrders) {
         if (myOrders[key].type === ORDER_BUY) {
-            if (Game.market.credits < 100) {
+            if (Game.market.credits < 50) {
                 if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                     console.log("<font color='#adff2f'>MARKET: Order Cancelled: " + myOrders[key].id + " due to low credits </font>");
                 }
