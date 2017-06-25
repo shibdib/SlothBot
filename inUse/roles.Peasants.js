@@ -75,7 +75,7 @@ function peasantBuilder(creep) {
         target = Game.getObjectById(target);
         if (target) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
-                pathing.Move(creep, Game.flags.haulers);
+                pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
                     pathing.Move(creep, target);
