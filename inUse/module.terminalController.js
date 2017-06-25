@@ -261,7 +261,7 @@ function buyReactionNeeds(terminal, globalOrders, myOrders) {
                 order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
                 order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
-                if (buyOrder.id && ((sellOrder.price - 0.01) - buyOrder.price) > 0.01) {
+                if (buyOrder.id && ((sellOrder.price - 0.01) - buyOrder.price) > 0.01 && Game.market.credits - (_.round(((sellOrder.price - 0.01) - buyOrder.price), 2) * 0.05) > 200) {
                     if (Game.market.createOrder(ORDER_BUY, reactionNeeds[i], buyOrder.price, tradeAmount, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Reaction Needs Buy Order: " + reactionNeeds[i] + " at/per " + (buyOrder.price) + "</font>");
                     }
