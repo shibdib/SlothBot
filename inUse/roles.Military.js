@@ -291,9 +291,9 @@ function raider(creep) {
                     }
                 } else {
                     let terminal = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.energy !== 0});
-                    if (spawn) {
-                        if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            pathing.Move(creep, spawn);
+                    if (terminal) {
+                        if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                            pathing.Move(creep, terminal);
                         }
                     } else {
                         if (creep.carry.energy > 0) {
