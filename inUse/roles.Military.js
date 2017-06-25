@@ -119,7 +119,7 @@ function attacker(creep) {
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
-    if (creep.hits < creep.hitsMax){
+    if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
@@ -129,6 +129,7 @@ function attacker(creep) {
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
     let closestHostileTower = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
     let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
+    let hostileStructures = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES);
     if (armedHostile) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, armedHostile);
@@ -145,12 +146,16 @@ function attacker(creep) {
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostile);
         }
+    } else if (hostileStructures) {
+        if (creep.attack(hostileStructures) === ERR_NOT_IN_RANGE) {
+            pathing.AttackMove(creep, hostileStructures);
+        }
     } else if (creep.memory.attackStarted !== true) {
         let closestTower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
         pathing.Move(creep, closestTower, false, 1);
         let nearbyAttackers = creep.pos.findInRange(attackers, 5);
         let nearbyHealers = creep.pos.findInRange(healers, 5);
-        if (nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers){
+        if (nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers) {
             creep.memory.attackStarted = true;
         }
     } else {
@@ -233,6 +238,13 @@ function raider(creep) {
     }
     if (creep.memory.returning === true) {
         if (creep.room.name === Game.getObjectById(creep.memory.assignedSpawn).pos.roomName) {
+            let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
+            let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+            if (terminal.length > 0) {
+                creep.memory.storageDestination = terminal[0];
+            } else if (storage.length > 0) {
+                creep.memory.storageDestination = storage[0];
+            }
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -260,25 +272,25 @@ function raider(creep) {
             creep.memory.destinationReached = true;
         }
     } else {
-        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] !== 0});
-        if (container) {
-            if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container);
+        let storage = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] !== 0});
+        if (storage) {
+            if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                pathing.Move(creep, storage);
             }
         } else {
-            let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] !== 0});
-            if (storage) {
-                if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, storage);
+            let extension = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy !== 0});
+            if (extension) {
+                if (creep.withdraw(extension, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    pathing.Move(creep, extension);
                 }
             } else {
-                let extension = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy !== 0});
-                if (extension) {
-                    if (creep.withdraw(extension, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        pathing.Move(creep, extension);
+                let spawn = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.energy !== 0});
+                if (spawn) {
+                    if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        pathing.Move(creep, spawn);
                     }
                 } else {
-                    let spawn = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.energy !== 0});
+                    let terminal = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.energy !== 0});
                     if (spawn) {
                         if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                             pathing.Move(creep, spawn);
