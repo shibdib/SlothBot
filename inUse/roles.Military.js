@@ -203,7 +203,7 @@ function reserver(creep) {
         creep.memory.visitedRooms = [];
     }
     if (creep.pos.roomName !== creep.memory.currentDestination) {
-        pathing.MoveToPos(creep, new RoomPosition(25, 25, creep.memory.currentDestination), false, 16);
+        creep.moveTo(new RoomPosition(25, 25, creep.memory.currentDestination), {range: 21}); //to move to any room
     } else {
         if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1000))) {
             creep.memory.reserving = true;
