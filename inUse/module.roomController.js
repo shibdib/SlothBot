@@ -40,17 +40,19 @@ module.exports.roomControl = function () {
         //ramparts public unless needed
         let rampart = _.pluck(_.filter(Game.spawns[name].room.memory.structureCache, 'type', 'rampart'), 'id');
         if (rampart.length > 0) {
-            let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
-            if (!hostile){
-                for (let i = 0; i < rampart.length; i++){
-                    if (Game.getObjectById(rampart[i]).isPublic === false) {
-                        Game.getObjectById(rampart[i]).setPublic(true);
+            if (Game.getObjectById(rampart[0])) {
+                let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+                if (!hostile) {
+                    for (let i = 0; i < rampart.length; i++) {
+                        if (Game.getObjectById(rampart[i]).isPublic === false) {
+                            Game.getObjectById(rampart[i]).setPublic(true);
+                        }
                     }
-                }
-            } else {
-                for (let i = 0; i < rampart.length; i++){
-                    if (Game.getObjectById(rampart[i]).isPublic === true) {
-                        Game.getObjectById(rampart[i]).setPublic(false);
+                } else {
+                    for (let i = 0; i < rampart.length; i++) {
+                        if (Game.getObjectById(rampart[i]).isPublic === true) {
+                            Game.getObjectById(rampart[i]).setPublic(false);
+                        }
                     }
                 }
             }
