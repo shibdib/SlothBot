@@ -9,7 +9,7 @@ let _ = require('lodash');
 let screepsPlus = require('screepsplus');
 
 // This line monkey patches the global prototypes.
-//profiler.enable();
+profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
