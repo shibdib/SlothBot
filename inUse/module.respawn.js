@@ -1187,7 +1187,6 @@ function rcl6(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 300) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                        const mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         if (basicHauler.length < 2 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], generatedNumber + 'hauler', {
                                 role: 'hauler',
@@ -1197,18 +1196,6 @@ function rcl6(spawnName) {
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                             return;
-                        }
-                        for (let i = 0; i < minerals.length; i++) {
-                            if (mineralHauler.length === 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
-                                    role: 'mineralHauler',
-                                    assignedSpawn: Game.spawns[spawnName].id,
-                                    assignedRoom: Game.spawns[spawnName].room.name,
-                                    level: 0,
-                                    assignedMineral: minerals[i].id
-                                }) === OK) {
-                                console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHauler');
-                                return;
-                            }
                         }
                         if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
                                 role: 'largeHauler',
@@ -1243,6 +1230,7 @@ function rcl6(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 1450) {
                     for (let i = 0; i < minerals.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals[i].id && creep.memory.role === 'mineralHarvester');
+                        let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         if ((harvester.length < 2 || harvester.ticksToLive < 150) && minerals[i].mineralAmount > 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'mineralHarvester', {
                                 role: 'mineralHarvester',
                                 assignedSpawn: Game.spawns[spawnName].id,
@@ -1251,6 +1239,16 @@ function rcl6(spawnName) {
                                 assignedMineral: minerals[i].id
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHarvester');
+                            return;
+                        }
+                        if (mineralHauler.length === 0 && minerals[i].mineralAmount > 0 && Game.spawns[spawnName].createCreep([CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], generatedNumber + 'mineralHauler', {
+                                role: 'mineralHauler',
+                                assignedSpawn: Game.spawns[spawnName].id,
+                                assignedRoom: Game.spawns[spawnName].room.name,
+                                level: 0,
+                                assignedMineral: minerals[i].id
+                            }) === OK) {
+                            console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHauler');
                             return;
                         }
                     }
