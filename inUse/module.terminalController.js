@@ -99,8 +99,12 @@ function fillBuyOrders(terminal, globalOrders) {
             } else if (terminal.store[RESOURCE_ENERGY] > energyAmount) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                 order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
-                Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= terminal.store[RESOURCE_ENERGY] - 1000), 'price');
-                if (buyOrder.id) {
+                Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] - energyAmount, terminal.pos.roomName, order.roomName) < energyAmount), 'price');
+                if (buyOrder.id && order.remainingAmount >= terminal.store[RESOURCE_ENERGY] - energyAmount) {
+                    if (Game.market.deal(buyOrder.id, terminal.store[RESOURCE_ENERGY] - energyAmount, terminal.pos.roomName) === OK) {
+                        console.log("<font color='#adff2f'>MARKET: buyOrderFilled -" + terminal.store[RESOURCE_ENERGY] - energyAmount + "" + resourceType + " for " + buyOrder.price * 1000 + "</font>");
+                    }
+                } else if (buyOrder.id) {
                     if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + "</font>");
                     }
