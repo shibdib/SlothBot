@@ -91,8 +91,11 @@ function peasantBuilder(creep) {
             creepTools.withdrawEnergy(creep);
         } else {
             let source = creepTools.findSource(creep);
-            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, source, true);
+            let harvest = creep.harvest(source);
+            if (harvest === ERR_NOT_IN_RANGE) {
+                if (creep.moveTo(source) === ERR_NO_PATH) {
+                    source = undefined;
+                }
             }
             if (!source) {
                 creepTools.findEnergy(creep, false);
@@ -121,8 +124,11 @@ function peasantUpgrader(creep) {
             creepTools.withdrawEnergy(creep);
         } else {
             let source = creepTools.findSource(creep);
-            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, source, true);
+            let harvest = creep.harvest(source);
+            if (harvest === ERR_NOT_IN_RANGE) {
+                if (creep.moveTo(source) === ERR_NO_PATH) {
+                    source = undefined;
+                }
             }
             if (!source) {
                 creepTools.findEnergy(creep, false);
