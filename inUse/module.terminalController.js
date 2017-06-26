@@ -226,7 +226,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 }
             }
         }
-    if (Game.market.credits > (energyAmount * 0.02) * 3) {
+    /**if (Game.market.credits > (energyAmount * 0.02) * 3) {
         if (terminal.store[RESOURCE_ENERGY] < energyAmount / 2 || !terminal.store[RESOURCE_ENERGY]) {
             for (let key in myOrders) {
                 if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
@@ -256,7 +256,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 }
             }
         }
-    }
+    }**/
 }
 
 function placeReactionOrders(terminal, globalOrders, myOrders) {
