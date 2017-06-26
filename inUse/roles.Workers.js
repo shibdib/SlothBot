@@ -135,11 +135,6 @@ function upgrader(creep) {
             pathing.Move(creep, creep.room.controller);
         }
     } else {
-        if (creep.room.controller.sign.text !== "Property of Overlords - Join #overlords for more info.") {
-            if (creep.signController(creep.room.controller, "Property of Overlords - Join #overlords for more info.") === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, creep.room.controller);
-            }
-        }
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
