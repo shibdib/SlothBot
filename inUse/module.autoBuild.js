@@ -18,7 +18,7 @@ module.exports.roomBuilding = function (spawnName) {
 
 function roadSources(spawn) {
     if (constructionSites.length > 30) {
-        if (Game.spawns[spawn].room.controller.level >= 3) {
+        if (spawn.room.controller.level >= 3) {
             const sources = spawn.room.find(FIND_SOURCES);
             for (i = 0; i < sources.length; i++) {
                 let path = spawn.room.findPath(spawn.pos, sources[i].pos, {
@@ -42,8 +42,8 @@ function roadSources(spawn) {
 
 function roadSpawns(spawn) {
     if (constructionSites.length > 30) {
-        if (Game.spawns[spawn].room.controller.level >= 6) {
-            let spawns = _.filter(Game.spawns, (s) => Game.spawns[s].pos.roomName !== Game.spawns[spawn].pos.roomName);
+        if (spawn.room.controller.level >= 6) {
+            let spawns = _.filter(Game.spawns, (s) => Game.spawns[s].pos.roomName !== spawn.pos.roomName);
             for (let i = 0; i < spawns.length; i++) {
                 let path = spawn.room.findPath(spawn.pos, spawns[i].pos, {
                     maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 16, ignoreRoads: false
@@ -100,7 +100,7 @@ function buildExtensions(spawn) {
 }
 
 function buildTower(spawn) {
-    if (Game.spawns[spawn].room.controller.level >= 3) {
+    if (spawn.room.controller.level >= 3) {
         for (let i = getRandomInt(-3, 3); i < 6; i++) {
             const pos = new RoomPosition(spawn.pos.x + i, spawn.pos.y - getRandomInt(-3, 3), spawn.room.name);
             const pos4 = new RoomPosition(pos.x + 1, pos.y, spawn.room.name);
@@ -123,7 +123,7 @@ function buildTower(spawn) {
 }
 
 function buildStorage(spawn) {
-    if (Game.spawns[spawn].room.controller.level >= 4) {
+    if (spawn.room.controller.level >= 4) {
         let pos = new RoomPosition(spawn.room.controller.pos.x, spawn.room.controller.pos.y - 4, spawn.room.name);
         if (Game.map.getTerrainAt(pos) !== 'wall') {
             if (pos.lookFor(LOOK_STRUCTURES).length === 0 && pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
@@ -155,7 +155,7 @@ function buildStorage(spawn) {
 }
 
 function buildLinks(spawn) {
-    if (Game.spawns[spawn].room.controller.level >= 5) {
+    if (spawn.room.controller.level >= 5) {
         let storage = spawn.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
         let containers = spawn.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
         if (storage.length > 0) {
