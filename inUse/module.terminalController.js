@@ -146,8 +146,9 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
                         }
                         continue resource;
                     }
-                    if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] - myOrders[key].remainingAmount > energyAmount) {
-                        if (Game.market.extendOrder(myOrders[key].id, (terminal.store[resourceType] - myOrders[key].remainingAmount) - _.round((energyAmount + (energyAmount * 0.1)), 0)) === OK) {
+                    if (resourceType === RESOURCE_ENERGY && terminal.store[resourceType] - myOrders[key].remainingAmount > energyAmount && (terminal.store[resourceType] - myOrders[key].remainingAmount) - _.round((energyAmount + (energyAmount * 0.1)), 0) > 0) {
+                        let sellAmount = (terminal.store[resourceType] - myOrders[key].remainingAmount) - _.round((energyAmount + (energyAmount * 0.1)), 0);
+                        if (Game.market.extendOrder(myOrders[key].id, sellAmount) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType + "</font>");
                         }
                         continue resource;
