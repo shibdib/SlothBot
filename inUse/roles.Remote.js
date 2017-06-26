@@ -208,5 +208,8 @@ function invaderCheck(creep) {
             creep.memory.invaderDetected = undefined;
             creep.memory.invaderID = undefined;
         }
+    } else {
+        creep.memory.invaderDetected = undefined;
+        creep.memory.invaderID = undefined;
     }
 }
