@@ -321,7 +321,7 @@ module.exports.noHarvesterProtocol = function (creep) {
 };
 
 
-module.exports.findEnergy = function (creep, hauler = false) {
+module.exports.findEnergy = function (creep, hauler = false, range = 50) {
     let energy = [];
     //Container
     let container = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'container'), 'id');
@@ -330,7 +330,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
         for (i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] === 0) {
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(creep) > range) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
@@ -357,7 +357,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
             for (i = 0; i < link.length; i++) {
                 const object = Game.getObjectById(link[i]);
                 if (object) {
-                    if (object.energy === 0) {
+                    if (object.energy === 0 || object.pos.getRangeTo(creep) > range) {
                         continue;
                     }
                     const linkDistWeighted = object.pos.getRangeTo(creep) * 0.3;
@@ -384,7 +384,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
             const object = Game.getObjectById(storage[i]);
 
             if (object) {
-                if (object.store[RESOURCE_ENERGY] < 200) {
+                if (object.store[RESOURCE_ENERGY] < 200 || object.pos.getRangeTo(creep) > range) {
                     continue;
                 }
                 const storageDistWeighted = object.pos.getRangeTo(creep) * 0.3;
@@ -409,7 +409,7 @@ module.exports.findEnergy = function (creep, hauler = false) {
         for (i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] <= 10000) {
+                if (object.store[RESOURCE_ENERGY] <= 1000 || object.pos.getRangeTo(creep) > range) {
                     continue;
                 }
                 const terminalDistWeighted = object.pos.getRangeTo(creep) * 0.3;
