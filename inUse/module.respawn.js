@@ -1073,7 +1073,7 @@ function rcl6(spawnName) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
                         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0] && creep.memory.role === 'responder');
-                        if (responder.length === 0 && remoteNeighborCheck(spawnName, "hostile" + assistNeeded[0].memory.invaderID) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                        if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[0]) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
                                 role: 'responder',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
