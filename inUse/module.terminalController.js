@@ -20,6 +20,7 @@ let tradeTargets = [RESOURCE_HYDROGEN,
 
 let tradeAmount = 1000;
 let energyAmount = 5000;
+let reactionAmount = 500;
 
 module.exports.terminalControl = function () {
     let globalOrders = Game.market.getAllOrders();
@@ -141,7 +142,7 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
                     }
                     if ((terminal.store[resourceType] - 1000) > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true && resourceType !== RESOURCE_ENERGY) {
                         if (Game.market.extendOrder(myOrders[key].id, (terminal.store[resourceType] - 1000)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] - 1000 + " " + resourceType + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] - reactionAmount + " " + resourceType + "</font>");
                         }
                         continue resource;
                     }
@@ -174,7 +175,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                     continue;
                 }
                 if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
-                    if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.001), 3), terminal.store[resourceType] - 1000, terminal.pos.roomName) === OK) {
+                    if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.001), 3), terminal.store[resourceType] - reactionAmount, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.001) + "</font>");
                     }
                 }
@@ -281,7 +282,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
 function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
-            if (terminal.store[reactionNeeds[i]] < tradeAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
+            if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === reactionNeeds[i] && myOrders[key].type === ORDER_BUY) {
                         continue resource;
@@ -292,7 +293,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
                 order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 if (buyOrder.id && ((sellOrder.price - 0.01) - buyOrder.price) > 0.01 && Game.market.credits - (_.round(((sellOrder.price - 0.01) - buyOrder.price), 2) * 0.05) > 200) {
-                    if (Game.market.createOrder(ORDER_BUY, reactionNeeds[i], buyOrder.price, tradeAmount, terminal.pos.roomName) === OK) {
+                    if (Game.market.createOrder(ORDER_BUY, reactionNeeds[i], buyOrder.price, reactionAmount, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Reaction Needs Buy Order: " + reactionNeeds[i] + " at/per " + (buyOrder.price) + " credits</font>");
                     }
                 }
