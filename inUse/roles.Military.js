@@ -10,6 +10,7 @@ let doNotAggress = [
     'PostCrafter',
     'Rising',
     'wages123',
+    'SpaceRedleg',
 
     //Non aggression pacts
     'droben'];
