@@ -353,11 +353,10 @@ function responder(creep) {
             }
         }
     } else if (creep.memory.destinationReached !== true) {
-        if (creep.pos.roomName === Game.flags["hostile" + creep.memory.responseTarget].pos.roomName) {
-            Game.flags["hostile" + creep.memory.responseTarget].remove();
+        if (creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
             creep.memory.destinationReached = true;
         }
-        pathing.Move(creep, Game.flags["hostile" + creep.memory.responseTarget], false, 16);
+        moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
     }
 }
 

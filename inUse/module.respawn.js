@@ -1070,15 +1070,15 @@ function rcl6(spawnName) {
 
                 //Defense Force Spawn
                 if (Game.spawns[spawnName].room.energyAvailable >= 1380) {
-                    let assistNeeded = _.filter(Game.creeps, (creep) => creep.memory.invaderDetected === true && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
+                    let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].memory.invaderID && creep.memory.role === 'responder');
+                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0] && creep.memory.role === 'responder');
                         if (responder.length === 0 && remoteNeighborCheck(spawnName, "hostile" + assistNeeded[0].memory.invaderID) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
                                 role: 'responder',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
-                                responseTarget: assistNeeded[0].memory.invaderID
+                                responseTarget: assistNeeded[0]
                             }) === OK) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
                             return;
@@ -1408,7 +1408,7 @@ function collapsePrevention(spawnName) {
 function remoteNeighborCheck(spawnName, remote) {
     let neighboringRooms = Game.map.describeExits(Game.spawns[spawnName].pos.roomName);
     for (let i = 0; i < 10; i++) {
-        if (neighboringRooms[i] === Game.flags[remote].pos.roomName) {
+        if (neighboringRooms[i] === Game.flags[remote].pos.roomName || neighboringRooms[i] === Game.rooms[remote].name) {
             return true;
         }
     }

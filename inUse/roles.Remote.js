@@ -198,18 +198,15 @@ function invaderCheck(creep) {
     if (!spawn) {
         let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (invader) {
-            let hostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-            creep.memory.invaderDetected = true;
-            creep.memory.invaderID = hostile.id;
-            if (!Game.flags["hostile" + hostile.id]) {
-                creep.pos.createFlag("hostile" + hostile.id);
-            }
+            creep.room.memory.responseNeeded = true;
         } else {
             creep.memory.invaderDetected = undefined;
             creep.memory.invaderID = undefined;
+            creep.room.memory.responseNeeded = false;
         }
     } else {
         creep.memory.invaderDetected = undefined;
         creep.memory.invaderID = undefined;
+        creep.room.memory.responseNeeded = false;
     }
 }
