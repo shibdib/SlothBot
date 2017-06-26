@@ -36,7 +36,7 @@ function worker(creep) {
     }
 
     if (creep.memory.working === true) {
-        let repairNeeded = creepTools.findRepair(creep);
+        let repairNeeded = creepTools.findRepair(creep, creep.room.controller.level);
         let construction = creepTools.findConstruction(creep);
         if (construction) {
             construction = Game.getObjectById(construction);
