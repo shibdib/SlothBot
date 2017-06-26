@@ -18,7 +18,7 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_POWER,
     RESOURCE_HYDROXIDE];
 
-let tradeAmount = 1000;
+let tradeAmount = 1500;
 let energyAmount = 5000;
 let reactionAmount = 500;
 
