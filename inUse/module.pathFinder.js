@@ -247,18 +247,6 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
             for (let i = 0; i < impassible.length; i++) {
                 costMatrix.set(impassible[i].pos.x, impassible[i].pos.y, 255);
             }
-            const creeps = creep.room.find(FIND_CREEPS);
-            for (let i = 0; i < creeps.length; i++) {
-                if (creep.pos.getRangeTo(creeps[i]) <= 2) {
-                    costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
-                }
-            }
-            for (let i = 0; i < 20; i++) {
-                let avoid = 'avoid' + i;
-                if (Game.flags[avoid]) {
-                    costMatrix.set(Game.flags[avoid].pos.x, Game.flags[avoid].pos.y, 100);
-                }
-            }
             if (exempt !== true) {
                 const source = creep.room.find(FIND_SOURCES);
                 for (let i = 0; i < source.length; i++) {
