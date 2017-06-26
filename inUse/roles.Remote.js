@@ -197,7 +197,7 @@ function invaderCheck(creep) {
     let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
     if (!spawn) {
         let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (invader && creep.memory.invaderDetected !== true) {
+        if (invader) {
             let hostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
             creep.memory.invaderDetected = true;
             creep.memory.invaderID = hostile.id;
