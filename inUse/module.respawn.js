@@ -252,16 +252,18 @@ function rcl3(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 800) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].name && creep.memory.role === 'responder');
-                        if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[0]) === true && Game.spawns[spawnName].createCreep([TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
-                                role: 'responder',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 3,
-                                responseTarget: assistNeeded[0].name
-                            }) === OK) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
-                            return;
+                        for (let i = 0; i < assistNeeded.length; i++) {
+                            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
+                            if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[i]) === true && Game.spawns[spawnName].createCreep([TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                                    role: 'responder',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
+                                    level: 3,
+                                    responseTarget: assistNeeded[i].name
+                                }) === OK) {
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
+                                return;
+                            }
                         }
                     }
                 }
@@ -501,16 +503,18 @@ function rcl4(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 920) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].name && creep.memory.role === 'responder');
-                        if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[0]) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
-                                role: 'responder',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 4,
-                                responseTarget: assistNeeded[0].name
-                            }) === OK) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
-                            return;
+                        for (let i = 0; i < assistNeeded.length; i++) {
+                            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
+                            if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[i]) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                                    role: 'responder',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
+                                    level: 4,
+                                    responseTarget: assistNeeded[i].name
+                                }) === OK) {
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
+                                return;
+                            }
                         }
                     }
                 }
@@ -787,16 +791,18 @@ function rcl5(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 1380) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].name && creep.memory.role === 'responder');
-                        if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[0]) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
-                                role: 'responder',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 4,
-                                responseTarget: assistNeeded[0].name
-                            }) === OK) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
-                            return;
+                        for (let i = 0; i < assistNeeded.length; i++) {
+                            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
+                            if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[i]) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                                    role: 'responder',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
+                                    level: 4,
+                                    responseTarget: assistNeeded[i].name
+                                }) === OK) {
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
+                                return;
+                            }
                         }
                     }
                 }
@@ -1072,16 +1078,18 @@ function rcl6(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 1380) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[0].name && creep.memory.role === 'responder');
-                        if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[0]) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
-                                role: 'responder',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 4,
-                                responseTarget: assistNeeded[0].name
-                            }) === OK) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
-                            return;
+                        for (let i = 0; i < assistNeeded.length; i++) {
+                            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
+                            if (responder.length === 0 && remoteNeighborCheck(spawnName, assistNeeded[i]) === true && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                                    role: 'responder',
+                                    assignedSpawn: Game.spawns[spawnName].id,
+                                    assignedRoom: Game.spawns[spawnName].room.name,
+                                    level: 4,
+                                    responseTarget: assistNeeded[i].name
+                                }) === OK) {
+                                console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
+                                return;
+                            }
                         }
                     }
                 }
