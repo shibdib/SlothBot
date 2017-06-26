@@ -199,6 +199,7 @@ function invaderCheck(creep) {
         let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (invader) {
             creep.room.memory.responseNeeded = true;
+            creep.memory.invaderDetected = true;
         } else {
             creep.memory.invaderDetected = undefined;
             creep.memory.invaderID = undefined;
