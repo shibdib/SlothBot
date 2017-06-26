@@ -70,6 +70,7 @@ function roadSpawns(spawn) {
 }
 
 
+// TODO redo this so they're closer together
 function buildExtensions(spawn) {
     for (let i = getRandomInt(-12, 12); i < 12; i++) {
         const pos = new RoomPosition(spawn.pos.x + i, spawn.pos.y - getRandomInt(-12, 12), spawn.room.name);
