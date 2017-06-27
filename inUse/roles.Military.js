@@ -356,7 +356,7 @@ function responder(creep) {
         if (creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
             creep.memory.destinationReached = true;
         }
-        moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
+        creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
     }
 }
 
