@@ -477,17 +477,15 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < spawn.length; i++) {
             const object = Game.getObjectById(spawn[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) > 1) {
-                    if (object.energy === object.energyCapacity) {
-                        continue;
-                    }
-                    const spawnDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
-                    spawns.push({
-                        id: spawn[i],
-                        distWeighted: spawnDistWeighted,
-                        harvest: false
-                    });
+                if (object.energy === object.energyCapacity) {
+                    continue;
                 }
+                const spawnDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
+                spawns.push({
+                    id: spawn[i],
+                    distWeighted: spawnDistWeighted,
+                    harvest: false
+                });
             }
         }
         let bestSpawn = _.min(spawns, 'distWeighted');
@@ -504,17 +502,15 @@ module.exports.findStorage = function (creep) {
         for (i = 0; i < extension.length; i++) {
             const object = Game.getObjectById(extension[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) > 1) {
-                    if (object.energy === object.energyCapacity) {
-                        continue;
-                    }
-                    const extensionDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.5, 0) + 1;
-                    extensions.push({
-                        id: extension[i],
-                        distWeighted: extensionDistWeighted,
-                        harvest: false
-                    });
+                if (object.energy === object.energyCapacity) {
+                    continue;
                 }
+                const extensionDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.5, 0) + 1;
+                extensions.push({
+                    id: extension[i],
+                    distWeighted: extensionDistWeighted,
+                    harvest: false
+                });
             }
         }
         let bestExtension = _.min(extensions, 'distWeighted');
