@@ -44,7 +44,7 @@ function roadSources(spawn) {
 function roadSpawns(spawn) {
     if (constructionSites.length > 30) {
         if (spawn.room.controller.level >= 6) {
-            let spawns = _.filter(Game.spawns, (s) => Game.spawns[s].pos.roomName !== spawn.pos.roomName);
+            let spawns = _.filter(Game.spawns, (s) => s.pos.roomName !== spawn.pos.roomName);
             for (let i = 0; i < spawns.length; i++) {
                 let path = spawn.room.findPath(spawn.pos, spawns[i].pos, {
                     maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 16, ignoreRoads: false
