@@ -70,6 +70,20 @@ module.exports.loop = function () {
             terminalController.terminalControl();
         }
 
+        //Alliance List Management
+        let doNotAggress = [
+            'Shibdib',
+            'PostCrafter',
+            'Rising',
+            'wages123',
+            'SpaceRedleg',
+            'Donat',
+            'BrinkDaDrink',
+
+            'droben'];
+        RawMemory.segments[0] = JSON.stringify(doNotAggress);
+        RawMemory.setPublicSegments([0]);
+
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
 };
