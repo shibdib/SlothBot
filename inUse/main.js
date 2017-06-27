@@ -82,7 +82,7 @@ module.exports.loop = function () {
 
             'droben'];
         RawMemory.segments[0] = JSON.stringify(doNotAggress);
-        RawMemory.setPublicSegments([0])
+        RawMemory.setPublicSegments([0]);
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
