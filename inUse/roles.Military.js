@@ -321,7 +321,7 @@ function responder(creep) {
         creep.heal(creep);
     }
 
-    if (creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
+    if (Game.rooms[creep.memory.responseTarget] && creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
         creep.memory.destinationReached = true;
     }
 
