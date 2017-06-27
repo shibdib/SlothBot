@@ -1088,8 +1088,8 @@ function rcl6(spawnName) {
                                     responseTarget: assistNeeded[i].name
                                 }) === OK) {
                                 console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
-                                return;
                             }
+                            return;
                         }
                     }
                 }
