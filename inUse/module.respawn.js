@@ -1117,7 +1117,7 @@ function rcl6(spawnName) {
                 }
 
                 //ATTACK RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 2290) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 2220) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         for (let i = 0; i < 10; i++) {
                             let attack = 'attack' + i;
