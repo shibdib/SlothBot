@@ -1065,7 +1065,7 @@ function rcl6(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 0,
                                         destination: Game.flags[scout].name,
-                                    }) === OK) {
+                                    }) === generatedNumber + 'scout') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a scout');
                                     return;
                                 }
@@ -1086,7 +1086,7 @@ function rcl6(spawnName) {
                                     assignedRoom: Game.spawns[spawnName].room.name,
                                     level: 4,
                                     responseTarget: assistNeeded[i].name
-                                }) === OK) {
+                                }) === generatedNumber + 'responder') {
                                 console.log(Game.spawns[spawnName].room.name + ' Spawning a responder');
                                 return;
                             }
@@ -1107,7 +1107,7 @@ function rcl6(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         attackTarget: Game.flags[raid].name,
-                                    }) === OK) {
+                                    }) === generatedNumber + 'raider') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a raider');
                                     return;
                                 }
@@ -1131,7 +1131,7 @@ function rcl6(spawnName) {
                                         attackTarget: Game.flags[attack].name,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
-                                    }) === OK) {
+                                    }) === generatedNumber + 'attacker') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                     return;
                                 }
@@ -1144,7 +1144,7 @@ function rcl6(spawnName) {
                                         attackTarget: Game.flags[attack].name,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
-                                    }) === OK) {
+                                    }) === generatedNumber + 'healer') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
                                     return;
                                 }
@@ -1162,7 +1162,7 @@ function rcl6(spawnName) {
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4
-                            }) === OK) {
+                            }) === generatedNumber + 'reserver') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a reserver');
                             return;
                         }
@@ -1182,7 +1182,7 @@ function rcl6(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 3,
                                         destination: claim
-                                    }) === OK) {
+                                    }) === generatedNumber + 'claimer') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a claimer');
                                     return;
                                 }
@@ -1201,7 +1201,7 @@ function rcl6(spawnName) {
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 0,
-                            }) === OK) {
+                            }) === generatedNumber + 'hauler') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                             return;
                         }
@@ -1210,7 +1210,7 @@ function rcl6(spawnName) {
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
-                            }) === OK) {
+                            }) === generatedNumber + 'largeHauler') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a largeHauler');
                             return;
                         }
@@ -1227,7 +1227,7 @@ function rcl6(spawnName) {
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
                                 assignedSource: sources[i].id
-                            }) === OK) {
+                            }) === generatedNumber + 'stationaryHarvester') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a stationaryHarvester');
                             return;
                         }
@@ -1245,7 +1245,7 @@ function rcl6(spawnName) {
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 6,
                                 assignedMineral: minerals[i].id
-                            }) === OK) {
+                            }) === generatedNumber + 'mineralHarvester') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHarvester');
                             return;
                         }
@@ -1255,7 +1255,7 @@ function rcl6(spawnName) {
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 0,
                                 assignedMineral: minerals[i].id
-                            }) === OK) {
+                            }) === generatedNumber + 'mineralHauler') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a mineralHauler');
                             return;
                         }
@@ -1277,7 +1277,7 @@ function rcl6(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         destination: remote
-                                    }) === OK) {
+                                    }) === generatedNumber + 'remoteHarvester') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHarvester');
                                     return;
                                 } else if (remoteHauler.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'remoteHauler', {
@@ -1286,7 +1286,7 @@ function rcl6(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         destination: remote
-                                    }) === OK) {
+                                    }) === generatedNumber + 'remoteHauler') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHauler');
                                     return;
                                 }
@@ -1308,14 +1308,14 @@ function rcl6(spawnName) {
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
-                            }) === OK) {
+                            }) === generatedNumber + 'worker') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a worker');
                         } else if (upgraders.length < limit && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY], generatedNumber + 'upgrader', {
                                 role: 'upgrader',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 level: 4,
-                            }) === OK) {
+                            }) === generatedNumber + 'upgrader') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
                         } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
                                 role: 'spawnBuilder',
@@ -1323,7 +1323,7 @@ function rcl6(spawnName) {
                                 assignedRoom: Game.spawns[spawnName].room.name,
                                 target: spawnSite[0].id,
                                 level: 4,
-                            }) === OK) {
+                            }) === generatedNumber + 'spawnBuilder') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
                         }
                     }
