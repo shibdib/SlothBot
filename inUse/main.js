@@ -81,8 +81,9 @@ module.exports.loop = function () {
             'BrinkDaDrink',
 
             'droben'];
-        RawMemory.segments[0] = JSON.stringify(doNotAggress);
-        RawMemory.setPublicSegments([0]);
+        RawMemory.segments[2] = JSON.stringify(doNotAggress);
+        RawMemory.setPublicSegments([2]);
+        RawMemory.setDefaultPublicSegment(2);
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
