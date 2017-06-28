@@ -4,7 +4,16 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-let doNotAggress = RawMemory.segments[2];
+let doNotAggress = [
+    //Alliance Members
+    'Shibdib',
+    'PostCrafter',
+    'Rising',
+    'wages123',
+    'SpaceRedleg',
+
+    //Non aggression pacts
+    'droben'];
 
 module.exports.towerControl = function () {
     for (let tower of _.values(Game.structures)) {
@@ -76,4 +85,4 @@ function findWounded(tower) {
         return creep.id;
     }
 }
-findWounded = profiler.registerFN(findWounded, 'findWoundedTower');
+findWounded = profiler.registerFN(findWounded, 'findRepairTower');
