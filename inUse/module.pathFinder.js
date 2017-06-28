@@ -77,7 +77,7 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
                         }
                     }
                 },
-                maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+                maxOps: 10000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
             });
             if (cacheWorthy === true) {
                 cache.cachePath(creep.pos, target.pos, creep.memory.path);
@@ -138,7 +138,7 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
                     }
                 }
             },
-            maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+            maxOps: 10000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
         if (cacheWorthy === true) {
             cache.cachePath(creep.pos, target.pos, creep.memory.path);
@@ -211,7 +211,7 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
                         }
                     }
                 },
-                maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+                maxOps: 10000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
             });
             if (cacheWorthy === true) {
                 cache.cachePath(creep.pos, target, creep.memory.path);
@@ -272,7 +272,7 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
                     }
                 }
             },
-            maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+            maxOps: 10000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
         if (cacheWorthy === true) {
             cache.cachePath(creep.pos, target, creep.memory.path);
@@ -290,11 +290,11 @@ function AttackMove(creep, target) {
         return;
     }
     creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
-        maxOps: 100000, serialize: true, ignoreCreeps: false
+        maxOps: 10000, serialize: true, ignoreCreeps: false
     });
     if (creep.moveByPath(creep.memory.path) !== OK) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
-            maxOps: 100000, serialize: true, ignoreCreeps: false, ignoreDestructibleStructures: true
+            maxOps: 10000, serialize: true, ignoreCreeps: false, ignoreDestructibleStructures: true
         });
         creep.moveByPath(creep.memory.path);
     }
@@ -325,7 +325,7 @@ function FindPath(creep, target, serialize = false, exempt = false, maxRooms = 1
                 }
             }
         },
-        maxOps: 100000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms
+        maxOps: 10000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms
     });
 }
 module.exports.FindPath = profiler.registerFN(FindPath, 'FindPathModule');
