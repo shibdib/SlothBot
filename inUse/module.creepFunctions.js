@@ -1,42 +1,7 @@
 let pathing = require('module.pathFinder');
+const profiler = require('screeps-profiler');
 
-module.exports.rangeSource = function (creep) {
-    const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
-    if (creep.pos.getRangeTo(source) === 1) {
-        return 1;
-    }
-    return null;
-};
-
-module.exports.findBuilder = function (creep) {
-    const needsEnergy = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.incomingEnergy === creep.id));
-    if (needsEnergy) {
-        creep.memory.builderID = needsEnergy.id;
-        return needsEnergy.id;
-    }
-    return null;
-};
-
-module.exports.findNewBuilder = function (creep) {
-    const needsEnergy = creep.pos.findClosestByRange(_.filter(Game.creeps, (builder) => builder.memory.needEnergy === true && builder.memory.incomingEnergy === false));
-    if (needsEnergy) {
-        creep.memory.builderID = needsEnergy.id;
-        creep.memory.haulCounter = 0;
-        return needsEnergy.id;
-    }
-    return null;
-};
-
-module.exports.rangeAssignment = function (creep) {
-    const container = Game.getObjectById(creep.memory.assignedContainer);
-    const assignment = creep.pos.getRangeTo(container);
-    if (assignment) {
-        return assignment;
-    }
-    return null;
-};
-
-module.exports.findSource = function (creep) {
+function findSource(creep) {
     const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
     if (source) {
         if (creep.moveTo(source) !== ERR_NO_PATH) {
@@ -47,30 +12,20 @@ module.exports.findSource = function (creep) {
         }
     }
     return null;
-};
+}
+module.exports.findSource = profiler.registerFN(findSource, 'findSourceCreepFunctions');
 
-module.exports.findTower = function (creep) {
+function findTower(creep) {
 
     const tower = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy !== s.energyCapacity});
     if (tower) {
         return tower.id;
     }
     return null;
-};
+}
+module.exports.findTower = profiler.registerFN(findTower, 'findTowerCreepFunctions');
 
-module.exports.findSpawn = function (creep) {
-    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-    if (spawn) {
-        if (creep.moveTo(spawn) !== ERR_NO_PATH) {
-            if (spawn.id) {
-                creep.memory.spawnID = spawn.id;
-                return spawn;
-            }
-        }
-    }
-};
-
-module.exports.findConstruction = function (creep) {
+function findConstruction(creep) {
 
     site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site === null) {
@@ -86,46 +41,10 @@ module.exports.findConstruction = function (creep) {
         creep.memory.constructionSite = site.id;
         return site.id;
     }
-};
+}
+module.exports.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
-module.exports.findRoadWork = function (creep) {
-
-    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART});
-    }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
-    }
-    if (site !== null && site !== undefined) {
-        creep.memory.constructionSite = site.id;
-        return site.id;
-    } else {
-        return null;
-    }
-};
-
-module.exports.dumpTruck = function (creep) {
-    if (!creep.memory.incomingEnergy) {
-        creep.memory.incomingEnergy = false;
-    }
-    if (creep.memory.incomingEnergy) {
-        creep.memory.incomingCounter = creep.memory.incomingCounter + 1;
-        if (creep.memory.incomingCounter > 50) {
-            creep.memory.incomingEnergy = false;
-        }
-    }
-    if (creep.carry.energy < (creep.carryCapacity / 2)) {
-        creep.memory.needEnergy = true;
-    }
-    if (creep.carry.energy > (creep.carryCapacity * 0.75)) {
-        creep.memory.incomingCounter = 0;
-        creep.memory.needEnergy = false;
-        creep.memory.incomingEnergy = false;
-    }
-};
-
-module.exports.findRepair = function (creep, level = 1) {
+function findRepair(creep, level = 1) {
 
     site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax});
     if (site === null) {
@@ -152,48 +71,20 @@ module.exports.findRepair = function (creep, level = 1) {
     if (site !== null && site !== undefined) {
         return site.id;
     }
-};
+}
+module.exports.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
 
-module.exports.wallRepair = function (creep) {
-
-    site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.hits < s.hitsMax});
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 250000});
-    }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000});
-    }
-    if (site !== null && site !== undefined) {
-        return site.id;
-    }
-};
-
-module.exports.wallBuilding = function (creep) {
-
-    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_WALL});
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
-    }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES);
-    }
-    if (site !== null && site !== undefined) {
-        creep.memory.constructionSite = site.id;
-        return site.id;
-    }
-};
-
-module.exports.containerBuilding = function (creep) {
-
+function containerBuilding(creep) {
     site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site !== null && site !== undefined) {
         if (creep.pos.getRangeTo(site) <= 1) {
             return site.id;
         }
     }
-};
+}
+module.exports.containerBuilding = profiler.registerFN(containerBuilding, 'containerBuildingCreepFunctions');
 
-module.exports.harvestDepositContainer = function (creep) {
+function harvestDepositContainer(creep) {
     let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (container) {
         if (creep.pos.getRangeTo(container) <= 1) {
@@ -204,9 +95,10 @@ module.exports.harvestDepositContainer = function (creep) {
         }
     }
     return null;
-};
+}
+module.exports.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
 
-module.exports.harvestDepositLink = function (creep) {
+function harvestDepositLink(creep) {
     let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK});
     if (link) {
         if (creep.pos.getRangeTo(link) <= 1) {
@@ -217,7 +109,8 @@ module.exports.harvestDepositLink = function (creep) {
         }
     }
     return null;
-};
+}
+module.exports.harvestDepositLink = profiler.registerFN(harvestDepositLink, 'harvestDepositLinkCreepFunctions');
 
 module.exports.harvesterContainerBuild = function (creep) {
     if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
@@ -225,26 +118,7 @@ module.exports.harvesterContainerBuild = function (creep) {
     }
 };
 
-module.exports.findRoad = function (creep) {
-    const roads = creep.pos.findInRange(FIND_STRUCTURES, 2);
-    if (roads.length >= 3 && roads.structureType === STRUCTURE_ROAD) {
-        return roads[0].id;
-    } else {
-        return false;
-    }
-};
-
-module.exports.findNearbyConstruction = function (creep) {
-    const site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1);
-    if (site.length > 0) {
-        creep.memory.constructionSite = site[0].id;
-        return site[0].id;
-    } else {
-        return false;
-    }
-};
-
-module.exports.renewal = function (creep) {
+function renewal(creep) {
     if (creep.memory.level === 0) {
         return;
     }
@@ -266,9 +140,10 @@ module.exports.renewal = function (creep) {
             }
         }
     }
-};
+}
+module.exports.renewal = profiler.registerFN(renewal, 'renewalCreepFunctions');
 
-module.exports.recycle = function (creep) {
+function recycle(creep) {
     if (!creep.memory.assignedSpawn) {
         let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
         if (spawn) {
@@ -284,9 +159,10 @@ module.exports.recycle = function (creep) {
             return false;
         }
     }
-};
+}
+module.exports.recycle = profiler.registerFN(recycle, 'recycleCreepFunctions');
 
-module.exports.withdrawEnergy = function (creep) {
+function withdrawEnergy(creep) {
     if (!creep.memory.energyDestination) {
         return null;
     } else {
@@ -301,9 +177,10 @@ module.exports.withdrawEnergy = function (creep) {
             }
         }
     }
-};
+}
+module.exports.withdrawEnergy = profiler.registerFN(withdrawEnergy, 'withdrawEnergyCreepFunctions');
 
-module.exports.noHarvesterProtocol = function (creep) {
+function noHarvesterProtocol(creep) {
     let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
     if (harvester.length < 2) {
         if (creep.memory.storageDestination) {
@@ -318,10 +195,11 @@ module.exports.noHarvesterProtocol = function (creep) {
         }
         return true;
     }
-};
+}
+module.exports.noHarvesterProtocol = profiler.registerFN(noHarvesterProtocol, 'noHarvesterProtocolCreepFunctions');
 
 
-module.exports.findEnergy = function (creep, hauler = false, range = 50) {
+function findEnergy(creep, hauler = false, range = 50) {
     let energy = [];
     //Container
     let container = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'container'), 'id');
@@ -438,10 +316,10 @@ module.exports.findEnergy = function (creep, hauler = false, range = 50) {
             }
         }
     }
-};
+}
+module.exports.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
 
-module.exports.findStorage = function (creep) {
-
+function findStorage(creep) {
     let storage = [];
     //Container
     let container = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'container'), 'id');
@@ -594,7 +472,6 @@ module.exports.findStorage = function (creep) {
             harvest: false
         });
     }
-
     let sorted = _.min(storage, 'distWeighted');
     if (sorted) {
         let storageItem = Game.getObjectById(sorted.id);
@@ -605,5 +482,5 @@ module.exports.findStorage = function (creep) {
             }
         }
     }
-
-};
+}
+module.exports.findStorage = profiler.registerFN(findStorage, 'findStorageCreepFunctions');

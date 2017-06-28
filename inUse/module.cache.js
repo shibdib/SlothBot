@@ -1,7 +1,8 @@
 //Path Cache
 //Credit - https://gist.github.com/derofim/72b7a5e1a57b77877892
+const profiler = require('screeps-profiler');
 
-module.exports.cachePath = function (from, to, path) {
+function cachePath(from, to, path) {
     let key = getPathKey(from, to);
     let cache = Memory.pathCache || {};
     let tick = Game.time;
@@ -11,9 +12,10 @@ module.exports.cachePath = function (from, to, path) {
         tick: tick
     };
     Memory.pathCache = cache;
-};
+}
+module.exports.cachePath = profiler.registerFN(cachePath, 'cachePath');
 
-module.exports.getPath = function (from, to) {
+function getPath(from, to) {
     let cache = Memory.pathCache;
     if (cache) {
         let cachedPath = cache[getPathKey(from, to)];
@@ -25,7 +27,8 @@ module.exports.getPath = function (from, to) {
     } else {
         return null;
     }
-};
+}
+module.exports.getPath = profiler.registerFN(getPath, 'getPath');
 
 module.exports.cleanPathCache = function () {
     let counter = 0;

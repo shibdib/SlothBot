@@ -2,8 +2,9 @@
  * Created by Bob on 6/6/2017.
  */
 
+const profiler = require('screeps-profiler');
 
-module.exports.linkControl = function () {
+function linkControl() {
     for (let link of _.values(Game.structures)) {
         if (link.structureType === STRUCTURE_LINK) {
             if (link.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).length > 0) {
@@ -28,4 +29,5 @@ module.exports.linkControl = function () {
             }
         }
     }
-};
+}
+module.exports.linkControl = profiler.registerFN(linkControl, 'linkControl');

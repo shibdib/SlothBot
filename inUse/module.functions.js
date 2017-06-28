@@ -2,7 +2,9 @@
  * Created by Bob on 5/23/2017.
  */
 
-module.exports.convertPath = function (path)
+const profiler = require('screeps-profiler');
+
+function convertPath(path)
 {
     const result = [];
     for (let i = 0; i + 1 < path.length; i++) {
@@ -19,9 +21,10 @@ module.exports.convertPath = function (path)
         });
     }
     return result;
-};
+}
+module.exports.convertPath = profiler.registerFN(convertPath, 'convertPath');
 
-module.exports.checkPos = function (pos) {
+function checkPos(pos) {
     let atPos = pos.look();
     let SWAMP = "swamp";
     let PLAIN = "plain";
@@ -47,4 +50,5 @@ module.exports.checkPos = function (pos) {
         }
     }
     return true;
-};
+}
+module.exports.checkPos = profiler.registerFN(checkPos, 'checkPos');

@@ -2,7 +2,9 @@
  * Created by Bob on 6/24/2017.
  */
 
-module.exports.labControl = function () {
+const profiler = require('screeps-profiler');
+
+function labControl() {
     let activeReactions = [
         RESOURCE_GHODIUM_HYDRIDE
     ];
@@ -49,4 +51,5 @@ module.exports.labControl = function () {
                 }
             }
         }
-};
+}
+module.exports.labControl = profiler.registerFN(labControl, 'labControl');

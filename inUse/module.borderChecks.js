@@ -1,7 +1,8 @@
 
 let pathing = require('module.pathFinder');
+const profiler = require('screeps-profiler');
 
-module.exports.borderCheck = function(creep) {
+function borderCheck(creep) {
     if (creep.pos.x === 0 || creep.pos.y === 0 || creep.pos.x === 49 || creep.pos.y === 49) {
         if(creep.pos.x === 0 && creep.pos.y === 0)
         {
@@ -56,7 +57,8 @@ module.exports.borderCheck = function(creep) {
             return null;
         }
     }
-};
+}
+module.exports.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
 
 function wrongRoom(creep) {
     if(!creep.memory.assignedSpawn) {
@@ -81,3 +83,4 @@ function wrongRoom(creep) {
         }
     }
 }
+module.exports.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
