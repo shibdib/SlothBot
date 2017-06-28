@@ -289,9 +289,6 @@ function AttackMove(creep, target) {
     if (creep.fatigue > 0) {
         return;
     }
-    creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
-        maxOps: 10000, serialize: true, ignoreCreeps: false
-    });
     if (creep.moveByPath(creep.memory.path) !== OK) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             maxOps: 10000, serialize: true, ignoreCreeps: false, ignoreDestructibleStructures: true
