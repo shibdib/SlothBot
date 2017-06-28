@@ -149,7 +149,7 @@ function attacker(creep) {
     } else {
         let nearbyAttackers = creep.pos.findInRange(attackers, 10);
         let nearbyHealers = creep.pos.findInRange(healers, 10);
-        if (nearbyAttackers.length < _.round(creep.memory.waitForAttackers / 2, 0) && nearbyHealers.length < _.round(creep.memory.waitForHealers / 2, 0)) {
+        if (nearbyAttackers.length < _.round(creep.memory.waitForAttackers / 2, 0) && nearbyHealers.length < creep.memory.waitForHealers) {
             creep.memory.attackStarted = false;
             return null;
         }
