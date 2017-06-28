@@ -71,7 +71,15 @@ module.exports.loop = function () {
         }
 
         //Alliance List Management
-        let doNotAggress = [
+        let doNotAggressAlliance = [
+            'Shibdib',
+            'PostCrafter',
+            'Rising',
+            'wages123',
+            'SpaceRedleg',
+            'Donat',
+            'BrinkDaDrink'];
+        let doNotAggressAll = [
             'Shibdib',
             'PostCrafter',
             'Rising',
@@ -79,10 +87,10 @@ module.exports.loop = function () {
             'SpaceRedleg',
             'Donat',
             'BrinkDaDrink',
-
             'droben'];
-        RawMemory.segments[2] = JSON.stringify(doNotAggress);
-        RawMemory.setPublicSegments([2]);
+        RawMemory.segments[1] = JSON.stringify(doNotAggressAlliance);
+        RawMemory.segments[2] = JSON.stringify(doNotAggressAll);
+        RawMemory.setPublicSegments([1, 2]);
         RawMemory.setDefaultPublicSegment(2);
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
