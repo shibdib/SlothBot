@@ -147,6 +147,9 @@ function attacker(creep) {
             creep.memory.attackStarted = true;
         }
     } else {
+        if (nearbyAttackers.length < creep.memory.waitForAttackers - 1 && nearbyHealers.length === 0) {
+            creep.memory.attackStarted = false;
+        }
         pathing.AttackMove(creep, Game.flags[creep.memory.attackTarget], false, 16);
     }
 }
