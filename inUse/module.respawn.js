@@ -303,6 +303,7 @@ function rcl3(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 3,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'attacker') {
@@ -316,6 +317,7 @@ function rcl3(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 3,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'healer') {
@@ -554,6 +556,7 @@ function rcl4(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'attacker') {
@@ -567,6 +570,7 @@ function rcl4(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'healer') {
@@ -842,6 +846,7 @@ function rcl5(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'attacker') {
@@ -855,6 +860,7 @@ function rcl5(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'healer') {
@@ -1129,6 +1135,7 @@ function rcl6(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'attacker') {
@@ -1142,6 +1149,7 @@ function rcl6(spawnName) {
                                         assignedRoom: Game.spawns[spawnName].room.name,
                                         level: 4,
                                         attackTarget: Game.flags[attack].name,
+                                        staging: 'stage' + i,
                                         waitForHealers: (i),
                                         waitForAttackers: (i * 2)
                                     }) === generatedNumber + 'healer') {
