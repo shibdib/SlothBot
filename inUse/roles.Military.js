@@ -114,9 +114,6 @@ function attacker(creep) {
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
-    if (creep.hits < creep.hitsMax) {
-        creep.heal(creep);
-    }
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer');
 
@@ -128,6 +125,9 @@ function attacker(creep) {
     if (armedHostile) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
             creep.rangedAttack(armedHostile);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
             pathing.AttackMove(creep, armedHostile);
         }
     } else if (closestHostileTower) {
