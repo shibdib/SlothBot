@@ -722,13 +722,13 @@ function rcl5(spawnName) {
                 }
 
                 //Defense Force Spawn
-                if (Game.spawns[spawnName].room.energyAvailable >= 1380) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1520) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
                         var defenseForce = true;
                         for (let i = 0; i < assistNeeded.length; i++) {
                             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
-                            if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                            if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'responder', {
                                     role: 'responder',
                                     assignedSpawn: Game.spawns[spawnName].id,
                                     assignedRoom: Game.spawns[spawnName].room.name,
@@ -1015,13 +1015,13 @@ function rcl6(spawnName) {
                 }
 
                 //Defense Force Spawn
-                if (Game.spawns[spawnName].room.energyAvailable >= 1380) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1520) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
                         var defenseForce = true;
                         for (let i = 0; i < assistNeeded.length; i++) {
                             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
-                            if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'responder', {
+                            if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'responder', {
                                     role: 'responder',
                                     assignedSpawn: Game.spawns[spawnName].id,
                                     assignedRoom: Game.spawns[spawnName].room.name,
