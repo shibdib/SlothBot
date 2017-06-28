@@ -379,6 +379,10 @@ function responder(creep) {
         creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
     } else if (creep.memory.assignedRampart) {
         if (Game.getObjectById(creep.memory.assignedRampart).pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.y !== creep.pos.y) {
+            pathing.Move(creep, Game.getObjectById(creep.memory.assignedRampart), true);
+        }
+    } else if (!creep.memory.assignedRampart) {
+        if (Game.getObjectById(creep.memory.assignedRampart).pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.y !== creep.pos.y) {
             findDefensivePosition(creep, creep);
         }
     }
