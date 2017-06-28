@@ -141,18 +141,34 @@ function attacker(creep) {
         }
     } else if (closestHostileTower) {
         if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE && creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(closestHostileTower);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
             pathing.AttackMove(creep, closestHostileTower);
         }
     } else if (closestHostileSpawn) {
-        if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE && creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+        if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE && creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(closestHostileSpawn);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
             pathing.AttackMove(creep, closestHostileSpawn);
         }
     } else if (closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE && creep.rangedAttack(closestHostile) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(closestHostile);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
             pathing.AttackMove(creep, closestHostile);
         }
     } else if (hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
         if (creep.attack(hostileStructures) === ERR_NOT_IN_RANGE && creep.rangedAttack(hostileStructures) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(hostileStructures);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
             pathing.AttackMove(creep, hostileStructures);
         }
     } else if (creep.memory.attackStarted !== true) {
