@@ -290,45 +290,6 @@ function rcl3(spawnName) {
                     }
                 }
 
-                //ATTACK RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 800) {
-                    if (stationaryHarvester.length >= sourceCount) {
-                        for (let i = 0; i < 10; i++) {
-                            let attack = 'attack' + i;
-                            if (Game.flags[attack]) {
-                                let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                                if (attackers.length < (i * 2) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
-                                        role: 'attacker',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 3,
-                                        attackTarget: Game.flags[attack].name,
-                                        staging: 'stage' + i,
-                                        waitForHealers: (i),
-                                        waitForAttackers: (i * 2)
-                                    }) === generatedNumber + 'attacker') {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
-                                    return;
-                                }
-                                let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
-                                if (healer.length < i && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL], generatedNumber + 'healer', {
-                                        role: 'healer',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 3,
-                                        attackTarget: Game.flags[attack].name,
-                                        staging: 'stage' + i,
-                                        waitForHealers: (i),
-                                        waitForAttackers: (i * 2)
-                                    }) === generatedNumber + 'healer') {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-
                 //CLAIM RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 700) {
                     if (stationaryHarvester.length >= sourceCount) {
@@ -536,45 +497,6 @@ function rcl4(spawnName) {
                                         attackTarget: Game.flags[raid].name,
                                     }) === generatedNumber + 'raider') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a raider');
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                //ATTACK RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1050) {
-                    if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        for (let i = 0; i < 10; i++) {
-                            let attack = 'attack' + i;
-                            if (Game.flags[attack]) {
-                                let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                                if (attackers.length < (i * 2) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
-                                        role: 'attacker',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 4,
-                                        attackTarget: Game.flags[attack].name,
-                                        staging: 'stage' + i,
-                                        waitForHealers: (i),
-                                        waitForAttackers: (i * 2)
-                                    }) === generatedNumber + 'attacker') {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
-                                    return;
-                                }
-                                let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
-                                if (healer.length < i && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL], generatedNumber + 'healer', {
-                                        role: 'healer',
-                                        assignedSpawn: Game.spawns[spawnName].id,
-                                        assignedRoom: Game.spawns[spawnName].room.name,
-                                        level: 4,
-                                        attackTarget: Game.flags[attack].name,
-                                        staging: 'stage' + i,
-                                        waitForHealers: (i),
-                                        waitForAttackers: (i * 2)
-                                    }) === generatedNumber + 'healer') {
-                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
                                     return;
                                 }
                             }
