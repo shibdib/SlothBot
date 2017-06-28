@@ -7,6 +7,7 @@ let labController = require('module.labController');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
+let Traveler = require('module.traveler');
 
 // This line monkey patches the global prototypes.
 profiler.enable();
