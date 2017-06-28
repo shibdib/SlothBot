@@ -2,6 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 let functions = require('module.functions');
+const profiler = require('screeps-profiler');
 
 
 let constructionSites = _.filter(Game.constructionSites);
@@ -40,6 +41,7 @@ function roadSources(spawn) {
         }
     }
 }
+roadSources = profiler.registerFN(roadSources, 'roadSourcesBuilder');
 
 function roadSpawns(spawn) {
     if (constructionSites.length > 30) {
@@ -69,6 +71,7 @@ function roadSpawns(spawn) {
         }
     }
 }
+roadSpawns = profiler.registerFN(roadSpawns, 'roadSpawnsBuilder');
 
 
 // TODO redo this so they're closer together
@@ -100,6 +103,7 @@ function buildExtensions(spawn) {
         break;
     }
 }
+buildExtensions = profiler.registerFN(buildExtensions, 'buildExtensionsBuilder');
 
 function buildTower(spawn) {
     if (spawn.room.controller.level >= 3) {
@@ -123,6 +127,7 @@ function buildTower(spawn) {
         }
     }
 }
+buildTower = profiler.registerFN(buildTower, 'buildTowerBuilder');
 
 function buildStorage(spawn) {
     if (spawn.room.controller.level >= 4) {
@@ -155,6 +160,7 @@ function buildStorage(spawn) {
         }
     }
 }
+buildStorage = profiler.registerFN(buildStorage, 'buildStorageBuilder');
 
 function buildLinks(spawn) {
     if (spawn.room.controller.level >= 5) {
@@ -191,6 +197,7 @@ function buildLinks(spawn) {
         }
     }
 }
+buildLinks = profiler.registerFN(buildLinks, 'buildLinksBuilder');
 
 function borderWalls(spawn) {
     if (spawn.room.controller.level >= 3) {
@@ -358,6 +365,7 @@ function borderWalls(spawn) {
         }
     }
 }
+borderWalls = profiler.registerFN(borderWalls, 'borderWallsBuilder');
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;

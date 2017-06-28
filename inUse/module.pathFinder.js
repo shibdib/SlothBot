@@ -1,4 +1,8 @@
 let cache = require('module.cache');
+const profiler = require('screeps-profiler');
+
+
+
 module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
@@ -118,6 +122,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
 };
+module.exports.Move = module.exports.Move.registerFN(module.exports.Move, 'moveModule');
 
 module.exports.MoveToPos = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
@@ -225,6 +230,7 @@ module.exports.MoveToPos = function (creep, target, exempt = false, maxRooms = 1
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
 };
+module.exports.MoveToPos = module.exports.MoveToPos.registerFN(module.exports.MoveToPos, 'MoveToPosModule');
 
 module.exports.AttackMove = function (creep, target) {
     if (creep.fatigue > 0) {
@@ -240,6 +246,7 @@ module.exports.AttackMove = function (creep, target) {
         creep.moveByPath(creep.memory.path);
     }
 };
+module.exports.AttackMove = module.exports.AttackMove.registerFN(module.exports.AttackMove, 'AttackMoveModule');
 module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
     return creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
@@ -265,3 +272,4 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
         maxOps: 100000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms
     });
 };
+module.exports.FindPath = module.exports.FindPath.registerFN(module.exports.FindPath, 'FindPathModule');

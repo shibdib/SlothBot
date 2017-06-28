@@ -2,6 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 let _ = require('lodash');
+const profiler = require('screeps-profiler');
 
 let doNotAggress = [
     //Alliance Members
@@ -75,6 +76,7 @@ function findRepair(tower) {
         return site.id;
     }
 }
+findRepair = profiler.registerFN(findRepair, 'findRepairTower');
 
 function findWounded(tower) {
 
@@ -83,3 +85,4 @@ function findWounded(tower) {
         return creep.id;
     }
 }
+findWounded = profiler.registerFN(findWounded, 'findWoundedTower');
