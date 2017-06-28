@@ -23,7 +23,7 @@ function harvester(creep) {
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
         creep.memory.destinationReached = false;
         return null;
     }
@@ -58,7 +58,7 @@ function hauler(creep) {
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
         creep.memory.destinationReached = false;
         return null;
     }

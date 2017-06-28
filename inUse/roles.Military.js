@@ -182,7 +182,7 @@ function reserver(creep) {
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
         creep.memory.visitedRooms.push(creep.memory.currentDestination);
         creep.memory.currentDestination = undefined;
     }
