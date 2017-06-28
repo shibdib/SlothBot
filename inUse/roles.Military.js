@@ -62,6 +62,9 @@ function healer(creep) {
     if (creepTools.renewal(creep) === true) {
         return null;
     }
+    if (creep.hits < creep.hitsMax) {
+        creep.heal(creep);
+    }
 
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
