@@ -840,7 +840,7 @@ function rcl5(spawnName) {
                                             waitForHealers: healerAmount,
                                             waitForAttackers: attackerAmount,
                                             waitForDeconstructor: deconstructorAmount
-                                        }) === generatedNumber + 'healer') {
+                                        }) === 'deconstructor ' + generatedNumber) {
                                         console.log(Game.spawns[spawnName].room.name + ' Spawning a deconstructor');
                                         return;
                                     }
@@ -1168,7 +1168,7 @@ function rcl6(spawnName) {
                                             waitForHealers: healerAmount,
                                             waitForAttackers: attackerAmount,
                                             waitForDeconstructor: deconstructorAmount
-                                        }) === generatedNumber + 'healer') {
+                                        }) === 'deconstructor ' + generatedNumber) {
                                         console.log(Game.spawns[spawnName].room.name + ' Spawning a deconstructor');
                                         return;
                                     }
@@ -1441,7 +1441,7 @@ function collapsePrevention(spawnName) {
 function remoteNeighborCheck(spawnName, remote) {
     let neighboringRooms = Game.map.describeExits(Game.spawns[spawnName].pos.roomName);
     for (let i = 0; i < 10; i++) {
-        if (neighboringRooms[i] && remote.name && neighboringRooms[i] === remote.name) {
+        if (neighboringRooms[i] && remote.name && neighboringRooms[i] === Game.flags[remote.name].pos.roomName) {
             return true;
         }
     }
