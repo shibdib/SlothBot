@@ -116,6 +116,7 @@ function attacker(creep) {
     }
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer');
+    let deconstructors = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'deconstructor');
 
     let armedHostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
@@ -150,7 +151,8 @@ function attacker(creep) {
         pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
         let nearbyAttackers = creep.pos.findInRange(attackers, 5);
         let nearbyHealers = creep.pos.findInRange(healers, 5);
-        if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers) {
+        let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
+        if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor) {
             creep.memory.attackStarted = true;
         }
     } else {
