@@ -15,8 +15,7 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_LEMERGIUM,
     RESOURCE_ZYNTHIUM,
     RESOURCE_CATALYST,
-    RESOURCE_POWER,
-    RESOURCE_HYDROXIDE];
+    RESOURCE_POWER];
 
 let tradeAmount = 2000;
 let energyAmount = 4000;
