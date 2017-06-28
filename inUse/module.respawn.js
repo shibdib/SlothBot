@@ -207,6 +207,7 @@ function rcl2(spawnName) {
 function rcl3(spawnName) {
 
     ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
+    let defenseForce;
     if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
@@ -226,11 +227,15 @@ function rcl3(spawnName) {
                     return;
                 }
 
+                let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
+                if (assistNeeded.length > 0) {
+                    defenseForce = true;
+                }
+
                 //Defense Force Spawn
                 if (Game.spawns[spawnName].room.energyAvailable >= 800) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        var defenseForce = true;
                         for (let i = 0; i < assistNeeded.length; i++) {
                             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
                             if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, RANGED_ATTACK], generatedNumber + 'responder', {
@@ -423,6 +428,7 @@ function rcl3(spawnName) {
 function rcl4(spawnName) {
 
     ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
+    let defenseForce;
     if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
@@ -442,6 +448,11 @@ function rcl4(spawnName) {
                 if (Game.spawns[spawnName].room.energyCapacityAvailable < 1300) {
                     rcl3(spawnName);
                     return;
+                }
+
+                let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
+                if (assistNeeded.length > 0) {
+                    defenseForce = true;
                 }
 
                 //SCOUT RESPAWNS
@@ -470,7 +481,6 @@ function rcl4(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 1140) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        var defenseForce = true;
                         for (let i = 0; i < assistNeeded.length; i++) {
                             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
                             if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'responder', {
@@ -678,6 +688,7 @@ function rcl4(spawnName) {
 function rcl5(spawnName) {
 
     ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
+    let defenseForce;
     if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
@@ -699,6 +710,10 @@ function rcl5(spawnName) {
                     return;
                 }
 
+                let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
+                if (assistNeeded.length > 0) {
+                    defenseForce = true;
+                }
                 //SCOUT RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 100) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
@@ -725,7 +740,6 @@ function rcl5(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 1520) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        var defenseForce = true;
                         for (let i = 0; i < assistNeeded.length; i++) {
                             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
                             if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'responder', {
@@ -969,7 +983,8 @@ function rcl5(spawnName) {
 
 function rcl6(spawnName) {
 
-    ////////////////////////////////////////////Respawns//////////////////////////////////////////////////
+    let defenseForce;
+////////////////////////////////////////////Respawns//////////////////////////////////////////////////
     if (Game.spawns[spawnName].room.find(FIND_MY_SPAWNS)) {
         if (Game.spawns[spawnName].memory.defenseMode !== true) {
             if (!Game.spawns[spawnName].spawning) {
@@ -990,6 +1005,11 @@ function rcl6(spawnName) {
                 if (Game.spawns[spawnName].room.energyCapacityAvailable < 2300) {
                     rcl5(spawnName);
                     return;
+                }
+
+                let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
+                if (assistNeeded.length > 0) {
+                    defenseForce = true;
                 }
 
                 //SCOUT RESPAWNS
@@ -1018,7 +1038,6 @@ function rcl6(spawnName) {
                 if (Game.spawns[spawnName].room.energyAvailable >= 1520) {
                     let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                     if (assistNeeded.length > 0) {
-                        var defenseForce = true;
                         for (let i = 0; i < assistNeeded.length; i++) {
                             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[i].name && creep.memory.role === 'responder');
                             if (responder.length < assistNeeded[i].memory.numberOfHostiles && (remoteNeighborCheck(spawnName, assistNeeded[i]) === true || assistNeeded[i].name === Game.spawns[spawnName].pos.roomName) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'responder', {
