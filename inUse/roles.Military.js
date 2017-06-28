@@ -129,7 +129,8 @@ function attacker(creep) {
     let closestHostileSpawn = creep.pos.findClosestByPath(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
     let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
     let closestHostile = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
-    let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+    let weakPoint = _.min(creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false}), 'hits');
+    let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART || s.structureType !== STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
     if (armedHostile) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
             creep.rangedAttack(armedHostile);
@@ -144,7 +145,7 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            creep.travelTo(closestHostileTower);
+            creep.travelTo(closestHostileTower, {allowHostile: true});
         }
     } else if (closestHostileSpawn) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
@@ -152,7 +153,7 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            creep.travelTo(closestHostileSpawn);
+            creep.travelTo(closestHostileSpawn, {allowHostile: true});
         }
     } else if (closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
@@ -168,7 +169,82 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            creep.travelTo(hostileStructures);
+            creep.travelTo(hostileStructures, {allowHostile: true});
+        }
+    } else if (weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        if (creep.attack(weakPoint) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(weakPoint);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
+            creep.travelTo(weakPoint, {allowHostile: true});
+        }
+    } else if (creep.memory.attackStarted !== true) {
+        creep.travelTo(Game.flags[creep.memory.staging]);
+        let nearbyAttackers = creep.pos.findInRange(attackers, 5);
+        let nearbyHealers = creep.pos.findInRange(healers, 5);
+        let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
+        if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor) {
+            creep.memory.attackStarted = true;
+        }
+    } else {
+        creep.travelTo(Game.flags[creep.memory.attackTarget], {allowHostile: true});
+    }
+}
+/**
+ * @return {null}
+ */
+function deconstructor(creep) {
+    if (!Game.flags[creep.memory.attackTarget]) {
+        creep.suicide();
+    }
+    if (creep.memory.attackStarted !== true && Game.flags[creep.memory.staging].pos.roomName !== creep.pos.roomName) {
+        if (creep.hits < creep.hitsMax) {
+            creep.heal(creep);
+        }
+        creep.travelTo(Game.flags[creep.memory.staging]);
+        return null;
+    }
+
+    let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
+    let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer');
+    let deconstructors = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'deconstructor');
+
+    let closestHostileSpawn = creep.pos.findClosestByPath(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+    let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
+    let weakPoint = _.min(creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false}), 'hits');
+    let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART || s.structureType !== STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
+    if (closestHostileTower) {
+        if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(closestHostileTower);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
+            creep.travelTo(closestHostileTower, {allowHostile: true});
+        }
+    } else if (closestHostileSpawn) {
+        if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(closestHostileSpawn);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
+            creep.travelTo(closestHostileSpawn, {allowHostile: true});
+        }
+    } else if (hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        if (creep.attack(hostileStructures) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(hostileStructures);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
+            creep.travelTo(hostileStructures, {allowHostile: true});
+        }
+    } else if (weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        if (creep.attack(weakPoint) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(weakPoint);
+            if (creep.hits < creep.hitsMax) {
+                creep.heal(creep);
+            }
+            creep.travelTo(weakPoint, {allowHostile: true});
         }
     } else if (creep.memory.attackStarted !== true) {
         creep.travelTo(Game.flags[creep.memory.staging]);
