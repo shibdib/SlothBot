@@ -376,7 +376,7 @@ function responder(creep) {
         }
         creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
     } else if (creep.memory.assignedRampart) {
-        if (Game.getObjectById(creep.memory.assignedRampart).pos !== creep.pos) {
+        if (Game.getObjectById(creep.memory.assignedRampart).pos.pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.pos.y !== creep.pos.y) {
             findDefensivePosition(creep, creep);
         }
     }
@@ -409,7 +409,7 @@ function findDefensivePosition(creep, target) {
         let bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
         if (bestRampart.pos !== creep.pos) {
             creep.memory.pathAge = 999;
-            bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && (r.pos.lookFor(LOOK_CREEPS).length === 0 || r.pos === creep.pos)});
+            bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
             creep.memory.assignedRampart = bestRampart.id;
             if (bestRampart.pos !== creep.pos) {
                 pathing.Move(creep, bestRampart, true);
