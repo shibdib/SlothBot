@@ -376,7 +376,9 @@ function responder(creep) {
         }
         creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
     } else if (creep.memory.assignedRampart) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedRampart), true);
+        if (Game.getObjectById(creep.memory.assignedRampart).pos !== creep.pos) {
+            findDefensivePosition(creep, creep);
+        }
     }
 }
 
