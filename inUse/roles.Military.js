@@ -333,8 +333,14 @@ function responder(creep) {
     let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
     let friendlies = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (armedHostile) {
-        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
-            pathing.AttackMove(creep, armedHostile);
+        if (creep.pos.roomName === creep.memory.assignedRoom) {
+            if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
+                findDefensivePosition(creep);
+            }
+        } else {
+            if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
+                pathing.AttackMove(creep, armedHostile);
+            }
         }
     } else if (closestHostileTower) {
         if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
@@ -345,8 +351,14 @@ function responder(creep) {
             pathing.AttackMove(creep, closestHostileSpawn);
         }
     } else if (closestHostile) {
-        if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-            pathing.AttackMove(creep, closestHostile);
+        if (creep.pos.roomName === creep.memory.assignedRoom) {
+            if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
+                findDefensivePosition(creep);
+            }
+        } else {
+            if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+                pathing.AttackMove(creep, closestHostile);
+            }
         }
     } else if (friendlies.length > 0) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
@@ -377,5 +389,13 @@ function invaderCheck(creep) {
             creep.memory.invaderDetected = undefined;
             creep.memory.invaderID = undefined;
         }
+    }
+}
+
+function findDefensivePosition(creep) {
+    let closestEnemy = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
+    if (closestEnemy) {
+        let bestRampart = closestEnemy.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.lookFor(LOOK_CREEPS)});
+        pathing.Move(creep, bestRampart, true);
     }
 }
