@@ -156,17 +156,17 @@ function attacker(creep) {
             creep.memory.attackStarted = true;
         }
     } else {
-        let nearbyAttackers = creep.pos.findInRange(attackers, 10);
-        let nearbyHealers = creep.pos.findInRange(healers, 10);
-        if (nearbyAttackers.length < _.round(creep.memory.waitForAttackers / 2, 0) - 1 || nearbyHealers.length < creep.memory.waitForHealers) {
-            creep.memory.attackStarted = false;
-            return null;
-        }
         pathing.AttackMove(creep, Game.flags[creep.memory.attackTarget], false, 16);
     }
 }
 /**
  * @return {null}
+ let nearbyAttackers = creep.pos.findInRange(attackers, 10);
+ let nearbyHealers = creep.pos.findInRange(healers, 10);
+ if (nearbyAttackers.length < _.round(creep.memory.waitForAttackers / 2, 0) - 1 || nearbyHealers.length < creep.memory.waitForHealers) {
+            creep.memory.attackStarted = false;
+            return null;
+        }
  */
 function claimer(creep) {
     //Initial move
