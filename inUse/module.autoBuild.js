@@ -15,7 +15,7 @@ module.exports.roomBuilding = function (spawnName) {
     buildTower(spawn);
     buildStorage(spawn);
     buildLinks(spawn);
-    //borderWalls(spawn);
+    borderWalls(spawn);
 };
 
 function roadSources(spawn) {

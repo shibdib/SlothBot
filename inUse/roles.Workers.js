@@ -154,7 +154,7 @@ function upgrader(creep) {
     }
 }
 function depositEnergy(creep) {
-    if (!creep.memory.containerID) {
+    if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
         creep.memory.containerID = creepTools.harvestDepositContainer(creep);
     }
     if (creep.memory.containerID) {
