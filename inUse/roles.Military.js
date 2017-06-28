@@ -370,7 +370,7 @@ function responder(creep) {
                 creep.moveTo(friendlies[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
-    } else if (creep.memory.destinationReached !== true) {
+    } else if (creep.memory.destinationReached !== true && Game.rooms[creep.memory.responseTarget]) {
         if (creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
             creep.memory.destinationReached = true;
         }
@@ -408,8 +408,8 @@ function findDefensivePosition(creep, target) {
         if (bestRampart.pos !== creep.pos) {
             creep.memory.pathAge = 999;
             bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && (r.pos.lookFor(LOOK_CREEPS).length === 0 || r.pos === creep.pos)});
+            creep.memory.assignedRampart = bestRampart.id;
+            pathing.Move(creep, bestRampart, true);
         }
-        creep.memory.assignedRampart = bestRampart.id;
-        pathing.Move(creep, bestRampart, true);
     }
 }
