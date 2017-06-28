@@ -71,7 +71,8 @@ function healer(creep) {
     const targets = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (targets.length > 0) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-            if (creep.rangedHeal(targets[0]) === ERR_NOT_IN_RANGE) {
+            if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
+                creep.rangedHeal(targets[0]);
                 creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
             }
         }
