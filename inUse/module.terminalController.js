@@ -17,8 +17,8 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_CATALYST,
     RESOURCE_POWER];
 
-let tradeAmount = 2000;
-let energyAmount = 4000;
+let tradeAmount = 1000;
+let energyAmount = 2000;
 let reactionAmount = 500;
 
 module.exports.terminalControl = function () {
