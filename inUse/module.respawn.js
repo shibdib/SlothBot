@@ -796,7 +796,7 @@ function rcl5(spawnName) {
                                 healerAmount = info[1];
                                 deconstructorAmount = info[2];
                                 staging = info[3];
-                                let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
+                                let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
                                 if (attackers.length < attackerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'attacker', {
                                         role: 'attacker',
                                         assignedSpawn: Game.spawns[spawnName].id,
@@ -811,7 +811,7 @@ function rcl5(spawnName) {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                     return;
                                 }
-                                let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
+                                let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'healer');
                                 if (healer.length < healerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL, HEAL], generatedNumber + 'healer', {
                                         role: 'healer',
                                         assignedSpawn: Game.spawns[spawnName].id,
@@ -1105,7 +1105,7 @@ function rcl6(spawnName) {
                                 healerAmount = info[1];
                                 deconstructorAmount = info[2];
                                 staging = info[3];
-                                let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
+                                let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
                                 if (attackers.length < attackerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'attacker', {
                                         role: 'attacker',
                                         assignedSpawn: Game.spawns[spawnName].id,
@@ -1120,7 +1120,7 @@ function rcl6(spawnName) {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                     return;
                                 }
-                                let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'healer');
+                                let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'healer');
                                 if (healer.length < healerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL], generatedNumber + 'healer', {
                                         role: 'healer',
                                         assignedSpawn: Game.spawns[spawnName].id,
