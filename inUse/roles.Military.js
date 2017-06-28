@@ -335,7 +335,6 @@ function responder(creep) {
     if (armedHostile) {
         if (creep.pos.roomName === creep.memory.assignedRoom) {
             if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
-                creep.memory.pathAge = 999;
                 findDefensivePosition(creep, armedHostile);
             }
             creep.rangedAttack(armedHostile);
@@ -356,7 +355,6 @@ function responder(creep) {
     } else if (closestHostile) {
         if (creep.pos.roomName === creep.memory.assignedRoom) {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                creep.memory.pathAge = 999;
                 findDefensivePosition(creep, closestHostile);
             }
             creep.rangedAttack(closestHostile);
@@ -407,8 +405,8 @@ function invaderCheck(creep) {
 function findDefensivePosition(creep, target) {
     if (target) {
         let bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-        if (creep.pos.getRangeTo(bestRampart) !== 0) {
-            bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.lookFor(LOOK_CREEPS).length === 0});
+        if (bestRampart.pos !== creep.pos) {
+            bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && (r.pos.lookFor(LOOK_CREEPS).length === 0 || r.pos === creep.pos)});
         }
         creep.memory.assignedRampart = bestRampart.id;
         pathing.Move(creep, bestRampart, true);
