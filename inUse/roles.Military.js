@@ -79,8 +79,7 @@ function healer(creep) {
         if (attackers.length > 0) {
             pathing.Move(creep, attackers[0], false, 16);
         } else {
-            let closestTower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
-            pathing.Move(creep, closestTower, false, 1);
+            pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
         }
     }
 }
@@ -143,7 +142,7 @@ function attacker(creep) {
             pathing.AttackMove(creep, hostileStructures);
         }
     } else if (creep.memory.attackStarted !== true) {
-        pathing.Move(creep, Game.flags[creep.memory.staging], false, 1);
+        pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
         let nearbyAttackers = creep.pos.findInRange(attackers, 5);
         let nearbyHealers = creep.pos.findInRange(healers, 5);
         if (nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers) {
