@@ -30,7 +30,7 @@ function peasant(creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, source, true);
+            creep.travelTo(source);
         }
     } else {
         let containerID = creepTools.harvestDepositContainer(creep);
@@ -48,7 +48,7 @@ function peasant(creep) {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, storageItem);
+                    creep.travelTo(storageItem);
                 } else {
                     creep.memory.storageDestination = null;
                     creep.memory.path = null;
@@ -75,15 +75,15 @@ function peasantBuilder(creep) {
         target = Game.getObjectById(target);
         if (target) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
-                pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+                creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
             } else {
                 if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, target);
+                    creep.travelTo(target);
                 }
             }
         } else {
             if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, creep.room.controller, 1);
+                creep.travelTo(creep.room.controller);
             }
         }
     } else {
@@ -93,7 +93,7 @@ function peasantBuilder(creep) {
             let source = creepTools.findSource(creep);
             let harvest = creep.harvest(source);
             if (harvest === ERR_NOT_IN_RANGE) {
-                if (creep.moveTo(source) === ERR_NO_PATH) {
+                if (creep.travelTo(source) === ERR_NO_PATH) {
                     source = undefined;
                 }
             }
@@ -117,7 +117,7 @@ function peasantUpgrader(creep) {
 
     if (creep.memory.upgrading) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, creep.room.controller);
+            creep.travelTo(creep.room.controller);
         }
     } else {
         if (creep.memory.energyDestination) {
@@ -126,7 +126,7 @@ function peasantUpgrader(creep) {
             let source = creepTools.findSource(creep);
             let harvest = creep.harvest(source);
             if (harvest === ERR_NOT_IN_RANGE) {
-                if (creep.moveTo(source) === ERR_NO_PATH) {
+                if (creep.travelTo(source) === ERR_NO_PATH) {
                     source = undefined;
                 }
             }

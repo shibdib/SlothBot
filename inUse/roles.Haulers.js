@@ -36,7 +36,7 @@ function hauler(creep) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, storageItem);
+                creep.travelTo(storageItem);
             } else {
                 creep.memory.storageDestination = null;
                 creep.memory.path = null;
@@ -83,7 +83,7 @@ function labTech(creep) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, storageItem);
+                creep.travelTo(storageItem);
             } else {
                 creep.memory.storageDestination = null;
                 creep.memory.path = null;
@@ -114,7 +114,7 @@ function mineralHauler(creep) {
                 if (mineralContainer.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
                     for (const resourceType in mineralContainer.store) {
                         if (creep.withdraw(mineralContainer, resourceType) === ERR_NOT_IN_RANGE) {
-                            pathing.Move(creep, mineralContainer);
+                            creep.travelTo(mineralContainer);
                         }
                     }
                 }
@@ -123,13 +123,13 @@ function mineralHauler(creep) {
             let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
             if (container.id) {
                 if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
-                        pathing.Move(creep, container);
+                    creep.travelTo(container);
                         creep.memory.mineralDestination = container.id;
                 } else {
-                    pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
+                    creep.travelTo(Game.getObjectById(creep.memory.assignedMineral))
                 }
             } else {
-                pathing.Move(creep, Game.getObjectById(creep.memory.assignedMineral))
+                creep.travelTo(Game.getObjectById(creep.memory.assignedMineral))
             }
         }
     } else {
@@ -143,7 +143,7 @@ function mineralHauler(creep) {
                 if (_.sum(terminal.store) !== terminal.storeCapacity) {
                     for (const resourceType in creep.carry) {
                         if (creep.transfer(terminal, resourceType) === ERR_NOT_IN_RANGE) {
-                            pathing.Move(creep, terminal, false, 1);
+                            creep.travelTo(terminal);
                         }
                     }
                 }

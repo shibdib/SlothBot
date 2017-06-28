@@ -76,14 +76,14 @@ function healer(creep) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
             if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
                 creep.rangedHeal(targets[0]);
-                creep.moveTo(targets[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                creep.travelTo(targets[0]);
             }
         }
     } else {
         if (attackers.length > 0) {
-            pathing.Move(creep, attackers[0], false, 16);
+            creep.travelTo(attackers[0]);
         } else {
-            pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
+            creep.travelTo(Game.flags[creep.memory.staging]);
         }
     }
 }
@@ -218,7 +218,7 @@ function reserver(creep) {
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
+        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.visitedRooms.push(creep.memory.currentDestination);
         creep.memory.currentDestination = undefined;
     }
@@ -229,7 +229,7 @@ function reserver(creep) {
         if ((creep.room.controller.reservation && creep.room.controller.reservation['ticksToEnd'] >= 1500) || creep.room.controller.owner) {
             creep.memory.reserving = undefined;
         } else if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE || creep.signController(creep.room.controller, "Reserved Territory of Overlords - #overlords on Slack") === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, creep.room.controller);
+            creep.travelTo(creep.room.controller);
         }
         return null;
     }
@@ -240,10 +240,10 @@ function reserver(creep) {
         creep.memory.visitedRooms = [];
     }
     if (creep.pos.roomName !== creep.memory.currentDestination) {
-        creep.moveTo(new RoomPosition(25, 25, creep.memory.currentDestination), {range: 21}); //to move to any room
+        creep.travelTo((new RoomPosition(25, 25, creep.memory.currentDestination))); //to move to any room
     } else {
         if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1000))) {
-            pathing.Move(creep, creep.room.controller);
+            creep.travelTo(creep.room.controller);
             creep.memory.reserving = true;
         } else {
             creep.memory.visitedRooms.push(creep.memory.currentDestination);
@@ -284,7 +284,7 @@ function raider(creep) {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, storageItem);
+                    creep.travelTo(storageItem);
                 } else {
                     creep.memory.storageDestination = null;
                     creep.memory.path = null;
@@ -293,14 +293,14 @@ function raider(creep) {
             }
             creepTools.findStorage(creep);
         } else {
-            pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
+            creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
             return null;
         }
         return null;
     }
     //Initial move
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.attackTarget], false, 16);
+        creep.travelTo(Game.flags[creep.memory.attackTarget]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.attackTarget]) <= 3) {
             creep.memory.destinationReached = true;
         }
@@ -308,25 +308,25 @@ function raider(creep) {
         let storage = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] !== 0});
         if (storage) {
             if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, storage);
+                creep.travelTo(storage);
             }
         } else {
             let extension = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy !== 0});
             if (extension) {
                 if (creep.withdraw(extension, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, extension);
+                    creep.travelTo(extension);
                 }
             } else {
                 let spawn = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.energy !== 0});
                 if (spawn) {
                     if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        pathing.Move(creep, spawn);
+                        creep.travelTo(spawn);
                     }
                 } else {
                     let terminal = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.energy !== 0});
                     if (terminal) {
                         if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            pathing.Move(creep, terminal);
+                            creep.travelTo(terminal);
                         }
                     } else {
                         if (creep.carry.energy > 0) {
@@ -366,17 +366,17 @@ function responder(creep) {
             creep.rangedAttack(armedHostile);
         } else {
             if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
-                pathing.AttackMove(creep, armedHostile);
+                creep.travelTo(armedHostile);
             }
             creep.rangedAttack(armedHostile);
         }
     } else if (closestHostileTower) {
         if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
-            pathing.AttackMove(creep, closestHostileTower);
+            creep.travelTo(closestHostileTower);
         }
     } else if (closestHostileSpawn) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
-            pathing.AttackMove(creep, closestHostileSpawn);
+            creep.travelTo(closestHostileSpawn);
         }
     } else if (closestHostile) {
         if (creep.pos.roomName === creep.memory.assignedRoom) {
@@ -386,14 +386,14 @@ function responder(creep) {
             creep.rangedAttack(closestHostile);
         } else {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                pathing.AttackMove(creep, closestHostile);
+                creep.travelTo(closestHostile);
             }
             creep.rangedAttack(closestHostile);
         }
     } else if (friendlies.length > 0) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
             if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(friendlies[0], {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+                creep.travelTo(friendlies[0]);
             }
         }
     } else if (creep.memory.destinationReached !== true && Game.rooms[creep.memory.responseTarget]) {
@@ -403,7 +403,7 @@ function responder(creep) {
         creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
     } else if (creep.memory.assignedRampart) {
         if (Game.getObjectById(creep.memory.assignedRampart).pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.y !== creep.pos.y) {
-            pathing.Move(creep, Game.getObjectById(creep.memory.assignedRampart), true);
+            creep.travelTo(Game.getObjectById(creep.memory.assignedRampart));
         }
     } else if (!creep.memory.assignedRampart) {
             findDefensivePosition(creep, creep);
@@ -440,7 +440,7 @@ function findDefensivePosition(creep, target) {
             bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
             creep.memory.assignedRampart = bestRampart.id;
             if (bestRampart.pos !== creep.pos) {
-                pathing.Move(creep, bestRampart, true);
+                creep.travelTo(bestRampart);
             }
         }
     }

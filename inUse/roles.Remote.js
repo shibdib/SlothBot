@@ -23,7 +23,7 @@ function harvester(creep) {
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
+        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
     }
@@ -32,7 +32,7 @@ function harvester(creep) {
         creep.memory.harvesting = true;
     }
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
+        creep.travelTo(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
@@ -47,7 +47,7 @@ function harvester(creep) {
             var source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            pathing.Move(creep, source);
+            creep.travelTo(source);
         }
     }
 }
@@ -58,12 +58,12 @@ function hauler(creep) {
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true) {
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn), false, 16);
+        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
     }
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
+        creep.travelTo(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
@@ -80,7 +80,7 @@ function hauler(creep) {
         let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
         if (container) {
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, container, false, 1);
+                creep.travelTo(container);
             }
         }
     }
@@ -99,7 +99,7 @@ function hauler(creep) {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, storageItem);
+                    creep.travelTo(storageItem);
                 } else {
                     creep.memory.storageDestination = null;
                     creep.memory.path = null;
@@ -108,7 +108,7 @@ function hauler(creep) {
             }
             creepTools.findStorage(creep);
         } else {
-            pathing.Move(creep, Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], false, 16);
+            creep.travelTo(Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name]);
         }
     }
 }
@@ -142,7 +142,7 @@ function spawnBuilder(creep) {
                 var source = creepTools.findSource(creep);
             }
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, source, true);
+                creep.travelTo(source);
             }
         }
     }
@@ -150,7 +150,7 @@ function spawnBuilder(creep) {
         if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.target)) <= 3) {
             creep.memory.destinationReached = true;
         }
-        pathing.Move(creep, Game.getObjectById(creep.memory.target), false, 16);
+        creep.travelTo(Game.getObjectById(creep.memory.target));
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
         creep.build(Game.getObjectById(creep.memory.target));
         return null;
