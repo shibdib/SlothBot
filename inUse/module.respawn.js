@@ -798,7 +798,7 @@ function rcl5(spawnName) {
                                 deconstructorAmount = info[2];
                                 staging = info[3];
                                 multiRoom = info[4];
-                                if (Game.flags['staging' + staging].pos.roomName !== Game.spawns[spawnName].pos.roomName || multiRoom === '1') {
+                                if (Game.flags['staging' + staging].pos.roomName === Game.spawns[spawnName].pos.roomName || multiRoom === '1') {
                                     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
                                     if (attackers.length < attackerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'attacker', {
                                             role: 'attacker',
@@ -1111,7 +1111,7 @@ function rcl6(spawnName) {
                                 deconstructorAmount = info[2];
                                 staging = info[3];
                                 multiRoom = info[4];
-                                if (Game.flags['staging' + staging].pos.roomName !== Game.spawns[spawnName].pos.roomName || multiRoom === '1') {
+                                if (Game.flags['staging' + staging].pos.roomName === Game.spawns[spawnName].pos.roomName || multiRoom === '1') {
                                     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
                                     if (attackers.length < attackerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'attacker', {
                                             role: 'attacker',
