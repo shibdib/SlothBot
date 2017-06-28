@@ -246,7 +246,8 @@ module.exports.AttackMove = function (creep, target) {
         creep.moveByPath(creep.memory.path);
     }
 };
-module.exports.AttackMove = module.exports.AttackMove.registerFN(module.exports.AttackMove, 'AttackMoveModule');
+module.exports.AttackMove = profiler.registerFN(module.exports.AttackMove, 'AttackMoveModule');
+
 module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
     return creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
