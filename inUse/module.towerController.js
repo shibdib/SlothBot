@@ -4,16 +4,7 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-let doNotAggress = [
-    //Alliance Members
-    'Shibdib',
-    'PostCrafter',
-    'Rising',
-    'wages123',
-    'SpaceRedleg',
-
-    //Non aggression pacts
-    'droben'];
+let doNotAggress = RawMemory.foreignSegment;
 
 module.exports.towerControl = function () {
     for (let tower of _.values(Game.structures)) {

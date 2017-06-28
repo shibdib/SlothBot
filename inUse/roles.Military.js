@@ -4,7 +4,7 @@ let pathing = require('module.pathFinder');
 let militaryFunctions = require('module.militaryFunctions');
 let _ = require('lodash');
 
-let doNotAggress = RawMemory.segments[2];
+let doNotAggress = RawMemory.foreignSegment;
 
 
 module.exports.Manager = function (creep) {
