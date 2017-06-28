@@ -335,6 +335,7 @@ function responder(creep) {
     if (armedHostile) {
         if (creep.pos.roomName === creep.memory.assignedRoom) {
             if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
+                creep.memory.pathAge = 999;
                 findDefensivePosition(creep, armedHostile);
             }
             creep.rangedAttack(armedHostile);
@@ -355,6 +356,7 @@ function responder(creep) {
     } else if (closestHostile) {
         if (creep.pos.roomName === creep.memory.assignedRoom) {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+                creep.memory.pathAge = 999;
                 findDefensivePosition(creep, closestHostile);
             }
             creep.rangedAttack(closestHostile);
