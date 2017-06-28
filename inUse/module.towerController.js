@@ -12,9 +12,15 @@ module.exports.towerControl = function () {
             const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
             const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
             const woundedCreep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
-            const closestHostile = tower.pos.findInRange(FIND_CREEPS, 15, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
-            if (closestHostile) {
-                tower.attack(closestHostile);
+            const closestHostile = tower.pos.findInRange(FIND_CREEPS, 50, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+            if (closestHostile.length > 0) {
+                for (let i = 0; i < closestHostile.length; i++) {
+                    if (closestHostile[i].pos.getRangeTo(tower) < 15) {
+                        tower.attack(closestHostile);
+                    } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
+                        tower.attack(closestHostile);
+                    }
+                }
                 continue;
             }
             if (woundedCreep) {
