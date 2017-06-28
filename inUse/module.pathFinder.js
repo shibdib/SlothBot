@@ -1,4 +1,5 @@
 let cache = require('module.cache');
+let doNotAggress = RawMemory.segments[2];
 const profiler = require('screeps-profiler');
 
 
@@ -32,12 +33,34 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
             creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
                 costCallback: function (roomName, costMatrix) {
                     const creeps = creep.room.find(FIND_CREEPS);
-                    for (let i = 0; i < creeps.length; i++) {
-                        if (creep.pos.getRangeTo(creeps[i]) <= 1) {
-                            cacheWorthy = false;
-                            costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                    if (creeps.length > 0) {
+                        for (let i = 0; i < creeps.length; i++) {
+                            if (creep.pos.getRangeTo(creeps[i]) <= 1) {
+                                cacheWorthy = false;
+                                costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                            }
                         }
                     }
+                    for (let i = 1; i < 49; i++) {
+                        let room = creep.room.name;
+                        let border = (new RoomPosition(1, i, room));
+                        costMatrix.set(border.pos.x, border.pos.y, 100);
+                        let border2 = (new RoomPosition(i, 1, room));
+                        costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                        let border3 = (new RoomPosition(48, i, room));
+                        costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                        let border4 = (new RoomPosition(i, 48, room));
+                        costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                    }
+
+                    const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+                    if (hostileCreeps.length > 0) {
+                        cacheWorthy = false;
+                        for (let i = 0; i < hostileCreeps.length; i++) {
+                            costMatrix.set(hostileCreeps[i].pos.x, hostileCreeps[i].pos.y, 255);
+                        }
+                    }
+
                     if (exempt !== true) {
                         const source = creep.room.find(FIND_SOURCES);
                         for (let i = 0; i < source.length; i++) {
@@ -70,12 +93,35 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
                 const creeps = creep.room.find(FIND_CREEPS);
-                for (let i = 0; i < creeps.length; i++) {
-                    if (creep.pos.getRangeTo(creeps[i]) <= 1) {
-                        cacheWorthy = false;
-                        costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                if (creeps.length > 0) {
+                    for (let i = 0; i < creeps.length; i++) {
+                        if (creep.pos.getRangeTo(creeps[i]) <= 1) {
+                            cacheWorthy = false;
+                            costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                        }
                     }
                 }
+
+                for (let i = 1; i < 49; i++) {
+                    let room = creep.room.name;
+                    let border = (new RoomPosition(1, i, room));
+                    costMatrix.set(border.pos.x, border.pos.y, 100);
+                    let border2 = (new RoomPosition(i, 1, room));
+                    costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                    let border3 = (new RoomPosition(48, i, room));
+                    costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                    let border4 = (new RoomPosition(i, 48, room));
+                    costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                }
+
+                const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+                if (hostileCreeps.length > 0) {
+                    cacheWorthy = false;
+                    for (let i = 0; i < hostileCreeps.length; i++) {
+                        costMatrix.set(hostileCreeps[i].pos.x, hostileCreeps[i].pos.y, 255);
+                    }
+                }
+
                 if (exempt !== true) {
                     const source = creep.room.find(FIND_SOURCES);
                     for (let i = 0; i < source.length; i++) {
@@ -93,7 +139,7 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
             },
             maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
-        if (cache === true) {
+        if (cacheWorthy === true) {
             cache.cachePath(creep.pos, target.pos, creep.memory.path);
         }
         creep.moveByPath(creep.memory.path);
@@ -116,28 +162,38 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
         if (cache.getPath(creep.pos, target)) {
             creep.memory.path = cache.getPath(creep.pos, target);
         } else {
+            let cacheWorthy = true;
             creep.memory.path = creep.room.findPath(creep.pos, target, {
                 costCallback: function (roomName, costMatrix) {
-                    const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
-                    for (let i = 0; i < roads.length; i++) {
-                        costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
-                    }
-                    const impassible = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === OBSTACLE_OBJECT_TYPES});
-                    for (let i = 0; i < impassible.length; i++) {
-                        costMatrix.set(impassible[i].pos.x, impassible[i].pos.y, 255);
-                    }
                     const creeps = creep.room.find(FIND_CREEPS);
-                    for (let i = 0; i < creeps.length; i++) {
-                        if (creep.pos.getRangeTo(creeps[i]) <= 2) {
-                            costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                    if (creeps.length > 0) {
+                        for (let i = 0; i < creeps.length; i++) {
+                            if (creep.pos.getRangeTo(creeps[i]) <= 1) {
+                                cacheWorthy = false;
+                                costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                            }
                         }
                     }
-                    for (let i = 0; i < 20; i++) {
-                        let avoid = 'avoid' + i;
-                        if (Game.flags[avoid]) {
-                            costMatrix.set(Game.flags[avoid].pos.x, Game.flags[avoid].pos.y, 100);
+                    for (let i = 1; i < 49; i++) {
+                        let room = creep.room.name;
+                        let border = (new RoomPosition(1, i, room));
+                        costMatrix.set(border.pos.x, border.pos.y, 100);
+                        let border2 = (new RoomPosition(i, 1, room));
+                        costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                        let border3 = (new RoomPosition(48, i, room));
+                        costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                        let border4 = (new RoomPosition(i, 48, room));
+                        costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                    }
+
+                    const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+                    if (hostileCreeps.length > 0) {
+                        cacheWorthy = false;
+                        for (let i = 0; i < hostileCreeps.length; i++) {
+                            costMatrix.set(hostileCreeps[i].pos.x, hostileCreeps[i].pos.y, 255);
                         }
                     }
+
                     if (exempt !== true) {
                         const source = creep.room.find(FIND_SOURCES);
                         for (let i = 0; i < source.length; i++) {
@@ -155,7 +211,9 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
                 },
                 maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
             });
-            cache.cachePath(creep.pos, target, creep.memory.path);
+            if (cacheWorthy === true) {
+                cache.cachePath(creep.pos, target, creep.memory.path);
+            }
         }
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
@@ -164,28 +222,38 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
     creep.memory.pathAge++;
     if (creep.moveByPath(creep.memory.path) !== OK) {
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'red'});
+        let cacheWorthy = true;
         creep.memory.path = creep.room.findPath(creep.pos, target, {
             costCallback: function (roomName, costMatrix) {
-                const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
-                for (let i = 0; i < roads.length; i++) {
-                    costMatrix.set(roads[i].pos.x, roads[i].pos.y, 1);
-                }
-                const impassible = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === OBSTACLE_OBJECT_TYPES});
-                for (let i = 0; i < impassible.length; i++) {
-                    costMatrix.set(impassible[i].pos.x, impassible[i].pos.y, 255);
-                }
                 const creeps = creep.room.find(FIND_CREEPS);
-                for (let i = 0; i < creeps.length; i++) {
-                    if (creep.pos.getRangeTo(creeps[i]) <= 2) {
-                        costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                if (creeps.length > 0) {
+                    for (let i = 0; i < creeps.length; i++) {
+                        if (creep.pos.getRangeTo(creeps[i]) <= 1) {
+                            cacheWorthy = false;
+                            costMatrix.set(creeps[i].pos.x, creeps[i].pos.y, 255);
+                        }
                     }
                 }
-                for (let i = 0; i < 20; i++) {
-                    let avoid = 'avoid' + i;
-                    if (Game.flags[avoid]) {
-                        costMatrix.set(Game.flags[avoid].pos.x, Game.flags[avoid].pos.y, 100);
+                for (let i = 1; i < 49; i++) {
+                    let room = creep.room.name;
+                    let border = (new RoomPosition(1, i, room));
+                    costMatrix.set(border.pos.x, border.pos.y, 100);
+                    let border2 = (new RoomPosition(i, 1, room));
+                    costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                    let border3 = (new RoomPosition(48, i, room));
+                    costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                    let border4 = (new RoomPosition(i, 48, room));
+                    costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                }
+
+                const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+                if (hostileCreeps.length > 0) {
+                    cacheWorthy = false;
+                    for (let i = 0; i < hostileCreeps.length; i++) {
+                        costMatrix.set(hostileCreeps[i].pos.x, hostileCreeps[i].pos.y, 255);
                     }
                 }
+
                 if (exempt !== true) {
                     const source = creep.room.find(FIND_SOURCES);
                     for (let i = 0; i < source.length; i++) {
@@ -203,7 +271,9 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
             },
             maxOps: 100000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
-        cache.cachePath(creep.pos, target, creep.memory.path);
+        if (cacheWorthy === true) {
+            cache.cachePath(creep.pos, target, creep.memory.path);
+        }
         creep.moveByPath(creep.memory.path);
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
