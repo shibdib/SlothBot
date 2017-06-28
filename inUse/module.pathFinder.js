@@ -2,8 +2,7 @@ let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
 
-
-module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
+function Move(creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
         return;
@@ -121,8 +120,8 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathAge = 0;
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
-};
-module.exports.Move = profiler.registerFN(module.exports.Move, 'moveModule');
+}
+module.exports.Move = profiler.registerFN(Move, 'moveModule');
 
 module.exports.MoveToPos = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
@@ -248,7 +247,7 @@ module.exports.AttackMove = function (creep, target) {
 };
 module.exports.AttackMove = profiler.registerFN(module.exports.AttackMove, 'AttackMoveModule');
 
-module.exports.FindPath = function (creep, target, serialize = false, exempt = false, maxRooms = 1) {
+function FindPath(creep, target, serialize = false, exempt = false, maxRooms = 1) {
     return creep.room.findPath(creep.pos, target.pos, {
         costCallback: function (roomName, costMatrix) {
             const impassible = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === OBSTACLE_OBJECT_TYPES});
@@ -272,5 +271,5 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
         },
         maxOps: 100000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms
     });
-};
-module.exports.FindPath = profiler.registerFN(module.exports.FindPath, 'FindPathModule');
+}
+module.exports.FindPath = profiler.registerFN(FindPath, 'FindPathModule');
