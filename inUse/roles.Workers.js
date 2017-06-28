@@ -250,6 +250,7 @@ function invaderCheck(creep) {
         let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (invader) {
             let number = creep.room.find(FIND_HOSTILE_CREEPS);
+            let rampart = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
             creep.room.memory.responseNeeded = true;
             creep.room.memory.numberOfHostiles = number.length;
             creep.memory.invaderDetected = true;

@@ -126,7 +126,8 @@ function attacker(creep) {
     let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
     let hostileStructures = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
     if (armedHostile) {
-        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
+        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
+            creep.rangedAttack(armedHostile);
             pathing.AttackMove(creep, armedHostile);
         }
     } else if (closestHostileTower) {
