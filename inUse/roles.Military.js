@@ -149,7 +149,7 @@ function attacker(creep) {
         pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
         let nearbyAttackers = creep.pos.findInRange(attackers, 5);
         let nearbyHealers = creep.pos.findInRange(healers, 5);
-        if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers - 1) {
+        if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers) {
             creep.memory.attackStarted = true;
         }
     } else {
