@@ -137,7 +137,7 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            pathing.AttackMove(creep, armedHostile);
+            pathing.Move(creep, armedHostile);
         }
     } else if (closestHostileTower) {
         if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
@@ -145,7 +145,7 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            pathing.AttackMove(creep, closestHostileTower);
+            pathing.Move(creep, closestHostileTower);
         }
     } else if (closestHostileSpawn) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
@@ -153,7 +153,7 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            pathing.AttackMove(creep, closestHostileSpawn);
+            pathing.Move(creep, closestHostileSpawn);
         }
     } else if (closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
         if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
@@ -161,7 +161,7 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            pathing.AttackMove(creep, closestHostile);
+            pathing.Move(creep, closestHostile);
         }
     } else if (hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
         if (creep.attack(hostileStructures) === ERR_NOT_IN_RANGE) {
@@ -169,7 +169,7 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            pathing.AttackMove(creep, hostileStructures);
+            pathing.Move(creep, hostileStructures);
         }
     } else if (creep.memory.attackStarted !== true) {
         pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
