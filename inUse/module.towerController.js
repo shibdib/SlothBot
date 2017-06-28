@@ -11,7 +11,7 @@ module.exports.towerControl = function () {
         if (tower.structureType === STRUCTURE_TOWER) {
             const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
             const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
-            const woundedCreep = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
+            const woundedCreep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
             const closestHostile = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
             if (closestHostile) {
                 tower.attack(closestHostile);
