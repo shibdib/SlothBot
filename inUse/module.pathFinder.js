@@ -122,7 +122,7 @@ module.exports.Move = function (creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
 };
-module.exports.Move = module.exports.Move.registerFN(module.exports.Move, 'moveModule');
+module.exports.Move = profiler.registerFN(module.exports.Move, 'moveModule');
 
 module.exports.MoveToPos = function (creep, target, exempt = false, maxRooms = 1) {
     if (creep.fatigue > 0) {
@@ -230,7 +230,7 @@ module.exports.MoveToPos = function (creep, target, exempt = false, maxRooms = 1
         creep.memory.pathLimit = (creep.memory.path.length + 3) / 2;
     }
 };
-module.exports.MoveToPos = module.exports.MoveToPos.registerFN(module.exports.MoveToPos, 'MoveToPosModule');
+module.exports.MoveToPos = profiler.registerFN(module.exports.MoveToPos, 'MoveToPosModule');
 
 module.exports.AttackMove = function (creep, target) {
     if (creep.fatigue > 0) {
@@ -272,4 +272,4 @@ module.exports.FindPath = function (creep, target, serialize = false, exempt = f
         maxOps: 100000, serialize: serialize, ignoreCreeps: true, maxRooms: maxRooms
     });
 };
-module.exports.FindPath = module.exports.FindPath.registerFN(module.exports.FindPath, 'FindPathModule');
+module.exports.FindPath = profiler.registerFN(module.exports.FindPath, 'FindPathModule');
