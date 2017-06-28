@@ -77,7 +77,7 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
                         }
                     }
                 },
-                maxOps: 10000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+                maxOps: 50000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
             });
             if (cacheWorthy === true) {
                 cache.cachePath(creep.pos, target.pos, creep.memory.path);
@@ -138,7 +138,7 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
                     }
                 }
             },
-            maxOps: 10000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+            maxOps: 50000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
         });
         if (cacheWorthy === true) {
             cache.cachePath(creep.pos, target.pos, creep.memory.path);
@@ -211,7 +211,7 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
                         }
                     }
                 },
-                maxOps: 10000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
+                maxOps: 50000, serialize: true, ignoreCreeps: true, maxRooms: maxRooms, plainCost: 5, swampCost: 15
             });
             if (cacheWorthy === true) {
                 cache.cachePath(creep.pos, target, creep.memory.path);
