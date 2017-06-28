@@ -52,10 +52,6 @@ function borderCheck(creep) {
             }
         }
         return null;
-    } else {
-        if (wrongRoom(creep) !== false) {
-            return null;
-        }
     }
 }
 module.exports.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');

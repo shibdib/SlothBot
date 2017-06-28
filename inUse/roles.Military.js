@@ -317,6 +317,8 @@ function raider(creep) {
  * @return {null}
  */
 function responder(creep) {
+
+    borderChecks.borderCheck(creep);
     if (creep.hits < creep.hitsMax / 2) {
         creep.heal(creep);
     }
