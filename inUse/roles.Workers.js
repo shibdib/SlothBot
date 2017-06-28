@@ -119,8 +119,8 @@ function mineralHarvester(creep) {
  * @return {null}
  */
 function upgrader(creep) {
-    invaderCheck(creep);
     //INITIAL CHECKS
+    invaderCheck(creep);
     borderChecks.borderCheck(creep);
     if (creepTools.noHarvesterProtocol(creep)) {
         creepTools.findStorage(creep);
@@ -245,24 +245,17 @@ function mineralContainer(creep) {
 }
 
 function invaderCheck(creep) {
-    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-    if (!spawn) {
-        let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (invader) {
-            let number = creep.room.find(FIND_HOSTILE_CREEPS);
-            let rampart = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
-            creep.room.memory.responseNeeded = true;
-            creep.room.memory.numberOfHostiles = number.length;
-            creep.memory.invaderDetected = true;
-        } else {
-            creep.memory.invaderDetected = undefined;
-            creep.memory.invaderID = undefined;
-            creep.room.memory.numberOfHostiles = undefined;
-            creep.room.memory.responseNeeded = false;
-        }
+    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (invader) {
+        let number = creep.room.find(FIND_HOSTILE_CREEPS);
+        let rampart = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
+        creep.room.memory.responseNeeded = true;
+        creep.room.memory.numberOfHostiles = number.length;
+        creep.memory.invaderDetected = true;
     } else {
         creep.memory.invaderDetected = undefined;
         creep.memory.invaderID = undefined;
+        creep.room.memory.numberOfHostiles = undefined;
         creep.room.memory.responseNeeded = false;
     }
 }
