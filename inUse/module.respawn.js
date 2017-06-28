@@ -1346,7 +1346,7 @@ function collapsePrevention(spawnName) {
 function remoteNeighborCheck(spawnName, remote) {
     let neighboringRooms = Game.map.describeExits(Game.spawns[spawnName].pos.roomName);
     for (let i = 0; i < 10; i++) {
-        if (neighboringRooms[i] === remote.name) {
+        if (neighboringRooms[i] === Game.flags[remote].pos.roomName) {
             return true;
         }
     }
