@@ -375,6 +375,8 @@ function responder(creep) {
             creep.memory.destinationReached = true;
         }
         creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
+    } else if (creep.memory.assignedRampart) {
+        pathing.Move(creep, Game.getObjectById(creep.memory.assignedRampart), true);
     }
 }
 
@@ -406,6 +408,7 @@ function findDefensivePosition(creep, target) {
         if (creep.pos.getRangeTo(bestRampart) !== 0) {
             bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.lookFor(LOOK_CREEPS).length === 0});
         }
+        creep.memory.assignedRampart = bestRampart.id;
         pathing.Move(creep, bestRampart, true);
     }
 }
