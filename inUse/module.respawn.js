@@ -829,6 +829,21 @@ function rcl5(spawnName) {
                                         console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
                                         return;
                                     }
+                                    let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'deconstructor');
+                                    if (deconstructor.length < deconstructorAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, HEAL], 'deconstructor ' + generatedNumber, {
+                                            role: 'deconstructor',
+                                            assignedSpawn: Game.spawns[spawnName].id,
+                                            assignedRoom: Game.spawns[spawnName].room.name,
+                                            level: 4,
+                                            attackTarget: Game.flags[name].name,
+                                            staging: 'staging' + staging,
+                                            waitForHealers: healerAmount,
+                                            waitForAttackers: attackerAmount,
+                                            waitForDeconstructor: deconstructorAmount
+                                        }) === generatedNumber + 'healer') {
+                                        console.log(Game.spawns[spawnName].room.name + ' Spawning a deconstructor');
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -925,6 +940,8 @@ function rcl5(spawnName) {
                                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                                 let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
+                                let spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
+                                let spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
                                 if (remoteHarvester.length === 0 && remoteHauler.length > 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'remoteHarvester', {
                                         role: 'remoteHarvester',
                                         assignedSpawn: Game.spawns[spawnName].id,
@@ -943,6 +960,14 @@ function rcl5(spawnName) {
                                     }) === generatedNumber + 'remoteHauler') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHauler');
                                     return;
+                                } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
+                                        role: 'spawnBuilder',
+                                        assignedSpawn: Game.spawns[spawnName].id,
+                                        assignedRoom: Game.spawns[spawnName].room.name,
+                                        target: spawnSite[0].id,
+                                        level: 4,
+                                    }) === generatedNumber + 'spawnBuilder') {
+                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
                                 }
                             }
                         }
@@ -955,8 +980,6 @@ function rcl5(spawnName) {
                         const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1800) * 0.2) / 2);
                         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                        const spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
-                        const spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
                         if (worker.length < limit && upgraders.length >= 1 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                                 role: 'worker',
                                 assignedSpawn: Game.spawns[spawnName].id,
@@ -971,14 +994,6 @@ function rcl5(spawnName) {
                                 level: 4,
                             }) === generatedNumber + 'upgrader') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
-                        } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
-                                role: 'spawnBuilder',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                target: spawnSite[0].id,
-                                level: 4,
-                            }) === generatedNumber + 'spawnBuilder') {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
                         }
                     }
                 }
@@ -1142,6 +1157,21 @@ function rcl6(spawnName) {
                                         console.log(Game.spawns[spawnName].room.name + ' Spawning a healer');
                                         return;
                                     }
+                                    let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'deconstructor');
+                                    if (deconstructor.length < deconstructorAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, HEAL], 'deconstructor ' + generatedNumber, {
+                                            role: 'deconstructor',
+                                            assignedSpawn: Game.spawns[spawnName].id,
+                                            assignedRoom: Game.spawns[spawnName].room.name,
+                                            level: 4,
+                                            attackTarget: Game.flags[name].name,
+                                            staging: 'staging' + staging,
+                                            waitForHealers: healerAmount,
+                                            waitForAttackers: attackerAmount,
+                                            waitForDeconstructor: deconstructorAmount
+                                        }) === generatedNumber + 'healer') {
+                                        console.log(Game.spawns[spawnName].room.name + ' Spawning a deconstructor');
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -1266,6 +1296,8 @@ function rcl6(spawnName) {
                                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHarvester');
                                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'remoteHauler');
                                 let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.destination === remote && creep.memory.role === 'roadBuilder');
+                                let spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
+                                let spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
                                 if (remoteHarvester.length === 0 && remoteHauler.length > 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY], generatedNumber + 'remoteHarvester', {
                                         role: 'remoteHarvester',
                                         assignedSpawn: Game.spawns[spawnName].id,
@@ -1284,6 +1316,14 @@ function rcl6(spawnName) {
                                     }) === generatedNumber + 'remoteHauler') {
                                     console.log(Game.spawns[spawnName].room.name + ' Spawning a remoteHauler');
                                     return;
+                                } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
+                                        role: 'spawnBuilder',
+                                        assignedSpawn: Game.spawns[spawnName].id,
+                                        assignedRoom: Game.spawns[spawnName].room.name,
+                                        target: spawnSite[0].id,
+                                        level: 4,
+                                    }) === generatedNumber + 'spawnBuilder') {
+                                    console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
                                 }
                             }
                         }
@@ -1296,8 +1336,6 @@ function rcl6(spawnName) {
                         const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 2300) * 0.22) / 2);
                         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
                         const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
-                        const spawnBuilder = _.filter(Game.creeps, (creep) => creep.memory.role === 'spawnBuilder');
-                        const spawnSite = _.filter(Game.constructionSites, (site) => site.structureType === STRUCTURE_SPAWN);
                         if (worker.length < limit && upgraders.length >= 1 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'worker', {
                                 role: 'worker',
                                 assignedSpawn: Game.spawns[spawnName].id,
@@ -1312,14 +1350,6 @@ function rcl6(spawnName) {
                                 level: 4,
                             }) === generatedNumber + 'upgrader') {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a upgrader');
-                        } else if (spawnSite.length > 0 && spawnBuilder.length < 2 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'spawnBuilder', {
-                                role: 'spawnBuilder',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                target: spawnSite[0].id,
-                                level: 4,
-                            }) === generatedNumber + 'spawnBuilder') {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning a spawnBuilder');
                         }
                     }
                 }

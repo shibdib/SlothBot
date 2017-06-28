@@ -4,15 +4,7 @@ let respawnCreeps = require('module.respawn');
 let cache = require('module.cache');
 let _ = require('lodash');
 
-let doNotAggress = [
-    //Alliance Members
-    'Shibdib',
-    'PostCrafter',
-    'Rising',
-    'wages123',
-
-    //Non aggression pacts
-    'droben'];
+let doNotAggress = RawMemory.segments[2];
 
 module.exports.roomControl = function () {
 
