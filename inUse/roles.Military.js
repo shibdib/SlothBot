@@ -134,11 +134,11 @@ function attacker(creep) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostileSpawn);
         }
-    } else if (closestHostile) {
+    } else if (closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostile);
         }
-    } else if (hostileStructures) {
+    } else if (hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, hostileStructures);
         }
