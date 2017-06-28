@@ -762,7 +762,7 @@ function rcl5(spawnName) {
                             let attack = 'attack' + i;
                             if (Game.flags[attack]) {
                                 let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                                if (attackers.length < (i * 2) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
+                                if (attackers.length < (i * 2) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK], generatedNumber + 'attacker', {
                                         role: 'attacker',
                                         assignedSpawn: Game.spawns[spawnName].id,
                                         assignedRoom: Game.spawns[spawnName].room.name,
@@ -1046,12 +1046,12 @@ function rcl6(spawnName) {
 
                 //ATTACK RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 2220) {
-                    if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
+                    if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let attack = 'attack' + i;
                             if (Game.flags[attack]) {
                                 let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[attack].name && creep.memory.role === 'attacker');
-                                if (attackers.length < (i * 2) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, HEAL], generatedNumber + 'attacker', {
+                                if (attackers.length < (i * 2) && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK], generatedNumber + 'attacker', {
                                         role: 'attacker',
                                         assignedSpawn: Game.spawns[spawnName].id,
                                         assignedRoom: Game.spawns[spawnName].room.name,

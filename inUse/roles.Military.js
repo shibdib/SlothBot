@@ -110,9 +110,6 @@ function attacker(creep) {
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
-    if (creep.hits < creep.hitsMax) {
-        creep.heal(creep);
-    }
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer');
 
