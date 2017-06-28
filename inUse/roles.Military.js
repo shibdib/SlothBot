@@ -4,16 +4,7 @@ let pathing = require('module.pathFinder');
 let militaryFunctions = require('module.militaryFunctions');
 let _ = require('lodash');
 
-let doNotAggress = [
-    //Alliance Members
-    'Shibdib',
-    'PostCrafter',
-    'Rising',
-    'wages123',
-    'SpaceRedleg',
-
-    //Non aggression pacts
-    'droben'];
+let doNotAggress = RawMemory.segments[2];
 
 
 module.exports.Manager = function (creep) {
