@@ -41,16 +41,17 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
                             }
                         }
                     }
+
                     for (let i = 1; i < 49; i++) {
                         let room = creep.room.name;
                         let border = (new RoomPosition(1, i, room));
-                        costMatrix.set(border.pos.x, border.pos.y, 100);
+                        costMatrix.set(border['x'], border['y'], 100);
                         let border2 = (new RoomPosition(i, 1, room));
-                        costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                        costMatrix.set(border2['x'], border2['y'], 100);
                         let border3 = (new RoomPosition(48, i, room));
-                        costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                        costMatrix.set(border3['x'], border3['y'], 100);
                         let border4 = (new RoomPosition(i, 48, room));
-                        costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                        costMatrix.set(border4['x'], border4['y'], 100);
                     }
 
                     const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
@@ -105,13 +106,13 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
                 for (let i = 1; i < 49; i++) {
                     let room = creep.room.name;
                     let border = (new RoomPosition(1, i, room));
-                    costMatrix.set(border.pos.x, border.pos.y, 100);
+                    costMatrix.set(border['x'], border['y'], 100);
                     let border2 = (new RoomPosition(i, 1, room));
-                    costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                    costMatrix.set(border2['x'], border2['y'], 100);
                     let border3 = (new RoomPosition(48, i, room));
-                    costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                    costMatrix.set(border3['x'], border3['y'], 100);
                     let border4 = (new RoomPosition(i, 48, room));
-                    costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                    costMatrix.set(border4['x'], border4['y'], 100);
                 }
 
                 const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
@@ -174,16 +175,17 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
                             }
                         }
                     }
+
                     for (let i = 1; i < 49; i++) {
                         let room = creep.room.name;
                         let border = (new RoomPosition(1, i, room));
-                        costMatrix.set(border.pos.x, border.pos.y, 100);
+                        costMatrix.set(border['x'], border['y'], 100);
                         let border2 = (new RoomPosition(i, 1, room));
-                        costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                        costMatrix.set(border2['x'], border2['y'], 100);
                         let border3 = (new RoomPosition(48, i, room));
-                        costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                        costMatrix.set(border3['x'], border3['y'], 100);
                         let border4 = (new RoomPosition(i, 48, room));
-                        costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                        costMatrix.set(border4['x'], border4['y'], 100);
                     }
 
                     const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
@@ -234,16 +236,17 @@ function MoveToPos(creep, target, exempt = false, maxRooms = 1) {
                         }
                     }
                 }
+
                 for (let i = 1; i < 49; i++) {
                     let room = creep.room.name;
                     let border = (new RoomPosition(1, i, room));
-                    costMatrix.set(border.pos.x, border.pos.y, 100);
+                    costMatrix.set(border['x'], border['y'], 100);
                     let border2 = (new RoomPosition(i, 1, room));
-                    costMatrix.set(border2.pos.x, border2.pos.y, 100);
+                    costMatrix.set(border2['x'], border2['y'], 100);
                     let border3 = (new RoomPosition(48, i, room));
-                    costMatrix.set(border3.pos.x, border3.pos.y, 100);
+                    costMatrix.set(border3['x'], border3['y'], 100);
                     let border4 = (new RoomPosition(i, 48, room));
-                    costMatrix.set(border4.pos.x, border4.pos.y, 100);
+                    costMatrix.set(border4['x'], border4['y'], 100);
                 }
 
                 const hostileCreeps = creep.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
