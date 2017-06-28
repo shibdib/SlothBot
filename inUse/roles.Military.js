@@ -115,6 +115,9 @@ function attacker(creep) {
         creep.suicide();
     }
     if (creep.memory.attackStarted !== true && Game.flags[creep.memory.staging].pos.roomName !== creep.pos.roomName) {
+        if (creep.hits < creep.hitsMax) {
+            creep.heal(creep);
+        }
         pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
         return null;
     }
