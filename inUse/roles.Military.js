@@ -375,6 +375,8 @@ function responder(creep) {
             creep.memory.destinationReached = true;
         }
         creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
+    } else if (creep.memory.assignedRoom === Game.rooms[creep.memory.responseTarget].name) {
+        findDefensivePosition(creep, Game.spawns[creep.memory.assignedSpawn]);
     }
 }
 
