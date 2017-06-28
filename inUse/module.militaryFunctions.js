@@ -1,6 +1,5 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
-let pathing = require('module.pathFinder');
 
 
 module.exports.buildWalls = function (spawn) {
@@ -291,7 +290,7 @@ module.exports.findDefensivePosition = function (creep) {
     let closestEnemy = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
     if (closestEnemy) {
         let bestRampart = closestEnemy.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.getRangeTo(creep.memory.assignedSpawn) <= 6 && !r.pos.lookFor(LOOK_CREEPS)});
-        pathing.Move(creep, bestRampart, true);
+        creep.travelTo(bestRampart);
     }
 };
 

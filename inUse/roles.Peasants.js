@@ -1,6 +1,5 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
-let pathing = require('module.pathFinder');
 
 
 module.exports.Manager = function (creep) {

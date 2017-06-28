@@ -1,5 +1,3 @@
-
-let pathing = require('module.pathFinder');
 const profiler = require('screeps-profiler');
 
 function borderCheck(creep) {
@@ -69,13 +67,13 @@ function wrongRoom(creep) {
         if (spawn) {
             if (spawn.id !== creep.memory.assignedSpawn) {
                 let home = Game.getObjectById(creep.memory.assignedSpawn);
-                pathing.Move(creep,home);
+                creep.travelTo(home);
             } else {
                 return false;
             }
         } else {
             let home = Game.getObjectById(creep.memory.assignedSpawn);
-            pathing.Move(creep,home);
+            creep.travelTo(home);
         }
     }
 }

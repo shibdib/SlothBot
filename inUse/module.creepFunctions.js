@@ -1,4 +1,3 @@
-let pathing = require('module.pathFinder');
 const profiler = require('screeps-profiler');
 
 function findSource(creep) {
@@ -90,7 +89,7 @@ function harvestDepositContainer(creep) {
         if (creep.pos.getRangeTo(container) <= 1) {
             return container.id;
         } else if (creep.pos.getRangeTo(container) <= 3) {
-            pathing.Move(creep, container);
+            creep.travelTo(container);
             return container.id;
         }
     }
@@ -104,7 +103,7 @@ function harvestDepositLink(creep) {
         if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
         } else if (creep.pos.getRangeTo(link) <= 3) {
-            pathing.Move(creep, link);
+            creep.travelTo(link);
             return link.id;
         }
     }
@@ -124,7 +123,7 @@ function renewal(creep) {
     }
     if (creep.memory.renew === true) {
         creep.say('Renew');
-        pathing.Move(creep, Game.getObjectById(creep.memory.assignedSpawn));
+        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         return true;
     } else if (Game.time % 15 === 0) {
         creep.memory.returnPath = pathing.FindPath(creep, Game.getObjectById(creep.memory.assignedSpawn), true);
@@ -153,7 +152,7 @@ function recycle(creep) {
         if (creep.memory.recycle === true) {
             creep.say('Recycle');
             let home = Game.getObjectById(creep.memory.assignedSpawn);
-            pathing.Move(creep, home);
+            creep.travelTo(home);
             return true;
         } else {
             return false;
@@ -170,7 +169,7 @@ function withdrawEnergy(creep) {
         if (energyItem) {
             if (energyItem.structureType !== null || energyItem.structureType !== undefined) {
                 if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    pathing.Move(creep, energyItem);
+                    creep.travelTo(energyItem);
                 } else {
                     creep.memory.energyDestination = null;
                 }

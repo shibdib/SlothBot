@@ -1,6 +1,5 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
-let pathing = require('module.pathFinder');
 let militaryFunctions = require('module.militaryFunctions');
 let _ = require('lodash');
 
@@ -38,7 +37,7 @@ function defender(creep) {
             creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
         }
     } else {
-        pathing.Move(creep, creep.memory.assignedSpawn);
+        creep.travelTo(creep.memory.assignedSpawn);
     }
 }
 /**
@@ -92,7 +91,7 @@ function healer(creep) {
  */
 function scout(creep) {
     if (creep.memory.destinationReached !== true) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
+        creep.travelTo(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
@@ -172,7 +171,7 @@ function attacker(creep) {
             creep.travelTo(hostileStructures);
         }
     } else if (creep.memory.attackStarted !== true) {
-        pathing.Move(creep, Game.flags[creep.memory.staging], false, 16);
+        creep.travelTo(Game.flags[creep.memory.staging]);
         let nearbyAttackers = creep.pos.findInRange(attackers, 5);
         let nearbyHealers = creep.pos.findInRange(healers, 5);
         let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
@@ -199,14 +198,14 @@ function claimer(creep) {
         creep.suicide();
     }
     if (!creep.memory.destinationReached) {
-        pathing.Move(creep, Game.flags[creep.memory.destination], false, 16);
+        creep.travelTo(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
             creep.memory.destinationReached = true;
         }
     } else {
         if (creep.room.controller) {
             if (creep.claimController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                pathing.Move(creep, creep.room.controller);
+                creep.travelTo(creep.room.controller);
             }
         }
     }
