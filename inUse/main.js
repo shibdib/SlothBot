@@ -71,6 +71,27 @@ module.exports.loop = function () {
         }
 
         //Alliance List Management
+        let doNotAggress = [
+            {"username": "Shibdib", "status": "alliance"},
+            {"username": "PostCrafter", "status": "alliance"},
+            {"username": "Rising", "status": "alliance"},
+            {"username": "wages123", "status": "alliance"},
+            {"username": "SpaceRedleg", "status": "alliance"},
+            {"username": "Donat", "status": "alliance"},
+            {"username": "BrinkDaDrink", "status": "alliance"},
+            {"username": "droben", "status": "nap"}
+        ];
+        let doNotAggressArray = [
+            'Shibdib',
+            'PostCrafter',
+            'Rising',
+            'wages123',
+            'SpaceRedleg',
+            'Donat',
+            'BrinkDaDrink',
+            'droben'];
+        RawMemory.segments[1] = JSON.stringify(doNotAggress);
+        RawMemory.segments[2] = JSON.stringify(doNotAggressArray);
         RawMemory.setPublicSegments([1, 2]);
         RawMemory.setDefaultPublicSegment(1);
 
