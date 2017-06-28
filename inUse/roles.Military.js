@@ -68,7 +68,7 @@ function healer(creep) {
     }
 
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
-    const targets = creep.pos.findInRange(FIND_MY_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax});
+    const targets = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (targets.length > 0) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
             if (creep.rangedHeal(targets[0]) === ERR_NOT_IN_RANGE) {
@@ -318,7 +318,7 @@ function responder(creep) {
     let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
     let closestHostileTower = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
     let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
-    let friendlies = creep.pos.findInRange(FIND_MY_CREEPS, 35, {filter: (c) => c.hits < c.hitsMax});
+    let friendlies = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (armedHostile) {
         if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, armedHostile);
