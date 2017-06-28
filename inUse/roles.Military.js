@@ -111,6 +111,9 @@ function attacker(creep) {
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
+    if (creep.hits < creep.hitsMax) {
+        creep.heal(creep);
+    }
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer');
 
@@ -120,23 +123,23 @@ function attacker(creep) {
     let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
     let hostileStructures = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
     if (armedHostile) {
-        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
+        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, armedHostile);
         }
     } else if (closestHostileTower) {
-        if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostileTower);
         }
     } else if (closestHostileSpawn) {
-        if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
+        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostileSpawn);
         }
     } else if (closestHostile) {
-        if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, closestHostile);
         }
     } else if (hostileStructures) {
-        if (creep.attack(hostileStructures) === ERR_NOT_IN_RANGE) {
+        if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE && creep.ranged_attack === ERR_NOT_IN_RANGE) {
             pathing.AttackMove(creep, hostileStructures);
         }
     } else if (creep.memory.attackStarted !== true) {

@@ -31,10 +31,6 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
             let cacheWorthy = true;
             creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
                 costCallback: function (roomName, costMatrix) {
-                    const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
-                    for (let i = 0; i < roads.length; i++) {
-                        costMatrix.set(roads[i].pos.x, roads[i].pos.y, 0);
-                    }
                     const creeps = creep.room.find(FIND_CREEPS);
                     for (let i = 0; i < creeps.length; i++) {
                         if (creep.pos.getRangeTo(creeps[i]) <= 1) {
@@ -73,10 +69,6 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
         let cacheWorthy = true;
         creep.memory.path = creep.room.findPath(creep.pos, target.pos, {
             costCallback: function (roomName, costMatrix) {
-                const roads = creep.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_ROAD});
-                for (let i = 0; i < roads.length; i++) {
-                    costMatrix.set(roads[i].pos.x, roads[i].pos.y, 1);
-                }
                 const creeps = creep.room.find(FIND_CREEPS);
                 for (let i = 0; i < creeps.length; i++) {
                     if (creep.pos.getRangeTo(creeps[i]) <= 1) {
