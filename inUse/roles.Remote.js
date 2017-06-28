@@ -198,11 +198,14 @@ function invaderCheck(creep) {
     if (!spawn) {
         let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
         if (invader) {
+            let number = creep.room.find(FIND_HOSTILE_CREEPS);
             creep.room.memory.responseNeeded = true;
+            creep.room.memory.numberOfHostiles = number.length;
             creep.memory.invaderDetected = true;
         } else {
             creep.memory.invaderDetected = undefined;
             creep.memory.invaderID = undefined;
+            creep.room.memory.numberOfHostiles = undefined;
             creep.room.memory.responseNeeded = false;
         }
     } else {

@@ -21,6 +21,7 @@ module.exports.Manager = function (creep) {
  */
 function worker(creep) {
     //INITIAL CHECKS
+    invaderCheck(creep);
     borderChecks.borderCheck(creep);
     if (creepTools.noHarvesterProtocol(creep)) {
         creepTools.findStorage(creep);
@@ -69,6 +70,7 @@ function worker(creep) {
  */
 function harvester(creep) {
     //INITIAL CHECKS
+    invaderCheck(creep);
     borderChecks.borderCheck(creep);
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -92,6 +94,7 @@ function harvester(creep) {
  * @return {null}
  */
 function mineralHarvester(creep) {
+    invaderCheck(creep);
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
@@ -116,6 +119,7 @@ function mineralHarvester(creep) {
  * @return {null}
  */
 function upgrader(creep) {
+    invaderCheck(creep);
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     if (creepTools.noHarvesterProtocol(creep)) {
@@ -237,5 +241,27 @@ function mineralContainer(creep) {
                 return container.id;
             }
         }
+    }
+}
+
+function invaderCheck(creep) {
+    let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+    if (!spawn) {
+        let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        if (invader) {
+            let number = creep.room.find(FIND_HOSTILE_CREEPS);
+            creep.room.memory.responseNeeded = true;
+            creep.room.memory.numberOfHostiles = number.length;
+            creep.memory.invaderDetected = true;
+        } else {
+            creep.memory.invaderDetected = undefined;
+            creep.memory.invaderID = undefined;
+            creep.room.memory.numberOfHostiles = undefined;
+            creep.room.memory.responseNeeded = false;
+        }
+    } else {
+        creep.memory.invaderDetected = undefined;
+        creep.memory.invaderID = undefined;
+        creep.room.memory.responseNeeded = false;
     }
 }
