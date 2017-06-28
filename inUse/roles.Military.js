@@ -147,7 +147,7 @@ function attacker(creep) {
             creep.memory.attackStarted = true;
         }
     } else {
-        pathing.Move(creep, Game.flags[creep.memory.attackTarget], false, 16);
+        pathing.AttackMove(creep, Game.flags[creep.memory.attackTarget], false, 16);
     }
 }
 /**
