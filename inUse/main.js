@@ -78,6 +78,7 @@ module.exports.loop = function () {
             {"username": "wages123", "status": "alliance"},
             {"username": "SpaceRedleg", "status": "alliance"},
             {"username": "Donat", "status": "alliance"},
+            {"username": "KageJ", "status": "alliance"},
             {"username": "BrinkDaDrink", "status": "alliance"},
             {"username": "droben", "status": "nap"}
         ];
@@ -88,6 +89,7 @@ module.exports.loop = function () {
             'wages123',
             'SpaceRedleg',
             'Donat',
+            'KageJ',
             'BrinkDaDrink',
             'droben'];
         RawMemory.segments[1] = JSON.stringify(doNotAggress);
