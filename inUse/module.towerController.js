@@ -16,9 +16,9 @@ module.exports.towerControl = function () {
             if (closestHostile.length > 0) {
                 for (let i = 0; i < closestHostile.length; i++) {
                     if (closestHostile[i].pos.getRangeTo(tower) < 15) {
-                        tower.attack(closestHostile);
+                        tower.attack(closestHostile[i]);
                     } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
-                        tower.attack(closestHostile);
+                        tower.attack(closestHostile[i]);
                     }
                 }
                 continue;
