@@ -398,7 +398,10 @@ function invaderCheck(creep) {
 
 function findDefensivePosition(creep, target) {
     if (target) {
-        let bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.lookFor(LOOK_CREEPS).length === 0});
+        let bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+        if (creep.pos.getRangeTo(bestRampart) !== 0) {
+            bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && r.pos.lookFor(LOOK_CREEPS).length === 0});
+        }
         pathing.Move(creep, bestRampart, true);
     }
 }
