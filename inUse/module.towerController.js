@@ -4,7 +4,7 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-let doNotAggress = RawMemory.foreignSegment;
+let doNotAggress = RawMemory.segments[2];
 
 module.exports.towerControl = function () {
     for (let tower of _.values(Game.structures)) {

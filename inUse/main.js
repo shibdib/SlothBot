@@ -96,6 +96,7 @@ module.exports.loop = function () {
         RawMemory.segments[2] = JSON.stringify(doNotAggressArray);
         RawMemory.setPublicSegments([1, 2]);
         RawMemory.setDefaultPublicSegment(1);
+        RawMemory.setActiveSegments([1, 2]);
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
