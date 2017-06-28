@@ -281,6 +281,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
 }
 
 function pricingUpdateSell(terminal, globalOrders, myOrders) {
+    resource:
     for (const resourceType in terminal.store) {
         for (let key in myOrders) {
             if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL) {
@@ -293,20 +294,20 @@ function pricingUpdateSell(terminal, globalOrders, myOrders) {
                         if (Game.market.changeOrderPrice(myOrders[key].id, _.round(sellOrder.price, 3)) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round(sellOrder.price, 2) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
-                        return;
+                        continue resource;
                     }
                 }
                 if (sellOrder.id && _.round(sellOrder.price - 0.001, 3) !== _.round(myOrders[key].price, 3) && _.round(sellOrder.price - 0.001, 3) > _.round(buyOrder.price, 3) && sellOrder.price - 0.001 !== 0) {
                     if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.001), 3)) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                     }
-                    return;
+                    continue resource;
                 }
                 if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2) && sellOrder.price - 0.01 !== 0) {
                     if (Game.market.changeOrderPrice(myOrders[key].id, _.round((buyOrder.price), 3)) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                     }
-                    return;
+                    continue resource;
                 }
             }
         }
@@ -314,6 +315,7 @@ function pricingUpdateSell(terminal, globalOrders, myOrders) {
 }
 
 function pricingUpdateBuy(terminal, globalOrders, myOrders) {
+    resource:
     for (let i = 0; i < tradeTargets.length; i++) {
         for (let key in myOrders) {
             if (myOrders[key].type === ORDER_BUY && myOrders[key].roomName === terminal.pos.roomName && Game.market.credits > 500) {
@@ -325,7 +327,7 @@ function pricingUpdateBuy(terminal, globalOrders, myOrders) {
                     if (Game.market.changeOrderPrice(myOrders[key].id, (buyOrder.price + 0.001)) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Buy order price change " + myOrders[key].id + " new/old " + (buyOrder.price + 0.001) + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType + "</font>");
                     }
-                    return;
+                    continue resource;
                 }
             }
         }
