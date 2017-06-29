@@ -172,12 +172,17 @@ function attacker(creep) {
             }
         } else if (weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = weakPoint.id;
-            if (creep.attack(weakPoint) === ERR_NOT_IN_RANGE) {
-                creep.rangedAttack(weakPoint);
-                if (creep.hits < creep.hitsMax) {
-                    creep.heal(creep);
+            if (creep.pos.findInRange(deconstructors, 5).length === 0) {
+                if (creep.attack(weakPoint) === ERR_NOT_IN_RANGE) {
+                    creep.rangedAttack(weakPoint);
+                    if (creep.hits < creep.hitsMax) {
+                        creep.heal(creep);
+                    }
+                    creep.travelTo(weakPoint, {allowHostile: true});
                 }
-                creep.travelTo(weakPoint, {allowHostile: true});
+            } else {
+                creep.rangedAttack(weakPoint);
+                creep.travelTo(weakPoint, {allowHostile: true, range: 2});
             }
         } else if (creep.memory.attackStarted !== true) {
             creep.travelTo(Game.flags[creep.memory.staging]);
