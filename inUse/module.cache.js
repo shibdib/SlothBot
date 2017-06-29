@@ -2,6 +2,8 @@
 //Credit - https://gist.github.com/derofim/72b7a5e1a57b77877892
 const profiler = require('screeps-profiler');
 
+let doNotAggress = RawMemory.segments[2];
+
 function cachePath(from, to, path) {
     let key = getPathKey(from, to);
     let cache = Memory.pathCache || {};
