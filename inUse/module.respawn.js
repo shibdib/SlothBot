@@ -128,8 +128,7 @@ function rcl2(spawnName) {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
-                            level: 0,
-                            destination: Game.flags[scout].name,
+                            level: 0
                         }) === 'explorer' + generatedNumber) {
                         console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
                         return;
@@ -254,8 +253,7 @@ function rcl3(spawnName) {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
-                            level: 0,
-                            destination: Game.flags[scout].name,
+                            level: 0
                         }) === 'explorer' + generatedNumber) {
                         console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
                         return;
@@ -492,8 +490,7 @@ function rcl4(spawnName) {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
-                            level: 0,
-                            destination: Game.flags[scout].name,
+                            level: 0
                         }) === 'explorer' + generatedNumber) {
                         console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
                         return;
@@ -767,8 +764,7 @@ function rcl5(spawnName) {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
-                            level: 0,
-                            destination: Game.flags[scout].name,
+                            level: 0
                         }) === 'explorer' + generatedNumber) {
                         console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
                         return;
@@ -1131,8 +1127,7 @@ function rcl6(spawnName) {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
-                            level: 0,
-                            destination: Game.flags[scout].name,
+                            level: 0
                         }) === 'explorer' + generatedNumber) {
                         console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
                         return;
