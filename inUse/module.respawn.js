@@ -123,18 +123,16 @@ function rcl2(spawnName) {
 
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
-                    if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                        if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
-                                role: 'explorer',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 0,
-                                destination: Game.flags[scout].name,
-                            }) === 'explorer' + generatedNumber) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
-                            return;
-                        }
+                    let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
+                    if (scouts.length < 1 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                            role: 'explorer',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
+                            level: 0,
+                            destination: Game.flags[scout].name,
+                        }) === 'explorer' + generatedNumber) {
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
+                        return;
                     }
                 }
 
@@ -251,18 +249,16 @@ function rcl3(spawnName) {
 
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
-                    if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                        if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
-                                role: 'explorer',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 0,
-                                destination: Game.flags[scout].name,
-                            }) === 'explorer' + generatedNumber) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
-                            return;
-                        }
+                    let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
+                    if (scouts.length < 1 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                            role: 'explorer',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
+                            level: 0,
+                            destination: Game.flags[scout].name,
+                        }) === 'explorer' + generatedNumber) {
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
+                        return;
                     }
                 }
 
@@ -491,18 +487,16 @@ function rcl4(spawnName) {
 
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
-                    if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                        if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
-                                role: 'explorer',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 0,
-                                destination: Game.flags[scout].name,
-                            }) === 'explorer' + generatedNumber) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
-                            return;
-                        }
+                    let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
+                    if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                            role: 'explorer',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
+                            level: 0,
+                            destination: Game.flags[scout].name,
+                        }) === 'explorer' + generatedNumber) {
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
+                        return;
                     }
                 }
 
@@ -765,20 +759,19 @@ function rcl5(spawnName) {
                 if (assistNeeded.length > 0) {
                     defenseForce = true;
                 }
+
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
-                    if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                        if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
-                                role: 'explorer',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 0,
-                                destination: Game.flags[scout].name,
-                            }) === 'explorer' + generatedNumber) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
-                            return;
-                        }
+                    let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
+                    if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                            role: 'explorer',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
+                            level: 0,
+                            destination: Game.flags[scout].name,
+                        }) === 'explorer' + generatedNumber) {
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
+                        return;
                     }
                 }
 
@@ -1133,18 +1126,16 @@ function rcl6(spawnName) {
 
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
-                    if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
-                        let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                        if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
-                                role: 'explorer',
-                                assignedSpawn: Game.spawns[spawnName].id,
-                                assignedRoom: Game.spawns[spawnName].room.name,
-                                level: 0,
-                                destination: Game.flags[scout].name,
-                            }) === 'explorer' + generatedNumber) {
-                            console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
-                            return;
-                        }
+                    let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
+                    if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                            role: 'explorer',
+                            assignedSpawn: Game.spawns[spawnName].id,
+                            assignedRoom: Game.spawns[spawnName].room.name,
+                            level: 0,
+                            destination: Game.flags[scout].name,
+                        }) === 'explorer' + generatedNumber) {
+                        console.log(Game.spawns[spawnName].room.name + ' Spawning an explorer');
+                        return;
                     }
                 }
 
