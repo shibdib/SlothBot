@@ -20,20 +20,31 @@ module.exports.Manager = function (creep) {
  */
 function explorer(creep) {
     cache.cacheRoomIntel(creep);
+    if (!creep.memory.destination) {
+        creep.memory.targetRooms = Game.map.describeExits(creep.room);
+        for (let key in creep.memory.targetRooms) {
+            if (!Memory.roomCache[creep.memory.targetRooms[key]]) {
+                creep.memory.destination = creep.memory.targetRooms[key];
+                break;
+            }
+        }
+    }
+    if (!creep.memory.destination) {
+        for (let key in creep.memory.targetRooms) {
+            creep.memory.destination = creep.memory.targetRooms[key];
+            break;
+        }
+    }
     if (creep.memory.destinationReached !== true) {
-        creep.travelTo(Game.flags[creep.memory.destination]);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
+        if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
     } else {
-        let HostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (HostileCreeps.length > 0) {
-            creep.memory.enemyCount = HostileCreeps.length;
-            creep.memory.enemyPos = HostileCreeps[0].pos;
-        } else {
-            creep.memory.enemyCount = null;
-            creep.memory.enemyPos = null;
-        }
+        cache.cacheRoomIntel(creep);
+        creep.memory.destination = undefined;
+        creep.memory.targetRooms = undefined;
+        creep.memory.destinationReached = undefined;
     }
 }
 
@@ -118,8 +129,7 @@ function hauler(creep) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
             if (terminal.length > 0) {
                 creep.memory.storageDestination = terminal[0];
-            } else
-            if (storage.length > 0) {
+            } else if (storage.length > 0) {
                 creep.memory.storageDestination = storage[0];
             }
             if (creep.memory.storageDestination) {
