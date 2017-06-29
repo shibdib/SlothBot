@@ -7,6 +7,7 @@ const profiler = require('screeps-profiler');
 let doNotAggress = RawMemory.segments[2];
 
 module.exports.towerControl = function () {
+    towers:
     for (let tower of _.values(Game.structures)) {
         if (tower.structureType === STRUCTURE_TOWER) {
             const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
@@ -17,11 +18,12 @@ module.exports.towerControl = function () {
                 for (let i = 0; i < closestHostile.length; i++) {
                     if (closestHostile[i].pos.getRangeTo(tower) < 15) {
                         tower.attack(closestHostile[i]);
+                        continue towers;
                     } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
                         tower.attack(closestHostile[i]);
+                        continue towers;
                     }
                 }
-                continue;
             }
             if (woundedCreep) {
                 tower.heal(woundedCreep);
