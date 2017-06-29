@@ -134,7 +134,7 @@ function attacker(creep) {
                 }
                 creep.travelTo(closestHostileSpawn, {allowHostile: true});
             }
-        } else if (closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = closestHostile.id;
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
                 creep.rangedAttack(closestHostile);
@@ -143,7 +143,7 @@ function attacker(creep) {
                 }
                 creep.travelTo(closestHostile, {allowHostile: true, movingTarget: true});
             }
-        } else if (hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = hostileStructures.id;
             if (creep.attack(hostileStructures) === ERR_NOT_IN_RANGE) {
                 creep.rangedAttack(hostileStructures);
@@ -152,7 +152,7 @@ function attacker(creep) {
                 }
                 creep.travelTo(hostileStructures, {allowHostile: true});
             }
-        } else if (weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = weakPoint.id;
             if (creep.pos.findInRange(deconstructors, 5).length === 0) {
                 if (creep.attack(weakPoint) === ERR_NOT_IN_RANGE) {
@@ -167,13 +167,16 @@ function attacker(creep) {
                 creep.travelTo(weakPoint, {allowHostile: true, range: 2});
             }
         } else if (creep.memory.attackStarted !== true) {
+            creep.memory.squadTarget = undefined;
             creep.travelTo(Game.flags[creep.memory.staging]);
-            let nearbyAttackers = creep.pos.findInRange(attackers, 5);
-            let nearbyHealers = creep.pos.findInRange(healers, 5);
-            let nearbyRanged = creep.pos.findInRange(ranged, 5);
-            let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
-            if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor && nearbyRanged.length >= creep.memory.waitForRanged) {
-                creep.memory.attackStarted = true;
+            if (Game.flags[creep.memory.attackTarget]) {
+                let nearbyAttackers = creep.pos.findInRange(attackers, 5);
+                let nearbyHealers = creep.pos.findInRange(healers, 5);
+                let nearbyRanged = creep.pos.findInRange(ranged, 5);
+                let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
+                if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor && nearbyRanged.length >= creep.memory.waitForRanged) {
+                    creep.memory.attackStarted = true;
+                }
             }
         } else {
             if (Game.flags['wp'] && creep.memory.waypointReached !== true) {
@@ -259,7 +262,7 @@ function ranged(creep) {
                 }
                 creep.travelTo(closestHostileSpawn, {allowHostile: true, range: 3});
             }
-        } else if (closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = closestHostile.id;
             if (creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
                 if (creep.hits < creep.hitsMax) {
@@ -267,7 +270,7 @@ function ranged(creep) {
                 }
                 creep.travelTo(closestHostile, {allowHostile: true, range: 3});
             }
-        } else if (hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = hostileStructures.id;
             if (creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
                 if (creep.hits < creep.hitsMax) {
@@ -275,7 +278,7 @@ function ranged(creep) {
                 }
                 creep.travelTo(hostileStructures, {allowHostile: true, range: 3});
             }
-        } else if (weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = weakPoint.id;
             if (creep.pos.findInRange(deconstructors, 5).length === 0) {
                 if (creep.rangedAttack(weakPoint) === ERR_NOT_IN_RANGE) {
@@ -291,12 +294,14 @@ function ranged(creep) {
         } else if (creep.memory.attackStarted !== true) {
             creep.memory.squadTarget = undefined;
             creep.travelTo(Game.flags[creep.memory.staging]);
-            let nearbyAttackers = creep.pos.findInRange(attackers, 5);
-            let nearbyHealers = creep.pos.findInRange(healers, 5);
-            let nearbyRanged = creep.pos.findInRange(ranged, 5);
-            let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
-            if (nearbyRanged.length >= creep.memory.waitForRanged - 1 && nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor) {
-                creep.memory.attackStarted = true;
+            if (Game.flags[creep.memory.attackTarget]) {
+                let nearbyAttackers = creep.pos.findInRange(attackers, 5);
+                let nearbyHealers = creep.pos.findInRange(healers, 5);
+                let nearbyRanged = creep.pos.findInRange(ranged, 5);
+                let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
+                if (nearbyRanged.length >= creep.memory.waitForRanged - 1 && nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor) {
+                    creep.memory.attackStarted = true;
+                }
             }
         } else {
             creep.memory.squadTarget = undefined;
