@@ -1,5 +1,6 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
+let cache = require('module.cache');
 let _ = require('lodash');
 
 
@@ -20,6 +21,7 @@ module.exports.Manager = function (creep) {
  */
 function worker(creep) {
     //INITIAL CHECKS
+    cache.cacheRoomIntel(creep);
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
     if (creepTools.noHarvesterProtocol(creep)) {

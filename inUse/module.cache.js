@@ -82,3 +82,41 @@ module.exports.getRoomStructures = function (id, room) {
         return null;
     }
 };
+
+
+//Room intel
+module.exports.cacheRoomIntel = function (creep) {
+    let room = Game.rooms[creep.pos.roomName];
+    let owner = undefined;
+    let level = undefined;
+    if (room) {
+        let cache = Game.memory.roomCache || {};
+        let sources = room.find(FIND_SOURCES);
+        let minerals = room.find(FIND_MINERALS);
+        owner = room.controller.owner;
+        level = room.controller.level;
+        let key = room.name;
+        cache[key] = {
+            name: room.name,
+            sources: sources,
+            minerals: minerals,
+            owner: owner,
+            level: level
+        };
+        Game.memory.roomCache = cache;
+    }
+};
+
+module.exports.getRoomIntel = function (id, room) {
+    let cache = Memory.room.structureCache;
+    if (cache) {
+        let cachedPath = cache[getStructureKey(from, to)];
+        if (cachedPath) {
+            cachedPath.uses += 1;
+            Memory.room.structureCache = cache;
+            return cachedPath;
+        }
+    } else {
+        return null;
+    }
+};
