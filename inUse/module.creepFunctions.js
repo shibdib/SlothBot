@@ -470,15 +470,17 @@ function findStorage(creep) {
         for (i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] >= 1000) {
-                    continue;
+                if (object.pos.getRangeTo(creep) > 1) {
+                    if (object.store[RESOURCE_ENERGY] >= 1000) {
+                        continue;
+                    }
+                    const terminalDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
+                    terminals.push({
+                        id: terminal[i],
+                        distWeighted: terminalDistWeighted,
+                        harvest: false
+                    });
                 }
-                const terminalDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
-                terminals.push({
-                    id: terminal[i],
-                    distWeighted: terminalDistWeighted,
-                    harvest: false
-                });
             }
         }
         let bestTerminal = _.min(terminals, 'distWeighted');
