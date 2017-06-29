@@ -6,11 +6,11 @@ function findSource(creep) {
     const source = creep.room.find(FIND_SOURCES_ACTIVE);
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
-            if (!source[i].pos.findInRange(FIND_CREEPS, 1, {filter: (c) => c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester'})) {
-                if (creep.travelTo(source) !== ERR_NO_PATH) {
-                    if (source.id) {
-                        creep.memory.source = source.id;
-                        return source;
+            if (source[i].pos.findInRange(FIND_CREEPS, 1, {filter: (c) => c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester'}).length === 0) {
+                if (creep.travelTo(source[i]) !== ERR_NO_PATH) {
+                    if (source[i].id) {
+                        creep.memory.source = source[i].id;
+                        return source[i];
                     }
                 }
             }
