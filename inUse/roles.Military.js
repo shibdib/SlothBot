@@ -56,17 +56,8 @@ function scout(creep) {
  */
 function healer(creep) {
     cache.cacheRoomIntel(creep);
-
-    //RENEWAL
-    if (creepTools.renewal(creep) === true) {
-        return null;
-    }
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
-    }
-
-    if (!Game.flags[creep.memory.attackTarget]) {
-        creep.suicide();
     }
 
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
