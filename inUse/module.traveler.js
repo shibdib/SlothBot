@@ -6,6 +6,8 @@
  * Example: var Traveler = require('Traveler.js');
  */
 "use strict";
+
+let doNotAggress = RawMemory.segments[2];
 Object.defineProperty(exports, "__esModule", {value: true});
 class Traveler {
     /**
@@ -17,7 +19,7 @@ class Traveler {
      */
     static travelTo(creep, destination, options = {}) {
         // uncomment if you would like to register hostile rooms entered
-        // this.updateRoomStatus(creep.room);
+        this.updateRoomStatus(creep.room);
         if (!destination) {
             return ERR_INVALID_ARGS;
         }
@@ -204,7 +206,7 @@ class Traveler {
             return;
         }
         if (room.controller) {
-            if (room.controller.owner && !room.controller.my) {
+            if (room.controller.owner && !room.controller.my && _.includes(doNotAggress, room.controller.owner['username']) === false) {
                 room.memory.avoid = 1;
             }
             else {
