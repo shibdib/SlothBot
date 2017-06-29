@@ -21,7 +21,7 @@ module.exports.Manager = function (creep) {
 function explorer(creep) {
     cache.cacheRoomIntel(creep);
     if (!creep.memory.targetRooms) {
-        creep.memory.targetRooms = Game.map.describeExits(creep.room);
+        creep.memory.targetRooms = Game.map.describeExits(creep.pos.roomName);
         for (let key in creep.memory.targetRooms) {
             if (!Memory.roomCache[creep.memory.targetRooms[key]]) {
                 creep.memory.destination = creep.memory.targetRooms[key];
