@@ -85,7 +85,7 @@ function hauler(creep) {
         creep.memory.destinationReached = false;
         return null;
     }
-    if (!creep.memory.destinationReached) {
+    if (!creep.memory.destinationReached && creep.memory.hauling !== true) {
         creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
@@ -94,7 +94,6 @@ function hauler(creep) {
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
-        creep.memory.destinationReached = null;
     }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.containerID = undefined;
@@ -123,6 +122,7 @@ function hauler(creep) {
     //Haul to terminal -> spawn/extension
     if (creep.memory.hauling === true) {
         if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
+            creep.memory.destinationReached = false;
             let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
             if (terminal.length > 0) {
