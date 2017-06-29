@@ -306,7 +306,7 @@ function rcl3(spawnName) {
                 }
 
                 //RAIDER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 500 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 500) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let raid = 'raid' + i;
@@ -328,7 +328,7 @@ function rcl3(spawnName) {
                 }
 
                 //CLAIM RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 700 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 700) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let claim = 'claim' + i;
@@ -383,7 +383,7 @@ function rcl3(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (Game.spawns[spawnName].room.energyAvailable >= 700 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 700) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let key in Memory.roomCache) {
                             if (remoteNeighborCheck(spawnName, key) === true) {
@@ -414,7 +414,7 @@ function rcl3(spawnName) {
                 }
 
                 //WORKER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 750 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 750) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 800) * 0.2) / 2);
                         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
@@ -541,7 +541,7 @@ function rcl4(spawnName) {
                 }
 
                 //RAIDER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1000 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1000) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         for (let i = 0; i < 10; i++) {
                             let raid = 'raid' + i;
@@ -563,7 +563,7 @@ function rcl4(spawnName) {
                 }
 
                 //RESERVE RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1300 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1300) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'reserver');
                         if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
@@ -579,7 +579,7 @@ function rcl4(spawnName) {
                 }
 
                 //CLAIM RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 700 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 700) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let claim = 'claim' + i;
@@ -614,7 +614,7 @@ function rcl4(spawnName) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a basicHauler');
                             return;
                         }
-                        if (basicHaulerLarge.length === 0 && defenseForce !== true && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
+                        if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
                                 role: 'largeHauler',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -644,7 +644,7 @@ function rcl4(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (Game.spawns[spawnName].room.energyAvailable >= 1000 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1000) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let key in Memory.roomCache) {
                             if (remoteNeighborCheck(spawnName, key) === true) {
@@ -675,7 +675,7 @@ function rcl4(spawnName) {
                 }
 
                 //WORKER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1300 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1300) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1300) * 0.2) / 2);
                         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
@@ -813,7 +813,7 @@ function rcl5(spawnName) {
                 }
 
                 //RAIDER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1000 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1000) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         for (let i = 0; i < 10; i++) {
                             let raid = 'raid' + i;
@@ -835,7 +835,7 @@ function rcl5(spawnName) {
                 }
 
                 //ATTACK RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1530 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1530) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         for (let name in Game.flags) {
                             let attackerAmount = undefined;
@@ -925,7 +925,7 @@ function rcl5(spawnName) {
                 }
 
                 //RESERVE RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1300 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1300) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'reserver');
                         if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, MOVE, MOVE], generatedNumber + 'reserver', {
@@ -941,7 +941,7 @@ function rcl5(spawnName) {
                 }
 
                 //CLAIM RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 700 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 700) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let claim = 'claim' + i;
@@ -976,7 +976,7 @@ function rcl5(spawnName) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                             return;
                         }
-                        if (basicHaulerLarge.length === 0 && defenseForce !== true && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
+                        if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
                                 role: 'largeHauler',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -1006,7 +1006,7 @@ function rcl5(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (Game.spawns[spawnName].room.energyAvailable >= 1000 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1000) {
                     if (stationaryHarvester.length >= sourceCount) {
                         if (stationaryHarvester.length >= sourceCount) {
                             for (let key in Memory.roomCache) {
@@ -1039,7 +1039,7 @@ function rcl5(spawnName) {
                 }
 
                 //WORKER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1800 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1800) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 1800) * 0.2) / 2);
                         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
@@ -1176,7 +1176,7 @@ function rcl6(spawnName) {
                 }
 
                 //RAIDER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1000 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1000) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         for (let i = 0; i < 10; i++) {
                             let raid = 'raid' + i;
@@ -1198,7 +1198,7 @@ function rcl6(spawnName) {
                 }
 
                 //ATTACK RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 2220 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 2220) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let name in Game.flags) {
                             let attackerAmount = undefined;
@@ -1288,7 +1288,7 @@ function rcl6(spawnName) {
                 }
 
                 //RESERVE RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1950 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1950) {
                     if (stationaryHarvester.length >= sourceCount && worker.length > 0 && upgrader.length > 0) {
                         let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'reserver');
                         if (reserver.length < 1 && Game.spawns[spawnName].createCreep([CLAIM, CLAIM, CLAIM, MOVE, MOVE, MOVE], generatedNumber + 'reserver', {
@@ -1304,7 +1304,7 @@ function rcl6(spawnName) {
                 }
 
                 //CLAIM RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 700 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 700) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let claim = 'claim' + i;
@@ -1339,7 +1339,7 @@ function rcl6(spawnName) {
                             console.log(Game.spawns[spawnName].room.name + ' Spawning a hauler');
                             return;
                         }
-                        if (basicHaulerLarge.length === 0 && defenseForce !== true && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
+                        if (basicHaulerLarge.length === 0 && Game.spawns[spawnName].createCreep([MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], generatedNumber + 'largeHauler', {
                                 role: 'largeHauler',
                                 assignedSpawn: Game.spawns[spawnName].id,
                                 assignedRoom: Game.spawns[spawnName].room.name,
@@ -1369,7 +1369,7 @@ function rcl6(spawnName) {
                 }
 
                 //MINERAL HARVESTER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 1450 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1450) {
                     for (let i = 0; i < minerals.length; i++) {
                         let harvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals[i].id && creep.memory.role === 'mineralHarvester');
                         let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
@@ -1397,7 +1397,7 @@ function rcl6(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (Game.spawns[spawnName].room.energyAvailable >= 1000 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1000) {
                     if (stationaryHarvester.length >= sourceCount) {
                         if (stationaryHarvester.length >= sourceCount) {
                             for (let key in Memory.roomCache) {
@@ -1430,7 +1430,7 @@ function rcl6(spawnName) {
                 }
 
                 //WORKER RESPAWNS
-                if (Game.spawns[spawnName].room.energyAvailable >= 2300 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 2300) {
                     if (stationaryHarvester.length >= sourceCount) {
                         const limit = _.round(((((harvestingPower(spawnName) * 1500) - 2000) / 2300) * 0.22) / 2);
                         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === Game.spawns[spawnName].id);
