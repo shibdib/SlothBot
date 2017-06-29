@@ -870,7 +870,7 @@ function rcl5(spawnName) {
                                         console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                         return;
                                     }
-                                    let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
+                                    let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'ranged');
                                     if (ranged.length < attackerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'ranged', {
                                             role: 'ranged',
                                             assignedSpawn: Game.spawns[spawnName].id,
@@ -1233,7 +1233,7 @@ function rcl6(spawnName) {
                                         console.log(Game.spawns[spawnName].room.name + ' Spawning a attacker');
                                         return;
                                     }
-                                    let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
+                                    let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'ranged');
                                     if (ranged.length < attackerAmount && Game.spawns[spawnName].createCreep([TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL], generatedNumber + 'ranged', {
                                             role: 'ranged',
                                             assignedSpawn: Game.spawns[spawnName].id,
@@ -1395,7 +1395,7 @@ function rcl6(spawnName) {
                         }
                     }
                 }
-                
+
                 //REMOTE RESPAWN
                 if (Game.spawns[spawnName].room.energyAvailable >= 1000 && defenseForce !== true) {
                     if (stationaryHarvester.length >= sourceCount) {
