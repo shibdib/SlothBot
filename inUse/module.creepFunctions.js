@@ -1,5 +1,7 @@
 const profiler = require('screeps-profiler');
 
+let doNotAggress = RawMemory.segments[2];
+
 function findSource(creep) {
     const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
     if (source) {
@@ -424,19 +426,29 @@ function findStorage(creep) {
     //Tower
     let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
     let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
     if (tower.length > 0 && harvester.length >= 2) {
         let towers = [];
         for (i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {
-                    const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                    const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 1.2, 0) + 1 - towerAmountWeighted;
-                    towers.push({
-                        id: tower[i],
-                        distWeighted: towerDistWeighted,
-                        harvest: false
-                    });
+                    if (closestHostile) {
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.2, 0);
+                        towers.push({
+                            id: tower[i],
+                            distWeighted: towerDistWeighted,
+                            harvest: false
+                        });
+                    } else {
+                        const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 1.2, 0) + 1 - towerAmountWeighted;
+                        towers.push({
+                            id: tower[i],
+                            distWeighted: towerDistWeighted,
+                            harvest: false
+                        });
+                    }
                 }
             }
         }
