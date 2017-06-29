@@ -1,4 +1,5 @@
 let creepTools = require('module.creepFunctions');
+let cache = require('module.cache');
 let pathing = require('module.pathFinder');
 
 
@@ -16,6 +17,7 @@ module.exports.Manager = function (creep) {
  * @return {null}
  */
 function harvester(creep) {
+    cache.cacheRoomIntel(creep);
     if (!Game.flags[creep.memory.destination]) {
         creepTools.recycle(creep);
         return null;

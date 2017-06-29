@@ -1,6 +1,7 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let militaryFunctions = require('module.militaryFunctions');
+let cache = require('module.cache');
 let _ = require('lodash');
 
 let doNotAggress = RawMemory.segments[2];
@@ -29,23 +30,32 @@ module.exports.Manager = function (creep) {
         ranged(creep);
     }
 };
-
-function defender(creep) {
-    const targets = creep.pos.findInRange(FIND_CREEPS, 10, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
-    const closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
-    if (targets.length > 0) {
-        creep.say('ATTACKING');
-        if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-            creep.moveTo(closestHostile, {reusePath: 20}, {visualizePathStyle: {stroke: '#ffffff'}});
+/**
+ * @return {null}
+ */
+function scout(creep) {
+    cache.cacheRoomIntel(creep);
+    if (creep.memory.destinationReached !== true) {
+        creep.travelTo(Game.flags[creep.memory.destination]);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+            creep.memory.destinationReached = true;
         }
     } else {
-        creep.travelTo(creep.memory.assignedSpawn);
+        let HostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS);
+        if (HostileCreeps.length > 0) {
+            creep.memory.enemyCount = HostileCreeps.length;
+            creep.memory.enemyPos = HostileCreeps[0].pos;
+        } else {
+            creep.memory.enemyCount = null;
+            creep.memory.enemyPos = null;
+        }
     }
 }
 /**
  * @return {null}
  */
 function healer(creep) {
+    cache.cacheRoomIntel(creep);
 
     //RENEWAL
     if (creepTools.renewal(creep) === true) {
@@ -79,30 +89,8 @@ function healer(creep) {
 /**
  * @return {null}
  */
-function scout(creep) {
-    if (creep.memory.destinationReached !== true) {
-        creep.travelTo(Game.flags[creep.memory.destination]);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
-            creep.memory.destinationReached = true;
-        }
-    } else {
-        let HostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (HostileCreeps.length > 0) {
-            creep.memory.enemyCount = HostileCreeps.length;
-            creep.memory.enemyPos = HostileCreeps[0].pos;
-        } else {
-            creep.memory.enemyCount = null;
-            creep.memory.enemyPos = null;
-        }
-    }
-}
-/**
- * @return {null}
- */
 function attacker(creep) {
-    if (!Game.flags[creep.memory.attackTarget]) {
-        creep.suicide();
-    }
+    cache.cacheRoomIntel(creep);
     if (creep.memory.attackStarted !== true && Game.flags[creep.memory.staging].pos.roomName !== creep.pos.roomName) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
@@ -230,6 +218,7 @@ function attacker(creep) {
  * @return {null}
  */
 function ranged(creep) {
+    cache.cacheRoomIntel(creep);
     if (creep.memory.attackStarted !== true && Game.flags[creep.memory.staging].pos.roomName !== creep.pos.roomName) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
@@ -358,6 +347,7 @@ function ranged(creep) {
  * @return {null}
  */
 function deconstructor(creep) {
+    cache.cacheRoomIntel(creep);
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
@@ -482,7 +472,7 @@ function reserver(creep) {
  * @return {null}
  */
 function raider(creep) {
-
+    cache.cacheRoomIntel(creep);
     if (!Game.flags[creep.memory.attackTarget]) {
         creepTools.recycle(creep);
         return null;
