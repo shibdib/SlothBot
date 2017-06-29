@@ -20,21 +20,9 @@ module.exports.Manager = function (creep) {
  */
 function explorer(creep) {
     cache.cacheRoomIntel(creep);
-    if (!creep.memory.targetRooms) {
+    if (!creep.memory.targetRooms || !creep.memory.destination) {
         creep.memory.targetRooms = Game.map.describeExits(creep.pos.roomName);
-        for (let key in creep.memory.targetRooms) {
-            if (!Memory.roomCache[creep.memory.targetRooms[key]]) {
-                creep.memory.destination = creep.memory.targetRooms[key];
-                break;
-            }
-        }
-    }
-    if (!creep.memory.destination) {
-        for (let key in creep.memory.targetRooms) {
-            creep.memory.destination = creep.memory.targetRooms[key];
-            break;
-        }
-        return null;
+        creep.memory.destination = _.sample(creep.memory.targetRooms);
     }
     if (creep.memory.destinationReached !== true) {
         creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
