@@ -1288,7 +1288,7 @@ function rcl6(spawnName) {
                 }
 
                 //REMOTE RESPAWN
-                if (Game.spawns[spawnName].room.energyAvailable >= 1150 && defenseForce !== true) {
+                if (Game.spawns[spawnName].room.energyAvailable >= 1150) {
                     if (stationaryHarvester.length >= sourceCount) {
                         for (let i = 0; i < 10; i++) {
                             let remote = 'remote' + i;
