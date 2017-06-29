@@ -101,10 +101,9 @@ function hauler(creep) {
     }
     if (creep.memory.hauling === false) {
         if (!creep.memory.containerID) {
-            let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+            let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
             if (container.length > 0) {
-                container = _.max(container, 'store');
-                creep.memory.containerID = container.id;
+                creep.memory.containerID = container[0].id;
                 if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(container);
                 }
