@@ -90,7 +90,7 @@ module.exports.cacheRoomIntel = function (creep) {
     let owner = undefined;
     let level = undefined;
     if (room) {
-        let cache = Game.memory.roomCache || {};
+        let cache = Memory.roomCache || {};
         let sources = room.find(FIND_SOURCES);
         let minerals = room.find(FIND_MINERALS);
         owner = room.controller.owner;
@@ -103,7 +103,7 @@ module.exports.cacheRoomIntel = function (creep) {
             owner: owner,
             level: level
         };
-        Game.memory.roomCache = cache;
+        Memory.roomCache = cache;
     }
 };
 
