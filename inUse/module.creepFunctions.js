@@ -423,7 +423,8 @@ function findStorage(creep) {
     }
     //Tower
     let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
-    if (tower.length > 0) {
+    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    if (tower.length > 0 && harvester.length >= 2) {
         let towers = [];
         for (i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
