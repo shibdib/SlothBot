@@ -124,7 +124,7 @@ function rcl2(spawnName) {
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
                     let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                    if (scouts.length < 1 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                    if (explorers.length < 1 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
@@ -250,7 +250,7 @@ function rcl3(spawnName) {
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
                     let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                    if (scouts.length < 1 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                    if (explorers.length < 1 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
@@ -488,7 +488,7 @@ function rcl4(spawnName) {
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
                     let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                    if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                    if (explorers.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
@@ -763,7 +763,7 @@ function rcl5(spawnName) {
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
                     let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                    if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                    if (explorers.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
@@ -1127,7 +1127,7 @@ function rcl6(spawnName) {
                 //EXPLORER RESPAWNS
                 if (Game.spawns[spawnName].room.energyAvailable >= 50) {
                     let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === Game.spawns[spawnName].pos.roomName && creep.memory.role === 'explorer');
-                    if (scouts.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
+                    if (explorers.length < 2 && Game.spawns[spawnName].createCreep([MOVE], 'explorer' + generatedNumber, {
                             role: 'explorer',
                             assignedSpawn: Game.spawns[spawnName].id,
                             assignedRoom: Game.spawns[spawnName].room.name,
