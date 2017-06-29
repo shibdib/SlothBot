@@ -188,7 +188,14 @@ function attacker(creep) {
                 creep.memory.attackStarted = true;
             }
         } else {
-            creep.travelTo(Game.flags[creep.memory.attackTarget], {allowHostile: true});
+            if (Game.flags['wp'] && creep.memory.waypointReached !== true) {
+                if (creep.pos.getRangeTo(Game.flags['wp']) > 6) {
+                    creep.memory.waypointReached = true;
+                }
+                creep.travelTo(Game.flags['wp'], {allowHostile: false});
+            } else {
+                creep.travelTo(Game.flags[creep.memory.attackTarget], {allowHostile: true});
+            }
         }
     } else {
         if (squadLeader[0].memory.attackStarted !== true) {
