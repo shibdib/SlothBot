@@ -3,12 +3,16 @@ const profiler = require('screeps-profiler');
 let doNotAggress = RawMemory.segments[2];
 
 function findSource(creep) {
-    const source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
-    if (source) {
-        if (creep.moveTo(source) !== ERR_NO_PATH) {
-            if (source.id) {
-                creep.memory.source = source.id;
-                return source;
+    const source = creep.room.find(FIND_SOURCES_ACTIVE);
+    if (source.length > 0) {
+        for (let i = 0; i < source.length; i++) {
+            if (!source[i].pos.findInRange(FIND_CREEPS, 1, {filter: (c) => c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester'})) {
+                if (creep.travelTo(source) !== ERR_NO_PATH) {
+                    if (source.id) {
+                        creep.memory.source = source.id;
+                        return source;
+                    }
+                }
             }
         }
     }

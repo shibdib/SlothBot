@@ -41,11 +41,8 @@ function explorer(creep) {
  * @return {null}
  */
 function harvester(creep) {
+    let source;
     cache.cacheRoomIntel(creep);
-    if (!Game.flags[creep.memory.destination]) {
-        creepTools.recycle(creep);
-        return null;
-    }
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true) {
@@ -58,8 +55,8 @@ function harvester(creep) {
         creep.memory.harvesting = true;
     }
     if (!creep.memory.destinationReached) {
-        creep.travelTo(Game.flags[creep.memory.destination]);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
+        if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
         return null;
@@ -70,7 +67,7 @@ function harvester(creep) {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
         } else if (!source) {
-            var source = creepTools.findSource(creep);
+            source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.travelTo(source);
@@ -89,8 +86,8 @@ function hauler(creep) {
         return null;
     }
     if (!creep.memory.destinationReached) {
-        creep.travelTo(Game.flags[creep.memory.destination]);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
+        if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
         return null;
@@ -103,8 +100,9 @@ function hauler(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (container) {
+        let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+        if (container.length > 0) {
+            container = _.max(container, 'store');
             if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(container);
             }
