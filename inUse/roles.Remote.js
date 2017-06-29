@@ -10,8 +10,32 @@ module.exports.Manager = function (creep) {
         hauler(creep);
     } else if (creep.memory.role === "spawnBuilder") {
         spawnBuilder(creep);
+    } else if (creep.memory.role === "explorer") {
+        explorer(creep);
     }
 };
+
+/**
+ * @return {null}
+ */
+function explorer(creep) {
+    cache.cacheRoomIntel(creep);
+    if (creep.memory.destinationReached !== true) {
+        creep.travelTo(Game.flags[creep.memory.destination]);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+            creep.memory.destinationReached = true;
+        }
+    } else {
+        let HostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS);
+        if (HostileCreeps.length > 0) {
+            creep.memory.enemyCount = HostileCreeps.length;
+            creep.memory.enemyPos = HostileCreeps[0].pos;
+        } else {
+            creep.memory.enemyCount = null;
+            creep.memory.enemyPos = null;
+        }
+    }
+}
 
 /**
  * @return {null}

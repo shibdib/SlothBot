@@ -24,11 +24,11 @@ module.exports.creepControl = function () {
             rolesWorkers.Manager(creep);
             continue;
         }
-        if (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'remoteHauler' || creep.memory.role === 'spawnBuilder') {
+        if (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'remoteHauler' || creep.memory.role === 'spawnBuilder' || creep.memory.role === 'explorer') {
             rolesRemote.Manager(creep);
             continue;
         }
-        if (creep.memory.role === 'sentry' || creep.memory.role === 'healer' || creep.memory.role === 'defender' || creep.memory.role === 'scout' || creep.memory.role === 'attacker' || creep.memory.role === 'reserver' || creep.memory.role === 'claimer' || creep.memory.role === 'responder' || creep.memory.role === 'raider') {
+        if (creep.memory.role === 'ranged' || creep.memory.role === 'healer' || creep.memory.role === 'deconstructor' || creep.memory.role === 'scout' || creep.memory.role === 'attacker' || creep.memory.role === 'reserver' || creep.memory.role === 'claimer' || creep.memory.role === 'responder' || creep.memory.role === 'raider') {
             rolesMilitary.Manager(creep);
         }
     }

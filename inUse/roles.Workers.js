@@ -80,7 +80,6 @@ function worker(creep) {
  */
 function harvester(creep) {
     //INITIAL CHECKS
-    cache.cacheRoomIntel(creep);
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
     if (creep.carry.energy === 0) {
