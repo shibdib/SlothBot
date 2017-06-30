@@ -26,20 +26,6 @@ function worker(creep) {
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
-    if (creepTools.noHarvesterProtocol(creep)) {
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem);
-            } else {
-                creep.memory.storageDestination = null;
-                creep.memory.path = null;
-            }
-            return null;
-        }
-        creepTools.findStorage(creep);
-        return null;
-    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
@@ -157,20 +143,6 @@ function upgrader(creep) {
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
-    if (creepTools.noHarvesterProtocol(creep)) {
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem);
-            } else {
-                creep.memory.storageDestination = null;
-                creep.memory.path = null;
-            }
-            return null;
-        }
-        creepTools.findStorage(creep);
-        return null;
-    }
 
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
