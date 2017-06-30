@@ -22,7 +22,7 @@ function towerControl() {
                     } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
                         tower.attack(closestHostile[i]);
                         continue towers;
-                    } else if (closestHostile[i].owner === 'Invader') {
+                    } else if (closestHostile[i].owner['username'] === 'Invader') {
                         tower.attack(closestHostile[i]);
                         continue towers;
                     }
