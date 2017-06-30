@@ -40,7 +40,7 @@ function worker(creep) {
     if (creep.memory.working === true) {
         let repairNeeded = creepTools.findRepair(creep, creep.room.controller.level);
         let construction = creepTools.findConstruction(creep);
-        if (construction) {
+        if (construction && creep.room.memory.responseNeeded !== true) {
             construction = Game.getObjectById(construction);
             if (creep.build(construction) === ERR_INVALID_TARGET) {
                 creep.travelTo(Game.flags.haulers);
