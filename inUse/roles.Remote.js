@@ -90,7 +90,7 @@ function hauler(creep) {
         return null;
     }
     if (!creep.memory.destinationReached && creep.memory.hauling !== true) {
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 23, ignoreStructures: true});
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
@@ -145,7 +145,10 @@ function hauler(creep) {
             }
             creepTools.findStorage(creep);
         } else {
-            creep.travelTo(Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name]);
+            creep.travelTo(Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], {
+                range: 23,
+                ignoreStructures: true
+            });
         }
     }
 }
