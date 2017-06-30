@@ -283,7 +283,7 @@ function remotes(spawn) {
                     return true;
                 }
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHauler');
-                if (remoteHauler.length < Memory.roomCache[key].sources.length && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].remoteHauler, 'remoteHauler' + Game.time, {
+                if (remoteHauler.length < 1 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].remoteHauler, 'remoteHauler' + Game.time, {
                         role: 'remoteHauler',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
