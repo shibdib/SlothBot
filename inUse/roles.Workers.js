@@ -77,7 +77,7 @@ function worker(creep) {
                 if (!creep.memory.deliveryWait) {
                     creep.memory.deliveryWait = 0;
                 } else {
-                    creep.memory.deliveryWait++
+                    creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
                 }
                 if (creep.memory.deliveryWait > 15) {
                     creepTools.findEnergy(creep);
@@ -187,7 +187,7 @@ function upgrader(creep) {
                 if (!creep.memory.deliveryWait) {
                     creep.memory.deliveryWait = 0;
                 } else {
-                    creep.memory.deliveryWait++
+                    creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
                 }
                 if (creep.memory.deliveryWait > 15) {
                     creepTools.findEnergy(creep);
