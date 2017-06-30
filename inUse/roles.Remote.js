@@ -116,7 +116,7 @@ function hauler(creep) {
                 }
             }
         } else {
-            if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.assignedSpawn)) <= 21) {
+            if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.assignedSpawn)) <= 25) {
                 creep.memory.destinationReached = false;
                 let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
                 let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
@@ -144,7 +144,7 @@ function hauler(creep) {
         }
     } else if (!creep.memory.destinationReached) {
         creep.memory.containerID = undefined;
-        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 21) {
+        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 25) {
             creep.memory.destinationReached = true;
         }
         creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
