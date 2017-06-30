@@ -22,11 +22,14 @@ let tradeAmount = 10000;
 let energyAmount = 5000;
 let reactionAmount = 500;
 
+
+
 function terminalControl() {
     let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
     for (let terminal of _.values(Game.structures)) {
         if (terminal.structureType === STRUCTURE_TERMINAL) {
+            let energyInRoom = _.sum(terminal.room.lookAtArea(0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store && s['structure'].structureType !== STRUCTURE_TOWER) { return s['structure'].store[RESOURCE_ENERGY] || 0; } else { return 0;} });
             //Cleanup broken or old order
             orderCleanup(myOrders);
 
@@ -45,7 +48,7 @@ function terminalControl() {
 
             //Extend/Place buy orders if we have enough buffer cash
             extendBuyOrders(terminal, globalOrders, myOrders);
-            placeBuyOrders(terminal, globalOrders, myOrders);
+            placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
             placeReactionOrders(terminal, globalOrders, myOrders);
         }
     }
@@ -209,7 +212,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
 }
 extendBuyOrders = profiler.registerFN(extendBuyOrders, 'extendBuyOrdersTerminal');
 
-function placeBuyOrders(terminal, globalOrders, myOrders) {
+function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
     resource:
         for (let i = 0; i < tradeTargets.length; i++) {
             if (terminal.store[tradeTargets[i]] < tradeAmount || !terminal.store[tradeTargets[i]] && Game.market.credits > 100) {
@@ -232,7 +235,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                 }
             }
         }
-    if (terminal.store[RESOURCE_ENERGY] < energyAmount / 2 || !terminal.store[RESOURCE_ENERGY]) {
+    if (energyInRoom < energyAmount / 2 || !terminal.store[RESOURCE_ENERGY]) {
         for (let key in myOrders) {
             if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
                 let currentSupply;
