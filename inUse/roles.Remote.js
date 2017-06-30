@@ -97,13 +97,7 @@ function hauler(creep) {
         creep.memory.hauling = true;
     }
 
-    if (!creep.memory.destinationReached) {
-        creep.memory.containerID = undefined;
-        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 21) {
-            creep.memory.destinationReached = true;
-        }
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
-    } else if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
+    if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
         if (creep.memory.hauling === false) {
             if (!creep.memory.containerID) {
                 let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
@@ -148,6 +142,12 @@ function hauler(creep) {
                 });
             }
         }
+    } else if (!creep.memory.destinationReached) {
+        creep.memory.containerID = undefined;
+        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 21) {
+            creep.memory.destinationReached = true;
+        }
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerRemote');
