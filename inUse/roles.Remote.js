@@ -95,11 +95,11 @@ function hauler(creep) {
     }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.destinationReached = false;
-        creep.memory.containerID = undefined;
         creep.memory.hauling = true;
     }
 
     if (!creep.memory.destinationReached) {
+        creep.memory.containerID = undefined;
         if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 21) {
             creep.memory.destinationReached = true;
         }
