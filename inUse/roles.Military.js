@@ -112,7 +112,7 @@ function attacker(creep) {
         let closestHostileSpawn = creep.pos.findClosestByPath(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
         let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
         let closestHostile = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
-        let weakPoint = _.min(creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false}), 'hits');
+        let weakPoint = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
         let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART || s.structureType !== STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
         if (armedHostile) {
             creep.memory.squadTarget = armedHostile.id;
@@ -159,7 +159,8 @@ function attacker(creep) {
                 }
                 creep.travelTo(hostileStructures, {allowHostile: true});
             }
-        } else if (Game.flags[creep.memory.attackTarget] && weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && weakPoint.length > 0 && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+            weakPoint = _.min(weakPoint, 'hits');
             creep.memory.squadTarget = weakPoint.id;
             if (creep.pos.findInRange(deconstructors, 5).length === 0) {
                 if (creep.attack(weakPoint) === ERR_NOT_IN_RANGE) {
@@ -244,7 +245,7 @@ function ranged(creep) {
         let closestHostileSpawn = creep.pos.findClosestByPath(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
         let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
         let closestHostile = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
-        let weakPoint = _.min(creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false}), 'hits');
+        let weakPoint = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
         let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART || s.structureType !== STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
         if (armedHostile) {
             creep.memory.squadTarget = armedHostile.id;
@@ -286,7 +287,8 @@ function ranged(creep) {
                 }
                 creep.travelTo(hostileStructures, {allowHostile: true, range: 3});
             }
-        } else if (Game.flags[creep.memory.attackTarget] && weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        } else if (Game.flags[creep.memory.attackTarget] && weakPoint.length > 0 && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+            weakPoint = _.min(weakPoint, 'hits');
             creep.memory.squadTarget = weakPoint.id;
             if (creep.pos.findInRange(deconstructors, 5).length === 0) {
                 if (creep.rangedAttack(weakPoint) === ERR_NOT_IN_RANGE) {
@@ -369,7 +371,7 @@ function deconstructor(creep) {
 
     let closestHostileSpawn = creep.pos.findClosestByPath(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
     let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
-    let weakPoint = _.min(creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false}), 'hits');
+    let weakPoint = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
     let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART || s.structureType !== STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
     if (closestHostileTower) {
         if (creep.dismantle(closestHostileTower) === ERR_NOT_IN_RANGE) {
@@ -393,6 +395,7 @@ function deconstructor(creep) {
             creep.travelTo(hostileStructures, {allowHostile: true});
         }
     } else if (weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
+        weakPoint = _.min(weakPoint, 'hits');
         if (creep.dismantle(weakPoint) === ERR_NOT_IN_RANGE) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
