@@ -8,8 +8,8 @@ module.exports.Manager = function (creep) {
         harvester(creep);
     } else if (creep.memory.role === "remoteHauler") {
         hauler(creep);
-    } else if (creep.memory.role === "spawnBuilder") {
-        spawnBuilder(creep);
+    } else if (creep.memory.role === "pioneer") {
+        pioneer(creep);
     } else if (creep.memory.role === "explorer") {
         explorer(creep);
     }
@@ -145,16 +145,13 @@ function hauler(creep) {
         }
     }
 }
+
 /**
  * @return {null}
  */
-function spawnBuilder(creep) {
+function pioneer(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
-        creep.memory.destinationReached = null;
-    }
-    if (!Game.getObjectById(creep.memory.target)) {
-        creep.memory.role = "peasantBuilder";
     }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
@@ -180,15 +177,21 @@ function spawnBuilder(creep) {
         }
     }
     if (!creep.memory.destinationReached && creep.memory.hauling === true) {
-        if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.target)) <= 3) {
+        creep.travelTo(Game.flags[creep.memory.destination]);
+        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
-        creep.travelTo(Game.getObjectById(creep.memory.target));
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
-        creep.build(Game.getObjectById(creep.memory.target));
-        return null;
+        if (creep.memory.constructionSite) {
+            if (creep.build(Game.getObjectById(creep.memory.constructionSite)) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(Game.getObjectById(creep.memory.constructionSite))
+            }
+        } else {
+            creepTools.findConstruction(creep);
+        }
     }
 }
+
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
         creep.memory.containerID = creepTools.harvestDepositContainer(creep);
