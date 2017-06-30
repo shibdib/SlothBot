@@ -442,6 +442,7 @@ claimer = profiler.registerFN(claimer, 'claimerMilitary');
 function reserver(creep) {
     //Invader detection
     invaderCheck(creep);
+    let reservers = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'reserver'});
     if (creep.memory.invaderDetected === true) {
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.visitedRooms.push(creep.memory.currentDestination);
@@ -467,7 +468,7 @@ function reserver(creep) {
     if (creep.pos.roomName !== creep.memory.currentDestination) {
         creep.travelTo((new RoomPosition(25, 25, creep.memory.currentDestination))); //to move to any room
     } else {
-        if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1000))) {
+        if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1000)) && !reservers) {
             creep.travelTo(creep.room.controller);
             creep.memory.reserving = true;
         } else {
