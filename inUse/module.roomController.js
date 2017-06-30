@@ -1,6 +1,6 @@
 //modules
 let autoBuild = require('module.autoBuild');
-let respawnCreeps = require('module.respawn');
+let respawnCreeps = require('oldStuff/module.respawn');
 let cache = require('module.cache');
 let _ = require('lodash');
 
@@ -78,7 +78,7 @@ module.exports.roomControl = function () {
                 }
             }**/
         }
-        
+
         Memory.stats.cpu.postCreepRespawn = Game.cpu.getUsed();
 
         //Room Building
