@@ -186,6 +186,9 @@ function pioneer(creep) {
             creep.memory.destinationReached = true;
         }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
+        if (!Game.getObjectById(creep.memory.constructionSite)) {
+            creep.memory.constructionSite = undefined;
+        }
         if (creep.memory.constructionSite) {
             if (creep.build(Game.getObjectById(creep.memory.constructionSite)) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(Game.getObjectById(creep.memory.constructionSite))
