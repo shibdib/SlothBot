@@ -254,6 +254,8 @@ function ranged(creep) {
                     creep.heal(creep);
                 }
                 creep.travelTo(armedHostile, {allowHostile: true, range: 3});
+            } else if (creep.getRangeTo(armedHostile) < 3) {
+                creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
             }
         } else if (closestHostileTower) {
             creep.memory.squadTarget = closestHostileTower.id;
