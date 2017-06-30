@@ -23,6 +23,7 @@ let energyAmount = 2000;
 let reactionAmount = 500;
 
 function terminalControl() {
+    Game.market.createOrder(ORDER_SELL, SUBSCRIPTION_TOKEN, 1150000.000, 1);
     let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
     for (let terminal of _.values(Game.structures)) {
