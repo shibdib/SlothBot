@@ -79,7 +79,12 @@ module.exports.loop = function () {
 
         //Spawn Management
         Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
-        spawnController.creepRespawn();
+        for (let name in Game.spawns) {
+            if(Game.spawns[name].spawning === null) {
+                spawnController.creepRespawn();
+                break;
+            }
+        }
 
         //Alliance List Management
         let doNotAggress = [
