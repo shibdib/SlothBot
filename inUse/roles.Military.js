@@ -8,7 +8,7 @@ let profiler = require('screeps-profiler');
 let doNotAggress = RawMemory.segments[2];
 
 
-module.exports.Manager = function (creep) {
+function Manager(creep) {
     if (creep.memory.role === "defender") {
         defender(creep);
     } else if (creep.memory.role === "deconstructor") {
@@ -30,7 +30,7 @@ module.exports.Manager = function (creep) {
     } else if (creep.memory.role === "ranged") {
         ranged(creep);
     }
-};
+}
 module.exports.Manager = profiler.registerFN(Manager, 'managerMilitary');
 
 /**
