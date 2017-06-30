@@ -242,7 +242,7 @@ function workers(spawn) {
         }
         if (spawn.room.controller.level >= 4) {
             const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.memory.assignedRoom === spawn.room.name);
-            if (basicHaulerLarge.length < 1 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].largeHauler, 'largeHauler' + Game.time, {
+            if (basicHaulerLarge.length < 1 && upgraders.length > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].largeHauler, 'largeHauler' + Game.time, {
                     role: 'largeHauler',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name
@@ -254,7 +254,7 @@ function workers(spawn) {
         if (spawn.room.controller.level >= 6) {
             let minerals = spawn.pos.findClosestByRange(FIND_MINERALS);
             let mineralHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester');
-            if (mineralHarvester.length < 2 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].mineralHarvester, 'mineralHarvester' + Game.time, {
+            if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].mineralHarvester, 'mineralHarvester' + Game.time, {
                     role: 'mineralHarvester',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
@@ -264,7 +264,7 @@ function workers(spawn) {
                 return true;
             }
             let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === spawn.room.name);
-            if (mineralHauler.length < 1 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].mineralHauler, 'mineralHauler' + Game.time, {
+            if (mineralHauler.length < 1 && upgraders.length > 0 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].mineralHauler, 'mineralHauler' + Game.time, {
                     role: 'mineralHauler',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
