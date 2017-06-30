@@ -452,15 +452,14 @@ function findStorage(creep) {
     //Tower
     let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
     let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
-    let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
     if (tower.length > 0 && harvester.length >= 2) {
         let towers = [];
         for (i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {
-                    if (closestHostile) {
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.2, 0);
+                    if (object.room.memory.responseNeeded === true) {
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0);
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
