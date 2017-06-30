@@ -541,7 +541,9 @@ function findStorage(creep) {
         let storageItem = Game.getObjectById(sorted.id);
         if (storageItem) {
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                storageItem.memory.deliveryIncoming = true;
+                if (storageItem.memory) {
+                    storageItem.memory.deliveryIncoming = true;
+                }
                 creep.memory.storageDestination = storageItem.id;
                 creep.travelTo(storageItem);
             }
