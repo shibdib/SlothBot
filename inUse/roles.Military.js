@@ -445,7 +445,7 @@ claimer = profiler.registerFN(claimer, 'claimerMilitary');
 function reserver(creep) {
     //Invader detection
     invaderCheck(creep);
-    let reservers = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'reserver'});
+    let reservers = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'reserver' && c.name !== creep.name});
     if (creep.memory.invaderDetected === true) {
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.visitedRooms.push(creep.memory.currentDestination);
