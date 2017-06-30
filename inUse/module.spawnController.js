@@ -144,7 +144,7 @@ function harvesters(spawn) {
         let sources = spawn.room.find(FIND_SOURCES);
         for (let i = 0; i < sources.length; i++) {
             let stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-            if (stationaryHarvester.length < sources.length && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
+            if (stationaryHarvester.length === 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
                     role: 'stationaryHarvester',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
