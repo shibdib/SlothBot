@@ -82,6 +82,7 @@ module.exports.roomControl = function () {
 
         //Room Building
         if (Game.time % 75 === 0) {
+            Memory.stats.cpu.preRoomBuilding = Game.cpu.getUsed();
             autoBuild.roomBuilding(name);
             Memory.stats.cpu.postRoomBuilding = Game.cpu.getUsed();
         }
