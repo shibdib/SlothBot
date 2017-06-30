@@ -32,18 +32,20 @@ function towerControl() {
                 tower.heal(woundedCreep);
                 continue;
             }
-            if (barriers) {
-                tower.repair(barriers);
-                continue;
-            }
-            if (road) {
-                tower.repair(road);
-                continue;
-            }
-            if (tower.energy > tower.energyCapacity * 0.75) {
-                const closestDamagedStructure = Game.getObjectById(findRepair(tower));
-                if (closestDamagedStructure) {
-                    tower.repair(closestDamagedStructure);
+            if (tower.room.memory.responseNeeded !== true) {
+                if (barriers) {
+                    tower.repair(barriers);
+                    continue;
+                }
+                if (road) {
+                    tower.repair(road);
+                    continue;
+                }
+                if (tower.energy > tower.energyCapacity * 0.75) {
+                    const closestDamagedStructure = Game.getObjectById(findRepair(tower));
+                    if (closestDamagedStructure) {
+                        tower.repair(closestDamagedStructure);
+                    }
                 }
             }
         }
