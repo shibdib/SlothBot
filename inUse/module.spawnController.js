@@ -10,23 +10,27 @@ function creepRespawn() {
     for (let name in Game.spawns) {
         let spawn = Game.spawns[name];
         if (spawn.spawning === null) {
+            let upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
+            let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
             if (harvesters(spawn) === true) {
-                continue;
-            }
-            if (responseForce(spawn) === true) {
-                continue;
-            }
-            if (attackForce(spawn) === true) {
-                continue;
-            }
-            if (scouts(spawn) === true) {
                 continue;
             }
             if (workers(spawn) === true) {
                 continue;
             }
-            if (remotes(spawn) === true) {
+            if (upgraders.length > 0 && basicHauler.length > 0) {
+                if (responseForce(spawn) === true) {
+                    continue;
+                }
+                if (attackForce(spawn) === true) {
+                    continue;
+                }
+                if (scouts(spawn) === true) {
+                    continue;
+                }
+                if (remotes(spawn) === true) {
 
+                }
             }
         } else {
             let spawningCreep = Game.creeps[spawn.spawning.name];
@@ -157,7 +161,13 @@ function harvesters(spawn) {
         let sources = spawn.room.find(FIND_SOURCES);
         for (let i = 0; i < sources.length; i++) {
             let stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-            if (stationaryHarvester.length === 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
+            let level;
+            if (_.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'stationaryHarvester').length === 0) {
+                level = 1;
+            } else {
+                level = spawn.room.controller.level
+            }
+            if (stationaryHarvester.length === 0 && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
                     role: 'stationaryHarvester',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
@@ -203,7 +213,7 @@ scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 
 function workers(spawn) {
     if (spawn.room.controller.level >= 1) {
-        const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedSpawn === spawn.id);
+        const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
         if (basicHauler.length < 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].hauler, 'hauler' + Game.time, {
                 role: 'hauler',
                 assignedSpawn: spawn.id,
@@ -212,7 +222,7 @@ function workers(spawn) {
             console.log(spawn.room.name + ' Spawning a hauler');
             return true;
         }
-        const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedSpawn === spawn.id);
+        const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
         if (worker.length < 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].worker, 'worker' + Game.time, {
                 role: 'worker',
                 assignedSpawn: spawn.id,
@@ -221,7 +231,7 @@ function workers(spawn) {
             console.log(spawn.room.name + ' Spawning a worker');
             return true;
         }
-        const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedSpawn === spawn.id);
+        const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
         if (upgraders.length < 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].upgrader, 'upgrader' + Game.time, {
                 role: 'upgrader',
                 assignedSpawn: spawn.id,
@@ -231,7 +241,7 @@ function workers(spawn) {
             return true;
         }
         if (spawn.room.controller.level >= 4) {
-            const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.memory.assignedSpawn === spawn.id);
+            const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.memory.assignedRoom === spawn.room.name);
             if (basicHaulerLarge.length < 1 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].largeHauler, 'largeHauler' + Game.time, {
                     role: 'largeHauler',
                     assignedSpawn: spawn.id,
@@ -253,7 +263,7 @@ function workers(spawn) {
                 console.log(spawn.room.name + ' Spawning a mineralHarvester');
                 return true;
             }
-            let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedSpawn === spawn.id);
+            let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === spawn.room.name);
             if (mineralHauler.length < 1 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].mineralHauler, 'mineralHauler' + Game.time, {
                     role: 'mineralHauler',
                     assignedSpawn: spawn.id,
