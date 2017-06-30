@@ -213,8 +213,11 @@ function depositEnergy(creep) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             if (container.hits < container.hitsMax * 0.25) {
-                creep.repair(container);
-                creep.say('Fixing');
+                if (creep.repair(container) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(container);
+                } else {
+                    creep.say('Fixing');
+                }
             } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
                 creep.transfer(container, RESOURCE_ENERGY);
             } else if (!creep.memory.linkID) {
