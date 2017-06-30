@@ -106,7 +106,6 @@ function hauler(creep) {
         creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     } else if (creep.memory.destinationReached === true) {
         if (creep.memory.hauling === false) {
-            creep.memory.destinationReached = false;
             if (!creep.memory.containerID) {
                 let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
                 if (container.length > 0) {
@@ -125,6 +124,7 @@ function hauler(creep) {
             }
         } else {
             if (creep.memory.hauling === true) {
+                creep.memory.destinationReached = false;
                 if (creep.pos.getRangeTo(Game.spawns[creep.memory.assignedSpawn]) <= 21) {
                     let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
                     let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
