@@ -310,6 +310,7 @@ function findEnergy(creep, hauler = false, range = 50) {
             harvest: false
         });
     }
+    /**
     //Dropped Energy
     let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
     if (dropped.length > 0) {
@@ -330,7 +331,7 @@ function findEnergy(creep, hauler = false, range = 50) {
             distWeighted: bestDropped.distWeighted,
             harvest: false
         });
-    }
+    }**/
 
     let sorted = _.min(energy, 'distWeighted');
 
