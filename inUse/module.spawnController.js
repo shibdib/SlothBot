@@ -19,7 +19,10 @@ function creepRespawn() {
                 continue;
             }
             if (upgraders.length > 0 && basicHauler.length === 2) {
-                if (responseForce(spawn) === true) {
+                if (spawn.room.memory.responseNeeded === true) {
+                    if (responseForce(spawn) === true) {
+                        continue;
+                    }
                     continue;
                 }
                 if (attackForce(spawn) === true) {
