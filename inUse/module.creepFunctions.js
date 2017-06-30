@@ -173,7 +173,7 @@ function withdrawEnergy(creep) {
     } else {
         let energyItem = Game.getObjectById(creep.memory.energyDestination);
         if (energyItem) {
-            if (energyItem.structureType !== null || energyItem.structureType !== undefined) {
+            if (energyItem.structureType) {
                 if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(energyItem);
                 } else {
