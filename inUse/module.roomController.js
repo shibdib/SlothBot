@@ -1,6 +1,5 @@
 //modules
 let autoBuild = require('module.autoBuild');
-let respawnCreeps = require('oldStuff/module.respawn');
 let cache = require('module.cache');
 let _ = require('lodash');
 
