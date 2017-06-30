@@ -21,7 +21,7 @@ function Move(creep, target, exempt = false, maxRooms = 1) {
         creep.memory.pathPos = creep.pos;
         creep.memory.pathPosTime = 1;
     }
-    if (creep.memory.pathPosTime > 3){
+    if (creep.memory.pathPosTime > 1) {
         creep.memory.pathAge = 999;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     }
