@@ -249,7 +249,7 @@ function ranged(creep) {
         let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART || s.structureType !== STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
         if (armedHostile) {
             creep.memory.squadTarget = armedHostile.id;
-            if (creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
+            if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
                 if (creep.hits < creep.hitsMax) {
                     creep.heal(creep);
                 }
