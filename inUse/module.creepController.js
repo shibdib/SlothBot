@@ -24,7 +24,7 @@ module.exports.creepControl = function () {
             rolesWorkers.Manager(creep);
             continue;
         }
-        if (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'remoteHauler' || creep.memory.role === 'spawnBuilder' || creep.memory.role === 'explorer') {
+        if (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'remoteHauler' || creep.memory.role === 'pioneer' || creep.memory.role === 'explorer') {
             rolesRemote.Manager(creep);
             continue;
         }
