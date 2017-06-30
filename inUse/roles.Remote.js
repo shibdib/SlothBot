@@ -89,66 +89,67 @@ function hauler(creep) {
         creep.memory.destinationReached = false;
         return null;
     }
-    if (!creep.memory.destinationReached && creep.memory.hauling !== true) {
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 23, ignoreStructures: true});
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
-        }
-        return null;
-    }
+
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
     if (creep.carry.energy === creep.carryCapacity) {
+        creep.memory.destinationReached = false;
         creep.memory.containerID = undefined;
         creep.memory.hauling = true;
     }
-    if (creep.memory.hauling === false) {
-        if (!creep.memory.containerID) {
-            let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
-            if (container.length > 0) {
-                creep.memory.containerID = container[0].id;
-                if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(container);
-                }
-            }
-        } else {
-            if (_.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
-                creep.memory.containerID = undefined;
-            }
-            if (creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.getObjectById(creep.memory.containerID));
-            }
-        }
-    }
 
-    //Haul to terminal -> spawn/extension
-    if (creep.memory.hauling === true) {
-        if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
-            creep.memory.destinationReached = false;
-            let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
-            let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-            if (terminal.length > 0) {
-                creep.memory.storageDestination = terminal[0];
-            } else if (storage.length > 0) {
-                creep.memory.storageDestination = storage[0];
-            }
-            if (creep.memory.storageDestination) {
-                let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(storageItem);
-                } else {
-                    creep.memory.storageDestination = null;
-                    creep.memory.path = null;
+    if (!creep.memory.destinationReached) {
+        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 20) {
+            creep.memory.destinationReached = true;
+        }
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20, ignoreStructures: true});
+    } else if (creep.memory.destinationReached === true) {
+        if (creep.memory.hauling === false) {
+            if (!creep.memory.containerID) {
+                let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
+                if (container.length > 0) {
+                    creep.memory.containerID = container[0].id;
+                    if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        creep.travelTo(container);
+                    }
                 }
-                return null;
+            } else {
+                if (_.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
+                    creep.memory.containerID = undefined;
+                }
+                if (creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(Game.getObjectById(creep.memory.containerID));
+                }
             }
-            creepTools.findStorage(creep);
         } else {
-            creep.travelTo(Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], {
-                range: 23,
-                ignoreStructures: true
-            });
+            if (creep.memory.hauling === true) {
+                if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
+                    let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
+                    let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+                    if (terminal.length > 0) {
+                        creep.memory.storageDestination = terminal[0];
+                    } else if (storage.length > 0) {
+                        creep.memory.storageDestination = storage[0];
+                    }
+                    if (creep.memory.storageDestination) {
+                        let storageItem = Game.getObjectById(creep.memory.storageDestination);
+                        if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                            creep.travelTo(storageItem);
+                        } else {
+                            creep.memory.storageDestination = null;
+                            creep.memory.path = null;
+                        }
+                        return null;
+                    }
+                    creepTools.findStorage(creep);
+                } else {
+                    creep.travelTo(Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], {
+                        range: 23,
+                        ignoreStructures: true
+                    });
+                }
+            }
         }
     }
 }
