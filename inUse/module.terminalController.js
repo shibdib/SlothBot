@@ -56,7 +56,7 @@ function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (const resourceType in terminal.store) {
             if (resourceType !== RESOURCE_ENERGY) {
-                if (Game.market.credits > 100) {
+                if (Game.market.credits > 250) {
                     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 500), 'price');
@@ -242,7 +242,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
                     currentSupply = terminal.store[RESOURCE_ENERGY];
                 }
                 if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
-                    if (Game.market.credits * 0.25 > (energyAmount - (currentSupply + myOrders[key].remainingAmount)) * myOrders[key].price) {
+                    if (Game.market.credits * 0.1 > (energyAmount - (currentSupply + myOrders[key].remainingAmount)) * myOrders[key].price) {
                         if (Game.market.extendOrder(myOrders[key].id, energyAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (energyAmount - currentSupply) + "</font>");
                         }
@@ -254,7 +254,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
         let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
         order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
         if (buyOrder.id) {
-            if (Game.market.credits * 0.25 > energyAmount * buyOrder.price) {
+            if (Game.market.credits * 0.1 > energyAmount * buyOrder.price) {
                 if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price + 0.001, energyAmount, terminal.pos.roomName) === OK) {
                     console.log("<font color='#adff2f'>MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price + 0.001) + "</font>");
                 }
