@@ -518,7 +518,7 @@ function findStorage(creep) {
         let deliveries = [];
         for (let i = 0; i < deliver.length; i++) {
             if (deliver[i].pos.getRangeTo(creep) > 1) {
-                if (creep.carry[RESOURCE_ENERGY] < deliver.carryCapacity - deliver.carry[RESOURCE_ENERGY]) {
+                if (creep.carry[RESOURCE_ENERGY] < deliver.carryCapacity - _.sum(deliver.carry)) {
                     continue;
                 }
                 const deliverDistWeighted = _.round(deliver[i].pos.getRangeTo(creep) * 0.01, 0) + 1;
