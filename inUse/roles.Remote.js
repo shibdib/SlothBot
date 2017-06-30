@@ -166,13 +166,17 @@ function pioneer(creep) {
                 return null;
             }
         } else {
-            if (creep.memory.assignedSource) {
-                source = Game.getObjectById(creep.memory.assignedSource);
-            } else if (!source) {
-                var source = creepTools.findSource(creep);
-            }
-            if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(source);
+            let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store > 100});
+            if (container) {
+                if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(container);
+                }
+            } else if (creep.memory.source) {
+                if (creep.harvest(Game.getObjectById(creep.memory.source)) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(Game.getObjectById(creep.memory.source));
+                }
+            } else if (!creep.memory.source) {
+                creepTools.findSource(creep);
             }
         }
     }
