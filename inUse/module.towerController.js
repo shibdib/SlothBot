@@ -6,7 +6,7 @@ const profiler = require('screeps-profiler');
 
 let doNotAggress = RawMemory.segments[2];
 
-module.exports.towerControl = function () {
+function towerControl() {
     towers:
     for (let tower of _.values(Game.structures)) {
         if (tower.structureType === STRUCTURE_TOWER) {
@@ -45,7 +45,8 @@ module.exports.towerControl = function () {
             }
         }
     }
-};
+}
+module.exports.towerControl = profiler.registerFN(towerControl, 'towerControl');
 
 function findRepair(tower) {
 

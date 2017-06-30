@@ -1,10 +1,11 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
+let profiler = require('screeps-profiler');
 let cache = require('module.cache');
 let _ = require('lodash');
 
 
-module.exports.Manager = function (creep) {
+function Manager(creep) {
     if (creep.memory.role === "worker") {
         worker(creep);
     } else if (creep.memory.role === "upgrader") {
@@ -14,7 +15,8 @@ module.exports.Manager = function (creep) {
     } else if (creep.memory.role === "mineralHarvester") {
         mineralHarvester(creep);
     }
-};
+}
+module.exports.Manager = profiler.registerFN(Manager, 'managerWorkers');
 
 /**
  * @return {null}
@@ -75,6 +77,8 @@ function worker(creep) {
         }
     }
 }
+worker = profiler.registerFN(worker, 'workerWorkers');
+
 /**
  * @return {null}
  */
@@ -100,6 +104,8 @@ function harvester(creep) {
         }
     }
 }
+harvester = profiler.registerFN(harvester, 'harvesterWorkers');
+
 /**
  * @return {null}
  */
@@ -125,6 +131,8 @@ function mineralHarvester(creep) {
         }
     }
 }
+mineralHarvester = profiler.registerFN(mineralHarvester, 'mineralHarvesterWorkers');
+
 /**
  * @return {null}
  */
@@ -173,6 +181,8 @@ function upgrader(creep) {
         }
     }
 }
+upgrader = profiler.registerFN(upgrader, 'upgraderWorkers');
+
 function depositEnergy(creep) {
     if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
         creep.memory.containerID = creepTools.harvestDepositContainer(creep);
@@ -209,6 +219,7 @@ function depositEnergy(creep) {
         }
     }
 }
+depositEnergy = profiler.registerFN(depositEnergy, 'depositEnergyWorkers');
 
 function depositMineral(creep) {
     if (!creep.memory.terminalID) {
@@ -249,6 +260,7 @@ function depositMineral(creep) {
         }
     }
 }
+depositMineral = profiler.registerFN(depositMineral, 'depositMineralWorkers');
 
 function mineralContainer(creep) {
     let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
@@ -263,6 +275,7 @@ function mineralContainer(creep) {
         }
     }
 }
+mineralContainer = profiler.registerFN(mineralContainer, 'mineralContainerWorkers');
 
 function invaderCheck(creep) {
     let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
@@ -282,3 +295,4 @@ function invaderCheck(creep) {
         creep.room.memory.responseNeeded = false;
     }
 }
+invaderCheck = profiler.registerFN(invaderCheck, 'invaderCheckWorkers');

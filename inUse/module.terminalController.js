@@ -2,6 +2,7 @@
  * Created by rober on 6/21/2017.
  */
 let _ = require('lodash');
+let profiler = require('screeps-profiler');
 
 let reactionNeeds = [
     //RESOURCE_HYDROGEN,
@@ -21,7 +22,7 @@ let tradeAmount = 1000;
 let energyAmount = 2000;
 let reactionAmount = 500;
 
-module.exports.terminalControl = function () {
+function terminalControl() {
     let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
     for (let terminal of _.values(Game.structures)) {
@@ -48,7 +49,8 @@ module.exports.terminalControl = function () {
             placeReactionOrders(terminal, globalOrders, myOrders);
         }
     }
-};
+}
+module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalControl');
 
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
@@ -128,6 +130,7 @@ function fillBuyOrders(terminal, globalOrders) {
         }
     }
 }
+fillBuyOrders = profiler.registerFN(fillBuyOrders, 'fillBuyOrdersTerminal');
 
 function extendSellOrders(terminal, globalOrders, myOrders) {
     resource:
@@ -150,6 +153,7 @@ function extendSellOrders(terminal, globalOrders, myOrders) {
             }
         }
 }
+extendSellOrders = profiler.registerFN(extendSellOrders, 'extendSellOrdersTerminal');
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
     resource:
@@ -176,6 +180,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
             }
         }
 }
+placeSellOrders = profiler.registerFN(placeSellOrders, 'placeSellOrdersTerminal');
 
 function extendBuyOrders(terminal, globalOrders, myOrders) {
     for (let i = 0; i < tradeTargets.length; i++) {
@@ -202,6 +207,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
         }
     }
 }
+extendBuyOrders = profiler.registerFN(extendBuyOrders, 'extendBuyOrdersTerminal');
 
 function placeBuyOrders(terminal, globalOrders, myOrders) {
     resource:
@@ -256,6 +262,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders) {
         }
     }
 }
+placeBuyOrders = profiler.registerFN(placeBuyOrders, 'placeBuyOrdersTerminal');
 
 function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
@@ -278,6 +285,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
             }
         }
 }
+placeReactionOrders = profiler.registerFN(placeReactionOrders, 'placeReactionOrdersTerminal');
 
 function pricingUpdateSell(terminal, globalOrders, myOrders) {
     resource:
@@ -312,6 +320,7 @@ function pricingUpdateSell(terminal, globalOrders, myOrders) {
         }
     }
 }
+pricingUpdateSell = profiler.registerFN(pricingUpdateSell, 'pricingUpdateSellTerminal');
 
 function pricingUpdateBuy(terminal, globalOrders, myOrders) {
     resource:
@@ -332,6 +341,7 @@ function pricingUpdateBuy(terminal, globalOrders, myOrders) {
         }
     }
 }
+pricingUpdateBuy = profiler.registerFN(pricingUpdateBuy, 'pricingUpdateBuyTerminal');
 
 function orderCleanup(myOrders) {
     for (let key in myOrders) {
@@ -357,3 +367,4 @@ function orderCleanup(myOrders) {
         }
     }
 }
+orderCleanup = profiler.registerFN(orderCleanup, 'orderCleanupTerminal');

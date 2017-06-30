@@ -1,9 +1,9 @@
 let creepTools = require('module.creepFunctions');
 let cache = require('module.cache');
-let pathing = require('module.pathFinder');
+const profiler = require('screeps-profiler');
 
 
-module.exports.Manager = function (creep) {
+function Manager(creep) {
     if (creep.memory.role === "remoteHarvester") {
         harvester(creep);
     } else if (creep.memory.role === "remoteHauler") {
@@ -13,7 +13,8 @@ module.exports.Manager = function (creep) {
     } else if (creep.memory.role === "explorer") {
         explorer(creep);
     }
-};
+}
+module.exports.Manager = profiler.registerFN(Manager, 'managerRemote');
 
 /**
  * @return {null}
@@ -36,6 +37,7 @@ function explorer(creep) {
         creep.memory.destinationReached = undefined;
     }
 }
+explorer = profiler.registerFN(explorer, 'explorerRemote');
 
 /**
  * @return {null}
@@ -74,6 +76,8 @@ function harvester(creep) {
         }
     }
 }
+harvester = profiler.registerFN(harvester, 'harvesterRemote');
+
 /**
  * @return {null}
  */
@@ -145,6 +149,7 @@ function hauler(creep) {
         }
     }
 }
+hauler = profiler.registerFN(hauler, 'haulerRemote');
 
 /**
  * @return {null}
@@ -198,6 +203,7 @@ function pioneer(creep) {
         }
     }
 }
+pioneer = profiler.registerFN(pioneer, 'pioneerRemote');
 
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
@@ -257,3 +263,4 @@ function invaderCheck(creep) {
         creep.room.memory.responseNeeded = false;
     }
 }
+invaderCheck = profiler.registerFN(invaderCheck, 'invaderCheckRemote');

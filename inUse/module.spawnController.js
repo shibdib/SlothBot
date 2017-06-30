@@ -4,7 +4,9 @@
 //Number generator
 //CREEP SPAWNING
 let _ = require('lodash');
-module.exports.creepRespawn = function () {
+const profiler = require('screeps-profiler');
+
+function creepRespawn() {
     for (let name in Game.spawns) {
         let spawn = Game.spawns[name];
         if (spawn.spawning === null) {
@@ -36,7 +38,8 @@ module.exports.creepRespawn = function () {
             );
         }
     }
-};
+}
+module.exports.creepRespawn = profiler.registerFN(creepRespawn, 'creepRespawn');
 
 function responseForce(spawn) {
     if (spawn.room.controller.level >= 4) {
@@ -59,6 +62,7 @@ function responseForce(spawn) {
         }
     }
 }
+responseForce = profiler.registerFN(responseForce, 'responseForceSpawn');
 
 function attackForce(spawn) {
     if (spawn.room.controller.level >= 3) {
@@ -146,6 +150,7 @@ function attackForce(spawn) {
         }
     }
 }
+attackForce = profiler.registerFN(attackForce, 'attackForceSpawn');
 
 function harvesters(spawn) {
     if (spawn.room.controller.level >= 1) {
@@ -164,6 +169,7 @@ function harvesters(spawn) {
         }
     }
 }
+harvesters = profiler.registerFN(harvesters, 'harvestersSpawn');
 
 function scouts(spawn) {
     if (spawn.room.controller.level >= 1) {
@@ -193,6 +199,7 @@ function scouts(spawn) {
         }
     }
 }
+scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 
 function workers(spawn) {
     if (spawn.room.controller.level >= 1) {
@@ -259,6 +266,7 @@ function workers(spawn) {
         }
     }
 }
+workers = profiler.registerFN(workers, 'workersSpawn');
 
 function remotes(spawn) {
     if (spawn.room.controller.level >= 3) {
@@ -303,6 +311,7 @@ function remotes(spawn) {
         }
     }
 }
+remotes = profiler.registerFN(remotes, 'remotesSpawn');
 
 function neighborCheck(spawnRoom, remoteRoom) {
     let neighboringRooms = Game.map.describeExits(spawnRoom);
@@ -313,3 +322,4 @@ function neighborCheck(spawnRoom, remoteRoom) {
     }
     return false;
 }
+neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');

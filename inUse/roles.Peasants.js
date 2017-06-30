@@ -1,8 +1,9 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
+let profiler = require('screeps-profiler');
 
 
-module.exports.Manager = function (creep) {
+function Manager(creep) {
     if (creep.memory.role === "peasant") {
         peasant(creep);
     } else if (creep.memory.role === "peasantBuilder") {
@@ -10,7 +11,9 @@ module.exports.Manager = function (creep) {
     } else if (creep.memory.role === "peasantUpgrader") {
         peasantUpgrader(creep);
     }
-};
+}
+module.exports.Manager = profiler.registerFN(Manager, 'managerPeasants');
+
 /**
  * @return {null}
  */
@@ -58,6 +61,8 @@ function peasant(creep) {
         }
     }
 }
+peasant = profiler.registerFN(peasant, 'peasantPeasants');
+
 /**
  * @return {null}
  */
@@ -102,6 +107,8 @@ function peasantBuilder(creep) {
         }
     }
 }
+peasantBuilder = profiler.registerFN(peasantBuilder, 'peasantBuilderPeasants');
+
 /**
  * @return {null}
  */
@@ -134,5 +141,5 @@ function peasantUpgrader(creep) {
             }
         }
     }
-
 }
+peasantUpgrader = profiler.registerFN(peasantUpgrader, 'peasantUpgraderPeasants');

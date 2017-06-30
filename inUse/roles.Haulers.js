@@ -1,8 +1,9 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
+let profiler = require('screeps-profiler');
 
 
-module.exports.Manager = function (creep) {
+function Manager(creep) {
     if (creep.memory.role === "mineralHauler") {
         mineralHauler(creep);
     } else if (creep.memory.role === "labTech") {
@@ -11,6 +12,7 @@ module.exports.Manager = function (creep) {
         hauler(creep);
     }
 }
+module.exports.Manager = profiler.registerFN(Manager, 'managerHaulers');
 
 /**
  * @return {null}
@@ -45,6 +47,7 @@ function hauler(creep) {
         creepTools.findStorage(creep);
     }
 }
+hauler = profiler.registerFN(hauler, 'haulerHaulers');
 
 /**
  * @return {null}
@@ -92,6 +95,7 @@ function labTech(creep) {
         creepTools.findStorage(creep);
     }
 }
+labTech = profiler.registerFN(labTech, 'labTechHaulers');
 
 /**
  * @return {null}
@@ -150,3 +154,4 @@ function mineralHauler(creep) {
         }
     }
 }
+mineralHauler = profiler.registerFN(mineralHauler, 'mineralHaulerHaulers');

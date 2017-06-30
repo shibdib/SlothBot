@@ -3,6 +3,7 @@ let creepTools = require('module.creepFunctions');
 let militaryFunctions = require('module.militaryFunctions');
 let cache = require('module.cache');
 let _ = require('lodash');
+let profiler = require('screeps-profiler');
 
 let doNotAggress = RawMemory.segments[2];
 
@@ -30,6 +31,8 @@ module.exports.Manager = function (creep) {
         ranged(creep);
     }
 };
+module.exports.Manager = profiler.registerFN(Manager, 'managerMilitary');
+
 /**
  * @return {null}
  */
@@ -51,6 +54,8 @@ function scout(creep) {
         }
     }
 }
+scout = profiler.registerFN(scout, 'scoutMilitary');
+
 /**
  * @return {null}
  */
@@ -77,6 +82,8 @@ function healer(creep) {
         }
     }
 }
+healer = profiler.registerFN(healer, 'healerMilitary');
+
 /**
  * @return {null}
  */
@@ -207,6 +214,7 @@ function attacker(creep) {
         }
     }
 }
+attacker = profiler.registerFN(attacker, 'attackerMilitary');
 
 /**
  * @return {null}
@@ -339,6 +347,8 @@ function ranged(creep) {
         }
     }
 }
+ranged = profiler.registerFN(ranged, 'rangedMilitary');
+
 /**
  * @return {null}
  */
@@ -397,6 +407,8 @@ function deconstructor(creep) {
         creep.travelTo(Game.flags[creep.memory.staging]);
     }
 }
+deconstructor = profiler.registerFN(deconstructor, 'deconstructorMilitary');
+
 /**
  * @return {null}
  */
@@ -419,6 +431,8 @@ function claimer(creep) {
         }
     }
 }
+claimer = profiler.registerFN(claimer, 'claimerMilitary');
+
 /**
  * @return {null}
  */
@@ -464,6 +478,8 @@ function reserver(creep) {
         }
     }
 }
+reserver = profiler.registerFN(reserver, 'reserverMilitary');
+
 /**
  * @return {null}
  */
@@ -547,6 +563,8 @@ function raider(creep) {
         }
     }
 }
+raider = profiler.registerFN(raider, 'raiderMilitary');
+
 /**
  * @return {null}
  */
@@ -617,6 +635,7 @@ function responder(creep) {
         findDefensivePosition(creep, creep);
     }
 }
+responder = profiler.registerFN(responder, 'responderMilitary');
 
 function invaderCheck(creep) {
     let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
@@ -639,6 +658,7 @@ function invaderCheck(creep) {
         creep.room.memory.responseNeeded = false;
     }
 }
+invaderCheck = profiler.registerFN(invaderCheck, 'invaderCheckMilitary');
 
 function findDefensivePosition(creep, target) {
     if (target) {
@@ -653,3 +673,4 @@ function findDefensivePosition(creep, target) {
         }
     }
 }
+findDefensivePosition = profiler.registerFN(findDefensivePosition, 'findDefensivePositionMilitary');

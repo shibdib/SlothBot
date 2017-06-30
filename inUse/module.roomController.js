@@ -2,10 +2,11 @@
 let autoBuild = require('module.autoBuild');
 let cache = require('module.cache');
 let _ = require('lodash');
+const profiler = require('screeps-profiler');
 
 let doNotAggress = RawMemory.segments[2];
 
-module.exports.roomControl = function () {
+function roomControl() {
 
     for (let name in Game.spawns) {
 
@@ -102,4 +103,5 @@ module.exports.roomControl = function () {
 
 
     }
-};
+}
+module.exports.roomControl = profiler.registerFN(roomControl, 'roomControl');
