@@ -18,7 +18,7 @@ function creepRespawn() {
             if (workers(spawn) === true) {
                 continue;
             }
-            if (upgraders.length > 0 && basicHauler.length > 0) {
+            if (upgraders.length > 0 && basicHauler.length === 2) {
                 if (responseForce(spawn) === true) {
                     continue;
                 }
