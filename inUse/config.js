@@ -11,6 +11,7 @@ function creepBodies() {
     cache['1'] = {
         cached: Game.time,
         peasant: [WORK, CARRY, CARRY, MOVE, MOVE],
+        stationaryHarvester: [WORK, WORK, CARRY, MOVE],
         peasantUpgrader: [WORK, CARRY, CARRY, MOVE, MOVE],
         peasantBuilder: [WORK, CARRY, CARRY, MOVE, MOVE],
         explorer: [MOVE],
