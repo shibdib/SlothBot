@@ -167,6 +167,8 @@ function upgrader(creep) {
     if (creep.memory.working === true) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
             creep.travelTo(creep.room.controller);
+        } else {
+            if (dontSitOnRoads(creep) === true){creep.travelTo(creep.room.controller)}
         }
     } else {
         if (creep.memory.energyDestination) {
@@ -315,3 +317,10 @@ function invaderCheck(creep) {
     }
 }
 invaderCheck = profiler.registerFN(invaderCheck, 'invaderCheckWorkers');
+
+function dontSitOnRoads(creep) {
+    if (creep.room.lookForAt(LOOK_STRUCTURES, creep.pos).length && creep.room.lookForAt(LOOK_STRUCTURES, creep.pos).structureType === STRUCTURE_ROAD) {
+        return true;
+    }
+}
+dontSitOnRoads = profiler.registerFN(dontSitOnRoads, 'dontSitOnRoadsWorkers');
