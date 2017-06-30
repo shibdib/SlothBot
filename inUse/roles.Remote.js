@@ -255,13 +255,13 @@ function invaderCheck(creep) {
             creep.room.memory.responseNeeded = true;
             creep.room.memory.numberOfHostiles = number.length;
             creep.memory.invaderDetected = true;
-        } else {
+        } else if (creep.room.memory.tickDetected < Game.time + 150) {
             creep.memory.invaderDetected = undefined;
             creep.memory.invaderID = undefined;
             creep.room.memory.numberOfHostiles = undefined;
             creep.room.memory.responseNeeded = false;
         }
-    } else {
+    } else if (creep.room.memory.tickDetected < Game.time + 150) {
         creep.memory.invaderDetected = undefined;
         creep.memory.invaderID = undefined;
         creep.room.memory.responseNeeded = false;
