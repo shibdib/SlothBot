@@ -143,7 +143,7 @@ function hauler(creep) {
                 }
                 creepTools.findStorage(creep);
             } else {
-                creep.travelTo(Game.spawns[creep.memory.assignedSpawn], {
+                creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn), {
                     range: 20
                 });
             }
