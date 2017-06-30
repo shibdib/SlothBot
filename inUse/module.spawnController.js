@@ -224,16 +224,16 @@ function workers(spawn, level) {
             console.log(spawn.room.name + ' Spawning a hauler');
             return true;
         }
+        const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
+        if (worker.length < 2 && upgraders.length > 0 && spawn.createCreep(Memory.creepBodies[level].worker, 'worker' + Game.time, {
+                role: 'worker',
+                assignedSpawn: spawn.id,
+                assignedRoom: spawn.room.name
+            }) === 'worker' + Game.time) {
+            console.log(spawn.room.name + ' Spawning a worker');
+            return true;
+        }
         if (spawn.room.memory.responseNeeded !== true) {
-            const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
-            if (worker.length < 2 && upgraders.length > 0 && spawn.createCreep(Memory.creepBodies[level].worker, 'worker' + Game.time, {
-                    role: 'worker',
-                    assignedSpawn: spawn.id,
-                    assignedRoom: spawn.room.name
-                }) === 'worker' + Game.time) {
-                console.log(spawn.room.name + ' Spawning a worker');
-                return true;
-            }
             if (upgraders.length < 2 && spawn.createCreep(Memory.creepBodies[level].upgrader, 'upgrader' + Game.time, {
                     role: 'upgrader',
                     assignedSpawn: spawn.id,
