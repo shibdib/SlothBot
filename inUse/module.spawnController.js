@@ -153,7 +153,7 @@ function attackForce(spawn) {
 attackForce = profiler.registerFN(attackForce, 'attackForceSpawn');
 
 function harvesters(spawn) {
-    if (spawn.room.controller.level >= 1) {
+    if (spawn.room.controller.level >= 2) {
         let sources = spawn.room.find(FIND_SOURCES);
         for (let i = 0; i < sources.length; i++) {
             let stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
@@ -172,7 +172,7 @@ function harvesters(spawn) {
 harvesters = profiler.registerFN(harvesters, 'harvestersSpawn');
 
 function scouts(spawn) {
-    if (spawn.room.controller.level >= 1) {
+    if (spawn.room.controller.level >= 2) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.pos.roomName && creep.memory.role === 'explorer');
         if (explorers.length < 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].explorer, 'explorer' + Game.time, {
                 role: 'explorer',
