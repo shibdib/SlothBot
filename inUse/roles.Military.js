@@ -623,7 +623,7 @@ function responder(creep) {
             }
             creep.rangedAttack(closestHostile);
         }
-    } else if (friendlies.length > 0) {
+    } else if (friendlies.length > 0 && creep.room.memory.responseNeeded !== true) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
             if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(friendlies[0]);
