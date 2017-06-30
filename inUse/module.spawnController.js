@@ -311,7 +311,7 @@ function remotes(spawn) {
         }
         if (spawn.room.controller.level >= 4) {
             let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'reserver');
-            if (reserver.length < _.round(Object.keys(Game.map.describeExits('W53N80')).length, 0) && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].reserver, 'reserver' + Game.time, {
+            if (reserver.length < _.round(Object.keys(Game.map.describeExits(spawn.room.name)).length, 0) / 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].reserver, 'reserver' + Game.time, {
                     role: 'reserver',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name
