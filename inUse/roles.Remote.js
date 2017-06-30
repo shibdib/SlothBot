@@ -122,32 +122,30 @@ function hauler(creep) {
                 }
             }
         } else {
-            if (creep.memory.hauling === true) {
-                if (creep.pos.getRangeTo(Game.spawns[creep.memory.assignedSpawn]) <= 21) {
-                    creep.memory.destinationReached = false;
-                    let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
-                    let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-                    if (terminal.length > 0) {
-                        creep.memory.storageDestination = terminal[0];
-                    } else if (storage.length > 0) {
-                        creep.memory.storageDestination = storage[0];
-                    }
-                    if (creep.memory.storageDestination) {
-                        let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                        if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            creep.travelTo(storageItem);
-                        } else {
-                            creep.memory.storageDestination = null;
-                            creep.memory.path = null;
-                        }
-                        return null;
-                    }
-                    creepTools.findStorage(creep);
-                } else {
-                    creep.travelTo(Game.spawns[creep.memory.assignedSpawn], {
-                        range: 20
-                    });
+            if (creep.pos.getRangeTo(Game.spawns[creep.memory.assignedSpawn]) <= 21) {
+                creep.memory.destinationReached = false;
+                let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
+                let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+                if (terminal.length > 0) {
+                    creep.memory.storageDestination = terminal[0];
+                } else if (storage.length > 0) {
+                    creep.memory.storageDestination = storage[0];
                 }
+                if (creep.memory.storageDestination) {
+                    let storageItem = Game.getObjectById(creep.memory.storageDestination);
+                    if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        creep.travelTo(storageItem);
+                    } else {
+                        creep.memory.storageDestination = null;
+                        creep.memory.path = null;
+                    }
+                    return null;
+                }
+                creepTools.findStorage(creep);
+            } else {
+                creep.travelTo(Game.spawns[creep.memory.assignedSpawn], {
+                    range: 20
+                });
             }
         }
     }
