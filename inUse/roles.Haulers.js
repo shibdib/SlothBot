@@ -20,6 +20,7 @@ module.exports.Manager = profiler.registerFN(Manager, 'managerHaulers');
 function hauler(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -55,6 +56,7 @@ hauler = profiler.registerFN(hauler, 'haulerHaulers');
 function labTech(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
 
     //Get reaction info
     let activeReactions = [
@@ -103,6 +105,7 @@ labTech = profiler.registerFN(labTech, 'labTechHaulers');
 function mineralHauler(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
 
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
