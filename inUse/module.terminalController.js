@@ -18,8 +18,8 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_CATALYST,
     RESOURCE_POWER];
 
-let tradeAmount = 1000;
-let energyAmount = 2000;
+let tradeAmount = 10000;
+let energyAmount = 5000;
 let reactionAmount = 500;
 
 function terminalControl() {
