@@ -25,6 +25,7 @@ function worker(creep) {
     //INITIAL CHECKS
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
     if (creepTools.noHarvesterProtocol(creep)) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
@@ -86,6 +87,7 @@ function harvester(creep) {
     //INITIAL CHECKS
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
@@ -111,6 +113,8 @@ harvester = profiler.registerFN(harvester, 'harvesterWorkers');
  */
 function mineralHarvester(creep) {
     invaderCheck(creep);
+    borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
@@ -140,6 +144,7 @@ function upgrader(creep) {
     //INITIAL CHECKS
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
     if (creepTools.noHarvesterProtocol(creep)) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
