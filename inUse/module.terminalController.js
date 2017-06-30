@@ -29,7 +29,7 @@ function terminalControl() {
     let myOrders = Game.market.orders;
     for (let terminal of _.values(Game.structures)) {
         if (terminal.structureType === STRUCTURE_TERMINAL) {
-            let energyInRoom = _.sum(terminal.room.lookAtArea(0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store) { return s['structure'].store[RESOURCE_ENERGY] || 0; } else { return 0;} });
+            let energyInRoom = _.sum(terminal.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store) { return s['structure'].store[RESOURCE_ENERGY] || 0; } else { return 0;} });
             //Cleanup broken or old order
             orderCleanup(myOrders);
 
