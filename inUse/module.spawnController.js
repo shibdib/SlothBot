@@ -213,6 +213,7 @@ scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 
 function workers(spawn) {
     if (spawn.room.controller.level >= 1) {
+        const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
         const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
         if (basicHauler.length < 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].hauler, 'hauler' + Game.time, {
                 role: 'hauler',
@@ -223,7 +224,7 @@ function workers(spawn) {
             return true;
         }
         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
-        if (worker.length < 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].worker, 'worker' + Game.time, {
+        if (worker.length < 2 && upgraders.length > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].worker, 'worker' + Game.time, {
                 role: 'worker',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
@@ -231,7 +232,6 @@ function workers(spawn) {
             console.log(spawn.room.name + ' Spawning a worker');
             return true;
         }
-        const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
         if (upgraders.length < 2 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].upgrader, 'upgrader' + Game.time, {
                 role: 'upgrader',
                 assignedSpawn: spawn.id,
