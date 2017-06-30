@@ -289,8 +289,8 @@ function remotes(spawn) {
         for (let i = 0; i < 20; i++) {
             let pioneer = 'pioneer' + i;
             if (Game.flags[pioneer]) {
-                let pioneer = _.filter(Game.creeps, (creep) => creep.memory.destination === pioneer && creep.memory.role === 'pioneer');
-                if (pioneer.length < 1 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].pioneer, 'pioneer' + Game.time, {
+                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === pioneer && creep.memory.role === 'pioneer');
+                if (pioneers.length < 1 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].pioneer, 'pioneer' + Game.time, {
                         role: 'pioneer',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
