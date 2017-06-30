@@ -314,8 +314,7 @@ function remotes(spawn) {
             if (reserver.length < _.round(Object.keys(Game.map.describeExits('W53N80')).length, 0) && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].reserver, 'reserver' + Game.time, {
                     role: 'reserver',
                     assignedSpawn: spawn.id,
-                    assignedRoom: spawn.room.name,
-                    destination: key
+                    assignedRoom: spawn.room.name
                 }) === 'reserver' + Game.time) {
                 console.log(spawn.room.name + ' Spawning a reserver');
                 return true;
