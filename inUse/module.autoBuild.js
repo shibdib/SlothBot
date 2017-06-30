@@ -16,6 +16,14 @@ module.exports.roomBuilding = function (spawnName) {
     buildStorage(spawn);
     buildLinks(spawn);
     borderWalls(spawn);
+    for (let key in Game.constructionSites) {
+        if (Game.constructionSites[key].structureType !== STRUCTURE_RAMPART) {
+            let find = Game.constructionSites[key].room.lookForAt(LOOK_STRUCTURES, Game.constructionSites[key].pos)
+            if (find.length && find[0].structureType === STRUCTURE_ROAD) {
+                find[0].destroy();
+            }
+        }
+    }
 };
 
 function roadSources(spawn) {
@@ -76,8 +84,8 @@ roadSpawns = profiler.registerFN(roadSpawns, 'roadSpawnsBuilder');
 
 // TODO redo this so they're closer together
 function buildExtensions(spawn) {
-    for (let i = getRandomInt(-12, 12); i < 12; i++) {
-        const pos = new RoomPosition(spawn.pos.x + i, spawn.pos.y - getRandomInt(-12, 12), spawn.room.name);
+    for (let i = getRandomInt(-7, 7); i < 7; i++) {
+        const pos = new RoomPosition(spawn.pos.x + i, spawn.pos.y - getRandomInt(-7, 7), spawn.room.name);
         const pos2 = new RoomPosition(pos.x + 1, pos.y + 1, spawn.room.name);
         const pos3 = new RoomPosition(pos.x + 1, pos.y - 1, spawn.room.name);
         const pos4 = new RoomPosition(pos.x + 1, pos.y, spawn.room.name);
