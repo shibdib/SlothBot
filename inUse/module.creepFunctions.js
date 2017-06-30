@@ -512,6 +512,30 @@ function findStorage(creep) {
             harvest: false
         });
     }
+    //Terminal
+    let deliver = _.filter(Game.creeps, (c) => c.memory.deliveryRequested === true && c.pos.roomName === creep.pos.roomName);
+    if (deliver.length > 0) {
+        let deliveries = [];
+        for (let i = 0; i < deliver.length; i++) {
+            if (deliver[i].pos.getRangeTo(creep) > 1) {
+                if (creep.carry[RESOURCE_ENERGY] < deliver.carryCapacity - deliver.carry[RESOURCE_ENERGY]) {
+                    continue;
+                }
+                const deliverDistWeighted = _.round(deliver[i].pos.getRangeTo(creep) * 0.01, 0) + 1;
+                deliveries.push({
+                    id: deliver[i].id,
+                    distWeighted: deliverDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestDelivery = _.min(deliveries, 'distWeighted');
+        storage.push({
+            id: bestDelivery.id,
+            distWeighted: bestDelivery.distWeighted,
+            harvest: false
+        });
+    }
     let sorted = _.min(storage, 'distWeighted');
     if (sorted) {
         let storageItem = Game.getObjectById(sorted.id);

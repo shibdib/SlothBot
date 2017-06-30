@@ -74,7 +74,19 @@ function worker(creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            creepTools.findEnergy(creep, false);
+            let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
+            let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
+            if (storage) {
+                if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(storage);
+                }
+            } else if (terminal) {
+                if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(terminal);
+                }
+            } else {
+                creep.memory.deliveryRequested = true;
+            }
         }
     }
 }
@@ -164,6 +176,7 @@ function upgrader(creep) {
         creep.memory.working = null;
     }
     if (creep.carry.energy === creep.carryCapacity) {
+        creep.memory.deliveryRequested = undefined;
         creep.memory.working = true;
     }
 
@@ -176,12 +189,17 @@ function upgrader(creep) {
             creepTools.withdrawEnergy(creep);
         } else {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
+            let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {
                 if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(storage);
                 }
+            } else if (terminal) {
+                if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(terminal);
+                }
             } else {
-                creepTools.findEnergy(creep, false);
+                creep.memory.deliveryRequested = true;
             }
         }
     }
