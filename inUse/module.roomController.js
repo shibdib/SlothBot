@@ -78,9 +78,7 @@ module.exports.roomControl = function () {
                 }
             }**/
         }
-
-        //Creep spawning
-        respawnCreeps.creepRespawn(name);
+        
         Memory.stats.cpu.postCreepRespawn = Game.cpu.getUsed();
 
         //Room Building

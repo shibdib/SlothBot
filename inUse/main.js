@@ -1,19 +1,25 @@
 //modules
+let config = require('config');
 let roomController = require('module.roomController');
 let creepController = require('module.creepController');
 let towerController = require('module.towerController');
 let linkController = require('module.linkController');
 let labController = require('module.labController');
+let spawnController = require('module.spawnController');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
-let Traveler = require('module.traveler');
+require('module.traveler');
 
 // This line monkey patches the global prototypes.
 profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
+        //Update config entries
+        config.updateConfig();
+
+        //Get tick duration
         Memory.stats.tickLength = Math.round(new Date() / 1000) - Memory.stats.tickOldEpoch;
         Memory.stats.tickOldEpoch = Math.round(new Date() / 1000);
 
@@ -70,6 +76,10 @@ module.exports.loop = function () {
             let terminalController = require('module.terminalController');
             terminalController.terminalControl();
         }
+
+        //Spawn Management
+        Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
+        spawnController.creepRespawn();
 
         //Alliance List Management
         let doNotAggress = [
