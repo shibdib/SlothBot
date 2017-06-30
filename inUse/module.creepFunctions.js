@@ -310,6 +310,27 @@ function findEnergy(creep, hauler = false, range = 50) {
             harvest: false
         });
     }
+    //Dropped Energy
+    let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
+    if (dropped.length > 0) {
+        let droppedEnergy = [];
+        for (let i = 0; i < dropped.length; i++) {
+            if (dropped[i]) {
+                const droppedDistWeighted = _.round(dropped[i].pos.getRangeTo(creep) * 0.3, 0) + 1;
+                droppedEnergy.push({
+                    id: dropped[i].id,
+                    distWeighted: droppedDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestDropped = _.min(droppedEnergy, 'distWeighted');
+        energy.push({
+            id: bestDropped.id,
+            distWeighted: bestDropped.distWeighted,
+            harvest: false
+        });
+    }
 
     let sorted = _.min(energy, 'distWeighted');
 
