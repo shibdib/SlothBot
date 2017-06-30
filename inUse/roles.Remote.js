@@ -106,6 +106,7 @@ function hauler(creep) {
         creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20, ignoreStructures: true});
     } else if (creep.memory.destinationReached === true) {
         if (creep.memory.hauling === false) {
+            creep.memory.destinationReached = false;
             if (!creep.memory.containerID) {
                 let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
                 if (container.length > 0) {
