@@ -382,7 +382,7 @@ function findStorage(creep) {
         for (i = 0; i < spawn.length; i++) {
             const object = Game.getObjectById(spawn[i]);
             if (object) {
-                if (object.energy === object.energyCapacity) {
+                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
                 }
                 const spawnDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
@@ -407,7 +407,7 @@ function findStorage(creep) {
         for (i = 0; i < extension.length; i++) {
             const object = Game.getObjectById(extension[i]);
             if (object) {
-                if (object.energy === object.energyCapacity) {
+                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
                 }
                 const extensionDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.4, 0) + 1;
