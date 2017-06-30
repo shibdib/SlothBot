@@ -253,9 +253,10 @@ function ranged(creep) {
                 if (creep.hits < creep.hitsMax) {
                     creep.heal(creep);
                 }
-                creep.travelTo(armedHostile, {allowHostile: true, range: 3});
-            } else if (creep.pos.getRangeTo(armedHostile) < 3) {
                 creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
+            } else if (creep.pos.getRangeTo(armedHostile) < 3) {
+                kiting(creep, armedHostile);
+                return null;
             }
         } else if (closestHostileTower) {
             creep.memory.squadTarget = closestHostileTower.id;
@@ -279,7 +280,7 @@ function ranged(creep) {
                 if (creep.hits < creep.hitsMax) {
                     creep.heal(creep);
                 }
-                creep.travelTo(closestHostile, {allowHostile: true, range: 3});
+                creep.travelTo(closestHostile, {allowHostile: true, range: 3, movingTarget: true});
             }
         } else if (Game.flags[creep.memory.attackTarget] && hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = hostileStructures.id;
@@ -680,3 +681,40 @@ function findDefensivePosition(creep, target) {
     }
 }
 findDefensivePosition = profiler.registerFN(findDefensivePosition, 'findDefensivePositionMilitary');
+
+function kiting(creep, target) {
+    if (target.pos.x < creep.pos.x && target.pos.y < creep.pos.y) {
+        creep.move(BOTTOM_RIGHT);
+        return;
+    }
+    if (target.pos.x < creep.pos.x && target.pos.y > creep.pos.y) {
+        creep.move(TOP_RIGHT);
+        return;
+    }
+    if (target.pos.x > creep.pos.x && target.pos.y > creep.pos.y) {
+        creep.move(TOP_LEFT);
+        return;
+    }
+    if (target.pos.x > creep.pos.x && target.pos.y < creep.pos.y) {
+        creep.move(BOTTOM_LEFT);
+        return;
+    }
+    if (target.pos.x > creep.pos.x && target.pos.y === creep.pos.y) {
+        creep.move(LEFT);
+        return;
+    }
+    if (target.pos.x < creep.pos.x && target.pos.y === creep.pos.y) {
+        creep.move(RIGHT);
+        return;
+    }
+    if (target.pos.x === creep.pos.x && target.pos.y < creep.pos.y) {
+        creep.move(BOTTOM);
+        return;
+    }
+    if (target.pos.x === creep.pos.x && target.pos.y > creep.pos.y) {
+        creep.move(TOP);
+
+    }
+}
+kiting = profiler.registerFN(kiting, 'kitingMilitary');
+
