@@ -100,10 +100,10 @@ function hauler(creep) {
     }
 
     if (!creep.memory.destinationReached) {
-        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 20) {
+        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 21) {
             creep.memory.destinationReached = true;
         }
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20, ignoreStructures: true});
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     } else if (creep.memory.destinationReached === true) {
         if (creep.memory.hauling === false) {
             creep.memory.destinationReached = false;
@@ -125,7 +125,7 @@ function hauler(creep) {
             }
         } else {
             if (creep.memory.hauling === true) {
-                if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
+                if (creep.pos.getRangeTo(Game.spawns[creep.memory.assignedSpawn]) <= 21) {
                     let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
                     let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
                     if (terminal.length > 0) {
@@ -145,9 +145,8 @@ function hauler(creep) {
                     }
                     creepTools.findStorage(creep);
                 } else {
-                    creep.travelTo(Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name], {
-                        range: 23,
-                        ignoreStructures: true
+                    creep.travelTo(Game.spawns[creep.memory.assignedSpawn], {
+                        range: 20
                     });
                 }
             }
