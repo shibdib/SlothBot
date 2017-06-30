@@ -185,7 +185,7 @@ function upgrader(creep) {
             } else {
                 creep.memory.deliveryRequested = true;
                 if (!creep.memory.deliveryWait) {
-                    creep.memory.deliveryWait = 0;
+                    creep.memory.deliveryWait = 1;
                 } else {
                     creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
                 }
