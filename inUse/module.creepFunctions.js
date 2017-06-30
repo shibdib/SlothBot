@@ -512,8 +512,8 @@ function findStorage(creep) {
             harvest: false
         });
     }
-    //Terminal
-    let deliver = _.filter(Game.creeps, (c) => c.memory.deliveryRequested === true && c.pos.roomName === creep.pos.roomName);
+    //Deliveries
+    let deliver = _.filter(Game.creeps, (c) => c.memory.deliveryRequested === true && !c.memory.deliveryIncoming && c.pos.roomName === creep.pos.roomName);
     if (deliver.length > 0) {
         let deliveries = [];
         for (let i = 0; i < deliver.length; i++) {
@@ -521,7 +521,7 @@ function findStorage(creep) {
                 if (creep.carry[RESOURCE_ENERGY] < deliver.carryCapacity - _.sum(deliver.carry)) {
                     continue;
                 }
-                const deliverDistWeighted = _.round(deliver[i].pos.getRangeTo(creep) * 0.01, 0) + 1;
+                const deliverDistWeighted = _.round(deliver[i].pos.getRangeTo(creep) * 0.3, 0) + 1;
                 deliveries.push({
                     id: deliver[i].id,
                     distWeighted: deliverDistWeighted,
@@ -541,6 +541,7 @@ function findStorage(creep) {
         let storageItem = Game.getObjectById(sorted.id);
         if (storageItem) {
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                storageItem.memory.deliveryIncoming = true;
                 creep.memory.storageDestination = storageItem.id;
                 creep.travelTo(storageItem);
             }
