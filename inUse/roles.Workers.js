@@ -33,6 +33,7 @@ function worker(creep) {
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.deliveryIncoming = undefined;
         creep.memory.deliveryRequested = undefined;
+        creep.memory.deliveryWait = undefined;
         creep.memory.working = true;
     }
 
@@ -73,6 +74,14 @@ function worker(creep) {
                 }
             } else {
                 creep.memory.deliveryRequested = true;
+                if (!creep.memory.deliveryWait) {
+                    creep.memory.deliveryWait = 0;
+                } else {
+                    creep.memory.deliveryWait++
+                }
+                if (creep.memory.deliveryWait > 15) {
+                    creepTools.findEnergy(creep);
+                }
             }
         }
     }
@@ -151,6 +160,7 @@ function upgrader(creep) {
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.deliveryIncoming = undefined;
         creep.memory.deliveryRequested = undefined;
+        creep.memory.deliveryWait = undefined;
         creep.memory.working = true;
     }
 
@@ -174,6 +184,14 @@ function upgrader(creep) {
                 }
             } else {
                 creep.memory.deliveryRequested = true;
+                if (!creep.memory.deliveryWait) {
+                    creep.memory.deliveryWait = 0;
+                } else {
+                    creep.memory.deliveryWait++
+                }
+                if (creep.memory.deliveryWait > 15) {
+                    creepTools.findEnergy(creep);
+                }
             }
         }
     }
