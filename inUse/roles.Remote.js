@@ -90,7 +90,7 @@ function hauler(creep) {
         return null;
     }
     if (!creep.memory.destinationReached && creep.memory.hauling !== true) {
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
