@@ -236,12 +236,12 @@ function workers(spawn) {
         }
         if (spawn.room.controller.level >= 6) {
             let minerals = spawn.pos.findClosestByRange(FIND_MINERALS);
-            let mineralHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals[0].id && creep.memory.role === 'mineralHarvester');
+            let mineralHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester');
             if (mineralHarvester.length < 2 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[spawn.room.controller.level].mineralHarvester, 'mineralHarvester' + Game.time, {
                     role: 'mineralHarvester',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
-                    assignedMineral: minerals[0].id
+                    assignedMineral: minerals.id
                 }) === 'mineralHarvester' + Game.time) {
                 console.log(spawn.room.name + ' Spawning a mineralHarvester');
                 return true;
@@ -251,7 +251,7 @@ function workers(spawn) {
                     role: 'mineralHauler',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
-                    assignedMineral: minerals[0].id
+                    assignedMineral: minerals.id
                 }) === 'mineralHauler' + Game.time) {
                 console.log(spawn.room.name + ' Spawning a mineralHauler');
                 return true;
