@@ -101,6 +101,8 @@ function labTech(creep) {
             if (creep.withdraw(terminal, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(terminal);
             }
+        } else {
+            creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
         }
     } else {
         if (creep.memory.deliverTo) {
