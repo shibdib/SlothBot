@@ -67,14 +67,14 @@ function labTech(creep) {
     let intermediateReactions = [
         RESOURCE_GHODIUM_ALKALIDE
     ];
-    for (let i = 0; i < activeReactions.length; i++) {
+    for (let key in activeReactions) {
         if (creep.room.memory.reactions) {
-            let reaction = creep.room.memory.reactions[activeReactions[i]];
+            let reaction = creep.room.memory.reactions[activeReactions[key]];
             let lab1 = Game.getObjectById(reaction.lab1);
             let lab2 = Game.getObjectById(reaction.lab2);
             let output = Game.getObjectById(reaction.outputLab);
             if (_.sum(creep.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store) { return s['structure'].store[reaction.input1] || 0; } else { return 0;} }) >= 200 && _.sum(creep.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store) { return s['structure'].store[reaction.input2] || 0; } else { return 0;} }) >= 200 && !creep.room.memory.reactions.current) {
-                creep.room.memory.reactions.current = i;
+                creep.room.memory.reactions.current = key;
                 creep.room.memory.reactions.currentAge = Game.time;
                 if (lab1.mineralAmount < 500) {
                     creep.memory.haulingMineral = reaction.input1;
