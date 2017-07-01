@@ -17,7 +17,7 @@ module.exports.roomBuilding = function (spawnName) {
     buildLinks(spawn);
     borderWalls(spawn);
     for (let key in Game.constructionSites) {
-        if (Game.constructionSites[key].structureType !== STRUCTURE_RAMPART) {
+        if (Game.constructionSites[key].structureType !== STRUCTURE_RAMPART && Game.constructionSites[key].room) {
             let find = Game.constructionSites[key].room.lookForAt(LOOK_STRUCTURES, Game.constructionSites[key].pos)
             if (find.length && find[0].structureType === STRUCTURE_ROAD) {
                 find[0].destroy();
