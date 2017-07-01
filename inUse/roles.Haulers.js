@@ -63,19 +63,21 @@ function labTech(creep) {
         RESOURCE_GHODIUM_OXIDE
     ];
     for (let i = 0; i < activeReactions.length; i++) {
-        let reaction = creep.room.memory.reactions[activeReactions[i]];
-        let lab1 = Game.getObjectById(reaction.lab1);
-        let lab2 = Game.getObjectById(reaction.lab2);
-        let output = Game.getObjectById(reaction.outputLab);
-        if (lab1.mineralAmount < 500) {
-            creep.memory.haulingMineral = reaction.input1;
-            creep.memory.deliverTo = reaction.lab1;
-        } else if (lab2.mineralAmount < 500) {
-            creep.memory.haulingMineral = reaction.input2;
-            creep.memory.deliverTo = reaction.lab2;
-        } else if (output.energy < 500) {
-            creep.memory.haulingMineral = RESOURCE_ENERGY;
-            creep.memory.deliverTo = reaction.outputLab;
+        if (creep.room.memory.reactions) {
+            let reaction = creep.room.memory.reactions[activeReactions[i]];
+            let lab1 = Game.getObjectById(reaction.lab1);
+            let lab2 = Game.getObjectById(reaction.lab2);
+            let output = Game.getObjectById(reaction.outputLab);
+            if (lab1.mineralAmount < 500) {
+                creep.memory.haulingMineral = reaction.input1;
+                creep.memory.deliverTo = reaction.lab1;
+            } else if (lab2.mineralAmount < 500) {
+                creep.memory.haulingMineral = reaction.input2;
+                creep.memory.deliverTo = reaction.lab2;
+            } else if (output.energy < 500) {
+                creep.memory.haulingMineral = RESOURCE_ENERGY;
+                creep.memory.deliverTo = reaction.outputLab;
+            }
         }
     }
 
