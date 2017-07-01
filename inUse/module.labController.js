@@ -74,5 +74,15 @@ function cacheReactions(lab) {
             isActive: false
         };
     }
+    if (!lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE]) {
+        cache[RESOURCE_KEANIUM_OXIDE] = {
+            input1: RESOURCE_OXYGEN,
+            input2: RESOURCE_KEANIUM,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            isActive: false
+        };
+    }
     lab.room.memory.reactions = cache;
 }
