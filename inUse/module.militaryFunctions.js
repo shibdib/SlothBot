@@ -10,15 +10,6 @@ function kite(creep, fleeRange = 5) {
     let ret = PathFinder.search(creep.pos, avoidance, {
         flee: true,
         swampCost: 50,
-
-        roomCallback: function (roomName) {
-            let room = Game.rooms[roomName];
-            let costs = new PathFinder.CostMatrix;
-            if (room.pos.x === 0 || room.pos.y === 0 || room.pos.x === 49 || room.pos.y === 49) {
-                costs.set(room.pos.x, room.pos.y, 255)
-            }
-            return costs;
-        }
     });
 
     if (ret.path.length > 0) {
