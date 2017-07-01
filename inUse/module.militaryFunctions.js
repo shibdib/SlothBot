@@ -5,7 +5,7 @@ function kite(creep, fleeRange = 3) {
 
     let avoidance = _.map(creep.pos.findInRange(avoid, fleeRange + 1),
         (c) => {
-            return {pos: c.pos, range: 10};
+            return {pos: c.pos, range: 15};
         });
     let ret = PathFinder.search(creep.pos, avoidance, {
         flee: true,
