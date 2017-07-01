@@ -86,7 +86,7 @@ function labTech(creep) {
                         return 0;
                     }
                 }) >= 200 && !creep.room.memory.reactions.current) {
-                creep.room.memory.reactions.current = key;
+                creep.room.memory.reactions.current = reaction.output;
                 creep.room.memory.reactions.currentAge = Game.time;
                 if (lab1.mineralAmount < 200) {
                     creep.memory.haulingMineral = reaction.input1;
