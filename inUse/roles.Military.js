@@ -389,6 +389,9 @@ function ranged(creep) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
+                if (creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget)) <= 5) {
+                    creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {allowHostile: true, movingTarget: true});
+                }
             }
         }
     }
