@@ -195,11 +195,12 @@ function attacker(creep) {
                 }
             }
         } else {
-            if (Game.flags['wp'] && creep.memory.waypointReached !== true) {
-                if (creep.pos.getRangeTo(Game.flags['wp']) > 6) {
+            creep.memory.squadTarget = undefined;
+            if (Game.flags[creep.memory.wp] && creep.memory.waypointReached !== true) {
+                if (creep.pos.getRangeTo(creep.memory.wp) > 6) {
                     creep.memory.waypointReached = true;
                 }
-                creep.travelTo(Game.flags['wp'], {allowHostile: false});
+                creep.travelTo(creep.memory.wp, {allowHostile: false});
             } else {
                 creep.travelTo(Game.flags[creep.memory.attackTarget], {allowHostile: true});
             }
@@ -315,11 +316,11 @@ function ranged(creep) {
             }
         } else {
             creep.memory.squadTarget = undefined;
-            if (Game.flags['wp'] && creep.memory.waypointReached !== true) {
-                if (creep.pos.getRangeTo(Game.flags['wp']) > 6) {
+            if (Game.flags[creep.memory.wp] && creep.memory.waypointReached !== true) {
+                if (creep.pos.getRangeTo(creep.memory.wp) > 6) {
                     creep.memory.waypointReached = true;
                 }
-                creep.travelTo(Game.flags['wp'], {allowHostile: false});
+                creep.travelTo(creep.memory.wp, {allowHostile: false});
             } else {
                 creep.travelTo(Game.flags[creep.memory.attackTarget], {allowHostile: true});
             }
