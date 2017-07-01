@@ -70,7 +70,7 @@ function healer(creep) {
     }
 
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
-    let targets = creep.pos.findInRange(FIND_CREEPS, 10, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
+    let targets = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (creep.pos.getRangeTo(armedHostile) < 2) {
         militaryFunctions.kite(creep);
@@ -78,14 +78,12 @@ function healer(creep) {
     if (targets.length > 0) {
         if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
             creep.rangedHeal(targets[0]);
-            creep.travelTo(targets[0], {allowHostile: true, movingTarget: true});
         }
+    }
+    if (squadLeader.length > 0) {
+        creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
     } else {
-        if (squadLeader.length > 0) {
-            creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-        } else {
-            creep.travelTo(Game.flags[creep.memory.staging]);
-        }
+        creep.travelTo(Game.flags[creep.memory.staging]);
     }
 }
 healer = profiler.registerFN(healer, 'healerMilitary');
@@ -232,10 +230,18 @@ function attacker(creep) {
             if (creep.hits < creep.hitsMax) {
                 creep.heal(creep);
             }
-            creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
-                allowHostile: true,
-                movingTarget: true
-            });
+            if (creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget) < 5)) {
+                creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
+                    allowHostile: true,
+                    movingTarget: true
+                });
+            } else {
+                if (creep.room.name !== squadLeader[0].pos.roomName) {
+                    creep.travelTo(squadLeader[0], {allowHostile: true});
+                } else {
+                    creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                }
+            }
         }
     }
 }
@@ -342,27 +348,25 @@ function ranged(creep) {
     } else {
         if (squadLeader[0].memory.attackStarted !== true) {
             creep.travelTo(squadLeader[0], {movingTarget: true});
-        } else if (creep.pos.getRangeTo(squadLeader[0]) > 4) {
+        } else if (creep.pos.getRangeTo(squadLeader[0]) > 3) {
             if (creep.room.name !== squadLeader[0].pos.roomName) {
                 creep.travelTo(squadLeader[0], {allowHostile: true});
             } else {
                 creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
             }
-        } else if (squadLeader[0].memory.squadTarget && creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
-            if (creep.hits < creep.hitsMax) {
-                creep.heal(creep);
+        } else if (creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
+            if (creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget) < 4)) {
+                creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
+                    allowHostile: true,
+                    movingTarget: true
+                });
+            } else {
+                if (creep.room.name !== squadLeader[0].pos.roomName) {
+                    creep.travelTo(squadLeader[0], {allowHostile: true});
+                } else {
+                    creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                }
             }
-            creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
-                allowHostile: true,
-                movingTarget: true,
-                range: 3
-            });
-        } else if (squadLeader[0].memory.squadTarget && creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget)) < 3) {
-            creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
-                allowHostile: true,
-                movingTarget: true,
-                range: 3
-            });
         }
     }
 }
