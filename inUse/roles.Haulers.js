@@ -85,7 +85,7 @@ function labTech(creep) {
                     } else {
                         return 0;
                     }
-                }) >= 200 && !creep.room.memory.reactions.current) {
+                }) >= 200) {
                 creep.room.memory.reactions.current = reaction.output;
                 creep.room.memory.reactions.currentAge = Game.time;
                 if (lab1.mineralAmount < 200) {
@@ -141,7 +141,7 @@ function labTech(creep) {
                     creep.travelTo(terminal);
                 }
             } else {
-                creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
+                creep.travelTo(storage);
             }
         } else {
             let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount > 0});
