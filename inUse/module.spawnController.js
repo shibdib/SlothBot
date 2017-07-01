@@ -284,7 +284,7 @@ workers = profiler.registerFN(workers, 'workersSpawn');
 function remotes(spawn, level) {
     if (spawn.room.controller.level >= 3) {
         for (let key in Memory.roomCache) {
-            if (neighborCheck(spawn.room.name, key) === true && key !== spawn.room.name) {
+            if (neighborCheck(spawn.room.name, key) === true && key !== spawn.room.name && Memory.roomCache[key].sources.length > 0) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHarvester');
                 if (remoteHarvester.length < Memory.roomCache[key].sources.length && spawn.createCreep(Memory.creepBodies[level].remoteHarvester, 'remoteHarvester' + Game.time, {
                         role: 'remoteHarvester',
