@@ -65,6 +65,25 @@ scout = profiler.registerFN(scout, 'scoutMilitary');
  */
 function healer(creep) {
     cache.cacheRoomIntel(creep);
+    if (creep.memory.boostAttempt !== true) {
+        let desiredReactions = [
+            RESOURCE_GHODIUM_OXIDE
+        ];
+        let count = 1;
+        for (let i = 0; i < desiredReactions.length; i++) {
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy[desiredReactions[i]] >= 20});
+            if (lab) {
+                count++;
+                if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(lab);
+                }
+            }
+        }
+        if (count === 1) {
+            creep.memory.boostAttempt = true;
+        }
+        return null;
+    }
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
@@ -93,6 +112,25 @@ healer = profiler.registerFN(healer, 'healerMilitary');
  */
 function attacker(creep) {
     cache.cacheRoomIntel(creep);
+    if (creep.memory.boostAttempt !== true) {
+        let desiredReactions = [
+            RESOURCE_GHODIUM_OXIDE
+        ];
+        let count = 1;
+        for (let i = 0; i < desiredReactions.length; i++) {
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy[desiredReactions[i]] >= 20});
+            if (lab) {
+                count++;
+                if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(lab);
+                }
+            }
+        }
+        if (count === 1) {
+            creep.memory.boostAttempt = true;
+        }
+        return null;
+    }
     if (creep.memory.attackStarted !== true && Game.flags[creep.memory.staging].pos.roomName !== creep.pos.roomName) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
@@ -252,6 +290,25 @@ attacker = profiler.registerFN(attacker, 'attackerMilitary');
  */
 function ranged(creep) {
     cache.cacheRoomIntel(creep);
+    if (creep.memory.boostAttempt !== true) {
+        let desiredReactions = [
+            RESOURCE_GHODIUM_OXIDE
+        ];
+        let count = 1;
+        for (let i = 0; i < desiredReactions.length; i++) {
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy[desiredReactions[i]] >= 20});
+            if (lab) {
+                count++;
+                if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(lab);
+                }
+            }
+        }
+        if (count === 1) {
+            creep.memory.boostAttempt = true;
+        }
+        return null;
+    }
     creep.memory.squadKite = undefined;
 
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
@@ -403,6 +460,25 @@ ranged = profiler.registerFN(ranged, 'rangedMilitary');
  */
 function deconstructor(creep) {
     cache.cacheRoomIntel(creep);
+    if (creep.memory.boostAttempt !== true) {
+        let desiredReactions = [
+            RESOURCE_GHODIUM_OXIDE
+        ];
+        let count = 1;
+        for (let i = 0; i < desiredReactions.length; i++) {
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy[desiredReactions[i]] >= 20});
+            if (lab) {
+                count++;
+                if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(lab);
+                }
+            }
+        }
+        if (count === 1) {
+            creep.memory.boostAttempt = true;
+        }
+        return null;
+    }
     if (!Game.flags[creep.memory.attackTarget]) {
         creep.suicide();
     }
