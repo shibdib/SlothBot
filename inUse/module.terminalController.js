@@ -270,16 +270,16 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
             if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
-                let currentSupply;
-                if (isNaN(terminal.store[reactionNeeds[i]]) === true) {
-                    currentSupply = myOrders[key].remainingAmount;
-                } else {
-                    currentSupply = terminal.store[reactionNeeds[i]] + myOrders[key].remainingAmount;
-                }
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
                 order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === reactionNeeds[i] && myOrders[key].type === ORDER_BUY) {
+                        let currentSupply;
+                        if (isNaN(terminal.store[reactionNeeds[i]]) === true) {
+                            currentSupply = myOrders[key].remainingAmount;
+                        } else {
+                            currentSupply = terminal.store[reactionNeeds[i]] + myOrders[key].remainingAmount;
+                        }
                         if (Game.market.credits * 0.1 > (reactionAmount - currentSupply) * buyOrder.price) {
                             if (Game.market.extendOrder(myOrders[key].id, reactionAmount - currentSupply) === OK) {
                                 console.log("<font color='#adff2f'>MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + reactionAmount - currentSupply + "</font>");
