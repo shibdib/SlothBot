@@ -50,15 +50,15 @@ function labControl() {
                         let reaction = lab.room.memory.reactions[activeReactions[i]];
                         //Set initial labs
                         if (reaction.lab1 === null) {
-                            reaction.lab1 = lab.id;
+                            reaction.lab1 = '594e0ef4f33ea98f0f966e24';
                             continue labs;
                         }
                         if (reaction.lab2 === null) {
-                            reaction.lab2 = lab.id;
+                            reaction.lab2 = '594d4e5dcf3ce842d7a53e22';
                             continue labs;
                         }
                         if (reaction.outputLab === null) {
-                            reaction.outputLab = lab.id;
+                            reaction.outputLab = '594db619a557d2a67fb1da9b';
                             continue labs;
                         }
 
