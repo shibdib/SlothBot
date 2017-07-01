@@ -60,41 +60,50 @@ function labTech(creep) {
 
     //Get reaction info
     let activeReactions = [
-        RESOURCE_GHODIUM_HYDRIDE
+        RESOURCE_GHODIUM_OXIDE
     ];
     for (let i = 0; i < activeReactions.length; i++) {
         let reaction = creep.room.memory.reactions[activeReactions[i]];
         let lab1 = Game.getObjectById(reaction.lab1);
         let lab2 = Game.getObjectById(reaction.lab2);
+        let output = Game.getObjectById(reaction.outputLab);
         if (lab1.mineralAmount < 500) {
-
+            creep.memory.haulingMineral = reaction.input1;
+            creep.memory.deliverTo = reaction.lab1;
+        } else if (lab2.mineralAmount < 500) {
+            creep.memory.haulingMineral = reaction.input2;
+            creep.memory.deliverTo = reaction.lab2;
+        } else if (output.energy < 500) {
+            creep.memory.haulingMineral = RESOURCE_ENERGY;
+            creep.memory.deliverTo = reaction.outputLab;
         }
     }
 
-    if (creep.carry.energy === 0) {
+    if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
-    if (creep.carry.energy > creep.carryCapacity / 2) {
+    if (_.sum(creep.carry) > creep.carryCapacity / 2) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        if (creep.memory.mineralDestination) {
-            creepTools.withdrawEnergy(creep);
-        } else {
-            creep.memory.mineralDestination = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
+        let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[creep.memory.haulingMineral] > 0});
+        let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[creep.memory.haulingMineral] > 0});
+        if (storage) {
+            if (creep.withdraw(storage, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(storage);
+            }
+        } else if (terminal) {
+            if (creep.withdraw(terminal, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(terminal);
+            }
         }
     } else {
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+        if (creep.memory.deliverTo) {
+            let storageItem = Game.getObjectById(creep.memory.deliverTo);
+            if (creep.transfer(storageItem, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(storageItem);
-            } else {
-                creep.memory.storageDestination = null;
-                creep.memory.path = null;
             }
-            return null;
         }
-        creepTools.findStorage(creep);
     }
 }
 labTech = profiler.registerFN(labTech, 'labTechHaulers');

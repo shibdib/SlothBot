@@ -6,7 +6,7 @@ const profiler = require('screeps-profiler');
 
 function labControl() {
     let activeReactions = [
-        RESOURCE_GHODIUM_HYDRIDE
+        RESOURCE_GHODIUM_OXIDE
     ];
     labs:
         for (let lab of _.values(Game.structures)) {
@@ -17,6 +17,14 @@ function labControl() {
                     let cache = lab.room.memory.reactions || {};
                     cache['GH'] = {
                         input1: RESOURCE_HYDROGEN,
+                        input2: RESOURCE_GHODIUM,
+                        lab1: null,
+                        lab2: null,
+                        outputLab: null,
+                        isActive: false
+                    };
+                    cache['GO'] = {
+                        input1: RESOURCE_OXYGEN,
                         input2: RESOURCE_GHODIUM,
                         lab1: null,
                         lab2: null,
