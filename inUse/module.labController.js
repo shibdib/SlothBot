@@ -12,7 +12,7 @@ function labControl() {
                 cacheReactions(lab);
                 if (lab.room.memory.reactions) {
                     for (let i = 0; i < lab.room.memory.reactions.length; i++) {
-                        let reaction = lab.room.memory.reactions[lab.room.memory.reactions[i]];
+                        let reaction = lab.room.memory.reactions[i];
                         //Set initial labs
                         if (reaction.lab1 === null) {
                             reaction.lab1 = lab.id;
