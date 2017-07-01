@@ -8,43 +8,12 @@ function labControl() {
     let activeReactions = [
         RESOURCE_GHODIUM_OXIDE
     ];
-    let intermediteReactions = [
-
-    ];
+    let intermediteReactions = [];
     labs:
         for (let lab of _.values(Game.structures)) {
             if (lab.structureType === STRUCTURE_LAB) {
-                if (!lab.room.memory.reactions) {
-                    //Initial reaction setup in memory
-                    //Cache reaction
-                    let cache = lab.room.memory.reactions || {};
-                    cache['GH'] = {
-                        input1: RESOURCE_HYDROGEN,
-                        input2: RESOURCE_GHODIUM,
-                        lab1: null,
-                        lab2: null,
-                        outputLab: null,
-                        isActive: false
-                    };
-                    cache['GO'] = {
-                        input1: RESOURCE_OXYGEN,
-                        input2: RESOURCE_GHODIUM,
-                        lab1: null,
-                        lab2: null,
-                        outputLab: null,
-                        isActive: false
-                    };
-                    cache[RESOURCE_GHODIUM_ALKALIDE] = {
-                        input1: RESOURCE_GHODIUM_OXIDE,
-                        input2: RESOURCE_HYDROXIDE,
-                        lab1: null,
-                        lab2: null,
-                        outputLab: null,
-                        isActive: false
-                    };
-                    lab.room.memory.reactions = cache;
-                }
-
+                //Initial reaction setup in memory
+                cacheReactions(lab);
                 if (lab.room.memory.reactions) {
                     for (let i = 0; i < activeReactions.length; i++) {
                         let reaction = lab.room.memory.reactions[activeReactions[i]];
@@ -75,3 +44,39 @@ function labControl() {
         }
 }
 module.exports.labControl = profiler.registerFN(labControl, 'labControl');
+
+function cacheReactions(lab) {
+    //Cache reaction
+    let cache = lab.room.memory.reactions || {};
+    if (!lab.room.memory.reactions['GH']) {
+        cache['GH'] = {
+            input1: RESOURCE_HYDROGEN,
+            input2: RESOURCE_GHODIUM,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            isActive: false
+        };
+    }
+    if (!lab.room.memory.reactions['GO']) {
+        cache['GO'] = {
+            input1: RESOURCE_OXYGEN,
+            input2: RESOURCE_GHODIUM,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            isActive: false
+        };
+    }
+    if (!lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE]) {
+        cache[RESOURCE_GHODIUM_ALKALIDE] = {
+            input1: RESOURCE_GHODIUM_OXIDE,
+            input2: RESOURCE_HYDROXIDE,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            isActive: false
+        };
+    }
+    lab.room.memory.reactions = cache;
+}
