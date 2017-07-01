@@ -72,7 +72,7 @@ function healer(creep) {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
     let targets = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
-    if (creep.pos.getRangeTo(armedHostile) < 2) {
+    if (creep.pos.getRangeTo(armedHostile) <= 2) {
         militaryFunctions.kite(creep);
     }
     if (targets.length > 0) {
@@ -287,7 +287,7 @@ function ranged(creep) {
             if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
                 creep.rangedMassAttack();
                 creep.travelTo(armedHostile, {allowHostile: false, range: 3, movingTarget: true});
-            } else if (creep.pos.getRangeTo(armedHostile) < 3) {
+            } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
                 militaryFunctions.kite(creep);
             } else {
                 creep.travelTo(armedHostile, {allowHostile: false, range: 3, movingTarget: true});
@@ -347,10 +347,10 @@ function ranged(creep) {
             }
         }
     } else {
-        if (creep.pos.getRangeTo(squadLeader[0]) <= 2) {
-            if (armedHostile && creep.pos.getRangeTo(armedHostile) < 3) {
-                militaryFunctions.kite(creep);
-            } else if (creep.room.name !== squadLeader[0].pos.roomName) {
+        if (armedHostile && creep.pos.getRangeTo(armedHostile) < 3) {
+            militaryFunctions.kite(creep);
+        } else if (creep.pos.getRangeTo(squadLeader[0]) <= 2) {
+            if (creep.room.name !== squadLeader[0].pos.roomName) {
                 creep.travelTo(squadLeader[0], {allowHostile: true});
             } else {
                 creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
@@ -362,19 +362,8 @@ function ranged(creep) {
                 creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
             }
         }
-        if (creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
-            if (creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget) < 4)) {
-                creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
-                    allowHostile: true,
-                    movingTarget: true
-                });
-            } else {
-                if (creep.room.name !== squadLeader[0].pos.roomName) {
-                    creep.travelTo(squadLeader[0], {allowHostile: true});
-                } else {
-                    creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-                }
-            }
+        if (squadLeader[0].memory.squadTarget) {
+            creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget));
         }
     }
 }
