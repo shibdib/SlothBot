@@ -5,18 +5,14 @@
 const profiler = require('screeps-profiler');
 
 function labControl() {
-    let activeReactions = [
-        RESOURCE_GHODIUM_OXIDE
-    ];
-    let intermediteReactions = [];
     labs:
         for (let lab of _.values(Game.structures)) {
             if (lab.structureType === STRUCTURE_LAB) {
                 //Initial reaction setup in memory
                 cacheReactions(lab);
                 if (lab.room.memory.reactions) {
-                    for (let i = 0; i < activeReactions.length; i++) {
-                        let reaction = lab.room.memory.reactions[activeReactions[i]];
+                    for (let i = 0; i < lab.room.memory.reactions.length; i++) {
+                        let reaction = lab.room.memory.reactions[lab.room.memory.reactions[i]];
                         //Set initial labs
                         if (reaction.lab1 === null) {
                             reaction.lab1 = lab.id;
