@@ -286,6 +286,7 @@ function ranged(creep) {
             }
             creep.memory.squadTarget = armedHostile.id;
             if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
+                creep.rangedAttack(closestHostile);
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
