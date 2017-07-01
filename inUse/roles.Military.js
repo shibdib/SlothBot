@@ -365,7 +365,7 @@ function ranged(creep) {
                 }
                 creep.travelTo(creep.memory.wp, {allowHostile: false});
             } else {
-                creep.travelTo(Game.flags[creep.memory.attackTarget], {allowHostile: true});
+                creep.travelTo(Game.flags[creep.memory.attackTarget], {allowHostile: false});
             }
         }
     } else {
