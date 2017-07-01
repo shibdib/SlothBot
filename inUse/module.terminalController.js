@@ -270,6 +270,10 @@ placeBuyOrders = profiler.registerFN(placeBuyOrders, 'placeBuyOrdersTerminal');
 function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
+            let minerals = terminal.pos.findClosestByRange(FIND_MINERALS);
+            if (minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) {
+                continue;
+            }
             if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
                 order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
