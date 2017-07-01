@@ -52,6 +52,8 @@ function harvester(creep) {
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
+    } else if (creep.memory.invaderCooldown > 15) {
+        creep.memory.invaderCooldown = undefined;
     }
     //Initial move
     if (creep.carry.energy === 0) {
@@ -285,7 +287,6 @@ function invaderCheck(creep) {
     } else if (creep.room.memory.tickDetected < Game.time - 150) {
         creep.memory.invaderDetected = undefined;
         creep.memory.invaderID = undefined;
-        creep.memory.invaderCooldown = undefined;
         creep.room.memory.numberOfHostiles = undefined;
         creep.room.memory.responseNeeded = false;
     }
