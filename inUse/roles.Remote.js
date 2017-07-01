@@ -202,6 +202,15 @@ function pioneer(creep) {
         } else {
             creepTools.findConstruction(creep);
         }
+        if (!creep.memory.constructionSite) {
+            let repairNeeded = creepTools.findRepair(creep);
+            if (repairNeeded) {
+                repairNeeded = Game.getObjectById(repairNeeded);
+                if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(repairNeeded);
+                }
+            }
+        }
     }
 }
 pioneer = profiler.registerFN(pioneer, 'pioneerRemote');
