@@ -347,9 +347,7 @@ function ranged(creep) {
             }
         }
     } else {
-        if (squadLeader[0].memory.attackStarted !== true) {
-            creep.travelTo(squadLeader[0], {movingTarget: true});
-        } else if (creep.pos.getRangeTo(squadLeader[0]) > 1) {
+        if (creep.pos.getRangeTo(squadLeader[0]) > 1) {
             if (squadLeader[0].memory.squadKite) {
                 creep.move(squadLeader[0].memory.squadKite);
             } else
@@ -360,7 +358,8 @@ function ranged(creep) {
             } else {
                 creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
             }
-        } else if (creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
+        }
+        if (creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
             if (creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget) < 4)) {
                 creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
                     allowHostile: true,
