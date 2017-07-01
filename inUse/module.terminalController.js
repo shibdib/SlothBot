@@ -5,8 +5,8 @@ let _ = require('lodash');
 let profiler = require('screeps-profiler');
 
 let reactionNeeds = [
-    //RESOURCE_HYDROGEN,
-    //RESOURCE_GHODIUM
+    RESOURCE_OXYGEN,
+    RESOURCE_GHODIUM
 ];
 
 let tradeTargets = [RESOURCE_HYDROGEN,
