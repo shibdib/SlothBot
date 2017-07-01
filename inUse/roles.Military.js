@@ -68,22 +68,22 @@ function healer(creep) {
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
-
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
     let targets = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
-    if (creep.pos.getRangeTo(armedHostile) <= 2) {
-        militaryFunctions.kite(creep);
-    }
-    if (targets.length > 0) {
-        if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-            creep.rangedHeal(targets[0]);
+    if (creep.pos.getRangeTo(armedHostile) >= 4) {
+        if (targets.length > 0) {
+            if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
+                creep.rangedHeal(targets[0]);
+            }
         }
-    }
-    if (squadLeader.length > 0) {
-        creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+        if (squadLeader.length > 0) {
+            creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+        } else {
+            creep.travelTo(Game.flags[creep.memory.staging]);
+        }
     } else {
-        creep.travelTo(Game.flags[creep.memory.staging]);
+        militaryFunctions.kite(creep, 5);
     }
 }
 healer = profiler.registerFN(healer, 'healerMilitary');
@@ -285,7 +285,6 @@ function ranged(creep) {
             }
             creep.memory.squadTarget = armedHostile.id;
             if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
-                creep.rangedMassAttack();
                 creep.travelTo(armedHostile, {allowHostile: false, range: 3, movingTarget: true});
             } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
                 militaryFunctions.kite(creep);
