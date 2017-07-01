@@ -88,13 +88,13 @@ function labTech(creep) {
                 }) >= 200 && !creep.room.memory.reactions.current) {
                 creep.room.memory.reactions.current = key;
                 creep.room.memory.reactions.currentAge = Game.time;
-                if (lab1.mineralAmount < 500) {
+                if (lab1.mineralAmount < 200) {
                     creep.memory.haulingMineral = reaction.input1;
                     creep.memory.deliverTo = reaction.lab1;
-                } else if (lab2.mineralAmount < 500) {
+                } else if (lab2.mineralAmount < 200) {
                     creep.memory.haulingMineral = reaction.input2;
                     creep.memory.deliverTo = reaction.lab2;
-                } else if (output.energy < 500) {
+                } else if (output.energy < 300) {
                     creep.memory.haulingMineral = RESOURCE_ENERGY;
                     creep.memory.deliverTo = reaction.outputLab;
                 }
