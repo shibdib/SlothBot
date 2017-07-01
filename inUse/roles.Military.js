@@ -255,8 +255,7 @@ function ranged(creep) {
                 }
                 creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
             } else if (creep.pos.getRangeTo(armedHostile) < 3) {
-                kiting(creep, armedHostile);
-                return null;
+                militaryFunctions.retreat(creep);
             }
         } else if (closestHostileTower) {
             creep.memory.squadTarget = closestHostileTower.id;
