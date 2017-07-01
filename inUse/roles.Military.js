@@ -266,8 +266,8 @@ function ranged(creep) {
         creep.heal(creep);
     }
 
+    let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (creep.memory.squadLeader === true) {
-        let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
         let closestHostileSpawn = creep.pos.findClosestByPath(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
         let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
         let closestHostile = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
@@ -349,7 +349,9 @@ function ranged(creep) {
         if (squadLeader[0].memory.attackStarted !== true) {
             creep.travelTo(squadLeader[0], {movingTarget: true});
         } else if (creep.pos.getRangeTo(squadLeader[0]) > 3) {
-            if (creep.room.name !== squadLeader[0].pos.roomName) {
+            if (armedHostile && creep.pos.getRangeTo(armedHostile) < 3) {
+                militaryFunctions.kite(creep);
+            } else if (creep.room.name !== squadLeader[0].pos.roomName) {
                 creep.travelTo(squadLeader[0], {allowHostile: true});
             } else {
                 creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
@@ -770,7 +772,7 @@ function kiting(creep, target) {
     }
     if (target.pos.x === creep.pos.x && target.pos.y > creep.pos.y) {
         if (new RoomPosition(creep.pos.x, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-        creep.move(TOP);
+            creep.move(TOP);
         } else if (new RoomPosition(creep.pos.x + 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
             creep.move(TOP_RIGHT);
         } else if (new RoomPosition(creep.pos.x - 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
