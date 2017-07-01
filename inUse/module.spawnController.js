@@ -14,11 +14,18 @@ function creepRespawn() {
             let worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
             let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
             let level = getLevel(spawn);
+            let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
+            let respondersNeeded;
+            if (assistNeeded.length > 0) {
+                for (let key in assistNeeded) {
+                    respondersNeeded = neighborCheck(spawn.pos.roomName, assistNeeded[key].name) === true || spawn.room.memory.responseNeeded === true;
+                }
+            }
             if (harvesters(spawn, level) === true) {
                 continue;
             }
             if (upgraders.length > 0 && worker.length > 0 && basicHauler.length === 2) {
-                if (spawn.room.memory.responseNeeded === true) {
+                if (respondersNeeded === true) {
                     if (responseForce(spawn, level) === true) {
                         continue;
                     }
