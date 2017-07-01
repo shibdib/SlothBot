@@ -12,27 +12,25 @@ function labControl() {
         for (let lab of _.values(Game.structures)) {
             if (lab.structureType === STRUCTURE_LAB) {
                 //Initial reaction setup in memory
-                if (!lab.room.memory.reactions) {
-                    //Cache reaction
-                    let cache = lab.room.memory.reactions || {};
-                    cache['GH'] = {
-                        input1: RESOURCE_HYDROGEN,
-                        input2: RESOURCE_GHODIUM,
-                        lab1: null,
-                        lab2: null,
-                        outputLab: null,
-                        isActive: false
-                    };
-                    cache['GO'] = {
-                        input1: RESOURCE_OXYGEN,
-                        input2: RESOURCE_GHODIUM,
-                        lab1: null,
-                        lab2: null,
-                        outputLab: null,
-                        isActive: false
-                    };
-                    lab.room.memory.reactions = cache;
-                }
+                //Cache reaction
+                let cache = lab.room.memory.reactions || {};
+                cache['GH'] = {
+                    input1: RESOURCE_HYDROGEN,
+                    input2: RESOURCE_GHODIUM,
+                    lab1: null,
+                    lab2: null,
+                    outputLab: null,
+                    isActive: false
+                };
+                cache['GO'] = {
+                    input1: RESOURCE_OXYGEN,
+                    input2: RESOURCE_GHODIUM,
+                    lab1: null,
+                    lab2: null,
+                    outputLab: null,
+                    isActive: false
+                };
+                lab.room.memory.reactions = cache;
 
                 if (lab.room.memory.reactions) {
                     for (let i = 0; i < activeReactions.length; i++) {
