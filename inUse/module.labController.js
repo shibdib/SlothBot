@@ -12,6 +12,9 @@ function labControl() {
                 cacheReactions(lab);
                 if (lab.room.memory.reactions) {
                     for (let key in lab.room.memory.reactions) {
+                        if (key === 'current' || key === 'currentAge') {
+                            continue;
+                        }
                         let reaction = lab.room.memory.reactions[key];
                         //Set initial labs
                         if (reaction.lab1 === null) {
