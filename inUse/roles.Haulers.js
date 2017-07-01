@@ -60,7 +60,9 @@ function labTech(creep) {
 
     //Get reaction info
     let activeReactions = [
-        RESOURCE_GHODIUM_OXIDE
+        RESOURCE_GHODIUM_ALKALIDE,
+        RESOURCE_GHODIUM_OXIDE,
+        RESOURCE_KEANIUM_OXIDE
     ];
     let intermediateReactions = [
         RESOURCE_GHODIUM_ALKALIDE
@@ -71,15 +73,19 @@ function labTech(creep) {
             let lab1 = Game.getObjectById(reaction.lab1);
             let lab2 = Game.getObjectById(reaction.lab2);
             let output = Game.getObjectById(reaction.outputLab);
-            if (lab1.mineralAmount < 500) {
-                creep.memory.haulingMineral = reaction.input1;
-                creep.memory.deliverTo = reaction.lab1;
-            } else if (lab2.mineralAmount < 500) {
-                creep.memory.haulingMineral = reaction.input2;
-                creep.memory.deliverTo = reaction.lab2;
-            } else if (output.energy < 500) {
-                creep.memory.haulingMineral = RESOURCE_ENERGY;
-                creep.memory.deliverTo = reaction.outputLab;
+            if (_.sum(creep.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store) { return s['structure'].store[reaction.input1] || 0; } else { return 0;} }) >= 200 && _.sum(creep.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store) { return s['structure'].store[reaction.input2] || 0; } else { return 0;} }) >= 200) {
+                creep.room.memory.reactions.current = i;
+                if (lab1.mineralAmount < 500) {
+                    creep.memory.haulingMineral = reaction.input1;
+                    creep.memory.deliverTo = reaction.lab1;
+                } else if (lab2.mineralAmount < 500) {
+                    creep.memory.haulingMineral = reaction.input2;
+                    creep.memory.deliverTo = reaction.lab2;
+                } else if (output.energy < 500) {
+                    creep.memory.haulingMineral = RESOURCE_ENERGY;
+                    creep.memory.deliverTo = reaction.outputLab;
+                }
+                break;
             }
         }
     }

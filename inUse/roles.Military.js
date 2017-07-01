@@ -292,7 +292,8 @@ function ranged(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_GHODIUM_OXIDE,
+            RESOURCE_KEANIUM_OXIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
@@ -696,7 +697,26 @@ raider = profiler.registerFN(raider, 'raiderMilitary');
  * @return {null}
  */
 function responder(creep) {
-
+    if (creep.memory.boostAttempt !== true) {
+        let desiredReactions = [
+            RESOURCE_GHODIUM_OXIDE,
+            RESOURCE_KEANIUM_OXIDE
+        ];
+        let count = 1;
+        for (let i = 0; i < desiredReactions.length; i++) {
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy[desiredReactions[i]] >= 20});
+            if (lab) {
+                count++;
+                if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(lab);
+                }
+            }
+        }
+        if (count === 1) {
+            creep.memory.boostAttempt = true;
+        }
+        return null;
+    }
     borderChecks.borderCheck(creep);
     if (creep.hits < creep.hitsMax / 2) {
         creep.heal(creep);

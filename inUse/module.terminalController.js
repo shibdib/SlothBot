@@ -6,7 +6,8 @@ let profiler = require('screeps-profiler');
 
 let reactionNeeds = [
     RESOURCE_OXYGEN,
-    RESOURCE_GHODIUM
+    RESOURCE_GHODIUM,
+    RESOURCE_KEANIUM
 ];
 
 let tradeTargets = [RESOURCE_HYDROGEN,
