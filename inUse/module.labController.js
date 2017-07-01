@@ -8,34 +8,37 @@ function labControl() {
     labs:
         for (let lab of _.values(Game.structures)) {
             if (lab.structureType === STRUCTURE_LAB) {
-                //Initial reaction setup in memory
-                cacheReactions(lab);
-                if (lab.room.memory.reactions) {
-                    for (let key in lab.room.memory.reactions) {
-                        if (key === 'current' || key === 'currentAge') {
-                            continue;
-                        }
-                        let reaction = lab.room.memory.reactions[key];
-                        //Set initial labs
-                        if (reaction.lab1 === null) {
-                            reaction.lab1 = lab.id;
-                            continue labs;
-                        }
-                        if (reaction.lab2 === null) {
-                            reaction.lab2 = lab.id;
-                            continue labs;
-                        }
-                        if (reaction.outputLab === null) {
-                            reaction.outputLab = lab.id;
-                            continue labs;
-                        }
+                const labs = _.filter(Game.structures, (s) => s.room.name  === lab.room.name && s.structureType === STRUCTURE_LAB);
+                if (labs.length >= 3) {
+                    //Initial reaction setup in memory
+                    cacheReactions(lab);
+                    if (lab.room.memory.reactions) {
+                        for (let key in lab.room.memory.reactions) {
+                            if (key === 'current' || key === 'currentAge') {
+                                continue;
+                            }
+                            let reaction = lab.room.memory.reactions[key];
+                            //Set initial labs
+                            if (reaction.lab1 === null) {
+                                reaction.lab1 = lab.id;
+                                continue labs;
+                            }
+                            if (reaction.lab2 === null) {
+                                reaction.lab2 = lab.id;
+                                continue labs;
+                            }
+                            if (reaction.outputLab === null) {
+                                reaction.outputLab = lab.id;
+                                continue labs;
+                            }
 
-                        //if minerals are present, react!
-                        let lab1 = Game.getObjectById(reaction.lab1);
-                        let lab2 = Game.getObjectById(reaction.lab2);
-                        let outputLab = Game.getObjectById(reaction.outputLab);
-                        if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
-                            reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
+                            //if minerals are present, react!
+                            let lab1 = Game.getObjectById(reaction.lab1);
+                            let lab2 = Game.getObjectById(reaction.lab2);
+                            let outputLab = Game.getObjectById(reaction.outputLab);
+                            if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
+                                reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
+                            }
                         }
                     }
                 }
