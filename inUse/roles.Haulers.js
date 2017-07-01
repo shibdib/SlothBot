@@ -62,6 +62,9 @@ function labTech(creep) {
     let activeReactions = [
         RESOURCE_GHODIUM_OXIDE
     ];
+    let intermediateReactions = [
+        RESOURCE_GHODIUM_ALKALIDE
+    ];
     for (let i = 0; i < activeReactions.length; i++) {
         if (creep.room.memory.reactions) {
             let reaction = creep.room.memory.reactions[activeReactions[i]];
