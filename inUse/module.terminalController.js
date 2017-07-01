@@ -285,6 +285,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
                                 console.log("<font color='#adff2f'>MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + reactionAmount - currentSupply + "</font>");
                             }
                         }
+                        continue resource;
                     }
                 }
                 if (Game.market.credits * 0.1 > reactionAmount * buyOrder.price) {
