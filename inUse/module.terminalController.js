@@ -190,9 +190,9 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
             if (tradeTargets[i] !== RESOURCE_ENERGY && myOrders[key].resourceType === tradeTargets[i] && myOrders[key].type === ORDER_BUY && myOrders[key].roomName === terminal.pos.roomName && Game.market.credits > 200) {
                 let currentSupply;
                 if (isNaN(terminal.store[tradeTargets[i]]) === true) {
-                    currentSupply = 0;
+                    currentSupply = myOrders[key].remainingAmount;
                 } else {
-                    currentSupply = terminal.store[tradeTargets[i]];
+                    currentSupply = terminal.store[tradeTargets[i]] + myOrders[key].remainingAmount;
                 }
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === tradeTargets[i] &&
                 order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
@@ -201,7 +201,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
                 if (currentSupply + myOrders[key].remainingAmount < tradeAmount && _.round(((sellOrder.price - 0.001) - buyOrder.price), 3) > 0.04 && Game.market.credits - (_.round(((sellOrder.price - 0.001) - buyOrder.price), 3) * 0.05) > 200) {
                     if (Game.market.credits > (tradeAmount - (currentSupply + myOrders[key].remainingAmount)) * buyOrder.price) {
                         if (Game.market.extendOrder(myOrders[key].id, tradeAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + (tradeAmount - (currentSupply + myOrders[key].remainingAmount)) + " " + tradeTargets[i] + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Extended Buy order " + myOrders[key].id + " an additional " + tradeAmount - currentSupply + " " + tradeTargets[i] + "</font>");
                         }
                     }
                 }
