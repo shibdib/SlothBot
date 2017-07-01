@@ -159,6 +159,14 @@ hauler = profiler.registerFN(hauler, 'haulerRemote');
  * @return {null}
  */
 function pioneer(creep) {
+    //Invader detection
+    invaderCheck(creep);
+    if (creep.memory.invaderDetected === true) {
+        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
+        creep.memory.destinationReached = false;
+        return null;
+    }
+    
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
