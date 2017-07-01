@@ -266,7 +266,7 @@ function ranged(creep) {
             if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
             } else if (creep.pos.getRangeTo(armedHostile) < 3) {
-                militaryFunctions.retreat(creep);
+                militaryFunctions.kite(creep);
             } else {
                 creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
             }
