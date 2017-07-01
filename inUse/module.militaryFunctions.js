@@ -10,6 +10,14 @@ function kite(creep, fleeRange = 5) {
     let ret = PathFinder.search(creep.pos, avoidance, {
         flee: true,
         swampCost: 50,
+        maxRooms: 1,
+
+        roomCallback: function (roomName) {
+            let costs = new PathFinder.CostMatrix;
+            addBorderToMatrix(creep.room, costs);
+            return costs;
+        }
+
     });
 
     if (ret.path.length > 0) {
@@ -36,3 +44,22 @@ function retreat(creep, fleeRange = 5) {
     }
 }
 module.exports.retreat = profiler.registerFN(retreat, 'retreatMilitaryFunction');
+
+function addBorderToMatrix(room, matrix) {
+    let exits = Game.map.describeExits(room.name);
+    if (exits === undefined) {
+        return matrix;
+    }
+    let top = ((_.get(exits, TOP, undefined) === undefined) ? 1 : 0);
+    let right = ((_.get(exits, RIGHT, undefined) === undefined) ? 48 : 49);
+    let bottom = ((_.get(exits, BOTTOM, undefined) === undefined) ? 48 : 49);
+    let left = ((_.get(exits, LEFT, undefined) === undefined) ? 1 : 0);
+    for (let y = top; y <= bottom; ++y) {
+        for (let x = left; x <= right; x += ((y % 49 === 0) ? 1 : 49)) {
+            if (matrix.get(x, y) < 0x03 && Game.map.getTerrainAt(x, y, room.name) !== "wall") {
+                matrix.set(x, y, 0x03);
+            }
+        }
+    }
+    return matrix;
+}
