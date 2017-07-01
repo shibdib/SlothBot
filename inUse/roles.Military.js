@@ -190,7 +190,7 @@ function attacker(creep) {
                 let nearbyHealers = creep.pos.findInRange(healers, 5);
                 let nearbyRanged = creep.pos.findInRange(ranged, 5);
                 let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
-                if (nearbyAttackers.length >= creep.memory.waitForAttackers - 1 && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor && nearbyRanged.length >= creep.memory.waitForRanged) {
+                if (nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor && nearbyRanged.length >= creep.memory.waitForRanged) {
                     creep.memory.attackStarted = true;
                 }
             }
@@ -310,7 +310,7 @@ function ranged(creep) {
                 let nearbyHealers = creep.pos.findInRange(healers, 5);
                 let nearbyRanged = creep.pos.findInRange(ranged, 5);
                 let nearbyDeconstructors = creep.pos.findInRange(deconstructors, 5);
-                if (nearbyRanged.length >= creep.memory.waitForRanged - 1 && nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor) {
+                if (nearbyRanged.length >= creep.memory.waitForRanged && nearbyAttackers.length >= creep.memory.waitForAttackers && nearbyHealers.length >= creep.memory.waitForHealers && nearbyDeconstructors.length >= creep.memory.waitForDeconstructor) {
                     creep.memory.attackStarted = true;
                 }
             }
