@@ -99,11 +99,13 @@ function labTech(creep) {
                     creep.memory.deliverTo = reaction.outputLab;
                 }
                 break;
-            } else if (creep.room.memory.reactions.currentAge && creep.room.memory.reactions.currentAge < Game.time - 100) {
-                creep.room.memory.reactions.current = undefined;
+            } else {
+                if (creep.room.memory.reactions.currentAge && creep.room.memory.reactions.currentAge < Game.time - 100) {
+                    creep.room.memory.reactions.current = undefined;
+                    creep.room.memory.reactions.currentAge = undefined;
+                }
                 creep.memory.haulingMineral = undefined;
                 creep.memory.deliverTo = undefined;
-                creep.room.memory.reactions.currentAge = undefined;
             }
         }
     }
