@@ -21,6 +21,9 @@ function kite(creep, fleeRange = 3) {
     });
 
     if (ret.path.length > 0) {
+        if (creep.memory.squadLeader === true) {
+            creep.memory.squadKite = creep.pos.getDirectionTo(ret.path[0]);
+        }
         return creep.move(creep.pos.getDirectionTo(ret.path[0]));
     } else {
         return OK;

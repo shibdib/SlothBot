@@ -252,6 +252,7 @@ attacker = profiler.registerFN(attacker, 'attackerMilitary');
  */
 function ranged(creep) {
     cache.cacheRoomIntel(creep);
+    creep.memory.squadKite = undefined;
 
     let attackers = _.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker');
     let healers = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer');
@@ -348,7 +349,10 @@ function ranged(creep) {
     } else {
         if (squadLeader[0].memory.attackStarted !== true) {
             creep.travelTo(squadLeader[0], {movingTarget: true});
-        } else if (creep.pos.getRangeTo(squadLeader[0]) > 3) {
+        } else if (creep.pos.getRangeTo(squadLeader[0]) > 1) {
+            if (squadLeader[0].memory.squadKite) {
+                creep.move(squadLeader[0].memory.squadKite);
+            } else
             if (armedHostile && creep.pos.getRangeTo(armedHostile) < 3) {
                 militaryFunctions.kite(creep);
             } else if (creep.room.name !== squadLeader[0].pos.roomName) {
