@@ -120,6 +120,9 @@ function attacker(creep) {
             creep.travelTo(Game.flags[creep.memory.staging]);
         }
         if (armedHostile) {
+            if (!closestHostileTower) {
+                borderChecks.borderCheck(creep);
+            }
             creep.memory.squadTarget = armedHostile.id;
             if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
                 creep.rangedAttack(armedHostile);
@@ -256,11 +259,16 @@ function ranged(creep) {
             creep.travelTo(Game.flags[creep.memory.staging]);
         }
         if (armedHostile) {
+            if (!closestHostileTower) {
+                borderChecks.borderCheck(creep);
+            }
             creep.memory.squadTarget = armedHostile.id;
             if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
             } else if (creep.pos.getRangeTo(armedHostile) < 3) {
                 militaryFunctions.retreat(creep);
+            } else {
+                creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
             }
         } else if (closestHostileTower) {
             creep.memory.squadTarget = closestHostileTower.id;
