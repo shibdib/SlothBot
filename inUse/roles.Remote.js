@@ -47,12 +47,12 @@ function harvester(creep) {
     cache.cacheRoomIntel(creep);
     //Invader detection
     invaderCheck(creep);
-    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 15) {
+    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
-    } else if (creep.memory.invaderCooldown > 15) {
+    } else if (creep.memory.invaderCooldown > 50) {
         creep.memory.invaderCooldown = undefined;
     }
     //Initial move
@@ -87,12 +87,12 @@ harvester = profiler.registerFN(harvester, 'harvesterRemote');
 function hauler(creep) {
     //Invader detection
     invaderCheck(creep);
-    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 15) {
+    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
-    } else if (creep.memory.invaderCooldown > 15) {
+    } else if (creep.memory.invaderCooldown > 50) {
         creep.memory.invaderCooldown = undefined;
     }
 
@@ -167,12 +167,12 @@ hauler = profiler.registerFN(hauler, 'haulerRemote');
 function pioneer(creep) {
     //Invader detection
     invaderCheck(creep);
-    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 15) {
+    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
-    } else if (creep.memory.invaderCooldown > 15) {
+    } else if (creep.memory.invaderCooldown > 50) {
         creep.memory.invaderCooldown = undefined;
     }
 
