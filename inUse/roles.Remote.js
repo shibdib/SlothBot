@@ -116,7 +116,7 @@ function hauler(creep) {
                 }
             }
         } else {
-            if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.assignedSpawn)) <= 25) {
+            if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.assignedSpawn)) <= 49) {
                 creep.memory.destinationReached = false;
                 let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
                 let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
