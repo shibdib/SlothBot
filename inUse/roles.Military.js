@@ -347,13 +347,16 @@ function ranged(creep) {
             }
         }
     } else {
-        if (creep.pos.getRangeTo(squadLeader[0]) > 1) {
-            if (squadLeader[0].memory.squadKite) {
-                creep.move(squadLeader[0].memory.squadKite);
-            } else
+        if (creep.pos.getRangeTo(squadLeader[0]) <= 2) {
             if (armedHostile && creep.pos.getRangeTo(armedHostile) < 3) {
                 militaryFunctions.kite(creep);
             } else if (creep.room.name !== squadLeader[0].pos.roomName) {
+                creep.travelTo(squadLeader[0], {allowHostile: true});
+            } else {
+                creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+            }
+        } else {
+            if (creep.room.name !== squadLeader[0].pos.roomName) {
                 creep.travelTo(squadLeader[0], {allowHostile: true});
             } else {
                 creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
