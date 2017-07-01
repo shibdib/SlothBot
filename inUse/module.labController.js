@@ -47,43 +47,47 @@ module.exports.labControl = profiler.registerFN(labControl, 'labControl');
 function cacheReactions(lab) {
     //Cache reaction
     let cache = lab.room.memory.reactions || {};
-    if (!lab.room.memory.reactions['GH']) {
+    if (!lab.room.memory.reactions['GH'] || !lab.room.memory.reactions['GH'].output) {
         cache['GH'] = {
             input1: RESOURCE_HYDROGEN,
             input2: RESOURCE_GHODIUM,
             lab1: null,
             lab2: null,
             outputLab: null,
+            output: RESOURCE_GHODIUM_HYDRIDE,
             isActive: false
         };
     }
-    if (!lab.room.memory.reactions['GO']) {
+    if (!lab.room.memory.reactions['GO'] || !lab.room.memory.reactions['GO'].output) {
         cache['GO'] = {
             input1: RESOURCE_OXYGEN,
             input2: RESOURCE_GHODIUM,
             lab1: null,
             lab2: null,
             outputLab: null,
+            output: RESOURCE_GHODIUM_OXIDE,
             isActive: false
         };
     }
-    if (!lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE]) {
+    if (!lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE] || !lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE].output) {
         cache[RESOURCE_GHODIUM_ALKALIDE] = {
             input1: RESOURCE_GHODIUM_OXIDE,
             input2: RESOURCE_HYDROXIDE,
             lab1: null,
             lab2: null,
             outputLab: null,
+            output: RESOURCE_GHODIUM_ALKALIDE,
             isActive: false
         };
     }
-    if (!lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE]) {
+    if (!lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE] || !lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE].output) {
         cache[RESOURCE_KEANIUM_OXIDE] = {
             input1: RESOURCE_OXYGEN,
             input2: RESOURCE_KEANIUM,
             lab1: null,
             lab2: null,
             outputLab: null,
+            output: RESOURCE_KEANIUM_OXIDE,
             isActive: false
         };
     }
