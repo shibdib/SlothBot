@@ -271,7 +271,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
         for (let i = 0; i < reactionNeeds.length; i++) {
             if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
-                order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
+                order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === reactionNeeds[i] && myOrders[key].type === ORDER_BUY) {
                         let currentSupply;
