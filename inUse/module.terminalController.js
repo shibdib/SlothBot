@@ -239,14 +239,14 @@ function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
             if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
                 let currentSupply;
                 if (isNaN(terminal.store[RESOURCE_ENERGY]) === true) {
-                    currentSupply = 0;
+                    currentSupply = myOrders[key].remainingAmount;
                 } else {
-                    currentSupply = terminal.store[RESOURCE_ENERGY];
+                    currentSupply = terminal.store[RESOURCE_ENERGY] + myOrders[key].remainingAmount;
                 }
                 if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
                     if (Game.market.credits * 0.1 > (energyAmount - (currentSupply + myOrders[key].remainingAmount)) * myOrders[key].price) {
-                        if (Game.market.extendOrder(myOrders[key].id, energyAmount - (currentSupply + myOrders[key].remainingAmount)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - (energyAmount - currentSupply) + "</font>");
+                        if (Game.market.extendOrder(myOrders[key].id, energyAmount - currentSupply) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - currentSupply + "</font>");
                         }
                     }
                 }
