@@ -120,8 +120,14 @@ function attacker(creep) {
             creep.travelTo(Game.flags[creep.memory.staging]);
         }
         if (armedHostile) {
+            //Border checks if no tower
             if (!closestHostileTower) {
                 borderChecks.borderCheck(creep);
+            }
+            //Kite if low health
+            if (creep.pos.getRangeTo(armedHostile) < 3 && creep.hits < creep.hitsMax / 2) {
+                creep.rangedAttack(armedHostile);
+                militaryFunctions.kite(creep);
             }
             creep.memory.squadTarget = armedHostile.id;
             if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
