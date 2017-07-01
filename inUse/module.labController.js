@@ -8,29 +8,42 @@ function labControl() {
     let activeReactions = [
         RESOURCE_GHODIUM_OXIDE
     ];
+    let intermediteReactions = [
+
+    ];
     labs:
         for (let lab of _.values(Game.structures)) {
             if (lab.structureType === STRUCTURE_LAB) {
-                //Initial reaction setup in memory
-                //Cache reaction
-                let cache = lab.room.memory.reactions || {};
-                cache['GH'] = {
-                    input1: RESOURCE_HYDROGEN,
-                    input2: RESOURCE_GHODIUM,
-                    lab1: null,
-                    lab2: null,
-                    outputLab: null,
-                    isActive: false
-                };
-                cache['GO'] = {
-                    input1: RESOURCE_OXYGEN,
-                    input2: RESOURCE_GHODIUM,
-                    lab1: null,
-                    lab2: null,
-                    outputLab: null,
-                    isActive: false
-                };
-                lab.room.memory.reactions = cache;
+                if (!lab.room.memory.reactions) {
+                    //Initial reaction setup in memory
+                    //Cache reaction
+                    let cache = lab.room.memory.reactions || {};
+                    cache['GH'] = {
+                        input1: RESOURCE_HYDROGEN,
+                        input2: RESOURCE_GHODIUM,
+                        lab1: null,
+                        lab2: null,
+                        outputLab: null,
+                        isActive: false
+                    };
+                    cache['GO'] = {
+                        input1: RESOURCE_OXYGEN,
+                        input2: RESOURCE_GHODIUM,
+                        lab1: null,
+                        lab2: null,
+                        outputLab: null,
+                        isActive: false
+                    };
+                    cache[RESOURCE_GHODIUM_ALKALIDE] = {
+                        input1: RESOURCE_GHODIUM_OXIDE,
+                        input2: RESOURCE_HYDROXIDE,
+                        lab1: null,
+                        lab2: null,
+                        outputLab: null,
+                        isActive: false
+                    };
+                    lab.room.memory.reactions = cache;
+                }
 
                 if (lab.room.memory.reactions) {
                     for (let i = 0; i < activeReactions.length; i++) {

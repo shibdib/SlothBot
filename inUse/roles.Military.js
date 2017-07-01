@@ -67,7 +67,7 @@ function healer(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_GHODIUM_ALKALIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
@@ -114,7 +114,7 @@ function attacker(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_GHODIUM_ALKALIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
@@ -292,7 +292,7 @@ function ranged(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_GHODIUM_ALKALIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
@@ -462,7 +462,7 @@ function deconstructor(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_GHODIUM_ALKALIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
