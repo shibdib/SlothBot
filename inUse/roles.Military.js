@@ -39,6 +39,10 @@ module.exports.Manager = profiler.registerFN(Manager, 'managerMilitary');
 function scout(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.destinationReached !== true) {
+        let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
+        if (creep.pos.getRangeTo(armedHostile) < 2) {
+            militaryFunctions.kite(creep);
+        }
         creep.travelTo(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
