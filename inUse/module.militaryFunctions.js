@@ -14,7 +14,7 @@ function retreat(creep, fleeRange = 5) {
     });
 
     if (ret.path.length > 0) {
-        return creep.move(this.pos.getDirectionTo(ret.path[0]));
+        return creep.move(creep.pos.getDirectionTo(ret.path[0]));
     } else {
         return OK;
     }
