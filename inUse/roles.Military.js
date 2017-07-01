@@ -429,7 +429,7 @@ function ranged(creep) {
     } else {
         if (armedHostile && creep.pos.getRangeTo(armedHostile) < 3) {
             militaryFunctions.kite(creep);
-        } else if (creep.pos.getRangeTo(squadLeader[0]) <= 1) {
+        } else if (creep.pos.getRangeTo(squadLeader[0]) < 0) {
             if (creep.room.name !== squadLeader[0].pos.roomName) {
                 creep.travelTo(squadLeader[0], {allowHostile: true});
             } else {
