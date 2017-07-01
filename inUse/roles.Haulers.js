@@ -127,7 +127,7 @@ function labTech(creep) {
             }
         }
     } else {
-        if (creep.carry[creep.memory.haulingMineral] === 0) {
+        if (creep.carry[creep.memory.haulingMineral] === 0 || !creep.memory.haulingMineral) {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
             for(const resourceType in creep.carry) {
                 if (creep.transfer(storage, resourceType) === ERR_NOT_IN_RANGE) {
