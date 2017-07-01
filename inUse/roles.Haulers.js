@@ -102,9 +102,9 @@ function labTech(creep) {
     }
     if (creep.memory.hauling === false) {
         if (creep.room.memory.reactions.current === undefined) {
-            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && _.sum(s.mineralAmount) > 0});
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount > 0});
             if (lab && creep.withdraw(lab, lab.mineralType) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
+                creep.travelTo(lab);
             }
         } else
         if (creep.memory.haulingMineral !== Game.getObjectById(creep.memory.deliverTo).mineralType) {
