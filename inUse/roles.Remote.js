@@ -92,6 +92,8 @@ function hauler(creep) {
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
+    } else if (creep.memory.invaderCooldown > 15) {
+        creep.memory.invaderCooldown = undefined;
     }
 
     if (creep.pos.roomName !== creep.memory.destination) {
@@ -170,6 +172,8 @@ function pioneer(creep) {
         creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
+    } else if (creep.memory.invaderCooldown > 15) {
+        creep.memory.invaderCooldown = undefined;
     }
 
     if (creep.carry.energy === 0) {
