@@ -273,11 +273,11 @@ function ranged(creep) {
             creep.memory.squadTarget = armedHostile.id;
             if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
                 creep.rangedMassAttack();
-                creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
+                creep.travelTo(armedHostile, {allowHostile: false, range: 3, movingTarget: true});
             } else if (creep.pos.getRangeTo(armedHostile) < 3) {
                 militaryFunctions.kite(creep);
             } else {
-                creep.travelTo(armedHostile, {allowHostile: true, range: 3, movingTarget: true});
+                creep.travelTo(armedHostile, {allowHostile: false, range: 3, movingTarget: true});
             }
         } else if (closestHostileTower) {
             creep.memory.squadTarget = closestHostileTower.id;

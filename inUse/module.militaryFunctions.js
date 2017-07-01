@@ -1,6 +1,6 @@
 const profiler = require('screeps-profiler');
 
-function kite(creep, fleeRange = 5) {
+function kite(creep, fleeRange = 3) {
     let avoid = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0});
 
     let avoidance = _.map(creep.pos.findInRange(avoid, fleeRange + 1),
