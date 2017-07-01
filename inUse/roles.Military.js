@@ -137,6 +137,7 @@ function attacker(creep) {
                 }
                 creep.travelTo(armedHostile, {allowHostile: true, movingTarget: true});
             }
+            creep.travelTo(armedHostile, {allowHostile: true, movingTarget: true});
         } else if (closestHostileTower) {
             creep.memory.squadTarget = closestHostileTower.id;
             if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
