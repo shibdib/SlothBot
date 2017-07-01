@@ -41,7 +41,7 @@ function towerControl() {
                     tower.repair(road);
                     continue;
                 }
-                if (tower.energy > tower.energyCapacity * 0.75) {
+                if (tower.energy > tower.energyCapacity * 0.95) {
                     const closestDamagedStructure = Game.getObjectById(findRepair(tower));
                     if (closestDamagedStructure) {
                         tower.repair(closestDamagedStructure);
