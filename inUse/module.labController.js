@@ -77,68 +77,69 @@ function labControl() {
             }
         }
     }
-    module.exports.labControl = profiler.registerFN(labControl, 'labControl');
+}
+module.exports.labControl = profiler.registerFN(labControl, 'labControl');
 
-    function cacheReactions(lab, force = false) {
-        //Cache reaction
-        let cache = lab.room.memory.reactions || {};
-        if (!lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE] || !lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE].output || force) {
-            cache[RESOURCE_KEANIUM_OXIDE] = {
-                input1: RESOURCE_OXYGEN,
-                input2: RESOURCE_KEANIUM,
-                lab1: null,
-                lab2: null,
-                outputLab: null,
-                output: RESOURCE_KEANIUM_OXIDE,
-                isActive: false
-            };
-        }
-        if (!lab.room.memory.reactions['GO'] || !lab.room.memory.reactions['GO'].output || force) {
-            cache['GO'] = {
-                input1: RESOURCE_OXYGEN,
-                input2: RESOURCE_GHODIUM,
-                lab1: null,
-                lab2: null,
-                outputLab: null,
-                output: RESOURCE_GHODIUM_OXIDE,
-                isActive: false
-            };
-        }
-        if (!lab.room.memory.reactions['GH'] || !lab.room.memory.reactions['GH'].output || force) {
-            cache['GH'] = {
-                input1: RESOURCE_HYDROGEN,
-                input2: RESOURCE_GHODIUM,
-                lab1: null,
-                lab2: null,
-                outputLab: null,
-                output: RESOURCE_GHODIUM_HYDRIDE,
-                isActive: false
-            };
-        }
-        if (!lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE] || !lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE].output || force) {
-            cache[RESOURCE_GHODIUM_ALKALIDE] = {
-                input1: RESOURCE_GHODIUM_OXIDE,
-                input2: RESOURCE_HYDROXIDE,
-                lab1: null,
-                lab2: null,
-                outputLab: null,
-                output: RESOURCE_GHODIUM_ALKALIDE,
-                isActive: false
-            };
-        }
-        lab.room.memory.reactions = cache;
+function cacheReactions(lab, force = false) {
+    //Cache reaction
+    let cache = lab.room.memory.reactions || {};
+    if (!lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE] || !lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE].output || force) {
+        cache[RESOURCE_KEANIUM_OXIDE] = {
+            input1: RESOURCE_OXYGEN,
+            input2: RESOURCE_KEANIUM,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            output: RESOURCE_KEANIUM_OXIDE,
+            isActive: false
+        };
     }
+    if (!lab.room.memory.reactions['GO'] || !lab.room.memory.reactions['GO'].output || force) {
+        cache['GO'] = {
+            input1: RESOURCE_OXYGEN,
+            input2: RESOURCE_GHODIUM,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            output: RESOURCE_GHODIUM_OXIDE,
+            isActive: false
+        };
+    }
+    if (!lab.room.memory.reactions['GH'] || !lab.room.memory.reactions['GH'].output || force) {
+        cache['GH'] = {
+            input1: RESOURCE_HYDROGEN,
+            input2: RESOURCE_GHODIUM,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            output: RESOURCE_GHODIUM_HYDRIDE,
+            isActive: false
+        };
+    }
+    if (!lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE] || !lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE].output || force) {
+        cache[RESOURCE_GHODIUM_ALKALIDE] = {
+            input1: RESOURCE_GHODIUM_OXIDE,
+            input2: RESOURCE_HYDROXIDE,
+            lab1: null,
+            lab2: null,
+            outputLab: null,
+            output: RESOURCE_GHODIUM_ALKALIDE,
+            isActive: false
+        };
+    }
+    lab.room.memory.reactions = cache;
+}
 
-    function createLabHub(labs) {
-        if (labs[0] && labs[1] && labs[2]) {
-            let cache = labs[0].room.memory.reactions.hubs || {};
-            let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
-            cache[key] = {
-                hub: key,
-                lab1: labs[0].id,
-                lab2: labs[1].id,
-                lab3: labs[2].id,
-            };
-            labs[0].room.memory.reactions.hubs = cache;
-        }
+function createLabHub(labs) {
+    if (labs[0] && labs[1] && labs[2]) {
+        let cache = labs[0].room.memory.reactions.hubs || {};
+        let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
+        cache[key] = {
+            hub: key,
+            lab1: labs[0].id,
+            lab2: labs[1].id,
+            lab3: labs[2].id,
+        };
+        labs[0].room.memory.reactions.hubs = cache;
     }
+}
