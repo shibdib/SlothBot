@@ -348,14 +348,14 @@ function ranged(creep) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
-                creep.travelTo(armedHostile, {allowHostile: false, range: 3, movingTarget: true});
+                creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
             } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
                 militaryFunctions.kite(creep);
             } else {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
-                creep.travelTo(armedHostile, {allowHostile: false, range: 3, movingTarget: true});
+                creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
             }
         } else if (closestHostileTower) {
             creep.memory.squadTarget = closestHostileTower.id;
@@ -379,7 +379,7 @@ function ranged(creep) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
-                creep.travelTo(closestHostile, {allowHostile: true, range: 3, movingTarget: true});
+                creep.travelTo(closestHostile, {allowHostile: true, repath: 1, range: 3, movingTarget: true});
             }
         } else if (Game.flags[creep.memory.attackTarget] && hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             creep.memory.squadTarget = hostileStructures.id;
@@ -448,7 +448,11 @@ function ranged(creep) {
                     creep.rangedHeal(needsHeals[0])
                 }
                 if (creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget)) <= 5) {
-                    creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {allowHostile: true, movingTarget: true});
+                    creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
+                        allowHostile: true,
+                        repath: 1,
+                        movingTarget: true
+                    });
                 }
             }
         }
