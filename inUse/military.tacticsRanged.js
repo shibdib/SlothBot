@@ -203,16 +203,16 @@ function rangedSolo(creep) {
     let needsHeals = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
-        if (creep.hits < creep.hitsMax * 0.75) {
-            if (nearbyHealers.length > 0) {
-                return creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+    }
+    if (creep.hits < creep.hitsMax * 0.75) {
+        if (nearbyHealers.length > 0) {
+            return creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+        } else {
+            let medic = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (c) => c.memory.role === 'healer'});
+            if (medic) {
+                return creep.travelTo(medic, {allowHostile: false, range: 0});
             } else {
-                let medic = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (c) => c.memory.role === 'healer'});
-                if (medic) {
-                    return creep.travelTo(medic, {allowHostile: false, range: 0});
-                } else {
-                    militaryFunctions.retreat(creep);
-                }
+                militaryFunctions.retreat(creep);
             }
         }
     }
