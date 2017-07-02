@@ -15,34 +15,36 @@ function labControl() {
                 createLabHub(labs);
                 continue;
             }
-            if (lab.room.memory.reactions.hubs.length !== lab.room.memory.reactionHubCount) {
-                lab.room.memory.reactionHubCount = lab.room.memory.reactions.hubs.length;
-                cacheReactions(lab, true);
-            }
             if (lab.room.memory.reactions.hubs) {
-                let hubs;
-                for (let keys in lab.room.memory.reactions.hubs) {
-                    hubs = lab.room.memory.reactions.hubs[keys];
-                    let reaction;
-                    for (let key in lab.room.memory.reactions) {
-                        if (key === 'current' || key === 'currentAge') {
-                            continue;
-                        }
-                        reaction = lab.room.memory.reactions[key];
-                        //Set initial labs
-                        if ((!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) && _.includes(lab.room.memory.reactions, hubs.hub) === false) {
-                            reaction.assignedHub = hubs.hub;
-                            reaction.lab1 = hubs.lab1;
-                            reaction.lab2 = hubs.lab2;
-                            reaction.outputLab = hubs.lab3;
-                        }
+                if (lab.room.memory.reactions.hubs.length !== lab.room.memory.reactionHubCount) {
+                    lab.room.memory.reactionHubCount = lab.room.memory.reactions.hubs.length;
+                    cacheReactions(lab, true);
+                }
+                if (lab.room.memory.reactions.hubs) {
+                    let hubs;
+                    for (let keys in lab.room.memory.reactions.hubs) {
+                        hubs = lab.room.memory.reactions.hubs[keys];
+                        let reaction;
+                        for (let key in lab.room.memory.reactions) {
+                            if (key === 'current' || key === 'currentAge') {
+                                continue;
+                            }
+                            reaction = lab.room.memory.reactions[key];
+                            //Set initial labs
+                            if ((!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) && _.includes(lab.room.memory.reactions, hubs.hub) === false) {
+                                reaction.assignedHub = hubs.hub;
+                                reaction.lab1 = hubs.lab1;
+                                reaction.lab2 = hubs.lab2;
+                                reaction.outputLab = hubs.lab3;
+                            }
 
-                        //if minerals are present, react!
-                        let lab1 = Game.getObjectById(reaction.lab1);
-                        let lab2 = Game.getObjectById(reaction.lab2);
-                        let outputLab = Game.getObjectById(reaction.outputLab);
-                        if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
-                            reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
+                            //if minerals are present, react!
+                            let lab1 = Game.getObjectById(reaction.lab1);
+                            let lab2 = Game.getObjectById(reaction.lab2);
+                            let outputLab = Game.getObjectById(reaction.outputLab);
+                            if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
+                                reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
+                            }
                         }
                     }
                 }
