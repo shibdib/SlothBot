@@ -8,7 +8,7 @@ function Manager(creep) {
         mineralHauler(creep);
     } else if (creep.memory.role === "labTech") {
         labTech(creep);
-    } else if (creep.memory.role === "hauler" || "largeHauler") {
+    } else if (creep.memory.role === "hauler") {
         hauler(creep);
     } else if (creep.memory.role === "filler") {
         filler(creep);
