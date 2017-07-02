@@ -10,8 +10,9 @@ function labControl() {
         if (lab.structureType === STRUCTURE_LAB) {
             //Initial reaction setup in memory
             cacheReactions(lab);
-            const labs = lab.pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
-            if (labs.length >= 3 && (_.includes(lab.room.memory.reactions.hubs, labs[0]) === false || _.includes(lab.room.memory.reactions.hubs, labs[1]) === false || _.includes(lab.room.memory.reactions.hubs, labs[2]) === false)) {
+            let labs = lab.pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
+            let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
+            if (labs.length >= 3 && (_.includes(lab.room.memory.reactions.hubs, key) === false)) {
                 createLabHub(labs);
                 continue;
             }
@@ -20,7 +21,6 @@ function labControl() {
                     lab.room.memory.reactionHubCount = lab.room.memory.reactions.hubs.length;
                     cacheReactions(lab, true);
                 }
-                if (lab.room.memory.reactions.hubs) {
                     let hubs;
                     for (let keys in lab.room.memory.reactions.hubs) {
                         hubs = lab.room.memory.reactions.hubs[keys];
@@ -47,7 +47,6 @@ function labControl() {
                             }
                         }
                     }
-                }
             }
         }
     }
