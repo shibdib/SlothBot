@@ -31,7 +31,7 @@ function labControl() {
                             }
                             reaction = lab.room.memory.reactions[key];
                             //Set initial labs
-                            if ((!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) && _.includes(lab.room.memory.reactions, hubs.hub) === false) {
+                            if ((!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) && _.includes(lab.room.memory.reactions['assignedHub'], hubs.hub) === false) {
                                 reaction.assignedHub = hubs.hub;
                                 reaction.lab1 = hubs.lab1;
                                 reaction.lab2 = hubs.lab2;
