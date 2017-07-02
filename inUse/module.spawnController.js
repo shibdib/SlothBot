@@ -229,7 +229,7 @@ function scouts(spawn, level) {
 scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 
 function haulers(spawn, level) {
-    if (spawn.room.controller.level < 4 || spawn.room.memory.storageBuilt === false) {
+    if (spawn.room.controller.level < 4 || !spawn.room.memory.storageBuilt) {
         if (spawn.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
             spawn.room.memory.storageBuilt = true;
         }
@@ -277,15 +277,6 @@ scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 function workers(spawn, level) {
     if (spawn.room.controller.level >= 1) {
         const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
-        const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
-        if (basicHauler.length < 2 && spawn.createCreep(Memory.creepBodies[level].hauler, 'hauler' + Game.time, {
-                role: 'hauler',
-                assignedSpawn: spawn.id,
-                assignedRoom: spawn.room.name
-            }) === 'hauler' + Game.time) {
-            console.log(spawn.room.name + ' Spawning a hauler');
-            return true;
-        }
         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
         if (worker.length < 2 && upgraders.length > 0 && spawn.createCreep(Memory.creepBodies[level].worker, 'worker' + Game.time, {
                 role: 'worker',
@@ -303,17 +294,6 @@ function workers(spawn, level) {
                 }) === 'upgrader' + Game.time) {
                 console.log(spawn.room.name + ' Spawning an upgrader');
                 return true;
-            }
-            if (spawn.room.controller.level >= 4) {
-                const basicHaulerLarge = _.filter(Game.creeps, (creep) => creep.memory.role === 'largeHauler' && creep.memory.assignedRoom === spawn.room.name);
-                if (basicHaulerLarge.length < 1 && upgraders.length > 0 && spawn.createCreep(Memory.creepBodies[level].largeHauler, 'largeHauler' + Game.time, {
-                        role: 'largeHauler',
-                        assignedSpawn: spawn.id,
-                        assignedRoom: spawn.room.name
-                    }) === 'largeHauler' + Game.time) {
-                    console.log(spawn.room.name + ' Spawning a largeHauler');
-                    return true;
-                }
             }
             if (spawn.room.controller.level >= 6) {
                 let minerals = spawn.pos.findClosestByRange(FIND_MINERALS);
