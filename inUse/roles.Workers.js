@@ -246,7 +246,9 @@ depositEnergy = profiler.registerFN(depositEnergy, 'depositEnergyWorkers');
 function depositMineral(creep) {
     if (!creep.memory.terminalID) {
         let terminal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
-        creep.memory.terminalID = terminal.id;
+        if (terminal) {
+            creep.memory.terminalID = terminal.id;
+        }
     }
     if (!creep.memory.containerID) {
         creep.memory.containerID = mineralContainer(creep);
