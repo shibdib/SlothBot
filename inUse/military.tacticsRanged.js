@@ -46,6 +46,7 @@ function rangedTeam(creep) {
             return creep.travelTo(Game.flags[creep.memory.staging]);
         }
         if (creep.memory.waitForHealers > 0 && nearbyHealers.length === 0) {
+            creep.memory.squadTarget = undefined;
             if (farHealers.length === 0) {
                 return creep.travelTo(Game.flags[creep.memory.staging]);
             } else {
