@@ -58,8 +58,11 @@ function rangedTeam(creep) {
                 borderChecks.borderCheck(creep);
             }
             if (creep.rangedAttack(hostileHealer) !== OK) {
+                teamRangedAttack(creep, hostileHealer);
                 if (creep.rangedAttack(rangedHostile) !== OK) {
+                    teamRangedAttack(creep, rangedHostile);
                     if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
+                        teamRangedAttack(creep, armedHostile);
                         creep.memory.squadTarget = armedHostile.id;
                         creep.rangedAttack(closestHostile);
                         if (needsHeals.length > 0) {
@@ -72,45 +75,37 @@ function rangedTeam(creep) {
                             movingTarget: true
                         });
                     } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
-                        creep.memory.squadTarget = armedHostile.id;
+                        teamRangedAttack(creep, armedHostile);
                         militaryFunctions.kite(creep);
                     } else {
-                        creep.memory.squadTarget = armedHostile.id;
+                        teamRangedAttack(creep, armedHostile);
                         if (needsHeals.length > 0) {
                             creep.rangedHeal(needsHeals[0])
                         }
                         creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
                     }
                 } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
-                    creep.memory.squadTarget = rangedHostile.id;
+                    teamRangedAttack(creep, rangedHostile);
                     militaryFunctions.kite(creep);
                 } else {
-                    creep.memory.squadTarget = rangedHostile.id;
+                    teamRangedAttack(creep, rangedHostile);
                     if (needsHeals.length > 0) {
                         creep.rangedHeal(needsHeals[0])
                     }
                     creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
                 }
             } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
-                creep.memory.squadTarget = hostileHealer.id;
+                teamRangedAttack(creep, hostileHealer);
                 militaryFunctions.kite(creep);
             } else {
-                creep.memory.squadTarget = hostileHealer.id;
+                teamRangedAttack(creep, hostileHealer);
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
                 creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
             }
         } else if (closestHostileTower) {
-            creep.memory.squadTarget = closestHostileTower.id;
-            if (creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
-                if (needsHeals.length > 0) {
-                    creep.rangedHeal(needsHeals[0])
-                }
-                creep.travelTo(closestHostileTower, {allowHostile: true, range: 3});
-            }
-        } else if (closestHostileTower) {
-            creep.memory.squadTarget = closestHostileTower.id;
+            teamRangedAttack(creep, closestHostileTower);
             if (creep.rangedAttack(closestHostileTower) === ERR_NOT_IN_RANGE) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
@@ -118,7 +113,7 @@ function rangedTeam(creep) {
                 creep.travelTo(closestHostileTower, {allowHostile: true, range: 3});
             }
         } else if (closestHostileSpawn) {
-            creep.memory.squadTarget = closestHostileSpawn.id;
+            teamRangedAttack(creep, closestHostileSpawn);
             if (creep.rangedAttack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
@@ -126,7 +121,7 @@ function rangedTeam(creep) {
                 creep.travelTo(closestHostileSpawn, {allowHostile: true, range: 3});
             }
         } else if (Game.flags[creep.memory.attackTarget] && closestHostile && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
-            creep.memory.squadTarget = closestHostile.id;
+            teamRangedAttack(creep, closestHostile);
             if (creep.rangedAttack(closestHostile) === ERR_NOT_IN_RANGE) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
@@ -134,7 +129,7 @@ function rangedTeam(creep) {
                 creep.travelTo(closestHostile, {allowHostile: true, repath: 1, range: 3, movingTarget: true});
             }
         } else if (Game.flags[creep.memory.attackTarget] && hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
-            creep.memory.squadTarget = hostileStructures.id;
+            teamRangedAttack(creep, hostileStructures);
             if (creep.rangedAttack(hostileStructures) === ERR_NOT_IN_RANGE) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
@@ -143,8 +138,8 @@ function rangedTeam(creep) {
             }
         } else if (Game.flags[creep.memory.attackTarget] && weakPoint.length > 0 && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
             weakPoint = _.min(weakPoint, 'hits');
-            creep.memory.squadTarget = weakPoint.id;
-            if (creep.pos.findInRange(deconstructors, 5).length === 0) {
+            teamRangedAttack(creep, weakPoint);
+            if (creep.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'deconstructor'), 5).length === 0) {
                 if (creep.rangedAttack(weakPoint) === ERR_NOT_IN_RANGE) {
                     if (needsHeals.length > 0) {
                         creep.rangedHeal(needsHeals[0])
@@ -179,35 +174,26 @@ function rangedTeam(creep) {
             }
         }
     } else {
-        if (armedHostile && creep.pos.getRangeTo(armedHostile) < 3) {
-            militaryFunctions.kite(creep);
-        } else if (creep.pos.getRangeTo(squadLeader[0]) < 0) {
-            if (creep.room.name !== squadLeader[0].pos.roomName) {
-                creep.travelTo(squadLeader[0], {allowHostile: true});
-            } else {
-                creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-            }
-        } else {
-            if (creep.room.name !== squadLeader[0].pos.roomName) {
-                creep.travelTo(squadLeader[0], {allowHostile: true});
-            } else {
-                creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-            }
+        if (needsHeals.length > 0) {
+            creep.rangedHeal(needsHeals[0])
         }
-        if (squadLeader[0].memory.squadTarget) {
-            if (creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
-                if (needsHeals.length > 0) {
-                    creep.rangedHeal(needsHeals[0])
-                }
-                if (creep.pos.getRangeTo(Game.getObjectById(squadLeader[0].memory.squadTarget)) <= 5) {
-                    creep.travelTo(Game.getObjectById(squadLeader[0].memory.squadTarget), {
-                        allowHostile: true,
-                        repath: 1,
-                        movingTarget: true
-                    });
-                }
+        if (armedHostile && creep.pos.getRangeTo(armedHostile) <= 3) {
+            militaryFunctions.kite(creep);
+        } else if (creep.pos.getRangeTo(squadLeader[0]) !== 0) {
+            if (creep.room.name !== squadLeader[0].pos.roomName) {
+                creep.travelTo(squadLeader[0], {allowHostile: true});
+            } else {
+                creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
             }
         }
     }
 }
 module.exports.rangedTeam = profiler.registerFN(rangedTeam, 'rangedTeamTactic');
+
+function teamRangedAttack(creep, target) {
+    let inRange = target.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker'), 3);
+    for (let i = 0; i < inRange.length; i++) {
+        inRange.rangedAttack(target);
+    }
+}
+module.exports.teamRangedAttack = profiler.registerFN(teamRangedAttack, 'teamRangedAttackTactic');
