@@ -23,7 +23,6 @@ module.exports.Manager = profiler.registerFN(Manager, 'managerWorkers');
  */
 function worker(creep) {
     //INITIAL CHECKS
-    invaderCheck(creep);
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
 
@@ -94,7 +93,6 @@ worker = profiler.registerFN(worker, 'workerWorkers');
 function harvester(creep) {
     let source;
 //INITIAL CHECKS
-    invaderCheck(creep);
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
     if (creep.carry.energy === 0) {
@@ -121,7 +119,6 @@ harvester = profiler.registerFN(harvester, 'harvesterWorkers');
  * @return {null}
  */
 function mineralHarvester(creep) {
-    invaderCheck(creep);
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
     if (_.sum(creep.carry) === 0) {
@@ -151,7 +148,6 @@ mineralHarvester = profiler.registerFN(mineralHarvester, 'mineralHarvesterWorker
  */
 function upgrader(creep) {
     //INITIAL CHECKS
-    invaderCheck(creep);
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
 
@@ -303,25 +299,6 @@ function mineralContainer(creep) {
     }
 }
 mineralContainer = profiler.registerFN(mineralContainer, 'mineralContainerWorkers');
-
-function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
-    if (invader) {
-        let number = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
-        creep.room.memory.responseNeeded = true;
-        creep.room.memory.tickDetected = Game.time;
-        if (!creep.room.memory.numberOfHostiles || creep.room.memory.numberOfHostiles < number.length) {
-            creep.room.memory.numberOfHostiles = number.length;
-        }
-        creep.memory.invaderDetected = true;
-    } else if (creep.room.memory.tickDetected < Game.time - 150) {
-        creep.memory.invaderDetected = undefined;
-        creep.memory.invaderID = undefined;
-        creep.room.memory.numberOfHostiles = undefined;
-        creep.room.memory.responseNeeded = false;
-    }
-}
-invaderCheck = profiler.registerFN(invaderCheck, 'invaderCheckWorkers');
 
 function dontSitOnRoads(creep) {
     if (creep.room.lookForAt(LOOK_STRUCTURES, creep.pos).length && creep.room.lookForAt(LOOK_STRUCTURES, creep.pos).structureType === STRUCTURE_ROAD) {
