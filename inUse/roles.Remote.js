@@ -276,9 +276,9 @@ function depositEnergy(creep) {
 }
 
 function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
     if (invader) {
-        let number = creep.room.find(FIND_HOSTILE_CREEPS);
+        let number = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
         creep.room.memory.responseNeeded = true;
         if (!creep.memory.invaderCooldown) {
             creep.memory.invaderCooldown = 1;

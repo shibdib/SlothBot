@@ -302,9 +302,9 @@ function mineralContainer(creep) {
 mineralContainer = profiler.registerFN(mineralContainer, 'mineralContainerWorkers');
 
 function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
     if (invader) {
-        let number = creep.room.find(FIND_HOSTILE_CREEPS);
+        let number = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
         creep.room.memory.responseNeeded = true;
         creep.room.memory.tickDetected = Game.time;
         if (!creep.room.memory.numberOfHostiles || creep.room.memory.numberOfHostiles < number.length) {

@@ -644,9 +644,9 @@ function responder(creep) {
 responder = profiler.registerFN(responder, 'responderMilitary');
 
 function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
     if (invader) {
-        let number = creep.room.find(FIND_HOSTILE_CREEPS);
+        let number = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
         creep.room.memory.responseNeeded = true;
         creep.room.memory.tickDetected = Game.time;
         if (!creep.room.memory.numberOfHostiles || creep.room.memory.numberOfHostiles < number.length) {
@@ -677,88 +677,4 @@ function findDefensivePosition(creep, target) {
     }
 }
 findDefensivePosition = profiler.registerFN(findDefensivePosition, 'findDefensivePositionMilitary');
-
-function kiting(creep, target) {
-    if (target.pos.x < creep.pos.x && target.pos.y < creep.pos.y) {
-        if (new RoomPosition(creep.pos.x + 1, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM_RIGHT);
-        } else if (new RoomPosition(creep.pos.x + 1, creep.pos.y, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(RIGHT);
-        } else if (new RoomPosition(creep.pos.x, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM);
-        }
-        return;
-    }
-    if (target.pos.x < creep.pos.x && target.pos.y > creep.pos.y) {
-        if (new RoomPosition(creep.pos.x + 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP_RIGHT);
-        } else if (new RoomPosition(creep.pos.x + 1, creep.pos.y, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(RIGHT);
-        } else if (new RoomPosition(creep.pos.x, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP);
-        }
-        return;
-    }
-    if (target.pos.x > creep.pos.x && target.pos.y > creep.pos.y) {
-        if (new RoomPosition(creep.pos.x - 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP_LEFT);
-        } else if (new RoomPosition(creep.pos.x - 1, creep.pos.y, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(LEFT);
-        } else if (new RoomPosition(creep.pos.x, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP);
-        }
-        return;
-    }
-    if (target.pos.x > creep.pos.x && target.pos.y < creep.pos.y) {
-        if (new RoomPosition(creep.pos.x - 1, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM_LEFT);
-        } else if (new RoomPosition(creep.pos.x - 1, creep.pos.y, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(LEFT);
-        } else if (new RoomPosition(creep.pos.x, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM);
-        }
-        return;
-    }
-    if (target.pos.x > creep.pos.x && target.pos.y === creep.pos.y) {
-        if (new RoomPosition(creep.pos.x - 1, creep.pos.y, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(LEFT);
-        } else if (new RoomPosition(creep.pos.x - 1, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM_LEFT);
-        } else if (new RoomPosition(creep.pos.x - 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP_LEFT);
-        }
-        return;
-    }
-    if (target.pos.x < creep.pos.x && target.pos.y === creep.pos.y) {
-        if (new RoomPosition(creep.pos.x + 1, creep.pos.y, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(RIGHT);
-        } else if (new RoomPosition(creep.pos.x + 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP_RIGHT);
-        } else if (new RoomPosition(creep.pos.x + 1, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM_RIGHT);
-        }
-        return;
-    }
-    if (target.pos.x === creep.pos.x && target.pos.y < creep.pos.y) {
-        if (new RoomPosition(creep.pos.x, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM);
-        } else if (new RoomPosition(creep.pos.x + 1, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM_RIGHT);
-        } else if (new RoomPosition(creep.pos.x - 1, creep.pos.y + 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(BOTTOM_LEFT);
-        }
-        return;
-    }
-    if (target.pos.x === creep.pos.x && target.pos.y > creep.pos.y) {
-        if (new RoomPosition(creep.pos.x, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP);
-        } else if (new RoomPosition(creep.pos.x + 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP_RIGHT);
-        } else if (new RoomPosition(creep.pos.x - 1, creep.pos.y - 1, creep.room.name).lookFor(LOOK_TERRAIN) === 'plain') {
-            creep.move(TOP_LEFT);
-        }
-
-    }
-}
-kiting = profiler.registerFN(kiting, 'kitingMilitary');
 
