@@ -18,7 +18,7 @@ module.exports.roomBuilding = function (spawnName) {
     borderWalls(spawn);
     for (let key in Game.constructionSites) {
         if (Game.constructionSites[key].structureType !== STRUCTURE_RAMPART && Game.constructionSites[key].room) {
-            let find = Game.constructionSites[key].room.lookForAt(LOOK_STRUCTURES, Game.constructionSites[key].pos)
+            let find = Game.constructionSites[key].room.lookForAt(LOOK_STRUCTURES, Game.constructionSites[key].pos);
             if (find.length && find[0].structureType === STRUCTURE_ROAD) {
                 find[0].destroy();
             }
@@ -30,7 +30,7 @@ function roadSources(spawn) {
     if (constructionSites.length > 30) {
         if (spawn.room.controller.level >= 3) {
             const sources = spawn.room.find(FIND_SOURCES);
-            for (i = 0; i < sources.length; i++) {
+            for (let i = 0; i < sources.length; i++) {
                 let path = spawn.room.findPath(spawn.pos, sources[i].pos, {
                     maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
                 });
@@ -209,7 +209,7 @@ buildLinks = profiler.registerFN(buildLinks, 'buildLinksBuilder');
 
 function borderWalls(spawn) {
     if (spawn.room.controller.level >= 3) {
-        for (i = 0; i < 50; i++) {
+        for (let i = 0; i < 50; i++) {
             let pos = new RoomPosition(i, 3, spawn.room.name);
             let border = new RoomPosition(i, 0, spawn.room.name);
             if (Game.map.getTerrainAt(border) !== 'wall' && Game.map.getTerrainAt(pos) !== 'wall') {

@@ -6,7 +6,9 @@ moveTo(new RoomPosition(25, 25, roomName), {range: 21}); //to move to any room
 //dropped resources pick the creep
 var collectDropped = {
 
-    /** @param {Creep} creep **/
+    /**  *
+     * @param thisRoom
+     */
     run: function(thisRoom) {
         var droppedResources = thisRoom.find(FIND_DROPPED_RESOURCES, 1);
         if(droppedResources.length){
@@ -23,7 +25,7 @@ var collectDropped = {
                     if(nearestCreep.name){
                         console.log('found ' + droppedResources[name].energy + ' energy at '+droppedResources[name].pos+' and '+nearestCreep.name+' will pick it up!');
                         nearestCreep.memory.iWillTakeIt = true;
-                        if(nearestCreep.pickup(droppedResources[name]) == ERR_NOT_IN_RANGE){
+                        if (nearestCreep.pickup(droppedResources[name]) === ERR_NOT_IN_RANGE) {
                             nearestCreep.moveTo(droppedResources[name]);
                             nearestCreep.say('👣 => 💰');
                         }
@@ -33,7 +35,7 @@ var collectDropped = {
         }else{
             for(var name in Game.creeps){
                 var creep = Game.creeps[name];
-                if(creep.memory.iWillTakeIt != null || creep.carry.energy == creep.carryCapacity ){
+                if (creep.memory.iWillTakeIt !== null || creep.carry.energy === creep.carryCapacity) {
                     creep.memory.iWillTakeIt = null;
                 }
             }

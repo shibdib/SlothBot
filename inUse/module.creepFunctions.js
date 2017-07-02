@@ -1,7 +1,5 @@
 const profiler = require('screeps-profiler');
 
-let doNotAggress = RawMemory.segments[2];
-
 function findSource(creep) {
     const source = creep.room.find(FIND_SOURCES_ACTIVE);
     if (source.length > 0) {
@@ -32,7 +30,7 @@ module.exports.findTower = profiler.registerFN(findTower, 'findTowerCreepFunctio
 
 function findConstruction(creep) {
 
-    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
+    let site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
     if (site === null) {
         site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION});
     }
@@ -216,7 +214,7 @@ function findEnergy(creep, hauler = false, range = 50) {
     let container = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'container'), 'id');
     if (container.length > 0) {
         let containers = [];
-        for (i = 0; i < container.length; i++) {
+        for (let i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(creep) > range || _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length > 0) {
@@ -243,7 +241,7 @@ function findEnergy(creep, hauler = false, range = 50) {
         let link = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'link'), 'id');
         if (link.length > 0) {
             let links = [];
-            for (i = 0; i < link.length; i++) {
+            for (let i = 0; i < link.length; i++) {
                 const object = Game.getObjectById(link[i]);
                 if (object) {
                     if (object.energy === 0 || object.pos.getRangeTo(creep) > range) {
@@ -269,7 +267,7 @@ function findEnergy(creep, hauler = false, range = 50) {
     let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
     if (storage.length > 0) {
         let storages = [];
-        for (i = 0; i < storage.length; i++) {
+        for (let i = 0; i < storage.length; i++) {
             const object = Game.getObjectById(storage[i]);
 
             if (object) {
@@ -295,7 +293,7 @@ function findEnergy(creep, hauler = false, range = 50) {
     let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
     if (terminal.length > 0) {
         let terminals = [];
-        for (i = 0; i < terminal.length; i++) {
+        for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
                 if (object.store[RESOURCE_ENERGY] <= 1000 || object.pos.getRangeTo(creep) > range) {
@@ -358,7 +356,7 @@ function findStorage(creep) {
     let container = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'container'), 'id');
     if (container.length > 0) {
         let containers = [];
-        for (i = 0; i < container.length; i++) {
+        for (let i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {
@@ -385,7 +383,7 @@ function findStorage(creep) {
     let spawn = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'spawn'), 'id');
     if (spawn.length > 0) {
         let spawns = [];
-        for (i = 0; i < spawn.length; i++) {
+        for (let i = 0; i < spawn.length; i++) {
             const object = Game.getObjectById(spawn[i]);
             if (object) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
@@ -410,7 +408,7 @@ function findStorage(creep) {
     let extension = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'extension'), 'id');
     if (extension.length > 0) {
         let extensions = [];
-        for (i = 0; i < extension.length; i++) {
+        for (let i = 0; i < extension.length; i++) {
             const object = Game.getObjectById(extension[i]);
             if (object) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
@@ -435,7 +433,7 @@ function findStorage(creep) {
     let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
     if (sStorage.length > 0) {
         let storages = [];
-        for (i = 0; i < sStorage.length; i++) {
+        for (let i = 0; i < sStorage.length; i++) {
             const object = Game.getObjectById(sStorage[i]);
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {
@@ -460,7 +458,7 @@ function findStorage(creep) {
     let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
     if (tower.length > 0 && harvester.length >= 2) {
         let towers = [];
-        for (i = 0; i < tower.length; i++) {
+        for (let i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {
@@ -494,7 +492,7 @@ function findStorage(creep) {
     let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
     if (terminal.length > 0) {
         let terminals = [];
-        for (i = 0; i < terminal.length; i++) {
+        for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
                 if (object.pos.getRangeTo(creep) > 1) {

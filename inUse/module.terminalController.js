@@ -40,7 +40,7 @@ function terminalControl() {
             }
 
             //extend old orders first
-            extendSellOrders(terminal, globalOrders, myOrders);
+            extendSellOrders(terminal, myOrders);
 
             //Try to put up a sell, otherwise fill buy
             placeSellOrders(terminal, globalOrders, myOrders);
@@ -135,7 +135,7 @@ function fillBuyOrders(terminal, globalOrders) {
 }
 fillBuyOrders = profiler.registerFN(fillBuyOrders, 'fillBuyOrdersTerminal');
 
-function extendSellOrders(terminal, globalOrders, myOrders) {
+function extendSellOrders(terminal, myOrders) {
     resource:
         for (const resourceType in terminal.store) {
             for (let key in myOrders) {

@@ -243,7 +243,6 @@ function rcl3(spawnName) {
 
                 let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
                 if (assistNeeded.length > 0) {
-                    defenseForce = true;
                 }
 
                 //EXPLORER RESPAWNS

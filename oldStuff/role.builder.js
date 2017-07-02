@@ -114,20 +114,20 @@ function findEnergy(creep) {
 
 function findConstruction(creep) {
 
-    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER
-})
-    ;
-    if (site == null) {
+    let site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {
+        filter: (s) => s.structureType === STRUCTURE_CONTAINER
+    });
+    if (site === null) {
         site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION
     })
         ;
     }
-    if (site == null) {
+    if (site === null) {
         site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART
     })
         ;
     }
-    if (site != null && site != undefined) {
+    if (site !== null && site !== undefined) {
         creep.memory.constructionSite = site.id;
         return site.id;
     }

@@ -71,20 +71,6 @@ module.exports.cacheRoomStructures = function (id) {
     }
 };
 
-module.exports.getRoomStructures = function (id, room) {
-    let cache = Memory.room.structureCache;
-    if (cache) {
-        let cachedPath = cache[getStructureKey(from, to)];
-        if (cachedPath) {
-            cachedPath.uses += 1;
-            Memory.room.structureCache = cache;
-            return cachedPath;
-        }
-    } else {
-        return null;
-    }
-};
-
 
 //Room intel
 module.exports.cacheRoomIntel = function (creep) {
@@ -112,19 +98,5 @@ module.exports.cacheRoomIntel = function (creep) {
             hostiles: hostiles.length
         };
         Memory.roomCache = cache;
-    }
-};
-
-module.exports.getRoomIntel = function (id, room) {
-    let cache = Memory.room.structureCache;
-    if (cache) {
-        let cachedPath = cache[getStructureKey(from, to)];
-        if (cachedPath) {
-            cachedPath.uses += 1;
-            Memory.room.structureCache = cache;
-            return cachedPath;
-        }
-    } else {
-        return null;
     }
 };

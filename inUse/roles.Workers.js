@@ -92,7 +92,8 @@ worker = profiler.registerFN(worker, 'workerWorkers');
  * @return {null}
  */
 function harvester(creep) {
-    //INITIAL CHECKS
+    let source;
+//INITIAL CHECKS
     invaderCheck(creep);
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
@@ -107,7 +108,7 @@ function harvester(creep) {
         if (creep.memory.assignedSource) {
             source = Game.getObjectById(creep.memory.assignedSource);
         } else if (!source) {
-            var source = creepTools.findSource(creep);
+            source = creepTools.findSource(creep);
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.travelTo(source);
