@@ -22,8 +22,8 @@ function labControl() {
                     cacheReactions(lab, true);
                 }
                 for (let keys in lab.room.memory.reactions.hubs) {
-                    let hubs = lab.room.memory.reactions.hubs[keys];
-                    if (hubs.hub) {
+                    let currentHub = lab.room.memory.reactions.hubs[keys];
+                    if (currentHub) {
                         for (let key in lab.room.memory.reactions) {
                             if (key === 'current' || key === 'currentAge' || key === 'hub') {
                                 continue;
@@ -54,10 +54,10 @@ function labControl() {
                                         return 0;
                                     }
                                 }) >= 200) {
-                                reaction.assignedHub = hubs.hub;
-                                reaction.lab1 = hubs.lab1;
-                                reaction.lab2 = hubs.lab2;
-                                reaction.outputLab = hubs.lab3;
+                                reaction.assignedHub = currentHub.hub;
+                                reaction.lab1 = currentHub.lab1;
+                                reaction.lab2 = currentHub.lab2;
+                                reaction.outputLab = currentHub.lab3;
                                 //if minerals are present, react!
                                 let lab1 = Game.getObjectById(reaction.lab1);
                                 let lab2 = Game.getObjectById(reaction.lab2);
