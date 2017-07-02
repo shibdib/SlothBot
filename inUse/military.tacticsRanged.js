@@ -11,6 +11,7 @@ function rangedTeam(creep) {
     creep.memory.squadKite = undefined;
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
     let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.rangedLeader === true);
+    let nearbyHealers = creep.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer'), 5);
     let needsHeals = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (squadLeader.length === 0) {
         creep.memory.squadLeader = true;
@@ -21,7 +22,12 @@ function rangedTeam(creep) {
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
         if (creep.hits < creep.hitsMax * 0.7) {
-            militaryFunctions.retreat(creep);
+            if (nearbyHealers.length > 0) {
+                creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+                return null;
+            } else {
+                militaryFunctions.retreat(creep);
+            }
         }
     }
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});

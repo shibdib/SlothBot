@@ -1,7 +1,8 @@
 let borderChecks = require('module.borderChecks');
 let creepTools = require('module.creepFunctions');
 let militaryFunctions = require('module.militaryFunctions');
-let rangedTactics = require('military.rangedTactics');
+let rangedTactics = require('military.tacticsRanged');
+let medicTactics = require('military.tacticsMedic');
 let cache = require('module.cache');
 let _ = require('lodash');
 let profiler = require('screeps-profiler');
@@ -88,23 +89,7 @@ function healer(creep) {
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
-    let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
-    let targets = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
-    let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
-    if (!armedHostile || creep.pos.getRangeTo(armedHostile) >= 4) {
-        if (targets.length > 0) {
-            if (creep.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-                creep.rangedHeal(targets[0]);
-            }
-        }
-        if (squadLeader.length > 0) {
-            creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-        } else {
-            creep.travelTo(Game.flags[creep.memory.staging]);
-        }
-    } else {
-        militaryFunctions.kite(creep, 5);
-    }
+    medicTactics.inCombat(creep);
 }
 healer = profiler.registerFN(healer, 'healerMilitary');
 
