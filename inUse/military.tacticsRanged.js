@@ -188,8 +188,8 @@ function rangedTeam(creep) {
                 creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
             }
         }
-        if (creep.memory.squadTarget) {
-            if (creep.rangedAttack(Game.getObjectById(creep.memory.squadTarget)) !== OK) {
+        if (squadLeader[0].memory.squadTarget) {
+            if (creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) !== OK) {
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
