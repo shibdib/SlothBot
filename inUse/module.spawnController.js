@@ -244,7 +244,7 @@ function haulers(spawn, level) {
         }
     } else if (spawn.room.memory.storageBuilt === true) {
         const getter = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === spawn.room.name);
-        if (getter.length < 1 && spawn.createCreep(Memory.creepBodies[level].hauler, 'getter' + Game.time, {
+        if (getter.length < 1 && spawn.createCreep(Memory.creepBodies[level].getter, 'getter' + Game.time, {
                 role: 'getter',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
@@ -253,7 +253,7 @@ function haulers(spawn, level) {
             return true;
         }
         const filler = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === spawn.room.name);
-        if (getter.length < 1 && spawn.createCreep(Memory.creepBodies[level].hauler, 'filler' + Game.time, {
+        if (filler.length < 1 && spawn.createCreep(Memory.creepBodies[level].filler, 'filler' + Game.time, {
                 role: 'filler',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
