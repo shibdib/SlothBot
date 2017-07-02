@@ -321,7 +321,7 @@ function pricingUpdateSell(terminal, globalOrders, myOrders) {
                 if (resourceType === RESOURCE_ENERGY) {
                     if (sellOrder.id && _.round(sellOrder.price, 3) !== _.round(myOrders[key].price, 3)) {
                         if (Game.market.changeOrderPrice(myOrders[key].id, _.round(sellOrder.price, 3)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round(sellOrder.price, 2) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
