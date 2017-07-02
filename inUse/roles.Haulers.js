@@ -134,15 +134,15 @@ function labTech(creep) {
             let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[creep.memory.haulingMineral] > 0});
             if (Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab1).mineralType && creep.room.memory.reactions[creep.room.memory.reactions.current].input1 !== Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab1).mineralType) {
                 if (creep.withdraw(Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab1), Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab1).mineralType) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(ccreep.room.memory.reactions[creep.room.memory.reactions.current].lab1));
+                    creep.travelTo(Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab1));
                 }
             } else if (Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab2).mineralType && creep.room.memory.reactions[creep.room.memory.reactions.current].input2 !== Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab2).mineralType) {
                 if (creep.withdraw(Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab2), Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab2).mineralType) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(ccreep.room.memory.reactions[creep.room.memory.reactions.current].lab2));
+                    creep.travelTo(Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab2));
                 }
             } else if (Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].outputLab).mineralType && creep.room.memory.reactions[creep.room.memory.reactions.current].output !== Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].outputLab).mineralType) {
                 if (creep.withdraw(Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].outputLab), Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].outputLab).mineralType) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(ccreep.room.memory.reactions[creep.room.memory.reactions.current].outputLab));
+                    creep.travelTo(Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].outputLab));
                 }
             } else if (storage) {
                 if (creep.withdraw(storage, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
