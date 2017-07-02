@@ -68,7 +68,7 @@ module.exports.loop = function () {
 
         //Lab Management
         Memory.stats.cpu.preLab = Game.cpu.getUsed();
-        labController.labControl();
+        //labController.labControl();
 
         //Terminal Management
         Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
