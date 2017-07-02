@@ -113,16 +113,16 @@ function filler(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        if (creep.memory.energyDestination) {
-            if(creep.withdraw(Game.getObjectById(creep.memory.energyDestination)) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.getObjectById(creep.memory.energyDestination));
+        if (creep.memory.storage) {
+            if(creep.withdraw(Game.getObjectById(creep.memory.storage)) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(Game.getObjectById(creep.memory.storage));
             }
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
             if (storage.length > 0) {
-                creep.memory.energyDestination = storage[0];
+                creep.memory.storage = storage[0];
             } else {
-                creep.memory.energyDestination = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).id;
+                creep.memory.storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).id;
             }
         }
     } else {
