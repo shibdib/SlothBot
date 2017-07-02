@@ -179,9 +179,6 @@ function rangedTeam(creep) {
             }
         }
     } else {
-        if (needsHeals.length > 0) {
-            creep.rangedHeal(needsHeals[0])
-        }
         if (armedHostile && creep.pos.getRangeTo(armedHostile) <= 3) {
             militaryFunctions.kite(creep);
         } else if (creep.pos.getRangeTo(squadLeader[0]) !== 0) {
@@ -192,7 +189,15 @@ function rangedTeam(creep) {
             }
         }
         if (creep.memory.squadTarget) {
-            creep.rangedAttack(Game.getObjectById(creep.memory.squadTarget));
+            if (creep.rangedAttack(Game.getObjectById(creep.memory.squadTarget)) !== OK) {
+                if (needsHeals.length > 0) {
+                    creep.rangedHeal(needsHeals[0])
+                }
+            }
+        } else {
+            if (needsHeals.length > 0) {
+                creep.rangedHeal(needsHeals[0])
+            }
         }
     }
 }
