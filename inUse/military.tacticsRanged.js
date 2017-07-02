@@ -12,6 +12,7 @@ function rangedTeam(creep) {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
     let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.rangedLeader === true);
     let nearbyHealers = creep.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer'), 5);
+    let farHealers = creep.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer'), 15);
     let needsHeals = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (squadLeader.length === 0) {
         creep.memory.squadLeader = true;
@@ -42,7 +43,14 @@ function rangedTeam(creep) {
         if (creep.room.controller && creep.room.controller.owner && _.includes(doNotAggress, creep.room.controller.owner['username']) === false && creep.room.controller.safeMode) {
             creep.memory.attackStarted = 'safe';
             Game.flags[creep.memory.attackTarget].remove();
-            creep.travelTo(Game.flags[creep.memory.staging]);
+            return creep.travelTo(Game.flags[creep.memory.staging]);
+        }
+        if (creep.memory.waitForHealers > 0 && nearbyHealers.length === 0) {
+            if (farHealers.length === 0) {
+                return creep.travelTo(Game.flags[creep.memory.staging]);
+            } else {
+                return creep.travelTo(farHealers[0], {allowHostile: false, range: 1, repath: 1, movingTarget: true});
+            }
         }
         if (armedHostile) {
             if (!closestHostileTower) {
