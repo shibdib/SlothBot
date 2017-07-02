@@ -259,7 +259,9 @@ function depositMineral(creep) {
         if (container) {
             if (_.sum(container.store) !== container.storeCapacity) {
                 for (const resourceType in creep.carry) {
-                    creep.transfer(container, resourceType);
+                    if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
+                        creep.travelTo(container);
+                    }
                 }
                 return;
             }
