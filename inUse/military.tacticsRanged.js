@@ -48,15 +48,20 @@ function rangedTeam(creep) {
             Game.flags[creep.memory.attackTarget].remove();
             return creep.travelTo(Game.flags[creep.memory.staging]);
         }
-        if (creep.memory.waitForHealers > 0 && nearbyHealers.length === 0) {
-            creep.memory.squadTarget = undefined;
-            if (farHealers.length === 0) {
-                return creep.travelTo(Game.flags[creep.memory.staging]);
-            } else {
-                return creep.travelTo(farHealers[0], {allowHostile: false, range: 1, repath: 1, movingTarget: true});
-            }
-        }
         if (armedHostile) {
+            if (creep.memory.waitForHealers > 0 && nearbyHealers.length === 0) {
+                creep.memory.squadTarget = undefined;
+                if (farHealers.length === 0) {
+                    return creep.travelTo(Game.flags[creep.memory.staging]);
+                } else {
+                    return creep.travelTo(farHealers[0], {
+                        allowHostile: false,
+                        range: 1,
+                        repath: 1,
+                        movingTarget: true
+                    });
+                }
+            }
             if (!closestHostileTower) {
                 borderChecks.borderCheck(creep);
             }
@@ -166,7 +171,6 @@ function rangedTeam(creep) {
                 }
             }
         } else {
-            creep.memory.squadTarget = undefined;
             if (Game.flags[creep.memory.wp] && creep.memory.waypointReached !== true) {
                 if (creep.pos.getRangeTo(creep.memory.wp) > 6) {
                     creep.memory.waypointReached = true;
