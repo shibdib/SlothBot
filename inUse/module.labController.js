@@ -21,15 +21,13 @@ function labControl() {
                     lab.room.memory.reactionHubCount = lab.room.memory.reactions.hubs.length;
                     cacheReactions(lab, true);
                 }
-                let hubs;
                 for (let keys in lab.room.memory.reactions.hubs) {
-                    hubs = lab.room.memory.reactions.hubs[keys];
-                    let reaction;
+                    let hubs = lab.room.memory.reactions.hubs[keys];
                     for (let key in lab.room.memory.reactions) {
                         if (key === 'current' || key === 'currentAge' || key === 'hub') {
                             continue;
                         }
-                        reaction = lab.room.memory.reactions[key];
+                        let reaction = lab.room.memory.reactions[key];
                         if (_.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
                                 if (s['structure'] && s['structure'].store) {
                                     return s['structure'].store[reaction.input1] || 0;
