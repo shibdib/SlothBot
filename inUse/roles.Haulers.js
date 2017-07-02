@@ -155,17 +155,17 @@ function labTech(creep) {
             }
         }
     } else {
-        if (!creep.carry[creep.memory.haulingMineral] || !creep.memory.haulingMineral) {
-            let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
-            for (const resourceType in creep.carry) {
+        for (const resourceType in creep.carry) {
+            if (!creep.carry[creep.memory.haulingMineral] || !creep.memory.haulingMineral || resourceType !== creep.carry[creep.memory.haulingMineral]) {
+                let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
                 if (creep.transfer(storage, resourceType) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(storage);
                 }
-            }
-        } else if (creep.memory.deliverTo) {
-            let storageItem = Game.getObjectById(creep.memory.deliverTo);
-            if (creep.transfer(storageItem, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem);
+            } else if (creep.memory.deliverTo) {
+                let storageItem = Game.getObjectById(creep.memory.deliverTo);
+                if (creep.transfer(storageItem, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(storageItem);
+                }
             }
         }
     }
