@@ -113,12 +113,12 @@ function filler(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        if (creep.memory.storage) {
+        if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
             if (storage.length > 0) {
-                creep.memory.storage = storage[0];
+                creep.memory.energyDestination = storage[0];
             }
         }
     } else {
