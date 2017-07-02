@@ -45,6 +45,7 @@ function rangedTeam(creep) {
             if (creep.rangedAttack(hostileHealer) !== OK) {
                 if (creep.rangedAttack(rangedHostile) !== OK) {
                     if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
+                        creep.memory.squadTarget = armedHostile.id;
                         creep.rangedAttack(closestHostile);
                         if (needsHeals.length > 0) {
                             creep.rangedHeal(needsHeals[0])
@@ -56,24 +57,30 @@ function rangedTeam(creep) {
                             movingTarget: true
                         });
                     } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
+                        creep.memory.squadTarget = armedHostile.id;
                         militaryFunctions.kite(creep);
                     } else {
+                        creep.memory.squadTarget = armedHostile.id;
                         if (needsHeals.length > 0) {
                             creep.rangedHeal(needsHeals[0])
                         }
                         creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
                     }
                 } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
+                    creep.memory.squadTarget = rangedHostile.id;
                     militaryFunctions.kite(creep);
                 } else {
+                    creep.memory.squadTarget = rangedHostile.id;
                     if (needsHeals.length > 0) {
                         creep.rangedHeal(needsHeals[0])
                     }
                     creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
                 }
             } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
+                creep.memory.squadTarget = hostileHealer.id;
                 militaryFunctions.kite(creep);
             } else {
+                creep.memory.squadTarget = hostileHealer.id;
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
