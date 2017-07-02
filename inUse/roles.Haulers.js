@@ -231,6 +231,8 @@ function labTech(creep) {
             let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount > 0});
             if (lab && creep.withdraw(lab, lab.mineralType) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(lab);
+            } else {
+                creep.travelTo(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB}));
             }
         }
     } else {
