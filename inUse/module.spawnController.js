@@ -377,6 +377,21 @@ function remotes(spawn, level) {
                 }
             }
         }
+        for (let i = 0; i < 20; i++) {
+            let claim = 'claim' + i;
+            if (Game.flags[claim] && Game.flags[claim].pos.roomName !== spawn.pos.roomName) {
+                let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === claim && creep.memory.role === 'claimer');
+                if (claimer.length < 1 && spawn.createCreep(Memory.creepBodies[level].claimer, 'claimer' + Game.time, {
+                        role: 'claimer',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        destination: claim
+                    }) === 'claimer' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning a claimer');
+                    return true;
+                }
+            }
+        }
         if (spawn.room.controller.level >= 4) {
             let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'reserver');
             if (reserver.length < _.round(Object.keys(Game.map.describeExits(spawn.room.name)).length, 0) / 2 && spawn.createCreep(Memory.creepBodies[level].reserver, 'reserver' + Game.time, {
