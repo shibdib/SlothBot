@@ -5,6 +5,8 @@ let borderChecks = require('module.borderChecks');
 let militaryFunctions = require('module.militaryFunctions');
 const profiler = require('screeps-profiler');
 
+let doNotAggress = RawMemory.segments[2];
+
 function rangedTeam(creep) {
     creep.memory.squadKite = undefined;
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
