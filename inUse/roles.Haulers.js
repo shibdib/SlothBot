@@ -114,7 +114,9 @@ function filler(creep) {
     }
     if (creep.memory.hauling === false) {
         if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
+            if(creep.withdraw(Game.getObjectById(creep.memory.energyDestination)) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(Game.getObjectById(creep.memory.energyDestination));
+            }
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
             if (storage.length > 0) {
