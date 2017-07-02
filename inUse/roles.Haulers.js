@@ -122,7 +122,7 @@ function labTech(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        if (creep.room.memory.reactions.current) {
+        if (creep.room.memory.reactions.current && creep.room.memory.reactions[creep.room.memory.reactions.current].assignedHub) {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[creep.memory.haulingMineral] > 0});
             let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[creep.memory.haulingMineral] > 0});
             if (Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab1).mineralType && creep.room.memory.reactions[creep.room.memory.reactions.current].input1 !== Game.getObjectById(creep.room.memory.reactions[creep.room.memory.reactions.current].lab1).mineralType) {
