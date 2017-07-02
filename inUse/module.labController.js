@@ -19,15 +19,15 @@ function labControl() {
                             }
                             let reaction = lab.room.memory.reactions[key];
                             //Set initial labs
-                            if (reaction.lab1 === null) {
+                            if (!reaction.lab1 && reaction.lab2 !== lab.id && reaction.outputLab !== lab.id) {
                                 reaction.lab1 = lab.id;
                                 continue labs;
                             }
-                            if (reaction.lab2 === null) {
+                            if (!reaction.lab2 && reaction.lab1 !== lab.id && reaction.outputLab !== lab.id) {
                                 reaction.lab2 = lab.id;
                                 continue labs;
                             }
-                            if (reaction.outputLab === null) {
+                            if (!reaction.outputLab && reaction.lab1 !== lab.id && reaction.lab2 !== lab.id) {
                                 reaction.outputLab = lab.id;
                                 continue labs;
                             }
