@@ -90,20 +90,20 @@ function rangedTeam(creep) {
                         creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
                     }
                 } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
-                    creep.memory.squadTarget = rangedHostile.id;
+                    creep.memory.squadTarget = closestHostile.id;
                     militaryFunctions.kite(creep);
                 } else {
-                    creep.memory.squadTarget = rangedHostile.id;
+                    creep.memory.squadTarget = closestHostile.id;
                     if (needsHeals.length > 0) {
                         creep.rangedHeal(needsHeals[0])
                     }
                     creep.travelTo(armedHostile, {allowHostile: false, range: 3, repath: 1, movingTarget: true});
                 }
             } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
-                creep.memory.squadTarget = hostileHealer.id;
+                creep.memory.squadTarget = closestHostile.id;
                 militaryFunctions.kite(creep);
             } else {
-                creep.memory.squadTarget = hostileHealer.id;
+                creep.memory.squadTarget = closestHostile.id;
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
