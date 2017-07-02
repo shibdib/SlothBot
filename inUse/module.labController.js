@@ -131,13 +131,15 @@ function cacheReactions(lab, force = false) {
 }
 
 function createLabHub(labs) {
-    let cache = labs[0].room.memory.reactions.hubs || {};
-    let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
-    cache[key] = {
-        hub: key,
-        lab1: labs[0].id,
-        lab2: labs[1].id,
-        lab3: labs[2].id,
-    };
-    labs[0].room.memory.reactions.hubs = cache;
+    if (labs[0] && labs[1] && labs[2]) {
+        let cache = labs[0].room.memory.reactions.hubs || {};
+        let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
+        cache[key] = {
+            hub: key,
+            lab1: labs[0].id,
+            lab2: labs[1].id,
+            lab3: labs[2].id,
+        };
+        labs[0].room.memory.reactions.hubs = cache;
+    }
 }
