@@ -42,3 +42,9 @@ var collectDropped = {
         }
     }
 };
+function towerDamageAtRange (range){
+    if (range <= TOWER_OPTIMAL_RANGE) { return TOWER_POWER_ATTACK; }
+    if (range >= TOWER_FALLOFF_RANGE) { range = TOWER_FALLOFF_RANGE; }
+    return TOWER_POWER_ATTACK - (TOWER_POWER_ATTACK * TOWER_FALLOFF *
+        (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE))
+};
