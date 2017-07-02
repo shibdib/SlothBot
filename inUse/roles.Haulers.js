@@ -79,9 +79,21 @@ function labTech(creep) {
                     } else {
                         return 0;
                     }
+                }) + _.sum(creep.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+                    if (s['structure'] && s['structure'].mineralAmount) {
+                        return s['structure'].mineralAmount || 0;
+                    } else {
+                        return 0;
+                    }
                 }) >= 200 && _.sum(creep.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
                     if (s['structure'] && s['structure'].store) {
                         return s['structure'].store[reaction.input2] || 0;
+                    } else {
+                        return 0;
+                    }
+                }) + _.sum(creep.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+                    if (s['structure'] && s['structure'].mineralAmount) {
+                        return s['structure'].mineralAmount || 0;
                     } else {
                         return 0;
                     }
