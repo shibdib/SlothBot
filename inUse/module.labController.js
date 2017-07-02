@@ -30,14 +30,42 @@ function labControl() {
                             continue;
                         }
                         reaction = lab.room.memory.reactions[key];
-                        //Set initial labs
-                        if ((!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) && _.includes(lab.room.memory.reactions['assignedHub'], hubs.hub) === false) {
+                        if (_.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+                                if (s['structure'] && s['structure'].store) {
+                                    return s['structure'].store[reaction.input1] || 0;
+                                } else {
+                                    return 0;
+                                }
+                            }) + _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+                                if (s['structure'] && s['structure'].mineralAmount) {
+                                    return s['structure'].mineralAmount || 0;
+                                } else {
+                                    return 0;
+                                }
+                            }) >= 200 && _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+                                if (s['structure'] && s['structure'].store) {
+                                    return s['structure'].store[reaction.input2] || 0;
+                                } else {
+                                    return 0;
+                                }
+                            }) + _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+                                if (s['structure'] && s['structure'].mineralAmount) {
+                                    return s['structure'].mineralAmount || 0;
+                                } else {
+                                    return 0;
+                                }
+                            }) >= 200) {
                             reaction.assignedHub = hubs.hub;
                             reaction.lab1 = hubs.lab1;
                             reaction.lab2 = hubs.lab2;
                             reaction.outputLab = hubs.lab3;
+                        } else {
+                            reaction.assignedHub = undefined;
+                            reaction.lab1 = undefined;
+                            reaction.lab2 = undefined;
+                            reaction.outputLab = undefined;
+                            continue;
                         }
-
                         //if minerals are present, react!
                         let lab1 = Game.getObjectById(reaction.lab1);
                         let lab2 = Game.getObjectById(reaction.lab2);
