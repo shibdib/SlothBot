@@ -12,7 +12,7 @@ function labControl() {
             cacheReactions(lab);
             let labs = lab.pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
             let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
-            if (labs.length >= 3 && (_.includes(lab.room.memory.reactions.hubs, key) === false)) {
+            if (labs.length >= 3 && !lab.room.memory.reactions.hubs[key]) {
                 createLabHub(labs);
                 continue;
             }
@@ -21,32 +21,32 @@ function labControl() {
                     lab.room.memory.reactionHubCount = lab.room.memory.reactions.hubs.length;
                     cacheReactions(lab, true);
                 }
-                    let hubs;
-                    for (let keys in lab.room.memory.reactions.hubs) {
-                        hubs = lab.room.memory.reactions.hubs[keys];
-                        let reaction;
-                        for (let key in lab.room.memory.reactions) {
-                            if (key === 'current' || key === 'currentAge' || key === 'hub') {
-                                continue;
-                            }
-                            reaction = lab.room.memory.reactions[key];
-                            //Set initial labs
-                            if ((!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) && _.includes(lab.room.memory.reactions['assignedHub'], hubs.hub) === false) {
-                                reaction.assignedHub = hubs.hub;
-                                reaction.lab1 = hubs.lab1;
-                                reaction.lab2 = hubs.lab2;
-                                reaction.outputLab = hubs.lab3;
-                            }
+                let hubs;
+                for (let keys in lab.room.memory.reactions.hubs) {
+                    hubs = lab.room.memory.reactions.hubs[keys];
+                    let reaction;
+                    for (let key in lab.room.memory.reactions) {
+                        if (key === 'current' || key === 'currentAge' || key === 'hub') {
+                            continue;
+                        }
+                        reaction = lab.room.memory.reactions[key];
+                        //Set initial labs
+                        if ((!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) && _.includes(lab.room.memory.reactions['assignedHub'], hubs.hub) === false) {
+                            reaction.assignedHub = hubs.hub;
+                            reaction.lab1 = hubs.lab1;
+                            reaction.lab2 = hubs.lab2;
+                            reaction.outputLab = hubs.lab3;
+                        }
 
-                            //if minerals are present, react!
-                            let lab1 = Game.getObjectById(reaction.lab1);
-                            let lab2 = Game.getObjectById(reaction.lab2);
-                            let outputLab = Game.getObjectById(reaction.outputLab);
-                            if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
-                                reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
-                            }
+                        //if minerals are present, react!
+                        let lab1 = Game.getObjectById(reaction.lab1);
+                        let lab2 = Game.getObjectById(reaction.lab2);
+                        let outputLab = Game.getObjectById(reaction.outputLab);
+                        if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
+                            reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
                         }
                     }
+                }
             }
         }
     }
