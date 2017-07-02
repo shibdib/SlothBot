@@ -24,7 +24,7 @@ function rangedTeam(creep) {
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
 
     if (creep.hits < creep.hitsMax * 0.75) {
-        creep.rangedAttack(closestHostile);
+        creep.rangedAttack(armedHostile);
         creep.heal(creep);
         if (nearbyHealers.length > 0) {
             creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
