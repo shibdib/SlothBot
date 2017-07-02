@@ -203,7 +203,7 @@ function rangedSolo(creep) {
     let needsHeals = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
-        if (creep.hits < creep.hitsMax * 0.7) {
+        if (creep.hits < creep.hitsMax * 0.75) {
             if (nearbyHealers.length > 0) {
                 return creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
             } else {
