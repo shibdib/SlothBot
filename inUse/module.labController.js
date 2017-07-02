@@ -13,11 +13,12 @@ function labControl() {
                     //Initial reaction setup in memory
                     cacheReactions(lab);
                     if (lab.room.memory.reactions) {
+                        let reaction;
                         for (let key in lab.room.memory.reactions) {
                             if (key === 'current' || key === 'currentAge') {
                                 continue;
                             }
-                            let reaction = lab.room.memory.reactions[key];
+                            reaction = lab.room.memory.reactions[key];
                             //Set initial labs
                             if (!reaction.lab1 && reaction.lab2 !== lab.id && reaction.outputLab !== lab.id) {
                                 reaction.lab1 = lab.id;
@@ -31,14 +32,13 @@ function labControl() {
                                 reaction.outputLab = lab.id;
                                 continue labs;
                             }
-
-                            //if minerals are present, react!
-                            let lab1 = Game.getObjectById(reaction.lab1);
-                            let lab2 = Game.getObjectById(reaction.lab2);
-                            let outputLab = Game.getObjectById(reaction.outputLab);
-                            if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
-                                reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
-                            }
+                        }
+                        //if minerals are present, react!
+                        let lab1 = Game.getObjectById(reaction.lab1);
+                        let lab2 = Game.getObjectById(reaction.lab2);
+                        let outputLab = Game.getObjectById(reaction.outputLab);
+                        if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
+                            reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
                         }
                     }
                 }
