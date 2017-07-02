@@ -290,10 +290,10 @@ depositMineral = profiler.registerFN(depositMineral, 'depositMineralWorkers');
 function mineralContainer(creep) {
     let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
     if (container) {
-        if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
+        if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 3) {
             if (creep.pos.getRangeTo(container) <= 1) {
                 return container.id;
-            } else if (creep.pos.getRangeTo(container) <= 3) {
+            } else {
                 creep.travelTo(container);
                 return container.id;
             }
