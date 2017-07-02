@@ -3,16 +3,20 @@
  */
 
 const profiler = require('screeps-profiler');
+let _ = require('lodash');
 
 function labControl() {
     labs:
         for (let lab of _.values(Game.structures)) {
             if (lab.structureType === STRUCTURE_LAB) {
-                const labs = _.filter(Game.structures, (s) => s.room.name  === lab.room.name && s.structureType === STRUCTURE_LAB);
-                if (labs.length >= 3) {
-                    //Initial reaction setup in memory
-                    cacheReactions(lab);
-                    if (lab.room.memory.reactions) {
+                const labs = lab.pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
+                if (labs.length >= 3 && (_.includes(lab.room.memory.reactions.hubs, labs[0]) === false || _.includes(lab.room.memory.reactions.hubs, labs[1]) === false || _.includes(lab.room.memory.reactions.hubs, labs[2]) === false)) {
+                    createLabHub(labs);
+                }
+                //Initial reaction setup in memory
+                cacheReactions(lab);
+                if (lab.room.memory.reactions.hubs) {
+                    for (let keys in lab.room.memory.reactions.hubs) {
                         let reaction;
                         for (let key in lab.room.memory.reactions) {
                             if (key === 'current' || key === 'currentAge') {
@@ -20,25 +24,20 @@ function labControl() {
                             }
                             reaction = lab.room.memory.reactions[key];
                             //Set initial labs
-                            if ((!reaction.lab1 || !Game.getObjectById(reaction.lab1)) && reaction.lab2 !== lab.id && reaction.outputLab !== lab.id) {
-                                reaction.lab1 = lab.id;
-                                continue labs;
+                            if (!reaction.assignedHub || _.includes(lab.room.memory.reactions.hubs, reaction.assignedHub) === false) {
+                                reaction.assignedHub = lab.room.memory.reactions.hubs[keys].hub;
+                                reaction.lab1 = lab.room.memory.reactions.hubs[keys].lab1;
+                                reaction.lab2 = lab.room.memory.reactions.hubs[keys].lab2;
+                                reaction.outputLab = lab.room.memory.reactions.hubs[keys].lab3;
                             }
-                            if ((!reaction.lab2 || !Game.getObjectById(reaction.lab2)) && reaction.lab1 !== lab.id && reaction.outputLab !== lab.id) {
-                                reaction.lab2 = lab.id;
-                                continue labs;
+
+                            //if minerals are present, react!
+                            let lab1 = Game.getObjectById(reaction.lab1);
+                            let lab2 = Game.getObjectById(reaction.lab2);
+                            let outputLab = Game.getObjectById(reaction.outputLab);
+                            if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
+                                reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
                             }
-                            if ((!reaction.outputLab || !Game.getObjectById(reaction.outputLab)) && reaction.lab1 !== lab.id && reaction.lab2 !== lab.id) {
-                                reaction.outputLab = lab.id;
-                                continue labs;
-                            }
-                        }
-                        //if minerals are present, react!
-                        let lab1 = Game.getObjectById(reaction.lab1);
-                        let lab2 = Game.getObjectById(reaction.lab2);
-                        let outputLab = Game.getObjectById(reaction.outputLab);
-                        if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
-                            reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
                         }
                     }
                 }
@@ -47,10 +46,10 @@ function labControl() {
 }
 module.exports.labControl = profiler.registerFN(labControl, 'labControl');
 
-function cacheReactions(lab) {
+function cacheReactions(lab, force = false) {
     //Cache reaction
     let cache = lab.room.memory.reactions || {};
-    if (!lab.room.memory.reactions['GH'] || !lab.room.memory.reactions['GH'].output) {
+    if (!lab.room.memory.reactions['GH'] || !lab.room.memory.reactions['GH'].output || force) {
         cache['GH'] = {
             input1: RESOURCE_HYDROGEN,
             input2: RESOURCE_GHODIUM,
@@ -61,7 +60,7 @@ function cacheReactions(lab) {
             isActive: false
         };
     }
-    if (!lab.room.memory.reactions['GO'] || !lab.room.memory.reactions['GO'].output) {
+    if (!lab.room.memory.reactions['GO'] || !lab.room.memory.reactions['GO'].output || force) {
         cache['GO'] = {
             input1: RESOURCE_OXYGEN,
             input2: RESOURCE_GHODIUM,
@@ -72,7 +71,7 @@ function cacheReactions(lab) {
             isActive: false
         };
     }
-    if (!lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE] || !lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE].output) {
+    if (!lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE] || !lab.room.memory.reactions[RESOURCE_GHODIUM_ALKALIDE].output || force) {
         cache[RESOURCE_GHODIUM_ALKALIDE] = {
             input1: RESOURCE_GHODIUM_OXIDE,
             input2: RESOURCE_HYDROXIDE,
@@ -83,7 +82,7 @@ function cacheReactions(lab) {
             isActive: false
         };
     }
-    if (!lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE] || !lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE].output) {
+    if (!lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE] || !lab.room.memory.reactions[RESOURCE_KEANIUM_OXIDE].output || force) {
         cache[RESOURCE_KEANIUM_OXIDE] = {
             input1: RESOURCE_OXYGEN,
             input2: RESOURCE_KEANIUM,
@@ -95,4 +94,16 @@ function cacheReactions(lab) {
         };
     }
     lab.room.memory.reactions = cache;
+}
+
+function createLabHub(labs) {
+    let cache = labs[0].room.memory.reactions.hubs || {};
+    let key = labs[0].id.slice(-2).concat(labs[0].id.slice(-2), labs[0].id.slice(-2));
+    cache[key] = {
+        hub: key,
+        lab1: labs[0].id,
+        lab2: labs[1].id,
+        lab3: labs[2].id,
+    };
+    labs[0].room.memory.reactions.hubs = cache;
 }
