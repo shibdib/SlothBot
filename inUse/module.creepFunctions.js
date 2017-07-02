@@ -34,19 +34,19 @@ function findConstruction(creep) {
     if (site.length > 0) {
         return site[0].id
     }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
-    if (site.length > 0) {
-        return site[0].id
-    }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
-    if (site.length > 0) {
-        return site[0].id
-    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
     if (site.length > 0) {
         return site[0].id
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
+    if (site.length > 0) {
+        return site[0].id
+    }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
+    if (site.length > 0) {
+        return site[0].id
+    }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         return site[0].id
     }
