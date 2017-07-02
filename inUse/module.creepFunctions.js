@@ -274,32 +274,6 @@ function findEnergy(creep, hauler = false, range = 50) {
             });
         }
     }
-    //Storage
-    let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-    if (storage.length > 0) {
-        let storages = [];
-        for (let i = 0; i < storage.length; i++) {
-            const object = Game.getObjectById(storage[i]);
-
-            if (object) {
-                if (object.store[RESOURCE_ENERGY] < 200 || object.pos.getRangeTo(creep) > range) {
-                    continue;
-                }
-                const storageDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
-                storages.push({
-                    id: storage[i],
-                    distWeighted: storageDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestStorage = _.min(storages, 'distWeighted');
-        energy.push({
-            id: bestStorage.id,
-            distWeighted: bestStorage.distWeighted,
-            harvest: false
-        });
-    }
     //Terminal
     let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
     if (terminal.length > 0) {
