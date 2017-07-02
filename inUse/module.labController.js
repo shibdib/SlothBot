@@ -11,19 +11,18 @@ function labControl() {
             //Initial reaction setup in memory
             cacheReactions(lab);
             let labs = lab.pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
-            let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
-            if (labs.length >= 3 && !lab.room.memory.reactions.hubs[key]) {
-                createLabHub(labs);
-                continue;
+            if (labs.length >= 3 && _.includes(lab.room.memory.reactions.labHub, lab.id) === false) {
+                createLabHub(lab);
             }
             if (lab.room.memory.reactions.hubs) {
                 if (lab.room.memory.reactions.hubs.length !== lab.room.memory.reactionHubCount) {
                     lab.room.memory.reactionHubCount = lab.room.memory.reactions.hubs.length;
                     cacheReactions(lab, true);
                 }
-                for (let keys in lab.room.memory.reactions.hubs) {
-                    let currentHub = lab.room.memory.reactions.hubs[keys];
+                for (let i = 0; i < lab.room.memory.reactions.labHub.length; i++) {
+                    let currentHub = lab.room.memory.reactions.labHub[i];
                     if (currentHub) {
+                        let hubLabs = currentHub.pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
                         for (let key in lab.room.memory.reactions) {
                             if (key === 'current' || key === 'currentAge' || key === 'hub') {
                                 continue;
@@ -54,10 +53,10 @@ function labControl() {
                                         return 0;
                                     }
                                 }) >= 200) {
-                                reaction.assignedHub = currentHub.hub;
-                                reaction.lab1 = currentHub.lab1;
-                                reaction.lab2 = currentHub.lab2;
-                                reaction.outputLab = currentHub.lab3;
+                                reaction.assignedHub = currentHub;
+                                reaction.lab1 = currentHub;
+                                reaction.lab2 = hubLabs[0].id;
+                                reaction.lab2 = hubLabs[1].id;
                                 //if minerals are present, react!
                                 let lab1 = Game.getObjectById(reaction.lab1);
                                 let lab2 = Game.getObjectById(reaction.lab2);
@@ -130,16 +129,8 @@ function cacheReactions(lab, force = false) {
     lab.room.memory.reactions = cache;
 }
 
-function createLabHub(labs) {
-    if (labs[0] && labs[1] && labs[2]) {
-        let cache = labs[0].room.memory.reactions.hubs || {};
-        let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
-        cache[key] = {
-            hub: key,
-            lab1: labs[0].id,
-            lab2: labs[1].id,
-            lab3: labs[2].id,
-        };
-        labs[0].room.memory.reactions.hubs = cache;
-    }
+function createLabHub(lab) {
+    let cache = lab.room.memory.reactions.labHub || [];
+    cache.push(lab.id);
+    lab.room.memory.reactions.labHub = cache;
 }
