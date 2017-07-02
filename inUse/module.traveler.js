@@ -224,10 +224,6 @@ class Traveler {
      * @returns {PathfinderReturn}
      */
     static findTravelPath(origin, destination, options = {}) {
-        if (cache.getPath(origin, destination)) {
-            console.log('Cache Money')
-            return cache.getPath(origin, destination);
-        }
         _.defaults(options, {
             ignoreCreeps: true,
             maxOps: DEFAULT_MAXOPS,
@@ -322,7 +318,6 @@ class Traveler {
             else {
             }
         }
-        cache.cachePath(origin, destination, ret);
         return ret;
     }
 
