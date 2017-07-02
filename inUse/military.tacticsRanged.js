@@ -190,6 +190,7 @@ function rangedTeam(creep) {
         }
         if (squadLeader[0].memory.squadTarget) {
             if (creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget)) !== OK) {
+                creep.rangedAttack(armedHostile);
                 if (needsHeals.length > 0) {
                     creep.rangedHeal(needsHeals[0])
                 }
