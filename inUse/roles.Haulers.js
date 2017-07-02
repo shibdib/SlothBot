@@ -13,7 +13,9 @@ function Manager(creep) {
     } else if (creep.memory.role === "filler") {
         filler(creep);
     } else if (creep.memory.role === "getter") {
-        hauler(creep);
+        getter(creep);
+    } else if (creep.memory.role === "basicHauler") {
+        basicHauler(creep);
     }
 }
 module.exports.Manager = profiler.registerFN(Manager, 'managerHaulers');
