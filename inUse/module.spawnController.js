@@ -187,7 +187,7 @@ function harvesters(spawn, level) {
             if (_.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'stationaryHarvester').length === 0) {
                 level = 1;
             }
-            if ((stationaryHarvester.length < 1 || stationaryHarvester[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
+            if ((stationaryHarvester.length < 1 || stationaryHarvester[0].ticksToLive < 50) && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
                     role: 'stationaryHarvester',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
