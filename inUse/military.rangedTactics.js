@@ -20,6 +20,9 @@ function rangedTeam(creep) {
     }
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
+        if (creep.hits < creep.hitsMax * 0.7) {
+            militaryFunctions.retreat(creep);
+        }
     }
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (creep.memory.squadLeader === true) {

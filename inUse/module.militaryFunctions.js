@@ -39,6 +39,14 @@ function retreat(creep, fleeRange = 5) {
         });
     let ret = PathFinder.search(creep.pos, avoidance, {
         flee: true,
+        swampCost: 50,
+        maxRooms: 1,
+
+        roomCallback: function (roomName) {
+            let costs = new PathFinder.CostMatrix;
+            addBorderToMatrix(creep.room, costs);
+            return costs;
+        }
     });
     if (ret.path.length > 0) {
         return creep.move(creep.pos.getDirectionTo(ret.path[0]));
