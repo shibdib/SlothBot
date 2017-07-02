@@ -209,7 +209,9 @@ function mineralHauler(creep) {
     } else {
         if (!creep.memory.terminalID) {
             let terminal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
-            creep.memory.terminalID = terminal.id;
+            if (terminal) {
+                creep.memory.terminalID = terminal.id;
+            }
         }
         if (creep.memory.terminalID) {
             let terminal = Game.getObjectById(creep.memory.terminalID);
