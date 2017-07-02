@@ -119,6 +119,8 @@ function filler(creep) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
             if (storage.length > 0) {
                 creep.memory.energyDestination = storage[0];
+            } else {
+                creep.memory.energyDestination = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).id;
             }
         }
     } else {
