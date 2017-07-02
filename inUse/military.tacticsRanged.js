@@ -20,18 +20,21 @@ function rangedTeam(creep) {
     if (rangedLeader.length === 0) {
         creep.memory.rangedLeader = true;
     }
-    if (creep.hits < creep.hitsMax) {
-        creep.heal(creep);
-        if (creep.hits < creep.hitsMax * 0.7) {
-            if (nearbyHealers.length > 0) {
-                creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
-                return null;
-            } else {
-                militaryFunctions.retreat(creep);
-            }
-        }
-    }
+    
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
+
+    if (creep.hits < creep.hitsMax * 0.75) {
+        creep.rangedAttack(closestHostile);
+        creep.heal(creep);
+        if (nearbyHealers.length > 0) {
+            creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            return null;
+        } else {
+            militaryFunctions.retreat(creep);
+        }
+    } else if (creep.hits < creep.hitsMax) {
+        creep.heal(creep);
+    }
     if (creep.memory.squadLeader === true) {
         let rangedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(RANGED_ATTACK) >= 4) && _.includes(doNotAggress, e.owner['username']) === false});
         let hostileHealer = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(doNotAggress, e.owner['username']) === false});
@@ -204,24 +207,24 @@ function rangedSolo(creep) {
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
-    if (creep.hits < creep.hitsMax * 0.75) {
-        if (nearbyHealers.length > 0) {
-            return creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
-        } else {
-            let medic = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (c) => c.memory.role === 'healer'});
-            if (medic) {
-                return creep.travelTo(medic, {allowHostile: false, range: 0});
-            } else {
-                militaryFunctions.retreat(creep);
-            }
-        }
-    }
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     let rangedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(RANGED_ATTACK) >= 4) && _.includes(doNotAggress, e.owner['username']) === false});
     let hostileHealer = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(doNotAggress, e.owner['username']) === false});
     let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
     let closestHostile = creep.pos.findClosestByPath(FIND_CREEPS, {filter: (e) => _.includes(doNotAggress, e.owner['username']) === false});
     let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER && _.includes(doNotAggress, s.owner['username']) === false});
+    if (creep.hits < creep.hitsMax * 0.75) {
+        creep.rangedAttack(closestHostile);
+        creep.heal(creep);
+        if (nearbyHealers.length > 0) {
+            creep.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            return null;
+        } else {
+            militaryFunctions.retreat(creep);
+        }
+    } else if (creep.hits < creep.hitsMax) {
+        creep.heal(creep);
+    }
     if (creep.room.controller && creep.room.controller.owner && _.includes(doNotAggress, creep.room.controller.owner['username']) === false && creep.room.controller.safeMode) {
         creep.memory.attackStarted = 'safe';
         Game.flags[creep.memory.attackTarget].remove();
