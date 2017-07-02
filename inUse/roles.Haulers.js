@@ -57,19 +57,12 @@ function labTech(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
-
-    //Get reaction info
-    let activeReactions = [
-        RESOURCE_GHODIUM_ALKALIDE,
-        RESOURCE_GHODIUM_OXIDE,
-        RESOURCE_KEANIUM_OXIDE
-    ];
-    let intermediateReactions = [
-        RESOURCE_GHODIUM_ALKALIDE
-    ];
-    for (let key in activeReactions) {
-        if (creep.room.memory.reactions) {
-            let reaction = creep.room.memory.reactions[activeReactions[key]];
+    if (creep.room.memory.reactions) {
+        for (let key in creep.room.memory.reactions) {
+            if (!creep.room.memory.reactions[key].assignedHub) {
+                continue;
+            }
+            let reaction = creep.room.memory.reactions[key];
             let lab1 = Game.getObjectById(reaction.lab1);
             let lab2 = Game.getObjectById(reaction.lab2);
             let output = Game.getObjectById(reaction.outputLab);
