@@ -26,7 +26,7 @@ function labControl() {
                         hubs = lab.room.memory.reactions.hubs[keys];
                         let reaction;
                         for (let key in lab.room.memory.reactions) {
-                            if (key === 'current' || key === 'currentAge') {
+                            if (key === 'current' || key === 'currentAge' || key === 'hub') {
                                 continue;
                             }
                             reaction = lab.room.memory.reactions[key];
@@ -106,7 +106,7 @@ function cacheReactions(lab, force = false) {
 
 function createLabHub(labs) {
     let cache = labs[0].room.memory.reactions.hubs || {};
-    let key = labs[0].id.slice(-2).concat(labs[0].id.slice(-2), labs[0].id.slice(-2));
+    let key = labs[0].id.slice(-2).concat(labs[1].id.slice(-2), labs[2].id.slice(-2));
     cache[key] = {
         hub: key,
         lab1: labs[0].id,
