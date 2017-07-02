@@ -187,7 +187,7 @@ function harvesters(spawn, level) {
             if (_.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'stationaryHarvester').length === 0) {
                 level = 1;
             }
-            if (stationaryHarvester.length === 0 && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
+            if ((stationaryHarvester.length < 1 || stationaryHarvester[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
                     role: 'stationaryHarvester',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
@@ -246,8 +246,11 @@ function haulers(spawn, level) {
             return true;
         }
     } else if (spawn.room.memory.storageBuilt === true) {
+        if (!spawn.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
+            spawn.room.memory.storageBuilt = undefined;
+        }
         const getter = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === spawn.room.name);
-        if (getter.length < 1 && spawn.createCreep(Memory.creepBodies[level].getter, 'getter' + Game.time, {
+        if ((getter.length < 1 || getter[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].getter, 'getter' + Game.time, {
                 role: 'getter',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
@@ -256,7 +259,7 @@ function haulers(spawn, level) {
             return true;
         }
         const filler = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === spawn.room.name);
-        if (filler.length < 1 && spawn.createCreep(Memory.creepBodies[level].filler, 'filler' + Game.time, {
+        if ((filler.length < 1 || filler[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].filler, 'filler' + Game.time, {
                 role: 'filler',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
@@ -275,7 +278,7 @@ function haulers(spawn, level) {
         }
     }
 }
-scouts = profiler.registerFN(scouts, 'scoutsSpawn');
+haulers = profiler.registerFN(haulers, 'haulersSpawn');
 
 function workers(spawn, level) {
     if (spawn.room.controller.level >= 1) {
