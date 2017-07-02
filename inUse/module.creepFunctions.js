@@ -58,7 +58,7 @@ function findConstruction(creep) {
 module.exports.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
 function findRepair(creep, level = 1) {
-    let structures = creep.room.find(FIND_STRUCTURES);
+    let structures = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
     if (site.length > 0) {
         return site[0].id
