@@ -60,6 +60,9 @@ basicHauler = profiler.registerFN(basicHauler, 'basicHaulerHaulers');
  * @return {null}
  */
 function hauler(creep) {
+    if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
+        creep.memory.role = 'basicHauler';
+    }
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
@@ -96,6 +99,9 @@ hauler = profiler.registerFN(hauler, 'haulerHaulers');
  * @return {null}
  */
 function filler(creep) {
+    if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
+        creep.memory.role = 'basicHauler';
+    }
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
@@ -135,6 +141,9 @@ filler = profiler.registerFN(filler, 'fillerHaulers');
  * @return {null}
  */
 function getter(creep) {
+    if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
+        creep.memory.role = 'basicHauler';
+    }
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
