@@ -223,6 +223,52 @@ function scouts(spawn, level) {
 }
 scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 
+function haulers(spawn, level) {
+    if (spawn.room.controller.level < 4 || spawn.room.memory.storageBuilt === false) {
+        if (spawn.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
+            spawn.room.memory.storageBuilt = true;
+        }
+        const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === spawn.room.name);
+        if (basicHauler.length < 2 && spawn.createCreep(Memory.creepBodies[level].hauler, 'basicHauler' + Game.time, {
+                role: 'basicHauler',
+                assignedSpawn: spawn.id,
+                assignedRoom: spawn.room.name
+            }) === 'basicHauler' + Game.time) {
+            console.log(spawn.room.name + ' Spawning a basicHauler');
+            return true;
+        }
+    } else if (spawn.room.memory.storageBuilt === true) {
+        const getter = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === spawn.room.name);
+        if (getter.length < 1 && spawn.createCreep(Memory.creepBodies[level].hauler, 'getter' + Game.time, {
+                role: 'getter',
+                assignedSpawn: spawn.id,
+                assignedRoom: spawn.room.name
+            }) === 'getter' + Game.time) {
+            console.log(spawn.room.name + ' Spawning a getter');
+            return true;
+        }
+        const filler = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === spawn.room.name);
+        if (getter.length < 1 && spawn.createCreep(Memory.creepBodies[level].hauler, 'filler' + Game.time, {
+                role: 'filler',
+                assignedSpawn: spawn.id,
+                assignedRoom: spawn.room.name
+            }) === 'filler' + Game.time) {
+            console.log(spawn.room.name + ' Spawning a filler');
+            return true;
+        }
+        const hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
+        if (hauler.length < 1 && spawn.createCreep(Memory.creepBodies[level].hauler, 'hauler' + Game.time, {
+                role: 'hauler',
+                assignedSpawn: spawn.id,
+                assignedRoom: spawn.room.name
+            }) === 'hauler' + Game.time) {
+            console.log(spawn.room.name + ' Spawning a hauler');
+            return true;
+        }
+    }
+}
+scouts = profiler.registerFN(scouts, 'scoutsSpawn');
+
 function workers(spawn, level) {
     if (spawn.room.controller.level >= 1) {
         const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);

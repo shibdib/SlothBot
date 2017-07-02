@@ -10,9 +10,49 @@ function Manager(creep) {
         labTech(creep);
     } else if (creep.memory.role === "hauler" || "largeHauler") {
         hauler(creep);
+    } else if (creep.memory.role === "filler") {
+        filler(creep);
+    } else if (creep.memory.role === "getter") {
+        hauler(creep);
     }
 }
 module.exports.Manager = profiler.registerFN(Manager, 'managerHaulers');
+
+/**
+ * @return {null}
+ */
+function basicHauler(creep) {
+    //INITIAL CHECKS
+    borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
+
+    if (creep.carry.energy === 0) {
+        creep.memory.hauling = false;
+    }
+    if (creep.carry.energy > creep.carryCapacity / 2) {
+        creep.memory.hauling = true;
+    }
+    if (creep.memory.hauling === false) {
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, true);
+        }
+    } else {
+        if (creep.memory.storageDestination) {
+            let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(storageItem);
+            } else {
+                creep.memory.storageDestination = null;
+                creep.memory.path = null;
+            }
+            return null;
+        }
+        creepTools.findSpawnExtensions(creep);
+    }
+}
+basicHauler = profiler.registerFN(basicHauler, 'basicHaulerHaulers');
 
 /**
  * @return {null}
@@ -49,6 +89,81 @@ function hauler(creep) {
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerHaulers');
+
+/**
+ * @return {null}
+ */
+function filler(creep) {
+    //INITIAL CHECKS
+    borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
+
+    if (creep.carry.energy === 0) {
+        creep.memory.hauling = false;
+    }
+    if (creep.carry.energy > creep.carryCapacity / 2) {
+        creep.memory.hauling = true;
+    }
+    if (creep.memory.hauling === false) {
+        if (creep.memory.storage) {
+            creepTools.withdrawEnergy(creep);
+        } else if (!creep.memory.storage) {
+            let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+            if (storage.length > 0) {
+                creep.memory.storage = storage[0];
+            }
+        }
+    } else {
+        if (creep.memory.storageDestination) {
+            let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(storageItem);
+            } else {
+                creep.memory.storageDestination = null;
+                creep.memory.path = null;
+            }
+            return null;
+        }
+        creepTools.findSpawnExtensions(creep);
+    }
+}
+filler = profiler.registerFN(filler, 'fillerHaulers');
+
+/**
+ * @return {null}
+ */
+function getter(creep) {
+    //INITIAL CHECKS
+    borderChecks.borderCheck(creep);
+    borderChecks.wrongRoom(creep);
+
+    if (creep.carry.energy === 0) {
+        creep.memory.hauling = false;
+    }
+    if (creep.carry.energy > creep.carryCapacity / 2) {
+        creep.memory.hauling = true;
+    }
+    if (creep.memory.hauling === false) {
+        if (creep.memory.energyDestination) {
+            creepTools.withdrawEnergy(creep);
+        } else {
+            creepTools.findEnergy(creep, true);
+        }
+    } else {
+        creepTools.findStorage(creep);
+        if (creep.memory.storage) {
+            if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(Game.getObjectById(creep.memory.storage));
+            }
+        } else if (!creep.memory.storage) {
+            let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+            if (storage.length > 0) {
+                creep.memory.storage = storage[0];
+            }
+        }
+    }
+}
+getter = profiler.registerFN(getter, 'getterHaulers');
 
 /**
  * @return {null}

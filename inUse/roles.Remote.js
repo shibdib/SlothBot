@@ -129,10 +129,10 @@ function hauler(creep) {
                 creep.memory.destinationReached = false;
                 let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
                 let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-                if (terminal.length > 0) {
-                    creep.memory.storageDestination = terminal[0];
-                } else if (storage.length > 0) {
+                if (storage.length > 0) {
                     creep.memory.storageDestination = storage[0];
+                } else if (terminal.length > 0) {
+                    creep.memory.storageDestination = terminal[0];
                 }
                 if (creep.memory.storageDestination) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);

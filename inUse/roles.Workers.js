@@ -98,6 +98,10 @@ function harvester(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
+    if (creep.carry.ticksToLive <= 5) {
+        depositEnergy(creep);
+        creep.suicide();
+    }
 
     if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
