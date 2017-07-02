@@ -24,7 +24,7 @@ function getPath(from, to) {
         if (cachedPath) {
             cachedPath.uses += 1;
             Memory.pathCache = cache;
-            return cachedPath;
+            return cachedPath.path;
         }
     } else {
         return null;
