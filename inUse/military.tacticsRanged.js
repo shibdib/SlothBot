@@ -20,7 +20,7 @@ function rangedTeam(creep) {
     if (rangedLeader.length === 0) {
         creep.memory.rangedLeader = true;
     }
-    
+
     let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
 
     if (creep.hits < creep.hitsMax * 0.75) {
@@ -194,9 +194,11 @@ function rangedTeam(creep) {
 module.exports.rangedTeam = profiler.registerFN(rangedTeam, 'rangedTeamTactic');
 
 function teamRangedAttack(creep, target) {
-    let inRange = target.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker'), 3);
-    for (let i = 0; i < inRange.length; i++) {
-        inRange.rangedAttack(target);
+    if (target) {
+        let inRange = target.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker'), 3);
+        for (let i = 0; i < inRange.length; i++) {
+            inRange.rangedAttack(target);
+        }
     }
 }
 module.exports.teamRangedAttack = profiler.registerFN(teamRangedAttack, 'teamRangedAttackTactic');
