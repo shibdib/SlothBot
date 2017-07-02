@@ -296,7 +296,11 @@ function ranged(creep) {
         }
         return null;
     }
-    rangedTactics.rangedTeam(creep);
+    if (creep.memory.waitForHealers === 0 && creep.memory.waitForRanged === 0 && creep.memory.waitForAttackers === 0 && creep.memory.waitForDeconstructor === 0) {
+        rangedTactics.rangedSolo(creep);
+    } else {
+        rangedTactics.rangedTeam(creep);
+    }
 }
 ranged = profiler.registerFN(ranged, 'rangedMilitary');
 
