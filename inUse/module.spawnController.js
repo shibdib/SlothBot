@@ -16,6 +16,9 @@ function creepRespawn() {
             let getter = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === spawn.room.name);
             let filler = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === spawn.room.name);
             let level = getLevel(spawn);
+            if (level === 0) {
+                continue;
+            }
             let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
             let respondersNeeded;
             if (assistNeeded.length > 0) {
