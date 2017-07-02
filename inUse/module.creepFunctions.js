@@ -29,56 +29,67 @@ function findTower(creep) {
 module.exports.findTower = profiler.registerFN(findTower, 'findTowerCreepFunctions');
 
 function findConstruction(creep) {
-
-    let site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION});
+    let construction = creep.room.find(FIND_MY_CONSTRUCTION_SITES);
+    let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_WALL});
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART});
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site !== null && site !== undefined) {
-        creep.memory.constructionSite = site.id;
-        return site.id;
+    site = _.filter(construction, (s) => s.structureType !== STRUCTURE_RAMPART);
+    if (site.length > 0) {
+        return site[0].id
     }
 }
 module.exports.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
 function findRepair(creep, level = 1) {
-
-    site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax});
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000});
+    let structures = creep.room.find(FIND_STRUCTURES);
+    let site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 250000 * level});
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * level});
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 250000 * level);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax});
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * level);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax});
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000});
+    site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site === null) {
-        site = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2});
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000);
+    if (site.length > 0) {
+        return site[0].id
     }
-    if (site !== null && site !== undefined) {
-        return site.id;
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
+    if (site.length > 0) {
+        return site[0].id
     }
 }
 module.exports.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
