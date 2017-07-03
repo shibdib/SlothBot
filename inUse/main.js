@@ -79,12 +79,7 @@ module.exports.loop = function () {
 
         //Spawn Management
         Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
-        for (let name in Game.spawns) {
-            if(Game.spawns[name].spawning === null) {
-                spawnController.creepRespawn();
-                break;
-            }
-        }
+        spawnController.creepRespawn();
 
         //Alliance List Management
         let doNotAggress = [
@@ -123,7 +118,7 @@ function showCacheUsage() {
     let howManyTimesCacheUsed = 0;
     for (let key in Memory.pathCache) {
         let cached = Memory.pathCache[key];
-        usageCountCounter['used'+cached.uses] = usageCountCounter['used'+cached.uses] + 1 || 1;
+        usageCountCounter['used' + cached.uses] = usageCountCounter['used' + cached.uses] + 1 || 1;
         howManyTimesCacheUsed += cached.uses;
     }
 
