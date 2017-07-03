@@ -55,7 +55,7 @@ function basicHauler(creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            creepTools.findEnergy(creep, true);
+            creep.findEnergy();
         }
     } else {
         if (creep.memory.storageDestination) {
@@ -94,7 +94,7 @@ function hauler(creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            creepTools.findEnergy(creep, true);
+            creep.findEnergy();
         }
     } else {
         if (creep.memory.storageDestination) {
@@ -183,7 +183,7 @@ function getter(creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            creepTools.findEnergy(creep, true);
+            creep.findEnergy();
         }
     } else {
         creepTools.findStorage(creep);

@@ -188,7 +188,7 @@ function pioneer(creep) {
                 creepTools.withdrawEnergy(creep);
                 return null;
             } else {
-                creepTools.findEnergy(creep, false);
+                creep.findEnergy();
                 return null;
             }
         } else {

@@ -78,7 +78,7 @@ function worker(creep) {
                     creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
                 }
                 if (creep.memory.deliveryWait > 15 && !creep.memory.deliveryIncoming) {
-                    creepTools.findEnergy(creep);
+                    creep.findEnergy();
                 }
             }
         }
@@ -192,7 +192,7 @@ function upgrader(creep) {
                 }
                 if (creep.memory.deliveryWait > 15 && !creep.memory.deliveryIncoming) {
                     creep.say(ICONS.wait5);
-                    creepTools.findEnergy(creep);
+                    creep.findEnergy();
                 }
             }
         }
@@ -274,7 +274,7 @@ function depositMineral(creep) {
             if (_.sum(terminal.store) !== terminal.storeCapacity) {
                 for (const resourceType in creep.carry) {
                     if (creep.transfer(terminal, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(terminal1);
+                        creep.travelTo(terminal);
                     }
                 }
             }

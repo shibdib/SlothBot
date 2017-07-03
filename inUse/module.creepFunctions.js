@@ -218,21 +218,20 @@ function noHarvesterProtocol(creep) {
 }
 module.exports.noHarvesterProtocol = profiler.registerFN(noHarvesterProtocol, 'noHarvesterProtocolCreepFunctions');
 
-
-function findEnergy(creep, hauler = false, range = 50) {
+findEnergy = function () {
     let energy = [];
     //Container
-    let container = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'container'), 'id');
+    let container = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'container'), 'id');
     if (container.length > 0) {
         let containers = [];
         for (let i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(creep) > range || _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length > 0) {
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length > 0) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.getRangeTo(creep) * (1.1 - containerAmountWeighted);
+                const containerDistWeighted = object.pos.getRangeTo(this) * (1.1 - containerAmountWeighted);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
@@ -249,16 +248,16 @@ function findEnergy(creep, hauler = false, range = 50) {
     }
     //Links
     if (hauler === false) {
-        let link = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'link'), 'id');
+        let link = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'link'), 'id');
         if (link.length > 0) {
             let links = [];
             for (let i = 0; i < link.length; i++) {
                 const object = Game.getObjectById(link[i]);
                 if (object) {
-                    if (object.energy === 0 || object.pos.getRangeTo(creep) > range) {
+                    if (object.energy === 0 || object.pos.getRangeTo(this) > range) {
                         continue;
                     }
-                    const linkDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
+                    const linkDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
                     links.push({
                         id: link[i],
                         distWeighted: linkDistWeighted,
@@ -275,16 +274,16 @@ function findEnergy(creep, hauler = false, range = 50) {
         }
     }
     //Terminal
-    let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
+    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
     if (terminal.length > 0) {
         let terminals = [];
         for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] <= 5000 || object.pos.getRangeTo(creep) > range) {
+                if (object.store[RESOURCE_ENERGY] <= 5000 || object.pos.getRangeTo(this) > range) {
                     continue;
                 }
-                const terminalDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
+                const terminalDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
                 terminals.push({
                     id: terminal[i],
                     distWeighted: terminalDistWeighted,
@@ -328,12 +327,12 @@ function findEnergy(creep, hauler = false, range = 50) {
         if (sorted.harvest === false) {
             let energyItem = Game.getObjectById(sorted.id);
             if (energyItem) {
-                creep.memory.energyDestination = energyItem.id;
+                this.memory.energyDestination = energyItem.id;
             }
         }
     }
-}
-module.exports.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
+};
+Creep.prototype.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
 
 function findStorage(creep) {
     let storage = [];
