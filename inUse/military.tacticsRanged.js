@@ -26,7 +26,6 @@ rangedTeam = function () {
     let nearbyHealers = this.pos.findInRange(healers, 5);
     let farHealers = this.pos.findInRange(healers, 15);
     let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
-    if (squadLeader.length === 0) this.memory.squadLeader = true;
     if (rangedLeader.length === 0) this.memory.rangedLeader = true;
 
     //Retreat if wounded
@@ -49,7 +48,7 @@ rangedTeam = function () {
     } else if (this.hits < this.hitsMax) {
         this.heal(this);
     }
-    if (this.memory.squadLeader === true) {
+    if (this.memory.rangedLeader === true) {
         let closestHostileTower = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(RawMemory.segments[2], s.owner['username']) === false});
         let weakPoint = this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false});
         let hostileStructures = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER && _.includes(RawMemory.segments[2], s.owner['username']) === false});
@@ -64,18 +63,18 @@ rangedTeam = function () {
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
                 if (inRangeArmed.length > 0) {
                     if (inRangeArmed.length > 1) {
-                        this.memory.squadTarget = 'mass';
+                        this.memory.rangedTarget = 'mass';
                         this.rangedMassAttack();
                     } else if (inRangeArmed.length === 1) {
-                        this.memory.squadTarget = closestArmed;
+                        this.memory.rangedTarget = closestArmed;
                         this.fightRanged(closestArmed);
                     }
                 } else if (inRangeHostile.length > 0) {
                     if (inRangeHostile.length > 1) {
-                        this.memory.squadTarget = 'mass';
+                        this.memory.rangedTarget = 'mass';
                         this.rangedMassAttack();
                     } else if (inRangeHostile.length === 1) {
-                        this.memory.squadTarget = closestHostile.id;
+                        this.memory.rangedTarget = closestHostile.id;
                         this.fightRanged(closestHostile);
                     }
                 } else {
@@ -88,10 +87,10 @@ rangedTeam = function () {
                 if (inRangeHostile.length > 0) {
                     let closestHostile = this.pos.findClosestByPath(inRangeHostile);
                     if (inRangeHostile.length > 1) {
-                        this.memory.squadTarget = 'mass';
+                        this.memory.rangedTarget = 'mass';
                         this.rangedMassAttack();
                     } else if (inRangeHostile.length === 1) {
-                        this.memory.squadTarget = closestHostile.id;
+                        this.memory.rangedTarget = closestHostile.id;
                         this.fightRanged(closestHostile);
                     }
                 } else {
@@ -99,7 +98,7 @@ rangedTeam = function () {
                 }
             }
         } else if (this.memory.attackStarted !== true) {
-            this.memory.squadTarget = undefined;
+            this.memory.rangedTarget = undefined;
             this.travelTo(Game.flags[this.memory.staging]);
             if (Game.flags[this.memory.attackTarget]) {
                 let nearbyAttackers = this.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === this.memory.attackTarget && a.memory.role === 'attacker'), 5);
@@ -111,7 +110,7 @@ rangedTeam = function () {
                 }
             }
         } else {
-            this.memory.squadTarget = undefined;
+            this.memory.rangedTarget = undefined;
             if (Game.flags[this.memory.wp] && this.memory.waypointReached !== true) {
                 if (this.pos.getRangeTo(this.memory.wp) > 6) {
                     this.memory.waypointReached = true;
@@ -124,15 +123,15 @@ rangedTeam = function () {
     } else {
         if (closestArmed && this.pos.getRangeTo(closestArmed) <= 2) {
             this.fightRanged(closestArmed);
-        } else if (this.pos.getRangeTo(squadLeader[0]) > 3) {
-            if (this.room.name !== squadLeader[0].pos.roomName) {
-                this.travelTo(squadLeader[0], {allowHostile: true});
+        } else if (this.pos.getRangeTo(rangedLeader[0]) > 3) {
+            if (this.room.name !== rangedLeader[0].pos.roomName) {
+                this.travelTo(rangedLeader[0], {allowHostile: true});
             } else {
-                this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                this.travelTo(rangedLeader[0], {allowHostile: true, movingTarget: true});
             }
         }
-        if (squadLeader[0].memory.squadTarget) {
-            this.fightRanged(Game.getObjectById(squadLeader[0].memory.squadTarget));
+        if (rangedLeader[0].memory.rangedTarget) {
+            this.fightRanged(Game.getObjectById(rangedLeader[0].memory.rangedTarget));
             if (needsHeals.length > 0) {
                 this.rangedHeal(needsHeals[0])
             }
