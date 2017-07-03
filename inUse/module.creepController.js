@@ -20,7 +20,7 @@ function creepControl() {
             rolesPeasants.Manager(creep);
             continue;
         }
-        if (creep.memory.role === 'basicHauler' || creep.memory.role === 'largeHauler' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech' || creep.memory.role === 'hauler' || creep.memory.role === 'getter' || creep.memory.role === 'filler') {
+        if (creep.memory.role === 'basicHauler' || creep.memory.role === 'largeHauler' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech' || creep.memory.role === 'hauler' || creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'pawn') {
             let rolesHaulers = require('roles.Haulers');
             rolesHaulers.Manager(creep);
             continue;
