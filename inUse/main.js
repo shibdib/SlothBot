@@ -7,6 +7,9 @@ global.NODE_USAGE = {
 }; // NOTE: Can't put this in the global file since the require caches can be reset outside of a global reset
 require("globals")(); // NOTE: All globals not from an external resource should be declared here
 require("prototype.workerCreep");
+require("prototype.roomPosition");
+require("prototype.creepCombat");
+require("military.tacticsRanged");
 let config = require('config');
 let roomController = require('module.roomController');
 let creepController = require('module.creepController');

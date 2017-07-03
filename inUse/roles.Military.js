@@ -1,6 +1,5 @@
 let borderChecks = require('module.borderChecks');
 let militaryFunctions = require('module.militaryFunctions');
-let rangedTactics = require('military.tacticsRanged');
 let medicTactics = require('military.tacticsMedic');
 let cache = require('module.cache');
 let _ = require('lodash');
@@ -295,11 +294,7 @@ function ranged(creep) {
         }
         return null;
     }
-    if (creep.memory.waitForHealers === 0 && creep.memory.waitForRanged === 0 && creep.memory.waitForAttackers === 0 && creep.memory.waitForDeconstructor === 0) {
-        rangedTactics.rangedSolo(creep);
-    } else {
-        rangedTactics.rangedTeam(creep);
-    }
+    creep.rangedTeam();
 }
 ranged = profiler.registerFN(ranged, 'rangedMilitary');
 

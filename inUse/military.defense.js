@@ -11,6 +11,7 @@ function controller() {
             invaderCheck(spawn);
             //ramparts public unless needed
             rampartManager(spawn);
+            spawn.room.handleNukeAttack();
             if (spawn.room.memory.responseNeeded && !spawn.room.memory.alertEmail) {
                 spawn.room.memory.alertEmail = true;
                 Game.notify(spawn.room.name + ' - Enemy detected, initiating defense mode.')
