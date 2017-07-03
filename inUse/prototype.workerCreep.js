@@ -501,7 +501,7 @@ findDeliveries = function () {
     if (deliver.length > 0) {
         let deliveries = [];
         for (let i = 0; i < deliver.length; i++) {
-            if (deliver[i].pos.getRangeTo(creep) > 1) {
+            if (deliver[i].pos.getRangeTo(this) > 1) {
                 if (this.carry[RESOURCE_ENERGY] < deliver.carryCapacity - _.sum(deliver.carry)) {
                     continue;
                 }
