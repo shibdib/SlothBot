@@ -40,6 +40,9 @@ rangedTeam = function () {
         if (nearbyHealers.length > 0) {
             this.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
             return null;
+        } else if (squadLeader.length > 0) {
+            this.travelTo(squadLeader[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            return null;
         } else if (farHealers.length > 0) {
             this.travelTo(farHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
             return null;
@@ -81,7 +84,7 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(armedHostile))
                 }
             }
-        } else if (hostiles.length > 0) {
+        } else if (hostiles.length > 0 && (this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName || !Game.flags[this.memory.attackTarget])) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
@@ -97,7 +100,7 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(inRangeHostile))
                 }
             }
-        } else if (hostileStructures.length > 0) {
+        } else if (hostileStructures.length > 0 && (this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName || !Game.flags[this.memory.attackTarget])) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostileStructures))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
@@ -173,16 +176,6 @@ rangedTeam = function () {
     }
 };
 Creep.prototype.rangedTeam = profiler.registerFN(rangedTeam, 'rangedTeamTactic');
-
-function teamRangedAttack(creep, target) {
-    if (target) {
-        let inRange = target.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === creep.memory.attackTarget && a.memory.role === 'attacker'), 3);
-        for (let i = 0; i < inRange.length; i++) {
-            inRange.rangedAttack(target);
-        }
-    }
-}
-module.exports.teamRangedAttack = profiler.registerFN(teamRangedAttack, 'teamRangedAttackTactic');
 
 function rangedSolo(creep) {
     let nearbyHealers = creep.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer'), 15);
