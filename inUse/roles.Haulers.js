@@ -68,7 +68,7 @@ function basicHauler(creep) {
             }
             return null;
         }
-        creepTools.findSpawnExtensions(creep);
+        creepTools.findEssentials(creep);
     }
 }
 basicHauler = profiler.registerFN(basicHauler, 'basicHaulerHaulers');
