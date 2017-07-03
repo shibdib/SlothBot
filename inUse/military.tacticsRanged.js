@@ -82,7 +82,7 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(armedHostile))
                 }
             }
-        } else if (hostiles) {
+        } else if (hostiles.length > 0) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
