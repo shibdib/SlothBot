@@ -11,7 +11,7 @@ rangedTeam = function () {
     let squad = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget);
     let team = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === this.memory.role);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
-    let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], e.owner['username']) === false});
+    let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeHostile = this.pos.findInRange(hostiles, 3);
     let inRangeArmed = this.pos.findInRange(armedHostile, 3);
