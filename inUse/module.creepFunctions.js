@@ -281,7 +281,7 @@ function findEnergy(creep, hauler = false, range = 50) {
         for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] <= 1000 || object.pos.getRangeTo(creep) > range) {
+                if (object.store[RESOURCE_ENERGY] <= 5000 || object.pos.getRangeTo(creep) > range) {
                     continue;
                 }
                 const terminalDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
