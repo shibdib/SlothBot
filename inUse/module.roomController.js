@@ -28,42 +28,6 @@ function roomControl() {
             Game.spawns[name].room.controller.activateSafeMode();
         }
 
-        //DEFENSE MODE
-        //ramparts public unless needed
-        let rampart = _.pluck(_.filter(Game.spawns[name].room.memory.structureCache, 'type', 'rampart'), 'id');
-        if (rampart.length > 0) {
-            if (Game.getObjectById(rampart[0])) {
-                let hostile = Game.getObjectById(rampart[0]).pos.findClosestByRange(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
-                if (!hostile) {
-                    for (let i = 0; i < rampart.length; i++) {
-                        if (Game.getObjectById(rampart[i])) {
-                            if (Game.getObjectById(rampart[i]).isPublic === false) {
-                                Game.getObjectById(rampart[i]).setPublic(true);
-                            }
-                        }
-                    }
-                } else {
-                    for (let i = 0; i < rampart.length; i++) {
-                        if (Game.getObjectById(rampart[i])) {
-                            if (Game.getObjectById(rampart[i]).isPublic === true) {
-                                Game.getObjectById(rampart[i]).setPublic(false);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        /**let attackDetected = _.filter(Game.creeps, (creep) => creep.memory.enemyCount !== null && creep.memory.role === 'scout');
-        if (attackDetected.length > 0 || Game.spawns[name].memory.defenseMode === true) {
-            militaryFunctions.activateDefense(Game.spawns[name], attackDetected);
-        }
-        if (Game.spawns[name].memory.defenseMode === true) {
-            Game.spawns[name].memory.defenseModeTicker++;
-            if (Game.spawns[name].memory.defenseModeTicker > 250) {
-                Game.spawns[name].memory.defenseMode = false;
-            }
-        }**/
-
         //RENEWAL/RECYCLE CHECK
         if (!Game.spawns[name].spawning) {
             let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1);
