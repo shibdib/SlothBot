@@ -560,9 +560,11 @@ function findDeliveries(creep) {
                 });
             }
         }
-        creep.memory.storageDestination = _.min(deliveries, 'distWeighted').id;
-        Game.getObjectById(_.min(deliveries, 'distWeighted').id).memory.deliveryIncoming = true;
-        return true;
+        if (Game.getObjectById(_.min(deliveries, 'distWeighted').id)) {
+            creep.memory.storageDestination = _.min(deliveries, 'distWeighted').id;
+            Game.getObjectById(_.min(deliveries, 'distWeighted').id).memory.deliveryIncoming = true;
+            return true;
+        }
     }
 }
 module.exports.findDeliveries = profiler.registerFN(findDeliveries, 'findDeliveriesCreepFunctions');
