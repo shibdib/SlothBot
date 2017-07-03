@@ -86,7 +86,7 @@ rangedTeam = function () {
             }
         } else if (hostiles.length > 0 && (this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName || !Game.flags[this.memory.attackTarget])) {
             borderChecks.borderCheck(this);
-            if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
+            if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostiles))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
                     let closestHostile = this.pos.findClosestByPath(inRangeHostile);
                     if (inRangeHostile.length > 1) {
