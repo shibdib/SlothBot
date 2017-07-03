@@ -109,6 +109,8 @@ function hauler(creep) {
         }
         if (!creepTools.findDeliveries(creep)) {
             creepTools.findEssentials(creep);
+        } else {
+            creep.say(ICONS.transfer);
         }
     }
 }

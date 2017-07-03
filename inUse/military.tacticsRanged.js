@@ -80,9 +80,11 @@ function rangedTeam(creep) {
                             movingTarget: true
                         });
                     } else if (creep.pos.getRangeTo(armedHostile) <= 3) {
+                        creep.say(ICONS.moveTo);
                         creep.memory.squadTarget = armedHostile.id;
                         militaryFunctions.kite(creep);
                     } else {
+                        creep.say(ICONS.attack);
                         creep.memory.squadTarget = armedHostile.id;
                         if (needsHeals.length > 0) {
                             creep.rangedHeal(needsHeals[0])

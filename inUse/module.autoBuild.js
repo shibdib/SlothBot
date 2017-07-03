@@ -112,6 +112,10 @@ function buildExtensions(spawn) {
     }
 }
 buildExtensions = profiler.registerFN(buildExtensions, 'buildExtensionsBuilder');
+function buildExtensions2(spawn) {
+
+}
+buildExtensions2 = profiler.registerFN(buildExtensions2, 'buildExtensions2Builder');
 
 function buildTower(spawn) {
     if (spawn.room.controller.level >= 3) {
