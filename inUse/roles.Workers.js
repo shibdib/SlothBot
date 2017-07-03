@@ -33,7 +33,7 @@ function worker(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
-    if (creep.carry.energy === creep.carryCapacity) {
+    if (creep.carry.energy >= creep.carryCapacity * 0.75) {
         creep.memory.deliveryIncoming = undefined;
         creep.memory.deliveryRequested = undefined;
         creep.memory.deliveryWait = undefined;
@@ -161,7 +161,7 @@ function upgrader(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
-    if (creep.carry.energy === creep.carryCapacity) {
+    if (creep.carry.energy >= creep.carryCapacity * 0.75) {
         creep.memory.deliveryIncoming = undefined;
         creep.memory.deliveryRequested = undefined;
         creep.memory.deliveryWait = undefined;
