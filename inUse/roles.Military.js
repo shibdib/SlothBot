@@ -327,59 +327,7 @@ function deconstructor(creep) {
         }
         return null;
     }
-    if (!Game.flags[creep.memory.attackTarget]) {
-        creep.suicide();
-    }
-    if (creep.memory.attackStarted !== true && Game.flags[creep.memory.staging].pos.roomName !== creep.pos.roomName) {
-        if (creep.hits < creep.hitsMax) {
-            creep.heal(creep);
-        }
-        creep.travelTo(Game.flags[creep.memory.staging]);
-        return null;
-    }
-
-    let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
-
-    let closestHostileSpawn = creep.pos.findClosestByPath(FIND_HOSTILE_SPAWNS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
-    let closestHostileTower = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, s.owner['username']) === false});
-    let weakPoint = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(doNotAggress, s.owner['username']) === false});
-    let hostileStructures = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER && _.includes(doNotAggress, s.owner['username']) === false});
-    if (closestHostileTower) {
-        if (creep.dismantle(closestHostileTower) === ERR_NOT_IN_RANGE) {
-            if (creep.hits < creep.hitsMax) {
-                creep.heal(creep);
-            }
-            creep.travelTo(closestHostileTower, {allowHostile: true});
-        }
-    } else if (closestHostileSpawn) {
-        if (creep.dismantle(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
-            if (creep.hits < creep.hitsMax) {
-                creep.heal(creep);
-            }
-            creep.travelTo(closestHostileSpawn, {allowHostile: true});
-        }
-    } else if (hostileStructures && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
-        if (creep.dismantle(hostileStructures) === ERR_NOT_IN_RANGE) {
-            if (creep.hits < creep.hitsMax) {
-                creep.heal(creep);
-            }
-            creep.travelTo(hostileStructures, {allowHostile: true});
-        }
-    } else if (weakPoint && creep.pos.roomName === Game.flags[creep.memory.attackTarget].pos.roomName) {
-        weakPoint = _.min(weakPoint, 'hits');
-        if (creep.dismantle(weakPoint) === ERR_NOT_IN_RANGE) {
-            if (creep.hits < creep.hitsMax) {
-                creep.heal(creep);
-            }
-            creep.travelTo(weakPoint, {allowHostile: true});
-        }
-    } else if (squadLeader.length > 0) {
-        if (creep.pos.getRangeTo(squadLeader[0]) > 6) {
-            creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-        }
-    } else {
-        creep.travelTo(Game.flags[creep.memory.staging]);
-    }
+    creep.tacticSiege();
 }
 deconstructor = profiler.registerFN(deconstructor, 'deconstructorMilitary');
 
