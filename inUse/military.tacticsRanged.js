@@ -65,9 +65,9 @@ function rangedTeam(creep) {
             if (!closestHostileTower) {
                 borderChecks.borderCheck(creep);
             }
-            if (hostileHealer && creep.rangedAttack(hostileHealer) !== OK) {
-                if (rangedHostile && creep.rangedAttack(rangedHostile) !== OK) {
-                    if (armedHostile && creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
+            if (creep.rangedAttack(hostileHealer) !== OK) {
+                if (creep.rangedAttack(rangedHostile) !== OK) {
+                    if (creep.rangedAttack(armedHostile) === ERR_NOT_IN_RANGE) {
                         creep.memory.squadTarget = armedHostile.id;
                         creep.rangedAttack(closestHostile);
                         if (needsHeals.length > 0) {
