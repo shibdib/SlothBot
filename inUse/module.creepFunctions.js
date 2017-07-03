@@ -218,7 +218,7 @@ function noHarvesterProtocol(creep) {
 }
 module.exports.noHarvesterProtocol = profiler.registerFN(noHarvesterProtocol, 'noHarvesterProtocolCreepFunctions');
 
-findEnergy = function () {
+findEnergy = function (range = 50, hauler = false) {
     let energy = [];
     //Container
     let container = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'container'), 'id');
