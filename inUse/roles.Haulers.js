@@ -1,5 +1,4 @@
 let borderChecks = require('module.borderChecks');
-let creepTools = require('module.creepFunctions');
 let profiler = require('screeps-profiler');
 
 
@@ -53,7 +52,7 @@ function basicHauler(creep) {
     }
     if (creep.memory.hauling === false) {
         if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
+            creep.withdrawEnergy();
         } else {
             creep.findEnergy();
         }
@@ -68,7 +67,7 @@ function basicHauler(creep) {
             }
             return null;
         }
-        creepTools.findEssentials(creep);
+        creep.findEssentials();
     }
 }
 basicHauler = profiler.registerFN(basicHauler, 'basicHaulerHaulers');
@@ -92,7 +91,7 @@ function hauler(creep) {
     }
     if (creep.memory.hauling === false) {
         if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
+            creep.withdrawEnergy();
         } else {
             creep.findEnergy();
         }
@@ -107,8 +106,8 @@ function hauler(creep) {
             }
             return null;
         }
-        if (!creepTools.findDeliveries(creep)) {
-            creepTools.findEssentials(creep);
+        if (!creep.findDeliveries()) {
+            creep.findEssentials();
         } else {
             creep.say(ICONS.transfer);
         }
@@ -157,7 +156,7 @@ function filler(creep) {
             }
             return null;
         }
-        creepTools.findEssentials(creep);
+        creep.findEssentials();
     }
 }
 filler = profiler.registerFN(filler, 'fillerHaulers');
@@ -181,12 +180,12 @@ function getter(creep) {
     }
     if (creep.memory.hauling === false) {
         if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
+            creep.withdrawEnergy();
         } else {
             creep.findEnergy();
         }
     } else {
-        creepTools.findStorage(creep);
+        creep.findStorage();
         if (creep.memory.storage) {
             if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(Game.getObjectById(creep.memory.storage));

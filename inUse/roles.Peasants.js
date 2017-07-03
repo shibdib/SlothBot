@@ -29,13 +29,13 @@ function peasant(creep) {
         if (creep.memory.assignedSource && creep.moveTo(Game.getObjectById(creep.memory.assignedSource)) !== ERR_NO_PATH) {
             source = Game.getObjectById(creep.memory.assignedSource);
         } else if (!source) {
-            var source = creepTools.findSource(creep);
+            var source = creep.findSource();
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.travelTo(source);
         }
     } else {
-        let containerID = creepTools.harvestDepositContainer(creep);
+        let containerID = creep.harvestDepositContainer();
         if (containerID) {
             let container = Game.getObjectById(containerID);
             if (container) {
@@ -57,7 +57,7 @@ function peasant(creep) {
                 }
                 return null;
             }
-            creepTools.findStorage(creep);
+            creep.findStorage();
         }
     }
 }
@@ -75,7 +75,7 @@ function peasantBuilder(creep) {
         creep.memory.building = true;
     }
     if (creep.memory.building) {
-        let target = creepTools.findConstruction(creep);
+        let target = creep.findConstruction();
         target = Game.getObjectById(target);
         if (target) {
             if (creep.build(target) === ERR_INVALID_TARGET) {
@@ -94,7 +94,7 @@ function peasantBuilder(creep) {
         if (creep.memory.energyDestination) {
             creepTools.withdrawEnergy(creep);
         } else {
-            let source = creepTools.findSource(creep);
+            let source = creep.findSource();
             let harvest = creep.harvest(source);
             if (harvest === ERR_NOT_IN_RANGE) {
                 if (creep.travelTo(source) === ERR_NO_PATH) {
@@ -127,9 +127,9 @@ function peasantUpgrader(creep) {
         }
     } else {
         if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
+            creep.withdrawEnergy();
         } else {
-            let source = creepTools.findSource(creep);
+            let source = creep.findSource();
             let harvest = creep.harvest(source);
             if (harvest === ERR_NOT_IN_RANGE) {
                 if (creep.travelTo(source) === ERR_NO_PATH) {

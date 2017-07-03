@@ -1,4 +1,3 @@
-let creepTools = require('module.creepFunctions');
 let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
@@ -72,7 +71,7 @@ function harvester(creep) {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
         } else if (!source) {
-            source = creepTools.findSource(creep);
+            source = creep.findSource();
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.travelTo(source);
@@ -144,7 +143,7 @@ function hauler(creep) {
                     }
                     return null;
                 }
-                creepTools.findStorage(creep);
+                creep.findStorage();
             } else {
                 creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn), {
                     range: 20
@@ -185,7 +184,7 @@ function pioneer(creep) {
     if (creep.memory.hauling === false) {
         if (creep.room.name === Game.spawns[Game.getObjectById(creep.memory.assignedSpawn).name].pos.roomName) {
             if (creep.memory.energyDestination) {
-                creepTools.withdrawEnergy(creep);
+                creep.withdrawEnergy();
                 return null;
             } else {
                 creep.findEnergy();
@@ -202,7 +201,7 @@ function pioneer(creep) {
                     creep.travelTo(Game.getObjectById(creep.memory.source));
                 }
             } else if (!creep.memory.source) {
-                creepTools.findSource(creep);
+                creep.findSource();
             }
         }
     }
@@ -220,10 +219,10 @@ function pioneer(creep) {
                 creep.travelTo(Game.getObjectById(creep.memory.constructionSite))
             }
         } else {
-            creepTools.findConstruction(creep);
+            creep.findConstruction();
         }
         if (!creep.memory.constructionSite) {
-            let repairNeeded = creepTools.findRepair(creep);
+            let repairNeeded = creep.findRepair();
             if (repairNeeded) {
                 repairNeeded = Game.getObjectById(repairNeeded);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
@@ -237,7 +236,7 @@ pioneer = profiler.registerFN(pioneer, 'pioneerRemote');
 
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
-        creep.memory.containerID = creepTools.harvestDepositContainer(creep);
+        creep.memory.containerID = creep.harvestDepositContainer();
     }
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -250,27 +249,14 @@ function depositEnergy(creep) {
                 }
             } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
                 creep.transfer(container, RESOURCE_ENERGY);
-            } else if (!creep.memory.linkID) {
-                creep.memory.linkID = creepTools.harvestDepositLink(creep);
-            }
-            if (creep.memory.linkID) {
-                let link = Game.getObjectById(creep.memory.linkID);
-                if (link) {
-                    if (link.hits < link.hitsMax * 0.25) {
-                        creep.repair(link);
-                        creep.say('Fixing');
-                    } else if (link.energy !== link.energyCapacity) {
-                        creep.transfer(link, RESOURCE_ENERGY);
-                    }
-                }
             }
         }
     } else {
-        let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+        let buildSite = Game.getObjectById(creep.containerBuilding());
         if (buildSite) {
             creep.build(buildSite);
         } else {
-            creepTools.harvesterContainerBuild(creep);
+            creep.harvesterContainerBuild();
         }
     }
 }

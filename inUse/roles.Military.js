@@ -1,5 +1,4 @@
 let borderChecks = require('module.borderChecks');
-let creepTools = require('module.creepFunctions');
 let militaryFunctions = require('module.militaryFunctions');
 let rangedTactics = require('military.tacticsRanged');
 let medicTactics = require('military.tacticsMedic');
@@ -461,10 +460,6 @@ reserver = profiler.registerFN(reserver, 'reserverMilitary');
  */
 function raider(creep) {
     cache.cacheRoomIntel(creep);
-    if (!Game.flags[creep.memory.attackTarget]) {
-        creepTools.recycle(creep);
-        return null;
-    }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.returning = true;
         creep.memory.destinationReached = false;
@@ -491,7 +486,7 @@ function raider(creep) {
                 }
                 return null;
             }
-            creepTools.findStorage(creep);
+            creep.findStorage();
         } else {
             creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
             return null;

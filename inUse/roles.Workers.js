@@ -1,5 +1,4 @@
 let borderChecks = require('module.borderChecks');
-let creepTools = require('module.creepFunctions');
 let profiler = require('screeps-profiler');
 let cache = require('module.cache');
 let _ = require('lodash');
@@ -41,8 +40,8 @@ function worker(creep) {
     }
 
     if (creep.memory.working === true) {
-        let repairNeeded = creepTools.findRepair(creep, creep.room.controller.level);
-        let construction = creepTools.findConstruction(creep);
+        let repairNeeded = creep.findRepair(creep.room.controller.level);
+        let construction = creep.findConstruction();
         if (construction && creep.room.memory.responseNeeded !== true) {
             construction = Game.getObjectById(construction);
             if (creep.build(construction) === ERR_INVALID_TARGET) {
@@ -63,7 +62,7 @@ function worker(creep) {
     }
     else {
         if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
+            creep.withdrawEnergy();
         } else {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {
@@ -109,7 +108,7 @@ function harvester(creep) {
         if (creep.memory.assignedSource) {
             source = Game.getObjectById(creep.memory.assignedSource);
         } else if (!source) {
-            source = creepTools.findSource(creep);
+            source = creep.findSource();
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.travelTo(source);
@@ -176,7 +175,7 @@ function upgrader(creep) {
         }
     } else {
         if (creep.memory.energyDestination) {
-            creepTools.withdrawEnergy(creep);
+            creep.withdrawEnergy();
         } else {
             let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy > 0});
             if (link) {
@@ -202,7 +201,7 @@ upgrader = profiler.registerFN(upgrader, 'upgraderWorkers');
 
 function depositEnergy(creep) {
     if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
-        creep.memory.containerID = creepTools.harvestDepositContainer(creep);
+        creep.memory.containerID = creep.harvestDepositContainer();
     }
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -213,7 +212,7 @@ function depositEnergy(creep) {
             } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
                 creep.transfer(container, RESOURCE_ENERGY);
             } else if (!creep.memory.linkID) {
-                creep.memory.linkID = creepTools.harvestDepositLink(creep);
+                creep.memory.linkID = creep.harvestDepositLink();
             }
             if (creep.memory.linkID) {
                 let link = Game.getObjectById(creep.memory.linkID);
@@ -228,11 +227,11 @@ function depositEnergy(creep) {
             }
         }
     } else {
-        let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+        let buildSite = Game.getObjectById(creep.containerBuilding());
         if (buildSite) {
             creep.build(buildSite);
         } else {
-            creepTools.harvesterContainerBuild(creep);
+            creep.harvesterContainerBuild();
         }
     }
 }
@@ -261,9 +260,9 @@ function depositMineral(creep) {
             }
         }
     } else {
-        let buildSite = Game.getObjectById(creepTools.containerBuilding(creep));
+        let buildSite = Game.getObjectById(creep.containerBuilding());
         if (!buildSite && creep.memory.containerBuilding !== true) {
-            creepTools.harvesterContainerBuild(creep);
+            creep.harvesterContainerBuild();
         } else {
             creep.memory.containerBuilding = true;
         }

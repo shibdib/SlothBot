@@ -1,13 +1,13 @@
 const profiler = require('screeps-profiler');
 
-function findSource(creep) {
-    const source = creep.room.find(FIND_SOURCES_ACTIVE);
+findSource = function () {
+    const source = this.room.find(FIND_SOURCES_ACTIVE);
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
             if (source[i].pos.findInRange(FIND_CREEPS, 1, {filter: (c) => c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester'}).length === 0) {
-                if (creep.travelTo(source[i]) !== ERR_NO_PATH) {
+                if (this.travelTo(source[i]) !== ERR_NO_PATH) {
                     if (source[i].id) {
-                        creep.memory.source = source[i].id;
+                        this.memory.source = source[i].id;
                         return source[i];
                     }
                 }
@@ -15,21 +15,11 @@ function findSource(creep) {
         }
     }
     return null;
-}
-module.exports.findSource = profiler.registerFN(findSource, 'findSourceCreepFunctions');
+};
+Creep.prototype.findSource = profiler.registerFN(findSource, 'findSourceCreepFunctions');
 
-function findTower(creep) {
-
-    const tower = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy !== s.energyCapacity});
-    if (tower) {
-        return tower.id;
-    }
-    return null;
-}
-module.exports.findTower = profiler.registerFN(findTower, 'findTowerCreepFunctions');
-
-function findConstruction(creep) {
-    let construction = creep.room.find(FIND_MY_CONSTRUCTION_SITES);
+findConstruction = function () {
+    let construction = this.room.find(FIND_MY_CONSTRUCTION_SITES);
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
         return site[0].id
@@ -54,11 +44,11 @@ function findConstruction(creep) {
     if (site.length > 0) {
         return site[0].id
     }
-}
-module.exports.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
+};
+Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
-function findRepair(creep, level = 1) {
-    let structures = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
+findRepair = function (level) {
+    let structures = this.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
     if (site.length > 0) {
         return site[0].id
@@ -91,132 +81,71 @@ function findRepair(creep, level = 1) {
     if (site.length > 0) {
         return site[0].id
     }
-}
-module.exports.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
+};
+Creep.prototype.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
 
-function containerBuilding(creep) {
-    site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+containerBuilding = function () {
+    let site = this.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site !== null && site !== undefined) {
-        if (creep.pos.getRangeTo(site) <= 1) {
+        if (this.pos.getRangeTo(site) <= 1) {
             return site.id;
         }
     }
-}
-module.exports.containerBuilding = profiler.registerFN(containerBuilding, 'containerBuildingCreepFunctions');
+};
+Creep.prototype.containerBuilding = profiler.registerFN(containerBuilding, 'containerBuildingCreepFunctions');
 
-function harvestDepositContainer(creep) {
-    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+harvestDepositContainer = function () {
+    let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (container) {
-        if (creep.pos.getRangeTo(container) <= 1) {
+        if (this.pos.getRangeTo(container) <= 1) {
             return container.id;
-        } else if (creep.pos.getRangeTo(container) <= 3) {
-            creep.travelTo(container);
+        } else if (this.pos.getRangeTo(container) <= 3) {
+            this.travelTo(container);
             return container.id;
         }
     }
     return null;
-}
-module.exports.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
+};
+Creep.prototype.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
 
-function harvestDepositLink(creep) {
-    let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK});
+harvestDepositLink = function () {
+    let link = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK});
     if (link) {
-        if (creep.pos.getRangeTo(link) <= 1) {
+        if (this.pos.getRangeTo(link) <= 1) {
             return link.id;
-        } else if (creep.pos.getRangeTo(link) <= 3) {
-            creep.travelTo(link);
+        } else if (this.pos.getRangeTo(link) <= 3) {
+            this.travelTo(link);
             return link.id;
         }
     }
     return null;
-}
-module.exports.harvestDepositLink = profiler.registerFN(harvestDepositLink, 'harvestDepositLinkCreepFunctions');
+};
+Creep.prototype.harvestDepositLink = profiler.registerFN(harvestDepositLink, 'harvestDepositLinkCreepFunctions');
 
-module.exports.harvesterContainerBuild = function (creep) {
-    if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
+harvesterContainerBuild = function () {
+    if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
         return null;
     }
 };
+Creep.prototype.harvesterContainerBuild = profiler.registerFN(harvesterContainerBuild, 'harvesterContainerBuildCreepFunctions');
 
-function renewal(creep) {
-    if (creep.memory.level === 0) {
-        return;
-    }
-    if (creep.memory.renew === true) {
-        creep.say('Renew');
-        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
-        return true;
-    } else if (Game.time % 15 === 0) {
-        creep.memory.returnPath = pathing.FindPath(creep, Game.getObjectById(creep.memory.assignedSpawn), true);
-        if (creep.memory.returnPath) {
-            let totalParts = creep.body.length;
-            let moveParts = creep.getActiveBodyparts(MOVE);
-            let fatigueWeight = 2 * ((totalParts - moveParts) * 1.25 - moveParts) / (Math.ceil(1.25 * (totalParts - moveParts) / moveParts));
-            let deathTick = ((creep.memory.returnPath.length + 3) * fatigueWeight) + ((creep.memory.returnPath.length + 3) * 0.02) + 15;
-            if (creep.ticksToLive <= deathTick) {
-                creep.memory.pathAge = 200;
-                creep.memory.path = null;
-                creep.memory.renew = true;
-            }
-        }
-    }
-}
-module.exports.renewal = profiler.registerFN(renewal, 'renewalCreepFunctions');
-
-function recycle(creep) {
-    if (!creep.memory.assignedSpawn) {
-        let spawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if (spawn) {
-            creep.memory.assignedSpawn = spawn.id;
-        }
-    } else {
-        if (creep.memory.recycle === true) {
-            creep.say('Recycle');
-            let home = Game.getObjectById(creep.memory.assignedSpawn);
-            creep.travelTo(home);
-            return true;
-        } else {
-            return false;
-        }
-    }
-}
-module.exports.recycle = profiler.registerFN(recycle, 'recycleCreepFunctions');
-
-function withdrawEnergy(creep) {
-    if (!creep.memory.energyDestination) {
+withdrawEnergy = function () {
+    if (!this.memory.energyDestination) {
         return null;
     } else {
-        let energyItem = Game.getObjectById(creep.memory.energyDestination);
+        let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (energyItem) {
-            if (creep.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(energyItem);
+            if (this.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                this.travelTo(energyItem);
             } else {
-                creep.memory.energyDestination = null;
+                this.memory.energyDestination = null;
             }
         } else {
-            creep.memory.energyDestination = undefined;
+            this.memory.energyDestination = undefined;
         }
     }
-}
-module.exports.withdrawEnergy = profiler.registerFN(withdrawEnergy, 'withdrawEnergyCreepFunctions');
-
-function noHarvesterProtocol(creep) {
-    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
-    if (harvester.length < 2) {
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem);
-            } else {
-                creep.memory.storageDestination = null;
-                creep.memory.path = null;
-            }
-            return null;
-        }
-        return true;
-    }
-}
-module.exports.noHarvesterProtocol = profiler.registerFN(noHarvesterProtocol, 'noHarvesterProtocolCreepFunctions');
+};
+Creep.prototype.withdrawEnergy = profiler.registerFN(withdrawEnergy, 'withdrawEnergyCreepFunctions');
 
 findEnergy = function (range = 50, hauler = false) {
     let energy = [];
@@ -359,17 +288,17 @@ findEnergy = function (range = 50, hauler = false) {
 };
 Creep.prototype.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
 
-function findStorage(creep) {
+findStorage = function () {
     let storage = [];
     //Storage
-    let sStorage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+    let sStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
     if (sStorage.length > 0) {
         let storages = [];
         for (let i = 0; i < sStorage.length; i++) {
             const object = Game.getObjectById(sStorage[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) > 1) {
-                    const storageDistWeighted = _.round(object.pos.getRangeTo(creep) * 2, 0) + 1;
+                if (object.pos.getRangeTo(this) > 1) {
+                    const storageDistWeighted = _.round(object.pos.getRangeTo(this) * 2, 0) + 1;
                     storages.push({
                         id: sStorage[i],
                         distWeighted: storageDistWeighted,
@@ -386,16 +315,16 @@ function findStorage(creep) {
         });
     }
     //Tower
-    let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
-    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
+    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
     if (tower.length > 0 && harvester.length >= 2) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) > 1) {
+                if (object.pos.getRangeTo(this) > 1) {
                     if (object.room.memory.responseNeeded === true) {
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0);
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0);
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
@@ -403,7 +332,7 @@ function findStorage(creep) {
                         });
                     } else {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 1.2, 0) + 1 - towerAmountWeighted;
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 1.2, 0) + 1 - towerAmountWeighted;
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
@@ -421,17 +350,17 @@ function findStorage(creep) {
         });
     }
     //Terminal
-    let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
+    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
     if (terminal.length > 0) {
         let terminals = [];
         for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) > 1) {
+                if (object.pos.getRangeTo(this) > 1) {
                     if (object.store[RESOURCE_ENERGY] >= 1000) {
                         continue;
                     }
-                    const terminalDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
+                    const terminalDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
                     terminals.push({
                         id: terminal[i],
                         distWeighted: terminalDistWeighted,
@@ -451,22 +380,22 @@ function findStorage(creep) {
     if (sorted) {
         let storageItem = Game.getObjectById(sorted.id);
         if (storageItem) {
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+            if (this.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 if (storageItem.memory) {
                     storageItem.memory.deliveryIncoming = true;
                 }
-                creep.memory.storageDestination = storageItem.id;
-                creep.travelTo(storageItem);
+                this.memory.storageDestination = storageItem.id;
+                this.travelTo(storageItem);
             }
         }
     }
-}
-module.exports.findStorage = profiler.registerFN(findStorage, 'findStorageCreepFunctions');
+};
+Creep.prototype.findStorage = profiler.registerFN(findStorage, 'findStorageCreepFunctions');
 
-function findEssentials(creep) {
+findEssentials = function () {
     let storage = [];
     //Spawn
-    let spawn = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'spawn'), 'id');
+    let spawn = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'spawn'), 'id');
     if (spawn.length > 0) {
         let spawns = [];
         for (let i = 0; i < spawn.length; i++) {
@@ -475,7 +404,7 @@ function findEssentials(creep) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
                 }
-                const spawnDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0) + 1;
+                const spawnDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
                 spawns.push({
                     id: spawn[i],
                     distWeighted: spawnDistWeighted,
@@ -491,7 +420,7 @@ function findEssentials(creep) {
         });
     }
     //Extension
-    let extension = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'extension'), 'id');
+    let extension = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'extension'), 'id');
     if (extension.length > 0) {
         let extensions = [];
         for (let i = 0; i < extension.length; i++) {
@@ -500,7 +429,7 @@ function findEssentials(creep) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
                 }
-                const extensionDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.4, 0) + 1;
+                const extensionDistWeighted = _.round(object.pos.getRangeTo(this) * 0.4, 0) + 1;
                 extensions.push({
                     id: extension[i],
                     distWeighted: extensionDistWeighted,
@@ -516,16 +445,16 @@ function findEssentials(creep) {
         });
     }
     //Tower
-    let tower = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'tower'), 'id');
-    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === creep.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
+    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
     if (tower.length > 0 && harvester.length >= 2) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
             if (object) {
-                if (object.pos.getRangeTo(creep) > 1) {
+                if (object.pos.getRangeTo(this) > 1) {
                     if (object.room.memory.responseNeeded === true) {
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 0.3, 0);
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0);
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
@@ -533,7 +462,7 @@ function findEssentials(creep) {
                         });
                     } else {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(creep) * 1.2, 0) + 1 - towerAmountWeighted;
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 1.2, 0) + 1 - towerAmountWeighted;
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
@@ -554,29 +483,29 @@ function findEssentials(creep) {
     if (sorted) {
         let storageItem = Game.getObjectById(sorted.id);
         if (storageItem) {
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+            if (this.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 if (storageItem.memory) {
                     storageItem.memory.deliveryIncoming = true;
                 }
-                creep.memory.storageDestination = storageItem.id;
-                creep.travelTo(storageItem);
+                this.memory.storageDestination = storageItem.id;
+                this.travelTo(storageItem);
             }
         }
     }
-}
-module.exports.findEssentials = profiler.registerFN(findEssentials, 'findEssentialsCreepFunctions');
+};
+Creep.prototype.findEssentials = profiler.registerFN(findEssentials, 'findEssentialsCreepFunctions');
 
-function findDeliveries(creep) {
+findDeliveries = function () {
     //Deliveries
-    let deliver = _.filter(Game.creeps, (c) => c.memory.deliveryRequested === true && !c.memory.deliveryIncoming && c.pos.roomName === creep.pos.roomName);
+    let deliver = _.filter(Game.creeps, (c) => c.memory.deliveryRequested === true && !c.memory.deliveryIncoming && c.pos.roomName === this.pos.roomName);
     if (deliver.length > 0) {
         let deliveries = [];
         for (let i = 0; i < deliver.length; i++) {
             if (deliver[i].pos.getRangeTo(creep) > 1) {
-                if (creep.carry[RESOURCE_ENERGY] < deliver.carryCapacity - _.sum(deliver.carry)) {
+                if (this.carry[RESOURCE_ENERGY] < deliver.carryCapacity - _.sum(deliver.carry)) {
                     continue;
                 }
-                const deliverDistWeighted = _.round(deliver[i].pos.getRangeTo(creep) * 0.3, 0) + 1;
+                const deliverDistWeighted = _.round(deliver[i].pos.getRangeTo(this) * 0.3, 0) + 1;
                 deliveries.push({
                     id: deliver[i].id,
                     distWeighted: deliverDistWeighted,
@@ -585,10 +514,10 @@ function findDeliveries(creep) {
             }
         }
         if (Game.getObjectById(_.min(deliveries, 'distWeighted').id)) {
-            creep.memory.storageDestination = _.min(deliveries, 'distWeighted').id;
+            this.memory.storageDestination = _.min(deliveries, 'distWeighted').id;
             Game.getObjectById(_.min(deliveries, 'distWeighted').id).memory.deliveryIncoming = true;
             return true;
         }
     }
-}
-module.exports.findDeliveries = profiler.registerFN(findDeliveries, 'findDeliveriesCreepFunctions');
+};
+Creep.prototype.findDeliveries = profiler.registerFN(findDeliveries, 'findDeliveriesCreepFunctions');
