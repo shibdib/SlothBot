@@ -12,14 +12,14 @@ function Manager(creep) {
         basicHauler(creep);
     } else if (creep.memory.role === "pawn" || creep.memory.role === 'filler' || creep.memory.role === 'getter' || creep.memory.role === 'hauler') {
         let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
-        let filler = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
-        let getter = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
-        let hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === creep.room.name);
-        if (storage.store[RESOURCE_ENERGY] < 25000 && filler.length >= 1 && getter.length <= 2 && (creep.memory.role === 'hauler' || creep.memory.role === 'pawn')) {
+        let fillers = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
+        let getters = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
+        let haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === creep.room.name);
+        if (storage.store[RESOURCE_ENERGY] < 25000 && fillers.length >= 1 && getters.length <= 2 && (creep.memory.role === 'hauler' || creep.memory.role === 'pawn')) {
             creep.memory.role = 'getter';
-        } else if (storage.store[RESOURCE_ENERGY] < 25000 && filler.length === 0) {
+        } else if (storage.store[RESOURCE_ENERGY] < 25000 && fillers.length === 0) {
             creep.memory.role = 'filler';
-        } else if (storage.store[RESOURCE_ENERGY] >= 30000 && filler.length >= 1 && hauler.length <= 2 && (creep.memory.role === 'getter' || creep.memory.role === 'pawn')) {
+        } else if (storage.store[RESOURCE_ENERGY] >= 30000 && fillers.length >= 1 && haulers.length <= 2 && (creep.memory.role === 'getter' || creep.memory.role === 'pawn')) {
             creep.memory.role = 'hauler';
         }
         if (creep.memory.role === 'filler') {
