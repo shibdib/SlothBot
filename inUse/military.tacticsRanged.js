@@ -143,7 +143,7 @@ rangedTeam = function () {
         if (closestArmed && this.pos.getRangeTo(closestArmed) <= 2) {
             this.fightRanged(closestArmed);
         } else if (squadLeader[0]) {
-            if (this.pos.getRangeTo(squadLeader[0]) > 5) {
+            if (this.pos.getRangeTo(squadLeader[0]) > 10) {
                 if (this.room.name !== squadLeader[0].pos.roomName) {
                     this.travelTo(squadLeader[0], {allowHostile: true});
                 } else {

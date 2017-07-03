@@ -87,7 +87,12 @@ function healer(creep) {
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
-    medicTactics.inCombat(creep);
+    let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+    if (squadLeader.length === 0 || creep.memory.squadLeader === true) {
+        creep.tacticSquadLeaderMedic()
+    } else {
+        creep.tacticMedic()
+    }
 }
 healer = profiler.registerFN(healer, 'healerMilitary');
 
