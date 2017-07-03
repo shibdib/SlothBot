@@ -100,7 +100,7 @@ rangedTeam = function () {
             }
         } else if (this.memory.attackStarted !== true) {
             this.memory.squadTarget = undefined;
-            this.travelTo(Game.flags[creep.memory.staging]);
+            this.travelTo(Game.flags[this.memory.staging]);
             if (Game.flags[this.memory.attackTarget]) {
                 let nearbyAttackers = this.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === this.memory.attackTarget && a.memory.role === 'attacker'), 5);
                 let nearbyHealers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'healer'), 5);
