@@ -10,6 +10,8 @@ require("prototype.workerCreep");
 require("prototype.roomPosition");
 require("prototype.creepCombat");
 require("military.tacticsRanged");
+require("military.tacticsMedic");
+require("military.tacticsDeconstructor");
 let config = require('config');
 let roomController = require('module.roomController');
 let creepController = require('module.creepController');
