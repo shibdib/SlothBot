@@ -3,19 +3,20 @@
  */
 const profiler = require('screeps-profiler');
 
+function controller() {
 //Claimed Defense
-for (let key in Game.rooms) {
-    let spawn = _.filter(Game.spawns, (spawn) => spawn.room.name === key)[0];
-    if (spawn) {
-        invaderCheck(spawn);
-        //ramparts public unless needed
-        rampartManager(spawn);
-        if (spawn.room.memory.responseNeeded && !spawn.room.memory.alertEmail) {
-            spawn.room.memory.alertEmail = true;
-            Game.notify(spawn.room.name + ' - Enemy detected, initiating defense mode.')
+    for (let key in Game.rooms) {
+        let spawn = _.filter(Game.spawns, (spawn) => spawn.room.name === key)[0];
+        if (spawn) {
+            invaderCheck(spawn);
+            //ramparts public unless needed
+            rampartManager(spawn);
+            if (spawn.room.memory.responseNeeded && !spawn.room.memory.alertEmail) {
+                spawn.room.memory.alertEmail = true;
+                Game.notify(spawn.room.name + ' - Enemy detected, initiating defense mode.')
+            }
         }
     }
-}
 
 
 //Remote Defense
@@ -23,7 +24,8 @@ for (let key in Game.rooms) {
 
 //Allied Defense
 
-
+}
+module.exports.controller = profiler.registerFN(controller, 'defenseController');
 //Functions
 function invaderCheck(spawn) {
     let invader = spawn.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});

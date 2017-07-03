@@ -6,6 +6,7 @@ let towerController = require('module.towerController');
 let linkController = require('module.linkController');
 let labController = require('module.labController');
 let spawnController = require('module.spawnController');
+let defenseController = require('military.defense');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
@@ -53,6 +54,7 @@ module.exports.loop = function () {
         //Room Management
         Memory.stats.cpu.preRoom = Game.cpu.getUsed();
         roomController.roomControl();
+        defenseController.controller();
 
         //Creep Management
         Memory.stats.cpu.preCreep = Game.cpu.getUsed();
