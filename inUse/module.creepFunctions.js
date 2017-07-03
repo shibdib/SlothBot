@@ -561,6 +561,7 @@ function findDeliveries(creep) {
             }
         }
         creep.memory.storageDestination = _.min(deliveries, 'distWeighted').id;
+        Game.getObjectById(creep.memory.storageDestination).memory.deliveryIncoming = true;
         return true;
     }
 }

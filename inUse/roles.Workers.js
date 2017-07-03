@@ -26,6 +26,10 @@ function worker(creep) {
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
 
+    if (creep.carry.energy === creep.carryCapacity / 2) {
+        creep.memory.deliveryRequested = true;
+    }
+
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
@@ -62,14 +66,9 @@ function worker(creep) {
             creepTools.withdrawEnergy(creep);
         } else {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
-            let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {
                 if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(storage);
-                }
-            } else if (terminal) {
-                if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(terminal);
                 }
             } else {
                 creep.memory.deliveryRequested = true;
@@ -78,7 +77,7 @@ function worker(creep) {
                 } else {
                     creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
                 }
-                if (creep.memory.deliveryWait > 15) {
+                if (creep.memory.deliveryWait > 15 && !creep.memory.deliveryIncoming) {
                     creepTools.findEnergy(creep);
                 }
             }
@@ -155,6 +154,10 @@ function upgrader(creep) {
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
 
+    if (creep.carry.energy === creep.carryCapacity / 2) {
+        creep.memory.deliveryRequested = true;
+    }
+
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
@@ -176,14 +179,9 @@ function upgrader(creep) {
             creepTools.withdrawEnergy(creep);
         } else {
             let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy > 0});
-            let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
             if (link) {
                 if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(link);
-                }
-            } else if (terminal) {
-                if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(terminal);
                 }
             } else {
                 creep.memory.deliveryRequested = true;
@@ -192,7 +190,7 @@ function upgrader(creep) {
                 } else {
                     creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
                 }
-                if (creep.memory.deliveryWait > 15) {
+                if (creep.memory.deliveryWait > 15 && !creep.memory.deliveryIncoming) {
                     creepTools.findEnergy(creep);
                 }
             }
