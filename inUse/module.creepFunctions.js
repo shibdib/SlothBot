@@ -246,6 +246,31 @@ findEnergy = function (range = 50, hauler = false) {
             harvest: false
         });
     }
+    //storages
+    let useStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
+    if (useStorage.length > 0) {
+        let useStorages = [];
+        for (let i = 0; i < useStorage.length; i++) {
+            const object = Game.getObjectById(useStorage[i]);
+            if (object) {
+                if (object.store[RESOURCE_ENERGY] <= 5000 || object.pos.getRangeTo(this) > range) {
+                    continue;
+                }
+                const useStorageDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
+                useStorages.push({
+                    id: useStorage[i],
+                    distWeighted: useStorageDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestStorage = _.min(useStorages, 'distWeighted');
+        energy.push({
+            id: bestStorage.id,
+            distWeighted: bestStorage.distWeighted,
+            harvest: false
+        });
+    }
     //Links
     if (hauler === false) {
         let link = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'link'), 'id');
