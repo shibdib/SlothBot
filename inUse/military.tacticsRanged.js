@@ -84,7 +84,7 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(armedHostile))
                 }
             }
-        } else if (hostiles.length > 0 && (this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName || !Game.flags[this.memory.attackTarget])) {
+        } else if (hostiles.length > 0 && (!Game.flags[this.memory.attackTarget] || this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName)) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostiles))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
@@ -100,7 +100,7 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(inRangeHostile))
                 }
             }
-        } else if (hostileStructures.length > 0 && (this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName || !Game.flags[this.memory.attackTarget])) {
+        } else if (hostileStructures.length > 0 && (!Game.flags[this.memory.attackTarget] || this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName)) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostileStructures))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
