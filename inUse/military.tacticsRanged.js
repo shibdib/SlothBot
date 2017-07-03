@@ -25,7 +25,7 @@ rangedTeam = function () {
     }
     let nearbyHealers = this.pos.findInRange(healers, 5);
     let farHealers = this.pos.findInRange(healers, 15);
-    let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], e.owner['username']) === true});
+    let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
     if (squadLeader.length === 0) this.memory.squadLeader = true;
     if (rangedLeader.length === 0) this.memory.rangedLeader = true;
 
