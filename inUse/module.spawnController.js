@@ -250,7 +250,7 @@ function haulers(spawn, level) {
             spawn.room.memory.storageBuilt = undefined;
         }
         const pawn = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' && creep.memory.assignedRoom === spawn.room.name);
-        if ((pawn.length < 3 || (pawn.length === 3 && pawn[0].ticksToLive < 100)) && spawn.createCreep(Memory.creepBodies[level].getter, 'pawn' + Game.time, {
+        if ((pawn.length < 3 || (pawn.length === 3 && pawn[0].ticksToLive < 100)) && spawn.createCreep(Memory.creepBodies[level].hauler, 'pawn' + Game.time, {
                 role: 'pawn',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
