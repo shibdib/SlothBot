@@ -11,7 +11,7 @@ function Manager(creep) {
     } else if (creep.memory.role === "basicHauler") {
         basicHauler(creep);
     } else if (creep.memory.role === "pawn" || creep.memory.role === 'filler' || creep.memory.role === 'getter' || creep.memory.role === 'hauler') {
-        let storage = _.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'storage'), 'id')[0];
+        let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0];
         let filler = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
         let getter = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
         let hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === creep.room.name);
