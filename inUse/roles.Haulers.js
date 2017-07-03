@@ -11,11 +11,11 @@ function Manager(creep) {
     } else if (creep.memory.role === "basicHauler") {
         basicHauler(creep);
     } else if (creep.memory.role === "pawn" || creep.memory.role === 'filler' || creep.memory.role === 'getter' || creep.memory.role === 'hauler') {
-        let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+        let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
         let filler = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
         let getter = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
         let hauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === creep.room.name);
-        if (Game.getObjectById(storage[0]).store[RESOURCE_ENERGY] < 25000 && filler.length >= 1 && getter.length <= 2 && (creep.memory.role === 'hauler' || creep.memory.role === 'pawn')) {
+        if (storage.store[RESOURCE_ENERGY] < 25000 && filler.length >= 1 && getter.length <= 2 && (creep.memory.role === 'hauler' || creep.memory.role === 'pawn')) {
             creep.memory.role = 'getter';
         } else if (storage.store[RESOURCE_ENERGY] < 25000 && filler.length === 0) {
             creep.memory.role = 'filler';
