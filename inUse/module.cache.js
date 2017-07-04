@@ -78,10 +78,12 @@ module.exports.cacheRoomIntel = function (creep) {
     let owner = undefined;
     let level = undefined;
     let hostiles = undefined;
+    let towers = undefined;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.find(FIND_SOURCES);
         hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
+        towers = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, e.owner['username']) === false});
         let minerals = room.find(FIND_MINERALS);
         if (room.controller) {
             owner = room.controller.owner;
@@ -95,6 +97,7 @@ module.exports.cacheRoomIntel = function (creep) {
             minerals: minerals,
             owner: owner,
             level: level,
+            towers: towers.length,
             hostiles: hostiles.length
         };
         Memory.roomCache = cache;
