@@ -32,7 +32,7 @@ tacticSquadLeaderMedic = function () {
                 }
             }
         } else if (siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, siege[0].memory.standBy));
+            this.travelTo(Game.flags['siege']);
         } else {
             this.travelTo(Game.flags[this.memory.attackTarget], {allowHostile: false});
         }
