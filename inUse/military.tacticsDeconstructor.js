@@ -15,7 +15,7 @@ tacticSiege = function () {
         this.travelTo(Game.flags[this.memory.staging]);
         this.memory.attackTarget = 'available';
     }
-    if (this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName) {
+    if (Game.flags[this.memory.attackTarget] && this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName) {
         if (this.pos.getRangeTo(armedHostile) <= 2) {
             this.fleeFromHostile(armedHostile);
         } else {
