@@ -117,8 +117,6 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(hostileStructures))
                 }
             }
-        } else if (siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, siege[0].memory.standBy));
         } else if (this.memory.attackStarted !== true) {
             this.memory.rangedTarget = undefined;
             this.travelTo(Game.flags[this.memory.staging]);
