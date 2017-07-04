@@ -16,7 +16,7 @@ tacticSquadLeaderMedic = function () {
     if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
         this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
     }
-    if (this.pos.getRangeTo(armedHostile) <= 4) {
+    if (this.pos.getRangeTo(armedHostile) <= 2) {
         if (targets.length > 0) {
             if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
                 this.travelTo(targets[0]);
