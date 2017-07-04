@@ -74,7 +74,7 @@ rangedTeam = function () {
                         this.memory.rangedTarget = 'mass';
                         this.rangedMassAttack();
                     } else if (inRangeArmed.length === 1) {
-                        this.memory.rangedTarget = closestArmed;
+                        this.memory.rangedTarget = closestArmed.id;
                         this.fightRanged(closestArmed);
                     }
                 } else if (inRangeHostile.length > 0) {
