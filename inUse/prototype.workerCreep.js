@@ -22,27 +22,27 @@ findConstruction = function () {
     let construction = this.room.find(FIND_MY_CONSTRUCTION_SITES);
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
     }
     site = _.filter(construction, (s) => s.structureType !== STRUCTURE_RAMPART);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
     }
 };
 Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
