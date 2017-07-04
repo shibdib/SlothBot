@@ -15,6 +15,7 @@ tacticSquadLeaderMedic = function () {
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
         this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
+        return;
     }
     if (this.pos.getRangeTo(armedHostile) <= 2) {
         if (targets.length > 0) {
