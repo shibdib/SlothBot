@@ -16,10 +16,13 @@ function towerControl() {
             const closestHostile = tower.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
             if (closestHostile.length > 0) {
                 for (let i = 0; i < closestHostile.length; i++) {
-                    if (closestHostile[i].pos.getRangeTo(tower) < 15) {
+                    if (closestHostile[i].pos.getRangeTo(tower) < 5) {
                         tower.attack(closestHostile[i]);
                         continue towers;
                     } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
+                        tower.attack(closestHostile[i]);
+                        continue towers;
+                    } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS)) <= 1) {
                         tower.attack(closestHostile[i]);
                         continue towers;
                     } else if (closestHostile[i].owner['username'] === 'Invader') {
