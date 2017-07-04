@@ -44,7 +44,7 @@ tacticSquadLeaderMedic = function () {
                     this.memory.attackStarted = true;
                 }
             }
-        } else {
+        } else if (siege.length === 0) {
             this.travelTo(Game.flags[this.memory.attackTarget], {allowHostile: false});
         }
     } else {
