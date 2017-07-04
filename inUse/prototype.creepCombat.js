@@ -219,11 +219,6 @@ Creep.prototype.siege = function () {
         this.moveTo(exitNext);
         return true;
     }
-    if (!this.memory.notified) {
-        this.log('Attacking');
-        Game.notify(Game.time + ' ' + this.room.name + ' Attacking');
-        this.memory.notified = true;
-    }
     let tower = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_TOWER);
     let target = tower;
     if (tower === null) {
