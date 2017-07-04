@@ -241,7 +241,7 @@ Creep.prototype.siege = function () {
     }
     let path = this.pos.findPathTo(target, {
         ignoreDestructibleStructures: false,
-        ignoreCreeps: true
+        ignoreCreeps: false
     });
     let returnCode;
     let posLast = path[path.length - 1];
