@@ -8,6 +8,7 @@ const profiler = require('screeps-profiler');
 rangedTeam = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
+    let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siege === true);
     let squad = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget);
     let team = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === this.memory.role);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
@@ -116,6 +117,8 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(hostileStructures))
                 }
             }
+        } else if (siege.length > 0) {
+            this.travelTo(new RoomPosition(25, 25, siege[0].memory.standBy));
         } else if (this.memory.attackStarted !== true) {
             this.memory.rangedTarget = undefined;
             this.travelTo(Game.flags[this.memory.staging]);
