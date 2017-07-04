@@ -204,7 +204,7 @@ function pioneer(creep) {
                 creep.findSource();
             }
         }
-    }
+    } else
     if (!creep.memory.destinationReached && creep.memory.hauling === true) {
         creep.travelTo(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {

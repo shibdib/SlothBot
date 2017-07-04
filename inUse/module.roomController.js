@@ -1,5 +1,5 @@
 //modules
-let autoBuild = require('module.autoBuild');
+let autoBuild = require('room.autoBuild');
 let cache = require('module.cache');
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
