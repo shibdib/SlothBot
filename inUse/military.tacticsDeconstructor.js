@@ -17,7 +17,7 @@ tacticSiege = function () {
         } else {
             this.siege();
         }
-    } else if (squadLeader[0].memory.attackStarted !== true || !squadLeader[0]) {
+    } else if (!squadLeader[0] || squadLeader[0].memory.attackStarted !== true) {
         this.travelTo(Game.flags[this.memory.staging]);
     } else {
         this.travelTo(Game.flags[this.memory.attackTarget], {allowHostile: false});
