@@ -15,6 +15,7 @@ tacticSiege = function () {
     }
     if (Game.flags[this.memory.attackTarget] && this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName) {
         if (this.pos.getRangeTo(armedHostile) <= 4) {
+            this.memory.siege = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.fallBackRoom), {range: 15});
             return true;
         } else {
