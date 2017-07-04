@@ -50,6 +50,10 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
     return this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
 };
 
+RoomPosition.prototype.checkForRoad = function () {
+    return this.lookFor(LOOK_STRUCTURES).some(s => STRUCTURE_ROAD.includes(s.structureType));
+};
+
 RoomPosition.prototype.isExit = function () {
     if (this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48) {
         return true;
