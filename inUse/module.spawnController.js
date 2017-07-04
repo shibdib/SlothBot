@@ -107,7 +107,7 @@ function attackForce(spawn, level) {
                 multiRoom = info[5];
                 if (Game.flags['staging' + staging].pos.roomName === spawn.pos.roomName || multiRoom === '1') {
                     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
-                    if (attackers && (attackers.length < attackerAmount || attackers[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].attacker, 'attacker' + Game.time, {
+                    if (attackers[0] && (attackers.length < attackerAmount || attackers[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].attacker, 'attacker' + Game.time, {
                             role: 'attacker',
                             assignedSpawn: spawn.id,
                             assignedRoom: spawn.room.name,
@@ -123,7 +123,7 @@ function attackForce(spawn, level) {
                         return true;
                     }
                     let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'healer');
-                    if (healer && (healer.length < healerAmount || healer[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].healer, 'healer' + Game.time, {
+                    if (healer[0] && (healer.length < healerAmount || healer[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].healer, 'healer' + Game.time, {
                             role: 'healer',
                             assignedSpawn: spawn.id,
                             assignedRoom: spawn.room.name,
@@ -140,7 +140,7 @@ function attackForce(spawn, level) {
                     }
                     if (spawn.room.controller.level >= 5) {
                         let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'ranged');
-                        if (ranged && (ranged.length < rangedAmount || ranged[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].ranged, 'ranged' + Game.time, {
+                        if (ranged[0] && (ranged.length < rangedAmount || ranged[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].ranged, 'ranged' + Game.time, {
                                 role: 'ranged',
                                 assignedSpawn: spawn.id,
                                 assignedRoom: spawn.room.name,
@@ -156,7 +156,7 @@ function attackForce(spawn, level) {
                             return true;
                         }
                         let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'deconstructor');
-                        if (deconstructor && (deconstructor.length < deconstructorAmount || deconstructor[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].deconstructor, 'deconstructor' + Game.time, {
+                        if (deconstructor[0] && (deconstructor.length < deconstructorAmount || deconstructor[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].deconstructor, 'deconstructor' + Game.time, {
                                 role: 'deconstructor',
                                 assignedSpawn: spawn.id,
                                 assignedRoom: spawn.room.name,
