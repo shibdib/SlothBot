@@ -21,9 +21,11 @@ tacticSiege = function () {
             this.siege();
         }
     } else if (!squadLeader[0] || squadLeader[0].memory.attackStarted !== true) {
+        this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
         this.travelTo(Game.flags[this.memory.staging]);
     } else {
+        this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
         this.travelTo(Game.flags[this.memory.attackTarget], {allowHostile: false});
     }
