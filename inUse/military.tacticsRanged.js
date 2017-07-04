@@ -88,6 +88,14 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(armedHostile))
                 }
             }
+        } else if (squadLeader[0]) {
+            if (this.pos.getRangeTo(squadLeader[0]) > 10) {
+                if (this.room.name !== squadLeader[0].pos.roomName) {
+                    this.travelTo(squadLeader[0], {allowHostile: true});
+                } else {
+                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                }
+            }
         } else if (hostiles.length > 0 && (!Game.flags[this.memory.attackTarget] || this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName)) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostiles))) || !closestHostileTower) {
