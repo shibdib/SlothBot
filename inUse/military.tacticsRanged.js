@@ -6,6 +6,7 @@ let militaryFunctions = require('module.militaryFunctions');
 const profiler = require('screeps-profiler');
 
 rangedTeam = function () {
+    borderChecks.borderCheck(this);
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siege === true);
@@ -152,10 +153,7 @@ rangedTeam = function () {
             }
         }
     } else {
-        borderChecks.borderCheck(this);
-        if (closestArmed && this.pos.getRangeTo(closestArmed) <= 2) {
-            this.fightRanged(closestArmed);
-        } else if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
+        if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
             this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
         } else if (squadLeader[0]) {
             if (this.pos.getRangeTo(squadLeader[0]) > 10) {
@@ -183,6 +181,8 @@ rangedTeam = function () {
             if (needsHeals.length > 0) {
                 this.rangedHeal(needsHeals[0])
             }
+        } else if (closestArmed && this.pos.getRangeTo(closestArmed) <= 3) {
+            this.fightRanged(closestArmed);
         } else {
             if (needsHeals.length > 0) {
                 this.rangedHeal(needsHeals[0])
