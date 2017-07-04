@@ -46,6 +46,8 @@ tacticSquadLeaderMedic = function () {
             }
         } else if (siege.length === 0) {
             this.travelTo(Game.flags[this.memory.attackTarget], {allowHostile: false});
+        } else {
+            this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
         }
     } else {
         if (targets.length > 0) {
