@@ -245,13 +245,9 @@ function attacker(creep) {
         }
     } else {
         if (squadLeader[0].memory.attackStarted !== true) {
-            creep.travelTo(squadLeader[0], {movingTarget: true});
+            creep.travelTo(squadLeader[0]);
         } else if (creep.pos.getRangeTo(squadLeader[0]) > 4 || creep.room.name !== squadLeader[0].pos.roomName) {
-            if (creep.room.name !== squadLeader[0].pos.roomName) {
-                creep.travelTo(squadLeader[0], {allowHostile: true});
-            } else {
-                creep.travelTo(squadLeader[0], {allowHostile: true});
-            }
+            creep.travelTo(squadLeader[0]);
         } else if (creep.attack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
             creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget));
             if (creep.hits < creep.hitsMax) {
