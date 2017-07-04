@@ -250,7 +250,7 @@ function attacker(creep) {
             if (creep.room.name !== squadLeader[0].pos.roomName) {
                 creep.travelTo(squadLeader[0], {allowHostile: true});
             } else {
-                creep.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                creep.travelTo(squadLeader[0], {allowHostile: true});
             }
         } else if (creep.attack(Game.getObjectById(squadLeader[0].memory.squadTarget)) === ERR_NOT_IN_RANGE) {
             creep.rangedAttack(Game.getObjectById(squadLeader[0].memory.squadTarget));
