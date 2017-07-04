@@ -152,6 +152,7 @@ rangedTeam = function () {
             }
         }
     } else {
+        borderChecks.borderCheck(this);
         if (closestArmed && this.pos.getRangeTo(closestArmed) <= 2) {
             this.fightRanged(closestArmed);
         } else if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
