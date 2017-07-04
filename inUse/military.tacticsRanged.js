@@ -63,6 +63,7 @@ rangedTeam = function () {
             return this.travelTo(Game.flags[this.memory.staging]);
         } else if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
             this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
+            return;
         }
         if (armedHostile.length > 0) {
             borderChecks.borderCheck(this);
@@ -145,6 +146,8 @@ rangedTeam = function () {
     } else {
         if (closestArmed && this.pos.getRangeTo(closestArmed) <= 2) {
             this.fightRanged(closestArmed);
+        } else if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
+            this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
         } else if (squadLeader[0]) {
             if (this.pos.getRangeTo(squadLeader[0]) > 10) {
                 if (this.room.name !== squadLeader[0].pos.roomName) {
