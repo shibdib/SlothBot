@@ -61,6 +61,8 @@ rangedTeam = function () {
             this.memory.attackStarted = 'safe';
             Game.flags[this.memory.attackTarget].remove();
             return this.travelTo(Game.flags[this.memory.staging]);
+        } else if (siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
+            this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
         }
         if (armedHostile.length > 0) {
             borderChecks.borderCheck(this);
@@ -117,8 +119,6 @@ rangedTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(hostileStructures))
                 }
             }
-        } else if (siege.length > 0) {
-            this.travelTo(Game.flags['siege']);
         } else if (this.memory.attackStarted !== true) {
             this.memory.rangedTarget = undefined;
             this.travelTo(Game.flags[this.memory.staging]);

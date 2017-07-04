@@ -221,20 +221,17 @@ Creep.prototype.siege = function () {
     }
     let target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_TOWER);
     if (target) {
-        this.memory.standBy = undefined;
         this.memory.siege = undefined;
     }
     if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
         target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_SPAWN);
         if (target) {
-            this.memory.standBy = undefined;
             this.memory.siege = undefined;
         }
     }
     if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
         target = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         if (target) {
-            this.memory.standBy = Game.map.describeExits(this.pos.roomName)[this.pos.findClosestByRange(FIND_EXIT)];
             this.memory.siege = true;
         }
     }
