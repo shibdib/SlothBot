@@ -12,9 +12,18 @@ tacticSquadLeaderMedic = function () {
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siege === true);
     if (squadLeader.length === 0) this.memory.squadLeader = true;
     let targets = this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
-    let armedHostile = this.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
+    let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
         this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
+    }
+    if (this.pos.getRangeTo(armedHostile) <= 4) {
+        if (targets.length > 0) {
+            if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
+                this.travelTo(targets[0]);
+                this.rangedHeal(targets[0]);
+            }
+        }
+        this.fleeFromHostile(armedHostile);
     }
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
         if (targets.length > 0) {
