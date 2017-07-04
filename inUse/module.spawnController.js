@@ -180,22 +180,20 @@ function attackForce(spawn, level) {
 attackForce = profiler.registerFN(attackForce, 'attackForceSpawn');
 
 function harvesters(spawn, level) {
-    if (spawn.room.controller.level >= 2) {
-        let sources = spawn.room.find(FIND_SOURCES);
-        for (let i = 0; i < sources.length; i++) {
-            let stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
-            if (_.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'stationaryHarvester').length === 0) {
-                level = 1;
-            }
-            if ((stationaryHarvester.length < 1 || (stationaryHarvester.length === 1 && stationaryHarvester[0].ticksToLive < 50)) && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
-                    role: 'stationaryHarvester',
-                    assignedSpawn: spawn.id,
-                    assignedRoom: spawn.room.name,
-                    assignedSource: sources[i].id
-                }) === 'stationaryHarvester' + Game.time) {
-                console.log(spawn.room.name + ' Spawning a stationaryHarvester');
-                return true;
-            }
+    let sources = spawn.room.find(FIND_SOURCES);
+    for (let i = 0; i < sources.length; i++) {
+        let stationaryHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedSource === sources[i].id && creep.memory.role === 'stationaryHarvester');
+        if (_.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'stationaryHarvester').length === 0) {
+            level = 1;
+        }
+        if ((stationaryHarvester.length < 1 || (stationaryHarvester.length === 1 && stationaryHarvester[0].ticksToLive < 50)) && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
+                role: 'stationaryHarvester',
+                assignedSpawn: spawn.id,
+                assignedRoom: spawn.room.name,
+                assignedSource: sources[i].id
+            }) === 'stationaryHarvester' + Game.time) {
+            console.log(spawn.room.name + ' Spawning a stationaryHarvester');
+            return true;
         }
     }
 }
@@ -306,7 +304,7 @@ function workers(spawn, level) {
                     return true;
                 }
                 const labTech = _.filter(Game.creeps, (creep) => creep.memory.role === 'labTech' && creep.memory.assignedRoom === spawn.room.name);
-                const labs = _.filter(Game.structures, (s) => s.room.name  === spawn.room.name && s.structureType === STRUCTURE_LAB);
+                const labs = _.filter(Game.structures, (s) => s.room.name === spawn.room.name && s.structureType === STRUCTURE_LAB);
                 if (labTech.length < 1 && labs.length >= 3 && spawn.room.memory.reactions && spawn.createCreep(Memory.creepBodies[level].labTech, 'labTech' + Game.time, {
                         role: 'labTech',
                         assignedSpawn: spawn.id,
