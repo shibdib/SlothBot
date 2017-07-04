@@ -246,7 +246,7 @@ function attacker(creep) {
     } else {
         if (squadLeader[0].memory.attackStarted !== true) {
             creep.travelTo(squadLeader[0], {movingTarget: true});
-        } else if (creep.pos.getRangeTo(squadLeader[0]) > 4 || creep.room.name !== squadLeader[0].pos.roomNam) {
+        } else if (creep.pos.getRangeTo(squadLeader[0]) > 4 || creep.room.name !== squadLeader[0].pos.roomName) {
             if (creep.room.name !== squadLeader[0].pos.roomName) {
                 creep.travelTo(squadLeader[0], {allowHostile: true});
             } else {
