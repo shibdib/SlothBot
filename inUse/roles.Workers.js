@@ -182,7 +182,7 @@ function upgrader(creep) {
                 } else {
                     creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
                 }
-                if (creep.memory.deliveryWait > 15 && !creep.memory.deliveryIncoming) {
+                if (creep.memory.deliveryWait > 15) {
                     creep.say(ICONS.wait5);
                     creep.findEnergy();
                 }
