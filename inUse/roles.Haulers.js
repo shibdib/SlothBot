@@ -180,14 +180,14 @@ function getter(creep) {
             creep.withdrawEnergy();
         } else {
             creep.getEnergy();
-            if (!creep.memory.energyDestination) {
+           /** if (!creep.memory.energyDestination) {
                 let droppedEnergy = _.filter(creep.room.getDroppedResources(), (r) => r.resourceType === RESOURCE_ENERGY && r.amount > 100);
                 if (droppedEnergy[0]) {
                     if (creep.pickup(droppedEnergy[0]) === ERR_NOT_IN_RANGE) {
                         creep.travelTo(droppedEnergy[0]);
                     }
                 }
-            }
+            }**/
         }
     } else {
         if (creep.memory.storage) {
