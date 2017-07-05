@@ -373,7 +373,7 @@ function resupply(creep) {
         }
     } else {
         if (creep.memory.destinationReached !== true) {
-            if (creep.getRangeTo(Game.flags[creep.memory.destination]) > 3) {
+            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) > 3) {
                 creep.travelTo(Game.flags[creep.memory.destination])
             } else {
                 creep.memory.destinationReached = true;
