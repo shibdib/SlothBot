@@ -97,97 +97,75 @@ responseForce = profiler.registerFN(responseForce, 'responseForceSpawn');
 
 function attackForce(spawn, level) {
     if (spawn.room.controller.level >= 3) {
-        for (let name in Game.flags) {
-            let attackerAmount = undefined;
-            let healerAmount = undefined;
-            let rangedAmount = undefined;
-            let deconstructorAmount = undefined;
-            let staging = undefined;
-            let multiRoom = undefined;
-            if (_.startsWith(name, 'attack')) {
-                let info = name.split(".");
-                info = info[1].split("/");
-                attackerAmount = info[0];
-                healerAmount = info[1];
-                rangedAmount = info[2];
-                deconstructorAmount = info[3];
-                staging = info[4];
-                multiRoom = info[5];
-                if (Game.flags['staging' + staging].pos.roomName === spawn.pos.roomName || multiRoom === '1') {
-                    let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
-                    if (attackers[0] && (attackers.length < attackerAmount || attackers[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].attacker, 'attacker' + Game.time, {
+        for (let key in Memory.militaryNeeds) {
+                    let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'attacker');
+                    if (attackers[0] && (attackers.length < Memory.militaryNeeds[key].attacker || attackers[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].attacker, 'attacker' + Game.time, {
                             role: 'attacker',
                             roleGroup: 'military',
                             assignedSpawn: spawn.id,
                             assignedRoom: spawn.room.name,
-                            attackTarget: Game.flags[name].name,
-                            staging: 'staging' + staging,
-                            wp: 'wp' + staging,
-                            waitForHealers: healerAmount,
-                            waitForAttackers: attackerAmount,
-                            waitForRanged: rangedAmount,
-                            waitForDeconstructor: deconstructorAmount
+                            attackTarget: key,
+                            staging: 'W53N82',
+                            waitForHealers: Memory.militaryNeeds[key].healer,
+                            waitForAttackers: Memory.militaryNeeds[key].attacker,
+                            waitForRanged: Memory.militaryNeeds[key].ranged,
+                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
                         }) === 'attacker' + Game.time) {
                         console.log(spawn.room.name + ' Spawning an attacker');
                         return true;
                     }
-                    let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'healer');
-                    if (healer[0] && (healer.length < healerAmount || healer[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].healer, 'healer' + Game.time, {
+                    let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'healer');
+                    if (healer[0] && (healer.length < Memory.militaryNeeds[key].healer || healer[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].healer, 'healer' + Game.time, {
                             role: 'healer',
                             roleGroup: 'military',
                             assignedSpawn: spawn.id,
                             assignedRoom: spawn.room.name,
-                            attackTarget: Game.flags[name].name,
-                            staging: 'staging' + staging,
-                            wp: 'wp' + staging,
-                            waitForHealers: healerAmount,
-                            waitForAttackers: attackerAmount,
-                            waitForRanged: rangedAmount,
-                            waitForDeconstructor: deconstructorAmount
+                            attackTarget: key,
+                            staging: 'W53N82',
+                            waitForHealers: Memory.militaryNeeds[key].healer,
+                            waitForAttackers: Memory.militaryNeeds[key].attacker,
+                            waitForRanged: Memory.militaryNeeds[key].ranged,
+                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
                         }) === 'healer' + Game.time) {
                         console.log(spawn.room.name + ' Spawning an healer');
                         return true;
                     }
                     if (spawn.room.controller.level >= 5) {
-                        let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'ranged');
-                        if (ranged[0] && (ranged.length < rangedAmount || ranged[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].ranged, 'ranged' + Game.time, {
+                        let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'ranged');
+                        if (ranged[0] && (ranged.length < Memory.militaryNeeds[key].ranged || ranged[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].ranged, 'ranged' + Game.time, {
                                 role: 'ranged',
                                 roleGroup: 'military',
                                 assignedSpawn: spawn.id,
                                 assignedRoom: spawn.room.name,
-                                attackTarget: Game.flags[name].name,
-                                staging: 'staging' + staging,
-                                wp: 'wp' + staging,
-                                waitForHealers: healerAmount,
-                                waitForAttackers: attackerAmount,
-                                waitForRanged: rangedAmount,
-                                waitForDeconstructor: deconstructorAmount
+                                attackTarget: key,
+                                staging: 'W53N82',
+                                waitForHealers: Memory.militaryNeeds[key].healer,
+                                waitForAttackers: Memory.militaryNeeds[key].attacker,
+                                waitForRanged: Memory.militaryNeeds[key].ranged,
+                                waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
                             }) === 'ranged' + Game.time) {
                             console.log(spawn.room.name + ' Spawning a ranged');
                             return true;
                         }
-                        let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'deconstructor');
-                        if (deconstructor[0] && (deconstructor.length < deconstructorAmount || deconstructor[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].deconstructor, 'deconstructor' + Game.time, {
+                        let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'deconstructor');
+                        if (deconstructor[0] && (deconstructor.length < Memory.militaryNeeds[key].deconstructor || deconstructor[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].deconstructor, 'deconstructor' + Game.time, {
                                 role: 'deconstructor',
                                 roleGroup: 'military',
                                 assignedSpawn: spawn.id,
                                 assignedRoom: spawn.room.name,
-                                attackTarget: Game.flags[name].name,
-                                staging: 'staging' + staging,
-                                wp: 'wp' + staging,
-                                waitForHealers: healerAmount,
-                                waitForAttackers: attackerAmount,
-                                waitForRanged: rangedAmount,
-                                waitForDeconstructor: deconstructorAmount
+                                attackTarget: key,
+                                staging: 'W53N82',
+                                waitForHealers: Memory.militaryNeeds[key].healer,
+                                waitForAttackers: Memory.militaryNeeds[key].attacker,
+                                waitForRanged: Memory.militaryNeeds[key].ranged,
+                                waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
                             }) === 'deconstructor' + Game.time) {
                             console.log(spawn.room.name + ' Spawning an deconstructor');
                             return true;
                         }
                     }
-                }
             }
         }
-    }
 }
 attackForce = profiler.registerFN(attackForce, 'attackForceSpawn');
 

@@ -60,8 +60,9 @@ meleeTeam = function () {
         //Check if safe mode
         if (this.room.controller && this.room.controller.owner && _.includes(RawMemory.segments[2], this.room.controller.owner['username']) === false && this.room.controller.safeMode) {
             this.memory.attackStarted = 'safe';
-            Game.flags[this.memory.attackTarget].remove();
-            return this.travelTo(Game.flags[this.memory.staging]);
+            Memory.warControl[this.memory.attackTarget] = undefined;
+            Memory.militaryNeeds[this.memory.attackTarget] = undefined;
+            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         }
         if (armedHostile.length > 0) {
             borderChecks.borderCheck(this);
@@ -105,7 +106,7 @@ meleeTeam = function () {
             }
         } else if (this.memory.attackStarted !== true) {
             this.memory.meleeTarget = undefined;
-            this.travelTo(Game.flags[this.memory.staging]);
+            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
             if (Game.flags[this.memory.attackTarget]) {
                 let nearbyAttackers = this.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === this.memory.attackTarget && a.memory.role === 'attacker'), 5);
                 let nearbyHealers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'healer'), 5);
@@ -117,14 +118,7 @@ meleeTeam = function () {
             }
         } else {
             this.memory.meleeTarget = undefined;
-            if (Game.flags[this.memory.wp] && this.memory.waypointReached !== true) {
-                if (this.pos.getRangeTo(this.memory.wp) > 6) {
-                    this.memory.waypointReached = true;
-                }
-                this.travelTo(this.memory.wp, {allowHostile: false});
-            } else {
-                this.travelTo(Game.flags[this.memory.attackTarget], {allowHostile: false});
-            }
+                this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 15});
         }
     } else {
         if (closestArmed && this.pos.getRangeTo(closestArmed) <= 1) {
