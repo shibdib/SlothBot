@@ -355,7 +355,7 @@ function resupply(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
-    if (creep.carry.energy > creep.carryCapacity / 2) {
+    if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
@@ -374,7 +374,8 @@ function resupply(creep) {
     } else {
         if (creep.memory.destinationReached !== true) {
             if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) > 3) {
-                creep.travelTo(Game.flags[creep.memory.destination])
+                creep.travelTo(Game.flags[creep.memory.destination]);
+                return null;
             } else {
                 creep.memory.destinationReached = true;
             }
