@@ -100,6 +100,7 @@ function attackForce(spawn, level) {
         for (let key in Memory.militaryNeeds) {
             if (!Memory.militaryNeeds[key]) {
                 Memory.militaryNeeds[key] = undefined;
+                continue;
             }
                     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'attacker');
                     if (attackers.length < Memory.militaryNeeds[key].attacker && spawn.createCreep(Memory.creepBodies[level].attacker, 'attacker' + Game.time, {
@@ -216,6 +217,7 @@ function scouts(spawn, level) {
         for (let key in Memory.militaryNeeds) {
             if (!Memory.militaryNeeds[key]) {
                 Memory.militaryNeeds[key] = undefined;
+                continue;
             }
                 let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'scout');
                 if (scouts.length < Memory.militaryNeeds[key].scout && spawn.createCreep(Memory.creepBodies[level].scout, 'scout' + Game.time, {
