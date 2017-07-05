@@ -24,7 +24,7 @@ function labControl() {
                     if (currentHub) {
                         let hubLabs = Game.getObjectById(currentHub).pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
                         for (let key in lab.room.memory.reactions) {
-                            if (key === 'current' || key === 'currentAge' || key === 'hub') {
+                            if (key === 'current' || key === 'currentAge' || key === 'hub' || lab.room.memory.reactions[key].lab1) {
                                 continue;
                             }
                             let reaction = lab.room.memory.reactions[key];
