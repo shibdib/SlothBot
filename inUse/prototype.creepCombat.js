@@ -230,7 +230,7 @@ Creep.prototype.siege = function () {
     }
     if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
         if (!this.memory.siegeTarget || !Game.getObjectById(this.memory.siegeTarget)) {
-            target = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
+            target = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 15, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         } else {
             target = Game.getObjectById(this.memory.siegeTarget);
         }
