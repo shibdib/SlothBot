@@ -81,6 +81,7 @@ function hauler(creep) {
     borderChecks.wrongRoom(creep);
 
     if (creep.carry.energy === 0) {
+        creep.memory.storageDestination = undefined;
         creep.memory.hauling = false;
     }
     if (creep.carry.energy > creep.carryCapacity / 2) {
