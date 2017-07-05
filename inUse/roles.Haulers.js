@@ -183,7 +183,7 @@ function getter(creep) {
         } else {
             creep.getEnergy();
             if (!creep.memory.energyDestination) {
-                let droppedEnergy =_.filter(creep.room.getDroppedResources(), (r) => r.resourceType === RESOURCE_ENERGY && r.amount > 100);
+                let droppedEnergy = _.filter(creep.room.getDroppedResources(), (r) => r.resourceType === RESOURCE_ENERGY && r.amount > 100);
                 if (droppedEnergy[0]) {
                     if (creep.pickup(droppedEnergy[0]) === ERR_NOT_IN_RANGE) {
                         creep.travelTo(droppedEnergy[0]);
@@ -375,25 +375,21 @@ function resupply(creep) {
         }
     } else {
         if (creep.memory.destinationReached !== true) {
-                creep.travelTo(Game.flags[creep.memory.destination]);
+            creep.travelTo(Game.flags[creep.memory.destination]);
         } else {
-            if (creep.carry.energy === 0) {
-                creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn))
-            } else {
-                if (creep.memory.deliveryStorage) {
-                    if (creep.transfer(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(Game.getObjectById(creep.memory.deliveryStorage));
-                    }
-                } else if (!creep.memory.deliveryStorage) {
-                    let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-                    if (storage.length > 0) {
-                        creep.memory.deliveryStorage = storage[0];
-                    } else {
-                        creep.memory.deliveryStorage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).id;
-                    }
-                    if (!creep.memory.deliveryStorage) {
-                        creep.findEssentials();
-                    }
+            if (creep.memory.deliveryStorage) {
+                if (creep.transfer(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(Game.getObjectById(creep.memory.deliveryStorage));
+                }
+            } else if (!creep.memory.deliveryStorage) {
+                let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+                if (storage.length > 0) {
+                    creep.memory.deliveryStorage = storage[0];
+                } else {
+                    creep.memory.deliveryStorage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).id;
+                }
+                if (!creep.memory.deliveryStorage) {
+                    creep.findEssentials();
                 }
             }
         }
