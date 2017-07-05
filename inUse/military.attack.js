@@ -49,6 +49,11 @@ function getIntel() {
             //check if room is owned
             if (Memory.roomCache[key].owner) {
                 Memory.warControl[key].type = 'siege';
+                if (!Memory.warControl[key].siegePoint) {
+                    let exit = Game.map.findExit(key, 'W53N83');
+                    let exits = Game.map.describeExits(key);
+                    Memory.warControl[key].siegePoint = exits[exit];
+                }
                 if (Memory.roomCache[key].towers === 0 || Memory.roomCache[key].towers === undefined) {
                     Memory.warControl[key].level = 1;
                 } else if (Memory.roomCache[key].towers === 1) {

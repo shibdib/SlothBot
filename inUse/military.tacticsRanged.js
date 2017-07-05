@@ -9,7 +9,7 @@ rangedTeam = function () {
     borderChecks.borderCheck(this);
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
-    let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siege === true);
+    let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     let squad = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget);
     let team = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === this.memory.role);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
@@ -63,9 +63,6 @@ rangedTeam = function () {
             Memory.warControl[this.memory.attackTarget] = undefined;
             Memory.militaryNeeds[this.memory.attackTarget] = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
-        } else if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
-            this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
-            return;
         }
         if (armedHostile.length > 0) {
             borderChecks.borderCheck(this);
@@ -142,9 +139,10 @@ rangedTeam = function () {
                     this.memory.attackStarted = true;
                 }
             }
-        } else {
-            this.memory.rangedTarget = undefined;
+        } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
             this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 15});
+        } else if (this.memory.attackType === 'siege') {
+            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
     } else {
         if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {

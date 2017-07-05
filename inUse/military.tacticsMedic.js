@@ -9,7 +9,7 @@ let doNotAggress = RawMemory.segments[2];
 
 tacticSquadLeaderMedic = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
-    let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siege === true);
+    let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     if (squadLeader.length === 0) this.memory.squadLeader = true;
     let targets = this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
@@ -44,10 +44,10 @@ tacticSquadLeaderMedic = function () {
                     this.memory.attackStarted = true;
                 }
             }
-        } else if (siege.length === 0) {
+        } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
             this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 15});
-        } else {
-            this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
+        } else if (this.memory.attackType === 'siege') {
+            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
     } else {
         if (targets.length > 0) {

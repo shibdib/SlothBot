@@ -10,6 +10,7 @@ let doNotAggress = RawMemory.segments[2];
 meleeTeam = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let meleeLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.meleeLeader === true);
+    let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     let squad = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget);
     let team = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === this.memory.role);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
@@ -131,9 +132,10 @@ meleeTeam = function () {
                     this.memory.attackStarted = true;
                 }
             }
-        } else {
-            this.memory.meleeTarget = undefined;
-                this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 15});
+        } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 15});
+        } else if (this.memory.attackType === 'siege') {
+            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
     } else {
         if (closestArmed && this.pos.getRangeTo(closestArmed) <= 1) {

@@ -220,12 +220,12 @@ Creep.prototype.siege = function () {
     }
     let target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_TOWER);
     if (target) {
-        this.memory.siege = undefined;
+        this.memory.siegeComplete = true;
     }
     if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
         target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_SPAWN);
         if (target) {
-            this.memory.siege = undefined;
+            this.memory.siegeComplete = true;
         }
     }
     if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
@@ -236,7 +236,7 @@ Creep.prototype.siege = function () {
         }
         if (target) {
             this.memory.siegeTarget = target.id;
-            this.memory.siege = true;
+            this.memory.siegeComplete = undefined;
         }
     }
     if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
