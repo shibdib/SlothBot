@@ -73,6 +73,7 @@ function responseForce(spawn, level) {
                     let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[key].name && creep.memory.role === 'responder');
                     if (responder.length < assistNeeded[key].memory.numberOfHostiles && spawn.createCreep(Memory.creepBodies[level].responder, 'responder' + Game.time, {
                             role: 'responder',
+                            roleGroup: 'military',
                             assignedSpawn: spawn.id,
                             assignedRoom: spawn.room.name,
                             responseTarget: assistNeeded[key].name
@@ -109,6 +110,7 @@ function attackForce(spawn, level) {
                     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'attacker');
                     if (attackers[0] && (attackers.length < attackerAmount || attackers[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].attacker, 'attacker' + Game.time, {
                             role: 'attacker',
+                            roleGroup: 'military',
                             assignedSpawn: spawn.id,
                             assignedRoom: spawn.room.name,
                             attackTarget: Game.flags[name].name,
@@ -125,6 +127,7 @@ function attackForce(spawn, level) {
                     let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'healer');
                     if (healer[0] && (healer.length < healerAmount || healer[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].healer, 'healer' + Game.time, {
                             role: 'healer',
+                            roleGroup: 'military',
                             assignedSpawn: spawn.id,
                             assignedRoom: spawn.room.name,
                             attackTarget: Game.flags[name].name,
@@ -142,6 +145,7 @@ function attackForce(spawn, level) {
                         let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'ranged');
                         if (ranged[0] && (ranged.length < rangedAmount || ranged[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].ranged, 'ranged' + Game.time, {
                                 role: 'ranged',
+                                roleGroup: 'military',
                                 assignedSpawn: spawn.id,
                                 assignedRoom: spawn.room.name,
                                 attackTarget: Game.flags[name].name,
@@ -158,6 +162,7 @@ function attackForce(spawn, level) {
                         let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === Game.flags[name].name && creep.memory.role === 'deconstructor');
                         if (deconstructor[0] && (deconstructor.length < deconstructorAmount || deconstructor[0].ticksToLive < 150) && spawn.createCreep(Memory.creepBodies[level].deconstructor, 'deconstructor' + Game.time, {
                                 role: 'deconstructor',
+                                roleGroup: 'military',
                                 assignedSpawn: spawn.id,
                                 assignedRoom: spawn.room.name,
                                 attackTarget: Game.flags[name].name,
@@ -188,6 +193,7 @@ function harvesters(spawn, level) {
         }
         if ((stationaryHarvester.length < 1 || (stationaryHarvester.length === 1 && stationaryHarvester[0].ticksToLive < 50)) && spawn.createCreep(Memory.creepBodies[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
                 role: 'stationaryHarvester',
+                roleGroup: 'workers',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name,
                 assignedSource: sources[i].id
@@ -204,6 +210,7 @@ function scouts(spawn, level) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.pos.roomName && creep.memory.role === 'explorer');
         if (explorers.length < 1 && spawn.createCreep(Memory.creepBodies[level].explorer, 'explorer' + Game.time, {
                 role: 'explorer',
+                roleGroup: 'remotes',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
             }) === 'explorer' + Game.time) {
@@ -216,6 +223,7 @@ function scouts(spawn, level) {
                 let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[scout].name && creep.memory.role === 'scout');
                 if (scouts.length === 0 && spawn.createCreep(Memory.creepBodies[level].scout, 'scout' + Game.time, {
                         role: 'scout',
+                        roleGroup: 'scouts',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         destination: Game.flags[scout].name,
@@ -234,9 +242,10 @@ function haulers(spawn, level) {
         if (_.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
             spawn.room.memory.storageBuilt = true;
         }
-        const basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === spawn.room.name);
+        let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === spawn.room.name);
         if (basicHauler.length < 2 && spawn.createCreep(Memory.creepBodies[level].hauler, 'basicHauler' + Game.time, {
                 role: 'basicHauler',
+                roleGroup: 'haulers',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
             }) === 'basicHauler' + Game.time) {
@@ -247,14 +256,31 @@ function haulers(spawn, level) {
         if (_.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'storage'), 'id').length < 1) {
             spawn.room.memory.storageBuilt = undefined;
         }
-        const pawn = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' && creep.memory.assignedRoom === spawn.room.name);
+        let pawn = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' && creep.memory.assignedRoom === spawn.room.name);
         if ((pawn.length < 4 || (pawn.length === 4 && pawn[0].ticksToLive < 100)) && spawn.createCreep(Memory.creepBodies[level].hauler, 'pawn' + Game.time, {
                 role: 'pawn',
+                roleGroup: 'haulers',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
             }) === 'pawn' + Game.time) {
             console.log(spawn.room.name + ' Spawning a pawn');
             return true;
+        }
+        for (let i = 0; i < 20; i++) {
+            let resupply = 'resupply' + i;
+            if (Game.flags[resupply] && Game.flags[resupply].pos.roomName !== spawn.pos.roomName) {
+                let trucks = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[resupply].name && creep.memory.role === 'resupply');
+                if (trucks.length === 0 && spawn.createCreep(Memory.creepBodies[level].resupply, 'resupply' + Game.time, {
+                        role: 'resupply',
+                        roleGroup: 'haulers',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        destination: Game.flags[resupply].name,
+                    }) === 'resupply' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning a resupply');
+                    return true;
+                }
+            }
         }
     }
 }
@@ -266,6 +292,7 @@ function workers(spawn, level) {
         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
         if (worker.length < 2 && upgraders.length > 0 && spawn.createCreep(Memory.creepBodies[level].worker, 'worker' + Game.time, {
                 role: 'worker',
+                roleGroup: 'workers',
                 assignedSpawn: spawn.id,
                 assignedRoom: spawn.room.name
             }) === 'worker' + Game.time) {
@@ -275,6 +302,7 @@ function workers(spawn, level) {
         if (spawn.room.memory.responseNeeded !== true) {
             if (upgraders.length < 2 && spawn.createCreep(Memory.creepBodies[level].upgrader, 'upgrader' + Game.time, {
                     role: 'upgrader',
+                    roleGroup: 'workers',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name
                 }) === 'upgrader' + Game.time) {
@@ -286,6 +314,7 @@ function workers(spawn, level) {
                 let mineralHarvester = _.filter(Game.creeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester');
                 if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[level].mineralHarvester, 'mineralHarvester' + Game.time, {
                         role: 'mineralHarvester',
+                        roleGroup: 'workers',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         assignedMineral: minerals.id
@@ -296,6 +325,7 @@ function workers(spawn, level) {
                 let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === spawn.room.name);
                 if (mineralHauler.length < 1 && upgraders.length > 0 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[level].mineralHauler, 'mineralHauler' + Game.time, {
                         role: 'mineralHauler',
+                        roleGroup: 'workers',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         assignedMineral: minerals.id
@@ -307,6 +337,7 @@ function workers(spawn, level) {
                 const labs = _.filter(Game.structures, (s) => s.room.name === spawn.room.name && s.structureType === STRUCTURE_LAB);
                 if (labTech.length < 1 && labs.length >= 3 && spawn.room.memory.reactions && spawn.createCreep(Memory.creepBodies[level].labTech, 'labTech' + Game.time, {
                         role: 'labTech',
+                        roleGroup: 'workers',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name
                     }) === 'labTech' + Game.time) {
@@ -326,6 +357,7 @@ function remotes(spawn, level) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHarvester');
                 if (remoteHarvester.length < Memory.roomCache[key].sources.length && spawn.createCreep(Memory.creepBodies[level].remoteHarvester, 'remoteHarvester' + Game.time, {
                         role: 'remoteHarvester',
+                        roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         destination: key
@@ -336,6 +368,7 @@ function remotes(spawn, level) {
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHauler');
                 if (remoteHauler.length < 1 && spawn.createCreep(Memory.creepBodies[level].remoteHauler, 'remoteHauler' + Game.time, {
                         role: 'remoteHauler',
+                        roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         destination: key
@@ -351,6 +384,7 @@ function remotes(spawn, level) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === pioneer && creep.memory.role === 'pioneer');
                 if (pioneers.length < 1 && spawn.createCreep(Memory.creepBodies[level].pioneer, 'pioneer' + Game.time, {
                         role: 'pioneer',
+                        roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         destination: pioneer
@@ -366,6 +400,7 @@ function remotes(spawn, level) {
                 let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === claim && creep.memory.role === 'claimer');
                 if (claimer.length < 1 && spawn.createCreep(Memory.creepBodies[level].claimer, 'claimer' + Game.time, {
                         role: 'claimer',
+                        roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         destination: claim
@@ -379,6 +414,7 @@ function remotes(spawn, level) {
             let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'reserver');
             if (reserver.length < _.round(Object.keys(Game.map.describeExits(spawn.room.name)).length, 0) / 2 && spawn.createCreep(Memory.creepBodies[level].reserver, 'reserver' + Game.time, {
                     role: 'reserver',
+                    roleGroup: 'remotes',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name
                 }) === 'reserver' + Game.time) {
