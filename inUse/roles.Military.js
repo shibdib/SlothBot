@@ -426,7 +426,7 @@ function responder(creep) {
 responder = profiler.registerFN(responder, 'responderMilitary');
 
 function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
+    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
     if (invader) {
         let number = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
         creep.room.memory.responseNeeded = true;

@@ -29,7 +29,7 @@ function controller() {
 module.exports.controller = profiler.registerFN(controller, 'defenseController');
 //Functions
 function invaderCheck(spawn) {
-    let invader = spawn.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
+    let invader = spawn.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
     if (invader) {
         let number = spawn.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
         spawn.room.memory.responseNeeded = true;
