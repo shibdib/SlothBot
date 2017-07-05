@@ -192,7 +192,6 @@ function getter(creep) {
             }
         }
     } else {
-        creep.findStorage();
         if (creep.memory.storage) {
             if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(Game.getObjectById(creep.memory.storage));
