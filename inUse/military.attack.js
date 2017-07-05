@@ -48,7 +48,7 @@ function getIntel() {
             //check if room is owned
             if (Memory.roomCache[key].owner) {
                 Memory.warControl[key].type = 'siege';
-                if (Memory.roomCache[key].towers === 0 || undefined) {
+                if (Memory.roomCache[key].towers === 0 || Memory.roomCache[key].towers === undefined) {
                     Memory.warControl[key].level = 1;
                 } else if (Memory.roomCache[key].towers === 1) {
                     Memory.warControl[key].level = 2;
