@@ -48,16 +48,16 @@ function worker(creep) {
                 creep.travelTo(Game.flags.haulers);
             } else {
                 if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(construction);
+                    creep.travelTo(construction, {ignoreCreeps: false});
                 }
             }
         } else if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
             if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(repairNeeded);
+                creep.travelTo(repairNeeded, {ignoreCreeps: false});
             }
         } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(creep.room.controller);
+            creep.travelTo(creep.room.controller, {ignoreCreeps: false});
         }
     }
     else {
@@ -67,7 +67,7 @@ function worker(creep) {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {
                 if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(storage);
+                    creep.travelTo(storage, {ignoreCreeps: false});
                 }
             } else {
                 creep.memory.deliveryRequested = true;
@@ -111,7 +111,7 @@ function harvester(creep) {
             source = creep.findSource();
         }
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(source);
+            creep.travelTo(source, {ignoreCreeps: false});
         }
     }
 }
@@ -136,7 +136,7 @@ function mineralHarvester(creep) {
         }
         let response = creep.harvest(mineral);
         if (response === ERR_NOT_IN_RANGE) {
-            creep.travelTo(mineral);
+            creep.travelTo(mineral, {ignoreCreeps: false});
         }
         if (response === ERR_NOT_FOUND) {
             mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
@@ -169,7 +169,7 @@ function upgrader(creep) {
 
     if (creep.memory.working === true) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(creep.room.controller);
+            creep.travelTo(creep.room.controller, {ignoreCreeps: false});
         } else {
             if (dontSitOnRoads(creep) === true){creep.travelTo(creep.room.controller)}
         }

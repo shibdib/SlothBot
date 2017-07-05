@@ -136,7 +136,7 @@ withdrawEnergy = function () {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (energyItem) {
             if (this.withdraw(energyItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                this.travelTo(energyItem);
+                this.travelTo(energyItem, {ignoreCreeps: false});
             } else {
                 this.memory.energyDestination = null;
             }
