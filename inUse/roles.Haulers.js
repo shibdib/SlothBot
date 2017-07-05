@@ -181,7 +181,7 @@ function getter(creep) {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else {
-            creep.findEnergy();
+            creep.getEnergy();
             if (!creep.memory.energyDestination) {
                 let droppedEnergy =_.filter(creep.room.getDroppedResources(), (r) => r.resourceType === RESOURCE_ENERGY && r.amount > 100);
                 if (droppedEnergy[0]) {

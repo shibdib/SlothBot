@@ -288,6 +288,122 @@ findEnergy = function (range = 50, hauler = false) {
 };
 Creep.prototype.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
 
+findEnergy = function (range = 50, hauler = false) {
+    let energy = [];
+    //Container
+    let container = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'container'), 'id');
+    if (container.length > 0) {
+        let containers = [];
+        for (let i = 0; i < container.length; i++) {
+            const object = Game.getObjectById(container[i]);
+            if (object) {
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length > 0) {
+                    continue;
+                }
+                const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
+                const containerDistWeighted = object.pos.getRangeTo(this) * (1.1 - containerAmountWeighted);
+                containers.push({
+                    id: container[i],
+                    distWeighted: containerDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestContainer = _.min(containers, 'distWeighted');
+        energy.push({
+            id: bestContainer.id,
+            distWeighted: bestContainer.distWeighted,
+            harvest: false
+        });
+    }
+    //Links
+    if (hauler === false) {
+        let link = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'link'), 'id');
+        if (link.length > 0) {
+            let links = [];
+            for (let i = 0; i < link.length; i++) {
+                const object = Game.getObjectById(link[i]);
+                if (object) {
+                    if (object.energy === 0 || object.pos.getRangeTo(this) > range) {
+                        continue;
+                    }
+                    const linkDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
+                    links.push({
+                        id: link[i],
+                        distWeighted: linkDistWeighted,
+                        harvest: false
+                    });
+                }
+            }
+            let bestLink = _.min(links, 'distWeighted');
+            energy.push({
+                id: bestLink.id,
+                distWeighted: bestLink.distWeighted,
+                harvest: false
+            });
+        }
+    }
+    //Terminal
+    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
+    if (terminal.length > 0) {
+        let terminals = [];
+        for (let i = 0; i < terminal.length; i++) {
+            const object = Game.getObjectById(terminal[i]);
+            if (object) {
+                if (object.store[RESOURCE_ENERGY] <= 5000 || object.pos.getRangeTo(this) > range) {
+                    continue;
+                }
+                const terminalDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
+                terminals.push({
+                    id: terminal[i],
+                    distWeighted: terminalDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestTerminal = _.min(terminals, 'distWeighted');
+        energy.push({
+            id: bestTerminal.id,
+            distWeighted: bestTerminal.distWeighted,
+            harvest: false
+        });
+    }
+    /**
+     //Dropped Energy
+     let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
+     if (dropped.length > 0) {
+        let droppedEnergy = [];
+        for (let i = 0; i < dropped.length; i++) {
+            if (dropped[i]) {
+                const droppedDistWeighted = _.round(dropped[i].pos.getRangeTo(creep) * 0.3, 0) + 1;
+                droppedEnergy.push({
+                    id: dropped[i].id,
+                    distWeighted: droppedDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestDropped = _.min(droppedEnergy, 'distWeighted');
+        energy.push({
+            id: bestDropped.id,
+            distWeighted: bestDropped.distWeighted,
+            harvest: false
+        });
+    }**/
+
+    let sorted = _.min(energy, 'distWeighted');
+
+    if (sorted) {
+        if (sorted.harvest === false) {
+            let energyItem = Game.getObjectById(sorted.id);
+            if (energyItem) {
+                this.memory.energyDestination = energyItem.id;
+            }
+        }
+    }
+};
+Creep.prototype.getEnergy = profiler.registerFN(getEnergy, 'getEnergyCreepFunctions');
+
 findStorage = function () {
     let storage = [];
     //Storage
