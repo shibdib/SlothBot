@@ -34,6 +34,7 @@ function clearAttacks() {
         if (_.startsWith(name, 'cancel')) {
             Memory.warControl[Game.flags[name].pos.roomName] = undefined;
             Memory.militaryNeeds[Game.flags[name].pos.roomName] = undefined;
+            Game.flags[name].remove();
         }
     }
 }
