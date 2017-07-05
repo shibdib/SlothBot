@@ -345,8 +345,8 @@ mineralHauler = profiler.registerFN(mineralHauler, 'mineralHaulerHaulers');
  * @return {null}
  */
 function resupply(creep) {
-    if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
-        creep.memory.role = 'basicHauler';
+    if (creep.pos.roomName === creep.memory.assignedRoom) {
+        creep.memory.destinationReached = undefined;
     }
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
@@ -379,19 +379,23 @@ function resupply(creep) {
                 creep.memory.destinationReached = true;
             }
         } else {
-            if (creep.memory.deliveryStorage) {
-                if (creep.withdraw(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(creep.memory.deliveryStorage));
-                }
-            } else if (!creep.memory.deliveryStorage) {
-                let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-                if (storage.length > 0) {
-                    creep.memory.deliveryStorage = storage[0];
-                } else {
-                    creep.memory.deliveryStorage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).id;
-                }
-                if (!creep.memory.deliveryStorage) {
-                    creep.findEssentials();
+            if (creep.carry.energy === 0) {
+                creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn))
+            } else {
+                if (creep.memory.deliveryStorage) {
+                    if (creep.withdraw(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        creep.travelTo(Game.getObjectById(creep.memory.deliveryStorage));
+                    }
+                } else if (!creep.memory.deliveryStorage) {
+                    let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+                    if (storage.length > 0) {
+                        creep.memory.deliveryStorage = storage[0];
+                    } else {
+                        creep.memory.deliveryStorage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).id;
+                    }
+                    if (!creep.memory.deliveryStorage) {
+                        creep.findEssentials();
+                    }
                 }
             }
         }
