@@ -47,6 +47,8 @@ function scout(creep) {
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
+    } else {
+        creep.suicide();
     }
 }
 scout = profiler.registerFN(scout, 'scoutMilitary');
