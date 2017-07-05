@@ -25,6 +25,16 @@ function cacheAttacks() {
             Memory.warControl = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'decon')) {
+            let cache = Memory.warControl || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'decon'
+            };
+            Memory.warControl = cache;
+            Game.flags[name].remove();
+        }
     }
 }
 
@@ -47,7 +57,7 @@ function getIntel() {
         //check if scouted
         if (Memory.roomCache[key] && Memory.roomCache[key].cached + 500 > Game.time) {
             //check if room is owned
-            if (Memory.roomCache[key].owner) {
+            if (Memory.roomCache[key].owner && Memory.warControl[key].type !== 'decon') {
                 Memory.warControl[key].type = 'siege';
                 if (!Memory.warControl[key].siegePoint) {
                     let exit = Game.map.findExit(key, 'W53N83');
@@ -93,6 +103,15 @@ function queueTroops() {
                 healer: 0,
                 deconstructor: 0,
                 ranged: 1
+            };
+            Memory.militaryNeeds = cache;
+        } else if (Memory.warControl[key].type === 'decon') {
+            cache[key] = {
+                scout: 0,
+                attacker: 0,
+                healer: 0,
+                deconstructor: 2,
+                ranged: 0
             };
             Memory.militaryNeeds = cache;
         } else if (Memory.warControl[key].type === 'siege') {
