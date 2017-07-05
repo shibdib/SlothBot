@@ -42,8 +42,8 @@ function worker(creep) {
     if (creep.memory.working === true) {
         let repairNeeded = creep.findRepair(creep.room.controller.level);
         creep.findConstruction();
-        if (this.memory.constructionSite && creep.room.memory.responseNeeded !== true) {
-            let construction = Game.getObjectById(this.memory.constructionSite);
+        if (creep.memory.constructionSite && creep.room.memory.responseNeeded !== true) {
+            let construction = Game.getObjectById(creep.memory.constructionSite);
             if (creep.build(construction) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(construction, {ignoreCreeps: false});
             }
