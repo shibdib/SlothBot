@@ -54,10 +54,13 @@ function clearAttacks() {
 //Gather intel if needed
 function getIntel() {
     for (let key in Memory.warControl) {
+        if (Memory.warControl[key].type === 'decon') {
+            continue;
+        }
         //check if scouted
         if (Memory.roomCache[key] && Memory.roomCache[key].cached + 500 > Game.time) {
             //check if room is owned
-            if (Memory.roomCache[key].owner && Memory.warControl[key].type !== 'decon') {
+            if (Memory.roomCache[key].owner) {
                 Memory.warControl[key].type = 'siege';
                 if (!Memory.warControl[key].siegePoint) {
                     let exit = Game.map.findExit(key, 'W53N83');
