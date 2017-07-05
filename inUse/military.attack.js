@@ -131,7 +131,7 @@ function queueTroops() {
 //Gather intel if needed
 function markMap() {
     for (let key in Memory.warControl) {
-        Game.rooms[key].visual.text(
+        new RoomVisual(key).text(
             Memory.warControl[key].type,
             25,
             25,
