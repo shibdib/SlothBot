@@ -113,8 +113,8 @@ function attacker(creep) {
         }
         return null;
     }
-    let meleeLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.meleeLeader === true);
-    if (meleeLeader.length === 0) this.memory.meleeLeader = true;
+    let meleeLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.meleeLeader === true);
+    if (meleeLeader.length === 0) creep.memory.meleeLeader = true;
 
     if (creep.memory.meleeLeader === true) {
         creep.meleeTeamLeader();
@@ -149,8 +149,8 @@ function ranged(creep) {
         }
         return null;
     }
-    let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
-    if (rangedLeader.length === 0) this.memory.rangedLeader = true;
+    let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.rangedLeader === true);
+    if (rangedLeader.length === 0) creep.memory.rangedLeader = true;
 
     if (creep.memory.rangedLeader === true) {
         creep.rangedTeamLeader();
