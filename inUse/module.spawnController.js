@@ -202,22 +202,19 @@ function scouts(spawn, level) {
             console.log(spawn.room.name + ' Spawning an explorer');
             return true;
         }
-        for (let i = 0; i < 20; i++) {
-            let scout = 'scout' + i;
-            if (Game.flags[scout]) {
-                let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === Game.flags[scout].name && creep.memory.role === 'scout');
+        for (let key in Memory.militaryNeeds) {
+                let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'scout');
                 if (scouts.length === 0 && spawn.createCreep(Memory.creepBodies[level].scout, 'scout' + Game.time, {
                         role: 'scout',
                         roleGroup: 'scouts',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
-                        destination: Game.flags[scout].name,
+                        destination: key,
                     }) === 'scout' + Game.time) {
                     console.log(spawn.room.name + ' Spawning a scout');
                     return true;
                 }
             }
-        }
     }
 }
 scouts = profiler.registerFN(scouts, 'scoutsSpawn');

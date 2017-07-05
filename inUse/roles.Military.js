@@ -43,18 +43,9 @@ function scout(creep) {
         if (creep.pos.getRangeTo(armedHostile) < 2) {
             militaryFunctions.kite(creep);
         }
-        creep.travelTo(Game.flags[creep.memory.destination]);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+        this.travelTo(new RoomPosition(25, 25, this.memory.destination), {range: 15});
+        if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
-        }
-    } else {
-        let HostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (HostileCreeps.length > 0) {
-            creep.memory.enemyCount = HostileCreeps.length;
-            creep.memory.enemyPos = HostileCreeps[0].pos;
-        } else {
-            creep.memory.enemyCount = null;
-            creep.memory.enemyPos = null;
         }
     }
 }
