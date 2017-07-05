@@ -72,9 +72,11 @@ module.exports.loop = function () {
         roomController.roomControl();
 
         //Military management
-        Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
-        defenseController.controller();
-        attackController.controller();
+        if (Game.cpu.bucket > 1500) {
+            Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
+            defenseController.controller();
+            attackController.controller();
+        }
 
         //Creep Management
         Memory.stats.cpu.preCreep = Game.cpu.getUsed();
@@ -85,18 +87,22 @@ module.exports.loop = function () {
         towerController.towerControl();
 
         //Link Management
-        Memory.stats.cpu.preLink = Game.cpu.getUsed();
-        linkController.linkControl();
+        if (Game.cpu.bucket > 2500) {
+            Memory.stats.cpu.preLink = Game.cpu.getUsed();
+            linkController.linkControl();
+        }
 
         //Lab Management
         Memory.stats.cpu.preLab = Game.cpu.getUsed();
         //labController.labControl();
 
         //Terminal Management
-        Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
-        if (Game.time % 10 === 0) {
-            let terminalController = require('module.terminalController');
-            terminalController.terminalControl();
+        if (Game.cpu.bucket > 5000) {
+            Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
+            if (Game.time % 10 === 0) {
+                let terminalController = require('module.terminalController');
+                terminalController.terminalControl();
+            }
         }
 
         //Spawn Management
