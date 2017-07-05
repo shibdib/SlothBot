@@ -12,6 +12,13 @@ tacticSiege = function () {
     if (this.hits < this.hitsMax) {
         this.heal(this);
     }
+    //Check if safe mode
+    if (this.room.controller && this.room.controller.owner && _.includes(RawMemory.segments[2], this.room.controller.owner['username']) === false && this.room.controller.safeMode) {
+        this.memory.attackStarted = 'safe';
+        Memory.warControl[this.memory.attackTarget] = undefined;
+        Memory.militaryNeeds[this.memory.attackTarget] = undefined;
+        this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
+    }
     if (!this.memory.attackTarget) {
         this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         this.memory.attackTarget = 'available';
