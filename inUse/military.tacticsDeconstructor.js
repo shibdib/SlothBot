@@ -24,7 +24,7 @@ tacticSiege = function () {
         this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
         this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
-    } else if (!squadLeader[0] || this.memory.siegeStarted !== true || this.memory.attackType === 'decon') {
+    } else if (this.memory.siegeStarted !== true) {
         this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
         if (this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.siegePoint)) > 17) {
