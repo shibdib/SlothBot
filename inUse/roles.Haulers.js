@@ -11,31 +11,26 @@ function Manager(creep) {
         basicHauler(creep);
     } else if (creep.memory.role === "resupply") {
         resupply(creep);
-    } else if (creep.memory.role === "pawn" || creep.memory.role === 'filler' || creep.memory.role === 'getter' || creep.memory.role === 'hauler') {
+    } else if (creep.memory.role === "pawn") {
         let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
         let fillers = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
         let getters = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
         let haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === creep.room.name);
         if (fillers.length < 1) {
             creep.memory.role = 'filler';
-        } else if (storage.store[RESOURCE_ENERGY] < 25000 && fillers.length >= 2 && getters.length <= 2 && (creep.memory.role === 'hauler' || creep.memory.role === 'pawn')) {
+        } else if (getters.length <= 2) {
             creep.memory.role = 'getter';
         } else if (fillers.length < 2) {
             creep.memory.role = 'filler';
-        } else if (storage.store[RESOURCE_ENERGY] >= 30000 && fillers.length >= 1 && haulers.length <= 2 && (creep.memory.role === 'getter' || creep.memory.role === 'pawn')) {
+        } else if (haulers.length <= 2) {
             creep.memory.role = 'hauler';
         }
-        if (creep.memory.role === 'filler') {
-            filler(creep);
-            return;
-        }
-        if (creep.memory.role === 'getter') {
-            getter(creep);
-            return;
-        }
-        if (creep.memory.role === 'hauler') {
-            hauler(creep);
-        }
+    } else if (creep.memory.role === 'filler') {
+        filler(creep);
+    } else if (creep.memory.role === 'getter') {
+        getter(creep);
+    } else if (creep.memory.role === 'hauler') {
+        hauler(creep);
     }
 }
 module.exports.Manager = profiler.registerFN(Manager, 'managerHaulers');
