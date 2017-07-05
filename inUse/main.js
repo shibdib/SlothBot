@@ -72,7 +72,7 @@ module.exports.loop = function () {
         roomController.roomControl();
 
         //Military management
-        if (Game.cpu.bucket > 1500) {
+        if (Game.cpu.bucket > 500) {
             Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
             defenseController.controller();
             attackController.controller();
