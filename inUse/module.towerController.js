@@ -8,51 +8,48 @@ let doNotAggress = RawMemory.segments[2];
 
 function towerControl() {
     towers:
-    for (let tower of _.values(Game.structures)) {
-        if (tower.structureType === STRUCTURE_TOWER) {
-            const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
-            const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
-            const woundedCreep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
-            const closestHostile = tower.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
-            if (closestHostile.length > 0) {
-                for (let i = 0; i < closestHostile.length; i++) {
-                    if (closestHostile[i].pos.getRangeTo(tower) < 5) {
-                        tower.attack(closestHostile[i]);
-                        continue towers;
-                    } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
-                        tower.attack(closestHostile[i]);
-                        continue towers;
-                    } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS)) <= 1) {
-                        tower.attack(closestHostile[i]);
-                        continue towers;
-                    } else if (closestHostile[i].owner['username'] === 'Invader') {
-                        tower.attack(closestHostile[i]);
-                        continue towers;
+        for (let tower of _.values(Game.structures)) {
+            if (tower.structureType === STRUCTURE_TOWER) {
+                const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
+                const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
+                const woundedCreep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
+                const closestHostile = tower.room.find(FIND_CREEPS, {filter: (s) => _.includes(doNotAggress, s.owner['username']) === false});
+                if (closestHostile.length > 0) {
+                    for (let i = 0; i < closestHostile.length; i++) {
+                        if (closestHostile[i].pos.getRangeTo(tower) < 5) {
+                            tower.attack(closestHostile[i]);
+                            continue towers;
+                        } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
+                            tower.attack(closestHostile[i]);
+                            continue towers;
+                        } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS)) <= 1) {
+                            tower.attack(closestHostile[i]);
+                            continue towers;
+                        } else if (closestHostile[i].owner['username'] === 'Invader') {
+                            tower.attack(closestHostile[i]);
+                            continue towers;
+                        }
                     }
                 }
-            }
-            if (woundedCreep) {
-                tower.heal(woundedCreep);
-                continue;
-            }
-            if (tower.room.memory.responseNeeded !== true) {
-                if (barriers) {
-                    tower.repair(barriers);
+                if (woundedCreep) {
+                    tower.heal(woundedCreep);
                     continue;
                 }
-                if (road) {
-                    tower.repair(road);
-                    continue;
-                }
-                if (tower.energy > tower.energyCapacity * 0.95) {
-                    const closestDamagedStructure = Game.getObjectById(findRepair(tower));
-                    if (closestDamagedStructure) {
-                        tower.repair(closestDamagedStructure);
+                if (tower.room.memory.responseNeeded !== true && tower.energy > tower.energyCapacity * 0.75) {
+                    if (barriers) {
+                        tower.repair(barriers);
+                        continue;
+                    }
+                    if (road) {
+                        tower.repair(road);
+                        continue;
+                    }
+                    if (Game.getObjectById(findRepair(tower))) {
+                        tower.repair(Game.getObjectById(findRepair(tower)));
                     }
                 }
             }
         }
-    }
 }
 module.exports.towerControl = profiler.registerFN(towerControl, 'towerControl');
 

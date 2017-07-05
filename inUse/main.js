@@ -8,6 +8,7 @@ global.NODE_USAGE = {
 require("globals")(); // NOTE: All globals not from an external resource should be declared here
 require("prototype.workerCreep");
 require("prototype.roomPosition");
+require("prototype.room");
 require("prototype.creepCombat");
 require("military.tacticsRanged");
 require("military.tacticsMelee");
