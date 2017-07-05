@@ -381,7 +381,7 @@ function resupply(creep) {
                 creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn))
             } else {
                 if (creep.memory.deliveryStorage) {
-                    if (creep.withdraw(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    if (creep.transfer(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                         creep.travelTo(Game.getObjectById(creep.memory.deliveryStorage));
                     }
                 } else if (!creep.memory.deliveryStorage) {
