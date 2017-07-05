@@ -111,10 +111,10 @@ rangedTeam = function () {
                         this.fightRanged(closestHostile);
                     }
                 } else {
-                    this.travelTo(this.pos.findClosestByPath(inRangeHostile))
+                    this.travelTo(this.pos.findClosestByPath(hostiles))
                 }
             }
-        } else if (hostileStructures.length > 0 && (!Game.flags[this.memory.attackTarget] || this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName)) {
+        } else if (hostileStructures.length > 0 && (!this.memory.attackTarget || this.pos.roomName === this.memory.attackTarget)) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostileStructures))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
