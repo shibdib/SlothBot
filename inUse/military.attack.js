@@ -45,7 +45,7 @@ function clearAttacks() {
 function getIntel() {
     for (let key in Memory.warControl) {
         //check if scouted
-        if (Memory.roomCache[key] && Memory.roomCache[key].cached + 300 < Game.time) {
+        if (Memory.roomCache[key] && Memory.roomCache[key].cached + 500 > Game.time) {
             //check if room is owned
             if (Memory.roomCache[key].owner) {
                 Memory.warControl[key].type = 'siege';
