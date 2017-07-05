@@ -5,13 +5,10 @@ let borderChecks = require('module.borderChecks');
 let militaryFunctions = require('module.militaryFunctions');
 const profiler = require('screeps-profiler');
 
-rangedTeam = function () {
+rangedTeamLeader = function () {
     borderChecks.borderCheck(this);
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
-    let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
-    let squad = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget);
-    let team = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === this.memory.role);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
     let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
     let hostileStructures = this.room.find(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER && _.includes(RawMemory.segments[2], s.owner['username']) === false});
@@ -29,7 +26,6 @@ rangedTeam = function () {
     let nearbyHealers = this.pos.findInRange(healers, 5);
     let farHealers = this.pos.findInRange(healers, 15);
     let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
-    if (rangedLeader.length === 0) this.memory.rangedLeader = true;
 
     //Retreat if wounded
     if (this.hits < this.hitsMax * 0.75) {
@@ -53,6 +49,8 @@ rangedTeam = function () {
         }
     } else if (this.hits < this.hitsMax) {
         this.heal(this);
+    } else if (needsHeals.length > 0) {
+        this.rangedHeal(needsHeals[0]);
     }
     if (this.memory.rangedLeader === true) {
         let closestHostileTower = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(RawMemory.segments[2], s.owner['username']) === false});
@@ -64,7 +62,15 @@ rangedTeam = function () {
             Memory.militaryNeeds[this.memory.attackTarget] = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         }
-        if (armedHostile.length > 0) {
+        if (squadLeader[0]) {
+            if (this.pos.getRangeTo(squadLeader[0]) > 6) {
+                if (this.room.name !== squadLeader[0].pos.roomName) {
+                    this.travelTo(squadLeader[0], {allowHostile: true});
+                } else {
+                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                }
+            }
+        } else if (armedHostile.length > 0) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
                 if (inRangeArmed.length > 0) {
@@ -88,7 +94,7 @@ rangedTeam = function () {
                 }
             }
         } else if (squadLeader[0]) {
-            if (this.pos.getRangeTo(squadLeader[0]) > 10) {
+            if (this.pos.getRangeTo(squadLeader[0]) > 4) {
                 if (this.room.name !== squadLeader[0].pos.roomName) {
                     this.travelTo(squadLeader[0], {allowHostile: true});
                 } else {
@@ -144,45 +150,84 @@ rangedTeam = function () {
         } else if (this.memory.attackType === 'siege') {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
-    } else {
-        if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
-            this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
-        } else if (squadLeader[0]) {
-            if (this.pos.getRangeTo(squadLeader[0]) > 10) {
-                if (this.room.name !== squadLeader[0].pos.roomName) {
-                    this.travelTo(squadLeader[0], {allowHostile: true});
-                } else {
-                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-                }
-            }
-        } else if (rangedLeader[0]) {
-            if (this.pos.getRangeTo(rangedLeader[0]) > 4) {
-                if (this.room.name !== rangedLeader[0].pos.roomName) {
-                    this.travelTo(rangedLeader[0], {allowHostile: true});
-                } else {
-                    this.travelTo(rangedLeader[0], {allowHostile: true, movingTarget: true});
-                }
-            }
+    }
+};
+Creep.prototype.rangedTeamLeader = profiler.registerFN(rangedTeamLeader, 'rangedTeamTactic');
+
+rangedTeamMember = function () {
+    borderChecks.borderCheck(this);
+    let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+    let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
+    let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
+    let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
+    let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+    let inRangeHostile = this.pos.findInRange(hostiles, 3);
+    let inRangeArmed = this.pos.findInRange(armedHostile, 3);
+    let closestArmed;
+    let closestHostile;
+    if (inRangeArmed.length > 0) {
+        closestArmed = this.pos.findClosestByPath(inRangeArmed);
+    }
+    if (inRangeHostile.length > 0) {
+        closestHostile = this.pos.findClosestByPath(inRangeHostile);
+    }
+    let nearbyHealers = this.pos.findInRange(healers, 5);
+    let farHealers = this.pos.findInRange(healers, 15);
+    let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
+    if (rangedLeader.length === 0) this.memory.rangedLeader = true;
+
+    //Retreat if wounded
+    if (this.hits < this.hitsMax * 0.75) {
+        this.heal(this);
+        if (inRangeArmed.length > 1) {
+            this.rangedMassAttack();
+        } else if (inRangeArmed.length === 1) {
+            this.rangedAttack(inRangeArmed[0]);
         }
-        if (rangedLeader[0].memory.rangedTarget) {
-            if (rangedLeader[0].memory.rangedTarget === 'mass') {
-                this.rangedMassAttack();
-            } else {
-                this.fightRanged(Game.getObjectById(rangedLeader[0].memory.rangedTarget));
-            }
-            if (needsHeals.length > 0) {
-                this.rangedHeal(needsHeals[0])
-            }
-        } else if (closestArmed && this.pos.getRangeTo(closestArmed) <= 3) {
-            this.fightRanged(closestArmed);
+        if (nearbyHealers.length > 0) {
+            this.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            return null;
+        } else if (squadLeader.length > 0) {
+            this.travelTo(squadLeader[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            return null;
+        } else if (farHealers.length > 0) {
+            this.travelTo(farHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            return null;
         } else {
-            if (needsHeals.length > 0) {
-                this.rangedHeal(needsHeals[0])
+            militaryFunctions.retreat(this);
+        }
+    } else if (this.hits < this.hitsMax) {
+        this.heal(this);
+    }
+    if (rangedLeader[0]) {
+        if (this.pos.getRangeTo(rangedLeader[0]) > 4) {
+            if (this.room.name !== rangedLeader[0].pos.roomName) {
+                this.travelTo(rangedLeader[0], {allowHostile: true});
+            } else {
+                this.travelTo(rangedLeader[0], {allowHostile: true, movingTarget: true});
             }
         }
     }
+    if (rangedLeader[0].memory.rangedTarget) {
+        if (rangedLeader[0].memory.rangedTarget === 'mass') {
+            this.rangedMassAttack();
+        } else {
+            this.fightRanged(Game.getObjectById(rangedLeader[0].memory.rangedTarget));
+        }
+        if (needsHeals.length > 0) {
+            this.rangedHeal(needsHeals[0])
+        }
+    } else if (closestArmed && this.pos.getRangeTo(closestArmed) <= 3) {
+        this.fightRanged(closestArmed);
+    } else if (closestHostile && this.pos.getRangeTo(closestHostile) <= 3) {
+        this.fightRanged(closestHostile);
+    } else {
+        if (needsHeals.length > 0) {
+            this.rangedHeal(needsHeals[0])
+        }
+    }
 };
-Creep.prototype.rangedTeam = profiler.registerFN(rangedTeam, 'rangedTeamTactic');
+Creep.prototype.rangedTeamMember = profiler.registerFN(rangedTeamMember, 'rangedTeamMemberTactic');
 
 function rangedSolo(creep) {
     let nearbyHealers = creep.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.role === 'healer'), 15);

@@ -113,7 +113,14 @@ function attacker(creep) {
         }
         return null;
     }
-    creep.meleeTeam();
+    let meleeLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.meleeLeader === true);
+    if (meleeLeader.length === 0) this.memory.meleeLeader = true;
+
+    if (creep.memory.meleeLeader === true) {
+        creep.meleeTeamLeader();
+    } else {
+        creep.meleeTeamMember();
+    }
 }
 attacker = profiler.registerFN(attacker, 'attackerMilitary');
 
@@ -142,7 +149,14 @@ function ranged(creep) {
         }
         return null;
     }
-    creep.rangedTeam();
+    let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
+    if (rangedLeader.length === 0) this.memory.rangedLeader = true;
+
+    if (creep.memory.rangedLeader === true) {
+        creep.rangedTeamLeader();
+    } else {
+        creep.rangedTeamMember();
+    }
 }
 ranged = profiler.registerFN(ranged, 'rangedMilitary');
 
