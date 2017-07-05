@@ -21,7 +21,7 @@ function roomBuilding() {
         }
         for (let key in Game.constructionSites) {
             let sources = spawn.room.find(FIND_SOURCES);
-            if (Game.constructionSites[key].pos.checkForObstacleStructure() || (Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 && Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER) || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1 || Game.constructionSites[key].pos.checkForRoad()) {
+            if (Game.constructionSites[key].pos.checkForObstacleStructure() || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1|| Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1 || Game.constructionSites[key].pos.checkForRoad() && Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER ) {
                 Game.constructionSites[key].remove();
             }
         }
