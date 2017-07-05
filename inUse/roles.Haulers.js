@@ -73,9 +73,6 @@ basicHauler = profiler.registerFN(basicHauler, 'basicHaulerHaulers');
  * @return {null}
  */
 function hauler(creep) {
-    if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
-        creep.memory.role = 'basicHauler';
-    }
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
