@@ -98,6 +98,9 @@ responseForce = profiler.registerFN(responseForce, 'responseForceSpawn');
 function attackForce(spawn, level) {
     if (spawn.room.controller.level >= 3) {
         for (let key in Memory.militaryNeeds) {
+            if (!Memory.militaryNeeds[key]) {
+                continue;
+            }
                     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'attacker');
                     if (attackers.length < Memory.militaryNeeds[key].attacker && spawn.createCreep(Memory.creepBodies[level].attacker, 'attacker' + Game.time, {
                             role: 'attacker',
