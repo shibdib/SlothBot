@@ -43,7 +43,7 @@ function scout(creep) {
         if (creep.pos.getRangeTo(armedHostile) < 2) {
             militaryFunctions.kite(creep);
         }
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {ignoreStructures: true, range: 48});
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 48});
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
