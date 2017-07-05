@@ -288,7 +288,7 @@ findEnergy = function (range = 50, hauler = false) {
 };
 Creep.prototype.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
 
-findEnergy = function (range = 50, hauler = false) {
+getEnergy = function (range = 50, hauler = false) {
     let energy = [];
     //Container
     let container = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'container'), 'id');
