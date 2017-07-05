@@ -9,6 +9,9 @@ let doNotAggress = RawMemory.segments[2];
 tacticSiege = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
+    if (this.hits < this.hitsMax) {
+        this.heal(this);
+    }
     if (!this.memory.attackTarget) {
         this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         this.memory.attackTarget = 'available';
