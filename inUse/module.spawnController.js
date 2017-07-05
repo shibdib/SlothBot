@@ -13,7 +13,7 @@ function creepRespawn() {
             let upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
             let worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
             let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
-            let pawn = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' && creep.memory.assignedRoom === spawn.room.name);
+            let pawn = _.filter(Game.creeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn') && creep.memory.assignedRoom === spawn.room.name);
             let attackRequested;
             for (let name in Game.flags) {if (_.startsWith(name, 'attack')) { attackRequested = true; break;}}
 
@@ -34,7 +34,7 @@ function creepRespawn() {
             if (haulers(spawn, level) === true) {
                 continue;
             }
-            if (upgraders.length > 0 && worker.length > 0 && (basicHauler.length === 1 || pawn.length >= 2)) {
+            if (upgraders.length > 0 && (basicHauler.length === 1 || pawn.length >= 3)) {
                 if (respondersNeeded === true) {
                     if (responseForce(spawn, level) === true) {
                         continue;
