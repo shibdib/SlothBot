@@ -104,6 +104,14 @@ meleeTeam = function () {
                     this.travelTo(this.pos.findClosestByPath(inRangeHostile))
                 }
             }
+        } else if (squadLeader[0]) {
+            if (this.pos.getRangeTo(squadLeader[0]) > 10) {
+                if (this.room.name !== squadLeader[0].pos.roomName) {
+                    this.travelTo(squadLeader[0], {allowHostile: true});
+                } else {
+                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                }
+            }
         } else if (this.memory.attackStarted !== true) {
             this.memory.meleeTarget = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
