@@ -73,7 +73,7 @@ module.exports.loop = function () {
 
         //Military management
         Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 500) {
+        if (Game.cpu.bucket < 500) {
             defenseController.controller();
             attackController.controller();
         }
@@ -88,7 +88,7 @@ module.exports.loop = function () {
 
         //Link Management
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 2500) {
+        if (Game.cpu.bucket < 2500) {
             linkController.linkControl();
         }
 
@@ -98,7 +98,7 @@ module.exports.loop = function () {
 
         //Terminal Management
         Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 5000) {
+        if (Game.cpu.bucket < 5000) {
             if (Game.time % 10 === 0) {
                 let terminalController = require('module.terminalController');
                 terminalController.terminalControl();
