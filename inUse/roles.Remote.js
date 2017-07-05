@@ -25,7 +25,7 @@ function explorer(creep) {
         creep.memory.destination = _.sample(creep.memory.targetRooms);
     }
     if (creep.memory.destinationReached !== true) {
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true});
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
