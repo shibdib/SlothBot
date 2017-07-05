@@ -56,7 +56,7 @@ meleeTeam = function () {
     }
     if (this.memory.meleeLeader === true) {
         let closestHostileTower = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(RawMemory.segments[2], s.owner['username']) === false});
-        let weakPoint = this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false});
+        let weakPoint = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         //Check if safe mode
         if (this.room.controller && this.room.controller.owner && _.includes(RawMemory.segments[2], this.room.controller.owner['username']) === false && this.room.controller.safeMode) {
             this.memory.attackStarted = 'safe';
@@ -116,6 +116,9 @@ meleeTeam = function () {
                     this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
                 }
             }
+        } else if (weakPoint && this.pos.getRangeTo(weakPoint) <= 2) {
+            this.attack(weakPoint);
+            this.rangedAttack(weakPoint);
         } else if (this.memory.attackStarted !== true) {
             this.memory.meleeTarget = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
