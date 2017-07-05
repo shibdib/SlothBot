@@ -8,6 +8,7 @@ function controller() {
     clearAttacks();
     getIntel();
     queueTroops();
+    markMap();
 }
 module.exports.controller = profiler.registerFN(controller, 'attackController');
 
@@ -123,5 +124,18 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             }
         }
+    }
+}
+
+
+//Gather intel if needed
+function markMap() {
+    for (let key in Memory.warControl) {
+        Game.rooms[key].visual.text(
+            Memory.warControl[key].type,
+            25,
+            25,
+            {align: 'left', opacity: 0.8}
+        );
     }
 }
