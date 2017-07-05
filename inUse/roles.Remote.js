@@ -228,6 +228,8 @@ function pioneer(creep) {
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(repairNeeded);
                 }
+            } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(creep.room.controller);
             }
         }
     }
