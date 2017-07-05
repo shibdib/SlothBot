@@ -20,7 +20,7 @@ function Manager(creep) {
             creep.memory.role = 'filler';
         } else if (getters.length < 2) {
             creep.memory.role = 'getter';
-        } else if (haulers.length < 2) {
+        } else {
             creep.memory.role = 'hauler';
         }
     } else if (creep.memory.role === 'filler') {
