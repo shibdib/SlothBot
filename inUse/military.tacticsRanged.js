@@ -146,7 +146,7 @@ rangedTeamLeader = function () {
                 }
             }
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 15});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
         } else if (this.memory.attackType === 'siege') {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
