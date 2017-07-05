@@ -90,22 +90,20 @@ function hauler(creep) {
         } else {
             creep.findEnergy();
         }
-    } else {
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem, {ignoreCreeps: false});
-            } else {
-                creep.memory.storageDestination = null;
-                creep.memory.path = null;
-            }
-            return null;
-        }
-        if (!creep.findDeliveries()) {
-            creep.findEssentials();
+    } else if (creep.memory.storageDestination) {
+        let storageItem = Game.getObjectById(creep.memory.storageDestination);
+        if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+            creep.travelTo(storageItem, {ignoreCreeps: false});
         } else {
-            creep.say(ICONS.transfer);
+            creep.memory.storageDestination = null;
+            creep.memory.path = null;
         }
+        return null;
+    } else
+    if (!creep.findDeliveries()) {
+        creep.findEssentials();
+    } else {
+        creep.say(ICONS.transfer);
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerHaulers');
@@ -178,7 +176,7 @@ function getter(creep) {
             creep.withdrawEnergy();
         } else {
             creep.getEnergy();
-           /** if (!creep.memory.energyDestination) {
+            /** if (!creep.memory.energyDestination) {
                 let droppedEnergy = _.filter(creep.room.getDroppedResources(), (r) => r.resourceType === RESOURCE_ENERGY && r.amount > 100);
                 if (droppedEnergy[0]) {
                     if (creep.pickup(droppedEnergy[0]) === ERR_NOT_IN_RANGE) {
