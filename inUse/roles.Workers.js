@@ -152,11 +152,6 @@ function upgrader(creep) {
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
     borderChecks.wrongRoom(creep);
-
-    if (creep.carry.energy === creep.carryCapacity / 2) {
-        creep.memory.deliveryRequested = true;
-    }
-
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
