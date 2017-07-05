@@ -146,7 +146,7 @@ function hauler(creep) {
                 creep.findStorage();
             } else {
                 creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn), {
-                    range: 20
+                    range: 5
                 });
             }
         }
