@@ -204,7 +204,7 @@ function scouts(spawn, level) {
         }
         for (let key in Memory.militaryNeeds) {
                 let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'scout');
-                if (scouts.length === 0 && spawn.createCreep(Memory.creepBodies[level].scout, 'scout' + Game.time, {
+                if (scouts.length < Memory.militaryNeeds[key].scout && spawn.createCreep(Memory.creepBodies[level].scout, 'scout' + Game.time, {
                         role: 'scout',
                         roleGroup: 'scouts',
                         assignedSpawn: spawn.id,
