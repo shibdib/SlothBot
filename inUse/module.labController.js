@@ -28,35 +28,12 @@ function labControl() {
                                 continue;
                             }
                             let reaction = lab.room.memory.reactions[key];
-                            if (_.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-                                    if (s['structure'] && s['structure'].store) {
-                                        return s['structure'].store[reaction.input1] || 0;
-                                    } else {
-                                        return 0;
-                                    }
-                                }) + _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-                                    if (s['structure'] && s['structure'].mineralAmount) {
-                                        return s['structure'].mineralAmount || 0;
-                                    } else {
-                                        return 0;
-                                    }
-                                }) >= 200 && _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-                                    if (s['structure'] && s['structure'].store) {
-                                        return s['structure'].store[reaction.input2] || 0;
-                                    } else {
-                                        return 0;
-                                    }
-                                }) + _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-                                    if (s['structure'] && s['structure'].mineralAmount) {
-                                        return s['structure'].mineralAmount || 0;
-                                    } else {
-                                        return 0;
-                                    }
-                                }) >= 200) {
+                            if (_.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {if (s['structure'] && s['structure'].store) {return s['structure'].store[reaction.input1] || 0;} else {return 0;}}) + _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {if (s['structure'] && s['structure'].mineralAmount) {return s['structure'].mineralAmount || 0;} else {return 0;}}) >= 200
+                                && _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {if (s['structure'] && s['structure'].store) {return s['structure'].store[reaction.input2] || 0;} else {return 0;}}) + _.sum(lab.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {if (s['structure'] && s['structure'].mineralAmount) {return s['structure'].mineralAmount || 0;} else {return 0;}}) >= 200) {
                                 reaction.assignedHub = currentHub;
-                                reaction.lab1 = currentHub;
-                                reaction.lab2 = hubLabs[0].id;
+                                reaction.lab1 = hubLabs[0].id;
                                 reaction.lab2 = hubLabs[1].id;
+                                reaction.lab2 = hubLabs[2].id;
                                 //if minerals are present, react!
                                 let lab1 = Game.getObjectById(reaction.lab1);
                                 let lab2 = Game.getObjectById(reaction.lab2);

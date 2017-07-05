@@ -326,7 +326,6 @@ function workers(spawn, level) {
                     console.log(spawn.room.name + ' Spawning a mineralHauler');
                     return true;
                 }
-                /**
                  const labTech = _.filter(Game.creeps, (creep) => creep.memory.role === 'labTech' && creep.memory.assignedRoom === spawn.room.name);
                  const labs = _.filter(Game.structures, (s) => s.room.name === spawn.room.name && s.structureType === STRUCTURE_LAB);
                  if (labTech.length < 1 && labs.length >= 3 && spawn.room.memory.reactions && spawn.createCreep(Memory.creepBodies[level].labTech, 'labTech' + Game.time, {
@@ -337,7 +336,7 @@ function workers(spawn, level) {
                     }) === 'labTech' + Game.time) {
                     console.log(spawn.room.name + ' Spawning a labTech');
                     return true;
-                }**/
+                }
             }
         }
     }
