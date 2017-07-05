@@ -65,6 +65,10 @@ meleeTeam = function () {
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         }
         if (armedHostile.length > 0) {
+            if (closestArmed && this.pos.getRangeTo(closestArmed) <= 1) {
+                this.attack(closestArmed);
+                this.rangedAttack(closestArmed);
+            }
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
                 if (inRangeArmed.length > 0) {
