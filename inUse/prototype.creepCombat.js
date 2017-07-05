@@ -239,7 +239,7 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = undefined;
         }
     }
-    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+    if (target === null) {
         let cs = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
         this.travelTo(cs);
         return false;
