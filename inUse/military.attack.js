@@ -48,7 +48,7 @@ function getIntel() {
             //check if room is owned
             if (Memory.roomCache[key].owner) {
                 Memory.warControl[key].type = 'siege';
-                if (Memory.roomCache[key].towers === 0) {
+                if (Memory.roomCache[key].towers === 0 || undefined) {
                     Memory.warControl[key].level = 1;
                 } else if (Memory.roomCache[key].towers === 1) {
                     Memory.warControl[key].level = 2;
@@ -91,23 +91,23 @@ function queueTroops() {
         } else if (Memory.warControl[key].type === 'siege') {
             if (Memory.warControl[key].level === 1) {
                 cache[key] = {
-                    attacker: 0,
+                    attacker: 1,
                     healer: 1,
                     deconstructor: 1,
-                    ranged: 2
+                    ranged: 0
                 };
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 2) {
                 cache[key] = {
-                    attacker: 0,
+                    attacker: 1,
                     healer: 1,
                     deconstructor: 2,
-                    ranged: 2
+                    ranged: 1
                 };
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 3) {
                 cache[key] = {
-                    attacker: 0,
+                    attacker: 2,
                     healer: 2,
                     deconstructor: 2,
                     ranged: 3
@@ -115,7 +115,7 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 4) {
                 cache[key] = {
-                    attacker: 0,
+                    attacker: 2,
                     healer: 3,
                     deconstructor: 4,
                     ranged: 4
