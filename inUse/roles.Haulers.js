@@ -379,7 +379,11 @@ function resupply(creep) {
         }
     } else {
         if (creep.memory.destinationReached !== true) {
-            creep.travelTo(Game.flags[creep.memory.destination])
+            if (creep.getRangeTo(Game.flags[creep.memory.destination]) > 3) {
+                creep.travelTo(Game.flags[creep.memory.destination])
+            } else {
+                creep.memory.destinationReached = true;
+            }
         } else {
             if (creep.memory.deliveryStorage) {
                 if (creep.withdraw(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
