@@ -139,10 +139,10 @@ function queueTroops() {
             } else if (Memory.warControl[key].level === 3) {
                 cache[key] = {
                     scout: 0,
-                    attacker: 2,
+                    attacker: 1,
                     healer: 2,
                     deconstructor: 2,
-                    ranged: 3
+                    ranged: 2
                 };
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 4) {
