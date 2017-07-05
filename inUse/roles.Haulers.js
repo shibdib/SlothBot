@@ -347,6 +347,8 @@ mineralHauler = profiler.registerFN(mineralHauler, 'mineralHaulerHaulers');
 function resupply(creep) {
     if (creep.pos.roomName === creep.memory.assignedRoom) {
         creep.memory.destinationReached = undefined;
+    } else if (creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) {
+        creep.memory.destinationReached = true;
     }
     //INITIAL CHECKS
     borderChecks.borderCheck(creep);
@@ -373,12 +375,7 @@ function resupply(creep) {
         }
     } else {
         if (creep.memory.destinationReached !== true) {
-            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) > 3) {
                 creep.travelTo(Game.flags[creep.memory.destination]);
-                return null;
-            } else {
-                creep.memory.destinationReached = true;
-            }
         } else {
             if (creep.carry.energy === 0) {
                 creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn))
