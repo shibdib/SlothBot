@@ -133,7 +133,7 @@ rangedTeam = function () {
         } else if (this.memory.attackStarted !== true) {
             this.memory.rangedTarget = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
-            if (Game.flags[this.memory.attackTarget]) {
+            if (this.memory.attackTarget) {
                 let nearbyAttackers = this.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === this.memory.attackTarget && a.memory.role === 'attacker'), 5);
                 let nearbyHealers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'healer'), 5);
                 let nearbyRanged = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'ranged'), 5);
