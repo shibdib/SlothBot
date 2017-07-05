@@ -41,15 +41,11 @@ function worker(creep) {
 
     if (creep.memory.working === true) {
         let repairNeeded = creep.findRepair(creep.room.controller.level);
-        let construction = creep.findConstruction();
-        if (construction && creep.room.memory.responseNeeded !== true) {
-            construction = Game.getObjectById(construction);
-            if (creep.build(construction) === ERR_INVALID_TARGET) {
-                creep.travelTo(Game.flags.haulers);
-            } else {
-                if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(construction, {ignoreCreeps: false});
-                }
+        creep.findConstruction();
+        if (this.memory.constructionSite && creep.room.memory.responseNeeded !== true) {
+            let construction = Game.getObjectById(this.memory.constructionSite);
+            if (creep.build(construction) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(construction, {ignoreCreeps: false});
             }
         } else if (repairNeeded) {
             repairNeeded = Game.getObjectById(repairNeeded);
@@ -166,7 +162,9 @@ function upgrader(creep) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
             creep.travelTo(creep.room.controller, {ignoreCreeps: false});
         } else {
-            if (dontSitOnRoads(creep) === true){creep.travelTo(creep.room.controller)}
+            if (dontSitOnRoads(creep) === true) {
+                creep.travelTo(creep.room.controller)
+            }
         }
     } else {
         if (creep.memory.energyDestination) {
