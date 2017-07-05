@@ -83,6 +83,7 @@ function queueTroops() {
             Memory.militaryNeeds = cache;
         } else if (Memory.warControl[key].type === 'raid') {
             cache[key] = {
+                scout: 0,
                 attacker: 0,
                 healer: 0,
                 deconstructor: 0,
@@ -92,6 +93,7 @@ function queueTroops() {
         } else if (Memory.warControl[key].type === 'siege') {
             if (Memory.warControl[key].level === 1) {
                 cache[key] = {
+                    scout: 0,
                     attacker: 1,
                     healer: 1,
                     deconstructor: 1,
@@ -100,6 +102,7 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 2) {
                 cache[key] = {
+                    scout: 0,
                     attacker: 1,
                     healer: 1,
                     deconstructor: 2,
@@ -108,6 +111,7 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 3) {
                 cache[key] = {
+                    scout: 0,
                     attacker: 2,
                     healer: 2,
                     deconstructor: 2,
@@ -116,6 +120,7 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 4) {
                 cache[key] = {
+                    scout: 0,
                     attacker: 2,
                     healer: 3,
                     deconstructor: 4,
