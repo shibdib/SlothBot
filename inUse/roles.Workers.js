@@ -171,7 +171,13 @@ function upgrader(creep) {
             creep.withdrawEnergy();
         } else {
             let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy > 0});
-            if (link) {
+            let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
+            if (terminal && creep.pos.getRangeTo(terminal) < 5) {
+                if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(terminal);
+                }
+            } else
+            if (link && creep.pos.getRangeTo(link) < 5) {
                 if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(link);
                 }
