@@ -77,6 +77,9 @@ rangedTeamLeader = function () {
                     if (inRangeArmed.length > 1) {
                         this.memory.rangedTarget = 'mass';
                         this.rangedMassAttack();
+                        if (this.pos.getRangeTo(closestArmed) <= 2) {
+                            this.flee(closestArmed);
+                        }
                     } else if (inRangeArmed.length === 1) {
                         this.memory.rangedTarget = closestArmed.id;
                         this.fightRanged(closestArmed);
