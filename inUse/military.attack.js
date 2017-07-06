@@ -83,6 +83,7 @@ function getIntel() {
                 }
             } else {
                 Memory.warControl[key].type = 'raid';
+                Memory.warControl[key].threat = 0;
             }
         } else {
             Memory.warControl[key].type = 'scout';
@@ -105,14 +106,34 @@ function queueTroops() {
             };
             Memory.militaryNeeds = cache;
         } else if (Memory.warControl[key].type === 'raid') {
-            cache[key] = {
-                scout: 0,
-                attacker: 0,
-                healer: 0,
-                deconstructor: 0,
-                ranged: 1
-            };
-            Memory.militaryNeeds = cache;
+            if (Memory.warControl[key].threat === 0){
+                cache[key] = {
+                    scout: 0,
+                    attacker: 0,
+                    healer: 0,
+                    deconstructor: 0,
+                    ranged: 1
+                };
+                Memory.militaryNeeds = cache;
+            } else if (Memory.warControl[key].threat === 1){
+                cache[key] = {
+                    scout: 0,
+                    attacker: 0,
+                    healer: 0,
+                    deconstructor: 0,
+                    ranged: 2
+                };
+                Memory.militaryNeeds = cache;
+            } else if (Memory.warControl[key].threat === 2){
+                cache[key] = {
+                    scout: 0,
+                    attacker: 1,
+                    healer: 1,
+                    deconstructor: 0,
+                    ranged: 2
+                };
+                Memory.militaryNeeds = cache;
+            }
         } else if (Memory.warControl[key].type === 'decon') {
             cache[key] = {
                 scout: 0,
