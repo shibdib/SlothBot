@@ -251,7 +251,7 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = undefined;
         }
     }
-    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         if (!this.memory.siegeTarget || !Game.getObjectById(this.memory.siegeTarget)) {
             target = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 25, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         } else {
