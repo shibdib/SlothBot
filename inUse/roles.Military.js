@@ -45,9 +45,11 @@ function scout(creep) {
         }
         creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 24,maxOps: 50000,ensurePath:true});
         if (creep.pos.roomName === creep.memory.destination) {
+            cache.cacheRoomIntel(creep);
             creep.memory.destinationReached = true;
         }
     } else {
+        cache.cacheRoomIntel(creep);
         creep.suicide();
     }
 }
