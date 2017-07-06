@@ -119,6 +119,7 @@ module.exports.loop = function () {
             {"username": "Donat", "status": "alliance"},
             {"username": "KageJ", "status": "alliance"},
             {"username": "BrinkDaDrink", "status": "alliance"},
+            {"username": "Tyac", "status": "alliance"},
             {"username": "droben", "status": "nap"}
         ];
         let doNotAggressArray = [
@@ -130,6 +131,7 @@ module.exports.loop = function () {
             'Donat',
             'KageJ',
             'BrinkDaDrink',
+            'Tyac',
             'droben'];
         RawMemory.segments[1] = JSON.stringify(doNotAggress);
         RawMemory.segments[2] = JSON.stringify(doNotAggressArray);
