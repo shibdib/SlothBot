@@ -214,7 +214,13 @@ rangedTeamMember = function () {
     if (rangedLeader[0].memory.rangedTarget) {
         if (rangedLeader[0].memory.rangedTarget === 'mass') {
             this.rangedMassAttack();
+            if (this.pos.getRangeTo(closestArmed) <= 2) {
+                this.flee(closestArmed);
+            }
         } else {
+            if (this.pos.getRangeTo(closestArmed) <= 2) {
+                this.flee(closestArmed);
+            }
             this.fightRanged(Game.getObjectById(rangedLeader[0].memory.rangedTarget));
         }
         if (needsHeals.length > 0) {
