@@ -54,7 +54,7 @@ function clearAttacks() {
 //Gather intel if needed
 function getIntel() {
     for (let key in Memory.warControl) {
-        if (Memory.warControl[key].type === 'decon') {
+        if (Memory.warControl[key] && Memory.warControl[key].type === 'decon') {
             if (!Memory.warControl[key].siegePoint) {
                 let exit = Game.map.findExit(key, 'W53N83');
                 let exits = Game.map.describeExits(key);
