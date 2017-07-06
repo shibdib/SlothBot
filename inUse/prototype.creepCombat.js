@@ -223,6 +223,18 @@ Creep.prototype.siege = function () {
         this.memory.siegeComplete = true;
     }
     if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+        target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_STORAGE);
+        if (target) {
+            this.memory.siegeComplete = true;
+        }
+    }
+    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+        target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_TERMINAL);
+        if (target) {
+            this.memory.siegeComplete = true;
+        }
+    }
+    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
         target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_SPAWN);
         if (target) {
             this.memory.siegeComplete = true;
