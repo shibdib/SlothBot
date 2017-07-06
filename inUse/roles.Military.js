@@ -81,16 +81,18 @@ function healer(creep) {
         creep.heal(creep);
     }
     if (creep.memory.attackType === 'raid') {
-        let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
-        let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-        let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-        if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
-            Memory.warControl[creep.memory.attackTarget].threat = 2;
-        }
-        else if ((armedHostile.length > 2 && healers.length > 0) || armedHostile.length > 3 && healers.length > 0) {
-            Memory.warControl[creep.memory.attackTarget].threat = 1;
-        } else {
-            Memory.warControl[creep.memory.attackTarget].threat = 0;
+        if (Game.time % 15 === 0) {
+            let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
+            let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+            let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+            if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
+                Memory.warControl[creep.memory.attackTarget].threat = 2;
+            }
+            else if ((armedHostile.length > 2 && healers.length > 0) || armedHostile.length > 3 && healers.length > 0) {
+                Memory.warControl[creep.memory.attackTarget].threat = 1;
+            } else {
+                Memory.warControl[creep.memory.attackTarget].threat = 0;
+            }
         }
     }
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
@@ -129,19 +131,20 @@ function attacker(creep) {
     let meleeLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.meleeLeader === true);
     if (meleeLeader.length === 0) creep.memory.meleeLeader = true;
     if (creep.memory.attackType === 'raid') {
-        let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
-        let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-        let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-        if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
-            Memory.warControl[creep.memory.attackTarget].threat = 2;
-        }
-        else if ((armedHostile.length > 2 && healers.length > 0) || armedHostile.length > 3 && healers.length > 0) {
-            Memory.warControl[creep.memory.attackTarget].threat = 1;
-        } else {
-            Memory.warControl[creep.memory.attackTarget].threat = 0;
+        if (Game.time % 15 === 0) {
+            let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
+            let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+            let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+            if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
+                Memory.warControl[creep.memory.attackTarget].threat = 2;
+            }
+            else if ((armedHostile.length > 2 && healers.length > 0) || armedHostile.length > 3 && healers.length > 0) {
+                Memory.warControl[creep.memory.attackTarget].threat = 1;
+            } else {
+                Memory.warControl[creep.memory.attackTarget].threat = 0;
+            }
         }
     }
-
     if (creep.memory.meleeLeader === true) {
         creep.meleeTeamLeader();
     } else {
@@ -178,19 +181,20 @@ function ranged(creep) {
     let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.rangedLeader === true);
     if (rangedLeader.length === 0) creep.memory.rangedLeader = true;
     if (creep.memory.attackType === 'raid') {
-        let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
-        let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-        let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-        if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
-            Memory.warControl[creep.memory.attackTarget].threat = 2;
-        }
-        else if ((armedHostile.length > 2 && healers.length > 0) || armedHostile.length > 3 && healers.length > 0) {
-            Memory.warControl[creep.memory.attackTarget].threat = 1;
-        } else {
-            Memory.warControl[creep.memory.attackTarget].threat = 0;
+        if (Game.time % 15 === 0) {
+            let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
+            let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+            let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+            if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
+                Memory.warControl[creep.memory.attackTarget].threat = 2;
+            }
+            else if ((armedHostile.length > 2 && healers.length > 0) || armedHostile.length > 3 && healers.length > 0) {
+                Memory.warControl[creep.memory.attackTarget].threat = 1;
+            } else {
+                Memory.warControl[creep.memory.attackTarget].threat = 0;
+            }
         }
     }
-
     if (creep.memory.rangedLeader === true) {
         creep.rangedTeamLeader();
     } else {
