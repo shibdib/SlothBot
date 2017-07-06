@@ -222,25 +222,25 @@ Creep.prototype.siege = function () {
     if (target) {
         this.memory.siegeComplete = true;
     }
-    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_STORAGE);
         if (target) {
             this.memory.siegeComplete = true;
         }
     }
-    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_TERMINAL);
         if (target) {
             this.memory.siegeComplete = true;
         }
     }
-    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_SPAWN);
         if (target) {
             this.memory.siegeComplete = true;
         }
     }
-    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         if (!this.memory.siegeTarget || !Game.getObjectById(this.memory.siegeTarget)) {
             target = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 6, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         } else {
@@ -251,7 +251,7 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = undefined;
         }
     }
-    if (target === null || _.includes(RawMemory.segments[2], target.owner['username']) === true) {
+    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_EXTENSION);
         if (target) {
             this.memory.siegeComplete = true;
