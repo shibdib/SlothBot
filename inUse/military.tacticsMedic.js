@@ -23,7 +23,7 @@ tacticSquadLeaderMedic = function () {
         this.kite(8);
     }
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
-        if (targets) {
+        if (targets.id) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
                 this.travelTo(targets);
                 this.rangedHeal(targets);
@@ -48,7 +48,7 @@ tacticSquadLeaderMedic = function () {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
         }
     } else {
-        if (targets) {
+        if (targets.id) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
                 this.rangedHeal(targets);
             }
