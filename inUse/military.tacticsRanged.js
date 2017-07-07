@@ -148,6 +148,8 @@ rangedTeamLeader = function () {
                     this.memory.attackStarted = true;
                 }
             }
+        } else if (this.memory.attackType === 'raid' || siege.length > 0) {
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
             this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
         } else if (this.memory.attackType === 'siege') {
