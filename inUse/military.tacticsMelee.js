@@ -76,43 +76,39 @@ meleeTeamLeader = function () {
                 this.rangedAttack(closestArmed);
             }
             borderChecks.borderCheck(this);
-            if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
-                if (inRangeArmed.length > 0) {
-                    if (inRangeArmed.length > 1) {
-                        this.rangedMassAttack();
-                    } else if (inRangeArmed.length === 1) {
-                        this.memory.meleeTarget = closestArmed.id;
-                        this.rangedAttack(closestArmed);
-                        this.attack(closestArmed);
-                    }
-                } else if (inRangeHostile.length > 0) {
-                    if (inRangeHostile.length > 1) {
-                        this.memory.rangedTarget = 'mass';
-                        this.rangedMassAttack();
-                    } else if (inRangeHostile.length === 1) {
-                        this.memory.meleeTarget = closestHostile.id;
-                        this.rangedAttack(closestHostile);
-                        this.attack(closestHostile);
-                    }
-                } else {
-                    this.travelTo(this.pos.findClosestByPath(armedHostile))
+            if (inRangeArmed.length > 0) {
+                if (inRangeArmed.length > 1) {
+                    this.rangedMassAttack();
+                } else if (inRangeArmed.length === 1) {
+                    this.memory.meleeTarget = closestArmed.id;
+                    this.rangedAttack(closestArmed);
+                    this.attack(closestArmed);
                 }
+            } else if (inRangeHostile.length > 0) {
+                if (inRangeHostile.length > 1) {
+                    this.memory.rangedTarget = 'mass';
+                    this.rangedMassAttack();
+                } else if (inRangeHostile.length === 1) {
+                    this.memory.meleeTarget = closestHostile.id;
+                    this.rangedAttack(closestHostile);
+                    this.attack(closestHostile);
+                }
+            } else {
+                this.travelTo(this.pos.findClosestByPath(armedHostile))
             }
         } else if (hostiles.length > 0 && (this.pos.roomName === this.memory.staging || this.pos.roomName === this.memory.attackTarget)) {
             borderChecks.borderCheck(this);
-            if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostiles))) || !closestHostileTower) {
-                if (inRangeHostile.length > 0) {
-                    let closestHostile = this.pos.findClosestByPath(inRangeHostile);
-                    if (inRangeHostile.length > 1) {
-                        this.rangedMassAttack();
-                    } else if (inRangeHostile.length === 1) {
-                        this.memory.meleeTarget = closestHostile.id;
-                        this.rangedAttack(closestHostile);
-                        this.attack(closestHostile);
-                    }
-                } else {
-                    this.travelTo(this.pos.findClosestByPath(inRangeHostile))
+            if (inRangeHostile.length > 0) {
+                let closestHostile = this.pos.findClosestByPath(inRangeHostile);
+                if (inRangeHostile.length > 1) {
+                    this.rangedMassAttack();
+                } else if (inRangeHostile.length === 1) {
+                    this.memory.meleeTarget = closestHostile.id;
+                    this.rangedAttack(closestHostile);
+                    this.attack(closestHostile);
                 }
+            } else {
+                this.travelTo(this.pos.findClosestByPath(inRangeHostile))
             }
         } else if (squadLeader[0]) {
             if (this.pos.getRangeTo(squadLeader[0]) > 6) {
