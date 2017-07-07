@@ -285,7 +285,7 @@ function haulers(spawn, level) {
         }
         let minerals = spawn.pos.findClosestByRange(FIND_MINERALS);
         let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === spawn.room.name);
-        if (mineralHauler.length < 1 && upgraders.length > 0 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[level].mineralHauler, 'mineralHauler' + Game.time, {
+        if (mineralHauler.length < 1 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[level].mineralHauler, 'mineralHauler' + Game.time, {
                 role: 'mineralHauler',
                 roleGroup: 'workers',
                 assignedSpawn: spawn.id,
