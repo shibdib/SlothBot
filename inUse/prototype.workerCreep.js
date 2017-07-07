@@ -23,27 +23,40 @@ findConstruction = function () {
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
+        this.memory.task = 'build';
+        return;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
+        this.memory.task = 'build';
+        return;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
+        this.memory.task = 'build';
+        return;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
+        this.memory.task = 'build';
+        return;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
+        this.memory.task = 'build';
+        return;
     }
     site = _.filter(construction, (s) => s.structureType !== STRUCTURE_RAMPART);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
+        this.memory.task = 'build';
+        return;
     }
+    this.memory.task = undefined;
 };
 Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
@@ -51,36 +64,53 @@ findRepair = function (level) {
     let structures = this.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 250000 * level);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * level);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
     site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
     if (site.length > 0) {
-        return site[0].id
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
     }
+    this.memory.task = undefined;
 };
 Creep.prototype.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
 

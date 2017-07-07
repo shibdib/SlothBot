@@ -40,20 +40,22 @@ function worker(creep) {
     }
 
     if (creep.memory.working === true) {
-        let repairNeeded = creep.findRepair(creep.room.controller.level);
         creep.findConstruction();
-        if (creep.memory.constructionSite && creep.room.memory.responseNeeded !== true) {
+        if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             if (creep.build(construction) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(construction, {ignoreCreeps: false});
             }
-        } else if (repairNeeded) {
-            repairNeeded = Game.getObjectById(repairNeeded);
-            if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(repairNeeded, {ignoreCreeps: false});
+        } else {
+            creep.findRepair(creep.room.controller.level);
+            if (creep.memory.task === 'repair') {
+                let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
+                if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
+                    creep.travelTo(repairNeeded, {ignoreCreeps: false});
+                }
+            } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(creep.room.controller, {ignoreCreeps: false});
             }
-        } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(creep.room.controller, {ignoreCreeps: false});
         }
     }
     else {
