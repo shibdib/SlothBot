@@ -62,62 +62,21 @@ rangedTeamLeader = function () {
             Memory.militaryNeeds[this.memory.attackTarget] = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         }
-        if (squadLeader[0]) {
-            if (this.pos.getRangeTo(squadLeader[0]) > 6) {
-                if (this.room.name !== squadLeader[0].pos.roomName) {
-                    this.travelTo(squadLeader[0], {allowHostile: true});
-                } else {
-                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-                }
-            }
-        } else if (armedHostile.length > 0) {
+        if (closestArmed || closestHostile) {
             borderChecks.borderCheck(this);
-            if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(armedHostile))) || !closestHostileTower) {
-                if (inRangeArmed.length > 0) {
-                    if (inRangeArmed.length > 1) {
-                        this.memory.rangedTarget = 'mass';
-                        this.rangedMassAttack();
-                        if (this.pos.getRangeTo(closestArmed) <= 2) {
-                            this.flee(closestArmed);
-                        }
-                    } else if (inRangeArmed.length === 1) {
-                        this.memory.rangedTarget = closestArmed.id;
-                        this.fightRanged(closestArmed);
-                    }
-                } else if (inRangeHostile.length > 0) {
-                    if (inRangeHostile.length > 1) {
-                        this.memory.rangedTarget = 'mass';
-                        this.rangedMassAttack();
-                    } else if (inRangeHostile.length === 1) {
-                        this.memory.rangedTarget = closestHostile.id;
-                        this.fightRanged(closestHostile);
-                    }
-                } else {
-                    this.travelTo(this.pos.findClosestByPath(armedHostile))
-                }
+            if (closestArmed) {
+                this.memory.rangedTarget = closestArmed.id;
+                this.fightRanged(closestArmed);
+            } else if (closestHostile) {
+                this.memory.rangedTarget = closestHostile.id;
+                this.fightRanged(closestHostile);
             }
-        } else if (squadLeader[0]) {
+        }  else if (squadLeader[0]) {
             if (this.pos.getRangeTo(squadLeader[0]) > 4) {
                 if (this.room.name !== squadLeader[0].pos.roomName) {
                     this.travelTo(squadLeader[0], {allowHostile: true});
                 } else {
                     this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-                }
-            }
-        } else if (hostiles.length > 0 && (!this.memory.attackTarget || this.pos.roomName === this.memory.attackTarget)) {
-            borderChecks.borderCheck(this);
-            if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostiles))) || !closestHostileTower) {
-                if (inRangeHostile.length > 0) {
-                    let closestHostile = this.pos.findClosestByPath(inRangeHostile);
-                    if (inRangeHostile.length > 1) {
-                        this.memory.rangedTarget = 'mass';
-                        this.rangedMassAttack();
-                    } else if (inRangeHostile.length === 1) {
-                        this.memory.rangedTarget = closestHostile.id;
-                        this.fightRanged(closestHostile);
-                    }
-                } else {
-                    this.travelTo(this.pos.findClosestByPath(hostiles))
                 }
             }
         } else if (hostileStructures.length > 0 && (!this.memory.attackTarget || this.pos.roomName === this.memory.attackTarget)) {
@@ -213,7 +172,7 @@ rangedTeamMember = function () {
             }
         }
     }
-    if (rangedLeader[0].memory.rangedTarget) {
+    if (this.pos.getRangeTo(rangedLeader[0].memory.rangedTarget) <=3) {
         if (rangedLeader[0].memory.rangedTarget === 'mass') {
             this.rangedMassAttack();
             if (this.pos.getRangeTo(closestArmed) <= 2) {
