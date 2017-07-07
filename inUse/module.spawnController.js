@@ -460,13 +460,3 @@ function getLevel(spawn) {
     }
 }
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
-
-
-const RCL_1_ENERGY = 300;
-const RCL_2_ENERGY = 550;
-const RCL_3_ENERGY = 800;
-const RCL_4_ENERGY = 1300;
-const RCL_5_ENERGY = 1800;
-const RCL_6_ENERGY = 2300;
-const RCL_7_ENERGY = 5600;
-const RCL_8_ENERGY = 12900;
