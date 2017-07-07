@@ -31,7 +31,7 @@ function kite(creep, fleeRange = 3) {
 }
 module.exports.kite = profiler.registerFN(kite, 'kiteMilitaryFunction');
 
-function retreat(creep, fleeRange = 5) {
+function retreat(creep, fleeRange = 7) {
     let avoid = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0});
     let avoidance = _.map(creep.pos.findInRange(avoid, fleeRange + 1),
         (c) => {

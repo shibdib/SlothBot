@@ -25,7 +25,7 @@ meleeTeamLeader = function () {
     let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
 
     //Retreat if wounded
-    if (this.hits < this.hitsMax * 0.75) {
+    if (this.getActiveBodyparts(TOUGH) === 0) {
         this.heal(this);
         if (inRangeArmed.length > 1) {
             this.rangedMassAttack();
@@ -42,13 +42,13 @@ meleeTeamLeader = function () {
             this.travelTo(farHealers[0], {allowHostile: false, movingTarget: true});
             return null;
         } else {
-            militaryFunctions.retreat(this);
+            this.retreat();
         }
     } else if (this.hits < this.hitsMax) {
         this.heal(this);
     } else if (needsHeals.length > 0) {
         this.rangedHeal(needsHeals[0]);
-    }
+    } else
     if (this.memory.meleeLeader === true) {
         let weakPoint = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         //Check if safe mode

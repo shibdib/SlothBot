@@ -445,6 +445,31 @@ Creep.prototype.kite = function (fleeRange = 3) {
     }
 };
 
+Creep.prototype.retreat = function (fleeRange = 7) {
+    let avoid = this.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0});
+    let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1),
+        (c) => {
+            return {pos: c.pos, range: 20};
+        });
+    let creep = this;
+    let ret = PathFinder.search(this.pos, avoidance, {
+        flee: true,
+        swampCost: 50,
+        maxRooms: 1,
+
+        roomCallback: function (roomName) {
+            let costs = new PathFinder.CostMatrix;
+            addBorderToMatrix(creep.room, costs);
+            return costs;
+        }
+    });
+    if (ret.path.length > 0) {
+        return this.move(this.pos.getDirectionTo(ret.path[0]));
+    } else {
+        return OK;
+    }
+};
+
 function addBorderToMatrix(room, matrix) {
     let exits = Game.map.describeExits(room.name);
     if (exits === undefined) {
