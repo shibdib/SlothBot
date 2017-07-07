@@ -189,7 +189,7 @@ function ranged(creep) {
             if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
                 Memory.warControl[creep.memory.attackTarget].threat = 2;
             }
-            else if ((armedHostile.length > 2 && healers.length > 0) || armedHostile.length > 3 && healers.length > 0) {
+            else if ((armedHostile.length > 0 && healers.length > 0) || armedHostile.length > 3 && healers.length === 0) {
                 Memory.warControl[creep.memory.attackTarget].threat = 1;
             } else {
                 Memory.warControl[creep.memory.attackTarget].threat = 0;
