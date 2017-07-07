@@ -27,11 +27,6 @@ meleeTeamLeader = function () {
     //Retreat if wounded
     if (this.getActiveBodyparts(TOUGH) === 0) {
         this.heal(this);
-        if (inRangeArmed.length > 1) {
-            this.rangedMassAttack();
-        } else if (inRangeArmed.length === 1) {
-            this.rangedAttack(inRangeArmed[0]);
-        }
         if (nearbyHealers.length > 0) {
             this.travelTo(nearbyHealers[0], {allowHostile: false, movingTarget: true});
             return null;
