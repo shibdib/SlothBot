@@ -46,9 +46,6 @@ rangedTeamLeader = function () {
     }
     if (this.hits < this.hitsMax) {
         this.heal(this);
-    } else
-    if (needsHeals.length > 0) {
-        this.rangedHeal(needsHeals[0]);
     }
 
     if (this.memory.rangedLeader === true) {
