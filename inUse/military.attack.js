@@ -4,8 +4,8 @@
 const profiler = require('screeps-profiler');
 
 function controller() {
-    cacheAttacks();
     clearAttacks();
+    cacheAttacks();
     getIntel();
     queueTroops();
     markMap();
