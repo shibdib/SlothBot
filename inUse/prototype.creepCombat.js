@@ -263,11 +263,6 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = true;
         }
     }
-    if (target === null) {
-        let cs = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
-        this.travelTo(cs);
-        return false;
-    }
     let path = this.pos.findPathTo(target, {
         ignoreDestructibleStructures: false,
         ignoreCreeps: false
