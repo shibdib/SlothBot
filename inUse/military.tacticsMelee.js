@@ -201,9 +201,9 @@ meleeTeamMember = function () {
             }
         }
     }
-    if (meleeLeader[0].memory.meleeLeader) {
-        if (this.fightRanged(Game.getObjectById(meleeLeader[0].memory.meleeLeader)) === ERR_NOT_IN_RANGE) {
-            this.travelTo(Game.getObjectById(meleeLeader[0].memory.meleeLeader))
+    if (meleeLeader[0].memory.meleeTarget) {
+        if (this.attack(Game.getObjectById(meleeLeader[0].memory.meleeTarget)) === ERR_NOT_IN_RANGE) {
+            this.travelTo(Game.getObjectById(meleeLeader[0].memory.meleeTarget))
         }
         if (needsHeals.length > 0) {
             this.rangedHeal(needsHeals[0])
