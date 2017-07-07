@@ -190,9 +190,6 @@ Creep.prototype.flee = function (target) {
 };
 
 Creep.prototype.fightRanged = function (target) {
-    if (this.hits < 0.7 * this.hitsMax) {
-        return this.kite(8);
-    }
     let range = this.pos.getRangeTo(target);
     let direction = null;
     if (range <= 2) {
