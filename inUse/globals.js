@@ -4,13 +4,23 @@ let globals = function () {
         'CaptainMuscles',
     ];
 
-    global.SPAWN1 = {
+    global.SPAWN = {
+        1: {
         stationaryHarvester: [WORK, WORK, CARRY, MOVE],
         worker: [MOVE, MOVE, CARRY, WORK],
         upgrader: [MOVE, MOVE, CARRY, WORK],
         hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
         explorer: [MOVE],
         scout: [MOVE]
+        },
+        2: {
+            stationaryHarvester: [WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE],
+            worker: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY],
+            upgrader: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            explorer: [MOVE],
+            scout: [MOVE]
+        }
     };
 
     global.SPAWN2 = {
