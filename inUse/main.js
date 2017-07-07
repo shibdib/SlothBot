@@ -32,8 +32,6 @@ profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
-        //Update config entries
-        config.updateConfig();
 
         //Get tick duration
         Memory.stats.tickLength = Math.round(new Date() / 1000) - Memory.stats.tickOldEpoch;
