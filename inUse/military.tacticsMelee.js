@@ -32,13 +32,13 @@ meleeTeamLeader = function () {
             this.rangedAttack(inRangeArmed[0]);
         }
         if (nearbyHealers.length > 0) {
-            this.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            this.travelTo(nearbyHealers[0], {allowHostile: false, movingTarget: true});
             return null;
         } else if (squadLeader.length > 0) {
-            this.travelTo(squadLeader[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            this.travelTo(squadLeader[0], {allowHostile: false, movingTarget: true});
             return null;
         } else if (farHealers.length > 0) {
-            this.travelTo(farHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            this.travelTo(farHealers[0], {allowHostile: false, movingTarget: true});
             return null;
         } else {
             militaryFunctions.retreat(this);
@@ -147,13 +147,13 @@ meleeTeamMember = function () {
             this.rangedAttack(inRangeArmed[0]);
         }
         if (nearbyHealers.length > 0) {
-            this.travelTo(nearbyHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            this.travelTo(nearbyHealers[0], {allowHostile: false, movingTarget: true});
             return null;
         } else if (squadLeader.length > 0) {
-            this.travelTo(squadLeader[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            this.travelTo(squadLeader[0], {allowHostile: false, movingTarget: true});
             return null;
         } else if (farHealers.length > 0) {
-            this.travelTo(farHealers[0], {allowHostile: false, range: 0, repath: 1, movingTarget: true});
+            this.travelTo(farHealers[0], {allowHostile: false, movingTarget: true});
             return null;
         } else {
             militaryFunctions.retreat(this);
