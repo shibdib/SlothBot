@@ -86,8 +86,6 @@ function roadSpawns(spawn) {
 }
 roadSpawns = profiler.registerFN(roadSpawns, 'roadSpawnsBuilder');
 
-
-// TODO redo this so they're closer together
 function buildExtensions(spawn) {
     let x;
     let y;
