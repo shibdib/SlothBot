@@ -8,6 +8,7 @@ function creepControl() {
 
     for (let name in Game.creeps) {
         const creep = Game.creeps[name];
+        creep.notifyWhenAttacked(false);
         if (creep.memory.role === 'ranged' || creep.memory.role === 'healer' || creep.memory.role === 'deconstructor' || creep.memory.role === 'scout' || creep.memory.role === 'attacker' || creep.memory.role === 'reserver' || creep.memory.role === 'claimer' || creep.memory.role === 'responder' || creep.memory.role === 'raider') {
             let rolesMilitary = require('roles.Military');
             rolesMilitary.Manager(creep);
@@ -15,6 +16,7 @@ function creepControl() {
     }
     for (let name in Game.creeps) {
         const creep = Game.creeps[name];
+        creep.notifyWhenAttacked(false);
         if (creep.memory.role === 'basicHauler' || creep.memory.role === 'largeHauler' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech' || creep.memory.role === 'hauler' || creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'pawn' || creep.memory.role === 'resupply') {
             let rolesHaulers = require('roles.Haulers');
             rolesHaulers.Manager(creep);
