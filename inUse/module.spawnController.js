@@ -96,7 +96,7 @@ function responseForce(spawn, level) {
 responseForce = profiler.registerFN(responseForce, 'responseForceSpawn');
 
 function attackForce(spawn, level) {
-    if (spawn.room.controller.level >= 3) {
+    if (spawn.room.controller.level >= 3 && Game.cpu.bucket > 4000) {
         for (let key in Memory.militaryNeeds) {
             if (!Memory.militaryNeeds[key]) {
                 Memory.militaryNeeds[key] = undefined;

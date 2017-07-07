@@ -73,6 +73,11 @@ module.exports.loop = function () {
         if (Game.cpu.bucket > 500) {
             defenseController.controller();
             attackController.controller();
+        } else {
+            let raiders = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout');
+            for (let i=0; i < raiders.length; i++) {
+                raiders[i].suicide();
+            }
         }
 
         //Creep Management
