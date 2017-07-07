@@ -23,7 +23,7 @@ tacticSquadLeaderMedic = function () {
         }
         this.kite(8);
     }
-    if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6 || this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
+    if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
         if (targets.id) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
                 this.travelTo(targets);
@@ -51,12 +51,14 @@ tacticSquadLeaderMedic = function () {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
         }
     } else {
-        if (targets.id) {
+        if (targets.id && this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
+                this.travelTo(targets);
                 this.rangedHeal(targets);
             }
+        } else {
+            this.kite(8);
         }
-        this.kite(8);
     }
 };
 Creep.prototype.tacticSquadLeaderMedic = profiler.registerFN(tacticSquadLeaderMedic, 'squadLeaderMedicTactic');
