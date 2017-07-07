@@ -17,12 +17,8 @@ meleeTeamLeader = function () {
     let inRangeArmed = this.pos.findInRange(armedHostile, 1);
     let closestArmed;
     let closestHostile;
-    if (inRangeArmed.length > 0) {
-        closestArmed = this.pos.findClosestByPath(inRangeArmed);
-    }
-    if (inRangeHostile.length > 0) {
-        closestHostile = this.pos.findClosestByPath(inRangeHostile);
-    }
+    closestArmed = this.pos.findClosestByPath(armedHostile);
+    closestHostile = this.pos.findClosestByPath(hostiles);
     let nearbyHealers = this.pos.findInRange(healers, 5);
     let farHealers = this.pos.findInRange(healers, 15);
     let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
@@ -53,7 +49,6 @@ meleeTeamLeader = function () {
         this.rangedHeal(needsHeals[0]);
     }
     if (this.memory.meleeLeader === true) {
-        let closestHostileTower = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && _.includes(RawMemory.segments[2], s.owner['username']) === false});
         let weakPoint = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         //Check if safe mode
         if (this.room.controller && this.room.controller.owner && _.includes(RawMemory.segments[2], this.room.controller.owner['username']) === false && this.room.controller.safeMode) {
@@ -62,60 +57,33 @@ meleeTeamLeader = function () {
             Memory.militaryNeeds[this.memory.attackTarget] = undefined;
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         }
-        if (squadLeader[0]) {
-            if (this.pos.getRangeTo(squadLeader[0]) > 6) {
-                if (this.room.name !== squadLeader[0].pos.roomName) {
-                    this.travelTo(squadLeader[0], {allowHostile: true});
-                } else {
-                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-                }
-            }
-        } else if (armedHostile.length > 0) {
-            if (closestArmed && this.pos.getRangeTo(closestArmed) <= 1) {
-                this.attack(closestArmed);
-                this.rangedAttack(closestArmed);
-            }
+        if (closestArmed || closestHostile) {
             borderChecks.borderCheck(this);
-            if (inRangeArmed.length > 0) {
+            if (closestArmed) {
+                this.memory.meleeTarget = closestArmed.id;
+                this.attack(closestArmed);
+                this.travelTo(closestArmed, {movingTarget: true});
                 if (inRangeArmed.length > 1) {
                     this.rangedMassAttack();
-                } else if (inRangeArmed.length === 1) {
-                    this.memory.meleeTarget = closestArmed.id;
+                } else {
                     this.rangedAttack(closestArmed);
-                    this.attack(closestArmed);
                 }
-            } else if (inRangeHostile.length > 0) {
-                if (inRangeHostile.length > 1) {
-                    this.memory.rangedTarget = 'mass';
-                    this.rangedMassAttack();
-                } else if (inRangeHostile.length === 1) {
-                    this.memory.meleeTarget = closestHostile.id;
-                    this.rangedAttack(closestHostile);
-                    this.attack(closestHostile);
-                }
-            } else {
-                this.travelTo(this.pos.findClosestByPath(armedHostile))
-            }
-        } else if (hostiles.length > 0 && (this.pos.roomName === this.memory.staging || this.pos.roomName === this.memory.attackTarget)) {
-            borderChecks.borderCheck(this);
-            if (inRangeHostile.length > 0) {
-                let closestHostile = this.pos.findClosestByPath(inRangeHostile);
+            } else if (closestHostile) {
+                this.memory.meleeTarget = closestHostile.id;
+                this.attack(closestHostile);
+                this.travelTo(closestHostile, {movingTarget: true});
                 if (inRangeHostile.length > 1) {
                     this.rangedMassAttack();
-                } else if (inRangeHostile.length === 1) {
-                    this.memory.meleeTarget = closestHostile.id;
+                } else {
                     this.rangedAttack(closestHostile);
-                    this.attack(closestHostile);
                 }
-            } else {
-                this.travelTo(this.pos.findClosestByPath(inRangeHostile))
             }
         } else if (squadLeader[0]) {
             if (this.pos.getRangeTo(squadLeader[0]) > 6) {
                 if (this.room.name !== squadLeader[0].pos.roomName) {
-                    this.travelTo(squadLeader[0], {allowHostile: true});
+                    this.travelTo(squadLeader[0], {allowHostile: false});
                 } else {
-                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
+                    this.travelTo(squadLeader[0], {allowHostile: false, movingTarget: true});
                 }
             }
         } else if (weakPoint && this.pos.getRangeTo(weakPoint) <= 2) {
@@ -184,31 +152,42 @@ meleeTeamMember = function () {
         }
     } else if (this.hits < this.hitsMax) {
         this.heal(this);
+    } else if (needsHeals.length > 0) {
+        this.rangedHeal(needsHeals[0])
     }
-    if (closestArmed && this.pos.getRangeTo(closestArmed) <= 1) {
-        this.attack(closestArmed);
-        this.rangedAttack(closestArmed);
-    } else if (meleeLeader[0]) {
+    if (meleeLeader[0]) {
         if (this.pos.getRangeTo(meleeLeader[0]) > 4) {
             if (this.room.name !== meleeLeader[0].pos.roomName) {
-                this.travelTo(meleeLeader[0], {allowHostile: true});
+                this.travelTo(meleeLeader[0], {allowHostile: false});
             } else {
-                this.travelTo(meleeLeader[0], {allowHostile: true, movingTarget: true});
+                this.travelTo(meleeLeader[0], {allowHostile: false, movingTarget: true});
             }
         }
-    }
-    if (meleeLeader[0].memory.meleeTarget) {
+    } else if ((closestArmed || closestHostile) && (this.pos.getRangeTo(closestArmed) < 5 || this.pos.getRangeTo(closestHostile) < 5)) {
+        borderChecks.borderCheck(this);
+        if (closestArmed) {
+            this.memory.meleeTarget = closestArmed.id;
+            this.attack(closestArmed);
+            this.travelTo(closestArmed, {movingTarget: true});
+            if (inRangeArmed.length > 1) {
+                this.rangedMassAttack();
+            } else {
+                this.rangedAttack(closestArmed);
+            }
+        } else if (closestHostile) {
+            this.memory.meleeTarget = closestHostile.id;
+            this.attack(closestHostile);
+            this.travelTo(closestHostile, {movingTarget: true});
+            if (inRangeHostile.length > 1) {
+                this.rangedMassAttack();
+            } else {
+                this.rangedAttack(closestHostile);
+            }
+        }
+    } else if (meleeLeader[0].memory.meleeTarget) {
         if (this.attack(Game.getObjectById(meleeLeader[0].memory.meleeTarget)) === ERR_NOT_IN_RANGE) {
             this.travelTo(Game.getObjectById(meleeLeader[0].memory.meleeTarget))
         }
-        if (needsHeals.length > 0) {
-            this.rangedHeal(needsHeals[0])
-        }
-    } else if (closestArmed && this.pos.getRangeTo(closestArmed) <= 1) {
-        this.attack(closestArmed);
-    } else if (closestHostile && this.pos.getRangeTo(closestHostile) <= 1) {
-        this.attack(closestHostile);
-    } else {
         if (needsHeals.length > 0) {
             this.rangedHeal(needsHeals[0])
         }
