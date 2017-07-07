@@ -98,7 +98,7 @@ meleeTeamLeader = function () {
                     this.travelTo(this.pos.findClosestByPath(armedHostile))
                 }
             }
-        } else if (hostiles.length > 0 && (!Game.flags[this.memory.attackTarget] || this.pos.roomName === Game.flags[this.memory.attackTarget].pos.roomName)) {
+        } else if (hostiles.length > 0 && (this.pos.roomName === this.memory.staging || this.pos.roomName === this.memory.attackTarget)) {
             borderChecks.borderCheck(this);
             if ((closestHostileTower && this.pos.getRangeTo(closestHostileTower) < this.pos.getRangeTo(this.pos.findClosestByPath(hostiles))) || !closestHostileTower) {
                 if (inRangeHostile.length > 0) {
