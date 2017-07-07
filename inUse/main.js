@@ -14,7 +14,6 @@ require("military.tacticsRanged");
 require("military.tacticsMelee");
 require("military.tacticsMedic");
 require("military.tacticsDeconstructor");
-let config = require('config');
 let roomController = require('module.roomController');
 let creepController = require('module.creepController');
 let towerController = require('module.towerController');
