@@ -74,13 +74,13 @@ findRepair = function (level) {
         this.memory.task = 'repair';
         return;
     }
-    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 250000 * level), 'hits');
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 250000 * level);
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
-    site = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * level), 'hits');
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * level);
     if (site) {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
