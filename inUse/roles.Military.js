@@ -1,6 +1,5 @@
 let borderChecks = require('module.borderChecks');
 let militaryFunctions = require('module.militaryFunctions');
-let medicTactics = require('military.tacticsMedic');
 let cache = require('module.cache');
 let _ = require('lodash');
 let profiler = require('screeps-profiler');
