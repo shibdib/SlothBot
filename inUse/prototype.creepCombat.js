@@ -199,6 +199,7 @@ Creep.prototype.fightRanged = function (target) {
         this.rangedAttack(target);
         return true;
     } else {
+        this.rangedAttack(_.min(this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false}), 'hits'));
         this.travelTo(target, {range: 3, movingTarget:true});
     }
 };
