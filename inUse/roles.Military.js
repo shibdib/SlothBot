@@ -50,7 +50,6 @@ function scout(creep) {
         }
     } else {
         cache.cacheRoomIntel(creep);
-        creep.suicide();
     }
 }
 scout = profiler.registerFN(scout, 'scoutMilitary');
