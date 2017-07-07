@@ -48,12 +48,12 @@ function worker(creep) {
             }
         } else {
             creep.findRepair(creep.room.controller.level);
-            if (creep.memory.task === 'repair') {
+            if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
                 let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(repairNeeded, {ignoreCreeps: false});
                 }
-            } else if (!creep.memory.constructionSite && creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+            } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 creep.travelTo(creep.room.controller, {ignoreCreeps: false});
             }
         }
