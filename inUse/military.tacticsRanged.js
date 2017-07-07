@@ -15,10 +15,8 @@ rangedTeamLeader = function () {
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeHostile = this.pos.findInRange(hostiles, 3);
     let inRangeArmed = this.pos.findInRange(armedHostile, 3);
-    let closestArmed;
-    let closestHostile;
-    closestArmed = this.pos.findClosestByPath(inRangeArmed);
-    closestHostile = this.pos.findClosestByPath(inRangeHostile);
+    let closestArmed = this.pos.findClosestByPath(armedHostile);
+    let closestHostile = this.pos.findClosestByPath(hostiles);
     let nearbyHealers = this.pos.findInRange(healers, 5);
     let farHealers = this.pos.findInRange(healers, 15);
     let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
