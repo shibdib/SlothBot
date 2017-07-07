@@ -49,7 +49,7 @@ function scout(creep) {
             creep.memory.destinationReached = true;
         }
     } else {
-        creep.say("I.See.U")
+        creep.say("I.See.U", true);
         cache.cacheRoomIntel(creep);
     }
 }
