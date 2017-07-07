@@ -22,7 +22,7 @@ tacticSquadLeaderMedic = function () {
         }
         this.kite(8);
     }
-    if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
+    if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6 || this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
         if (targets.id) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
                 this.travelTo(targets);
