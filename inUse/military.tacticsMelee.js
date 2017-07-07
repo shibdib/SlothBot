@@ -61,8 +61,9 @@ meleeTeamLeader = function () {
             borderChecks.borderCheck(this);
             if (closestArmed) {
                 this.memory.meleeTarget = closestArmed.id;
-                this.attack(closestArmed);
-                this.travelTo(closestArmed, {movingTarget: true});
+                if (this.attack(closestArmed) === ERR_NOT_IN_RANGE) {
+                    this.travelTo(closestArmed, {movingTarget: true});
+                }
                 if (inRangeArmed.length > 1) {
                     this.rangedMassAttack();
                 } else {
@@ -70,7 +71,9 @@ meleeTeamLeader = function () {
                 }
             } else if (closestHostile) {
                 this.memory.meleeTarget = closestHostile.id;
-                this.attack(closestHostile);
+                if (this.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+                    this.travelTo(closestHostile, {movingTarget: true});
+                }
                 this.travelTo(closestHostile, {movingTarget: true});
                 if (inRangeHostile.length > 1) {
                     this.rangedMassAttack();
