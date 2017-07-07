@@ -193,11 +193,13 @@ function queueTroops() {
 //Gather intel if needed
 function markMap() {
     for (let key in Memory.warControl) {
-        new RoomVisual(key).text(
-            Memory.warControl[key].type,
-            25,
-            25,
-            {align: 'left', opacity: 0.8}
-        );
+        if (Memory.warControl[key]) {
+            new RoomVisual(key).text(
+                Memory.warControl[key].type,
+                25,
+                25,
+                {align: 'left', opacity: 0.8}
+            );
+        }
     }
 }
