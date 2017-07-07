@@ -30,7 +30,7 @@ tacticSquadLeaderMedic = function () {
                 this.rangedHeal(targets);
             }
         } else if (inCombat.id) {
-            this.inCombat(targets);
+            this.travelTo(inCombat);
         }
         else if (this.memory.attackStarted !== true) {
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
