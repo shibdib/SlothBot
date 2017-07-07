@@ -9,6 +9,7 @@ let doNotAggress = RawMemory.segments[2];
 
 meleeTeamLeader = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+    let rangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
     let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false});
@@ -70,8 +71,10 @@ meleeTeamLeader = function () {
                     } else {
                         this.rangedAttack(closestArmed);
                     }
-                } else {
+                } else if (this.pos.getRangeTo(closestArmed) <= 3){
                     this.kite(5);
+                } else if (rangedLeader[0]) {
+                    this.travelTo(rangedLeader[0], {movingTarget: true});
                 }
             } else if (closestHostile) {
                 this.memory.meleeTarget = closestHostile.id;
