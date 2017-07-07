@@ -18,6 +18,8 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_ZYNTHIUM,
     RESOURCE_CATALYST];
 
+let doNotSell = [RESOURCE_CATALYZED_UTRIUM_ACID];
+
 let tradeAmount = 10000;
 let energyAmount = 25000;
 let reactionAmount = 500;
@@ -161,7 +163,7 @@ extendSellOrders = profiler.registerFN(extendSellOrders, 'extendSellOrdersTermin
 function placeSellOrders(terminal, globalOrders, myOrders) {
     resource:
         for (const resourceType in terminal.store) {
-            if (resourceType !== RESOURCE_ENERGY) {
+            if (resourceType !== RESOURCE_ENERGY && _.includes(doNotSell, resourceType) === false) {
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL && myOrders[key].roomName === terminal.pos.roomName) {
                         continue resource;
