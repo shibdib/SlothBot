@@ -241,6 +241,12 @@ Creep.prototype.siege = function () {
         }
     }
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
+        target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)});
+        if (target) {
+            this.memory.siegeComplete = true;
+        }
+    }
+    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         if (!this.memory.siegeTarget || !Game.getObjectById(this.memory.siegeTarget)) {
             target = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 4, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         } else {
@@ -253,12 +259,6 @@ Creep.prototype.siege = function () {
     }
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART)});
-        if (target) {
-            this.memory.siegeComplete = true;
-        }
-    }
-    if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
-        target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES);
         if (target) {
             this.memory.siegeComplete = true;
         }
