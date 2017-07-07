@@ -112,6 +112,10 @@ hauler = profiler.registerFN(hauler, 'haulerHaulers');
  * @return {null}
  */
 function filler(creep) {
+    let getters = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
+    if (getters.length === 0) {
+        creep.memory.role = 'basicHauler';
+    }
     if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
         creep.memory.role = 'basicHauler';
     }
@@ -158,6 +162,10 @@ filler = profiler.registerFN(filler, 'fillerHaulers');
  * @return {null}
  */
 function getter(creep) {
+    let fillers = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
+    if (fillers.length === 0) {
+        creep.memory.role = 'basicHauler';
+    }
     if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
         creep.memory.role = 'basicHauler';
     }
