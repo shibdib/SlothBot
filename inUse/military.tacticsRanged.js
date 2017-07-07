@@ -24,7 +24,7 @@ rangedTeamLeader = function () {
     let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
 
     //Retreat if wounded
-    if (this.hits < this.hitsMax * 0.75) {
+    if (this.getActiveBodyparts(TOUGH) === 0) {
         this.heal(this);
         if (inRangeArmed.length > 1) {
             this.rangedMassAttack();
