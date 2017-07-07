@@ -417,6 +417,7 @@ Creep.prototype.kite = function (fleeRange = 3) {
         (c) => {
             return {pos: c.pos, range: 15};
         });
+    let creep = this;
     let ret = PathFinder.search(this.pos, avoidance, {
         flee: true,
         swampCost: 50,
@@ -424,7 +425,7 @@ Creep.prototype.kite = function (fleeRange = 3) {
 
         roomCallback: function (roomName) {
             let costs = new PathFinder.CostMatrix;
-            addBorderToMatrix(this.room, costs);
+            addBorderToMatrix(creep.room, costs);
             return costs;
         }
 

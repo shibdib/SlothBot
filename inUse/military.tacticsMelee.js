@@ -61,13 +61,17 @@ meleeTeamLeader = function () {
             borderChecks.borderCheck(this);
             if (closestArmed) {
                 this.memory.meleeTarget = closestArmed.id;
-                if (this.attack(closestArmed) === ERR_NOT_IN_RANGE) {
-                    this.travelTo(closestArmed, {movingTarget: true});
-                }
-                if (inRangeArmed.length > 1) {
-                    this.rangedMassAttack();
+                if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
+                    if (this.attack(closestArmed) === ERR_NOT_IN_RANGE) {
+                        this.travelTo(closestArmed, {movingTarget: true});
+                    }
+                    if (inRangeArmed.length > 1) {
+                        this.rangedMassAttack();
+                    } else {
+                        this.rangedAttack(closestArmed);
+                    }
                 } else {
-                    this.rangedAttack(closestArmed);
+                    this.kite(5);
                 }
             } else if (closestHostile) {
                 this.memory.meleeTarget = closestHostile.id;
@@ -171,12 +175,17 @@ meleeTeamMember = function () {
         borderChecks.borderCheck(this);
         if (closestArmed) {
             this.memory.meleeTarget = closestArmed.id;
-            this.attack(closestArmed);
-            this.travelTo(closestArmed, {movingTarget: true});
-            if (inRangeArmed.length > 1) {
-                this.rangedMassAttack();
+            if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
+                if (this.attack(closestArmed) === ERR_NOT_IN_RANGE) {
+                    this.travelTo(closestArmed, {movingTarget: true});
+                }
+                if (inRangeArmed.length > 1) {
+                    this.rangedMassAttack();
+                } else {
+                    this.rangedAttack(closestArmed);
+                }
             } else {
-                this.rangedAttack(closestArmed);
+                this.kite(5);
             }
         } else if (closestHostile) {
             this.memory.meleeTarget = closestHostile.id;
