@@ -11,7 +11,7 @@ tacticSquadLeaderMedic = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     if (squadLeader.length === 0) this.memory.squadLeader = true;
-    let targets = this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
+    let targets = _.min(this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (this.pos.getRangeTo(armedHostile) <= 2) {
         if (targets.length > 0) {
@@ -23,10 +23,10 @@ tacticSquadLeaderMedic = function () {
         this.kite(8);
     }
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
-        if (targets.length > 0) {
-            if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-                this.travelTo(targets[0]);
-                this.rangedHeal(targets[0]);
+        if (targets) {
+            if (this.heal(targets) === ERR_NOT_IN_RANGE) {
+                this.travelTo(targets);
+                this.rangedHeal(targets);
             }
         }
         else if (this.memory.attackStarted !== true) {
@@ -48,9 +48,9 @@ tacticSquadLeaderMedic = function () {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
         }
     } else {
-        if (targets.length > 0) {
-            if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-                this.rangedHeal(targets[0]);
+        if (targets) {
+            if (this.heal(targets) === ERR_NOT_IN_RANGE) {
+                this.rangedHeal(targets);
             }
         }
         this.kite(8);
