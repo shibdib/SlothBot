@@ -56,7 +56,7 @@ rangedTeamLeader = function () {
             this.memory.attackStarted = 'safe';
             Memory.warControl[this.memory.attackTarget] = undefined;
             Memory.militaryNeeds[this.memory.attackTarget] = undefined;
-            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15, ensurePath:true});
+            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         }
         if (closestArmed || closestHostile) {
             borderChecks.borderCheck(this);
@@ -72,7 +72,7 @@ rangedTeamLeader = function () {
         }  else if (squadLeader[0]) {
             if (this.pos.getRangeTo(squadLeader[0]) > 4) {
                 if (this.room.name !== squadLeader[0].pos.roomName) {
-                    this.travelTo(squadLeader[0], {allowHostile: true, ensurePath:true});
+                    this.travelTo(squadLeader[0], {allowHostile: true});
                 } else {
                     this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
                 }
@@ -106,11 +106,11 @@ rangedTeamLeader = function () {
                 }
             }
         } else if (this.memory.attackType === 'raid' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12, ensurePath:true});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24, ensurePath:true});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
         } else if (this.memory.attackType === 'siege') {
-            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15, ensurePath:true});
+            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
     }
 };
@@ -160,7 +160,7 @@ rangedTeamMember = function () {
     if (rangedLeader[0]) {
         if (this.pos.getRangeTo(rangedLeader[0]) > 4) {
             if (this.room.name !== rangedLeader[0].pos.roomName) {
-                this.travelTo(rangedLeader[0], {allowHostile: true, ensurePath:true});
+                this.travelTo(rangedLeader[0], {allowHostile: true});
             } else {
                 this.travelTo(rangedLeader[0], {allowHostile: true, movingTarget: true});
             }
