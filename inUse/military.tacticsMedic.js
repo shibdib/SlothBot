@@ -30,7 +30,7 @@ tacticSquadLeaderMedic = function () {
             }
         }
         else if (this.memory.attackStarted !== true) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
+            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15, ensurePath:true});
             if (this.memory.attackTarget) {
                 let nearbyAttackers = this.pos.findInRange(_.filter(Game.creeps, (a) => a.memory.attackTarget === this.memory.attackTarget && a.memory.role === 'attacker'), 35);
                 let nearbyHealers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'healer'), 35);
@@ -41,11 +41,11 @@ tacticSquadLeaderMedic = function () {
                 }
             }
         } else if (this.memory.attackType === 'raid' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12, ensurePath:true});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24, ensurePath:true});
         } else if (this.memory.attackType === 'siege') {
-            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
+            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4, ensurePath:true});
         }
     } else {
         if (targets.length > 0) {

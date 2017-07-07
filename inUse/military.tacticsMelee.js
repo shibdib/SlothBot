@@ -55,7 +55,7 @@ meleeTeamLeader = function () {
             this.memory.attackStarted = 'safe';
             Memory.warControl[this.memory.attackTarget] = undefined;
             Memory.militaryNeeds[this.memory.attackTarget] = undefined;
-            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
+            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15, ensurePath:true});
         }
         if (closestArmed || closestHostile) {
             borderChecks.borderCheck(this);
@@ -108,11 +108,11 @@ meleeTeamLeader = function () {
                 }
             }
         } else if (this.memory.attackType === 'raid' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12, ensurePath:true});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24, ensurePath:true});
         } else if (this.memory.attackType === 'siege') {
-            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
+            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15, ensurePath:true});
         }
     }
 };
