@@ -17,12 +17,8 @@ rangedTeamLeader = function () {
     let inRangeArmed = this.pos.findInRange(armedHostile, 3);
     let closestArmed;
     let closestHostile;
-    if (inRangeArmed.length > 0) {
-        closestArmed = this.pos.findClosestByPath(inRangeArmed);
-    }
-    if (inRangeHostile.length > 0) {
-        closestHostile = this.pos.findClosestByPath(inRangeHostile);
-    }
+    closestArmed = this.pos.findClosestByPath(inRangeArmed);
+    closestHostile = this.pos.findClosestByPath(inRangeHostile);
     let nearbyHealers = this.pos.findInRange(healers, 5);
     let farHealers = this.pos.findInRange(healers, 15);
     let needsHeals = this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
@@ -69,7 +65,9 @@ rangedTeamLeader = function () {
                 this.fightRanged(closestArmed);
             } else if (closestHostile) {
                 this.memory.rangedTarget = closestHostile.id;
-                this.fightRanged(closestHostile);
+                if (this.rangedAttack(closestHostile) === ERR_NOT_IN_RANGE) {
+                    this.travelTo(closestHostile);
+                }
             }
         }  else if (squadLeader[0]) {
             if (this.pos.getRangeTo(squadLeader[0]) > 4) {
