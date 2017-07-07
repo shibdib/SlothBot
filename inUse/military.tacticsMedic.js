@@ -13,10 +13,6 @@ tacticSquadLeaderMedic = function () {
     if (squadLeader.length === 0) this.memory.squadLeader = true;
     let targets = this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
-    if (siege.length > 0 && siege[0].memory.fallBackRoom && siege.length > 0 && this.pos.roomName !== siege[0].memory.fallBackRoom) {
-        this.travelTo(new RoomPosition(25, 25, siege[0].memory.fallBackRoom), {range: 15});
-        return;
-    }
     if (this.pos.getRangeTo(armedHostile) <= 2) {
         if (targets.length > 0) {
             if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
@@ -24,7 +20,7 @@ tacticSquadLeaderMedic = function () {
                 this.rangedHeal(targets[0]);
             }
         }
-        this.fleeFromHostile(armedHostile);
+        this.kite(8);
     }
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
         if (targets.length > 0) {
@@ -40,10 +36,12 @@ tacticSquadLeaderMedic = function () {
                 let nearbyHealers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'healer'), 35);
                 let nearbyRanged = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'ranged'), 35);
                 let nearbyDeconstructors = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.role === 'deconstructor'), 35);
-                if (nearbyRanged.length >= this.memory.waitForRanged && nearbyAttackers.length >= this.memory.waitForAttackers && nearbyHealers.length >= this.memory.waitForHealers && nearbyDeconstructors.length >= this.memory.waitForDeconstructor) {
+                if ((nearbyRanged.length >= this.memory.waitForRanged && nearbyAttackers.length >= this.memory.waitForAttackers && nearbyHealers.length >= this.memory.waitForHealers && nearbyDeconstructors.length >= this.memory.waitForDeconstructor) || this.attackType === 'raid' && _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget).length > 0) {
                     this.memory.attackStarted = true;
                 }
             }
+        } else if (this.memory.attackType === 'raid' || siege.length > 0) {
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
             this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
         } else if (this.memory.attackType === 'siege') {
@@ -55,7 +53,7 @@ tacticSquadLeaderMedic = function () {
                 this.rangedHeal(targets[0]);
             }
         }
-        this.fleeFromHostile(armedHostile);
+        this.kite(8);
     }
 };
 Creep.prototype.tacticSquadLeaderMedic = profiler.registerFN(tacticSquadLeaderMedic, 'squadLeaderMedicTactic');
