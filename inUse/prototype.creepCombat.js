@@ -192,6 +192,7 @@ Creep.prototype.flee = function (target) {
 Creep.prototype.fightRanged = function (target) {
     let range = this.pos.getRangeTo(target);
     if (range <= 2) {
+        this.rangedAttack(target);
         return this.kite();
     }
     if (range <= 3) {
