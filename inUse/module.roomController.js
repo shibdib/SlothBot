@@ -23,11 +23,6 @@ function roomControl() {
             }
         }**/
 
-        //SAFE MODE
-        if (Game.spawns[name].hits < Game.spawns[name].hitsMax / 2) {
-            Game.spawns[name].room.controller.activateSafeMode();
-        }
-
         //RENEWAL/RECYCLE CHECK
         if (!Game.spawns[name].spawning) {
             let creep = Game.spawns[name].pos.findInRange(FIND_MY_CREEPS, 1);

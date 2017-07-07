@@ -16,6 +16,15 @@ function controller() {
                 spawn.room.memory.alertEmail = true;
                 Game.notify(spawn.room.name + ' - Enemy detected, initiating defense mode.')
             }
+            if (spawn.room.memory.responseNeeded) {
+                let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => c.pos.y < 45 && c.pos.y > 5 && c.pos.x < 45 && c.pos.y > 5 && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
+                let tower = _.max(this.room.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER}), 'energy');
+                let responders = this.room.find(FIND_CREEPS, {filter: (c) => c.memory.role === 'responder'});
+                if (hostiles.length > 0 && tower.energy === 0 && responders.length === 0) {
+                    spawn.room.controller.activateSafeMode();
+                    Game.notify(spawn.pos.roomName + ' has entered safe mode.')
+                }
+            }
         }
     }
 
