@@ -35,6 +35,16 @@ function cacheAttacks() {
             Memory.warControl = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'defend')) {
+            let cache = Memory.warControl || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'defend'
+            };
+            Memory.warControl = cache;
+            Game.flags[name].remove();
+        }
     }
 }
 
@@ -61,6 +71,9 @@ function getIntel() {
                     let exits = Game.map.describeExits(key);
                     Memory.warControl[key].siegePoint = exits[exit];
                 }
+                continue;
+            }
+            if (Memory.warControl[key].type === 'defend') {
                 continue;
             }
             //check if scouted
@@ -144,6 +157,15 @@ function queueTroops() {
                     healer: 0,
                     deconstructor: 2,
                     ranged: 0
+                };
+                Memory.militaryNeeds = cache;
+            } else if (Memory.warControl[key].type === 'defend') {
+                cache[key] = {
+                    scout: 0,
+                    attacker: 0,
+                    healer: 1,
+                    deconstructor: 0,
+                    ranged: 1
                 };
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].type === 'siege') {
