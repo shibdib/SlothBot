@@ -56,6 +56,7 @@ meleeTeamLeader = function () {
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         }
         if (closestArmed || closestHostile) {
+            this.memory.inCombat = true;
             borderChecks.borderCheck(this);
             if (closestArmed) {
                 this.memory.meleeTarget = closestArmed.id;
@@ -85,6 +86,7 @@ meleeTeamLeader = function () {
                 }
             }
         } else if (squadLeader[0]) {
+            this.memory.inCombat = undefined;
             if (this.pos.getRangeTo(squadLeader[0]) > 6) {
                 if (this.room.name !== squadLeader[0].pos.roomName) {
                     this.travelTo(squadLeader[0], {allowHostile: false});
@@ -93,6 +95,7 @@ meleeTeamLeader = function () {
                 }
             }
         } else if (weakPoint && this.pos.getRangeTo(weakPoint) <= 2) {
+            this.memory.inCombat = undefined;
             this.attack(weakPoint);
             this.rangedAttack(weakPoint);
         } else if (this.memory.attackStarted !== true) {

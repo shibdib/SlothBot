@@ -10,6 +10,7 @@ let doNotAggress = RawMemory.segments[2];
 tacticSquadLeaderMedic = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
+    let inCombat = _.min(_.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.inCombat === true), 'hits');
     if (squadLeader.length === 0) this.memory.squadLeader = true;
     let targets = _.min(this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
@@ -28,6 +29,8 @@ tacticSquadLeaderMedic = function () {
                 this.travelTo(targets);
                 this.rangedHeal(targets);
             }
+        } else if (inCombat.id) {
+            this.inCombat(targets);
         }
         else if (this.memory.attackStarted !== true) {
             this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
