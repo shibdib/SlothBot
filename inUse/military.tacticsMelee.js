@@ -74,7 +74,6 @@ meleeTeamLeader = function () {
                 if (this.attack(closestHostile) === ERR_NOT_IN_RANGE) {
                     this.travelTo(closestHostile, {movingTarget: true});
                 }
-                this.travelTo(closestHostile, {movingTarget: true});
                 if (inRangeHostile.length > 1) {
                     this.rangedMassAttack();
                 } else {
