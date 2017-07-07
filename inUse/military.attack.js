@@ -109,7 +109,7 @@ function queueTroops() {
             if (Memory.warControl[key].threat === 0){
                 cache[key] = {
                     scout: 0,
-                    attacker: 0,
+                    attacker: 1,
                     healer: 0,
                     deconstructor: 0,
                     ranged: 1
@@ -118,8 +118,8 @@ function queueTroops() {
             } else if (Memory.warControl[key].threat === 1){
                 cache[key] = {
                     scout: 0,
-                    attacker: 0,
-                    healer: 0,
+                    attacker: 1,
+                    healer: 1,
                     deconstructor: 0,
                     ranged: 2
                 };
@@ -127,10 +127,10 @@ function queueTroops() {
             } else if (Memory.warControl[key].threat === 2){
                 cache[key] = {
                     scout: 0,
-                    attacker: 1,
+                    attacker: 2,
                     healer: 1,
                     deconstructor: 0,
-                    ranged: 2
+                    ranged: 3
                 };
                 Memory.militaryNeeds = cache;
             }
@@ -146,7 +146,7 @@ function queueTroops() {
         } else if (Memory.warControl[key].type === 'siege') {
             if (Memory.warControl[key].level === 1) {
                 cache[key] = {
-                    scout: 0,
+                    scout: 1,
                     attacker: 1,
                     healer: 1,
                     deconstructor: 1,
@@ -155,7 +155,7 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 2) {
                 cache[key] = {
-                    scout: 0,
+                    scout: 1,
                     attacker: 1,
                     healer: 1,
                     deconstructor: 2,
@@ -164,7 +164,7 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 3) {
                 cache[key] = {
-                    scout: 0,
+                    scout: 1,
                     attacker: 1,
                     healer: 2,
                     deconstructor: 2,
@@ -173,7 +173,7 @@ function queueTroops() {
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].level === 4) {
                 cache[key] = {
-                    scout: 0,
+                    scout: 1,
                     attacker: 2,
                     healer: 3,
                     deconstructor: 4,
