@@ -260,8 +260,12 @@ Creep.prototype.siege = function () {
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
         target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART)});
         if (target) {
-            this.memory.siegeComplete = true;
+            this.memory.siegeComplete = undefined;
         }
+    }
+    if (Game.getObjectById(this.memory.siegeTarget)) {
+        target = Game.getObjectById(this.memory.siegeTarget);
+        this.memory.siegeComplete = undefined;
     }
     let path = this.pos.findPathTo(target, {
         ignoreDestructibleStructures: false,
