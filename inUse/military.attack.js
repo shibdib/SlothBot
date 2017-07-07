@@ -54,39 +54,41 @@ function clearAttacks() {
 //Gather intel if needed
 function getIntel() {
     for (let key in Memory.warControl) {
-        if (Memory.warControl[key] && Memory.warControl[key].type === 'decon') {
-            if (!Memory.warControl[key].siegePoint) {
-                let exit = Game.map.findExit(key, 'W53N83');
-                let exits = Game.map.describeExits(key);
-                Memory.warControl[key].siegePoint = exits[exit];
-            }
-            continue;
-        }
-        //check if scouted
-        if (Memory.roomCache[key] && Memory.roomCache[key].cached + 500 > Game.time) {
-            //check if room is owned
-            if (Memory.roomCache[key].owner) {
-                Memory.warControl[key].type = 'siege';
+        if (Memory.warControl[key]) {
+            if (Memory.warControl[key].type === 'decon') {
                 if (!Memory.warControl[key].siegePoint) {
                     let exit = Game.map.findExit(key, 'W53N83');
                     let exits = Game.map.describeExits(key);
                     Memory.warControl[key].siegePoint = exits[exit];
                 }
-                if (Memory.roomCache[key].towers === 0 || Memory.roomCache[key].towers === undefined) {
-                    Memory.warControl[key].level = 1;
-                } else if (Memory.roomCache[key].towers === 1) {
-                    Memory.warControl[key].level = 2;
-                } else if (Memory.roomCache[key].towers === 2) {
-                    Memory.warControl[key].level = 3;
-                } else if (Memory.roomCache[key].towers === 3) {
-                    Memory.warControl[key].level = 4;
+                continue;
+            }
+            //check if scouted
+            if (Memory.roomCache[key].cached + 500 > Game.time) {
+                //check if room is owned
+                if (Memory.roomCache[key].owner) {
+                    Memory.warControl[key].type = 'siege';
+                    if (!Memory.warControl[key].siegePoint) {
+                        let exit = Game.map.findExit(key, 'W53N83');
+                        let exits = Game.map.describeExits(key);
+                        Memory.warControl[key].siegePoint = exits[exit];
+                    }
+                    if (Memory.roomCache[key].towers === 0 || Memory.roomCache[key].towers === undefined) {
+                        Memory.warControl[key].level = 1;
+                    } else if (Memory.roomCache[key].towers === 1) {
+                        Memory.warControl[key].level = 2;
+                    } else if (Memory.roomCache[key].towers === 2) {
+                        Memory.warControl[key].level = 3;
+                    } else if (Memory.roomCache[key].towers === 3) {
+                        Memory.warControl[key].level = 4;
+                    }
+                } else {
+                    Memory.warControl[key].type = 'raid';
+                    Memory.warControl[key].threat = 0;
                 }
             } else {
-                Memory.warControl[key].type = 'raid';
-                Memory.warControl[key].threat = 0;
+                Memory.warControl[key].type = 'scout';
             }
-        } else {
-            Memory.warControl[key].type = 'scout';
         }
     }
 }
@@ -95,91 +97,93 @@ function getIntel() {
 //Queue build request
 function queueTroops() {
     for (let key in Memory.warControl) {
-        let cache = Memory.militaryNeeds || {};
-        if (Memory.warControl[key].type === 'scout') {
-            cache[key] = {
-                scout: 1,
-                attacker: 0,
-                healer: 0,
-                deconstructor: 0,
-                ranged: 0
-            };
-            Memory.militaryNeeds = cache;
-        } else if (Memory.warControl[key].type === 'raid') {
-            if (Memory.warControl[key].threat === 0){
-                cache[key] = {
-                    scout: 0,
-                    attacker: 0,
-                    healer: 1,
-                    deconstructor: 0,
-                    ranged: 1
-                };
-                Memory.militaryNeeds = cache;
-            } else if (Memory.warControl[key].threat === 1){
-                cache[key] = {
-                    scout: 0,
-                    attacker: 0,
-                    healer: 1,
-                    deconstructor: 0,
-                    ranged: 2
-                };
-                Memory.militaryNeeds = cache;
-            } else if (Memory.warControl[key].threat === 2){
-                cache[key] = {
-                    scout: 0,
-                    attacker: 0,
-                    healer: 1,
-                    deconstructor: 0,
-                    ranged: 3
-                };
-                Memory.militaryNeeds = cache;
-            }
-        } else if (Memory.warControl[key].type === 'decon') {
-            cache[key] = {
-                scout: 0,
-                attacker: 0,
-                healer: 0,
-                deconstructor: 2,
-                ranged: 0
-            };
-            Memory.militaryNeeds = cache;
-        } else if (Memory.warControl[key].type === 'siege') {
-            if (Memory.warControl[key].level === 1) {
+        if (Memory.warControl[key]) {
+            let cache = Memory.militaryNeeds || {};
+            if (Memory.warControl[key].type === 'scout') {
                 cache[key] = {
                     scout: 1,
-                    attacker: 1,
-                    healer: 1,
-                    deconstructor: 1,
+                    attacker: 0,
+                    healer: 0,
+                    deconstructor: 0,
                     ranged: 0
                 };
                 Memory.militaryNeeds = cache;
-            } else if (Memory.warControl[key].level === 2) {
+            } else if (Memory.warControl[key].type === 'raid') {
+                if (Memory.warControl[key].threat === 0) {
+                    cache[key] = {
+                        scout: 0,
+                        attacker: 0,
+                        healer: 1,
+                        deconstructor: 0,
+                        ranged: 1
+                    };
+                    Memory.militaryNeeds = cache;
+                } else if (Memory.warControl[key].threat === 1) {
+                    cache[key] = {
+                        scout: 0,
+                        attacker: 0,
+                        healer: 1,
+                        deconstructor: 0,
+                        ranged: 2
+                    };
+                    Memory.militaryNeeds = cache;
+                } else if (Memory.warControl[key].threat === 2) {
+                    cache[key] = {
+                        scout: 0,
+                        attacker: 0,
+                        healer: 1,
+                        deconstructor: 0,
+                        ranged: 3
+                    };
+                    Memory.militaryNeeds = cache;
+                }
+            } else if (Memory.warControl[key].type === 'decon') {
                 cache[key] = {
-                    scout: 1,
-                    attacker: 1,
-                    healer: 1,
+                    scout: 0,
+                    attacker: 0,
+                    healer: 0,
                     deconstructor: 2,
-                    ranged: 1
+                    ranged: 0
                 };
                 Memory.militaryNeeds = cache;
-            } else if (Memory.warControl[key].level === 3) {
-                cache[key] = {
-                    scout: 1,
-                    attacker: 1,
-                    healer: 2,
-                    deconstructor: 2,
-                    ranged: 2
-                };
-                Memory.militaryNeeds = cache;
-            } else if (Memory.warControl[key].level === 4) {
-                cache[key] = {
-                    scout: 1,
-                    attacker: 2,
-                    healer: 3,
-                    deconstructor: 4,
-                    ranged: 4
-                };
-                Memory.militaryNeeds = cache;
+            } else if (Memory.warControl[key].type === 'siege') {
+                if (Memory.warControl[key].level === 1) {
+                    cache[key] = {
+                        scout: 1,
+                        attacker: 1,
+                        healer: 1,
+                        deconstructor: 1,
+                        ranged: 0
+                    };
+                    Memory.militaryNeeds = cache;
+                } else if (Memory.warControl[key].level === 2) {
+                    cache[key] = {
+                        scout: 1,
+                        attacker: 1,
+                        healer: 1,
+                        deconstructor: 2,
+                        ranged: 1
+                    };
+                    Memory.militaryNeeds = cache;
+                } else if (Memory.warControl[key].level === 3) {
+                    cache[key] = {
+                        scout: 1,
+                        attacker: 1,
+                        healer: 2,
+                        deconstructor: 2,
+                        ranged: 2
+                    };
+                    Memory.militaryNeeds = cache;
+                } else if (Memory.warControl[key].level === 4) {
+                    cache[key] = {
+                        scout: 1,
+                        attacker: 2,
+                        healer: 3,
+                        deconstructor: 4,
+                        ranged: 4
+                    };
+                    Memory.militaryNeeds = cache;
+                }
             }
         }
     }
