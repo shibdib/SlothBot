@@ -39,11 +39,13 @@ meleeTeamLeader = function () {
         } else {
             this.retreat();
         }
-    } else if (this.hits < this.hitsMax) {
+    }
+    if (this.hits < this.hitsMax) {
         this.heal(this);
-    } else if (needsHeals.length > 0) {
-        this.rangedHeal(needsHeals[0]);
     } else
+    if (needsHeals.length > 0) {
+        this.rangedHeal(needsHeals[0]);
+    }
     if (this.memory.meleeLeader === true) {
         let weakPoint = _.min(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 10, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
         //Check if safe mode
