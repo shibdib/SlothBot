@@ -15,12 +15,13 @@ function roomBuilding() {
         } else if (spawn.room.memory.primarySpawn === spawn.id) {
             roadSources(spawn);
             buildExtensions(spawn);
+            roadController(spawn);
             buildTower(spawn);
             buildStorage(spawn);
             borderWalls(spawn);
             for (let key in Game.constructionSites) {
                 let sources = spawn.room.find(FIND_SOURCES);
-                if (Game.constructionSites[key].pos.checkForObstacleStructure() || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1|| Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1 || Game.constructionSites[key].pos.checkForRoad()) {
+                if (Game.constructionSites[key].pos.checkForObstacleStructure() || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1 || Game.constructionSites[key].pos.checkForRoad()) {
                     if (Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER) {
                         Game.constructionSites[key].remove();
                     }
@@ -55,6 +56,29 @@ function roadSources(spawn) {
     }
 }
 roadSources = profiler.registerFN(roadSources, 'roadSourcesBuilder');
+
+function roadController(spawn) {
+    if (constructionSites.length > 30) {
+        if (spawn.room.controller.level >= 2) {
+            let controller = spawn.room.controller;
+            let path = spawn.room.findPath(spawn.pos, controller.pos, {
+                maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+            });
+            for (let i = 0; i < path.length; i++) {
+                if (path[i] !== undefined) {
+                    let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
+                    const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                    const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                    if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                    } else {
+                        build.createConstructionSite(STRUCTURE_ROAD);
+                    }
+                }
+            }
+        }
+    }
+}
+roadController = profiler.registerFN(roadController, 'roadControllerBuilder');
 
 function roadSpawns(spawn) {
     if (constructionSites.length > 30) {
