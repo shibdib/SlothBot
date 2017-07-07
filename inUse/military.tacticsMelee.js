@@ -11,7 +11,7 @@ meleeTeamLeader = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
-    let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => c.pos.y !== 49 && c.pos.y !== 0 && c.pos.x !== 49 && c.pos.y !== 0 && _.includes(RawMemory.segments[2], c.owner['username']) === false});
+    let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false});
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeHostile = this.pos.findInRange(hostiles, 1);
     let inRangeArmed = this.pos.findInRange(armedHostile, 1);
@@ -118,7 +118,7 @@ meleeTeamMember = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
     let meleeLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.meleeLeader === true);
     let healers = _.filter(Game.creeps, (h) => h.memory.role === 'healer');
-    let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => c.pos.y !== 49 && c.pos.y !== 0 && c.pos.x !== 49 && c.pos.y !== 0 && _.includes(RawMemory.segments[2], c.owner['username']) === false});
+    let hostiles = this.room.find(FIND_CREEPS, {filter: (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false});
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeHostile = this.pos.findInRange(hostiles, 1);
     let inRangeArmed = this.pos.findInRange(armedHostile, 1);
