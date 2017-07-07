@@ -49,6 +49,7 @@ function scout(creep) {
             creep.memory.destinationReached = true;
         }
     } else {
+        creep.say("You've been scouted #overlords")
         cache.cacheRoomIntel(creep);
     }
 }
