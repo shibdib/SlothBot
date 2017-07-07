@@ -218,24 +218,24 @@ Creep.prototype.siege = function () {
         this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         return true;
     }
-    let target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_TOWER);
+    let target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
     if (target) {
         this.memory.siegeComplete = true;
     }
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
-        target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_STORAGE);
+        target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_STORAGE)});
         if (target) {
             this.memory.siegeComplete = true;
         }
     }
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
-        target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_TERMINAL);
+        target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TERMINAL)});
         if (target) {
             this.memory.siegeComplete = true;
         }
     }
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
-        target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_SPAWN);
+        target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_SPAWN)});
         if (target) {
             this.memory.siegeComplete = true;
         }
@@ -252,13 +252,13 @@ Creep.prototype.siege = function () {
         }
     }
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
-        target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_RAMPART);
+        target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART)});
         if (target) {
             this.memory.siegeComplete = true;
         }
     }
     if (target === null || (target.owner && _.includes(RawMemory.segments[2], target.owner['username']) === true)) {
-        target = this.pos.findClosestStructure(FIND_HOSTILE_STRUCTURES, STRUCTURE_EXTENSION);
+        target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES);
         if (target) {
             this.memory.siegeComplete = true;
         }
