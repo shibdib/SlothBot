@@ -283,6 +283,18 @@ function haulers(spawn, level) {
                 }
             }
         }
+        let minerals = spawn.pos.findClosestByRange(FIND_MINERALS);
+        let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === spawn.room.name);
+        if (mineralHauler.length < 1 && upgraders.length > 0 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[level].mineralHauler, 'mineralHauler' + Game.time, {
+                role: 'mineralHauler',
+                roleGroup: 'workers',
+                assignedSpawn: spawn.id,
+                assignedRoom: spawn.room.name,
+                assignedMineral: minerals.id
+            }) === 'mineralHauler' + Game.time) {
+            console.log(spawn.room.name + ' Spawning a mineralHauler');
+            return true;
+        }
     }
 }
 haulers = profiler.registerFN(haulers, 'haulersSpawn');
@@ -321,17 +333,6 @@ function workers(spawn, level) {
                         assignedMineral: minerals.id
                     }) === 'mineralHarvester' + Game.time) {
                     console.log(spawn.room.name + ' Spawning a mineralHarvester');
-                    return true;
-                }
-                let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === spawn.room.name);
-                if (mineralHauler.length < 1 && upgraders.length > 0 && minerals.mineralAmount > 0 && spawn.createCreep(Memory.creepBodies[level].mineralHauler, 'mineralHauler' + Game.time, {
-                        role: 'mineralHauler',
-                        roleGroup: 'workers',
-                        assignedSpawn: spawn.id,
-                        assignedRoom: spawn.room.name,
-                        assignedMineral: minerals.id
-                    }) === 'mineralHauler' + Game.time) {
-                    console.log(spawn.room.name + ' Spawning a mineralHauler');
                     return true;
                 }
                  const labTech = _.filter(Game.creeps, (creep) => creep.memory.role === 'labTech' && creep.memory.assignedRoom === spawn.room.name);
