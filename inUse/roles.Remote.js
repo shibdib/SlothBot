@@ -120,7 +120,7 @@ function hauler(creep) {
                     creep.memory.containerID = undefined;
                 }
                 if (creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(creep.memory.containerID));
+                    creep.travelTo(Game.getObjectById(creep.memory.containerID), {offRoad: true});
                 }
             }
         } else {
@@ -155,7 +155,7 @@ function hauler(creep) {
         if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 25) {
             creep.memory.destinationReached = true;
         }
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20, offRoad: true});
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerRemote');
