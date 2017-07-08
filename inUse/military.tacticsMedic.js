@@ -46,7 +46,7 @@ tacticSquadLeaderMedic = function () {
         } else if (this.memory.attackType === 'raid' || siege.length > 0) {
             this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
         } else if (this.memory.attackType === 'siege') {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
         }
