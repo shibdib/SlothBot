@@ -116,11 +116,14 @@ function buildExtensions(spawn) {
     for (let i = 1; i < 5; i++) {
         x = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
         y = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
-        if (spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y, STRUCTURE_EXTENSION) === OK) {
+        let buildReturn = spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y, STRUCTURE_EXTENSION);
+        if (buildReturn === OK) {
             spawn.room.createConstructionSite(spawn.pos.x + x - 1, spawn.pos.y + y, STRUCTURE_ROAD);
             spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y - 1, STRUCTURE_ROAD);
             spawn.room.createConstructionSite(spawn.pos.x + x + 1, spawn.pos.y + y, STRUCTURE_ROAD);
             spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y + 1, STRUCTURE_ROAD);
+        } else if (buildReturn === ERR_RCL_NOT_ENOUGH) {
+            break;
         }
     }
 }
