@@ -2,7 +2,6 @@
  * Created by Bob on 7/2/2017.
  */
 let borderChecks = require('module.borderChecks');
-let militaryFunctions = require('module.militaryFunctions');
 const profiler = require('screeps-profiler');
 
 let doNotAggress = RawMemory.segments[2];

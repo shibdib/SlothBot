@@ -1,7 +1,6 @@
 /**
  * Created by rober on 7/3/2017.
  */
-let militaryFunctions = require('module.militaryFunctions');
 const profiler = require('screeps-profiler');
 
 let doNotAggress = RawMemory.segments[2];

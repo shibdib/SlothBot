@@ -38,8 +38,8 @@ module.exports.Manager = profiler.registerFN(Manager, 'managerHaulers');
  */
 function basicHauler(creep) {
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -74,8 +74,8 @@ basicHauler = profiler.registerFN(basicHauler, 'basicHaulerHaulers');
  */
 function hauler(creep) {
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
 
     if (creep.carry.energy === 0) {
         creep.memory.storageDestination = undefined;
@@ -120,8 +120,8 @@ function filler(creep) {
         creep.memory.role = 'basicHauler';
     }
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -170,8 +170,8 @@ function getter(creep) {
         creep.memory.role = 'basicHauler';
     }
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -213,8 +213,8 @@ getter = profiler.registerFN(getter, 'getterHaulers');
  */
 function labTech(creep) {
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
@@ -286,8 +286,8 @@ labTech = profiler.registerFN(labTech, 'labTechHaulers');
  */
 function mineralHauler(creep) {
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
 
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
@@ -353,8 +353,8 @@ function resupply(creep) {
         creep.memory.destinationReached = true;
     }
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;

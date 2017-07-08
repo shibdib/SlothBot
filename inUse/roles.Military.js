@@ -40,7 +40,7 @@ function scout(creep) {
     if (creep.memory.destinationReached !== true) {
         let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
         if (creep.pos.getRangeTo(armedHostile) < 2) {
-            militaryFunctions.kite(creep);
+            this.kite();
         }
         creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 24,maxOps: 50000,ensurePath:true});
         if (creep.pos.roomName === creep.memory.destination) {
@@ -409,7 +409,7 @@ function responder(creep) {
         }
         return null;
     }
-    borderChecks.borderCheck(creep);
+    creep.borderCheck();
     if (creep.hits < creep.hitsMax / 2) {
         creep.heal(creep);
     }

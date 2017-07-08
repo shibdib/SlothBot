@@ -1,4 +1,74 @@
 const profiler = require('screeps-profiler');
+borderCheck = function () {
+    if (this.pos.x === 0 || this.pos.y === 0 || this.pos.x === 49 || this.pos.y === 49) {
+        if (this.pos.x === 0 && this.pos.y === 0) {
+            this.move(BOTTOM_RIGHT);
+        }
+        else if (this.pos.x === 0 && this.pos.y === 49) {
+            this.move(TOP_RIGHT);
+        }
+        else if (this.pos.x === 49 && this.pos.y === 0) {
+            this.move(BOTTOM_LEFT);
+        }
+        else if (this.pos.x === 49 && this.pos.y === 49) {
+            this.move(TOP_LEFT);
+        }
+        else if (this.pos.x === 49) {
+            if (this.move(LEFT) !== ERR_NO_PATH) {
+            } else if (this.move(TOP_LEFT) !== ERR_NO_PATH) {
+            } else {
+                this.move(BOTTOM_LEFT);
+            }
+        }
+        else if (this.pos.x === 0) {
+            if (this.move(RIGHT) !== ERR_NO_PATH) {
+            } else if (this.move(TOP_RIGHT) !== ERR_NO_PATH) {
+            } else {
+            }
+        }
+        else if (this.pos.y === 0) {
+            if (this.move(BOTTOM) !== ERR_NO_PATH) {
+            } else if (this.move(BOTTOM_RIGHT) !== ERR_NO_PATH) {
+            } else {
+                this.move(BOTTOM_LEFT);
+            }
+        }
+        else if (this.pos.y === 49) {
+            if (this.move(TOP) !== ERR_NO_PATH) {
+            } else if (this.move(TOP_RIGHT) !== ERR_NO_PATH) {
+            } else {
+                this.move(TOP_LEFT);
+            }
+        }
+        return null;
+    }
+};
+Creep.prototype.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
+
+wrongRoom = function () {
+    if (!this.memory.assignedSpawn) {
+        let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if (spawn) {
+            this.memory.assignedSpawn = spawn.id;
+        } else {
+            this.suicide();
+        }
+    } else {
+        let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if (spawn) {
+            if (spawn.id !== this.memory.assignedSpawn) {
+                let home = Game.getObjectById(this.memory.assignedSpawn);
+                this.travelTo(home);
+            } else {
+                return false;
+            }
+        } else {
+            let home = Game.getObjectById(this.memory.assignedSpawn);
+            this.travelTo(home);
+        }
+    }
+};
+Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 
 findSource = function () {
     const source = this.room.find(FIND_SOURCES_ACTIVE);

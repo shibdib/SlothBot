@@ -22,8 +22,8 @@ module.exports.Manager = profiler.registerFN(Manager, 'managerWorkers');
  */
 function worker(creep) {
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
 
     if (creep.carry.energy === creep.carryCapacity / 2) {
         creep.memory.deliveryRequested = true;
@@ -89,8 +89,8 @@ worker = profiler.registerFN(worker, 'workerWorkers');
 function harvester(creep) {
     let source;
 //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
@@ -119,8 +119,8 @@ harvester = profiler.registerFN(harvester, 'harvesterWorkers');
  * @return {null}
  */
 function mineralHarvester(creep) {
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
@@ -148,8 +148,8 @@ mineralHarvester = profiler.registerFN(mineralHarvester, 'mineralHarvesterWorker
  */
 function upgrader(creep) {
     //INITIAL CHECKS
-    borderChecks.borderCheck(creep);
-    borderChecks.wrongRoom(creep);
+    creep.borderCheck();
+    creep.wrongRoom();
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }

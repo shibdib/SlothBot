@@ -2,7 +2,6 @@
  * Created by Bob on 7/2/2017.
  */
 let borderChecks = require('module.borderChecks');
-let militaryFunctions = require('module.militaryFunctions');
 const profiler = require('screeps-profiler');
 
 meleeTeamLeader = function () {
@@ -52,7 +51,7 @@ meleeTeamLeader = function () {
     }
     if (closestArmed || closestHostile) {
         this.memory.inCombat = true;
-        borderChecks.borderCheck(this);
+        this.borderCheck();
         if (closestArmed) {
             this.memory.meleeTarget = closestArmed.id;
             if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
@@ -139,7 +138,7 @@ meleeTeamMember = function () {
             this.travelTo(farHealers[0], {allowHostile: false, movingTarget: true});
             return null;
         } else {
-            militaryFunctions.retreat(this);
+            this.retreat(this);
         }
     } else if (this.hits < this.hitsMax) {
         this.heal(this);
@@ -155,7 +154,7 @@ meleeTeamMember = function () {
             }
         }
     } else if ((closestArmed || closestHostile) && (this.pos.getRangeTo(closestArmed) < 5 || this.pos.getRangeTo(closestHostile) < 5)) {
-        borderChecks.borderCheck(this);
+        this.borderCheck();
         if (closestArmed) {
             this.memory.meleeTarget = closestArmed.id;
             if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
