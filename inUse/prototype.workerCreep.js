@@ -74,7 +74,7 @@ findSource = function () {
     const source = this.room.find(FIND_SOURCES_ACTIVE);
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
-            if (source[i].pos.findInRange(FIND_CREEPS, 1, {filter: (c) => c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester'}).length === 0) {
+            if (source[i].pos.findInRange(FIND_CREEPS, 1, {filter: (c) => c.memory && (c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester')}).length === 0) {
                 if (this.travelTo(source[i]) !== ERR_NO_PATH) {
                     if (source[i].id) {
                         this.memory.source = source[i].id;
