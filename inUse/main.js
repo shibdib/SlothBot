@@ -144,17 +144,3 @@ module.exports.loop = function () {
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
 };
-
-Game.prototype.showCacheUsage = function () {
-    let usageCountCounter = {};
-    let howManyTimesCacheUsed = 0;
-    for (let key in Memory.pathCache) {
-        let cached = Memory.pathCache[key];
-        usageCountCounter['used' + cached.uses] = usageCountCounter['used' + cached.uses] + 1 || 1;
-        howManyTimesCacheUsed += cached.uses;
-    }
-
-    console.log(JSON.stringify(usageCountCounter));
-    console.log('howManyTimesCacheUsed: ' + howManyTimesCacheUsed);
-    console.log('cache size: ' + _.size(Memory.pathCache));
-};
