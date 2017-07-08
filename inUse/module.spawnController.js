@@ -12,7 +12,7 @@ function creepRespawn() {
         if (spawn.spawning === null) {
             let upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
             let worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
-            let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === spawn.room.name);
+            let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === spawn.room.name);
             let pawn = _.filter(Game.creeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn') && creep.memory.assignedRoom === spawn.room.name);
             let attackRequested;
             for (let name in Game.flags) {
