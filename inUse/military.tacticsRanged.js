@@ -72,7 +72,7 @@ rangedTeamLeader = function () {
         if (this.pos.getRangeTo(squadLeader[0]) > 4) {
             this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
         }
-    } else if (this.memory.attackStarted !== true) {
+    } else if (squadLeader[0].memory.attackStarted !== true) {
         this.memory.rangedTarget = undefined;
         this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     } else if (this.memory.attackType === 'raid' || siege.length > 0) {
