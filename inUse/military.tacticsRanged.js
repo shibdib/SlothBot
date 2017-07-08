@@ -68,14 +68,10 @@ rangedTeamLeader = function () {
                     this.travelTo(closestHostile);
                 }
             }
-        }  else if (squadLeader[0]) {
+        } else if (squadLeader[0] && this.room.name === squadLeader[0].pos.roomName) {
             this.memory.inCombat = undefined;
             if (this.pos.getRangeTo(squadLeader[0]) > 4) {
-                if (this.room.name !== squadLeader[0].pos.roomName) {
-                    this.travelTo(squadLeader[0], {allowHostile: true});
-                } else {
-                    this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
-                }
+                this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
             }
         } else if (hostileStructures.length > 0 && (!this.memory.attackTarget || this.pos.roomName === this.memory.attackTarget)) {
             this.memory.inCombat = undefined;
@@ -167,7 +163,7 @@ rangedTeamMember = function () {
             }
         }
     }
-    if (this.pos.getRangeTo(rangedLeader[0].memory.rangedTarget) <=3) {
+    if (this.pos.getRangeTo(rangedLeader[0].memory.rangedTarget) <= 3) {
         if (rangedLeader[0].memory.rangedTarget === 'mass') {
             this.rangedMassAttack();
             if (this.pos.getRangeTo(closestArmed) <= 2) {
