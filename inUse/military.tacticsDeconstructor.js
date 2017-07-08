@@ -45,7 +45,7 @@ tacticSiege = function () {
     } else {
         this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
-        this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
+        this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
     }
 };
 Creep.prototype.tacticSiege = profiler.registerFN(tacticSiege, 'tacticSiegeTactic');
