@@ -207,8 +207,12 @@ Creep.prototype.fightRanged = function (target) {
 Creep.prototype.siege = function () {
     this.memory.hitsLost = this.memory.hitsLast - this.hits;
     this.memory.hitsLast = this.hits;
-    if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70) {
+    if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 150 || this.memory.healing === true) {
+        this.memory.healing = true;
         this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
+        if (this.hits === this.hitsMax) {
+            this.memory.healing = undefined;
+        }
         return true;
     }
     let target = this.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
