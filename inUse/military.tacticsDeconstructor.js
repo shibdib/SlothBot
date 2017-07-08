@@ -23,7 +23,7 @@ tacticSiege = function () {
         this.memory.attackTarget = 'available';
     }
     if (this.memory.attackTarget && this.pos.roomName === this.memory.attackTarget || this.memory.healing === true) {
-        if (this.pos.getRangeTo(armedHostile) <= 4) {
+        if (this.pos.getRangeTo(armedHostile) <= 2) {
             this.retreat(8);
         } else {
             this.siege();
