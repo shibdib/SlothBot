@@ -35,6 +35,16 @@ function cacheAttacks() {
             Memory.warControl = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'clean')) {
+            let cache = Memory.warControl || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'clean'
+            };
+            Memory.warControl = cache;
+            Game.flags[name].remove();
+        }
         if (_.startsWith(name, 'defend')) {
             let cache = Memory.warControl || {};
             let tick = Game.time;
@@ -66,6 +76,14 @@ function getIntel() {
     for (let key in Memory.warControl) {
         if (Memory.warControl[key]) {
             if (Memory.warControl[key].type === 'decon') {
+                if (!Memory.warControl[key].siegePoint) {
+                    let exit = Game.map.findExit(key, 'W53N83');
+                    let exits = Game.map.describeExits(key);
+                    Memory.warControl[key].siegePoint = exits[exit];
+                }
+                continue;
+            }
+            if (Memory.warControl[key].type === 'clean') {
                 if (!Memory.warControl[key].siegePoint) {
                     let exit = Game.map.findExit(key, 'W53N83');
                     let exits = Game.map.describeExits(key);
@@ -156,6 +174,15 @@ function queueTroops() {
                     attacker: 0,
                     healer: 1,
                     deconstructor: 2,
+                    ranged: 0
+                };
+                Memory.militaryNeeds = cache;
+            } else if (Memory.warControl[key].type === 'clean') {
+                cache[key] = {
+                    scout: 0,
+                    attacker: 0,
+                    healer: 0,
+                    deconstructor: 1,
                     ranged: 0
                 };
                 Memory.militaryNeeds = cache;
