@@ -28,7 +28,7 @@ tacticSiege = function () {
         } else {
             this.siege();
         }
-    } else if ((!squadLeader[0] || squadLeader[0].memory.attackStarted !== true) && (this.memory.attackType !== 'decon' || this.memory.attackType !== 'clean')) {
+    } else if ((!squadLeader[0] || squadLeader[0].memory.attackStarted !== true) && this.memory.attackType !== 'decon' && this.memory.attackType !== 'clean') {
         this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
         this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
