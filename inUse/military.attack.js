@@ -154,7 +154,7 @@ function queueTroops() {
                 cache[key] = {
                     scout: 0,
                     attacker: 0,
-                    healer: 0,
+                    healer: 1,
                     deconstructor: 2,
                     ranged: 0
                 };
