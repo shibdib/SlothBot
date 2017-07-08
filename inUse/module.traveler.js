@@ -198,9 +198,11 @@ class Traveler {
      * @param opacity
      */
     static circle(pos, color, opacity) {
-        new RoomVisual(pos.roomName).circle(pos, {
-            radius: .45, fill: "transparent", stroke: color, strokeWidth: .15, opacity: opacity
-        });
+        if (pos.roomName) {
+            new RoomVisual(pos.roomName).circle(pos, {
+                radius: .45, fill: "transparent", stroke: color, strokeWidth: .15, opacity: opacity
+            });
+        }
     }
 
     /**
