@@ -129,7 +129,6 @@ class Traveler {
         if (state.stuckCount === 0 && !newPath) {
             travelData.path = travelData.path.substr(1);
         }
-        cache.cachePath(creep.pos, destination, travelData.path);
         let nextDirection = parseInt(travelData.path[0], 10);
         if (options.returnData) {
             if (nextDirection) {
@@ -140,6 +139,9 @@ class Traveler {
             }
             options.returnData.state = state;
             options.returnData.path = travelData.path;
+        }
+        if (travelData.path.length > 5) {
+            cache.cachePath(creep.pos, destination, travelData.path);
         }
         return creep.move(nextDirection);
     }
