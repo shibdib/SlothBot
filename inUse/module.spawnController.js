@@ -258,7 +258,7 @@ function haulers(spawn, level) {
         if (pawn.length === 0) {
             level = 1;
         }
-        if ((pawn.length < 4 || (pawn.length === 4 && pawn[0].ticksToLive < 100)) && spawn.createCreep(SPAWN[level].hauler, 'pawn' + Game.time, {
+        if ((pawn.length < 3 || (pawn.length === 3 && pawn[0].ticksToLive < 100)) && spawn.createCreep(SPAWN[level].hauler, 'pawn' + Game.time, {
                 role: 'pawn',
                 roleGroup: 'haulers',
                 assignedSpawn: spawn.id,
@@ -303,7 +303,7 @@ function workers(spawn, level) {
     if (spawn.room.controller.level >= 1) {
         const upgraders = _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === spawn.room.name);
         const worker = _.filter(Game.creeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === spawn.room.name);
-        if (worker.length < 2 && upgraders.length > 0 && spawn.createCreep(SPAWN[level].worker, 'worker' + Game.time, {
+        if (worker.length < 1 && upgraders.length > 0 && spawn.createCreep(SPAWN[level].worker, 'worker' + Game.time, {
                 role: 'worker',
                 roleGroup: 'workers',
                 assignedSpawn: spawn.id,
