@@ -25,8 +25,7 @@ tacticSiege = function () {
     }
     if (this.memory.attackTarget && this.pos.roomName === this.memory.attackTarget || this.memory.healing === true) {
         if (this.pos.getRangeTo(armedHostile) <= 4) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
-            return true;
+            this.retreat(8);
         } else {
             this.siege();
         }

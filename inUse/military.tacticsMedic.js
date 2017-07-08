@@ -14,15 +14,6 @@ tacticSquadLeaderMedic = function () {
     if (squadLeader.length === 0) this.memory.squadLeader = true;
     let targets = _.min(this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
-    if (this.pos.getRangeTo(armedHostile) <= 2) {
-        if (targets.length > 0) {
-            if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-                this.travelTo(targets[0]);
-                this.rangedHeal(targets[0]);
-            }
-        }
-        this.kite(8);
-    }
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
         if (targets.id) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
@@ -50,40 +41,38 @@ tacticSquadLeaderMedic = function () {
         } else if (this.memory.attackType === 'siege') {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
         }
-    } else {
-        if (targets.id && this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
-            if (this.heal(targets) === ERR_NOT_IN_RANGE) {
-                this.travelTo(targets);
-                this.rangedHeal(targets);
-            }
-        } else {
-            this.kite(8);
+    } else if (targets.id && this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
+        if (this.heal(targets) === ERR_NOT_IN_RANGE) {
+            this.travelTo(targets);
+            this.rangedHeal(targets);
         }
+    } else {
+        this.kite(8);
     }
 };
 Creep.prototype.tacticSquadLeaderMedic = profiler.registerFN(tacticSquadLeaderMedic, 'squadLeaderMedicTactic');
 
 tacticMedic = function () {
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
-    let targets = this.pos.findInRange(FIND_CREEPS, 7, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
+    let targets = _.min(this.pos.findInRange(FIND_CREEPS, 6, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
     let armedHostile = this.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
-    if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 3) {
-        if (targets.length > 0) {
-            if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-                this.travelTo(targets[0]);
-                this.rangedHeal(targets[0]);
+    if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 5) {
+        if (targets.id) {
+            if (this.heal(targets) === ERR_NOT_IN_RANGE) {
+                this.travelTo(targets);
+                this.rangedHeal(targets);
             }
         }
         else if (this.pos.getRangeTo(squadLeader[0]) > 4) {
             this.travelTo(squadLeader[0]);
         }
-    } else {
-        if (targets.length > 0) {
-            if (this.heal(targets[0]) === ERR_NOT_IN_RANGE) {
-                this.rangedHeal(targets[0]);
-            }
+    } else if (targets.id && this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
+        if (this.heal(targets) === ERR_NOT_IN_RANGE) {
+            this.travelTo(targets);
+            this.rangedHeal(targets);
         }
-        this.fleeFromHostile(armedHostile);
+    } else {
+        this.kite(8);
     }
 };
 Creep.prototype.tacticMedic = profiler.registerFN(tacticMedic, 'tacticMedicTactic');
