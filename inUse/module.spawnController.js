@@ -429,13 +429,22 @@ function remotes(spawn, level) {
 remotes = profiler.registerFN(remotes, 'remotesSpawn');
 
 function neighborCheck(spawnRoom, remoteRoom) {
-    let neighboringRooms = Game.map.describeExits(spawnRoom);
-    for (let key in neighboringRooms) {
-        if (neighboringRooms[key] && remoteRoom && (neighboringRooms[key] === remoteRoom || spawnRoom === remoteRoom)) {
-            return true;
+    if (!Game.rooms[spawnRoom].memory.neighboringRooms) {
+        Game.rooms[spawnRoom].memory.neighboringRooms = Game.map.describeExits(spawnRoom);
+        for (let key in Game.rooms[spawnRoom].memory.neighboringRooms) {
+            if (Game.rooms[spawnRoom].memory.neighboringRooms[key] && remoteRoom && (Game.rooms[spawnRoom].memory.neighboringRooms[key] === remoteRoom || spawnRoom === remoteRoom)) {
+                return true;
+            }
         }
+        return false;
+    } else {
+        for (let key in Game.rooms[spawnRoom].memory.neighboringRooms) {
+            if (Game.rooms[spawnRoom].memory.neighboringRooms[key] && remoteRoom && (Game.rooms[spawnRoom].memory.neighboringRooms[key] === remoteRoom || spawnRoom === remoteRoom)) {
+                return true;
+            }
+        }
+        return false;
     }
-    return false;
 }
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
 
