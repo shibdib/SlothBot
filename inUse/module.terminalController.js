@@ -20,9 +20,9 @@ let tradeTargets = [RESOURCE_HYDROGEN,
 
 let doNotSell = [RESOURCE_CATALYZED_UTRIUM_ACID];
 
-let tradeAmount = 10000;
-let energyAmount = 25000;
-let reactionAmount = 500;
+let tradeAmount = 25000;
+let energyAmount = 50000;
+let reactionAmount = 1000;
 
 
 
