@@ -199,7 +199,7 @@ Creep.prototype.fightRanged = function (target) {
         return true;
     } else {
         this.rangedAttack(_.min(this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false}), 'hits'));
-        this.travelTo(target, {movingTarget: true, ignoreCreeps:false});
+        this.travelTo(target, {movingTarget: true, ignoreCreeps: false});
     }
 };
 
@@ -208,7 +208,12 @@ Creep.prototype.siege = function () {
     this.memory.hitsLast = this.hits;
     if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 150 || this.memory.healing === true) {
         this.memory.healing = true;
-        this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
+        let healers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.role === 'healer'), 15);
+        if (healers.length > 0) {
+            this.travelTo(healers[0]);
+        } else {
+            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
+        }
         if (this.hits === this.hitsMax) {
             this.memory.healing = undefined;
         }
