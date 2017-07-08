@@ -29,6 +29,11 @@ class Traveler {
             return ERR_BUSY;
         }
         destination = this.normalizePos(destination);
+        if (cache.getPath(creep.pos, destination)) {
+            let path = cache.getPath(creep.pos, destination);
+            let nextDirection = parseInt(path[0], 10);
+            return creep.move(nextDirection);
+        }
         // manage case where creep is nearby destination
         let rangeToDestination = creep.pos.getRangeTo(destination);
         if (options.range && rangeToDestination <= options.range) {
@@ -124,6 +129,7 @@ class Traveler {
         if (state.stuckCount === 0 && !newPath) {
             travelData.path = travelData.path.substr(1);
         }
+        cache.cachePath(creep.pos, destination, travelData.path);
         let nextDirection = parseInt(travelData.path[0], 10);
         if (options.returnData) {
             if (nextDirection) {
