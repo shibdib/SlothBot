@@ -89,7 +89,7 @@ function hauler(creep) {
     } else if (creep.memory.storageDestination) {
         let storageItem = Game.getObjectById(creep.memory.storageDestination);
         if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(storageItem, {ignoreCreeps: false});
+            creep.travelTo(storageItem, {ignoreCreeps: false, movingTarget: true});
         } else {
             creep.memory.storageDestination = null;
             creep.memory.path = null;
