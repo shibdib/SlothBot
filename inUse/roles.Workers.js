@@ -94,7 +94,8 @@ function harvester(creep) {
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
-    } else if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
+    }
+    if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
         depositEnergy(creep);
     } else {
