@@ -152,10 +152,10 @@ function hauler(creep) {
         }
     } else if (!creep.memory.destinationReached) {
         creep.memory.containerID = undefined;
-        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 25) {
+        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 10) {
             creep.memory.destinationReached = true;
         }
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 20, offRoad: true});
+        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 7, offRoad: true});
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerRemote');
