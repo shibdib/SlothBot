@@ -39,7 +39,7 @@ function creepRespawn() {
             if (haulers(spawn, level) === true) {
                 continue;
             }
-            if (upgraders.length > 0 && (basicHauler.length === 1 || pawn.length >= 3)) {
+            if (upgraders.length > 0 && (basicHauler.length >= 1 || pawn.length >= 3)) {
                 if (respondersNeeded === true) {
                     if (responseForce(spawn, level) === true) {
                         continue;
