@@ -86,7 +86,7 @@ meleeTeamLeader = function () {
     } else if (this.memory.attackType === 'raid' || siege.length > 0) {
         this.memory.inCombat = undefined;
         this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
-    } else if (squadLeader[0].memory.attackStarted !== true) {
+    } else if (squadLeader[0] && squadLeader[0].memory.attackStarted !== true) {
         this.memory.rangedTarget = undefined;
         this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
