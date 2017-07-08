@@ -597,8 +597,8 @@ exports.Traveler = Traveler;
 // this might be higher than you wish, setting it lower is a great way to diagnose creep behavior issues. When creeps
 // need to repath to often or they aren't finding valid paths, it can sometimes point to problems elsewhere in your code
 const REPORT_CPU_THRESHOLD = 1000;
-const DEFAULT_MAXOPS = 15000;
-const DEFAULT_STUCK_VALUE = 1;
+const DEFAULT_MAXOPS = 1500;
+const DEFAULT_STUCK_VALUE = 2;
 const STATE_PREV_X = 0;
 const STATE_PREV_Y = 1;
 const STATE_STUCK = 2;
