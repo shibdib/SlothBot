@@ -89,7 +89,7 @@ function hauler(creep) {
     } else if (creep.memory.storageDestination) {
         let storageItem = Game.getObjectById(creep.memory.storageDestination);
         if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(storageItem, {movingTarget: true});
+            creep.travelTo(storageItem, {movingTarget: true, offRoad: true});
         } else {
             creep.memory.storageDestination = null;
             creep.memory.path = null;
@@ -138,7 +138,7 @@ function filler(creep) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem);
+                creep.travelTo(storageItem, {offRoad: true});
             } else {
                 creep.memory.storageDestination = null;
             }
@@ -178,7 +178,7 @@ function getter(creep) {
     } else {
         if (creep.memory.storage) {
             if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.getObjectById(creep.memory.storage));
+                creep.travelTo(Game.getObjectById(creep.memory.storage), {offRoad: true});
             }
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
