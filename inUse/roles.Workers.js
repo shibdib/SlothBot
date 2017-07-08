@@ -1,4 +1,3 @@
-let borderChecks = require('module.borderChecks');
 let profiler = require('screeps-profiler');
 let cache = require('module.cache');
 let _ = require('lodash');

@@ -1,7 +1,6 @@
 /**
  * Created by Bob on 7/2/2017.
  */
-let borderChecks = require('module.borderChecks');
 const profiler = require('screeps-profiler');
 
 meleeTeamLeader = function () {
