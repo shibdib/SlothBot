@@ -85,14 +85,10 @@ meleeTeamLeader = function () {
                     this.rangedAttack(closestHostile);
                 }
             }
-        } else if (squadLeader[0]) {
+        } else if (squadLeader[0] && this.room.name === squadLeader[0].pos.roomName) {
             this.memory.inCombat = undefined;
-            if (this.pos.getRangeTo(squadLeader[0]) > 6) {
-                if (this.room.name !== squadLeader[0].pos.roomName) {
-                    this.travelTo(squadLeader[0], {allowHostile: false});
-                } else {
-                    this.travelTo(squadLeader[0], {allowHostile: false, movingTarget: true});
-                }
+            if (this.pos.getRangeTo(squadLeader[0]) > 4) {
+                this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
             }
         } else if (weakPoint && this.pos.getRangeTo(weakPoint) <= 2) {
             this.memory.inCombat = undefined;
@@ -113,7 +109,7 @@ meleeTeamLeader = function () {
         } else if (this.memory.attackType === 'raid' || siege.length > 0) {
             this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 24});
+            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
         } else if (this.memory.attackType === 'siege') {
             this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
