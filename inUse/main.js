@@ -145,7 +145,7 @@ module.exports.loop = function () {
     });
 };
 
-function showCacheUsage() {
+Game.prototype.showCacheUsage = function () {
     let usageCountCounter = {};
     let howManyTimesCacheUsed = 0;
     for (let key in Memory.pathCache) {
@@ -157,4 +157,4 @@ function showCacheUsage() {
     console.log(JSON.stringify(usageCountCounter));
     console.log('howManyTimesCacheUsed: ' + howManyTimesCacheUsed);
     console.log('cache size: ' + _.size(Memory.pathCache));
-}
+};

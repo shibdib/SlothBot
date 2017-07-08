@@ -23,11 +23,9 @@ function worker(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-
     if (creep.carry.energy === creep.carryCapacity / 2) {
         creep.memory.deliveryRequested = true;
     }
-
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
@@ -37,7 +35,6 @@ function worker(creep) {
         creep.memory.deliveryWait = undefined;
         creep.memory.working = true;
     }
-
     if (creep.memory.working === true) {
         creep.findConstruction();
         if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
@@ -90,18 +87,17 @@ function harvester(creep) {
 //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-    if (creep.carry.energy === 0) {
-        creep.memory.hauling = false;
-    }
     if (creep.carry.ticksToLive <= 5) {
         depositEnergy(creep);
         creep.suicide();
+        return null;
     }
-
-    if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
+    if (creep.carry.energy === 0) {
+        creep.memory.hauling = false;
+    } else if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
         depositEnergy(creep);
-    } else if (creep.memory.hauling !== true) {
+    } else {
         if (creep.memory.assignedSource) {
             source = Game.getObjectById(creep.memory.assignedSource);
         } else if (!source) {
@@ -122,14 +118,13 @@ function mineralHarvester(creep) {
     creep.wrongRoom();
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
-    }
-
-    if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.hauling === true) {
+    } else if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
         depositMineral(creep);
     } else if (creep.memory.hauling !== true) {
+        let mineral;
         if (creep.memory.assignedMineral) {
-            var mineral = Game.getObjectById(creep.memory.assignedMineral);
+            mineral = Game.getObjectById(creep.memory.assignedMineral);
         }
         let response = creep.harvest(mineral);
         if (response === ERR_NOT_IN_RANGE) {
@@ -151,8 +146,7 @@ function upgrader(creep) {
     creep.wrongRoom();
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
-    }
-    if (creep.carry.energy >= creep.carryCapacity * 0.75) {
+    } else if (creep.carry.energy >= creep.carryCapacity * 0.75) {
         creep.memory.deliveryIncoming = undefined;
         creep.memory.deliveryRequested = undefined;
         creep.memory.deliveryWait = undefined;
@@ -162,10 +156,6 @@ function upgrader(creep) {
     if (creep.memory.working === true) {
         if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
             creep.travelTo(creep.room.controller, {ignoreCreeps: false});
-        } else {
-            if (dontSitOnRoads(creep) === true) {
-                creep.travelTo(creep.room.controller)
-            }
         }
     } else {
         if (creep.memory.energyDestination) {

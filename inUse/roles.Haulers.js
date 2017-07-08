@@ -14,7 +14,6 @@ function Manager(creep) {
         let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
         let fillers = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
         let getters = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
-        let haulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'hauler' && creep.memory.assignedRoom === creep.room.name);
         if (fillers.length === 0) {
             creep.memory.role = 'filler';
         } else if (getters.length === 0) {
@@ -39,7 +38,6 @@ function basicHauler(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
@@ -75,7 +73,6 @@ function hauler(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-
     if (creep.carry.energy === 0) {
         creep.memory.storageDestination = undefined;
         creep.memory.hauling = false;
@@ -98,11 +95,8 @@ function hauler(creep) {
             creep.memory.path = null;
         }
         return null;
-    } else
-    if (!creep.findDeliveries()) {
+    } else if (!creep.findDeliveries()) {
         creep.findEssentials();
-    } else {
-        creep.say(ICONS.transfer);
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerHaulers');
@@ -111,17 +105,16 @@ hauler = profiler.registerFN(hauler, 'haulerHaulers');
  * @return {null}
  */
 function filler(creep) {
-        let getters = _.filter(Game.creeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
-        if (getters.length === 0) {
-            creep.memory.role = 'basicHauler';
-        }
+    let getters = _.filter(Game.creeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
+    if (getters.length === 0) {
+        creep.memory.role = 'basicHauler';
+    }
     if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
         creep.memory.role = 'basicHauler';
     }
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
@@ -148,7 +141,6 @@ function filler(creep) {
                 creep.travelTo(storageItem, {ignoreCreeps: false});
             } else {
                 creep.memory.storageDestination = null;
-                creep.memory.path = null;
             }
             return null;
         }
@@ -161,17 +153,16 @@ filler = profiler.registerFN(filler, 'fillerHaulers');
  * @return {null}
  */
 function getter(creep) {
-        let fillers = _.filter(Game.creeps, (creep) => (creep.memory.role === 'filler' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
-        if (fillers.length === 0) {
-            creep.memory.role = 'basicHauler';
-        }
+    let fillers = _.filter(Game.creeps, (creep) => (creep.memory.role === 'filler' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
+    if (fillers.length === 0) {
+        creep.memory.role = 'basicHauler';
+    }
     if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
         creep.memory.role = 'basicHauler';
     }
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
@@ -183,14 +174,6 @@ function getter(creep) {
             creep.withdrawEnergy();
         } else {
             creep.getEnergy();
-            /** if (!creep.memory.energyDestination) {
-                let droppedEnergy = _.filter(creep.room.getDroppedResources(), (r) => r.resourceType === RESOURCE_ENERGY && r.amount > 100);
-                if (droppedEnergy[0]) {
-                    if (creep.pickup(droppedEnergy[0]) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(droppedEnergy[0]);
-                    }
-                }
-            }**/
         }
     } else {
         if (creep.memory.storage) {
@@ -220,7 +203,6 @@ function labTech(creep) {
     if (_.sum(creep.carry) > 0) {
         creep.memory.hauling = true;
     }
-
     for (let key in creep.room.memory.reactions) {
         if (creep.room.memory.reactions[key].assignedHub) {
             if (Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount < 500) {
@@ -287,7 +269,6 @@ function mineralHauler(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
@@ -354,7 +335,6 @@ function resupply(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
