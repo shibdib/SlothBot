@@ -83,17 +83,16 @@ meleeTeamLeader = function () {
         if (this.pos.getRangeTo(squadLeader[0]) > 4) {
             this.travelTo(squadLeader[0], {allowHostile: true, movingTarget: true});
         }
-    } else if (this.memory.attackStarted !== true) {
-        this.memory.meleeTarget = undefined;
-        this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     } else if (this.memory.attackType === 'raid' || siege.length > 0) {
-        this.memory.meleeTarget = undefined;
+        this.memory.inCombat = undefined;
         this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
+    } else if (squadLeader[0].memory.attackStarted !== true) {
+        this.memory.rangedTarget = undefined;
+        this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-        this.memory.meleeTarget = undefined;
+        this.memory.inCombat = undefined;
         this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
     } else if (this.memory.attackType === 'siege') {
-        this.memory.meleeTarget = undefined;
         this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
     }
 };
