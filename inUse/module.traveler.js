@@ -29,11 +29,11 @@ class Traveler {
             return ERR_BUSY;
         }
         destination = this.normalizePos(destination);
-        if (cache.getPath(creep.pos, destination)) {
+        /**if (cache.getPath(creep.pos, destination)) {
             let path = cache.getPath(creep.pos, destination);
             let nextDirection = parseInt(path[0], 10);
             return creep.move(nextDirection);
-        }
+        }**/
         // manage case where creep is nearby destination
         let rangeToDestination = creep.pos.getRangeTo(destination);
         if (options.range && rangeToDestination <= options.range) {
