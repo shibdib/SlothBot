@@ -208,7 +208,7 @@ Creep.prototype.siege = function () {
     this.memory.hitsLast = this.hits;
     if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 150 || this.memory.healing === true) {
         this.memory.healing = true;
-        let healers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.role === 'healer'), 15);
+        let healers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.role === 'healer'), 45);
         if (healers.length > 0) {
             this.travelTo(healers[0]);
         } else {
