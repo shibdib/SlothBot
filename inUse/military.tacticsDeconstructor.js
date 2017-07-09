@@ -6,7 +6,13 @@ const profiler = require('screeps-profiler');
 let doNotAggress = RawMemory.segments[2];
 
 tacticSiege = function () {
-    let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+    let squadLeader;
+    if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
+        this.memory.assignedSquadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+    }
+    if (this.memory.assignedSquadLeader) {
+        squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
+    }
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (this.hits < this.hitsMax) {
         this.heal(this);
@@ -28,7 +34,7 @@ tacticSiege = function () {
         } else {
             this.siege();
         }
-    } else if ((!squadLeader[0] || squadLeader[0].memory.attackStarted !== true) && this.memory.attackType !== 'decon' && this.memory.attackType !== 'clean') {
+    } else if ((!squadLeader || squadLeader.memory.attackStarted !== true) && this.memory.attackType !== 'decon' && this.memory.attackType !== 'clean') {
         this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
         this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});

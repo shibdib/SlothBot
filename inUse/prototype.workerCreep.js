@@ -46,26 +46,8 @@ borderCheck = function () {
 Creep.prototype.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
 
 wrongRoom = function () {
-    if (!this.memory.assignedSpawn) {
-        let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if (spawn) {
-            this.memory.assignedSpawn = spawn.id;
-        } else {
-            this.suicide();
-        }
-    } else {
-        let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if (spawn) {
-            if (spawn.id !== this.memory.assignedSpawn) {
-                let home = Game.getObjectById(this.memory.assignedSpawn);
-                this.travelTo(home);
-            } else {
-                return false;
-            }
-        } else {
-            let home = Game.getObjectById(this.memory.assignedSpawn);
-            this.travelTo(home);
-        }
+    if (this.memory.assignedRoom && this.pos.roomName !== this.memory.assignedRoom) {
+        this.travelTo(new RoomPosition(25, 25, this.memory.assignedRoom));
     }
 };
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');

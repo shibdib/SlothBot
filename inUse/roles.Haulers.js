@@ -12,8 +12,9 @@ function Manager(creep) {
         resupply(creep);
     } else if (creep.memory.role === "pawn") {
         let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
-        let fillers = _.filter(Game.creeps, (creep) => creep.memory.role === 'filler' && creep.memory.assignedRoom === creep.room.name);
-        let getters = _.filter(Game.creeps, (creep) => creep.memory.role === 'getter' && creep.memory.assignedRoom === creep.room.name);
+        let creeps = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === creep.room.name);
+        let fillers = _.filter(creeps, (creep) => creep.memory.role === 'filler');
+        let getters = _.filter(creeps, (creep) => creep.memory.role === 'getter');
         if (fillers.length === 0) {
             creep.memory.role = 'filler';
         } else if (getters.length === 0) {
@@ -35,6 +36,10 @@ module.exports.Manager = profiler.registerFN(Manager, 'managerHaulers');
  * @return {null}
  */
 function basicHauler(creep) {
+    let basicHaulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === creep.room.name);
+    if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2) {
+        creep.memory.role = 'pawn';
+    }
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
