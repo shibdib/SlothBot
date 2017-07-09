@@ -64,7 +64,7 @@ function labControl() {
                                     let lab1 = Game.getObjectById(reaction.lab1);
                                     let lab2 = Game.getObjectById(reaction.lab2);
                                     let outputLab = Game.getObjectById(reaction.outputLab);
-                                    if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) {
+                                    if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && (outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) || !outputLab.mineralAmount) {
                                         reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
                                     }
                                 } else {
