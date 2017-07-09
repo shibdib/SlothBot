@@ -105,7 +105,7 @@ module.exports.loop = function () {
         //Terminal Management
         Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
         if (Game.cpu.bucket > 2000) {
-            if (Game.time % 10 === 0) {
+            if (Game.time % 50 === 0) {
                 let terminalController = require('module.terminalController');
                 terminalController.terminalControl();
             }
