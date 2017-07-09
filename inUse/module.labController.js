@@ -60,13 +60,6 @@ function labControl() {
                                     reaction.lab2 = currentHub.lab2;
                                     reaction.outputLab = currentHub.outputLab;
                                     currentHub.active = true;
-                                    //if minerals are present, react!
-                                    let lab1 = Game.getObjectById(reaction.lab1);
-                                    let lab2 = Game.getObjectById(reaction.lab2);
-                                    let outputLab = Game.getObjectById(reaction.outputLab);
-                                    if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && (outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) || !outputLab.mineralAmount) {
-                                        reaction.isActive = outputLab.runReaction(lab1, lab2) === OK;
-                                    }
                                 } else {
                                     reaction.assignedHub = undefined;
                                     reaction.lab1 = undefined;
@@ -75,6 +68,14 @@ function labControl() {
                                     continue reactions;
                                 }
                             }
+                    } else if (currentHub.active) {
+                        //if minerals are present, react!
+                        let lab1 = Game.getObjectById(currentHub.lab1);
+                        let lab2 = Game.getObjectById(currentHub.lab2);
+                        let outputLab = Game.getObjectById(currentHub.outputLab);
+                        if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && (outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) || !outputLab.mineralAmount) {
+                            outputLab.runReaction(lab1, lab2);
+                        }
                     }
                 }
             }
