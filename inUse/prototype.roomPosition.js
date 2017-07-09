@@ -54,6 +54,10 @@ RoomPosition.prototype.checkForRoad = function () {
     return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
 };
 
+RoomPosition.prototype.checkForAllStructure = function () {
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART});
+};
+
 RoomPosition.prototype.isExit = function () {
     if (this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48) {
         return true;

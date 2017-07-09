@@ -21,7 +21,7 @@ function roomBuilding() {
             //borderWalls(spawn);
             for (let key in Game.constructionSites) {
                 let sources = spawn.room.find(FIND_SOURCES);
-                if (Game.constructionSites[key].pos.checkForObstacleStructure().length > 0 || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1 || Game.constructionSites[key].pos.checkForRoad().length > 0) {
+                if (Game.constructionSites[key].pos.checkForAllStructure().length > 0 || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1) {
                     if (Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER) {
                         Game.constructionSites[key].remove();
                     }
