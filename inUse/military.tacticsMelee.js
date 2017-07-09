@@ -27,7 +27,7 @@ meleeTeamLeader = function () {
     let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let closestArmed = this.pos.findClosestByPath(armedHostile);
     let closestHostile = this.pos.findClosestByPath(hostiles);
-    let healers = _.filter(creepsInRoom, (h) => h.memory.role === 'healer');
+    let healers = _.filter(creepsInRoom, (h) => h.memory && h.memory.role === 'healer');
     let closestHealer = this.pos.findClosestByPath(healers);
     let needsHeals = this.pos.findInRange(creepsInRoom, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
 
@@ -129,7 +129,7 @@ meleeTeamMember = function () {
     let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let closestArmed = this.pos.findClosestByPath(armedHostile);
     let closestHostile = this.pos.findClosestByPath(hostiles);
-    let healers = _.filter(creepsInRoom, (h) => h.memory.role === 'healer');
+    let healers = _.filter(creepsInRoom, (h) => h.memory && h.memory.role === 'healer');
     let closestHealer = this.pos.findClosestByPath(healers);
     let needsHeals = this.pos.findInRange(creepsInRoom, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
 
