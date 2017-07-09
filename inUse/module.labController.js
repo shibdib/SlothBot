@@ -11,20 +11,16 @@ function labControl() {
             //Initial reaction setup in memory
             cacheReactions(lab);
             let labs = lab.pos.findInRange(FIND_MY_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_LAB});
-            if (labs.length >= 3 && _.includes(lab.room.memory.reactions.labHubs, labs[0].id) === false && _.includes(lab.room.memory.reactions.labHubs, labs[1].id) === false && _.includes(lab.room.memory.reactions.labHubs, labs[2].id) === false) {
+            if (labs.length >= 3 && !lab.room.memory.reactions.labHubs[labs[0].id] && !lab.room.memory.reactions.labHubs[labs[1].id] && !lab.room.memory.reactions.labHubs[labs[2].id]) {
                 createLabHub(labs);
             }
             if (lab.room.memory.reactions.labHubs) {
-                if (lab.room.memory.reactions.labHubs.length !== lab.room.memory.reactionHubCount) {
-                    lab.room.memory.reactionHubCount = lab.room.memory.reactions.labHubs.length;
-                    cacheReactions(lab, true);
-                }
                 for (let keys in lab.room.memory.reactions.labHubs) {
                     let currentHub = lab.room.memory.reactions.labHubs[keys];
                     if (currentHub && !currentHub.active) {
                         reactions:
                             for (let key in lab.room.memory.reactions) {
-                                if (key === 'current' || key === 'currentAge' || key === 'hub' || lab.room.memory.reactions[key].lab1) {
+                                if (key === 'current' || key === 'currentAge' || key === 'labHubs' || lab.room.memory.reactions[key].lab1) {
                                     continue;
                                 }
                                 let reaction = lab.room.memory.reactions[key];
