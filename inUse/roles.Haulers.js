@@ -226,7 +226,7 @@ function labTech(creep) {
     if (creep.memory.hauling === false) {
         if (creep.memory.deliverTo && creep.memory.haulingMineral) {
             let structure = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.store && s.store[creep.memory.haulingMineral] > 0});
-            if (Game.getObjectById(creep.memory.deliverTo).mineralType !== creep.memory.haulingMineral) {
+            if (Game.getObjectById(creep.memory.deliverTo).mineralType && Game.getObjectById(creep.memory.deliverTo).mineralType !== creep.memory.haulingMineral) {
                 if (creep.withdraw(Game.getObjectById(creep.memory.deliverTo), Game.getObjectById(creep.memory.deliverTo).mineralType) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
                 }
