@@ -63,7 +63,7 @@ function healer(creep) {
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
-            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy >= 20});
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
@@ -114,7 +114,7 @@ function attacker(creep) {
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
-            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy >= 20});
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
@@ -209,11 +209,11 @@ function deconstructor(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_KEANIUM_OXIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
-            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy >= 20});
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
@@ -389,12 +389,11 @@ raider = profiler.registerFN(raider, 'raiderMilitary');
 function responder(creep) {
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE,
             RESOURCE_KEANIUM_OXIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
-            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount[desiredReactions[i]] >= 30 && s.energy[desiredReactions[i]] >= 20});
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
