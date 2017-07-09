@@ -43,7 +43,6 @@ explorer = profiler.registerFN(explorer, 'explorerRemote');
  */
 function harvester(creep) {
     let source;
-    cache.cacheRoomIntel(creep);
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
@@ -266,15 +265,11 @@ function depositEnergy(creep) {
 function invaderCheck(creep) {
     let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
     if (invader) {
-        let number = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
         creep.room.memory.responseNeeded = true;
         if (!creep.memory.invaderCooldown) {
             creep.memory.invaderCooldown = 1;
         }
         creep.room.memory.tickDetected = Game.time;
-        if (!creep.room.memory.numberOfHostiles || creep.room.memory.numberOfHostiles < number.length) {
-            creep.room.memory.numberOfHostiles = number.length;
-        }
         creep.memory.invaderDetected = true;
     } else if (creep.room.memory.tickDetected < Game.time - 150 || creep.room.memory.responseNeeded === false) {
         creep.memory.invaderDetected = undefined;
