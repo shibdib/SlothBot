@@ -337,7 +337,7 @@ function workers(spawn, level) {
                 }
                  const labTech = _.filter(Game.creeps, (creep) => creep.memory.role === 'labTech' && creep.memory.assignedRoom === spawn.room.name);
                  const labs = _.filter(Game.structures, (s) => s.room.name === spawn.room.name && s.structureType === STRUCTURE_LAB);
-                if (labTech.length < 0 && labs.length >= 3 && spawn.room.memory.reactions && spawn.createCreep(SPAWN[level].labTech, 'labTech' + Game.time, {
+                if (labTech.length < 1 && labs.length >= 3 && spawn.room.memory.reactions && spawn.createCreep(SPAWN[level].labTech, 'labTech' + Game.time, {
                         role: 'labTech',
                         roleGroup: 'workers',
                         assignedSpawn: spawn.id,

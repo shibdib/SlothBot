@@ -96,7 +96,11 @@ module.exports.loop = function () {
 
         //Lab Management
         Memory.stats.cpu.preLab = Game.cpu.getUsed();
-        //labController.labControl();
+        if (Game.cpu.bucket > 2000) {
+            if (Game.time % 10 === 0) {
+                labController.labControl();
+            }
+        }
 
         //Terminal Management
         Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
