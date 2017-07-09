@@ -12,7 +12,7 @@ function Manager(creep) {
         resupply(creep);
     } else if (creep.memory.role === "pawn") {
         let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
-        let roomCreeps = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === creep.room.name);
+        let roomCreeps = _.filter(Game.creeps, (c) => c.memory.assignedRoom === creep.room.name);
         let fillers = _.filter(roomCreeps, (c) => c.memory.role === 'filler');
         let getters = _.filter(roomCreeps, (c) => c.memory.role === 'getter');
         if (fillers.length < 2) {
