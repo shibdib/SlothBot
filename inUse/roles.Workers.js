@@ -23,16 +23,10 @@ function worker(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
-    if (creep.carry.energy === creep.carryCapacity / 2) {
-        creep.memory.deliveryRequested = true;
-    }
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     }
     if (creep.carry.energy >= creep.carryCapacity * 0.75) {
-        creep.memory.deliveryIncoming = undefined;
-        creep.memory.deliveryRequested = undefined;
-        creep.memory.deliveryWait = undefined;
         creep.memory.working = true;
     }
     if (creep.memory.working === true) {
@@ -64,15 +58,7 @@ function worker(creep) {
                     creep.travelTo(storage);
                 }
             } else {
-                creep.memory.deliveryRequested = true;
-                if (!creep.memory.deliveryWait) {
-                    creep.memory.deliveryWait = 1;
-                } else {
-                    creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
-                }
-                if (creep.memory.deliveryWait > 15 && !creep.memory.deliveryIncoming) {
                     creep.findEnergy();
-                }
             }
         }
     }
@@ -148,12 +134,8 @@ function upgrader(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
     } else if (creep.carry.energy >= creep.carryCapacity * 0.75) {
-        creep.memory.deliveryIncoming = undefined;
-        creep.memory.deliveryRequested = undefined;
-        creep.memory.deliveryWait = undefined;
         creep.memory.working = true;
     }
-
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
             creep.travelTo(Game.rooms[creep.memory.assignedRoom].controller);
@@ -174,16 +156,7 @@ function upgrader(creep) {
                     creep.travelTo(link);
                 }
             } else {
-                creep.memory.deliveryRequested = true;
-                if (!creep.memory.deliveryWait) {
-                    creep.memory.deliveryWait = 1;
-                } else {
-                    creep.memory.deliveryWait = creep.memory.deliveryWait + 1;
-                }
-                if (creep.memory.deliveryWait > 15) {
-                    creep.say(ICONS.wait5);
-                    creep.findEnergy();
-                }
+                creep.findEnergy();
             }
         }
     }

@@ -19,8 +19,10 @@ function Manager(creep) {
             creep.memory.role = 'filler';
         } else if (getters.length === 0) {
             creep.memory.role = 'getter';
-        } else {
-            creep.memory.role = 'hauler';
+        } else if (fillers.length < 2) {
+            creep.memory.role = 'filler';
+        } else if (getters.length < 2) {
+            creep.memory.role = 'getter';
         }
     } else if (creep.memory.role === 'filler') {
         filler(creep);
@@ -100,8 +102,8 @@ function hauler(creep) {
             creep.memory.path = null;
         }
         return null;
-    } else if (!creep.findDeliveries()) {
-        creep.findEssentials();
+    } else {
+        creep.findDeliveries()
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerHaulers');

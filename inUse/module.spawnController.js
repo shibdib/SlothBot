@@ -258,7 +258,7 @@ function haulers(spawn, level) {
         if (pawn.length === 0) {
             level = 1;
         }
-        if ((pawn.length < 3 || (pawn.length === 3 && pawn[0].ticksToLive < 100)) && spawn.createCreep(SPAWN[level].hauler, 'pawn' + Game.time, {
+        if ((pawn.length < 4 || (pawn.length === 4 && pawn[0].ticksToLive < 100)) && spawn.createCreep(SPAWN[level].hauler, 'pawn' + Game.time, {
                 role: 'pawn',
                 roleGroup: 'haulers',
                 assignedSpawn: spawn.id,
