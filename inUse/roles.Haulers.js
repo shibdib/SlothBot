@@ -208,15 +208,15 @@ function labTech(creep) {
     }
     for (let key in creep.room.memory.reactions) {
         if (creep.room.memory.reactions[key].assignedHub) {
-            if (Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount < 500) {
+            if (Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount < 500 && Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount !== 3000) {
                 creep.memory.haulingMineral = creep.room.memory.reactions[key].input1;
                 creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
                 break;
-            } else if (Game.getObjectById(creep.room.memory.reactions[key].lab2).mineralAmount < 500) {
+            } else if (Game.getObjectById(creep.room.memory.reactions[key].lab2).mineralAmount < 500 && Game.getObjectById(creep.room.memory.reactions[key].lab2).mineralAmount !== 3000) {
                 creep.memory.haulingMineral = creep.room.memory.reactions[key].input2;
                 creep.memory.deliverTo = creep.room.memory.reactions[key].lab2;
                 break;
-            } else if (Game.getObjectById(creep.room.memory.reactions[key].outputLab).energy < 500) {
+            } else if (Game.getObjectById(creep.room.memory.reactions[key].outputLab).energy < 500 && Game.getObjectById(creep.room.memory.reactions[key].outputLab).mineralAmount !== 3000) {
                 creep.memory.haulingMineral = RESOURCE_ENERGY;
                 creep.memory.deliverTo = creep.room.memory.reactions[key].outputLab;
                 break;
