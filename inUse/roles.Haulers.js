@@ -15,11 +15,7 @@ function Manager(creep) {
         let creeps = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === creep.room.name);
         let fillers = _.filter(creeps, (creep) => creep.memory.role === 'filler');
         let getters = _.filter(creeps, (creep) => creep.memory.role === 'getter');
-        if (fillers.length === 0) {
-            creep.memory.role = 'filler';
-        } else if (getters.length === 0) {
-            creep.memory.role = 'getter';
-        } else if (fillers.length < 2) {
+        if (fillers.length < 2) {
             creep.memory.role = 'filler';
         } else if (getters.length < 2) {
             creep.memory.role = 'getter';
