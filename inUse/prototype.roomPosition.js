@@ -51,7 +51,7 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
 };
 
 RoomPosition.prototype.checkForRoad = function () {
-    return this.lookFor(LOOK_STRUCTURES).some(s => STRUCTURE_ROAD.includes(s.structureType));
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
 };
 
 RoomPosition.prototype.isExit = function () {
