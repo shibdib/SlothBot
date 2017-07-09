@@ -59,7 +59,7 @@ function healer(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_KEANIUM_OXIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
@@ -110,7 +110,7 @@ function attacker(creep) {
     cache.cacheRoomIntel(creep);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
-            RESOURCE_GHODIUM_OXIDE
+            RESOURCE_KEANIUM_OXIDE
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
