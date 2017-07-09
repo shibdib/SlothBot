@@ -19,8 +19,8 @@ function labControl() {
                     lab.room.memory.reactionHubCount = lab.room.memory.reactions.labHubs.length;
                     cacheReactions(lab, true);
                 }
-                for (let key in lab.room.memory.reactions.labHubs) {
-                    let currentHub = lab.room.memory.reactions.labHubs[key];
+                for (let keys in lab.room.memory.reactions.labHubs) {
+                    let currentHub = lab.room.memory.reactions.labHubs[keys];
                     if (currentHub && !currentHub.active) {
                         reactions:
                             for (let key in lab.room.memory.reactions) {
@@ -55,7 +55,7 @@ function labControl() {
                                         }
                                     });
                                 if (input1 >= 200 && input2 >= 200) {
-                                    reaction.assignedHub = currentHub;
+                                    reaction.assignedHub = key;
                                     reaction.lab1 = currentHub.lab1;
                                     reaction.lab2 = currentHub.lab2;
                                     reaction.outputLab = currentHub.outputLab;
@@ -68,13 +68,14 @@ function labControl() {
                                     continue reactions;
                                 }
                             }
-                    } else if (currentHub.active) {
-                        //if minerals are present, react!
-                        let lab1 = Game.getObjectById(currentHub.lab1);
-                        let lab2 = Game.getObjectById(currentHub.lab2);
-                        let outputLab = Game.getObjectById(currentHub.outputLab);
-                        if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && (outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) || !outputLab.mineralAmount) {
-                            outputLab.runReaction(lab1, lab2);
+                        if (currentHub.active) {
+                            //if minerals are present, react!
+                            let lab1 = Game.getObjectById(currentHub.lab1);
+                            let lab2 = Game.getObjectById(currentHub.lab2);
+                            let outputLab = Game.getObjectById(currentHub.outputLab);
+                            if ((lab1.mineralAmount > 0 && lab2.mineralAmount > 0) && (outputLab.mineralAmount < outputLab.mineralCapacity * 0.75) || !outputLab.mineralAmount) {
+                                outputLab.runReaction(lab1, lab2);
+                            }
                         }
                     }
                 }
