@@ -57,7 +57,7 @@ rangedTeamLeader = function () {
             this.memory.rangedTarget = closestHostile.id;
             this.fightRanged(closestHostile);
         }
-    } else if (this.room.find(FIND_STRUCTURES, {filter: (s) => _.includes(RawMemory.segments[2], s.owner['username']) === false}).length > 0 && (!this.memory.attackTarget || this.pos.roomName === this.memory.attackTarget)) {
+    } else if (this.room.find(FIND_STRUCTURES, {filter: (s) => s.owner && _.includes(RawMemory.segments[2], s.owner['username']) === false}).length > 0 && (!this.memory.attackTarget || this.pos.roomName === this.memory.attackTarget)) {
         this.memory.inCombat = true;
         this.borderCheck();
         let inRangeStructure = this.pos.findInRange(this.room.find(FIND_STRUCTURES, {filter: (s) => _.includes(RawMemory.segments[2], s.owner['username']) === false}), 3);
