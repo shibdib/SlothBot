@@ -57,16 +57,6 @@ rangedTeamLeader = function () {
             this.memory.rangedTarget = closestHostile.id;
             this.fightRanged(closestHostile);
         }
-    } else if (this.room.find(FIND_STRUCTURES, {filter: (s) => s.owner && _.includes(RawMemory.segments[2], s.owner['username']) === false}).length > 0 && (!this.memory.attackTarget || this.pos.roomName === this.memory.attackTarget)) {
-        this.memory.inCombat = true;
-        this.borderCheck();
-        let inRangeStructure = this.pos.findInRange(this.room.find(FIND_STRUCTURES, {filter: (s) => _.includes(RawMemory.segments[2], s.owner['username']) === false}), 3);
-        if (inRangeStructure.length > 0) {
-            this.memory.rangedTarget = inRangeStructure[0].id;
-            this.fightRanged(inRangeStructure[0]);
-        } else {
-            this.travelTo(this.pos.findClosestByPath(this.room.find(FIND_STRUCTURES, {filter: (s) => _.includes(RawMemory.segments[2], s.owner['username']) === false})));
-        }
     } else if (squadLeader && this.pos.roomName === squadLeader.pos.roomName) {
         this.memory.inCombat = undefined;
         if (this.pos.getRangeTo(squadLeader) > 4) {
