@@ -69,7 +69,7 @@ function fillBuyOrders(terminal, globalOrders) {
                     order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.roomName === terminal.pos.roomName), 'price');
                     if (buyOrder.id && buyOrder.remainingAmount >= terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                         if (Game.market.deal(buyOrder.id, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: buyOrderFilled - " + (terminal.store[resourceType] - energyAmount) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType] - energyAmount) + " credits</font>");
+                            console.log("<font color='#adff2f'>MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits</font>");
                         }
                     } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                         if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
@@ -81,7 +81,7 @@ function fillBuyOrders(terminal, globalOrders) {
                         Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 1000), 'price');
                         if (buyOrder.id && buyOrder.remainingAmount >= terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                             if (Game.market.deal(buyOrder.id, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                                console.log("<font color='#adff2f'>MARKET: buyOrderFilled - " + (terminal.store[resourceType] - energyAmount) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType] - energyAmount) + " credits</font>");
+                                console.log("<font color='#adff2f'>MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits</font>");
                             }
                         } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                             if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
@@ -93,7 +93,7 @@ function fillBuyOrders(terminal, globalOrders) {
                             Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= terminal.store[RESOURCE_ENERGY]), 'price');
                             if (buyOrder.id && buyOrder.remainingAmount >= terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                                 if (Game.market.deal(buyOrder.id, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                                    console.log("<font color='#adff2f'>MARKET: buyOrderFilled - " + (terminal.store[resourceType] - energyAmount) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType] - energyAmount) + " credits</font>");
+                                    console.log("<font color='#adff2f'>MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits</font>");
                                 }
                             } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                                 if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
