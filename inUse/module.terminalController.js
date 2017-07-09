@@ -148,8 +148,8 @@ function extendSellOrders(terminal, myOrders) {
                         }
                         continue resource;
                     }
-                    if ((terminal.store[resourceType] - energyAmount) > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true && resourceType !== RESOURCE_ENERGY) {
-                        if (Game.market.extendOrder(myOrders[key].id, (terminal.store[resourceType] - energyAmount)) === OK) {
+                    if ((terminal.store[resourceType] - reactionAmount) > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true && resourceType !== RESOURCE_ENERGY) {
+                        if (Game.market.extendOrder(myOrders[key].id, (terminal.store[resourceType] - reactionAmount)) === OK) {
                             console.log("<font color='#adff2f'>MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] - reactionAmount + " " + resourceType + "</font>");
                         }
                         continue resource;
@@ -177,7 +177,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                     }
                     continue;
                 }
-                if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - 1000 > 0) {
+                if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - reactionAmount > 0) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.001), 3), terminal.store[resourceType] - reactionAmount, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.001) + "</font>");
                     }
