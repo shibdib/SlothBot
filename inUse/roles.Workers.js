@@ -50,7 +50,7 @@ function worker(creep) {
                     creep.travelTo(repairNeeded);
                 }
             } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(creep.room.controller);
+                creep.travelTo(Game.rooms[creep.memory.assignedRoom].controller);
             }
         }
     }
@@ -156,7 +156,7 @@ function upgrader(creep) {
 
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(creep.room.controller);
+            creep.travelTo(Game.rooms[creep.memory.assignedRoom].controller);
         }
     } else {
         if (creep.memory.energyDestination) {
