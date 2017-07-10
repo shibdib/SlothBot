@@ -219,10 +219,12 @@ function labTech(creep) {
                 creep.memory.haulingMineral = creep.room.memory.reactions[key].input2;
                 creep.memory.deliverTo = creep.room.memory.reactions[key].lab2;
                 break;
-            } else if (Game.getObjectById(creep.room.memory.reactions[key].outputLab).energy < 500) {
+            } else if (Game.getObjectById(creep.room.memory.reactions[key].outputLab).energy < Game.getObjectById(creep.room.memory.reactions[key].outputLab).energyCapacity) {
                 creep.memory.haulingMineral = RESOURCE_ENERGY;
                 creep.memory.deliverTo = creep.room.memory.reactions[key].outputLab;
                 break;
+            } else {
+                creep.idleFor(15);
             }
         }
     }
