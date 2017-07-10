@@ -729,7 +729,7 @@ Creep.prototype.findDeliveries = profiler.registerFN(findDeliveries, 'findDelive
     // Magic
     Creep.prototype[method] = function () {
         let status = original.apply(this, arguments);
-        if (typeof status === 'number' && status < 0) {
+        if (typeof status === 'number' && status < 0 && status !== -9) {
             console.log(`Creep ${this.name} action ${method} failed with status ${status} at ${this.pos}`);
         }
         return status;
