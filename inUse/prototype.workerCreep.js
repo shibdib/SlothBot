@@ -477,7 +477,7 @@ getEnergy = function (range = 50, hauler = false) {
             }
         }
     } else {
-        return null;
+        return undefined;
     }
 };
 Creep.prototype.getEnergy = profiler.registerFN(getEnergy, 'getEnergyCreepFunctions');
@@ -685,7 +685,7 @@ findEssentials = function () {
                 this.travelTo(storageItem);
             }
         } else {
-            return null;
+            return undefined;
         }
     }
 };
