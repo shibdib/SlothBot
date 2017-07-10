@@ -374,6 +374,33 @@ let globals = function () {
      );
      };
      */
+
+    global.private = false;
+
+    global.agentRun = function () {//*
+        var statsDataJSON = "";
+        if (private) {
+            var privObj = {priv: Memory.stats};
+            statsDataJSON = JSON.stringify(privObj);
+        } else {
+            statsDataJSON = JSON.stringify(Memory.stats)
+        }
+        var passToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNoaWJkaWIiLCJpYXQiOjE0OTU5ODI2MjYsImF1ZCI6InNjcmVlcHNwbC51cyIsImlzcyI6InNjcmVlcHNwbC51cyJ9.LXs1xjahDuw58WUits-9BXaVepVTh5C-mUfJxUBi70M';
+        var output = `<SCRIPT>
+if(!document.ticks)document.ticks={};
+if(document.ticks['t${Game.time}']===undefined){
+ document.ticks['t${Game.time}']=true;
+ var x=new XMLHttpRequest();
+ x.open("POST", "https://screepspl.us/api/stats/submit", true);
+ x.setRequestHeader("Authorization","JWT " + "${passToken}");
+ x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+ x.onreadystatechange=function(){if(x.readyState===XMLHttpRequest.DONE&&x.status===200){console.log('resp',x.responseText);}};
+ x.send(JSON.stringify(${statsDataJSON}))
+}
+</SCRIPT>`;
+        console.log(output.split('\n').join(';'));
+//*/
+    }
 };
 
 module.exports = globals;
