@@ -272,18 +272,15 @@ function reserver(creep) {
         } else if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE || creep.signController(creep.room.controller, "Reserved Territory of Overlords - #overlords on Slack") === ERR_NOT_IN_RANGE) {
             creep.travelTo(creep.room.controller);
         }
-        return null;
-    }
-    if (!creep.memory.currentDestination) {
+    } else if (!creep.memory.currentDestination) {
         for (let key in creep.memory.targetRooms) {
             creep.memory.currentDestination = creep.memory.targetRooms[key];
         }
         creep.memory.visitedRooms = [];
-    }
-    if (creep.pos.roomName !== creep.memory.currentDestination) {
+    } else if (creep.pos.roomName !== creep.memory.currentDestination) {
         creep.travelTo((new RoomPosition(25, 25, creep.memory.currentDestination))); //to move to any room
     } else {
-        if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 1000)) && !reservers) {
+        if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 750)) && !reservers) {
             creep.travelTo(creep.room.controller);
             creep.memory.reserving = true;
         } else {
