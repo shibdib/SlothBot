@@ -18,7 +18,10 @@ function roomBuilding() {
             roadController(spawn);
             buildTower(spawn);
             buildStorage(spawn);
-            borderWalls(spawn);
+
+            if (Game.time % 300 === 0) {
+                borderWalls(spawn);
+            }
             for (let key in Game.constructionSites) {
                 let sources = spawn.room.find(FIND_SOURCES);
                 if (Game.constructionSites[key].pos.checkForAllStructure().length > 0 || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1) {
