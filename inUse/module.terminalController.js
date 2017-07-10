@@ -25,13 +25,18 @@ let energyAmount = 50000;
 let reactionAmount = 1000;
 
 
-
 function terminalControl() {
     let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
     for (let terminal of _.values(Game.structures)) {
         if (terminal.structureType === STRUCTURE_TERMINAL) {
-            let energyInRoom = _.sum(terminal.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => { if (s['structure'] && s['structure'].store) { return s['structure'].store[RESOURCE_ENERGY] || 0; } else { return 0;} });
+            let energyInRoom = _.sum(terminal.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+                if (s['structure'] && s['structure'].store) {
+                    return s['structure'].store[RESOURCE_ENERGY] || 0;
+                } else {
+                    return 0;
+                }
+            });
             //Cleanup broken or old order
             orderCleanup(myOrders);
 
@@ -313,53 +318,49 @@ placeReactionOrders = profiler.registerFN(placeReactionOrders, 'placeReactionOrd
 
 function pricingUpdateSell(terminal, globalOrders, myOrders) {
     resource:
-    for (const resourceType in terminal.store) {
-        for (let key in myOrders) {
-            if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL) {
-                let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
-                order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), "price");
-                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
-                order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
-                if (resourceType === RESOURCE_ENERGY) {
-                    if (sellOrder.id && _.round(sellOrder.price, 3) !== _.round(myOrders[key].price, 3)) {
-                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round(sellOrder.price, 3)) === OK) {
-                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+        for (const resourceType in terminal.store) {
+            for (let key in myOrders) {
+                if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL) {
+                    let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
+                    order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), "price");
+                    let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 10000 && order.roomName !== terminal.pos.roomName), 'price');
+                    if (resourceType === RESOURCE_ENERGY) {
+                        if (sellOrder.id && _.round(sellOrder.price, 3) !== _.round(myOrders[key].price, 3)) {
+                            if (Game.market.changeOrderPrice(myOrders[key].id, _.round(sellOrder.price, 3)) === OK) {
+                                console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+                            }
+                            continue resource;
+                        }
+                    }
+                    if (sellOrder.id && _.round(sellOrder.price - 0.001, 3) !== _.round(myOrders[key].price, 3) && _.round(sellOrder.price - 0.001, 3) > _.round(buyOrder.price, 3) && sellOrder.price - 0.001 !== 0) {
+                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.001), 3)) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
+                        }
+                        continue resource;
+                    }
+                    if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2) && sellOrder.price - 0.01 !== 0) {
+                        if (Game.market.changeOrderPrice(myOrders[key].id, _.round((buyOrder.price), 3)) === OK) {
+                            console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
                         }
                         continue resource;
                     }
                 }
-                if (sellOrder.id && _.round(sellOrder.price - 0.001, 3) !== _.round(myOrders[key].price, 3) && _.round(sellOrder.price - 0.001, 3) > _.round(buyOrder.price, 3) && sellOrder.price - 0.001 !== 0) {
-                    if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.001), 3)) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
-                    }
-                    continue resource;
-                }
-                if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2) && sellOrder.price - 0.01 !== 0) {
-                    if (Game.market.changeOrderPrice(myOrders[key].id, _.round((buyOrder.price), 3)) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType + "</font>");
-                    }
-                    continue resource;
-                }
             }
         }
-    }
 }
 pricingUpdateSell = profiler.registerFN(pricingUpdateSell, 'pricingUpdateSellTerminal');
 
 function pricingUpdateBuy(terminal, globalOrders, myOrders) {
-    resource:
-    for (let i = 0; i < tradeTargets.length; i++) {
-        for (let key in myOrders) {
-            if (myOrders[key].type === ORDER_BUY && myOrders[key].roomName === terminal.pos.roomName && Game.market.credits > 500) {
-                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
-                order.type === ORDER_BUY && order.remainingAmount >= 2500 && order.roomName !== terminal.pos.roomName), 'price');
-                let sellOrder = _.min(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
-                order.type === ORDER_SELL && order.remainingAmount >= 2500 && order.roomName !== terminal.pos.roomName), 'price');
-                if (buyOrder.id && (_.round(buyOrder.price + 0.001, 2)) !== _.round(myOrders[key].price, 2) && ((sellOrder.price - 0.001) - buyOrder.price) > 0.02) {
-                    if (Game.market.changeOrderPrice(myOrders[key].id, (buyOrder.price + 0.001)) === OK) {
-                        console.log("<font color='#adff2f'>MARKET: Buy order price change " + myOrders[key].id + " new/old " + (buyOrder.price + 0.001) + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType + "</font>");
-                    }
-                    continue resource;
+    for (let key in myOrders) {
+        if (myOrders[key].type === ORDER_BUY && myOrders[key].roomName === terminal.pos.roomName && Game.market.credits > 500) {
+            let buyOrder = _.max(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
+            order.type === ORDER_BUY && order.remainingAmount >= 2500 && order.roomName !== terminal.pos.roomName), 'price');
+            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
+            order.type === ORDER_SELL && order.remainingAmount >= 2500 && order.roomName !== terminal.pos.roomName), 'price');
+            if (buyOrder.id && (_.round(buyOrder.price + 0.001, 2)) !== _.round(myOrders[key].price, 2) && ((sellOrder.price - 0.001) - buyOrder.price) > 0.02) {
+                if (Game.market.changeOrderPrice(myOrders[key].id, (buyOrder.price + 0.001)) === OK) {
+                    console.log("<font color='#adff2f'>MARKET: Buy order price change " + myOrders[key].id + " new/old " + (buyOrder.price + 0.001) + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType + "</font>");
                 }
             }
         }
