@@ -282,6 +282,15 @@ let globals = function () {
     global.RCL_7_ENERGY = 5600;
     global.RCL_8_ENERGY = 12900;
 
+    global.RCL_1_EXTENSIONS = 0;
+    global.RCL_2_EXTENSIONS = 5;
+    global.RCL_3_EXTENSIONS = 10;
+    global.RCL_4_EXTENSIONS = 20;
+    global.RCL_5_EXTENSIONS = 30;
+    global.RCL_6_EXTENSIONS = 40;
+    global.RCL_7_EXTENSIONS = 50;
+    global.RCL_8_EXTENSIONS = 60;
+
     global.EST_SEC_PER_TICK = 4.84; // time between ticks is currently averaging ~4.84 seconds (as of 2017/05/07)
     global.EST_TICKS_PER_MIN = Math.ceil(60 / EST_SEC_PER_TICK); // 60s
     global.EST_TICKS_PER_DAY = Math.ceil(86400 / EST_SEC_PER_TICK); // 24h * 60m * 60s = 86400s
