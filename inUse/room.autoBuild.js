@@ -85,7 +85,7 @@ roadController = profiler.registerFN(roadController, 'roadControllerBuilder');
 
 function buildExtensions(spawn) {
     if (spawn.room.controller.level >= 2) {
-        if (_.filter(this.room.memory.structureCache, 'type', 'extension').length < spawn.room.getExtensionCount()) {
+        if (_.filter(spawn.room.memory.structureCache, 'type', 'extension').length < spawn.room.getExtensionCount()) {
             let x;
             let y;
             for (let i = 1; i < 5; i++) {
