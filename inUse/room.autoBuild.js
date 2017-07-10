@@ -396,4 +396,4 @@ function getExtensionCount(spawn) {
         return RCL_8_EXTENSIONS
     }
 }
-neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
+neighborCheck = profiler.registerFN(getExtensionCount, 'getExtensionCount');
