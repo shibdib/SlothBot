@@ -767,7 +767,6 @@ Object.defineProperty(Creep.prototype, "idle", {
  */
 Creep.prototype.idleFor = function (ticks = 0) {
     if (ticks > 0) {
-        console.log("Suspend", this, "for", ticks, this.target);
         this.idle = Game.time + ticks;
     }
     else {
