@@ -87,11 +87,13 @@ function harvester(creep) {
     } else {
         if (creep.memory.assignedSource) {
             source = Game.getObjectById(creep.memory.assignedSource);
-        } else if (!source) {
-            source = creep.findSource();
-        }
-        if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(source);
+            if (source.energy === 0) {
+                creep.idleFor(source.ticksToRegeneration + 1)
+            } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(source);
+            }
+        } else {
+            creep.findSource();
         }
     }
 }
