@@ -85,7 +85,7 @@ roadController = profiler.registerFN(roadController, 'roadControllerBuilder');
 
 function buildExtensions(spawn) {
     if (spawn.room.controller.level >= 2) {
-        if (_.filter(this.room.memory.structureCache, 'type', 'extension').length < getExtensionCount(spawn)) {
+        if (_.filter(this.room.memory.structureCache, 'type', 'extension').length < spawn.room.getExtensionCount()) {
             let x;
             let y;
             for (let i = 1; i < 5; i++) {
@@ -375,25 +375,3 @@ borderWalls = profiler.registerFN(borderWalls, 'borderWallsBuilder');
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
-function getExtensionCount(spawn) {
-    let level = spawn.room.controller.level;
-    if (level === 1) {
-        return RCL_1_EXTENSIONS;
-    } else if (level === 2) {
-        return RCL_2_EXTENSIONS
-    } else if (level === 3) {
-        return RCL_3_EXTENSIONS
-    } else if (level === 4) {
-        return RCL_4_EXTENSIONS
-    } else if (level === 5) {
-        return RCL_5_EXTENSIONS
-    } else if (level === 6) {
-        return RCL_6_EXTENSIONS
-    } else if (level === 7) {
-        return RCL_7_EXTENSIONS
-    } else if (level === 8) {
-        return RCL_8_EXTENSIONS
-    }
-}
-neighborCheck = profiler.registerFN(getExtensionCount, 'getExtensionCount');
