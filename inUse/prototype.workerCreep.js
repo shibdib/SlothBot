@@ -144,7 +144,7 @@ findRepair = function (level) {
         this.memory.task = 'repair';
         return;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000 && s.pos.lookFor(LOOK_CREEPS).length === 0);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
         this.memory.task = 'repair';
