@@ -80,48 +80,31 @@ function roadController(spawn) {
 }
 roadController = profiler.registerFN(roadController, 'roadControllerBuilder');
 
-function roadSpawns(spawn) {
-    if (constructionSites.length > 30) {
-        if (spawn.room.controller.level >= 6) {
-            let spawns = _.filter(Game.spawns, (s) => s.pos.roomName !== spawn.pos.roomName);
-            for (let i = 0; i < spawns.length; i++) {
-                let path = spawn.room.findPath(spawn.pos, spawns[i].pos, {
-                    maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 16, ignoreRoads: false
-                });
-                let z = 0;
-                for (let i = 0; i < path.length; i++) {
-                    if (path[i] !== undefined) {
-                        if (z > 10) {
-                            return;
-                        }
-                        let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
-                        const roadCheck = build.lookFor(LOOK_STRUCTURES);
-                        const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-                        if (constructionCheck.length > 0 || roadCheck.length > 0) {
-                        } else {
-                            build.createConstructionSite(STRUCTURE_ROAD);
-                            z++;
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-roadSpawns = profiler.registerFN(roadSpawns, 'roadSpawnsBuilder');
-
 function buildExtensions(spawn) {
     let x;
     let y;
     for (let i = 1; i < 5; i++) {
         x = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
         y = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
-        let buildReturn = spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y, STRUCTURE_EXTENSION);
+        let pos = new RoomPosition(spawn.pos.x + x, spawn.pos.y + y, spawn.pos.roomName);
+        if (pos.checkForAllStructure().length > 0) continue;
+        let buildReturn = pos.createConstructionSite(STRUCTURE_EXTENSION);
         if (buildReturn === OK) {
-            spawn.room.createConstructionSite(spawn.pos.x + x - 1, spawn.pos.y + y, STRUCTURE_ROAD);
-            spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y - 1, STRUCTURE_ROAD);
-            spawn.room.createConstructionSite(spawn.pos.x + x + 1, spawn.pos.y + y, STRUCTURE_ROAD);
-            spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y + 1, STRUCTURE_ROAD);
+            if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) continue;
+            let path = spawn.room.findPath(spawn.pos, pos, {
+                maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+            });
+            for (let i = 0; i < path.length; i++) {
+                if (path[i] !== undefined) {
+                    let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
+                    const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                    const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                    if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                    } else {
+                        build.createConstructionSite(STRUCTURE_ROAD);
+                    }
+                }
+            }
         } else if (buildReturn === ERR_RCL_NOT_ENOUGH) {
             break;
         }
@@ -135,7 +118,26 @@ function buildTower(spawn) {
         let y;
         x = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
         y = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
-        spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y, STRUCTURE_TOWER);
+        let pos = new RoomPosition(spawn.pos.x + x, spawn.pos.y + y, spawn.pos.roomName);
+        if (pos.checkForAllStructure().length > 0) return;
+        let buildReturn = pos.createConstructionSite(STRUCTURE_TOWER);
+        if (buildReturn === OK) {
+            if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) return;
+            let path = spawn.room.findPath(spawn.pos, pos, {
+                maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+            });
+            for (let i = 0; i < path.length; i++) {
+                if (path[i] !== undefined) {
+                    let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
+                    const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                    const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                    if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                    } else {
+                        build.createConstructionSite(STRUCTURE_ROAD);
+                    }
+                }
+            }
+        }
     }
 }
 buildTower = profiler.registerFN(buildTower, 'buildTowerBuilder');
@@ -144,8 +146,8 @@ function buildStorage(spawn) {
     if (spawn.room.controller.level >= 4) {
         let x;
         let y;
-        x = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
-        y = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
+        x = getRandomInt(-2, 2);
+        y = getRandomInt(-2, 2);
         spawn.room.createConstructionSite(spawn.pos.x + x, spawn.pos.y + y, STRUCTURE_STORAGE);
     }
 }
