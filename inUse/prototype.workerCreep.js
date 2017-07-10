@@ -476,6 +476,7 @@ getEnergy = function (range = 50, hauler = false) {
                 this.memory.energyDestination = energyItem.id;
             }
         }
+        return true;
     } else {
         return undefined;
     }
@@ -582,6 +583,7 @@ findStorage = function () {
                 this.travelTo(storageItem);
             }
         }
+        return true;
     }
 };
 Creep.prototype.findStorage = profiler.registerFN(findStorage, 'findStorageCreepFunctions');
@@ -684,6 +686,7 @@ findEssentials = function () {
                 this.memory.storageDestination = storageItem.id;
                 this.travelTo(storageItem);
             }
+            return true;
         } else {
             return undefined;
         }
