@@ -63,7 +63,7 @@ function basicHauler(creep) {
                 creep.memory.path = null;
             }
         } else if (!creep.findEssentials()) {
-            creep.idleFor(5);
+            creep.idleFor(10);
         }
     }
 }
@@ -146,7 +146,7 @@ function filler(creep) {
                 creep.memory.storageDestination = null;
             }
         } else if (!creep.findEssentials()) {
-            creep.idleFor(5);
+            creep.idleFor(10);
         }
     }
 }
@@ -176,7 +176,7 @@ function getter(creep) {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else if (!creep.getEnergy()) {
-            creep.idleFor(5);
+            creep.idleFor(10);
         }
     } else {
         if (creep.memory.storage) {
