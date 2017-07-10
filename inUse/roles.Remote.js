@@ -212,25 +212,21 @@ function pioneer(creep) {
             creep.memory.destinationReached = true;
         }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
-        if (!Game.getObjectById(creep.memory.constructionSite)) {
-            creep.memory.constructionSite = undefined;
-        }
-        if (creep.memory.constructionSite) {
-            if (creep.build(Game.getObjectById(creep.memory.constructionSite)) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.getObjectById(creep.memory.constructionSite))
+        creep.findConstruction();
+        if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
+            let construction = Game.getObjectById(creep.memory.constructionSite);
+            if (creep.build(construction) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(construction);
             }
         } else {
-            creep.findConstruction();
-        }
-        if (!creep.memory.constructionSite) {
-            let repairNeeded = creep.findRepair();
-            if (repairNeeded) {
-                repairNeeded = Game.getObjectById(repairNeeded);
+            creep.findRepair(creep.room.controller.level);
+            if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
+                let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.travelTo(repairNeeded);
                 }
-            } else if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(creep.room.controller);
+            } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
+                creep.travelTo(Game.rooms[creep.memory.assignedRoom].controller);
             }
         }
     }
