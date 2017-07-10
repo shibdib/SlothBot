@@ -8,6 +8,7 @@ function creepControl() {
 
     for (let name in Game.creeps) {
         const creep = Game.creeps[name];
+        if (creep.idle || creep.spawning) continue;
         creep.notifyWhenAttacked(false);
         if (creep.memory.role === 'ranged' || creep.memory.role === 'healer' || creep.memory.role === 'deconstructor' || creep.memory.role === 'scout' || creep.memory.role === 'attacker' || creep.memory.role === 'reserver' || creep.memory.role === 'claimer' || creep.memory.role === 'responder' || creep.memory.role === 'raider') {
             let rolesMilitary = require('roles.Military');

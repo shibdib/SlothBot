@@ -91,3 +91,4 @@ function findWounded(tower) {
     }
 }
 findWounded = profiler.registerFN(findWounded, 'findRepairTower');
+

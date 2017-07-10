@@ -62,9 +62,9 @@ function basicHauler(creep) {
                 creep.memory.storageDestination = null;
                 creep.memory.path = null;
             }
-            return null;
+        } else if (!creep.findEssentials()) {
+            creep.idleFor(5);
         }
-        creep.findEssentials();
     }
 }
 basicHauler = profiler.registerFN(basicHauler, 'basicHaulerHaulers');
@@ -145,9 +145,9 @@ function filler(creep) {
             } else {
                 creep.memory.storageDestination = null;
             }
-            return null;
+        } else if (!creep.findEssentials()) {
+            creep.idleFor(5);
         }
-        creep.findEssentials();
     }
 }
 filler = profiler.registerFN(filler, 'fillerHaulers');
@@ -175,8 +175,8 @@ function getter(creep) {
     if (creep.memory.hauling === false) {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
-        } else {
-            creep.getEnergy();
+        } else if (!creep.getEnergy()) {
+            creep.idleFor(5);
         }
     } else {
         if (creep.memory.storage) {
