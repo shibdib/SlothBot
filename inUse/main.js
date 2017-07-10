@@ -141,11 +141,32 @@ module.exports.loop = function () {
             'BrinkDaDrink',
             'Tyac',
             'droben'];
+        let mainRaw = {
+            "api": {
+                "version": "draft",
+                "update": 19939494
+            },
+            "channels": {
+                "needs": {
+                    "protocol": "roomneeds",
+                    "segments": [50],
+                    "update": 20155510
+                },
+            }
+        };
+        let roomNeeds = {
+            "W53N83": {
+                "power": true,
+                "G": true
+            }
+        };
         RawMemory.segments[1] = JSON.stringify(doNotAggress);
         RawMemory.segments[2] = JSON.stringify(doNotAggressArray);
-        RawMemory.setPublicSegments([1, 2]);
+        if (JSON.stringify(mainRaw) !== RawMemory.segments[10]) RawMemory.segments[10] = JSON.stringify(mainRaw);
+        if (JSON.stringify(roomNeeds) !== RawMemory.segments[50]) RawMemory.segments[50] = JSON.stringify(roomNeeds);
+        RawMemory.setPublicSegments([1, 2, 10, 50]);
         RawMemory.setDefaultPublicSegment(1);
-        RawMemory.setActiveSegments([1, 2]);
+        RawMemory.setActiveSegments([1, 2, 10, 50]);
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
