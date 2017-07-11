@@ -36,7 +36,9 @@ function shibMove(creep, heading, options = {}) {
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
-        pathInfo.pathAge++;
+        if (pathInfo.newPos !== creep.pos) {
+            pathInfo.path = pathInfo.path.slice(1);
+        }
         if (creep.fatigue > 0) {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
             return;
@@ -48,6 +50,7 @@ function shibMove(creep, heading, options = {}) {
             pathInfo.pathPosTime = 0;
         }
         let nextDirection = parseInt(pathInfo.path[0], 10);
+        pathInfo.newPos = positionAtDirection(origin, nextDirection);
         return creep.move(nextDirection);
 
         //Otherwise find a path
@@ -190,6 +193,16 @@ function updateRoomStatus(room) {
             delete room.memory.avoid;
         }
     }
+}
+function positionAtDirection(origin, direction) {
+    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
+    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
+    let x = origin.x + offsetX[direction];
+    let y = origin.y + offsetY[direction];
+    if (x > 49 || x < 0 || y > 49 || y < 0) {
+        return;
+    }
+    return new RoomPosition(x, y, origin.roomName);
 }
 
 function cachePath(from, to, path) {
