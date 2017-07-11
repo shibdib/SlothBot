@@ -53,7 +53,9 @@ function shibMove(creep, heading, options = {}) {
         if (cached) {
             pathInfo.target = target;
             pathInfo.path = cached;
+            pathInfo.usingCached = true;
         } else {
+            pathInfo.usingCached = false;
             let originRoomName = origin.roomName;
             let destRoomName = target.roomName;
             let roomsSearched = 0;
