@@ -68,7 +68,7 @@ function shibMove(creep, heading, options = {}) {
         pathInfo.pathPosTime = 1;
         //check for cached
         let cached = getPath(origin, target);
-        if (cached) {
+        if (cached && options.ignoreCreeps) {
             pathInfo.target = target;
             pathInfo.path = cached;
             pathInfo.usingCached = true;
