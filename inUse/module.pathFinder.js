@@ -134,16 +134,16 @@ function addCreepsToMatrix(room, matrix) {
     return matrix;
 }
 function getStructureMatrix(room, freshMatrix) {
-    if (!structureMatrixCache[room.name] || (freshMatrix && Game.time !== structureMatrixTick)) {
-        structureMatrixTick = Game.time;
+    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.cache.structureMatrixTick || Game.time !== room.memory.cache.structureMatrixTick))) {
+        room.memory.cache.structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
         structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
     }
     return this.structureMatrixCache[room.name];
 }
 function getCreepMatrix(room) {
-    if (!creepMatrixCache[room.name] || Game.time !== creepMatrixTick) {
-        creepMatrixTick = Game.time;
+    if (!creepMatrixCache[room.name] || !room.memory.cache.creepMatrixTick || Game.time !== room.memory.cache.creepMatrixTick) {
+        room.memory.cache.creepMatrixTick = Game.time;
         creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
     }
     return creepMatrixCache[room.name];
@@ -205,7 +205,7 @@ function updateRoomStatus(room) {
             delete room.memory.avoid;
         }
     }
-} 
+}
 function positionAtDirection(origin, direction) {
     let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
     let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
