@@ -4,18 +4,6 @@ const profiler = require('screeps-profiler');
 
 let doNotAggress = RawMemory.segments[2];
 
-function cachePath(from, to, path) {
-    let key = getPathKey(from, to);
-    let cache = Memory.pathCache || {};
-    let tick = Game.time;
-    cache[key] = {
-        path: path,
-        uses: 1,
-        tick: tick
-    };
-    Memory.pathCache = cache;
-}
-module.exports.cachePath = profiler.registerFN(cachePath, 'cachePath');
 
 function getPath(from, to) {
     let cache = Memory.pathCache;
