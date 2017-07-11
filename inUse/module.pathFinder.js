@@ -14,7 +14,7 @@ function shibMove(creep, heading, options = {}) {
         maxRooms: 16
     });
 
-    this.updateRoomStatus(creep.room);
+    updateRoomStatus(creep.room);
     if (!creep.memory._shibMove) {
         delete creep.memory._shibMove;
         creep.memory._shibMove = {};
