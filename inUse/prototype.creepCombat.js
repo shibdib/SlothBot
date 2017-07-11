@@ -230,30 +230,35 @@ Creep.prototype.siege = function () {
     if (!target) {
         target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
         if (target) {
+            this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target) {
         target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => (s.structureType === STRUCTURE_STORAGE)});
         if (target) {
+            this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target) {
         target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => (s.structureType === STRUCTURE_TERMINAL)});
         if (target) {
+            this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target) {
         target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => (s.structureType === STRUCTURE_SPAWN)});
         if (target) {
+            this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target) {
         target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL)});
         if (target) {
+            this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }

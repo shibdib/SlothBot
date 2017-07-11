@@ -552,9 +552,6 @@ findStorage = function () {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
                 if (object.pos.getRangeTo(this) > 1) {
-                    if (object.store[RESOURCE_ENERGY] >= 1000) {
-                        continue;
-                    }
                     const terminalDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
                     terminals.push({
                         id: terminal[i],
@@ -672,6 +669,30 @@ findEssentials = function () {
         storage.push({
             id: bestTower.id,
             distWeighted: bestTower.distWeighted,
+            harvest: false
+        });
+    }
+    //Terminal
+    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
+    if (terminal.length > 0) {
+        let terminals = [];
+        for (let i = 0; i < terminal.length; i++) {
+            const object = Game.getObjectById(terminal[i]);
+            if (object) {
+                if (object.pos.getRangeTo(this) > 1) {
+                    const terminalDistWeighted = _.round(object.pos.getRangeTo(this) * 1.1, 0) + 1;
+                    terminals.push({
+                        id: terminal[i],
+                        distWeighted: terminalDistWeighted,
+                        harvest: false
+                    });
+                }
+            }
+        }
+        let bestTerminal = _.min(terminals, 'distWeighted');
+        storage.push({
+            id: bestTerminal.id,
+            distWeighted: bestTerminal.distWeighted,
             harvest: false
         });
     }
