@@ -224,7 +224,6 @@ function depositMineral(creep) {
                         creep.shibMove(container);
                     }
                 }
-                return;
             }
         }
     } else {
@@ -233,18 +232,6 @@ function depositMineral(creep) {
             creep.harvesterContainerBuild();
         } else {
             creep.memory.containerBuilding = true;
-        }
-    }
-    if (creep.memory.terminalID) {
-        let terminal = Game.getObjectById(creep.memory.terminalID);
-        if (terminal) {
-            if (_.sum(terminal.store) !== terminal.storeCapacity) {
-                for (const resourceType in creep.carry) {
-                    if (creep.transfer(terminal, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(terminal);
-                    }
-                }
-            }
         }
     }
 }
