@@ -224,11 +224,18 @@ function labTech(creep) {
                 creep.memory.deliverTo = creep.room.memory.reactions[key].outputLab;
                 break;
             } else {
-                creep.idleFor(15);
+                creep.memory.haulingMineral = undefined;
+                creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
             }
         }
     }
-    if (creep.memory.hauling === false) {
+    if (!creep.memory.haulingMineral) {
+        if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.deliverTo)) > 1) {
+            creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
+        } else {
+            creep.idleFor(15);
+        }
+    } else if (creep.memory.hauling === false) {
         if (creep.memory.deliverTo && creep.memory.haulingMineral) {
             let structure = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.store && s.store[creep.memory.haulingMineral] > 0});
             if (Game.getObjectById(creep.memory.deliverTo).mineralType && Game.getObjectById(creep.memory.deliverTo).mineralType !== creep.memory.haulingMineral) {
