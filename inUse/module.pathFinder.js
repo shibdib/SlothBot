@@ -38,6 +38,7 @@ function shibMove(creep, heading, options = {}) {
         delete pathInfo.path;
         pathInfo.pathPosTime = 0;
         options.ignoreCreeps = false;
+        options.freshMatrix = true;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         return;
     }
