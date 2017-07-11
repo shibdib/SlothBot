@@ -143,7 +143,7 @@ function getStructureMatrix(room) {
 function getCreepMatrix(room) {
     if (!creepMatrixCache[room.name] || Game.time !== creepMatrixTick) {
         creepMatrixTick = Game.time;
-        creepMatrixCache[room.name] = addCreepsToMatrix(room, this.getStructureMatrix(room, true).clone());
+        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
     }
     return creepMatrixCache[room.name];
 }
