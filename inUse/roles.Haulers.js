@@ -184,7 +184,7 @@ function getter(creep) {
     } else {
         if (creep.memory.storage) {
             if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.getObjectById(creep.memory.storage), {offRoad: true});
+                creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
             }
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');

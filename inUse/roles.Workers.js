@@ -34,17 +34,17 @@ function worker(creep) {
         if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(construction);
+                creep.shibMove(construction);
             }
         } else {
             creep.findRepair(creep.room.controller.level);
             if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
                 let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(repairNeeded);
+                    creep.shibMove(repairNeeded);
                 }
             } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.rooms[creep.memory.assignedRoom].controller);
+                creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
             }
         }
     }
@@ -55,7 +55,7 @@ function worker(creep) {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {
                 if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(storage);
+                    creep.shibMove(storage);
                 }
             } else {
                     creep.findEnergy();
@@ -90,7 +90,7 @@ function harvester(creep) {
             if (source.energy === 0) {
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(source);
+                creep.shibMove(source);
             }
         } else {
             creep.findSource();
@@ -118,7 +118,7 @@ function mineralHarvester(creep) {
         }
         let response = creep.harvest(mineral);
         if (response === ERR_NOT_IN_RANGE) {
-            creep.travelTo(mineral);
+            creep.shibMove(mineral);
         }
         if (response === ERR_NOT_FOUND) {
             mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
@@ -141,7 +141,7 @@ function upgrader(creep) {
     }
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(Game.rooms[creep.memory.assignedRoom].controller);
+            creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
         }
     } else {
         if (creep.memory.energyDestination) {
@@ -151,12 +151,12 @@ function upgrader(creep) {
             let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
             if (terminal && creep.pos.getRangeTo(terminal) < 5) {
                 if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(terminal);
+                    creep.shibMove(terminal);
                 }
             } else
             if (link && creep.pos.getRangeTo(link) < 5) {
                 if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(link);
+                    creep.shibMove(link);
                 }
             } else {
                 creep.findEnergy();
@@ -220,7 +220,7 @@ function depositMineral(creep) {
             if (_.sum(container.store) !== container.storeCapacity) {
                 for (const resourceType in creep.carry) {
                     if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(container);
+                        creep.shibMove(container);
                     }
                 }
                 return;
@@ -240,7 +240,7 @@ function depositMineral(creep) {
             if (_.sum(terminal.store) !== terminal.storeCapacity) {
                 for (const resourceType in creep.carry) {
                     if (creep.transfer(terminal, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(terminal);
+                        creep.shibMove(terminal);
                     }
                 }
             }
@@ -256,7 +256,7 @@ function mineralContainer(creep) {
             if (creep.pos.getRangeTo(container) <= 1) {
                 return container.id;
             } else {
-                creep.travelTo(container);
+                creep.shibMove(container);
                 return container.id;
             }
         }
