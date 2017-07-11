@@ -114,6 +114,12 @@ Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findCo
 
 findRepair = function (level) {
     let structures = this.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
+    if (site.length > 0) {
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
+    }
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
@@ -145,12 +151,6 @@ findRepair = function (level) {
         return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000 && s.pos.lookFor(LOOK_CREEPS).length === 0);
-    if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
-        this.memory.task = 'repair';
-        return;
-    }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
         this.memory.task = 'repair';
