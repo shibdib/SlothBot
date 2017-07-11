@@ -67,6 +67,9 @@ function shibMove(creep, heading, options = {}) {
             pathInfo.target = target;
             pathInfo.path = cached;
             pathInfo.usingCached = true;
+            let nextDirection = parseInt(pathInfo.path[0], 10);
+            pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
+            return creep.move(nextDirection);
         } else {
             pathInfo.usingCached = false;
             let originRoomName = origin.roomName;
