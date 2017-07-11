@@ -134,16 +134,16 @@ function addCreepsToMatrix(room, matrix) {
     return matrix;
 }
 function getStructureMatrix(room, freshMatrix) {
-    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.cache.structureMatrixTick || Game.time !== room.memory.cache.structureMatrixTick))) {
-        room.memory.cache.structureMatrixTick = Game.time;
+    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
+        room.memory.structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
         structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
     }
     return this.structureMatrixCache[room.name];
 }
 function getCreepMatrix(room) {
-    if (!creepMatrixCache[room.name] || !room.memory.cache.creepMatrixTick || Game.time !== room.memory.cache.creepMatrixTick) {
-        room.memory.cache.creepMatrixTick = Game.time;
+    if (!creepMatrixCache[room.name] || !room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick) {
+        room.memory.creepMatrixTick = Game.time;
         creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
     }
     return creepMatrixCache[room.name];
