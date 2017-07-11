@@ -110,7 +110,8 @@ function mineralHarvester(creep) {
     } else if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
         depositMineral(creep);
-    } else if (creep.memory.hauling !== true) {
+    }
+    if (creep.memory.hauling !== true) {
         let mineral;
         if (creep.memory.assignedMineral) {
             mineral = Game.getObjectById(creep.memory.assignedMineral);
