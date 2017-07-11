@@ -219,7 +219,7 @@ function pioneer(creep) {
                 creep.travelTo(construction);
             }
         } else {
-            creep.findRepair(creep.room.controller.level);
+            creep.findRepair('1');
             if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
                 let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {

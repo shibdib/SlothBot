@@ -63,7 +63,7 @@ function shibMove(creep, heading, options = {}) {
                 roomsSearched++;
                 let matrix;
                 let room = Game.rooms[roomName];
-                if (room) {
+                /**if (room) {
                     if (options.ignoreStructures) {
                         matrix = new PathFinder.CostMatrix();
                         if (!options.ignoreCreeps) {
@@ -76,7 +76,7 @@ function shibMove(creep, heading, options = {}) {
                     else {
                         matrix = getCreepMatrix(room);
                     }
-                }
+                }**/
                 return matrix;
             };
             let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
@@ -175,7 +175,7 @@ function updateRoomStatus(room) {
         return;
     }
     if (room.controller) {
-        if (room.controller.owner && !room.controller.my && _.includes(doNotAggress, room.controller.owner['username']) === false) {
+        if (room.controller.owner && !room.controller.my && _.includes(RawMemory.segments[2], room.controller.owner['username']) === false) {
             room.memory.avoid = 1;
         }
         else {
