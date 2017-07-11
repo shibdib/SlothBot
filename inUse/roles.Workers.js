@@ -119,9 +119,10 @@ function mineralHarvester(creep) {
         let response = creep.harvest(mineral);
         if (response === ERR_NOT_IN_RANGE) {
             creep.shibMove(mineral);
-        }
-        if (response === ERR_NOT_FOUND) {
+        } else if (response === ERR_NOT_FOUND) {
             mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        } else if (response === ERR_TIRED) {
+            creep.idleFor(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown + 1)
         }
     }
 }
