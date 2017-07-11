@@ -34,13 +34,12 @@ function shibMove(creep, heading, options = {}) {
     //Delete path if target changed
     //if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
     //clear path if stuck
-    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
+    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
         pathInfo.pathPosTime = 0;
         options.ignoreCreeps = false;
         options.freshMatrix = true;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-        return;
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
