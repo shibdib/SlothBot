@@ -2,7 +2,7 @@ let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
 const DEFAULT_MAXOPS = 10000;
-const STATE_STUCK = 2;
+const STATE_STUCK = 3;
 
 function shibMove(creep, heading, options = {}) {
     _.defaults(options, {
@@ -20,17 +20,22 @@ function shibMove(creep, heading, options = {}) {
         creep.memory._shibMove = {};
     }
     let pathInfo = creep.memory._shibMove;
+
+    if (creep.pos.getRangeTo(heading) <= options.range) {
+        delete pathInfo.path;
+    }
+
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     //Delete path if target changed
-    if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
+    //if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
         delete pathInfo.path;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     }
     //Execute path if target is valid and path is set
-    if (creep.pos.getRangeTo(target) > options.range && pathInfo.path) {
+    if (pathInfo.path) {
         pathInfo.pathAge++;
         if (creep.fatigue > 0) {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
@@ -40,13 +45,14 @@ function shibMove(creep, heading, options = {}) {
             pathInfo.pathPosTime++;
         } else {
             pathInfo.pathPos = creep.pos.x + creep.pos.y + creep.pos.roomName;
-            pathInfo.pathPosTime = 1;
+            pathInfo.pathPosTime = 0;
         }
         let nextDirection = parseInt(pathInfo.path[0], 10);
         return creep.move(nextDirection);
 
         //Otherwise find a path
     } else {
+        creep.say(ICONS.moveTo);
         pathInfo.pathPosTime = 1;
         //check for cached
         let cached = getPath(origin, target);
