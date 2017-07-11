@@ -26,7 +26,7 @@ function shibMove(creep, heading, options = {}) {
     //clear path if stuck
     if (creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) {
         delete creep.memory._shibMove.path;
-        creep.room.visual.circle(this.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     }
     //Execute path if target is valid and path is set
     if (creep.pos.getRangeTo(target) > options.range && creep.memory._shibMove.path) {
@@ -41,7 +41,7 @@ function shibMove(creep, heading, options = {}) {
             creep.memory._shibMove.pathPos = JSON.stringify(creep.pos);
             creep.memory._shibMove.pathPosTime = 1;
         }
-        let nextDirection = parseInt(this.memory._shibMove.path, 10);
+        let nextDirection = parseInt(creep.memory._shibMove.path, 10);
         return creep.move(nextDirection);
 
         //Otherwise find a path
@@ -71,10 +71,10 @@ function shibMove(creep, heading, options = {}) {
                         }
                     }
                     else if (options.ignoreCreeps || roomName !== originRoomName) {
-                        matrix = this.getStructureMatrix(room, options.freshMatrix);
+                        matrix = getStructureMatrix(room, options.freshMatrix);
                     }
                     else {
-                        matrix = this.getCreepMatrix(room);
+                        matrix = getCreepMatrix(room);
                     }
                 }
                 return matrix;
