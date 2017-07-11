@@ -19,29 +19,30 @@ function shibMove(creep, heading, options = {}) {
         delete creep.memory._shibMove;
         creep.memory._shibMove = {};
     }
+    let pathInfo = creep.memory._shibMove;
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     //Delete path if target changed
-    if (creep.memory._shibMove.target && target !== creep.memory._shibMove.target) delete creep.memory._shibMove.path;
+    if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
     //clear path if stuck
-    if (creep.memory._shibMove.pathPosTime && creep.memory._shibMove.pathPosTime >= STATE_STUCK) {
-        delete creep.memory._shibMove.path;
+    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
+        delete pathInfo.path;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     }
     //Execute path if target is valid and path is set
-    if (creep.pos.getRangeTo(target) > options.range && creep.memory._shibMove.path) {
-        creep.memory._shibMove.pathAge++;
+    if (creep.pos.getRangeTo(target) > options.range && pathInfo.path) {
+        pathInfo.pathAge++;
         if (creep.fatigue > 0) {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
             return;
         }
-        if (creep.memory._shibMove.pathPos === JSON.stringify(creep.pos)) {
-            creep.memory._shibMove.pathPosTime++;
+        if (pathInfo.pathPos === JSON.stringify(creep.pos)) {
+            pathInfo.pathPosTime++;
         } else {
-            creep.memory._shibMove.pathPos = JSON.stringify(creep.pos);
-            creep.memory._shibMove.pathPosTime = 1;
+            pathInfo.pathPos = JSON.stringify(creep.pos);
+            pathInfo.pathPosTime = 1;
         }
-        let nextDirection = parseInt(creep.memory._shibMove.path, 10);
+        let nextDirection = parseInt(pathInfo.path, 10);
         return creep.move(nextDirection);
 
         //Otherwise find a path
@@ -49,8 +50,8 @@ function shibMove(creep, heading, options = {}) {
         //check for cached
         let cached = getPath(origin, target);
         if (cached) {
-            creep.memory._shibMove.target = target;
-            creep.memory._shibMove.path = cached;
+            pathInfo.target = target;
+            pathInfo.path = cached;
         } else {
             let originRoomName = origin.roomName;
             let destRoomName = target.roomName;
@@ -63,7 +64,7 @@ function shibMove(creep, heading, options = {}) {
                 roomsSearched++;
                 let matrix;
                 let room = Game.rooms[roomName];
-                /**if (room) {
+                if (room) {
                     if (options.ignoreStructures) {
                         matrix = new PathFinder.CostMatrix();
                         if (!options.ignoreCreeps) {
@@ -76,7 +77,7 @@ function shibMove(creep, heading, options = {}) {
                     else {
                         matrix = getCreepMatrix(room);
                     }
-                }**/
+                }
                 return matrix;
             };
             let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
@@ -86,9 +87,9 @@ function shibMove(creep, heading, options = {}) {
                 swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
                 roomCallback: callback,
             });
-            creep.memory._shibMove.path = serializePath(creep.pos, ret.path);
-            creep.memory._shibMove.target = target;
-            cachePath(origin, target, creep.memory._shibMove.path);
+            pathInfo.path = serializePath(creep.pos, ret.path);
+            pathInfo.target = target;
+            cachePath(origin, target, pathInfo.path);
         }
     }
 }
@@ -109,20 +110,19 @@ function addCreepsToMatrix(room, matrix) {
     room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
     return matrix;
 }
-function getStructureMatrix(room, freshMatrix) {
-    if (!this.structureMatrixCache[room.name] || (freshMatrix && Game.time !== this.structureMatrixTick)) {
-        this.structureMatrixTick = Game.time;
+function getStructureMatrix(room) {
+    if (!structureMatrixCache[room.name]) {
         let matrix = new PathFinder.CostMatrix();
-        this.structureMatrixCache[room.name] = Traveler.addStructuresToMatrix(room, matrix, 1);
+        structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
     }
     return this.structureMatrixCache[room.name];
 }
 function getCreepMatrix(room) {
-    if (!this.creepMatrixCache[room.name] || Game.time !== this.creepMatrixTick) {
-        this.creepMatrixTick = Game.time;
-        this.creepMatrixCache[room.name] = Traveler.addCreepsToMatrix(room, this.getStructureMatrix(room, true).clone());
+    if (!creepMatrixCache[room.name] || Game.time !== creepMatrixTick) {
+        creepMatrixTick = Game.time;
+        creepMatrixCache[room.name] = addCreepsToMatrix(room, this.getStructureMatrix(room, true).clone());
     }
-    return this.creepMatrixCache[room.name];
+    return creepMatrixCache[room.name];
 }
 function addStructuresToMatrix(room, matrix, roadCost) {
     let impassibleStructures = [];
@@ -213,6 +213,8 @@ function getPathKey(from, to) {
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
+structureMatrixCache = {};
+creepMatrixCache = {};
 
 // assigns a function to Creep.prototype: creep.travelTo(destination)
 Creep.prototype.shibMove = function (destination, options) {
