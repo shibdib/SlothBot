@@ -32,6 +32,7 @@ function shibMove(creep, heading, options = {}) {
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
         delete pathInfo.path;
+        options.ignoreCreeps = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     }
     //Execute path if target is valid and path is set
