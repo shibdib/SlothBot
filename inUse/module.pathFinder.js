@@ -211,7 +211,7 @@ function positionAtDirection(origin, direction) {
     let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
     let x = origin.x + offsetX[direction];
     let y = origin.y + offsetY[direction];
-    if (x > 49 || x < 0 || y > 49 || y < 0) {
+    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
         return;
     }
     return new RoomPosition(x, y, origin.roomName);
