@@ -13,6 +13,10 @@ function shibMove(creep, heading, options = {}) {
         allowHostile: false,
         maxRooms: 16
     });
+    if (creep.fatigue > 0) {
+        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
+        return;
+    }
 
     updateRoomStatus(creep.room);
     if (!creep.memory._shibMove) {
@@ -32,17 +36,13 @@ function shibMove(creep, heading, options = {}) {
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
         delete pathInfo.path;
-        options.ignoreCreeps = false;
+        creep.moveRandom();
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
         if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) {
             pathInfo.path = pathInfo.path.slice(1);
-        }
-        if (creep.fatigue > 0) {
-            creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
-            return;
         }
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             pathInfo.pathPosTime++;
