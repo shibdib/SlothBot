@@ -221,6 +221,8 @@ Creep.prototype.siege = function () {
     }
     let target;
     let hostileStructures = this.room.find(FIND_HOSTILE_STRUCTURES, {filter: (s) => _.includes(RawMemory.segments[2], s.owner['username']) === false});
+    let squadTarget = this.room.find(FIND_MY_CREEPS, {filter: (s) => s.memory.siegeTarget});
+    if (squadTarget.length > 0) target = squadTarget[0].memory.siegeTarget;
     if (this.memory.attackType === 'clean') {
         target = this.pos.findClosestByPath(FIND_MY_STRUCTURES);
     }
@@ -262,9 +264,9 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = true;
         }
     }
-    if (!target || target.pos.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL})) {
+    if (!target || target.pos.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})) {
         if (!this.memory.siegeTarget || !Game.getObjectById(this.memory.siegeTarget)) {
-            target = _.min(this.pos.findInRange(hostileStructures, 4, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false}), 'hits');
+            target = _.min(this.pos.findInRange(FIND_STRUCTURES, 4, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false)}), 'hits');
         } else {
             target = Game.getObjectById(this.memory.siegeTarget);
         }
