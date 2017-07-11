@@ -4,7 +4,7 @@ const profiler = require('screeps-profiler');
 const DEFAULT_MAXOPS = 10000;
 const STATE_STUCK = 2;
 
-function shibMove(creep, target, options = {}) {
+function shibMove(creep, heading, options = {}) {
     _.defaults(options, {
         ignoreCreeps: true,
         maxOps: DEFAULT_MAXOPS,
@@ -20,7 +20,7 @@ function shibMove(creep, target, options = {}) {
         creep.memory._shibMove = {};
     }
     let origin = normalizePos(creep);
-    let target = normalizePos(target);
+    let target = normalizePos(heading);
     //Delete path if target changed
     if (creep.memory._shibMove.target && target !== creep.memory._shibMove.target) delete creep.memory._shibMove.path;
     //clear path if stuck
