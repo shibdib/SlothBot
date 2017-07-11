@@ -133,8 +133,9 @@ function addCreepsToMatrix(room, matrix) {
     room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
     return matrix;
 }
-function getStructureMatrix(room) {
-    if (!structureMatrixCache[room.name]) {
+function getStructureMatrix(room, freshMatrix) {
+    if (!structureMatrixCache[room.name] || (freshMatrix && Game.time !== structureMatrixTick)) {
+        structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
         structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
     }
