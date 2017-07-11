@@ -766,6 +766,7 @@ Creep.prototype.findDeliveries = profiler.registerFN(findDeliveries, 'findDelive
  * @type {int}
  */
 Object.defineProperty(Creep.prototype, "idle", {
+    configurable: true,
     get: function () {
         if (this.memory.idle === undefined) return 0;
         if (this.memory.idle <= Game.time) {

@@ -26,7 +26,7 @@ let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
 require('module.traveler');
-require('module.pathFinder'); 
+require('module.pathFinder');
 
 // This line monkey patches the global prototypes.
 profiler.enable();
