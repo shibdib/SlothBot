@@ -278,7 +278,7 @@ labTech = profiler.registerFN(labTech, 'labTechHaulers');
 /**
  * @return {null}
  */
-function mineralHauler(creep) {
+function mineralHauler(creep) { 
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
