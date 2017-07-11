@@ -6,6 +6,7 @@ const STATE_STUCK = 3;
 
 function shibMove(creep, heading, options = {}) {
     _.defaults(options, {
+        useCache: true,
         ignoreCreeps: true,
         maxOps: DEFAULT_MAXOPS,
         range: 1,
@@ -39,6 +40,7 @@ function shibMove(creep, heading, options = {}) {
         pathInfo.pathPosTime = 0;
         options.ignoreCreeps = false;
         options.freshMatrix = true;
+        options.useCache = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
     }
     //Execute path if target is valid and path is set
@@ -67,7 +69,8 @@ function shibMove(creep, heading, options = {}) {
         creep.say(ICONS.moveTo);
         pathInfo.pathPosTime = 1;
         //check for cached
-        let cached = getPath(origin, target);
+        let cached;
+        if (options.useCache) cached = getPath(origin, target);
         if (cached && options.ignoreCreeps) {
             pathInfo.target = target;
             pathInfo.path = cached;
