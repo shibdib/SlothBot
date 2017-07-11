@@ -88,7 +88,7 @@ function shibMove(creep, heading, options = {}) {
             });
             creep.memory._shibMove.path = serializePath(creep.pos, ret.path);
             creep.memory._shibMove.target = target;
-            cachePath(origin, destination, creep.memory._shibMove.path);
+            cachePath(origin, target, creep.memory._shibMove.path);
         }
     }
 }
