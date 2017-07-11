@@ -36,22 +36,26 @@ function shibMove(creep, heading, options = {}) {
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
-        if (pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) {
+        if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) {
             pathInfo.path = pathInfo.path.slice(1);
         }
         if (creep.fatigue > 0) {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
             return;
         }
-        if (pathInfo.pathPos === creep.pos.x + creep.pos.y + creep.pos.roomName) {
+        if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             pathInfo.pathPosTime++;
         } else {
-            pathInfo.pathPos = creep.pos.x + creep.pos.y + creep.pos.roomName;
+            pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
             pathInfo.pathPosTime = 0;
         }
         let nextDirection = parseInt(pathInfo.path[0], 10);
-        pathInfo.newPos = positionAtDirection(origin, nextDirection);
-        return creep.move(nextDirection);
+        if (nextDirection && pathInfo.newPos) {
+            pathInfo.newPos = positionAtDirection(origin, nextDirection);
+            return creep.move(nextDirection);
+        } else {
+            delete pathInfo.path;
+        }
 
         //Otherwise find a path
     } else {
@@ -100,6 +104,8 @@ function shibMove(creep, heading, options = {}) {
                 roomCallback: callback,
             });
             pathInfo.path = serializePath(creep.pos, ret.path);
+            let nextDirection = parseInt(pathInfo.path[0], 10);
+            pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
             pathInfo.target = target;
             cachePath(origin, target, pathInfo.path);
         }
