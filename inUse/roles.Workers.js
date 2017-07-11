@@ -112,17 +112,23 @@ function mineralHarvester(creep) {
         depositMineral(creep);
     }
     if (creep.memory.hauling !== true) {
-        let mineral;
-        if (creep.memory.assignedMineral) {
-            mineral = Game.getObjectById(creep.memory.assignedMineral);
-        }
-        let response = creep.harvest(mineral);
-        if (response === ERR_NOT_IN_RANGE) {
-            creep.shibMove(mineral);
-        } else if (response === ERR_NOT_FOUND) {
-            mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-        } else if (response === ERR_TIRED) {
-            creep.idleFor(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown + 1)
+        if (creep.memory.extractor) {
+            if (Game.getObjectById(creep.memory.extractor).cooldown) {
+                creep.idleFor(Game.getObjectById(creep.memory.extractor).cooldown + 1)
+            } else {
+                let mineral;
+                if (creep.memory.assignedMineral) {
+                    mineral = Game.getObjectById(creep.memory.assignedMineral);
+                }
+                let response = creep.harvest(mineral);
+                if (response === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(mineral);
+                } else if (response === ERR_NOT_FOUND) {
+                    mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+                }
+            }
+        } else {
+            creep.memory.extractor = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).id;
         }
     }
 }
