@@ -40,7 +40,7 @@ function scout(creep) {
         if (creep.pos.getRangeTo(armedHostile) < 2) {
             this.kite();
         }
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 24,maxOps: 50000,ensurePath:true});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24,maxOps: 50000,ensurePath:true});
         if (creep.pos.roomName === creep.memory.destination) {
             cache.cacheRoomIntel(creep);
             creep.memory.destinationReached = true;
@@ -66,7 +66,7 @@ function healer(creep) {
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(lab);
+                    creep.shibMove(lab);
                 }
             }
         }
@@ -116,7 +116,7 @@ function attacker(creep) {
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(lab);
+                    creep.shibMove(lab);
                 }
             }
         }
@@ -166,7 +166,7 @@ function ranged(creep) {
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(lab);
+                    creep.shibMove(lab);
                 }
             }
         }
@@ -214,7 +214,7 @@ function deconstructor(creep) {
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(lab);
+                    creep.shibMove(lab);
                 }
             }
         }
@@ -237,14 +237,14 @@ function claimer(creep) {
         creep.suicide();
     }
     if (!creep.memory.destinationReached) {
-        creep.travelTo(Game.flags[creep.memory.destination]);
+        creep.shibMove(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
             creep.memory.destinationReached = true;
         }
     } else {
         if (creep.room.controller) {
             if (creep.claimController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(creep.room.controller);
+                creep.shibMove(creep.room.controller);
             }
         }
     }
@@ -320,7 +320,7 @@ function raider(creep) {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(storageItem);
+                    creep.shibMove(storageItem);
                 } else {
                     creep.memory.storageDestination = null;
                     creep.memory.path = null;
@@ -329,14 +329,14 @@ function raider(creep) {
             }
             creep.findStorage();
         } else {
-            creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
+            creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
             return null;
         }
         return null;
     }
     //Initial move
     if (!creep.memory.destinationReached) {
-        creep.travelTo(Game.flags[creep.memory.attackTarget]);
+        creep.shibMove(Game.flags[creep.memory.attackTarget]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.attackTarget]) <= 3) {
             creep.memory.destinationReached = true;
         }
@@ -344,25 +344,25 @@ function raider(creep) {
         let storage = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] !== 0});
         if (storage) {
             if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storage);
+                creep.shibMove(storage);
             }
         } else {
             let extension = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy !== 0});
             if (extension) {
                 if (creep.withdraw(extension, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(extension);
+                    creep.shibMove(extension);
                 }
             } else {
                 let spawn = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.energy !== 0});
                 if (spawn) {
                     if (creep.withdraw(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(spawn);
+                        creep.shibMove(spawn);
                     }
                 } else {
                     let terminal = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.energy !== 0});
                     if (terminal) {
                         if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            creep.travelTo(terminal);
+                            creep.shibMove(terminal);
                         }
                     } else {
                         if (creep.carry.energy > 0) {
@@ -391,7 +391,7 @@ function responder(creep) {
             if (lab) {
                 count++;
                 if (lab.boostCreep(creep) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(lab);
+                    creep.shibMove(lab);
                 }
             }
         }
@@ -422,17 +422,17 @@ function responder(creep) {
             creep.rangedAttack(armedHostile);
         } else {
             if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(armedHostile);
+                creep.shibMove(armedHostile);
             }
             creep.rangedAttack(armedHostile);
         }
     } else if (closestHostileTower) {
         if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(closestHostileTower);
+            creep.shibMove(closestHostileTower);
         }
     } else if (closestHostileSpawn) {
         if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(closestHostileSpawn);
+            creep.shibMove(closestHostileSpawn);
         }
     } else if (closestHostile) {
         if (creep.pos.roomName === creep.memory.assignedRoom) {
@@ -442,14 +442,14 @@ function responder(creep) {
             creep.rangedAttack(closestHostile);
         } else {
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(closestHostile);
+                creep.shibMove(closestHostile);
             }
             creep.rangedAttack(closestHostile);
         }
     } else if (friendlies.length > 0 && creep.room.memory.responseNeeded !== true && creep.memory.destinationReached === true) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
             if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(friendlies[0]);
+                creep.shibMove(friendlies[0]);
             }
         }
     } else if (creep.memory.destinationReached !== true && Game.rooms[creep.memory.responseTarget]) {
@@ -459,7 +459,7 @@ function responder(creep) {
         creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
     } else if (Game.getObjectById(creep.memory.assignedRampart)) {
         if (Game.getObjectById(creep.memory.assignedRampart).pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.y !== creep.pos.y) {
-            creep.travelTo(Game.getObjectById(creep.memory.assignedRampart));
+            creep.shibMove(Game.getObjectById(creep.memory.assignedRampart));
         }
     } else if (!creep.memory.assignedRampart || !Game.getObjectById(creep.memory.assignedRampart)) {
         findDefensivePosition(creep, creep);
@@ -495,7 +495,7 @@ function findDefensivePosition(creep, target) {
             bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
             creep.memory.assignedRampart = bestRampart.id;
             if (bestRampart.pos !== creep.pos && (creep.pos.getRangeTo(bestRampart) < creep.pos.getRangeTo(armedHostile) || !armedHostile)) {
-                creep.travelTo(bestRampart);
+                creep.shibMove(bestRampart);
             }
         }
     }

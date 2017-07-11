@@ -26,11 +26,11 @@ rangedTeamLeader = function () {
     if (this.getActiveBodyparts(TOUGH) === 0) {
         this.heal(this);
         if (closestHealer) {
-            this.travelTo(closestHealer, {allowHostile: false, movingTarget: true});
+            this.shibMove(closestHealer, {allowHostile: false, movingTarget: true});
             this.rangedAttack(inRangeArmed[0]);
             return null;
         } else if (squadLeader) {
-            this.travelTo(squadLeader, {allowHostile: false, movingTarget: true});
+            this.shibMove(squadLeader, {allowHostile: false, movingTarget: true});
             this.rangedAttack(inRangeArmed[0]);
             return null;
         } else {
@@ -45,7 +45,7 @@ rangedTeamLeader = function () {
         this.memory.attackStarted = 'safe';
         Memory.warControl[this.memory.attackTarget] = undefined;
         Memory.militaryNeeds[this.memory.attackTarget] = undefined;
-        this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
+        this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     }
     if (closestArmed || closestHostile) {
         this.memory.inCombat = true;
@@ -60,19 +60,19 @@ rangedTeamLeader = function () {
     } else if (squadLeader && this.pos.roomName === squadLeader.pos.roomName) {
         this.memory.inCombat = undefined;
         if (this.pos.getRangeTo(squadLeader) > 4) {
-            this.travelTo(squadLeader, {allowHostile: true, movingTarget: true});
+            this.shibMove(squadLeader, {allowHostile: true, movingTarget: true});
         }
     } else if (this.memory.attackType === 'raid' || siege.length > 0) {
         this.memory.inCombat = undefined;
-        this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
+        this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
     } else if (squadLeader && squadLeader.memory.attackStarted !== true) {
         this.memory.rangedTarget = undefined;
-        this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
+        this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
         this.memory.inCombat = undefined;
-        this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
+        this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
     } else if (this.memory.attackType === 'siege') {
-        this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
+        this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
     }
 };
 Creep.prototype.rangedTeamLeader = profiler.registerFN(rangedTeamLeader, 'rangedTeamTactic');
@@ -107,11 +107,11 @@ rangedTeamMember = function () {
     if (this.getActiveBodyparts(TOUGH) === 0) {
         this.heal(this);
         if (closestHealer) {
-            this.travelTo(closestHealer, {allowHostile: false, movingTarget: true});
+            this.shibMove(closestHealer, {allowHostile: false, movingTarget: true});
             this.rangedAttack(inRangeArmed[0]);
             return null;
         } else if (squadLeader) {
-            this.travelTo(squadLeader, {allowHostile: false, movingTarget: true});
+            this.shibMove(squadLeader, {allowHostile: false, movingTarget: true});
             this.rangedAttack(inRangeArmed[0]);
             return null;
         } else {
@@ -126,9 +126,9 @@ rangedTeamMember = function () {
     if (rangedLeader) {
         if (this.pos.getRangeTo(rangedLeader) > 4) {
             if (this.room.name !== rangedLeader.pos.roomName) {
-                this.travelTo(rangedLeader, {allowHostile: true});
+                this.shibMove(rangedLeader, {allowHostile: true});
             } else {
-                this.travelTo(rangedLeader, {allowHostile: true, movingTarget: true});
+                this.shibMove(rangedLeader, {allowHostile: true, movingTarget: true});
             }
         }
     }

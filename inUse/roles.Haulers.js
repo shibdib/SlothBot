@@ -57,7 +57,7 @@ function basicHauler(creep) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem);
+                creep.shibMove(storageItem);
             } else {
                 creep.memory.storageDestination = null;
                 creep.memory.path = null;
@@ -92,7 +92,7 @@ function hauler(creep) {
     } else if (creep.memory.storageDestination) {
         let storageItem = Game.getObjectById(creep.memory.storageDestination);
         if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-            creep.travelTo(storageItem, {movingTarget: true, offRoad: true});
+            creep.shibMove(storageItem, {movingTarget: true, offRoad: true});
         } else {
             creep.memory.storageDestination = null;
             creep.memory.path = null;
@@ -231,7 +231,7 @@ function labTech(creep) {
     }
     if (!creep.memory.haulingMineral) {
         if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.deliverTo)) > 1) {
-            creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
+            creep.shibMove(Game.getObjectById(creep.memory.deliverTo));
         } else {
             creep.idleFor(15);
         }
@@ -240,21 +240,21 @@ function labTech(creep) {
             let structure = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.store && s.store[creep.memory.haulingMineral] > 0});
             if (Game.getObjectById(creep.memory.deliverTo).mineralType && Game.getObjectById(creep.memory.deliverTo).mineralType !== creep.memory.haulingMineral) {
                 if (creep.withdraw(Game.getObjectById(creep.memory.deliverTo), Game.getObjectById(creep.memory.deliverTo).mineralType) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
+                    creep.shibMove(Game.getObjectById(creep.memory.deliverTo));
                 }
             } else if (structure) {
                 if (creep.withdraw(structure, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(structure);
+                    creep.shibMove(structure);
                 }
             } else {
-                creep.travelTo(Game.getObjectById(creep.memory.deliverTo));
+                creep.shibMove(Game.getObjectById(creep.memory.deliverTo));
             }
         } else {
             let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralAmount > 0});
             if (lab && creep.withdraw(lab, lab.mineralType) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(lab);
+                creep.shibMove(lab);
             } else {
-                creep.travelTo(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB}));
+                creep.shibMove(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB}));
             }
         }
     } else {
@@ -262,13 +262,13 @@ function labTech(creep) {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
             for (const resourceType in creep.carry) {
                 if (creep.transfer(storage, resourceType) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(storage);
+                    creep.shibMove(storage);
                 }
             }
         } else if (creep.memory.deliverTo) {
             let storageItem = Game.getObjectById(creep.memory.deliverTo);
             if (creep.transfer(storageItem, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem);
+                creep.shibMove(storageItem);
             }
         }
     }
@@ -361,7 +361,7 @@ function resupply(creep) {
     if (creep.memory.hauling === false) {
         if (creep.memory.storage) {
             if (creep.withdraw(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.getObjectById(creep.memory.storage));
+                creep.shibMove(Game.getObjectById(creep.memory.storage));
             }
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
@@ -373,11 +373,11 @@ function resupply(creep) {
         }
     } else {
         if (creep.memory.destinationReached !== true) {
-            creep.travelTo(Game.flags[creep.memory.destination]);
+            creep.shibMove(Game.flags[creep.memory.destination]);
         } else {
             if (creep.memory.deliveryStorage) {
                 if (creep.transfer(Game.getObjectById(creep.memory.deliveryStorage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(creep.memory.deliveryStorage));
+                    creep.shibMove(Game.getObjectById(creep.memory.deliveryStorage));
                 }
             } else if (!creep.memory.deliveryStorage) {
                 let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');

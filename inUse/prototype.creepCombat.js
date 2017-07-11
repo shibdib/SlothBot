@@ -95,7 +95,7 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     if (constructionSite !== null) {
         this.say('kcs');
         this.log('Kill constructionSite: ' + JSON.stringify(constructionSite));
-        let returnCode = this.travelTo(constructionSite);
+        let returnCode = this.shibMove(constructionSite);
         return true;
     }
     return false;
@@ -137,7 +137,7 @@ Creep.prototype.waitRampart = function () {
         this.moveRandom();
         return true;
     }
-    let returnCode = this.travelTo(structure);
+    let returnCode = this.shibMove(structure);
     return true;
 };
 
@@ -157,7 +157,7 @@ Creep.prototype.fightRampart = function (target) {
     if (range > 3) {
         return false;
     }
-    let returnCode = this.travelTo(position);
+    let returnCode = this.shibMove(position);
     if (returnCode === OK) {
         return true;
     }
@@ -199,7 +199,7 @@ Creep.prototype.fightRanged = function (target) {
         return true;
     } else {
         this.rangedAttack(_.min(this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false}), 'hits'));
-        this.travelTo(target, {movingTarget: true, ignoreCreeps: false});
+        this.shibMove(target, {movingTarget: true, ignoreCreeps: false});
     }
 };
 
@@ -210,9 +210,9 @@ Creep.prototype.siege = function () {
         this.memory.healing = true;
         let healers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.role === 'healer'), 45);
         if (healers.length > 0) {
-            this.travelTo(healers[0]);
+            this.shibMove(healers[0]);
         } else {
-            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
+            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
         }
         if (this.hits === this.hitsMax) {
             this.memory.healing = undefined;
@@ -292,7 +292,7 @@ Creep.prototype.siege = function () {
     let posLast = path[path.length - 1];
     if (path.length === 0 || !target.pos.isEqualTo(posLast.x, posLast.y)) {
         let structure = this.pos.findClosestStructure(FIND_STRUCTURES, STRUCTURE_RAMPART);
-        returnCode = this.travelTo(structure);
+        returnCode = this.shibMove(structure);
         target = structure;
     } else {
         if (this.hits > this.hitsMax - 2000) {

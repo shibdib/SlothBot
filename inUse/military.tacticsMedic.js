@@ -22,14 +22,14 @@ tacticSquadLeaderMedic = function () {
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
         if (targets.id) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
-                this.travelTo(targets);
+                this.shibMove(targets);
                 this.rangedHeal(targets);
             }
         } else if (inCombat.id) {
-            this.travelTo(inCombat);
+            this.shibMove(inCombat);
         }
         else if (this.memory.attackStarted !== true) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.staging), {range: 15});
+            this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
             if (this.memory.attackTarget) {
                 let nearbyAttackers = this.pos.findInRange(_.filter(squad, (a) => a.memory.role === 'attacker'), 35);
                 let nearbyHealers = this.pos.findInRange(_.filter(squad, (h) => h.memory.role === 'healer'), 35);
@@ -40,15 +40,15 @@ tacticSquadLeaderMedic = function () {
                 }
             }
         } else if (this.memory.attackType === 'raid' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
+            this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
-            this.travelTo(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
+            this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
         } else if (this.memory.attackType === 'siege') {
-            this.travelTo(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
+            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
         }
     } else if (targets.id && this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
         if (this.heal(targets) === ERR_NOT_IN_RANGE) {
-            this.travelTo(targets);
+            this.shibMove(targets);
             this.rangedHeal(targets);
         }
     } else {
@@ -70,16 +70,16 @@ tacticMedic = function () {
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 5) {
         if (targets.id) {
             if (this.heal(targets) === ERR_NOT_IN_RANGE) {
-                this.travelTo(targets);
+                this.shibMove(targets);
                 this.rangedHeal(targets);
             }
         }
         else if (this.pos.getRangeTo(squadLeader) > 4) {
-            this.travelTo(squadLeader);
+            this.shibMove(squadLeader);
         }
     } else if (targets.id && this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
         if (this.heal(targets) === ERR_NOT_IN_RANGE) {
-            this.travelTo(targets);
+            this.shibMove(targets);
             this.rangedHeal(targets);
         }
     } else {

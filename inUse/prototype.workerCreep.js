@@ -47,7 +47,7 @@ Creep.prototype.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
 
 wrongRoom = function () {
     if (this.memory.assignedRoom && this.pos.roomName !== this.memory.assignedRoom) {
-        this.travelTo(new RoomPosition(25, 25, this.memory.assignedRoom));
+        this.shibMove(new RoomPosition(25, 25, this.memory.assignedRoom));
     }
 };
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
@@ -57,7 +57,7 @@ findSource = function () {
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
             if (source[i].pos.findInRange(FIND_CREEPS, 1, {filter: (c) => c.memory && (c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester')}).length === 0) {
-                if (this.travelTo(source[i]) !== ERR_NO_PATH) {
+                if (this.shibMove(source[i]) !== ERR_NO_PATH) {
                     if (source[i].id) {
                         this.memory.source = source[i].id;
                         return source[i];
@@ -176,7 +176,7 @@ harvestDepositContainer = function () {
         if (this.pos.getRangeTo(container) <= 1) {
             return container.id;
         } else if (this.pos.getRangeTo(container) <= 3) {
-            this.travelTo(container);
+            this.shibMove(container);
             return container.id;
         }
     }
@@ -190,7 +190,7 @@ harvestDepositLink = function () {
         if (this.pos.getRangeTo(link) <= 1) {
             return link.id;
         } else if (this.pos.getRangeTo(link) <= 3) {
-            this.travelTo(link);
+            this.shibMove(link);
             return link.id;
         }
     }
@@ -577,7 +577,7 @@ findStorage = function () {
                     storageItem.memory.deliveryIncoming = true;
                 }
                 this.memory.storageDestination = storageItem.id;
-                this.travelTo(storageItem);
+                this.shibMove(storageItem);
             }
         }
         return true;
@@ -705,7 +705,7 @@ findEssentials = function () {
                     storageItem.memory.deliveryIncoming = true;
                 }
                 this.memory.storageDestination = storageItem.id;
-                this.travelTo(storageItem);
+                this.shibMove(storageItem);
             }
             return true;
         } else {
