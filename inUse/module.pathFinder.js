@@ -53,7 +53,7 @@ function shibMove(creep, heading, options = {}) {
             creep.memory._shibMove.path = cached;
         } else {
             let originRoomName = origin.roomName;
-            let destRoomName = destination.roomName;
+            let destRoomName = target.roomName;
             let roomsSearched = 0;
             let callback = (roomName) => {
                 if (!options.allowHostile && checkAvoid(roomName)
@@ -79,7 +79,7 @@ function shibMove(creep, heading, options = {}) {
                 }
                 return matrix;
             };
-            let ret = PathFinder.search(origin, {pos: destination, range: options.range}, {
+            let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
                 maxOps: options.maxOps,
                 maxRooms: options.maxRooms,
                 plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
