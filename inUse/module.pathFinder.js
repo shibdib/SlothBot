@@ -36,9 +36,6 @@ function shibMove(creep, heading, options = {}) {
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
-        if (pathInfo.newPos === creep.pos) {
-            pathInfo.path = pathInfo.path.slice(1);
-        }
         if (creep.fatigue > 0) {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
             return;
@@ -50,8 +47,7 @@ function shibMove(creep, heading, options = {}) {
             pathInfo.pathPosTime = 0;
         }
         let nextDirection = parseInt(pathInfo.path[0], 10);
-        pathInfo.newPos = positionAtDirection(origin, nextDirection);
-        return creep.move(nextDirection);
+        return creep.moveByPath(pathInfo.path);
 
         //Otherwise find a path
     } else {
