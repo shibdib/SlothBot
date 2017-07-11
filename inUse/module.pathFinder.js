@@ -36,13 +36,13 @@ function shibMove(creep, heading, options = {}) {
             creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
             return;
         }
-        if (pathInfo.pathPos === JSON.stringify(creep.pos)) {
+        if (pathInfo.pathPos === creep.pos.x + creep.pos.y + creep.pos.roomName) {
             pathInfo.pathPosTime++;
         } else {
-            pathInfo.pathPos = JSON.stringify(creep.pos);
+            pathInfo.pathPos = creep.pos.x + creep.pos.y + creep.pos.roomName;
             pathInfo.pathPosTime = 1;
         }
-        let nextDirection = parseInt(pathInfo.path, 10);
+        let nextDirection = parseInt(pathInfo.path[0], 10);
         return creep.move(nextDirection);
 
         //Otherwise find a path
