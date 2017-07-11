@@ -221,7 +221,7 @@ Creep.prototype.siege = function () {
     }
     let target;
     let hostileStructures = this.room.find(FIND_HOSTILE_STRUCTURES, {filter: (s) => _.includes(RawMemory.segments[2], s.owner['username']) === false});
-    let squadTarget = this.room.find(FIND_MY_CREEPS, {filter: (s) => s.memory.siegeTarget});
+    let squadTarget = this.room.find(FIND_MY_CREEPS, {filter: (s) => s.memory.siegeTarget && s.id !== this.id});
     if (squadTarget.length > 0) target = Game.getObjectById(squadTarget[0].memory.siegeTarget);
     if (this.memory.attackType === 'clean') {
         target = this.pos.findClosestByPath(FIND_MY_STRUCTURES);
