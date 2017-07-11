@@ -37,7 +37,7 @@ function shibMove(creep, heading, options = {}) {
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
         delete pathInfo.path;
         pathInfo.pathPosTime = 0;
-        creep.moveRandom();
+        options.ignoreCreeps = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
         return;
     }
@@ -146,10 +146,8 @@ function getStructureMatrix(room, freshMatrix) {
     return this.structureMatrixCache[room.name];
 }
 function getCreepMatrix(room) {
-    if (!creepMatrixCache[room.name] || !room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick) {
-        room.memory.creepMatrixTick = Game.time;
-        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
-    }
+    room.memory.creepMatrixTick = Game.time;
+    creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
     return creepMatrixCache[room.name];
 }
 function addStructuresToMatrix(room, matrix, roadCost) {
