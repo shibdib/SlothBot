@@ -205,7 +205,7 @@ function updateRoomStatus(room) {
             delete room.memory.avoid;
         }
     }
-}
+} 
 function positionAtDirection(origin, direction) {
     let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
     let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
