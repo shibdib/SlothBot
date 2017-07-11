@@ -25,7 +25,7 @@ function explorer(creep) {
         creep.memory.destination = _.sample(creep.memory.targetRooms);
     }
     if (creep.memory.destinationReached !== true) {
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true});
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
@@ -47,7 +47,7 @@ function harvester(creep) {
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
-        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
+        creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
     } else if (creep.memory.invaderCooldown > 50) {
@@ -58,7 +58,7 @@ function harvester(creep) {
         creep.memory.harvesting = true;
     }
     if (!creep.memory.destinationReached) {
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination));
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
@@ -72,7 +72,7 @@ function harvester(creep) {
             if (source.energy === 0) {
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(source);
+                creep.shibMove(source);
             }
         } else {
             creep.findSource();
@@ -89,7 +89,7 @@ function hauler(creep) {
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
-        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
+        creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
     } else if (creep.memory.invaderCooldown > 50) {
@@ -113,7 +113,7 @@ function hauler(creep) {
                 if (container.length > 0) {
                     creep.memory.containerID = container[0].id;
                     if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(container);
+                        creep.shibMove(container);
                     }
                 }
             } else {
@@ -121,7 +121,7 @@ function hauler(creep) {
                     creep.memory.containerID = undefined;
                 }
                 if (creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(creep.memory.containerID), {offRoad: true});
+                    creep.shibMove(Game.getObjectById(creep.memory.containerID), {offRoad: true});
                 }
             }
         } else {
@@ -137,7 +137,7 @@ function hauler(creep) {
                 if (creep.memory.storageDestination) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);
                     if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.travelTo(storageItem);
+                        creep.shibMove(storageItem);
                     } else {
                         creep.memory.storageDestination = null;
                         creep.memory.path = null;
@@ -146,7 +146,7 @@ function hauler(creep) {
                 }
                 creep.findStorage();
             } else {
-                creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn), {
+                creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn), {
                     range: 5
                 });
             }
@@ -156,7 +156,7 @@ function hauler(creep) {
         if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 10) {
             creep.memory.destinationReached = true;
         }
-        creep.travelTo(new RoomPosition(25, 25, creep.memory.destination), {range: 7, offRoad: true});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 7, offRoad: true});
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerRemote');
@@ -169,7 +169,7 @@ function pioneer(creep) {
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
-        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
+        creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.destinationReached = false;
         return null;
     } else if (creep.memory.invaderCooldown > 50) {
@@ -195,11 +195,11 @@ function pioneer(creep) {
             let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100});
             if (container.length > 0) {
                 if (creep.withdraw(container[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(container[0]);
+                    creep.shibMove(container[0]);
                 }
             } else if (creep.memory.source) {
                 if (creep.harvest(Game.getObjectById(creep.memory.source)) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(Game.getObjectById(creep.memory.source));
+                    creep.shibMove(Game.getObjectById(creep.memory.source));
                 }
             } else if (!creep.memory.source) {
                 creep.findSource();
@@ -207,7 +207,7 @@ function pioneer(creep) {
         }
     } else
     if (!creep.memory.destinationReached && creep.memory.hauling === true) {
-        creep.travelTo(Game.flags[creep.memory.destination]);
+        creep.shibMove(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
@@ -216,17 +216,17 @@ function pioneer(creep) {
         if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(construction);
+                creep.shibMove(construction);
             }
         } else {
             creep.findRepair('1');
             if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
                 let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(repairNeeded);
+                    creep.shibMove(repairNeeded);
                 }
             } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(Game.rooms[creep.memory.assignedRoom].controller);
+                creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
             }
         }
     }
@@ -242,7 +242,7 @@ function depositEnergy(creep) {
         if (container) {
             if (container.hits < container.hitsMax * 0.25) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
-                    creep.travelTo(container);
+                    creep.shibMove(container);
                 } else {
                     creep.say('Fixing');
                 }
