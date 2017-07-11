@@ -655,7 +655,7 @@ findEssentials = function () {
                         });
                     } else {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 1.2, 0) + 1 - towerAmountWeighted;
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.8, 0) + 1 - towerAmountWeighted;
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
