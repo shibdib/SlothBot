@@ -36,7 +36,7 @@ function shibMove(creep, heading, options = {}) {
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
-        if (pathInfo.newPos !== creep.pos) {
+        if (pathInfo.newPos === creep.pos) {
             pathInfo.path = pathInfo.path.slice(1);
         }
         if (creep.fatigue > 0) {
