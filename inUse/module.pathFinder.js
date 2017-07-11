@@ -38,6 +38,7 @@ function shibMove(creep, heading, options = {}) {
         delete pathInfo.path;
         creep.moveRandom();
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+        return;
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
