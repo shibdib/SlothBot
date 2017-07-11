@@ -135,9 +135,6 @@ class Traveler {
             options.returnData.state = state;
             options.returnData.path = travelData.path;
         }
-        if (travelData.path.length > 5) {
-            cache.cachePath(creep.pos, destination, travelData.path);
-        }
         return creep.move(nextDirection);
     }
 
