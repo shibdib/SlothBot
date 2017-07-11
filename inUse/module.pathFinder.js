@@ -50,7 +50,7 @@ function shibMove(creep, heading, options = {}) {
             pathInfo.pathPosTime = 0;
         }
         let nextDirection = parseInt(pathInfo.path[0], 10);
-        if (nextDirection && pathInfo.newPos) {
+        if (nextDirection && pathInfo.newPos) { 
             pathInfo.newPos = positionAtDirection(origin, nextDirection);
             return creep.move(nextDirection);
         } else {
