@@ -259,7 +259,7 @@ function reserver(creep) {
     invaderCheck(creep);
     let reservers = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'reserver' && c.name !== creep.name});
     if (creep.memory.invaderDetected === true) {
-        creep.travelTo(Game.getObjectById(creep.memory.assignedSpawn));
+        creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
         creep.memory.visitedRooms.push(creep.memory.currentDestination);
         creep.memory.currentDestination = undefined;
     }
@@ -270,7 +270,7 @@ function reserver(creep) {
         if ((creep.room.controller.reservation && creep.room.controller.reservation['ticksToEnd'] >= 1500) || creep.room.controller.owner) {
             creep.memory.reserving = undefined;
         } else if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE || creep.signController(creep.room.controller, "Reserved Territory of Overlords - #overlords on Slack") === ERR_NOT_IN_RANGE) {
-            creep.travelTo(creep.room.controller);
+            creep.shibMove(creep.room.controller);
         }
     } else if (!creep.memory.currentDestination) {
         for (let key in creep.memory.targetRooms) {
@@ -278,10 +278,10 @@ function reserver(creep) {
         }
         creep.memory.visitedRooms = [];
     } else if (creep.pos.roomName !== creep.memory.currentDestination) {
-        creep.travelTo((new RoomPosition(25, 25, creep.memory.currentDestination))); //to move to any room
+        creep.shibMove((new RoomPosition(25, 25, creep.memory.currentDestination))); //to move to any room
     } else {
         if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || (creep.room.controller.reservation['username'] === 'Shibdib' && creep.room.controller.reservation['ticksToEnd'] < 750)) && !reservers) {
-            creep.travelTo(creep.room.controller);
+            creep.shibMove(creep.room.controller);
             creep.memory.reserving = true;
         } else {
             creep.memory.visitedRooms.push(creep.memory.currentDestination);
