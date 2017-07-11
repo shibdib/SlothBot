@@ -43,6 +43,7 @@ function shibMove(creep, heading, options = {}) {
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path) {
+        creep.borderCheck();
         if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) {
             pathInfo.path = pathInfo.path.slice(1);
         }
@@ -62,6 +63,7 @@ function shibMove(creep, heading, options = {}) {
 
         //Otherwise find a path
     } else {
+        creep.borderCheck();
         creep.say(ICONS.moveTo);
         pathInfo.pathPosTime = 1;
         //check for cached
