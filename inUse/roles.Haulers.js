@@ -130,7 +130,7 @@ function filler(creep) {
             if (storage.store[RESOURCE_ENERGY] === 0) {
                 creep.idleFor(10);
             } else if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storage);
+                creep.shibMove(storage);
             }
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
@@ -144,7 +144,7 @@ function filler(creep) {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.travelTo(storageItem, {offRoad: true});
+                creep.shibMove(storageItem, {offRoad: true});
             } else {
                 creep.memory.storageDestination = null;
             }
