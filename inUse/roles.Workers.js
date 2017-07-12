@@ -320,7 +320,7 @@ function SKdeposit(creep) {
         if (!buildSite && creep.memory.containerBuilding !== true) {
             creep.harvesterContainerBuild();
         } else {
-            creep.memory.containerBuilding = true;
+            creep.build(buildSite);
         }
     }
 }
