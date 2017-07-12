@@ -109,11 +109,13 @@ function hauler(creep) {
     if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
         if (creep.memory.hauling === false) {
             if (!creep.memory.containerID) {
-                let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
+                let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2 && _.filter(Game.creeps, (c) => c.memory.containerID === s.id).length === 0});
                 if (container.length > 0) {
                     creep.memory.containerID = container[0].id;
-                    if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(container);
+                    for (const resourceType in container.store) {
+                        if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
+                            creep.shibMove(container);
+                        }
                     }
                 }
             } else {
@@ -136,13 +138,15 @@ function hauler(creep) {
                 }
                 if (creep.memory.storageDestination) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                    if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(storageItem);
-                    } else {
-                        creep.memory.storageDestination = null;
-                        creep.memory.path = null;
+                    for (const resourceType in creep.carry) {
+                        if (creep.transfer(storageItem, resourceType) === ERR_NOT_IN_RANGE) {
+                            creep.shibMove(storageItem);
+                        } else {
+                            creep.memory.storageDestination = null;
+                            creep.memory.path = null;
+                        }
+                        return null;
                     }
-                    return null;
                 }
                 creep.findStorage();
             } else {
@@ -152,11 +156,19 @@ function hauler(creep) {
             }
         }
     } else if (!creep.memory.destinationReached) {
-        creep.memory.containerID = undefined;
-        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 10) {
-            creep.memory.destinationReached = true;
+        if (!Game.flags[creep.memory.destination]) {
+            creep.memory.containerID = undefined;
+            if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 10) {
+                creep.memory.destinationReached = true;
+            }
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 7, offRoad: true});
+        } else {
+            creep.memory.containerID = undefined;
+            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 10) {
+                creep.memory.destinationReached = true;
+            }
+            creep.shibMove(Game.flags[creep.memory.destination], {range: 7, offRoad: true});
         }
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 7, offRoad: true});
     }
 }
 hauler = profiler.registerFN(hauler, 'haulerRemote');
