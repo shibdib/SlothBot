@@ -670,6 +670,13 @@ findEssentials = function () {
                             distWeighted: towerDistWeighted,
                             harvest: false
                         });
+                    } else if (object.energy < object.energyCapacity / 2) {
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.1, 0);
+                        towers.push({
+                            id: tower[i],
+                            distWeighted: towerDistWeighted,
+                            harvest: false
+                        });
                     } else {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
                         const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.6, 0) + 1 - towerAmountWeighted;
