@@ -122,11 +122,13 @@ function mineralHarvester(creep) {
                 if (creep.memory.assignedMineral) {
                     mineral = Game.getObjectById(creep.memory.assignedMineral);
                 }
-                let response = creep.harvest(mineral);
-                if (response === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(mineral);
-                } else if (response === ERR_NOT_FOUND) {
-                    mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+                switch (creep.harvest(mineral)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(mineral);
+                        break;
+                    case ERR_NOT_FOUND:
+                        mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+                        break;
                 }
             }
         } else {
