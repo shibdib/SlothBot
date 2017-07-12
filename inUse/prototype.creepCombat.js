@@ -285,7 +285,6 @@ Creep.prototype.siege = function () {
         target = Game.getObjectById(this.memory.siegeTarget);
         this.memory.siegeComplete = undefined;
     }
-    console.log(target)
     let path = this.pos.findPathTo(target, {
         ignoreDestructibleStructures: false,
         ignoreCreeps: false
