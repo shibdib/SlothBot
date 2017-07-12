@@ -12,6 +12,7 @@ function shibMove(creep, heading, options = {}) {
         range: 1,
         ignoreStructures: false,
         allowHostile: false,
+        allowSK: false,
         maxRooms: 16
     });
     if (creep.fatigue > 0) {
@@ -83,10 +84,25 @@ function shibMove(creep, heading, options = {}) {
             let originRoomName = origin.roomName;
             let destRoomName = target.roomName;
             let roomsSearched = 0;
+            let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, destination.roomName);
             let callback = (roomName) => {
                 if (!options.allowHostile && checkAvoid(roomName)
                     && roomName !== destRoomName && roomName !== originRoomName) {
                     return false;
+                }
+                let parsed;
+                if (!options.allowSK && roomName !== destRoomName && roomName !== originRoomName) {
+                    if (!parsed) {
+                        parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+                    }
+                    let fMod = parsed[1] % 10;
+                    let sMod = parsed[2] % 10;
+                    let isSK = !(fMod === 5 && sMod === 5) &&
+                        ((fMod >= 4) && (fMod <= 6)) &&
+                        ((sMod >= 4) && (sMod <= 6));
+                    if (isSK) {
+                        return false;
+                    }
                 }
                 roomsSearched++;
                 let matrix;
@@ -114,6 +130,16 @@ function shibMove(creep, heading, options = {}) {
                 swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
                 roomCallback: callback,
             });
+            if (ret.incomplete) {
+                // handle case where pathfinder failed at a short distance due to not using findRoute
+                // can happen for situations where the creep would have to take an uncommonly indirect path
+                // options.allowedRooms and options.routeCallback can also be used to handle this situation
+                if (roomDistance <= 2) {
+                    console.log(`shibMove: Path failed, trying moveTo for: ${origin}, destination: ${destination}`);
+                    this.moveTo(destination);
+                    return;
+                }
+            }
             pathInfo.path = serializePath(creep.pos, ret.path);
             let nextDirection = parseInt(pathInfo.path[0], 10);
             pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
