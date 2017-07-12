@@ -86,14 +86,16 @@ harvester = profiler.registerFN(harvester, 'harvesterRemote');
  */
 function hauler(creep) {
     //Invader detection
-    invaderCheck(creep);
-    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
-        creep.memory.invaderCooldown++;
-        creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
-        creep.memory.destinationReached = false;
-        return null;
-    } else if (creep.memory.invaderCooldown > 50) {
-        creep.memory.invaderCooldown = undefined;
+    if (!_.startsWith(creep.name, 'SK')) {
+        invaderCheck(creep);
+        if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
+            creep.memory.invaderCooldown++;
+            creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
+            creep.memory.destinationReached = false;
+            return null;
+        } else if (creep.memory.invaderCooldown > 50) {
+            creep.memory.invaderCooldown = undefined;
+        }
     }
 
     if (creep.pos.roomName !== creep.memory.destination) {
