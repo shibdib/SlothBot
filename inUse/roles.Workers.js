@@ -186,7 +186,7 @@ function SKworker(creep) {
         creep.memory.harvesting = true;
     }
     if (!creep.memory.destinationReached) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        creep.shibMove(Game.flags[creep.memory.destination]);
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
