@@ -38,7 +38,7 @@ function role(creep) {
     if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
         if (creep.memory.hauling === false) {
             if (!creep.memory.containerID) {
-                let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
+                let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2 && _.filter(Game.creeps, (c)=> c.memory.containerID === s.containerID).length === 0});
                 if (container.length > 0) {
                     creep.memory.containerID = container[0].id;
                     for (const resourceType in container.store) {
