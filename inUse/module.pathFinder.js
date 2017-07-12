@@ -84,7 +84,7 @@ function shibMove(creep, heading, options = {}) {
             let originRoomName = origin.roomName;
             let destRoomName = target.roomName;
             let roomsSearched = 0;
-            let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, destination.roomName);
+            let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
             let callback = (roomName) => {
                 if (!options.allowHostile && checkAvoid(roomName)
                     && roomName !== destRoomName && roomName !== originRoomName) {
