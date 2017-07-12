@@ -439,7 +439,7 @@ function remotes(spawn, level) {
                         console.log(spawn.room.name + ' Spawning an SKworker');
                         return true;
                     }
-                    let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === SK && creep.memory.role === 'SKhauler');
+                    let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === SK && creep.memory.role === 'remoteHauler');
                     if (SKhauler.length < SKworker.length && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
                             role: 'remoteHauler',
                             roleGroup: 'haulers',
