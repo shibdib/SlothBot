@@ -18,9 +18,14 @@ function role(creep) {
             creep.memory.invaderCooldown = undefined;
         }
     }
-
-    if (creep.pos.roomName !== creep.memory.destination) {
-        creep.memory.destinationReached = false;
+    if (!Game.flags[creep.memory.destination]) {
+        if (creep.pos.roomName !== creep.memory.destination) {
+            creep.memory.destinationReached = false;
+        }
+    } else {
+        if (creep.pos.roomName !== Game.flags[creep.memory.destination].pos.roomName) {
+            creep.memory.destinationReached = false;
+        }
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
