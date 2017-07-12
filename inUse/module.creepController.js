@@ -4,7 +4,7 @@
 //Roles
 let profiler = require('screeps-profiler');
 
-function creepControl() {
+function creepControl() { 
 
     for (let name in Game.creeps) {
         const creep = Game.creeps[name];
