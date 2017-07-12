@@ -56,7 +56,9 @@ RoomPosition.prototype.checkForRoad = function () {
 };
 
 RoomPosition.prototype.checkForAllStructure = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART});
+    if (Game.rooms[this.roomName]) {
+        return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART});
+    }
 };
 
 RoomPosition.prototype.isExit = function () {
