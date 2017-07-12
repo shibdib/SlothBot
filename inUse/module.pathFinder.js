@@ -28,7 +28,7 @@ function shibMove(creep, heading, options = {}) {
     let pathInfo = creep.memory._shibMove;
 
     if (creep.pos.getRangeTo(heading) <= options.range) {
-        delete pathInfo.path;
+        return OK;
     }
 
     let origin = normalizePos(creep);
