@@ -27,7 +27,11 @@ function creepControl() {
             continue;
         }
         creep.notifyWhenAttacked(false);
-        if (creep.memory.role === 'basicHauler' || creep.memory.role === 'largeHauler' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech' || creep.memory.role === 'hauler' || creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'pawn' || creep.memory.role === 'resupply') {
+        if (creep.memory.role = 'getter') {
+            let role = creep.memory.role;
+            eval('role.' + role.toLowerCase() + '.js')
+        }
+        if (creep.memory.role === 'basicHauler' || creep.memory.role === 'largeHauler' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech' || creep.memory.role === 'hauler' || creep.memory.role === 'filler' || creep.memory.role === 'pawn' || creep.memory.role === 'resupply') {
             let rolesHaulers = require('roles.Haulers');
             rolesHaulers.Manager(creep);
             continue;
