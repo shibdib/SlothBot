@@ -424,6 +424,24 @@ function remotes(spawn, level) {
                 return true;
             }
         }
+        if (spawn.room.controller.level >= 7) {
+            for (let i = 0; i < 20; i++) {
+                let SK = 'SK' + i;
+                if (Game.flags[SK] && Game.flags[SK].pos.roomName !== spawn.pos.roomName && Game.map.getRoomLinearDistance(spawn.pos.roomName, Game.flags[SK].pos.roomName) <= 4) {
+                    let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === SK && creep.memory.role === 'SKworker');
+                    if (SKworker.length < 5 && spawn.createCreep(SPAWN[level].SKworker, 'SKworker' + Game.time, {
+                            role: 'SKworker',
+                            roleGroup: 'workers',
+                            assignedSpawn: spawn.id,
+                            assignedRoom: spawn.room.name,
+                            destination: SK
+                        }) === 'SKworker' + Game.time) {
+                        console.log(spawn.room.name + ' Spawning an SKworker');
+                        return true;
+                    }
+                }
+            }
+        }
     }
 }
 remotes = profiler.registerFN(remotes, 'remotesSpawn');

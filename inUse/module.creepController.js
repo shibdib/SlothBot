@@ -32,7 +32,7 @@ function creepControl() {
             rolesHaulers.Manager(creep);
             continue;
         }
-        if (creep.memory.role === 'worker' || creep.memory.role === 'upgrader' || creep.memory.role === 'stationaryHarvester' || creep.memory.role === 'mineralHarvester') {
+        if (creep.memory.role === 'worker' || creep.memory.role === 'upgrader' || creep.memory.role === 'stationaryHarvester' || creep.memory.role === 'mineralHarvester' || creep.memory.role === 'SKworker') {
             let rolesWorkers = require('roles.Workers');
             rolesWorkers.Manager(creep);
             continue;

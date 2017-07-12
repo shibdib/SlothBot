@@ -12,6 +12,8 @@ function Manager(creep) {
         harvester(creep);
     } else if (creep.memory.role === "mineralHarvester") {
         mineralHarvester(creep);
+    } else if (creep.memory.role === "SKworker") {
+        SKworker(creep);
     }
 }
 module.exports.Manager = profiler.registerFN(Manager, 'managerWorkers');
@@ -173,6 +175,47 @@ function upgrader(creep) {
 }
 upgrader = profiler.registerFN(upgrader, 'upgraderWorkers');
 
+/**
+ * @return {null}
+ */
+function SKworker(creep) {
+    let source;
+    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    //Initial move
+    if (creep.carry.energy === 0) {
+        creep.memory.harvesting = true;
+    }
+    if (!creep.memory.destinationReached) {
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        if (creep.pos.roomName === creep.memory.destination) {
+            creep.memory.destinationReached = true;
+        }
+        return null;
+    } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
+        if (this.attack(hostiles) === ERR_NOT_IN_RANGE) {
+            this.shibMove(hostiles, {movingTarget: true});
+        }
+        this.rangedAttack(hostiles);
+    } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
+        creep.memory.harvesting = false;
+        SKdeposit(creep);
+    } else {
+        if (creep.memory.source) {
+            source = Game.getObjectById(creep.memory.source);
+            if (source.energy === 0) {
+                creep.idleFor(source.ticksToRegeneration + 1)
+            } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(source);
+            }
+        } else {
+            if (!creep.findSource()) {
+                creep.findMineral();
+            }
+        }
+    }
+}
+SKworker = profiler.registerFN(SKworker, 'SKworkerWorkers');
+
 function depositEnergy(creep) {
     if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
         creep.memory.containerID = creep.harvestDepositContainer();
@@ -212,12 +255,6 @@ function depositEnergy(creep) {
 depositEnergy = profiler.registerFN(depositEnergy, 'depositEnergyWorkers');
 
 function depositMineral(creep) {
-    if (!creep.memory.terminalID) {
-        let terminal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
-        if (terminal) {
-            creep.memory.terminalID = terminal.id;
-        }
-    }
     if (!creep.memory.containerID) {
         creep.memory.containerID = mineralContainer(creep);
     }
@@ -257,6 +294,32 @@ function mineralContainer(creep) {
     }
 }
 mineralContainer = profiler.registerFN(mineralContainer, 'mineralContainerWorkers');
+
+function SKdeposit(creep) {
+    if (!creep.memory.containerID) {
+        creep.memory.containerID = creep.harvestDepositContainer();
+    }
+    if (creep.memory.containerID) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container) {
+            if (_.sum(container.store) !== container.storeCapacity) {
+                for (const resourceType in creep.carry) {
+                    if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(container);
+                    }
+                }
+            }
+        }
+    } else {
+        let buildSite = Game.getObjectById(creep.containerBuilding());
+        if (!buildSite && creep.memory.containerBuilding !== true) {
+            creep.harvesterContainerBuild();
+        } else {
+            creep.memory.containerBuilding = true;
+        }
+    }
+}
+depositMineral = profiler.registerFN(depositMineral, 'depositMineralWorkers');
 
 function dontSitOnRoads(creep) {
     if (creep.room.lookForAt(LOOK_STRUCTURES, creep.pos).length && creep.room.lookForAt(LOOK_STRUCTURES, creep.pos).structureType === STRUCTURE_ROAD) {
