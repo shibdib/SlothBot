@@ -664,7 +664,7 @@ findEssentials = function () {
             if (object) {
                 if (object.pos.getRangeTo(this) > 1) {
                     if (object.room.memory.responseNeeded === true) {
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0);
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.2, 0);
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
@@ -672,7 +672,7 @@ findEssentials = function () {
                         });
                     } else {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.8, 0) + 1 - towerAmountWeighted;
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.6, 0) + 1 - towerAmountWeighted;
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
