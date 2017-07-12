@@ -1,4 +1,4 @@
-let profiler = require('screeps-profiler');
+let profiler = require('inUse/screeps-profiler');
 
 
 function Manager(creep) {

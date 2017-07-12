@@ -1,5 +1,5 @@
-let cache = require('module.cache');
-const profiler = require('screeps-profiler');
+let cache = require('inUse/module.cache');
+const profiler = require('inUse/screeps-profiler');
 
 
 function Manager(creep) {

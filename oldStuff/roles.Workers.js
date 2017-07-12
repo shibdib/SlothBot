@@ -1,5 +1,5 @@
-let profiler = require('screeps-profiler');
-let cache = require('module.cache');
+let profiler = require('inUse/screeps-profiler');
+let cache = require('inUse/module.cache');
 let _ = require('lodash');
 
 

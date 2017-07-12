@@ -24,6 +24,7 @@ function role(creep) {
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
+        creep.memory.containerID = undefined;
     }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
@@ -32,7 +33,7 @@ function role(creep) {
     if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
         if (creep.memory.hauling === false) {
             if (!creep.memory.containerID) {
-                let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2 && _.filter(Game.creeps, (c) => c.memory.containerID === s.id).length === 0});
+                let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.storeCapacity / 2});
                 if (container.length > 0) {
                     creep.memory.containerID = container[0].id;
                     for (const resourceType in container.store) {
@@ -64,11 +65,7 @@ function role(creep) {
                     for (const resourceType in creep.carry) {
                         if (creep.transfer(storageItem, resourceType) === ERR_NOT_IN_RANGE) {
                             creep.shibMove(storageItem);
-                        } else {
-                            creep.memory.storageDestination = null;
-                            creep.memory.path = null;
                         }
-                        return null;
                     }
                 }
                 creep.findStorage();

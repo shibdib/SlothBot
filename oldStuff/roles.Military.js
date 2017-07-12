@@ -1,6 +1,6 @@
-let cache = require('module.cache');
+let cache = require('inUse/module.cache');
 let _ = require('lodash');
-let profiler = require('screeps-profiler');
+let profiler = require('inUse/screeps-profiler');
 
 let doNotAggress = RawMemory.segments[2];
 
