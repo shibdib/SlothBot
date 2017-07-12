@@ -192,10 +192,18 @@ function SKworker(creep) {
         }
         return null;
     } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        if (creep.attack(hostiles) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(hostiles, {movingTarget: true});
+        switch (creep.attack(hostiles)) {
+            case ERR_NOT_IN_RANGE:
+                creep.heal(creep);
+                creep.rangedAttack(hostiles);
+                creep.shibMove(hostiles, {movingTarget: true});
+                break;
+            case ERR_NO_BODYPART:
+                creep.heal(creep);
+                break;
+            default:
+                creep.rangedAttack(hostiles);
         }
-        creep.rangedAttack(hostiles);
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
