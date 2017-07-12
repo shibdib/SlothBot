@@ -46,8 +46,16 @@ function role(creep) {
             source = Game.getObjectById(creep.memory.source);
             if (source.energy === 0) {
                 creep.idleFor(source.ticksToRegeneration + 1)
-            } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(source);
+            } else {
+                switch (creep.harvest(source)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(source);
+                        break;
+                    case ERR_NO_BODYPART:
+                        creep.shibMove(source);
+                        creep.heal(creep);
+                        break;
+                }
             }
         } else {
             if (!creep.findSource()) {
