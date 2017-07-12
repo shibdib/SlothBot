@@ -429,7 +429,7 @@ function remotes(spawn, level) {
                 let SK = 'SK' + i;
                 if (Game.flags[SK] && Game.flags[SK].pos.roomName !== spawn.pos.roomName && Game.map.getRoomLinearDistance(spawn.pos.roomName, Game.flags[SK].pos.roomName) <= 4) {
                     let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === SK && creep.memory.role === 'SKworker');
-                    if (SKworker.length < 5 && spawn.createCreep(SPAWN[level].SKworker, 'SKworker' + Game.time, {
+                    if (SKworker.length < 4 && spawn.createCreep(SPAWN[level].SKworker, 'SKworker' + Game.time, {
                             role: 'SKworker',
                             roleGroup: 'workers',
                             assignedSpawn: spawn.id,
