@@ -136,7 +136,7 @@ function shibMove(creep, heading, options = {}) {
                 // options.allowedRooms and options.routeCallback can also be used to handle this situation
                 if (roomDistance <= 2) {
                     console.log(`shibMove: Path failed, trying moveTo for: ${origin}, destination: ${target}`);
-                    this.moveTo(target);
+                    creep.moveTo(target);
                     return;
                 }
             }
