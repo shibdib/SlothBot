@@ -195,12 +195,17 @@ function SKworker(creep) {
         if (creep.attack(hostiles) === ERR_NOT_IN_RANGE) {
             creep.shibMove(hostiles, {movingTarget: true});
         }
-        creep.heal(creep);
         creep.rangedAttack(hostiles);
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
+        if (creep.hits < creep.hitsMax) {
+            creep.heal(creep);
+        }
         creep.memory.harvesting = false;
         SKdeposit(creep);
     } else {
+        if (creep.hits < creep.hitsMax) {
+            creep.heal(creep);
+        }
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (source.energy === 0) {
