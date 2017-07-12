@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 /**
  * @return {null}
  */
-function getter(creep) {
+function role(creep) {
     let fillers = _.filter(Game.creeps, (creep) => (creep.memory.role === 'filler' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
     if (fillers.length === 0) {
         creep.memory.role = 'basicHauler';
@@ -44,4 +44,4 @@ function getter(creep) {
         }
     }
 }
-getter = profiler.registerFN(getter, 'getterRole');
+module.exports.role = profiler.registerFN(role, 'getterRole');

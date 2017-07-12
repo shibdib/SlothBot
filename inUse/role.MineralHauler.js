@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 /**
  * @return {null}
  */
-function mineralHauler(creep) {
+function role(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
@@ -68,4 +68,4 @@ function mineralHauler(creep) {
         }
     }
 }
-mineralHauler = profiler.registerFN(mineralHauler, 'mineralHaulerRole');
+module.exports.role = profiler.registerFN(role, 'mineralHaulerRole');

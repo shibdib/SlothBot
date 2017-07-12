@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 /**
  * @return {null}
  */
-function resupply(creep) {
+function role(creep) {
     if (creep.pos.roomName === creep.memory.assignedRoom) {
         creep.memory.destinationReached = undefined;
     } else if (creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) {
@@ -58,4 +58,4 @@ function resupply(creep) {
         }
     }
 }
-resupply = profiler.registerFN(resupply, 'resupplyRole');
+module.exports.role = profiler.registerFN(role, 'resupplyRole');

@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 /**
  * @return {null}
  */
-function labTech(creep) {
+function role(creep) {
     //INITIAL CHECKS
     creep.borderCheck();
     creep.wrongRoom();
@@ -82,4 +82,4 @@ function labTech(creep) {
         }
     }
 }
-labTech = profiler.registerFN(labTech, 'labTechRole');
+module.exports.role = profiler.registerFN(role, 'labTechRole');

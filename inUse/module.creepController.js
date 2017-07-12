@@ -5,7 +5,6 @@
 let profiler = require('screeps-profiler');
 
 function creepControl() {
-
     for (let name in Game.creeps) {
         const creep = Game.creeps[name];
         if (creep.spawning === true) continue;
@@ -14,33 +13,76 @@ function creepControl() {
             continue;
         }
         creep.notifyWhenAttacked(false);
-        if (creep.memory.role === 'ranged' || creep.memory.role === 'healer' || creep.memory.role === 'deconstructor' || creep.memory.role === 'scout' || creep.memory.role === 'attacker' || creep.memory.role === 'reserver' || creep.memory.role === 'claimer' || creep.memory.role === 'responder' || creep.memory.role === 'raider') {
-            let rolesMilitary = require('roles.Military');
-            rolesMilitary.Manager(creep);
+
+        //Military
+        if (creep.memory.role === 'ranged') roleRanged.role(creep);
+        if (creep.memory.role === 'healer') roleHealer.role(creep);
+        if (creep.memory.role === 'deconstructor') roleDeconstructor.role(creep);
+        if (creep.memory.role === 'scout') roleScout.role(creep);
+        if (creep.memory.role === 'attacker') roleAttacker.role(creep);
+        if (creep.memory.role === 'reserver') roleReserver.role(creep);
+        if (creep.memory.role === 'claimer') roleClaimer.role(creep);
+        if (creep.memory.role === 'responder') roleResponder.role(creep);
+        if (creep.memory.role === 'raider') roleRaider.role(creep);
+
+        //Haulers
+        if (creep.memory.role === "pawn") {
+            let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
+            let roomCreeps = _.filter(Game.creeps, (c) => c.memory.assignedRoom === creep.room.name);
+            let fillers = _.filter(roomCreeps, (c) => c.memory.role === 'filler');
+            let getters = _.filter(roomCreeps, (c) => c.memory.role === 'getter');
+            if (fillers.length < 2) {
+                creep.memory.role = 'filler';
+            } else if (getters.length < 2) {
+                creep.memory.role = 'getter';
+            }
         }
-    }
-    for (let name in Game.creeps) {
-        const creep = Game.creeps[name];
-        if (creep.spawning === true) continue; 
-        if (creep.idle) {
-            creep.say('Zzzzz');
-            continue;
-        }
-        creep.notifyWhenAttacked(false);
-        if (creep.memory.role === 'basicHauler' || creep.memory.role === 'largeHauler' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech' || creep.memory.role === 'hauler' || creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'pawn' || creep.memory.role === 'resupply') {
-            let rolesHaulers = require('roles.Haulers');
-            rolesHaulers.Manager(creep);
-            continue;
-        }
-        if (creep.memory.role === 'worker' || creep.memory.role === 'upgrader' || creep.memory.role === 'stationaryHarvester' || creep.memory.role === 'mineralHarvester' || creep.memory.role === 'SKworker') {
-            let rolesWorkers = require('roles.Workers');
-            rolesWorkers.Manager(creep);
-            continue;
-        }
-        if (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'remoteHauler' || creep.memory.role === 'pioneer' || creep.memory.role === 'explorer') {
-            let rolesRemote = require('roles.Remote');
-            rolesRemote.Manager(creep);
-        }
+        if (creep.memory.role === 'basicHauler') roleBasicHauler.role(creep);
+        if (creep.memory.role === 'getter') roleGetter.role(creep);
+        if (creep.memory.role === 'filler') roleFiller.role(creep);
+        if (creep.memory.role === 'mineralHauler') roleMineralHauler.role(creep);
+        if (creep.memory.role === 'labTech') roleLabTech.role(creep);
+        if (creep.memory.role === 'resupply') roleResupply.role(creep);
+
+        //Workers
+        if (creep.memory.role === 'worker') roleWorker.role(creep);
+        if (creep.memory.role === 'upgrader') roleUpgrader.role(creep);
+        if (creep.memory.role === 'stationaryHarvester') roleHarvester.role(creep);
+        if (creep.memory.role === 'mineralHarvester') roleMineralHarvester.role(creep);
+        if (creep.memory.role === 'SKworker') roleSKWorker.role(creep);
+        if (creep.memory.role === 'resupply') roleResupply.role(creep);
+
+        //Remotes
+        if (creep.memory.role === 'remoteHarvester') roleRemoteHarvester.role(creep);
+        if (creep.memory.role === 'remoteHauler') roleRemoteHauler.role(creep);
+        if (creep.memory.role === 'pioneer') rolePioneer.role(creep);
+        if (creep.memory.role === 'explorer') roleExplorer.role(creep);
     }
 }
 module.exports.creepControl = profiler.registerFN(creepControl, 'creepController');
+
+
+let roleGetter = require('role.Getter');
+let roleFiller = require('role.Filler');
+let roleBasicHauler = require('role.BasicHauler');
+let roleLabTech = require('role.LabTech');
+let roleMineralHauler = require('role.MineralHauler');
+let roleResupply = require('role.Resupply');
+let roleWorker = require('role.Worker');
+let roleHarvester = require('role.Harvester');
+let roleMineralHarvester = require('role.MineralHarvester');
+let roleUpgrader = require('role.Upgrader');
+let roleSKWorker = require('role.SKWorker');
+let roleRemoteHarvester = require('role.RemoteHarvester');
+let roleRemoteHauler = require('role.RemoteHauler');
+let rolePioneer = require('role.Pioneer');
+let roleExplorer = require('role.Explorer');
+let roleHealer = require('role.Healer');
+let roleRanged = require('role.Ranged');
+let roleAttacker = require('role.Attacker');
+let roleDeconstructor = require('role.Deconstructor');
+let roleRaider = require('role.Raider');
+let roleReserver = require('role.Reserver');
+let roleClaimer = require('role.Claimer');
+let roleResponder = require('role.Responder');
+let roleScout = require('role.Scout');

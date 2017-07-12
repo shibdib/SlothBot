@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 /**
  * @return {null}
  */
-function basicHauler(creep) {
+function role(creep) {
     let basicHaulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === creep.room.name);
     if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2) {
         creep.memory.role = 'pawn';
@@ -42,4 +42,4 @@ function basicHauler(creep) {
         }
     }
 }
-basicHauler = profiler.registerFN(basicHauler, 'basicHaulerRole');
+module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
