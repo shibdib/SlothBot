@@ -192,10 +192,11 @@ function SKworker(creep) {
         }
         return null;
     } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        if (this.attack(hostiles) === ERR_NOT_IN_RANGE) {
-            this.shibMove(hostiles, {movingTarget: true});
+        if (creep.attack(hostiles) === ERR_NOT_IN_RANGE) {
+            creep.shibMove(hostiles, {movingTarget: true});
         }
-        this.rangedAttack(hostiles);
+        creep.heal(creep);
+        creep.rangedAttack(hostiles);
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
         creep.memory.harvesting = false;
         SKdeposit(creep);
