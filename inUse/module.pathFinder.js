@@ -32,7 +32,7 @@ function shibMove(creep, heading, options = {}) {
         return OK;
     } else if (rangeToDestination <= 1) {
         if (rangeToDestination === 1) {
-            let direction = creep.pos.getDirectionTo(destination);
+            let direction = creep.pos.getDirectionTo(heading);
             return creep.move(direction);
         }
         return OK;
