@@ -21,7 +21,7 @@ function creepControl() {
     }
     for (let name in Game.creeps) {
         const creep = Game.creeps[name];
-        if (creep.spawning === true) continue;
+        if (creep.spawning === true) continue; 
         if (creep.idle) {
             creep.say('Zzzzz');
             continue;
