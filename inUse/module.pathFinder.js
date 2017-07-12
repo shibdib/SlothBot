@@ -135,8 +135,8 @@ function shibMove(creep, heading, options = {}) {
                 // can happen for situations where the creep would have to take an uncommonly indirect path
                 // options.allowedRooms and options.routeCallback can also be used to handle this situation
                 if (roomDistance <= 2) {
-                    console.log(`shibMove: Path failed, trying moveTo for: ${origin}, destination: ${destination}`);
-                    this.moveTo(destination);
+                    console.log(`shibMove: Path failed, trying moveTo for: ${origin}, destination: ${target}`);
+                    this.moveTo(target);
                     return;
                 }
             }
