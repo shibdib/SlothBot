@@ -24,10 +24,10 @@ function role(creep) {
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
-        creep.memory.containerID = undefined;
     }
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
+        creep.memory.containerID = undefined;
     }
 
     if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
