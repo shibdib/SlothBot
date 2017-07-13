@@ -96,7 +96,9 @@ module.exports.cacheRoomIntel = function (creep) {
             for (let key in Game.spawns) {
                 if (Game.map.getRoomLinearDistance(Game.spawns[key].pos.roomName, room.name) <= 2) {
                     if (Game.spawns[key].room.memory.skRooms) {
-                        Game.spawns[key].room.memory.skRooms.push(room.name);
+                        if (_.includes(Game.spawns[key].room.memory.skRooms, room.name) === false) {
+                            Game.spawns[key].room.memory.skRooms.push(room.name);
+                        }
                     } else {
                         Game.spawns[key].room.memory.skRooms = [];
                     }
