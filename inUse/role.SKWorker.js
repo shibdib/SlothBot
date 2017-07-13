@@ -7,6 +7,9 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     let source;
+    if (creep.hits < creep.hitsMax) {
+        creep.heal(creep);
+    }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     //Initial move
     if (creep.carry.energy === 0) {
@@ -27,9 +30,6 @@ function role(creep) {
         creep.memory.harvesting = false;
         SKdeposit(creep);
     } else {
-        if (creep.hits < creep.hitsMax) {
-            creep.heal(creep);
-        }
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (source.energy === 0) {
