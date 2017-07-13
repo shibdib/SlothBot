@@ -98,7 +98,7 @@ module.exports.cacheRoomIntel = function (creep) {
                     if (Game.spawns[key].room.memory.skRooms) {
                         Game.spawns[key].room.memory.skRooms.push(room.name);
                     } else {
-                        Game.spawns[key].room.memory.skRooms = {};
+                        Game.spawns[key].room.memory.skRooms = [];
                     }
                 }
             }
