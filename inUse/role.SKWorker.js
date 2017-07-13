@@ -10,6 +10,11 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
+    let SKRanged = _.filter(Game.creeps, (sk) => sk.memory.destination === creep.memory.destination && sk.memory.role === 'SKranged');
+    if (SKRanged.length === 0) {
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 20});
+        return;
+    }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     //Initial move
     if (creep.carry.energy === 0) {
