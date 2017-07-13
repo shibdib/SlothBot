@@ -10,7 +10,10 @@ function role(creep) {
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        creep.flee(hostiles);
+        if (creep.pos.getRangeTo(hostiles) <= 5) {
+            creep.flee(hostiles);
+            return;
+        }
     } else if (creep.memory.invaderCooldown > 50) {
         creep.memory.invaderCooldown = undefined;
     }
