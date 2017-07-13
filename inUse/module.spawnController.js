@@ -379,7 +379,7 @@ function remotes(spawn, level) {
                 return true;
             }
             let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKworker');
-            if (SKworker.length < 4 && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].remoteHarvester, 'SKworker' + Game.time, {
+            if (SKworker.length < 4 && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].SKworker, 'SKworker' + Game.time, {
                     role: 'SKworker',
                     roleGroup: 'workers',
                     assignedSpawn: spawn.id,
