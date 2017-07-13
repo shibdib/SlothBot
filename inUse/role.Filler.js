@@ -28,7 +28,11 @@ function role(creep) {
         if (creep.memory.storage) {
             let storage = Game.getObjectById(creep.memory.storage);
             if (storage.store[RESOURCE_ENERGY] === 0) {
-                creep.idleFor(10);
+                if (creep.memory.energyDestination) {
+                    creep.withdrawEnergy();
+                } else if (!creep.getEnergy()) {
+                    creep.idleFor(10);
+                }
             } else if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(storage);
             }
