@@ -10,6 +10,8 @@ let reactionNeeds = [
     RESOURCE_KEANIUM
 ];
 
+let boostNeeds = [RESOURCE_CATALYZED_GHODIUM_ACID];
+
 let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_OXYGEN,
     RESOURCE_UTRIUM,
@@ -18,11 +20,13 @@ let tradeTargets = [RESOURCE_HYDROGEN,
     RESOURCE_ZYNTHIUM,
     RESOURCE_CATALYST];
 
-let doNotSell = [RESOURCE_CATALYZED_UTRIUM_ACID];
+let doNotSell = [RESOURCE_CATALYZED_UTRIUM_ACID,
+    RESOURCE_CATALYZED_GHODIUM_ACID];
 
 let tradeAmount = 25000;
 let energyAmount = 50000;
 let reactionAmount = 1000;
+let boostAmount = 1000;
 
 
 function terminalControl() {
@@ -309,6 +313,38 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
                 if (Game.market.credits * 0.1 > reactionAmount * buyOrder.price) {
                     if (Game.market.createOrder(ORDER_BUY, reactionNeeds[i], buyOrder.price + 0.001, reactionAmount, terminal.pos.roomName) === OK) {
                         console.log("<font color='#adff2f'>MARKET: Reaction Needs Buy Order: " + reactionNeeds[i] + " at/per " + (buyOrder.price) + " credits</font>");
+                    }
+                }
+            }
+        }
+}
+placeReactionOrders = profiler.registerFN(placeReactionOrders, 'placeReactionOrdersTerminal');
+
+function placeBoostOrders(terminal, globalOrders, myOrders) {
+    resource:
+        for (let i = 0; i < boostNeeds.length; i++) {
+            if (terminal.store[boostNeeds[i]] < boostAmount || !terminal.store[boostNeeds[i]] && Game.market.credits > 500) {
+                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === boostNeeds[i] &&
+                order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
+                for (let key in myOrders) {
+                    if (myOrders[key].resourceType === boostNeeds[i] && myOrders[key].type === ORDER_BUY) {
+                        let currentSupply;
+                        if (isNaN(terminal.store[boostNeeds[i]]) === true) {
+                            currentSupply = myOrders[key].remainingAmount;
+                        } else {
+                            currentSupply = terminal.store[boostNeeds[i]] + myOrders[key].remainingAmount;
+                        }
+                        if (Game.market.credits * 0.1 > (boostAmount - currentSupply) * buyOrder.price) {
+                            if (Game.market.extendOrder(myOrders[key].id, boostAmount - currentSupply) === OK) {
+                                console.log("<font color='#adff2f'>MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + boostAmount - currentSupply + "</font>");
+                            }
+                        }
+                        continue resource;
+                    }
+                }
+                if (Game.market.credits * 0.1 > boostAmount * buyOrder.price) {
+                    if (Game.market.createOrder(ORDER_BUY, boostNeeds[i], buyOrder.price + 0.001, boostAmount, terminal.pos.roomName) === OK) {
+                        console.log("<font color='#adff2f'>MARKET: Reaction Needs Buy Order: " + boostNeeds[i] + " at/per " + (buyOrder.price) + " credits</font>");
                     }
                 }
             }

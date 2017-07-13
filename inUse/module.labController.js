@@ -18,6 +18,11 @@ function labControl() {
                 for (let keys in lab.room.memory.reactions.labHubs) {
                     let currentHub = lab.room.memory.reactions.labHubs[keys];
                     if (currentHub && !currentHub.active) {
+                        if (!lab.room.memory.reactions.boostHub) {
+                            currentHub.active = true;
+                            currentHub.boostHub = true;
+                            lab.room.memory.reactions.boostHub = keys;
+                        }
                         reactions:
                             for (let key in lab.room.memory.reactions) {
                                 if (key === 'current' || key === 'currentAge' || key === 'labHubs' || lab.room.memory.reactions[key].lab1) {
