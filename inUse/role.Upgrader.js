@@ -9,6 +9,28 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
+    if (creep.memory.boostAttempt !== true) {
+        let desiredReactions = [RESOURCE_CATALYZED_GHODIUM_ACID];
+        let count = 1;
+        for (let i = 0; i < desiredReactions.length; i++) {
+            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
+            if (lab) {
+                count++;
+                switch (lab.boostCreep(creep)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(lab);
+                        break;
+                    case ERR_NOT_FOUND:
+                        count--;
+                        break;
+                }
+            }
+        }
+        if (count === 1) {
+            creep.memory.boostAttempt = true;
+        }
+        return null;
+    }
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;

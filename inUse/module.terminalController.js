@@ -61,6 +61,7 @@ function terminalControl() {
             extendBuyOrders(terminal, globalOrders, myOrders);
             placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
             placeReactionOrders(terminal, globalOrders, myOrders);
+            placeBoostOrders(terminal, globalOrders, myOrders);
         }
     }
 }
