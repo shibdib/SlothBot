@@ -99,7 +99,7 @@ module.exports.loop = function () {
         Memory.stats.cpu.preLab = Game.cpu.getUsed();
         if (Game.cpu.bucket > 2000) {
             if (Game.time % 10 === 0) {
-                labController.labControl();
+               // labController.labControl();
             }
         }
 
