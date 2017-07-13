@@ -10,8 +10,8 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
-    creep.borderCheck();
-    creep.wrongRoom();
+    if (creep.borderCheck()) return null;
+    if (creep.wrongRoom()) return null;
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
