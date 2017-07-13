@@ -34,8 +34,10 @@ function creepControl() {
             let fillers = _.filter(roomCreeps, (c) => c.memory.role === 'filler');
             if (fillers.length < 2) {
                 creep.memory.role = 'filler';
+                continue;
             } else {
                 creep.memory.role = 'getter';
+                continue;
             }
         }
         if (creep.memory.role === 'basicHauler') roleBasicHauler.role(creep);
