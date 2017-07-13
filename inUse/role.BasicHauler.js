@@ -9,8 +9,8 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
-    creep.borderCheck();
-    creep.wrongRoom();
+    if (creep.borderCheck()) return null;
+    if (creep.wrongRoom()) return null;
     let basicHaulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === creep.room.name);
     if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2) {
         creep.memory.role = 'pawn';

@@ -10,8 +10,8 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
-    creep.borderCheck();
-    creep.wrongRoom();
+    if (creep.borderCheck()) return null;
+    if (creep.wrongRoom()) return null;
     let fillers = _.filter(Game.creeps, (creep) => (creep.memory.role === 'filler' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
     if (fillers.length === 0) {
         creep.memory.role = 'basicHauler';
