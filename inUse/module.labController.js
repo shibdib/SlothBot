@@ -22,6 +22,7 @@ function labControl() {
                             currentHub.active = true;
                             currentHub.boostHub = true;
                             lab.room.memory.reactions.boostHub = keys;
+                            continue;
                         }
                         reactions:
                             for (let key in lab.room.memory.reactions) {
