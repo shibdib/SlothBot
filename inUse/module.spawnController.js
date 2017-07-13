@@ -506,4 +506,4 @@ function getLevel(spawn) {
         return 8
     }
 }
-neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
+getLevel = profiler.registerFN(getLevel, 'getLevelSpawn');
