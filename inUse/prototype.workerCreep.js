@@ -47,7 +47,7 @@ Creep.prototype.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
 
 wrongRoom = function () {
     if (this.memory.assignedRoom && this.pos.roomName !== this.memory.assignedRoom) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.assignedRoom));
+        this.shibMove(new RoomPosition(25, 25, this.memory.assignedRoom), {range:15});
     }
 };
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
