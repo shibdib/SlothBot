@@ -47,22 +47,20 @@ Creep.prototype.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
 
 wrongRoom = function () {
     if (this.memory.assignedRoom && this.pos.roomName !== this.memory.assignedRoom) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.assignedRoom), {range:15});
+        this.shibMove(new RoomPosition(25, 25, this.memory.assignedRoom), {range: 15});
         return true;
     }
 };
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 
 findSource = function () {
-    const source = this.room.find(FIND_SOURCES_ACTIVE);
+    const source = this.room.find(FIND_SOURCES_ACTIVE, {filter: (s) => _.filter(Game.creeps, (c) => c.memory.assignedSource === s.id).length === 0});
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
-            if (source[i].pos.findInRange(FIND_CREEPS, 2, {filter: (c) => c.memory && (c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester' || c.memory.role === 'SKworker')}).length === 0) {
-                if (this.shibMove(source[i]) !== ERR_NO_PATH) {
-                    if (source[i].id) {
-                        this.memory.source = source[i].id;
-                        return source[i];
-                    }
+            if (this.shibMove(source[i]) !== ERR_NO_PATH) {
+                if (source[i].id) {
+                    this.memory.source = source[i].id;
+                    return source[i];
                 }
             }
         }
@@ -347,9 +345,9 @@ findEnergy = function (range = 50, hauler = false) {
         });
     }
     /**
-    //Dropped Energy
-    let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
-    if (dropped.length > 0) {
+     //Dropped Energy
+     let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
+     if (dropped.length > 0) {
         let droppedEnergy = [];
         for (let i = 0; i < dropped.length; i++) {
             if (dropped[i]) {
