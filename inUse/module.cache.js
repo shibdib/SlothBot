@@ -92,5 +92,17 @@ module.exports.cacheRoomIntel = function (creep) {
             sk: sk
         };
         Memory.roomCache = cache;
+        if (sk) {
+            for (let key in Game.spawns) {
+                if (Game.map.getRoomLinearDistance(Game.spawns[key].pos.roomName, room.name) <= 2) {
+                    if (Game.spawns[key].room.memory.skRooms) {
+                        let skMem = Game.spawns[key].room.memory.skRooms;
+                        skMem.push(room.name);
+                    } else {
+                        Game.spawns[key].room.memory.skRooms = {};
+                    }
+                }
+            }
+        }
     }
 };
