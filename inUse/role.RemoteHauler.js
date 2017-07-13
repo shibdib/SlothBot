@@ -54,7 +54,7 @@ function role(creep) {
                     }
                 }
             } else {
-                if (_.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
+                if (!Game.getObjectById(creep.memory.containerID) || _.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
                     creep.memory.containerID = undefined;
                 }
                 if (creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
