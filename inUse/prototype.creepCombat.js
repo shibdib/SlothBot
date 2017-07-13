@@ -178,7 +178,6 @@ Creep.prototype.fightRampart = function (target) {
 
 Creep.prototype.flee = function (target) {
     let direction = this.pos.getDirectionTo(target);
-    this.rangedAttack(target);
     direction = (direction + 3) % 8 + 1;
     let pos = this.pos.getAdjacentPosition(direction);
     let terrain = pos.lookFor(LOOK_TERRAIN)[0];
