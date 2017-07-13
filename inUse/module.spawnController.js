@@ -30,7 +30,7 @@ function creepRespawn() {
             let respondersNeeded;
             if (assistNeeded.length > 0) {
                 for (let key in assistNeeded) {
-                    respondersNeeded = neighborCheck(spawn.pos.roomName, assistNeeded[key].name) === true || spawn.room.memory.responseNeeded === true;
+                    if (neighborCheck(spawn.pos.roomName, assistNeeded[key].name) === true || spawn.room.memory.responseNeeded === true){ respondersNeeded = true; break;}
                 }
             }
             if (harvesters(spawn, level) === true) {
