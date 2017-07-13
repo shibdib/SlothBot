@@ -9,10 +9,8 @@ function role(creep) {
     //Invader detection
     invaderCheck(creep);
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
-        creep.memory.invaderCooldown++;
-        creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
-        creep.memory.destinationReached = false;
-        return null;
+        let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        creep.flee(hostiles);
     } else if (creep.memory.invaderCooldown > 50) {
         creep.memory.invaderCooldown = undefined;
     }
