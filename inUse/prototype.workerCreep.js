@@ -54,7 +54,7 @@ wrongRoom = function () {
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 
 findSource = function () {
-    const source = this.room.find(FIND_SOURCES_ACTIVE, {filter: (s) => _.filter(Game.creeps, (c) => c.memory.assignedSource === s.id).length === 0});
+    const source = this.room.find(FIND_SOURCES_ACTIVE, {filter: (s) => _.filter(Game.creeps, (c) => c.memory.source === s.id).length === 0});
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
             if (this.shibMove(source[i]) !== ERR_NO_PATH) {
