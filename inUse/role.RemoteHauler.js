@@ -19,7 +19,7 @@ function role(creep) {
         }
     } else {
         let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
-        if (creep.pos.getRangeTo(invader) < 4) {
+        if (creep.pos.getRangeTo(invader) < 5) {
             creep.flee(invader);
             return null;
         }
