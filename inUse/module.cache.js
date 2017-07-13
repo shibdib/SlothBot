@@ -73,7 +73,7 @@ module.exports.cacheRoomIntel = function (creep) {
         let sources = room.find(FIND_SOURCES);
         hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
         towers = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_TOWER && _.includes(doNotAggress, e.owner['username']) === false});
-        if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length < 0) sk = true;
+        if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
         let minerals = room.find(FIND_MINERALS);
         if (room.controller) {
             owner = room.controller.owner;
