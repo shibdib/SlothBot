@@ -32,10 +32,9 @@ function creepControl() {
             let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
             let roomCreeps = _.filter(Game.creeps, (c) => c.memory.assignedRoom === creep.room.name);
             let fillers = _.filter(roomCreeps, (c) => c.memory.role === 'filler');
-            let getters = _.filter(roomCreeps, (c) => c.memory.role === 'getter');
             if (fillers.length < 2) {
                 creep.memory.role = 'filler';
-            } else if (getters.length < 2) {
+            } else {
                 creep.memory.role = 'getter';
             }
         }
