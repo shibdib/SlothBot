@@ -13,8 +13,8 @@ function creepControl() {
             continue;
         }
         creep.notifyWhenAttacked(false);
-        if (creep.borderCheck()) return null;
-        if (creep.wrongRoom()) return null;
+        if (creep.borderCheck()) continue;
+        if (creep.wrongRoom()) continue;
 
         //Military
         if (creep.memory.role === 'ranged') roleRanged.role(creep);
