@@ -356,20 +356,37 @@ function workers(spawn, level) {
 workers = profiler.registerFN(workers, 'workersSpawn');
 
 function remotes(spawn, level) {
-    if (spawn.room.controller.level >= 7 && spawn.room.memory.skRooms) {
-        for (let key in spawn.room.memory.skRooms) {
-            let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKranged');
-            if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100)) && spawn.createCreep(SPAWN[level].SKranged, 'SKRanged' + Game.time, {
-                    role: 'SKranged',
-                    assignedSpawn: spawn.id,
-                    assignedRoom: spawn.room.name,
-                    destination: spawn.room.memory.skRooms[key]
-                }) === 'SKRanged' + Game.time) {
-                console.log(spawn.room.name + ' Spawning an SKRanged');
-                return true;
+    if (spawn.room.controller.level >= 3) {
+        for (let i = 0; i < 20; i++) {
+            let pioneer = 'pioneer' + i;
+            if (Game.flags[pioneer] && Game.flags[pioneer].pos.roomName !== spawn.pos.roomName) {
+                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === pioneer && creep.memory.role === 'pioneer');
+                if (pioneers.length < 1 && spawn.createCreep(SPAWN[level].pioneer, 'pioneer' + Game.time, {
+                        role: 'pioneer',
+                        roleGroup: 'remotes',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        destination: pioneer
+                    }) === 'pioneer' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning a pioneer');
+                    return true;
+                }
             }
-            /**let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKaanged');
-            if (SKAttacker.length < 1 && spawn.createCreep(SPAWN[level].SKranged, 'SKAttacker' + Game.time, {
+        }
+        if (spawn.room.controller.level >= 7 && spawn.room.memory.skRooms) {
+            for (let key in spawn.room.memory.skRooms) {
+                let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKranged');
+                if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100)) && spawn.createCreep(SPAWN[level].SKranged, 'SKRanged' + Game.time, {
+                        role: 'SKranged',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        destination: spawn.room.memory.skRooms[key]
+                    }) === 'SKRanged' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning an SKRanged');
+                    return true;
+                }
+                /**let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKaanged');
+                 if (SKAttacker.length < 1 && spawn.createCreep(SPAWN[level].SKranged, 'SKAttacker' + Game.time, {
                     role: 'SKattacker',
                     assignedSpawn: spawn.id,
                     assignedRoom: spawn.room.name,
@@ -378,31 +395,30 @@ function remotes(spawn, level) {
                 console.log(spawn.room.name + ' Spawning an SKRanged');
                 return true;
             }**/
-            let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKworker');
-            if (SKworker.length < 4 && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].SKworker, 'SKworker' + Game.time, {
-                    role: 'SKworker',
-                    roleGroup: 'workers',
-                    assignedSpawn: spawn.id,
-                    assignedRoom: spawn.room.name,
-                    destination: spawn.room.memory.skRooms[key]
-                }) === 'SKworker' + Game.time) {
-                console.log(spawn.room.name + ' Spawning an SKworker');
-                return true;
-            }
-            let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'remoteHauler');
-            if (SKhauler.length < SKworker.length && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
-                    role: 'remoteHauler',
-                    roleGroup: 'haulers',
-                    assignedSpawn: spawn.id,
-                    assignedRoom: spawn.room.name,
-                    destination: spawn.room.memory.skRooms[key]
-                }) === 'SKhauler' + Game.time) {
-                console.log(spawn.room.name + ' Spawning an SKhauler');
-                return true;
+                let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKworker');
+                if (SKworker.length < 4 && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].SKworker, 'SKworker' + Game.time, {
+                        role: 'SKworker',
+                        roleGroup: 'workers',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        destination: spawn.room.memory.skRooms[key]
+                    }) === 'SKworker' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning an SKworker');
+                    return true;
+                }
+                let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'remoteHauler');
+                if (SKhauler.length < SKworker.length && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
+                        role: 'remoteHauler',
+                        roleGroup: 'haulers',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        destination: spawn.room.memory.skRooms[key]
+                    }) === 'SKhauler' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning an SKhauler');
+                    return true;
+                }
             }
         }
-    }
-    if (spawn.room.controller.level >= 3) {
         for (let key in Memory.roomCache) {
             if (neighborCheck(spawn.room.name, key) === true && key !== spawn.room.name && Memory.roomCache[key].sources.length > 0) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHarvester');
