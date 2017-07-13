@@ -9,7 +9,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (!creep.memory.destinationReached) {
-        creep.shibMove(Game.flags[creep.memory.destination], {range: 20});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
         if (creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) {
             creep.memory.destinationReached = true;
         }

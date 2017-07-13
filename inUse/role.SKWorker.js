@@ -13,25 +13,13 @@ function role(creep) {
         creep.memory.harvesting = true;
     }
     if (!creep.memory.destinationReached) {
-        creep.shibMove(Game.flags[creep.memory.destination], {range: 20});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
         if (creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) {
             creep.memory.destinationReached = true;
         }
         return null;
     } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        switch (creep.attack(hostiles)) {
-            case ERR_NOT_IN_RANGE:
-                creep.heal(creep);
-                creep.rangedAttack(hostiles);
-                creep.shibMove(hostiles, {movingTarget: true});
-                break;
-            case ERR_NO_BODYPART:
-                creep.rangedAttack(hostiles);
-                creep.heal(creep);
-                break;
-            default:
-                creep.rangedAttack(hostiles);
-        }
+        creep.flee(hostiles);
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);

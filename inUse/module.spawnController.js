@@ -102,82 +102,82 @@ function attackForce(spawn, level) {
                 Memory.militaryNeeds[key] = undefined;
                 continue;
             }
-                    let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'attacker');
-                    if (attackers.length < Memory.militaryNeeds[key].attacker && spawn.createCreep(SPAWN[level].attacker, 'attacker' + Game.time, {
-                            role: 'attacker',
-                            roleGroup: 'military',
-                            assignedSpawn: spawn.id,
-                            assignedRoom: spawn.room.name,
-                            attackTarget: key,
-                            attackType: Memory.warControl[key].type,
-                            siegePoint: Memory.warControl[key].siegePoint,
-                            staging: 'W53N80',
-                            waitForHealers: Memory.militaryNeeds[key].healer,
-                            waitForAttackers: Memory.militaryNeeds[key].attacker,
-                            waitForRanged: Memory.militaryNeeds[key].ranged,
-                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
-                        }) === 'attacker' + Game.time) {
-                        console.log(spawn.room.name + ' Spawning an attacker');
-                        return true;
-                    }
-                    let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'healer');
-                    if (healer.length < Memory.militaryNeeds[key].healer && spawn.createCreep(SPAWN[level].healer, 'healer' + Game.time, {
-                            role: 'healer',
-                            roleGroup: 'military',
-                            assignedSpawn: spawn.id,
-                            assignedRoom: spawn.room.name,
-                            attackTarget: key,
-                            attackType: Memory.warControl[key].type,
-                            siegePoint: Memory.warControl[key].siegePoint,
-                            staging: 'W53N80',
-                            waitForHealers: Memory.militaryNeeds[key].healer,
-                            waitForAttackers: Memory.militaryNeeds[key].attacker,
-                            waitForRanged: Memory.militaryNeeds[key].ranged,
-                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
-                        }) === 'healer' + Game.time) {
-                        console.log(spawn.room.name + ' Spawning an healer');
-                        return true;
-                    }
-                    if (spawn.room.controller.level >= 5) {
-                        let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'ranged');
-                        if (ranged.length < Memory.militaryNeeds[key].ranged && spawn.createCreep(SPAWN[level].ranged, 'ranged' + Game.time, {
-                                role: 'ranged',
-                                roleGroup: 'military',
-                                assignedSpawn: spawn.id,
-                                assignedRoom: spawn.room.name,
-                                attackTarget: key,
-                                attackType: Memory.warControl[key].type,
-                                siegePoint: Memory.warControl[key].siegePoint,
-                                staging: 'W53N80',
-                                waitForHealers: Memory.militaryNeeds[key].healer,
-                                waitForAttackers: Memory.militaryNeeds[key].attacker,
-                                waitForRanged: Memory.militaryNeeds[key].ranged,
-                                waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
-                            }) === 'ranged' + Game.time) {
-                            console.log(spawn.room.name + ' Spawning a ranged');
-                            return true;
-                        }
-                        let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'deconstructor');
-                        if (deconstructor.length < Memory.militaryNeeds[key].deconstructor && spawn.createCreep(SPAWN[level].deconstructor, 'deconstructor' + Game.time, {
-                                role: 'deconstructor',
-                                roleGroup: 'military',
-                                assignedSpawn: spawn.id,
-                                assignedRoom: spawn.room.name,
-                                attackTarget: key,
-                                attackType: Memory.warControl[key].type,
-                                siegePoint: Memory.warControl[key].siegePoint,
-                                staging: 'W53N80',
-                                waitForHealers: Memory.militaryNeeds[key].healer,
-                                waitForAttackers: Memory.militaryNeeds[key].attacker,
-                                waitForRanged: Memory.militaryNeeds[key].ranged,
-                                waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
-                            }) === 'deconstructor' + Game.time) {
-                            console.log(spawn.room.name + ' Spawning an deconstructor');
-                            return true;
-                        }
-                    }
+            let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'attacker');
+            if (attackers.length < Memory.militaryNeeds[key].attacker && spawn.createCreep(SPAWN[level].attacker, 'attacker' + Game.time, {
+                    role: 'attacker',
+                    roleGroup: 'military',
+                    assignedSpawn: spawn.id,
+                    assignedRoom: spawn.room.name,
+                    attackTarget: key,
+                    attackType: Memory.warControl[key].type,
+                    siegePoint: Memory.warControl[key].siegePoint,
+                    staging: 'W53N80',
+                    waitForHealers: Memory.militaryNeeds[key].healer,
+                    waitForAttackers: Memory.militaryNeeds[key].attacker,
+                    waitForRanged: Memory.militaryNeeds[key].ranged,
+                    waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
+                }) === 'attacker' + Game.time) {
+                console.log(spawn.room.name + ' Spawning an attacker');
+                return true;
+            }
+            let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'healer');
+            if (healer.length < Memory.militaryNeeds[key].healer && spawn.createCreep(SPAWN[level].healer, 'healer' + Game.time, {
+                    role: 'healer',
+                    roleGroup: 'military',
+                    assignedSpawn: spawn.id,
+                    assignedRoom: spawn.room.name,
+                    attackTarget: key,
+                    attackType: Memory.warControl[key].type,
+                    siegePoint: Memory.warControl[key].siegePoint,
+                    staging: 'W53N80',
+                    waitForHealers: Memory.militaryNeeds[key].healer,
+                    waitForAttackers: Memory.militaryNeeds[key].attacker,
+                    waitForRanged: Memory.militaryNeeds[key].ranged,
+                    waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
+                }) === 'healer' + Game.time) {
+                console.log(spawn.room.name + ' Spawning an healer');
+                return true;
+            }
+            if (spawn.room.controller.level >= 5) {
+                let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'ranged');
+                if (ranged.length < Memory.militaryNeeds[key].ranged && spawn.createCreep(SPAWN[level].ranged, 'ranged' + Game.time, {
+                        role: 'ranged',
+                        roleGroup: 'military',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        attackTarget: key,
+                        attackType: Memory.warControl[key].type,
+                        siegePoint: Memory.warControl[key].siegePoint,
+                        staging: 'W53N80',
+                        waitForHealers: Memory.militaryNeeds[key].healer,
+                        waitForAttackers: Memory.militaryNeeds[key].attacker,
+                        waitForRanged: Memory.militaryNeeds[key].ranged,
+                        waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
+                    }) === 'ranged' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning a ranged');
+                    return true;
+                }
+                let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'deconstructor');
+                if (deconstructor.length < Memory.militaryNeeds[key].deconstructor && spawn.createCreep(SPAWN[level].deconstructor, 'deconstructor' + Game.time, {
+                        role: 'deconstructor',
+                        roleGroup: 'military',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        attackTarget: key,
+                        attackType: Memory.warControl[key].type,
+                        siegePoint: Memory.warControl[key].siegePoint,
+                        staging: 'W53N80',
+                        waitForHealers: Memory.militaryNeeds[key].healer,
+                        waitForAttackers: Memory.militaryNeeds[key].attacker,
+                        waitForRanged: Memory.militaryNeeds[key].ranged,
+                        waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
+                    }) === 'deconstructor' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning an deconstructor');
+                    return true;
+                }
             }
         }
+    }
 }
 attackForce = profiler.registerFN(attackForce, 'attackForceSpawn');
 
@@ -219,18 +219,18 @@ function scouts(spawn, level) {
                 Memory.militaryNeeds[key] = undefined;
                 continue;
             }
-                let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'scout');
-                if (scouts.length < Memory.militaryNeeds[key].scout && spawn.createCreep(SPAWN[level].scout, 'scout' + Game.time, {
-                        role: 'scout',
-                        roleGroup: 'scouts',
-                        assignedSpawn: spawn.id,
-                        assignedRoom: spawn.room.name,
-                        destination: key,
-                    }) === 'scout' + Game.time) {
-                    console.log(spawn.room.name + ' Spawning a scout');
-                    return true;
-                }
+            let scouts = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'scout');
+            if (scouts.length < Memory.militaryNeeds[key].scout && spawn.createCreep(SPAWN[level].scout, 'scout' + Game.time, {
+                    role: 'scout',
+                    roleGroup: 'scouts',
+                    assignedSpawn: spawn.id,
+                    assignedRoom: spawn.room.name,
+                    destination: key,
+                }) === 'scout' + Game.time) {
+                console.log(spawn.room.name + ' Spawning a scout');
+                return true;
             }
+        }
     }
 }
 scouts = profiler.registerFN(scouts, 'scoutsSpawn');
@@ -335,8 +335,8 @@ function workers(spawn, level) {
                     console.log(spawn.room.name + ' Spawning a mineralHarvester');
                     return true;
                 }
-                 const labTech = _.filter(Game.creeps, (creep) => creep.memory.role === 'labTech' && creep.memory.assignedRoom === spawn.room.name);
-                 const labs = _.filter(Game.structures, (s) => s.room.name === spawn.room.name && s.structureType === STRUCTURE_LAB);
+                const labTech = _.filter(Game.creeps, (creep) => creep.memory.role === 'labTech' && creep.memory.assignedRoom === spawn.room.name);
+                const labs = _.filter(Game.structures, (s) => s.room.name === spawn.room.name && s.structureType === STRUCTURE_LAB);
                 if (labTech.length < 1 && labs.length >= 3 && spawn.room.memory.reactions && spawn.createCreep(SPAWN[level].labTech, 'labTech' + Game.time, {
                         role: 'labTech',
                         roleGroup: 'workers',
@@ -425,6 +425,42 @@ function remotes(spawn, level) {
             }
         }
         if (spawn.room.controller.level >= 7) {
+            for (let key in Memory.roomCache) {
+                if (spawn.room.sk && Game.map.getRoomLinearDistance(spawn.pos.roomName, key) <= 3) {
+                    let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'SKRanged');
+                    if (SKRanged.length < 1 && spawn.createCreep(SPAWN[level].SKranged, 'SKRanged' + Game.time, {
+                            role: 'SKranged',
+                            assignedSpawn: spawn.id,
+                            assignedRoom: spawn.room.name,
+                            destination: key
+                        }) === 'SKRanged' + Game.time) {
+                        console.log(spawn.room.name + ' Spawning an SKRanged');
+                        return true;
+                    }
+                    let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'SKworker');
+                    if (SKworker.length < 4 && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].remoteHarvester, 'SKworker' + Game.time, {
+                            role: 'SKworker',
+                            roleGroup: 'workers',
+                            assignedSpawn: spawn.id,
+                            assignedRoom: spawn.room.name,
+                            destination: key
+                        }) === 'SKworker' + Game.time) {
+                        console.log(spawn.room.name + ' Spawning an SKworker');
+                        return true;
+                    }
+                    let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHauler');
+                    if (SKhauler.length < SKworker.length && SKRanged.length > 0 && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
+                            role: 'remoteHauler',
+                            roleGroup: 'haulers',
+                            assignedSpawn: spawn.id,
+                            assignedRoom: spawn.room.name,
+                            destination: key
+                        }) === 'SKhauler' + Game.time) {
+                        console.log(spawn.room.name + ' Spawning an SKhauler');
+                        return true;
+                    }
+                }
+            }
             for (let i = 0; i < 20; i++) {
                 let SK = 'SK' + i;
                 if (Game.flags[SK] && Game.flags[SK].pos.roomName !== spawn.pos.roomName && Game.map.getRoomLinearDistance(spawn.pos.roomName, Game.flags[SK].pos.roomName) <= 4) {
@@ -437,17 +473,6 @@ function remotes(spawn, level) {
                             destination: SK
                         }) === 'SKworker' + Game.time) {
                         console.log(spawn.room.name + ' Spawning an SKworker');
-                        return true;
-                    }
-                    let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === SK && creep.memory.role === 'remoteHauler');
-                    if (SKhauler.length < SKworker.length && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
-                            role: 'remoteHauler',
-                            roleGroup: 'haulers',
-                            assignedSpawn: spawn.id,
-                            assignedRoom: spawn.room.name,
-                            destination: SK
-                        }) === 'SKhauler' + Game.time) {
-                        console.log(spawn.room.name + ' Spawning an SKhauler');
                         return true;
                     }
                 }

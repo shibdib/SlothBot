@@ -24,14 +24,8 @@ function role(creep) {
             return null;
         }
     }
-    if (!Game.flags[creep.memory.destination]) {
-        if (creep.pos.roomName !== creep.memory.destination) {
-            creep.memory.destinationReached = false;
-        }
-    } else {
-        if (creep.pos.roomName !== Game.flags[creep.memory.destination].pos.roomName) {
-            creep.memory.destinationReached = false;
-        }
+    if (creep.pos.roomName !== creep.memory.destination) {
+        creep.memory.destinationReached = false;
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -87,19 +81,11 @@ function role(creep) {
             }
         }
     } else if (!creep.memory.destinationReached) {
-        if (!Game.flags[creep.memory.destination]) {
-            creep.memory.containerID = undefined;
-            if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 10) {
-                creep.memory.destinationReached = true;
-            }
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 7, offRoad: true});
-        } else {
-            creep.memory.containerID = undefined;
-            if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 10) {
-                creep.memory.destinationReached = true;
-            }
-            creep.shibMove(Game.flags[creep.memory.destination], {range: 7, offRoad: true});
+        creep.memory.containerID = undefined;
+        if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.destination)) <= 10) {
+            creep.memory.destinationReached = true;
         }
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 7, offRoad: true});
     }
 }
 
