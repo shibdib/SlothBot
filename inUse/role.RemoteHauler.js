@@ -46,6 +46,15 @@ function role(creep) {
                             creep.shibMove(container);
                         }
                     }
+                } else {
+                    let energy = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 500});
+                    if (energy.length > 0) {
+                        for (const resourceType in energy.store) {
+                            if (creep.pickup(energy, resourceType) === ERR_NOT_IN_RANGE) {
+                                creep.shibMove(energy);
+                            }
+                        }
+                    }
                 }
             } else {
                 if (!Game.getObjectById(creep.memory.containerID) || _.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
