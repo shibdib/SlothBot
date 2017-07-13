@@ -52,6 +52,11 @@ function creepControl() {
         if (creep.memory.role === 'SKworker') roleSKWorker.role(creep);
         if (creep.memory.role === 'resupply') roleResupply.role(creep);
 
+        //SK
+        if (creep.memory.role === 'SKworker') roleSKWorker.role(creep);
+        if (creep.memory.role === 'SKranged') roleSKRanged.role(creep);
+        if (creep.memory.role === 'SKattacker') roleSKAttacker.role(creep);
+
         //Remotes
         if (creep.memory.role === 'remoteHarvester') roleRemoteHarvester.role(creep);
         if (creep.memory.role === 'remoteHauler') roleRemoteHauler.role(creep);
@@ -73,6 +78,8 @@ let roleHarvester = require('role.Harvester');
 let roleMineralHarvester = require('role.MineralHarvester');
 let roleUpgrader = require('role.Upgrader');
 let roleSKWorker = require('role.SKWorker');
+let roleSKRanged = require('role.SKRanged');
+let roleSKAttacker = require('role.SKAttacker');
 let roleRemoteHarvester = require('role.RemoteHarvester');
 let roleRemoteHauler = require('role.RemoteHauler');
 let rolePioneer = require('role.Pioneer');
