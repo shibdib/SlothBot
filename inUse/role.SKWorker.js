@@ -78,7 +78,7 @@ function SKdeposit(creep) {
             } else if (otherContainers.length > 0) {
                 switch (creep.build(otherContainers[0])) {
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(source);
+                        creep.shibMove(otherContainers[0]);
                         break;
                 }
             } else if (_.sum(container.store) !== container.storeCapacity) {
