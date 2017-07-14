@@ -264,7 +264,7 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = true;
         }
     }
-    if (!target || target.pos.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})) {
+    /**if (!target || target.pos.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})) {
         if (!this.memory.siegeTarget || !Game.getObjectById(this.memory.siegeTarget)) {
             target = _.min(this.pos.findInRange(FIND_STRUCTURES, 4, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false)}), 'hits');
         } else if (this.memory.siegeTarget) {
@@ -276,7 +276,7 @@ Creep.prototype.siege = function () {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = undefined;
         }
-    }
+    }**/
     if (!target) {
         target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL});
         if (target) {
@@ -285,6 +285,10 @@ Creep.prototype.siege = function () {
     }
     if (Game.getObjectById(this.memory.siegeTarget)) {
         target = Game.getObjectById(this.memory.siegeTarget);
+    }
+    if (!target) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
+        return;
     }
     let path = this.pos.findPathTo(target, {
         ignoreDestructibleStructures: false,
