@@ -385,7 +385,7 @@ function remotes(spawn, level) {
                     console.log(spawn.room.name + ' Spawning an SKRanged');
                     return true;
                 }
-                let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKaanged');
+                let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKattacker');
                 if (SKAttacker.length < 1 && spawn.createCreep(SPAWN[level].SKranged, 'SKAttacker' + Game.time, {
                         role: 'SKattacker',
                         assignedSpawn: spawn.id,
