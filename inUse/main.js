@@ -17,11 +17,6 @@ require("military.tacticsDeconstructor");
 let roomController = require('module.roomController');
 let creepController = require('module.creepController');
 let towerController = require('module.towerController');
-let linkController = require('module.linkController');
-let labController = require('module.labController');
-let spawnController = require('module.spawnController');
-let attackController = require('military.attack');
-let defenseController = require('military.defense');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
@@ -72,6 +67,8 @@ module.exports.loop = function () {
         //Military management
         Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
         if (Game.cpu.bucket > 500) {
+            let attackController = require('military.attack');
+            let defenseController = require('military.defense');
             defenseController.controller();
             attackController.controller();
         } else {
@@ -92,6 +89,7 @@ module.exports.loop = function () {
         //Link Management
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
         if (Game.cpu.bucket > 2500) {
+            let linkController = require('module.linkController');
             linkController.linkControl();
         }
 
@@ -99,6 +97,7 @@ module.exports.loop = function () {
         Memory.stats.cpu.preLab = Game.cpu.getUsed();
         if (Game.cpu.bucket > 2000) {
             if (Game.time % 10 === 0) {
+                //let labController = require('module.labController');
                // labController.labControl();
             }
         }
@@ -115,6 +114,7 @@ module.exports.loop = function () {
         //Spawn Management
         Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
         if (Game.time % 10 === 0) {
+            let spawnController = require('module.spawnController');
             spawnController.creepRespawn();
         }
 
