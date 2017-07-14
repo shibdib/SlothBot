@@ -144,7 +144,7 @@ function shibMove(creep, heading, options = {}) {
                     // options.allowedRooms and options.routeCallback can also be used to handle this situation
                     if (roomDistance <= 2) {
                         options.useFindRoute = true;
-                        ret = this.findTravelPath(origin, target, options);
+                        ret = findRoute(origin, target, options);
                         return ret;
                     }
                 }
@@ -163,8 +163,7 @@ function shibMove(creep, heading, options = {}) {
 
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 10;
-    let allowedRooms = {[origin]: true, [destination]: true};
-    let ret = Game.map.findRoute(origin, destination, {
+    return Game.map.findRoute(origin, destination, {
         routeCallback: (roomName) => {
             if (options.routeCallback) {
                 let outcome = options.routeCallback(roomName);
@@ -199,14 +198,6 @@ function findRoute(origin, destination, options = {}) {
             }
         },
     });
-    if (!_.isArray(ret)) {
-        console.log(`couldn't findRoute to ${destination}`);
-        return;
-    }
-    for (let value of ret) {
-        allowedRooms[value.room] = true;
-    }
-    return allowedRooms;
 }
 
 //FUNCTIONS
