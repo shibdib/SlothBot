@@ -282,7 +282,7 @@ Creep.prototype.siege = function () {
         }
     }**/
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.owner['username']) === false});
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false});
         if (target) {
             this.memory.siegeComplete = undefined;
         }
