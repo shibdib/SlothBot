@@ -143,10 +143,7 @@ function shibPath(creep, pathInfo, origin, target, options) {
             swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
             roomCallback: callback,
         });
-        if (ret.incomplete || options.ensurePath || ret.length === 1) {
-            // handle case where pathfinder failed at a short distance due to not using findRoute
-            // can happen for situations where the creep would have to take an uncommonly indirect path
-            // options.allowedRooms and options.routeCallback can also be used to handle this situation
+        if (ret.incomplete || options.ensurePath || ret.length <= 1) {
             if (roomDistance <= 2) {
                 return creep.moveTo(target)
             }
