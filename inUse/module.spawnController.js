@@ -392,13 +392,13 @@ function remotes(spawn, level) {
                     return true;
                 }
                 let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKattacker');
-                if (SKAttacker.length < 1 && spawn.createCreep(SPAWN[level].SKranged, 'SKAttacker' + Game.time, {
+                if (SKAttacker.length < 1 && spawn.createCreep(SPAWN[level].SKattacker, 'SKAttacker' + Game.time, {
                         role: 'SKattacker',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
                         destination: spawn.room.memory.skRooms[key]
                     }) === 'SKAttacker' + Game.time) {
-                    console.log(spawn.room.name + ' Spawning an SKRanged');
+                    console.log(spawn.room.name + ' Spawning an SKAttacker');
                     return true;
                 }
                 let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'SKworker');
