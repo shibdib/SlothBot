@@ -320,7 +320,9 @@ function workers(spawn, level) {
             return true;
         }
         if (spawn.room.memory.responseNeeded !== true) {
-            if (upgraders.length < 2 && spawn.createCreep(SPAWN[level].upgrader, 'upgrader' + Game.time, {
+            let count;
+            if (spawn.room.controller.level === 8) count = 1 || 2;
+            if (upgraders.length < count && spawn.createCreep(SPAWN[level].upgrader, 'upgrader' + Game.time, {
                     role: 'upgrader',
                     roleGroup: 'workers',
                     assignedSpawn: spawn.id,
