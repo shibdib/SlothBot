@@ -73,91 +73,95 @@ function shibMove(creep, heading, options = {}) {
 
         //Otherwise find a path
     } else {
-        creep.borderCheck();
-        creep.say(ICONS.moveTo);
-        pathInfo.pathPosTime = 1;
-        //check for cached
-        let cached;
-        if (options.useCache) cached = getPath(origin, target);
-        if (cached && options.ignoreCreeps) {
-            pathInfo.target = target;
-            pathInfo.path = cached;
-            pathInfo.usingCached = true;
-            let nextDirection = parseInt(pathInfo.path[0], 10);
-            pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
-            return creep.move(nextDirection);
-        } else {
-            pathInfo.usingCached = false;
-            let originRoomName = origin.roomName;
-            let destRoomName = target.roomName;
-            let roomsSearched = 0;
-            let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
-            let callback = (roomName) => {
-                if (!options.allowHostile && checkAvoid(roomName)
-                    && roomName !== destRoomName && roomName !== originRoomName) {
+        shibPath(creep, pathInfo, origin, target, options);
+    }
+}
+
+function shibPath(creep, pathInfo, origin, target, options) {
+    creep.borderCheck();
+    creep.say(ICONS.moveTo);
+    pathInfo.pathPosTime = 1;
+    //check for cached
+    let cached;
+    if (options.useCache) cached = getPath(origin, target);
+    if (cached && options.ignoreCreeps) {
+        pathInfo.target = target;
+        pathInfo.path = cached;
+        pathInfo.usingCached = true;
+        let nextDirection = parseInt(pathInfo.path[0], 10);
+        pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
+        return creep.move(nextDirection);
+    } else {
+        pathInfo.usingCached = false;
+        let originRoomName = origin.roomName;
+        let destRoomName = target.roomName;
+        let roomsSearched = 0;
+        let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
+        let callback = (roomName) => {
+            if (!options.allowHostile && checkAvoid(roomName)
+                && roomName !== destRoomName && roomName !== originRoomName) {
+                return false;
+            }
+            let parsed;
+            if (!options.allowSK && roomName !== destRoomName && roomName !== originRoomName) {
+                if (!parsed) {
+                    parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+                }
+                let fMod = parsed[1] % 10;
+                let sMod = parsed[2] % 10;
+                let isSK = !(fMod === 5 && sMod === 5) &&
+                    ((fMod >= 4) && (fMod <= 6)) &&
+                    ((sMod >= 4) && (sMod <= 6));
+                if (isSK) {
                     return false;
                 }
-                let parsed;
-                if (!options.allowSK && roomName !== destRoomName && roomName !== originRoomName) {
-                    if (!parsed) {
-                        parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-                    }
-                    let fMod = parsed[1] % 10;
-                    let sMod = parsed[2] % 10;
-                    let isSK = !(fMod === 5 && sMod === 5) &&
-                        ((fMod >= 4) && (fMod <= 6)) &&
-                        ((sMod >= 4) && (sMod <= 6));
-                    if (isSK) {
-                        return false;
+            }
+            roomsSearched++;
+            let matrix;
+            let room = Game.rooms[roomName];
+            if (room) {
+                if (options.ignoreStructures) {
+                    matrix = new PathFinder.CostMatrix();
+                    if (!options.ignoreCreeps) {
+                        addCreepsToMatrix(room, matrix);
                     }
                 }
-                roomsSearched++;
-                let matrix;
-                let room = Game.rooms[roomName];
-                if (room) {
-                    if (options.ignoreStructures) {
-                        matrix = new PathFinder.CostMatrix();
-                        if (!options.ignoreCreeps) {
-                            addCreepsToMatrix(room, matrix);
-                        }
-                    }
-                    else if (options.ignoreCreeps || roomName !== originRoomName) {
-                        matrix = getStructureMatrix(room, options.freshMatrix);
-                    }
-                    else {
-                        matrix = getCreepMatrix(room);
-                    }
-                }
-                return matrix;
-            };
-            let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
-                maxOps: options.maxOps,
-                maxRooms: options.maxRooms,
-                plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
-                swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
-                roomCallback: callback,
-            });
-            if (ret.incomplete || options.ensurePath) {
-                if (options.useFindRoute === undefined) {
-                    // handle case where pathfinder failed at a short distance due to not using findRoute
-                    // can happen for situations where the creep would have to take an uncommonly indirect path
-                    // options.allowedRooms and options.routeCallback can also be used to handle this situation
-                    if (roomDistance <= 2) {
-                        options.useFindRoute = true;
-                        ret = findRoute(origin, target.roomName, options);
-                        return ret;
-                    }
+                else if (options.ignoreCreeps || roomName !== originRoomName) {
+                    matrix = getStructureMatrix(room, options.freshMatrix);
                 }
                 else {
+                    matrix = getCreepMatrix(room);
                 }
             }
-            pathInfo.path = serializePath(creep.pos, ret.path);
-            let nextDirection = parseInt(pathInfo.path[0], 10);
-            pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
-            pathInfo.target = target;
-            cachePath(origin, target, pathInfo.path);
-            return creep.move(nextDirection);
+            return matrix;
+        };
+        let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
+            maxOps: options.maxOps,
+            maxRooms: options.maxRooms,
+            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
+            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
+            roomCallback: callback,
+        });
+        if (ret.incomplete || options.ensurePath) {
+            if (options.useFindRoute === undefined) {
+                // handle case where pathfinder failed at a short distance due to not using findRoute
+                // can happen for situations where the creep would have to take an uncommonly indirect path
+                // options.allowedRooms and options.routeCallback can also be used to handle this situation
+                if (roomDistance <= 2) {
+                    options.useFindRoute = true;
+                    ret = findRoute(origin.roomName, target.roomName, options);
+                    return ret;
+                }
+            }
+            else {
+            }
         }
+        pathInfo.path = serializePath(creep.pos, ret.path);
+        let nextDirection = parseInt(pathInfo.path[0], 10);
+        pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
+        pathInfo.target = target;
+        cachePath(origin, target, pathInfo.path);
+        return creep.move(nextDirection);
     }
 }
 
