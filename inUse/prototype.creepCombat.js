@@ -296,7 +296,7 @@ Creep.prototype.siege = function () {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
                 this.heal(this);
-                this.shibMove(target, {ignoreCreeps: false, reptahChance: 0.5});
+                this.shibMove(target, {ignoreCreeps: false, repathChance: 0.5});
                 this.memory.siegeTarget = undefined;
                 break;
         }

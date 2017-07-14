@@ -14,7 +14,7 @@ function shibMove(creep, heading, options = {}) {
         allowHostile: false,
         allowSK: false,
         forceRepath: false,
-        repathChance: 0,
+        repathChance: 1,
         maxRooms: 16
     });
     if (creep.fatigue > 0) {
