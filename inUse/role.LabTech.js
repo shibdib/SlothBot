@@ -20,7 +20,18 @@ function role(creep) {
     }
     for (let key in creep.room.memory.reactions) {
         if (creep.room.memory.reactions[key].assignedHub) {
-            if (Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount < 500 && Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount !== 3000) {
+            if (creep.room.memory.reactions.boostHub) {
+                let boostHub = creep.room.memory.reactions.labHubs[creep.room.memory.reactions.boostHub];
+                if (Game.getObjectById(boostHub.lab1).mineralAmount < 600) {
+                    creep.memory.haulingMineral = RESOURCE_CATALYZED_GHODIUM_ACID;
+                    creep.memory.deliverTo = boostHub.lab1;
+                    break;
+                } else if (Game.getObjectById(boostHub.lab1).energy < Game.getObjectById(boostHub.lab1).energyCapacity) {
+                    creep.memory.haulingMineral = RESOURCE_ENERGY;
+                    creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
+                    break;
+                }
+            } else if (Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount < 500 && Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount !== 3000) {
                 creep.memory.haulingMineral = creep.room.memory.reactions[key].input1;
                 creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
                 break;
@@ -32,18 +43,9 @@ function role(creep) {
                 creep.memory.haulingMineral = RESOURCE_ENERGY;
                 creep.memory.deliverTo = creep.room.memory.reactions[key].outputLab;
                 break;
-            } else if (creep.room.memory.reactions.boostHub) {
-                let boostHub = creep.room.memory.reactions.labHubs[creep.room.memory.reactions.boostHub];
-                if (Game.getObjectById(boostHub.lab1).mineralAmount < 600) {
-                    creep.memory.haulingMineral = RESOURCE_CATALYZED_GHODIUM_ACID;
-                    creep.memory.deliverTo = boostHub.lab1;
-                } else if (Game.getObjectById(boostHub.lab1).energy < Game.getObjectById(boostHub.lab1).energyCapacity) {
-                    creep.memory.haulingMineral = RESOURCE_ENERGY;
-                    creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
-                } else {
-                    creep.memory.haulingMineral = undefined;
-                    creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
-                }
+            } else {
+                creep.memory.haulingMineral = undefined;
+                creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
             }
         }
     }
