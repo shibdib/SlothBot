@@ -18,7 +18,7 @@ function role(creep) {
             case ERR_NOT_IN_RANGE:
                 creep.heal(creep);
                 creep.rangedAttack(hostiles);
-                creep.shibMove(hostiles, {movingTarget: true});
+                creep.shibMove(hostiles, {movingTarget: true, ignoreCreeps: false});
                 break;
             case ERR_NO_BODYPART:
                 creep.rangedAttack(hostiles);
