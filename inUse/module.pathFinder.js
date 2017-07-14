@@ -137,16 +137,20 @@ function shibMove(creep, heading, options = {}) {
                 swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
                 roomCallback: callback,
             });
-            /**if (ret.incomplete) {
-                // handle case where pathfinder failed at a short distance due to not using findRoute
-                // can happen for situations where the creep would have to take an uncommonly indirect path
-                // options.allowedRooms and options.routeCallback can also be used to handle this situation
-                if (roomDistance <= 2) {
-                    console.log(`shibMove: Path failed, trying moveTo for: ${origin}, destination: ${target}`);
-                    creep.moveTo(target);
-                    return;
+            if (ret.incomplete || options.ensurePath) {
+                if (options.useFindRoute === undefined) {
+                    // handle case where pathfinder failed at a short distance due to not using findRoute
+                    // can happen for situations where the creep would have to take an uncommonly indirect path
+                    // options.allowedRooms and options.routeCallback can also be used to handle this situation
+                    if (roomDistance <= 2) {
+                        options.useFindRoute = true;
+                        ret = this.findTravelPath(origin, destination, options);
+                        return ret;
+                    }
                 }
-            }**/
+                else {
+                }
+            }
             pathInfo.path = serializePath(creep.pos, ret.path);
             let nextDirection = parseInt(pathInfo.path[0], 10);
             pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
@@ -155,6 +159,54 @@ function shibMove(creep, heading, options = {}) {
             return creep.move(nextDirection);
         }
     }
+}
+
+function findRoute(origin, destination, options = {}) {
+    let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 10;
+    let allowedRooms = {[origin]: true, [destination]: true};
+    let ret = Game.map.findRoute(origin, destination, {
+        routeCallback: (roomName) => {
+            if (options.routeCallback) {
+                let outcome = options.routeCallback(roomName);
+                if (outcome !== undefined) {
+                    return outcome;
+                }
+            }
+            let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
+            if (rangeToRoom > restrictDistance) {
+                // room is too far out of the way
+                return Number.POSITIVE_INFINITY;
+            }
+            if (!options.allowHostile && Traveler.checkAvoid(roomName) &&
+                roomName !== destination && roomName !== origin) {
+                // room is marked as "avoid" in room memory
+                return Number.POSITIVE_INFINITY;
+            }
+            let parsed;
+            // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
+            if (!options.allowSK && !Game.rooms[roomName]) {
+                if (!parsed) {
+                    parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+                }
+                let fMod = parsed[1] % 10;
+                let sMod = parsed[2] % 10;
+                let isSK = !(fMod === 5 && sMod === 5) &&
+                    ((fMod >= 4) && (fMod <= 6)) &&
+                    ((sMod >= 4) && (sMod <= 6));
+                if (isSK) {
+                    return 10;
+                }
+            }
+        },
+    });
+    if (!_.isArray(ret)) {
+        console.log(`couldn't findRoute to ${destination}`);
+        return;
+    }
+    for (let value of ret) {
+        allowedRooms[value.room] = true;
+    }
+    return allowedRooms;
 }
 
 //FUNCTIONS
