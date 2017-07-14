@@ -95,7 +95,7 @@ function getIntel() {
                 continue;
             }
             //check if scouted
-            if (Memory.roomCache[key] && Memory.roomCache[key].cached + 1000 > Game.time) {
+            if (Memory.roomCache[key] && Memory.roomCache[key].cached + EST_TICKS_PER_DAY > Game.time) {
                 //check if room is owned
                 if (Memory.roomCache[key] && Memory.roomCache[key].owner) {
                     Memory.warControl[key].type = 'siege';
