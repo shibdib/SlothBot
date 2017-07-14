@@ -250,5 +250,13 @@ function markMap() {
                 {align: 'left', opacity: 0.8}
             );
         }
+        if (Memory.warControl[key].siegePoint) {
+            new RoomVisual(Memory.warControl[key].siegePoint).text(
+                'Siegepoint',
+                25,
+                25,
+                {align: 'left', opacity: 0.8}
+            );
+        }
     }
 }
