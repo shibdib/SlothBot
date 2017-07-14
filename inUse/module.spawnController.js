@@ -182,6 +182,26 @@ function attackForce(spawn, level) {
                     console.log(spawn.room.name + ' Spawning an deconstructor');
                     return true;
                 }
+                if (spawn.room.controller.level >= 7) {
+                    let drainer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'drainer');
+                    if (deconstructor.length < Memory.militaryNeeds[key].drainer && spawn.createCreep(SPAWN[level].drainer, 'drainer' + Game.time, {
+                            role: 'drainer',
+                            roleGroup: 'military',
+                            assignedSpawn: spawn.id,
+                            assignedRoom: spawn.room.name,
+                            attackTarget: key,
+                            attackType: Memory.warControl[key].type,
+                            siegePoint: Memory.warControl[key].siegePoint,
+                            staging: 'W53N80',
+                            waitForHealers: Memory.militaryNeeds[key].healer,
+                            waitForAttackers: Memory.militaryNeeds[key].attacker,
+                            waitForRanged: Memory.militaryNeeds[key].ranged,
+                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
+                        }) === 'drainer' + Game.time) {
+                        console.log(spawn.room.name + ' Spawning a drainer');
+                        return true;
+                    }
+                }
             }
         }
     }
