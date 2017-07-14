@@ -120,6 +120,8 @@ meleeTeamMember = function () {
     }
     if (this.memory.assignedMeleeLeader) {
         meleeLeader = Game.getObjectById(this.memory.assignedMeleeLeader);
+    } else {
+
     }
     let creepsInRoom = this.room.find(FIND_CREEPS);
     let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
@@ -151,12 +153,12 @@ meleeTeamMember = function () {
     } else if (needsHeals.length > 0) {
         this.rangedHeal(needsHeals[0]);
     }
-    if (meleeLeader[0]) {
-        if (this.pos.getRangeTo(meleeLeader[0]) > 4) {
-            if (this.room.name !== meleeLeader[0].pos.roomName) {
-                this.shibMove(meleeLeader[0], {allowHostile: false});
+    if (meleeLeader) {
+        if (this.pos.getRangeTo(meleeLeader) > 4) {
+            if (this.room.name !== meleeLeader.pos.roomName) {
+                this.shibMove(meleeLeader, {allowHostile: false});
             } else {
-                this.shibMove(meleeLeader[0], {allowHostile: false, movingTarget: true});
+                this.shibMove(meleeLeader, {allowHostile: false, movingTarget: true});
             }
         }
     } else if ((closestArmed || closestHostile) && (this.pos.getRangeTo(closestArmed) < 5 || this.pos.getRangeTo(closestHostile) < 5)) {
@@ -185,9 +187,9 @@ meleeTeamMember = function () {
                 this.rangedAttack(closestHostile);
             }
         }
-    } else if (meleeLeader[0].memory.meleeTarget) {
-        if (this.attack(Game.getObjectById(meleeLeader[0].memory.meleeTarget)) === ERR_NOT_IN_RANGE) {
-            this.shibMove(Game.getObjectById(meleeLeader[0].memory.meleeTarget))
+    } else if (meleeLeader.memory.meleeTarget) {
+        if (this.attack(Game.getObjectById(meleeLeader.memory.meleeTarget)) === ERR_NOT_IN_RANGE) {
+            this.shibMove(Game.getObjectById(meleeLeader.memory.meleeTarget))
         }
         if (needsHeals.length > 0) {
             this.rangedHeal(needsHeals[0])
