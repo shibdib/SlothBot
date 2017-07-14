@@ -24,6 +24,7 @@ function creepControl() {
         if (creep.memory.role === 'claimer') roleClaimer.role(creep);
         if (creep.memory.role === 'responder') roleResponder.role(creep);
         if (creep.memory.role === 'raider') roleRaider.role(creep);
+        if (creep.memory.role === 'drainer') roleDrainer.role(creep);
 
         //Haulers
         if (creep.memory.role === "pawn") {
@@ -94,3 +95,4 @@ let roleReserver = require('role.Reserver');
 let roleClaimer = require('role.Claimer');
 let roleResponder = require('role.Responder');
 let roleScout = require('role.Scout');
+let roleDrainer = require('role.Drainer');
