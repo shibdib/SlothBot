@@ -36,7 +36,7 @@ function role(creep) {
             }
         } else {
             let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
-            if (container.id) {
+            if (container && container.id) {
                 if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
                     creep.shibMove(container);
                     creep.memory.mineralDestination = container.id;
