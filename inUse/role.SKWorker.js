@@ -48,6 +48,8 @@ function role(creep) {
                         creep.shibMove(source);
                         creep.heal(creep);
                         break;
+                    case ERR_TIRED:
+                        creep.idleFor(source.cooldown)
                 }
             }
         } else {
