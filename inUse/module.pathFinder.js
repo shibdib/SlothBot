@@ -150,10 +150,7 @@ function shibPath(creep, pathInfo, origin, target, options) {
                 if (roomDistance <= 2) {
                     options.useFindRoute = true;
                     ret = findRoute(origin.roomName, target.roomName, options);
-                    return ret;
                 }
-            }
-            else {
             }
         }
         pathInfo.path = serializePath(creep.pos, ret.path);
