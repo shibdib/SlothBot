@@ -41,7 +41,7 @@ function shibMove(creep, heading, options = {}) {
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     //Delete path if target changed
-    if (pathInfo.target && target !== pathInfo.target) delete creep.memory._shibMove;
+    if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
