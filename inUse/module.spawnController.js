@@ -61,6 +61,10 @@ function creepRespawn() {
             }
             if (workers(spawn, level) === true) {
             }
+            let nearby = _.min(spawn.pos.findInRange(FIND_MY_CREEPS, 1), 'ticksToLive');
+            if (nearby && nearby.ticksToLive < 1000) {
+                spawn.renewCreep(nearby)
+            }
         } else {
             let spawningCreep = Game.creeps[spawn.spawning.name];
             spawn.room.visual.text(
