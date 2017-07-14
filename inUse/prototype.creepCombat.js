@@ -211,9 +211,9 @@ Creep.prototype.siege = function () {
         this.memory.healing = true;
         let healers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.role === 'healer'), 45);
         if (healers.length > 0) {
-            this.shibMove(healers[0]);
+            this.shibMove(healers[0], {forceRepath: true});
         } else {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
+            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23, forceRepath: true});
         }
         if (this.hits === this.hitsMax) {
             this.memory.healing = undefined;
