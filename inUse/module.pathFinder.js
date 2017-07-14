@@ -176,7 +176,7 @@ function findRoute(origin, destination, options = {}) {
                 // room is too far out of the way
                 return Number.POSITIVE_INFINITY;
             }
-            if (!options.allowHostile && Traveler.checkAvoid(roomName) &&
+            if (!options.allowHostile && checkAvoid(roomName) &&
                 roomName !== destination && roomName !== origin) {
                 // room is marked as "avoid" in room memory
                 return Number.POSITIVE_INFINITY;
