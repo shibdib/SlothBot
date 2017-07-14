@@ -204,6 +204,7 @@ Creep.prototype.fightRanged = function (target) {
 };
 
 Creep.prototype.siege = function () {
+    this.borderCheck();
     this.memory.hitsLost = this.memory.hitsLast - this.hits;
     this.memory.hitsLast = this.hits;
     if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 150 || this.memory.healing === true) {
