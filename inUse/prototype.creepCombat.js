@@ -293,28 +293,14 @@ Creep.prototype.siege = function () {
     if (!target) {
         this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
         return;
-    }
-    let path = this.pos.findPathTo(target, {
-        ignoreDestructibleStructures: false,
-        ignoreCreeps: false
-    });
-    let posLast = path[path.length - 1];
-    if (path.length === 0 || !target.pos.isEqualTo(posLast.x, posLast.y)) {
-        let structure = this.pos.findClosestStructure(FIND_STRUCTURES, STRUCTURE_RAMPART);
-        this.shibMove(structure);
-        target = structure;
-    }
-
-    let structures = target.pos.lookFor('structure');
-    for (let i = 0; i < structures.length; i++) {
-        if (structures[i].structureType === STRUCTURE_RAMPART) {
-            target = structures[i];
-            break;
+    } else {
+        switch (this.dismantle(target)) {
+            case ERR_NOT_IN_RANGE:
+                this.shibMove(target);
+                break;
         }
+        return true;
     }
-
-    this.dismantle(target);
-    return true;
 };
 
 Creep.prototype.squadHeal = function () {
