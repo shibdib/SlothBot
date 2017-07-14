@@ -10,7 +10,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     }
-    let SKRanged = _.filter(Game.creeps, (sk) => sk.memory.destination === creep.memory.destination && sk.memory.role === 'SKranged');
+    let SKRanged = _.filter(Game.creeps, (sk) => sk.memory.destination === creep.memory.destination && (sk.memory.role === 'SKranged' || sk.memory.role === 'SKattacker'));
     if (SKRanged.length === 0) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 20});
         return;
