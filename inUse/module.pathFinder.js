@@ -14,6 +14,7 @@ function shibMove(creep, heading, options = {}) {
         allowHostile: false,
         allowSK: false,
         forceRepath: false,
+        repathChance: 0,
         maxRooms: 16
     });
     if (creep.fatigue > 0) {
@@ -22,7 +23,7 @@ function shibMove(creep, heading, options = {}) {
     }
 
     updateRoomStatus(creep.room);
-    if (!creep.memory._shibMove || options.forceRepath) {
+    if (!creep.memory._shibMove || options.forceRepath || Math.random() > options.repathChance) {
         delete creep.memory._shibMove;
         creep.memory._shibMove = {};
     }
