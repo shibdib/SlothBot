@@ -8,15 +8,6 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     //Invader detection
     invaderCheck(creep);
-    if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
-        let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (creep.pos.getRangeTo(hostiles) <= 5) {
-            creep.flee(hostiles);
-            return;
-        }
-    } else if (creep.memory.invaderCooldown > 50) {
-        creep.memory.invaderCooldown = undefined;
-    }
 
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
