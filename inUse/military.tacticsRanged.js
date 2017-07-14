@@ -6,7 +6,8 @@ const profiler = require('screeps-profiler');
 rangedTeamLeader = function () {
     let squadLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
-        this.memory.assignedSquadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true)[0];
+        let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0];
     }
     if (this.memory.assignedSquadLeader) {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
@@ -81,13 +82,15 @@ rangedTeamMember = function () {
     let squadLeader;
     let rangedLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
-        this.memory.assignedSquadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true)[0];
+        let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0];
     }
     if (this.memory.assignedSquadLeader) {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
     }
     if (!this.memory.assignedRangedLeader || !Game.getObjectById(this.memory.assignedRangedLeader)) {
-        this.memory.assignedRangedLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true)[0];
+        let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
+        if (leaders.length > 0) this.memory.assignedRangedLeader = leaders[0];
     }
     if (this.memory.assignedRangedLeader) {
         rangedLeader = Game.getObjectById(this.memory.assignedRangedLeader);
