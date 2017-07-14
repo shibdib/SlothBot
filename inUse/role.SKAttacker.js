@@ -25,6 +25,7 @@ function role(creep) {
                 creep.heal(creep);
                 break;
             default:
+                creep.heal(creep);
                 creep.rangedAttack(hostiles);
         }
     } else {
