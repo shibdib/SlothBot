@@ -184,7 +184,7 @@ function attackForce(spawn, level) {
                 }
                 if (spawn.room.controller.level >= 7) {
                     let drainer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'drainer');
-                    if (deconstructor.length < Memory.militaryNeeds[key].drainer && spawn.createCreep(SPAWN[level].drainer, 'drainer' + Game.time, {
+                    if (drainer.length < Memory.militaryNeeds[key].drainer && spawn.createCreep(SPAWN[level].drainer, 'drainer' + Game.time, {
                             role: 'drainer',
                             roleGroup: 'military',
                             assignedSpawn: spawn.id,
