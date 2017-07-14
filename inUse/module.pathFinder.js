@@ -148,7 +148,7 @@ function shibPath(creep, pathInfo, origin, target, options) {
             // can happen for situations where the creep would have to take an uncommonly indirect path
             // options.allowedRooms and options.routeCallback can also be used to handle this situation
             if (roomDistance <= 2) {
-                creep.travelTo(target, {ensurePath: true})
+                creep.moveTo(target)
             }
         }
         pathInfo.path = serializePath(creep.pos, ret.path);
