@@ -212,7 +212,7 @@ Creep.prototype.siege = function () {
         if (healers.length > 0) {
             this.shibMove(healers[0]);
         } else {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 15});
+            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
         }
         if (this.hits === this.hitsMax) {
             this.memory.healing = undefined;
@@ -285,22 +285,16 @@ Creep.prototype.siege = function () {
     }
     if (Game.getObjectById(this.memory.siegeTarget)) {
         target = Game.getObjectById(this.memory.siegeTarget);
-        this.memory.siegeComplete = undefined;
     }
     let path = this.pos.findPathTo(target, {
         ignoreDestructibleStructures: false,
         ignoreCreeps: false
     });
-    let returnCode;
     let posLast = path[path.length - 1];
     if (path.length === 0 || !target.pos.isEqualTo(posLast.x, posLast.y)) {
         let structure = this.pos.findClosestStructure(FIND_STRUCTURES, STRUCTURE_RAMPART);
-        returnCode = this.shibMove(structure);
+        this.shibMove(structure);
         target = structure;
-    } else {
-        if (this.hits > this.hitsMax - 2000) {
-            returnCode = this.moveByPath(path);
-        }
     }
 
     let structures = target.pos.lookFor('structure');
