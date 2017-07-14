@@ -67,6 +67,7 @@ function SKdeposit(creep) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             creep.memory.containerBuilding = undefined;
+            let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
             if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
                 switch (creep.repair(container)) {
                     case ERR_NOT_IN_RANGE:
@@ -74,6 +75,12 @@ function SKdeposit(creep) {
                         break;
                 }
                 creep.say('Fixing');
+            } else if (otherContainers.length > 0) {
+                switch (creep.build(otherContainers[0])) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(source);
+                        break;
+                }
             } else if (_.sum(container.store) !== container.storeCapacity) {
                 for (const resourceType in creep.carry) {
                     if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
