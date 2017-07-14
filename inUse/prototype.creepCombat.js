@@ -278,7 +278,7 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = undefined;
         }
     }**/
-    if (!target) {
+    if (!target || target === null) {
         target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL});
         if (target) {
             this.memory.siegeComplete = undefined;
