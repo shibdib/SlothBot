@@ -68,7 +68,11 @@ function SKdeposit(creep) {
         if (container) {
             creep.memory.containerBuilding = undefined;
             if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
-                creep.repair(container);
+                switch (creep.repair(container)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(container);
+                        break;
+                }
                 creep.say('Fixing');
             } else if (_.sum(container.store) !== container.storeCapacity) {
                 for (const resourceType in creep.carry) {
