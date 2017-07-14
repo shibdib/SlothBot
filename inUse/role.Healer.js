@@ -45,6 +45,7 @@ function role(creep) {
     }
     let squadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === creep.memory.attackTarget && h.memory.squadLeader === true);
     if (squadLeader.length === 0 || creep.memory.squadLeader === true) {
+        creep.memory.squadLeader = true;
         creep.tacticSquadLeaderMedic()
     } else {
         creep.tacticMedic()
