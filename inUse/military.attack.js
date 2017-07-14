@@ -95,9 +95,9 @@ function getIntel() {
                 continue;
             }
             //check if scouted
-            if (!Memory.roomCache[key] || Memory.roomCache[key].cached + 1000 > Game.time) {
+            if (Memory.roomCache[key] || Memory.roomCache[key].cached + 1000 > Game.time) {
                 //check if room is owned
-                if (Memory.roomCache[key].owner) {
+                if (Memory.roomCache[key] && Memory.roomCache[key].owner) {
                     Memory.warControl[key].type = 'siege';
                     if (!Memory.warControl[key].siegePoint) {
                         let exit = Game.map.findExit(key, 'W53N83');
