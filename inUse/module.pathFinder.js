@@ -142,7 +142,7 @@ function shibPath(creep, pathInfo, origin, target, options) {
             swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
             roomCallback: callback,
         });
-        if (ret.incomplete || options.ensurePath) {
+        /**if (ret.incomplete || options.ensurePath) {
             if (options.useFindRoute === undefined) {
                 // handle case where pathfinder failed at a short distance due to not using findRoute
                 // can happen for situations where the creep would have to take an uncommonly indirect path
@@ -152,7 +152,7 @@ function shibPath(creep, pathInfo, origin, target, options) {
                     ret = findRoute(origin.roomName, target.roomName, options);
                 }
             }
-        }
+        }**/
         pathInfo.path = serializePath(creep.pos, ret.path);
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
