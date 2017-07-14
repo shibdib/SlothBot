@@ -34,7 +34,7 @@ function role(creep) {
                 break;
             } else if (creep.room.memory.reactions.boostHub) {
                 let boostHub = creep.room.memory.reactions.labHubs[creep.room.memory.reactions.boostHub];
-                if (Game.getObjectById(boostHub.lab1).mineralAmount < 1200) {
+                if (Game.getObjectById(boostHub.lab1).mineralAmount < 600) {
                     creep.memory.haulingMineral = RESOURCE_CATALYZED_GHODIUM_ACID;
                     creep.memory.deliverTo = boostHub.lab1;
                 } else if (Game.getObjectById(boostHub.lab1).energy < Game.getObjectById(boostHub.lab1).energyCapacity) {
