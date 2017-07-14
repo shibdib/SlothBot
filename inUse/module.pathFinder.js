@@ -81,7 +81,6 @@ function shibMove(creep, heading, options = {}) {
 
 function shibPath(creep, pathInfo, origin, target, options) {
     creep.borderCheck();
-    creep.say(ICONS.moveTo);
     pathInfo.pathPosTime = 1;
     //check for cached
     let cached;
@@ -96,8 +95,10 @@ function shibPath(creep, pathInfo, origin, target, options) {
         pathInfo.usingCached = true;
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
+        creep.say(ICONS.recycle);
         return creep.move(nextDirection);
     } else {
+        creep.say(ICONS.moveTo);
         pathInfo.usingCached = false;
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
