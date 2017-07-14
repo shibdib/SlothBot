@@ -120,8 +120,6 @@ meleeTeamMember = function () {
     }
     if (this.memory.assignedMeleeLeader) {
         meleeLeader = Game.getObjectById(this.memory.assignedMeleeLeader);
-    } else {
-
     }
     let creepsInRoom = this.room.find(FIND_CREEPS);
     let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
@@ -187,7 +185,7 @@ meleeTeamMember = function () {
                 this.rangedAttack(closestHostile);
             }
         }
-    } else if (meleeLeader.memory.meleeTarget) {
+    } else if (meleeLeader && meleeLeader.memory.meleeTarget) {
         if (this.attack(Game.getObjectById(meleeLeader.memory.meleeTarget)) === ERR_NOT_IN_RANGE) {
             this.shibMove(Game.getObjectById(meleeLeader.memory.meleeTarget))
         }
