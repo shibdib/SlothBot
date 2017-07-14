@@ -29,7 +29,7 @@ tacticSiege = function () {
         this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
         this.memory.attackTarget = 'available';
     }
-    if (this.memory.attackTarget && this.pos.roomName === this.memory.attackTarget || this.memory.healing === true) {
+    if (this.memory.attackTarget && this.pos.roomName === this.memory.attackTarget || this.memory.healing === true || this.memory.siegeStarted === true) {
         if (this.pos.getRangeTo(armedHostile) <= 2) {
             this.retreat(8);
         } else {
