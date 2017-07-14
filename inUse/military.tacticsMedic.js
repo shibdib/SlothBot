@@ -53,7 +53,7 @@ tacticMedic = function () {
     let squadLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
         let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
-        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0];
+        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0].id;
     }
     if (this.memory.assignedSquadLeader) {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);

@@ -8,14 +8,14 @@ meleeTeamLeader = function () {
     let rangedLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
         let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
-        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0];
+        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0].id;
     }
     if (this.memory.assignedSquadLeader) {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
     }
     if (!this.memory.assignedRangedLeader || !Game.getObjectById(this.memory.assignedRangedLeader)) {
         let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.rangedLeader === true);
-        if (leaders.length > 0) this.memory.assignedRangedLeader = leaders[0];
+        if (leaders.length > 0) this.memory.assignedRangedLeader = leaders[0].id;
     }
     if (this.memory.assignedRangedLeader) {
         rangedLeader = Game.getObjectById(this.memory.assignedRangedLeader);
@@ -113,14 +113,14 @@ meleeTeamMember = function () {
     let meleeLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
         let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
-        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0];
+        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0].id;
     }
     if (this.memory.assignedSquadLeader) {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
     }
     if (!this.memory.assignedMeleeLeader || !Game.getObjectById(this.memory.assignedMeleeLeader)) {
         let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.meleeLeader === true);
-        if (leaders.length > 0) this.memory.assignedMeleeLeader = leaders[0];
+        if (leaders.length > 0) this.memory.assignedMeleeLeader = leaders[0].id;
     }
     if (this.memory.assignedMeleeLeader) {
         meleeLeader = Game.getObjectById(this.memory.assignedMeleeLeader);

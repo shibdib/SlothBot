@@ -8,7 +8,8 @@ let doNotAggress = RawMemory.segments[2];
 tacticSiege = function () {
     let squadLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
-        this.memory.assignedSquadLeader = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+        let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
+        if (leaders.length > 0) this.memory.assignedSquadLeader = leaders[0].id;
     }
     if (this.memory.assignedSquadLeader) {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
