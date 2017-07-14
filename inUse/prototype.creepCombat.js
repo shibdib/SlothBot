@@ -227,6 +227,9 @@ Creep.prototype.siege = function () {
     if (this.memory.attackType === 'clean') {
         target = this.pos.findClosestByPath(FIND_MY_STRUCTURES);
     }
+    if (Game.getObjectById(this.memory.siegeTarget)) {
+        target = Game.getObjectById(this.memory.siegeTarget);
+    }
     if (!target) {
         this.memory.siegeComplete = true;
     }
