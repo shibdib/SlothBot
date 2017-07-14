@@ -86,7 +86,7 @@ meleeTeamLeader = function () {
                 this.rangedAttack(closestHostile);
             }
         }
-    } else if (squadLeader && this.room.name === squadLeader[0].pos.roomName) {
+    } else if (squadLeader && this.room.name === squadLeader.pos.roomName) {
         this.memory.inCombat = undefined;
         if (this.pos.getRangeTo(squadLeader) > 4) {
             this.shibMove(squadLeader, {allowHostile: true, movingTarget: true});
