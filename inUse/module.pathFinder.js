@@ -144,7 +144,7 @@ function shibMove(creep, heading, options = {}) {
                     // options.allowedRooms and options.routeCallback can also be used to handle this situation
                     if (roomDistance <= 2) {
                         options.useFindRoute = true;
-                        ret = this.findTravelPath(origin, destination, options);
+                        ret = this.findTravelPath(origin, target, options);
                         return ret;
                     }
                 }
