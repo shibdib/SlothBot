@@ -28,7 +28,7 @@ function role(creep) {
                     break;
                 } else if (Game.getObjectById(boostHub.lab1).energy < Game.getObjectById(boostHub.lab1).energyCapacity) {
                     creep.memory.haulingMineral = RESOURCE_ENERGY;
-                    creep.memory.deliverTo = creep.room.memory.reactions[key].lab1;
+                    creep.memory.deliverTo = boostHub.lab1;
                     break;
                 }
             } else if (Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount < 500 && Game.getObjectById(creep.room.memory.reactions[key].lab1).mineralAmount !== 3000) {
