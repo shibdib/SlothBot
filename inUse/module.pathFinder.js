@@ -85,7 +85,7 @@ function shibPath(creep, pathInfo, origin, target, options) {
     //check for cached
     let cached;
     if (options.useCache) cached = getPath(origin, target);
-    if (cached && options.ignoreCreeps) {
+    if (cached && options.ignoreCreeps && options.useCache) {
         pathInfo.target = target;
         pathInfo.path = cached;
         if (pathInfo.path.length <= 1) {
