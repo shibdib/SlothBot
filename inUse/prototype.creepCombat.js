@@ -292,11 +292,11 @@ Creep.prototype.siege = function () {
     }
     if (!target) {
         this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
-        return;
     } else {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
                 this.shibMove(target);
+                this.memory.siegeTarget = undefined;
                 break;
         }
         return true;
