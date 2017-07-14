@@ -67,7 +67,7 @@ function SKdeposit(creep) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             creep.memory.containerBuilding = undefined;
-            if (container.hits < container.hitsMax * 0.25 && creep.carry[RESOURCE_ENERGY] > 0) {
+            if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
                 creep.repair(container);
                 creep.say('Fixing');
             } else if (_.sum(container.store) !== container.storeCapacity) {

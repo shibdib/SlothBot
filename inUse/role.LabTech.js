@@ -22,6 +22,7 @@ function role(creep) {
         if (creep.room.memory.reactions[key].assignedHub) {
             if (creep.room.memory.reactions.boostHub) {
                 let boostHub = creep.room.memory.reactions.labHubs[creep.room.memory.reactions.boostHub];
+                //Upgrade boosts
                 if (Game.getObjectById(boostHub.lab1).mineralAmount < 600) {
                     creep.memory.haulingMineral = RESOURCE_CATALYZED_GHODIUM_ACID;
                     creep.memory.deliverTo = boostHub.lab1;
