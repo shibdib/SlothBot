@@ -43,10 +43,6 @@ function depositEnergy(creep) {
     if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
-    let opportunity = _.min(creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.energy < s.energyCapacity}), 'energy');
-    if (opportunity) {
-        creep.transfer(opportunity, RESOURCE_ENERGY);
-    } else
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
