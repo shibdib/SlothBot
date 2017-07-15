@@ -22,7 +22,7 @@ function roomBuilding() {
         if (!spawn.room.memory.primarySpawn) {
             spawn.room.memory.primarySpawn = spawn.id;
         } else if (spawn.room.memory.primarySpawn === spawn.id) {
-            //buildRoads(spawn);
+            buildRoads(spawn);
             buildExtensions(spawn);
             buildTower(spawn);
             buildStorage(spawn);
