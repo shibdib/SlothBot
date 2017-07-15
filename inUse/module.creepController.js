@@ -15,16 +15,18 @@ function creepControl() {
         creep.notifyWhenAttacked(false);
 
         //Military
-        if (creep.memory.role === 'ranged') roleRanged.role(creep);
-        if (creep.memory.role === 'healer') roleHealer.role(creep);
-        if (creep.memory.role === 'deconstructor') roleDeconstructor.role(creep);
-        if (creep.memory.role === 'scout') roleScout.role(creep);
-        if (creep.memory.role === 'attacker') roleAttacker.role(creep);
-        if (creep.memory.role === 'reserver') roleReserver.role(creep);
-        if (creep.memory.role === 'claimer') roleClaimer.role(creep);
-        if (creep.memory.role === 'responder') roleResponder.role(creep);
-        if (creep.memory.role === 'raider') roleRaider.role(creep);
-        if (creep.memory.role === 'drainer') roleDrainer.role(creep);
+        if (Game.cpu.bucket > 1500) {
+            if (creep.memory.role === 'ranged') roleRanged.role(creep);
+            if (creep.memory.role === 'healer') roleHealer.role(creep);
+            if (creep.memory.role === 'deconstructor') roleDeconstructor.role(creep);
+            if (creep.memory.role === 'scout') roleScout.role(creep);
+            if (creep.memory.role === 'attacker') roleAttacker.role(creep);
+            if (creep.memory.role === 'reserver') roleReserver.role(creep);
+            if (creep.memory.role === 'claimer') roleClaimer.role(creep);
+            if (creep.memory.role === 'responder') roleResponder.role(creep);
+            if (creep.memory.role === 'raider') roleRaider.role(creep);
+            if (creep.memory.role === 'drainer') roleDrainer.role(creep);
+        }
 
         //Haulers
         if (creep.memory.role === "pawn") {
@@ -51,19 +53,20 @@ function creepControl() {
         if (creep.memory.role === 'upgrader') roleUpgrader.role(creep);
         if (creep.memory.role === 'stationaryHarvester') roleHarvester.role(creep);
         if (creep.memory.role === 'mineralHarvester') roleMineralHarvester.role(creep);
-        if (creep.memory.role === 'SKworker') roleSKWorker.role(creep);
         if (creep.memory.role === 'resupply') roleResupply.role(creep);
 
-        //SK
-        if (creep.memory.role === 'SKworker') roleSKWorker.role(creep);
-        if (creep.memory.role === 'SKranged') roleSKRanged.role(creep);
-        if (creep.memory.role === 'SKattacker') roleSKAttacker.role(creep);
+        if (Game.cpu.bucket > 2500) {
+            //SK
+            if (creep.memory.role === 'SKworker') roleSKWorker.role(creep);
+            if (creep.memory.role === 'SKranged') roleSKRanged.role(creep);
+            if (creep.memory.role === 'SKattacker') roleSKAttacker.role(creep);
 
-        //Remotes
-        if (creep.memory.role === 'remoteHarvester') roleRemoteHarvester.role(creep);
-        if (creep.memory.role === 'remoteHauler') roleRemoteHauler.role(creep);
-        if (creep.memory.role === 'pioneer') rolePioneer.role(creep);
-        if (creep.memory.role === 'explorer') roleExplorer.role(creep);
+            //Remotes
+            if (creep.memory.role === 'remoteHarvester') roleRemoteHarvester.role(creep);
+            if (creep.memory.role === 'remoteHauler') roleRemoteHauler.role(creep);
+            if (creep.memory.role === 'pioneer') rolePioneer.role(creep);
+            if (creep.memory.role === 'explorer') roleExplorer.role(creep);
+        }
     }
 }
 module.exports.creepControl = profiler.registerFN(creepControl, 'creepController');

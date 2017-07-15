@@ -14,9 +14,7 @@ require("military.tacticsRanged");
 require("military.tacticsMelee");
 require("military.tacticsMedic");
 require("military.tacticsDeconstructor");
-let roomController = require('module.roomController');
 let creepController = require('module.creepController');
-let towerController = require('module.towerController');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
@@ -62,7 +60,10 @@ module.exports.loop = function () {
 
         //Room Management
         Memory.stats.cpu.preRoom = Game.cpu.getUsed();
-        roomController.roomControl();
+        if (Game.cpu.bucket > 5000) {
+            let roomController = require('module.roomController');
+            roomController.roomControl();
+        }
 
         //Military management
         Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
@@ -84,7 +85,10 @@ module.exports.loop = function () {
 
         //Tower Management
         Memory.stats.cpu.preTower = Game.cpu.getUsed();
-        towerController.towerControl();
+        if (Game.cpu.bucket > 2500) {
+            let towerController = require('module.towerController');
+            towerController.towerControl();
+        }
 
         //Link Management
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
