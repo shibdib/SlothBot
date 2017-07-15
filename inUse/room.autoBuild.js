@@ -18,7 +18,6 @@ function roomBuilding() {
             buildExtensions(spawn);
             buildTower(spawn);
             buildStorage(spawn);
-            buildRamparts(spawn);
 
             if (Game.time % 300 === 0) {
                 borderWalls(spawn);
@@ -31,6 +30,7 @@ function roomBuilding() {
                     }
                 }
             }
+            buildRamparts(spawn);
         }
     }
 }
@@ -58,12 +58,9 @@ function buildRamparts(spawn) {
     if (spawn.room.controller.level >= 4) {
         let protectedStructures = [
             STRUCTURE_SPAWN,
-            STRUCTURE_EXTENSION,
-            STRUCTURE_LINK,
             STRUCTURE_STORAGE,
             STRUCTURE_TOWER,
             STRUCTURE_POWER_SPAWN,
-            STRUCTURE_LAB,
             STRUCTURE_TERMINAL,
             STRUCTURE_CONTAINER,
             STRUCTURE_NUKER,
