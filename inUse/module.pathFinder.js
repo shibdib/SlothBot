@@ -103,7 +103,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let destRoomName = target.roomName;
         let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
         let allowedRooms = options.route;
-        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
+        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 0))) {
             let route;
             if (options.useCache) {
                 route = getRoute(origin, target);
