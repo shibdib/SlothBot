@@ -145,6 +145,26 @@ function attackForce(spawn, level) {
                 console.log(spawn.room.name + ' Spawning an healer');
                 return true;
             }
+            if (spawn.room.controller.level >= 4) {
+                let drainer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'drainer');
+                if (drainer.length < Memory.militaryNeeds[key].drainer && spawn.createCreep(SPAWN[level].drainer, 'drainer' + Game.time, {
+                        role: 'drainer',
+                        roleGroup: 'military',
+                        assignedSpawn: spawn.id,
+                        assignedRoom: spawn.room.name,
+                        attackTarget: key,
+                        attackType: Memory.warControl[key].type,
+                        siegePoint: Memory.warControl[key].siegePoint,
+                        staging: 'W53N80',
+                        waitForHealers: Memory.militaryNeeds[key].healer,
+                        waitForAttackers: Memory.militaryNeeds[key].attacker,
+                        waitForRanged: Memory.militaryNeeds[key].ranged,
+                        waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
+                    }) === 'drainer' + Game.time) {
+                    console.log(spawn.room.name + ' Spawning a drainer');
+                    return true;
+                }
+            }
             if (spawn.room.controller.level >= 5) {
                 let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'ranged');
                 if (ranged.length < Memory.militaryNeeds[key].ranged && spawn.createCreep(SPAWN[level].ranged, 'ranged' + Game.time, {
@@ -181,26 +201,6 @@ function attackForce(spawn, level) {
                     }) === 'deconstructor' + Game.time) {
                     console.log(spawn.room.name + ' Spawning an deconstructor');
                     return true;
-                }
-                if (spawn.room.controller.level >= 7) {
-                    let drainer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'drainer');
-                    if (drainer.length < Memory.militaryNeeds[key].drainer && spawn.createCreep(SPAWN[level].drainer, 'drainer' + Game.time, {
-                            role: 'drainer',
-                            roleGroup: 'military',
-                            assignedSpawn: spawn.id,
-                            assignedRoom: spawn.room.name,
-                            attackTarget: key,
-                            attackType: Memory.warControl[key].type,
-                            siegePoint: Memory.warControl[key].siegePoint,
-                            staging: 'W53N80',
-                            waitForHealers: Memory.militaryNeeds[key].healer,
-                            waitForAttackers: Memory.militaryNeeds[key].attacker,
-                            waitForRanged: Memory.militaryNeeds[key].ranged,
-                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
-                        }) === 'drainer' + Game.time) {
-                        console.log(spawn.room.name + ' Spawning a drainer');
-                        return true;
-                    }
                 }
             }
         }
@@ -341,8 +341,12 @@ function workers(spawn, level) {
         }
         if (spawn.room.memory.responseNeeded !== true) {
             let count;
-            if (spawn.room.controller.level === 8){ count = 1; }
-            else {count = 2;}
+            if (spawn.room.controller.level === 8) {
+                count = 1;
+            }
+            else {
+                count = 2;
+            }
             if (upgraders.length < count && spawn.createCreep(SPAWN[level].upgrader, 'upgrader' + Game.time, {
                     role: 'upgrader',
                     roleGroup: 'workers',
