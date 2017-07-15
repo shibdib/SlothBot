@@ -12,7 +12,8 @@ let protectedStructures = [
     STRUCTURE_TOWER,
     STRUCTURE_POWER_SPAWN,
     STRUCTURE_NUKER,
-    STRUCTURE_OBSERVER
+    STRUCTURE_OBSERVER,
+    STRUCTURE_CONTAINER
 ];
 
 function roomBuilding() {
