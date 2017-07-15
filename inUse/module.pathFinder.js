@@ -220,7 +220,7 @@ function findRoute(origin, destination, options = {}) {
                     ((fMod >= 4) && (fMod <= 6)) &&
                     ((sMod >= 4) && (sMod <= 6));
                 if (isSK) {
-                    return 10 * highwayBias;
+                    return 4 * highwayBias;
                 }
             }
             return 2.5;
