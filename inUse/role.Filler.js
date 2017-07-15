@@ -13,9 +13,13 @@ function role(creep) {
     if (creep.wrongRoom()) return null;
     let getters = _.filter(Game.creeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
     if (getters.length === 0) {
+        creep.memory.energyDestination = undefined;
+        creep.memory.storageDestination = undefined;
         creep.memory.role = 'basicHauler';
     }
     if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
+        creep.memory.energyDestination = undefined;
+        creep.memory.storageDestination = undefined;
         creep.memory.role = 'basicHauler';
     }
     if (creep.carry.energy === 0) {

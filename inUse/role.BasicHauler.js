@@ -13,6 +13,8 @@ function role(creep) {
     if (creep.wrongRoom()) return null;
     let basicHaulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === creep.room.name);
     if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2) {
+        creep.memory.energyDestination = undefined;
+        creep.memory.storageDestination = undefined;
         creep.memory.role = 'pawn';
     }
     //INITIAL CHECKS
