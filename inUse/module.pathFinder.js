@@ -172,12 +172,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
             roomCallback: callback,
         });
-        /**if (ret.incomplete || options.ensurePath || ret.length <= 1) {
+        if (ret.incomplete || options.ensurePath) {
             if (roomDistance <= 2) {
                 options.useFindRoute = true;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             }
-        }**/
+        }
         pathInfo.path = serializePath(creep.pos, ret.path);
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
