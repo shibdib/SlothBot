@@ -170,6 +170,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (ret.incomplete || options.ensurePath) {
             if (roomDistance <= 2 && !pathInfo.findAttempt) {
                 options.useFindRoute = true;
+                options.allowSK = true;
                 pathInfo.findAttempt = true;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
