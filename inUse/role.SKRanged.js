@@ -32,7 +32,7 @@ function role(creep) {
         }
         return null;
     }
-    let targets = _.min(this.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
+    let targets = _.min(creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
     } else if (targets) {
