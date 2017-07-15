@@ -344,8 +344,10 @@ function workers(spawn, level) {
             if (spawn.room.controller.level === 8) {
                 count = 1;
             }
-            else {
+            else if (spawn.room.controller.level >= 6){
                 count = 2;
+            } else {
+                count = 4;
             }
             if (upgraders.length < count && spawn.createCreep(SPAWN[level].upgrader, 'upgrader' + Game.time, {
                     role: 'upgrader',
