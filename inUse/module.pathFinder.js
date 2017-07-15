@@ -205,12 +205,14 @@ function findRoute(origin, destination, options = {}) {
                 return Number.POSITIVE_INFINITY;
             }
             let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+            let isAllyRoom = Game.rooms[roomName] &&
+                Game.rooms[roomName].controller && _.includes(RawMemory.segments[2], Game.rooms[roomName].controller.owner['username']);
             let isHighway = (parsed[1] % 10 === 0) ||
                 (parsed[2] % 10 === 0);
             let isMyRoom = Game.rooms[roomName] &&
                 Game.rooms[roomName].controller &&
                 Game.rooms[roomName].controller.my;
-            if (isHighway || isMyRoom) {
+            if (isHighway || isMyRoom || isAllyRoom) {
                 return 1;
             } else
             // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed

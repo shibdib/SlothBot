@@ -3,8 +3,6 @@
  */
 const profiler = require('screeps-profiler');
 
-let doNotAggress = RawMemory.segments[2];
-
 tacticSiege = function () {
     let squadLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
@@ -14,7 +12,7 @@ tacticSiege = function () {
     if (this.memory.assignedSquadLeader) {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
     }
-    let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
+    let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
     if (this.hits < this.hitsMax) {
         this.heal(this);
     }
