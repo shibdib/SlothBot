@@ -262,6 +262,20 @@ Creep.prototype.siege = function () {
         }
     }
     if (!target || target === null) {
+        let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false}), 'hits');
+        if (lowHit.length > 0) {
+            target = lowHit[0];
+            this.memory.siegeTarget = target.id;
+            this.memory.siegeComplete = undefined;
+        }
+    }
+    if (!target || target === null) {
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false});
+        if (target) {
+            this.memory.siegeComplete = undefined;
+        }
+    }
+    if (!target || target === null) {
         target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false});
         if (target) {
             this.memory.siegeTarget = target.id;
@@ -281,20 +295,6 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = undefined;
         }
     }**/
-    if (!target || target === null) {
-        let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false}), 'hits');
-        if (lowHit.length > 0) {
-            target = lowHit[0];
-            this.memory.siegeTarget = target.id;
-            this.memory.siegeComplete = undefined;
-        }
-    }
-    if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false});
-        if (target) {
-            this.memory.siegeComplete = undefined;
-        }
-    }
     if (Game.getObjectById(this.memory.siegeTarget)) {
         target = Game.getObjectById(this.memory.siegeTarget);
     }
