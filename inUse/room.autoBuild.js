@@ -9,11 +9,13 @@ const profiler = require('screeps-profiler');
 let constructionSites = _.filter(Game.constructionSites);
 let protectedStructures = [
     STRUCTURE_SPAWN,
+    STRUCTURE_STORAGE,
     STRUCTURE_TOWER,
     STRUCTURE_POWER_SPAWN,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_CONTAINER,
     STRUCTURE_NUKER,
-    STRUCTURE_OBSERVER,
-    STRUCTURE_CONTAINER
+    STRUCTURE_OBSERVER
 ];
 
 function roomBuilding() {
@@ -34,7 +36,7 @@ function roomBuilding() {
             for (let key in Game.constructionSites) {
                 let sources = spawn.room.find(FIND_SOURCES);
                 if (Game.constructionSites[key].pos.checkForAllStructure().length > 0 || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1) {
-                    if (!_.includes(protectedStructures, Game.constructionSites[key].structureType)) {
+                    if (!_.includes(protectedStructures, Game.constructionSites[key].structureType) || Game.constructionSites[key].structureType === STRUCTURE_ROAD) {
                         Game.constructionSites[key].remove();
                     }
                 }
