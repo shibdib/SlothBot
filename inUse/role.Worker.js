@@ -24,14 +24,14 @@ function role(creep) {
         if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(construction);
+                creep.shibMove(construction, {range: 3});
             }
         } else {
             creep.findRepair(creep.room.controller.level);
             if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
                 let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(repairNeeded);
+                    creep.shibMove(repairNeeded, {range: 3});
                 }
             } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
