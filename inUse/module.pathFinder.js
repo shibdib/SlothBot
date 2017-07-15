@@ -91,11 +91,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     if (cached && options.ignoreCreeps && options.useCache) {
         pathInfo.target = target;
         pathInfo.path = cached;
-        if (pathInfo.path.length <= 1) {
-            options.useCache = false;
-            options.useFindRoute = true;
-            return shibPath(creep, heading, pathInfo, origin, target, options);
-        }
         pathInfo.usingCached = true;
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
