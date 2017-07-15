@@ -41,7 +41,7 @@ tacticSiege = function () {
         this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
         if (this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.siegePoint)) > 24) {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
+            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 5});
         } else {
             this.memory.siegeStarted = true;
         }
