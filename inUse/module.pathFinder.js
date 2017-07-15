@@ -181,7 +181,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 }
 
 function findRoute(origin, destination, options = {}) {
-    let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 10;
+    let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
     let allowedRooms = {[origin]: true, [destination]: true};
     let highwayBias = 1;
     if (options.preferHighway) {
@@ -192,6 +192,11 @@ function findRoute(origin, destination, options = {}) {
     }
     return Game.map.findRoute(origin, destination, {
         routeCallback(roomName) {
+            let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
+            if (rangeToRoom > restrictDistance) {
+                // room is too far out of the way
+                return Number.POSITIVE_INFINITY;
+            }
             let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
             let isHighway = (parsed[1] % 10 === 0) ||
                 (parsed[2] % 10 === 0);
