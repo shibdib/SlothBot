@@ -190,6 +190,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.target = target;
         cachePath(origin, target, pathInfo.path);
         pathInfo.findAttempt = undefined;
+        creep.memory.badPathing = undefined;
         return creep.move(nextDirection);
     }
 }
