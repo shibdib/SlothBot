@@ -109,9 +109,16 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
         let allowedRooms = options.route;
         if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
-            let route = findRoute(origin.roomName, target.roomName, options);
+            let route;
+            if (options.useCache) {
+                route = getRoute(origin, target);
+            }
+            if (!route) {
+                route = findRoute(origin.roomName, target.roomName, options);
+            }
             if (route) {
                 allowedRooms = route;
+                cacheRoute(origin, target, route);
             }
         }
         let roomsSearched = 0;
@@ -320,6 +327,30 @@ function positionAtDirection(origin, direction) {
         return;
     }
     return new RoomPosition(x, y, origin.roomName);
+}
+function cacheRoute(from, to, route) {
+    let key = getPathKey(from, to);
+    let cache = Memory.routeCache || {};
+    let tick = Game.time;
+    cache[key] = {
+        route: route,
+        uses: 1,
+        tick: tick
+    };
+    Memory.routeCache = cache;
+}
+function getRoute(from, to) {
+    let cache = Memory.routeCache;
+    if (cache) {
+        let cachedRoute = cache[getPathKey(from, to)];
+        if (cachedRoute) {
+            cachedRoute.uses += 1;
+            Memory.routeCache = cache;
+            return cachedRoute.route;
+        }
+    } else {
+        return null;
+    }
 }
 
 function cachePath(from, to, path) {
