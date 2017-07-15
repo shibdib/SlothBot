@@ -87,7 +87,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     pathInfo.pathPosTime = 1;
     //check for cached
     let cached;
-    if (options.useCache) cached = getPath(origin, target);
+    let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
+    if (options.useCache && roomDistance !== 1) cached = getPath(origin, target);
     if (cached && options.ignoreCreeps && options.useCache) {
         pathInfo.target = target;
         pathInfo.path = cached;
@@ -101,7 +102,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.usingCached = false;
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
-        let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
         let allowedRooms = options.route;
         if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 0))) {
             let route;
