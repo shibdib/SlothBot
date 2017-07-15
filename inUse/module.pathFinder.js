@@ -333,7 +333,7 @@ function cacheRoute(from, to, route) {
     let cache = Memory.routeCache || {};
     let tick = Game.time;
     cache[key] = {
-        route: route,
+        route: JSON.stringify(route),
         uses: 1,
         tick: tick
     };
@@ -346,7 +346,7 @@ function getRoute(from, to) {
         if (cachedRoute) {
             cachedRoute.uses += 1;
             Memory.routeCache = cache;
-            return cachedRoute.route;
+            return JSON.parse(cachedRoute.route);
         }
     } else {
         return null;
