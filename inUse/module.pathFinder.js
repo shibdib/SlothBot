@@ -168,9 +168,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             roomCallback: callback,
         });
         if (ret.incomplete || options.ensurePath) {
-            if (roomDistance <= 2) {
+            if (roomDistance <= 2 && !pathInfo.findAttempt) {
                 options.useFindRoute = true;
+                pathInfo.findAttempt = true;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
+            } else if (pathInfo.findAttempt) {
+                console.log(creep.name + ' pathing error')
             }
         }
         pathInfo.path = serializePath(creep.pos, ret.path);
@@ -178,6 +181,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
         pathInfo.target = target;
         cachePath(origin, target, pathInfo.path);
+        pathInfo.findAttempt = undefined;
         return creep.move(nextDirection);
     }
 }
