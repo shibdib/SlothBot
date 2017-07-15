@@ -9,6 +9,11 @@ function role(creep) {
     //Invader detection
     invaderCheck(creep);
 
+    if(creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})){
+        creep.memory.role = 'worker';
+        return;
+    }
+
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
