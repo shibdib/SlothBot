@@ -49,7 +49,7 @@ function role(creep) {
                         creep.heal(creep);
                         break;
                     case ERR_TIRED:
-                        creep.idleFor(source.cooldown)
+                        creep.idleFor(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown)
                 }
             }
         } else {
