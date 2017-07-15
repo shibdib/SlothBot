@@ -546,7 +546,7 @@ neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
 
 function getLevel(spawn) {
     let energy = spawn.room.energyCapacityAvailable;
-    if (energy === RCL_1_ENERGY) {
+    if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
         return 1;
     } else if (energy >= RCL_2_ENERGY && energy < RCL_3_ENERGY) {
         return 2
