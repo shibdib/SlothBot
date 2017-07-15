@@ -28,8 +28,11 @@ function role(creep) {
                 creep.rangedAttack(hostiles);
         }
     } else {
+        let targets = _.min(this.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
+        } else if (targets) {
+            creep.rangedHeal(targets);
         }
         let lair = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}), 'ticksToSpawn');
         creep.shibMove(lair);

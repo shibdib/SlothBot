@@ -32,8 +32,11 @@ function role(creep) {
         }
         return null;
     }
+    let targets = _.min(this.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
+    } else if (targets) {
+        creep.rangedHeal(targets);
     }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     let hostileHealer = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(HEAL) > 2});
