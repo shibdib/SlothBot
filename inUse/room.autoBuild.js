@@ -9,11 +9,8 @@ const profiler = require('screeps-profiler');
 let constructionSites = _.filter(Game.constructionSites);
 let protectedStructures = [
     STRUCTURE_SPAWN,
-    STRUCTURE_STORAGE,
     STRUCTURE_TOWER,
     STRUCTURE_POWER_SPAWN,
-    STRUCTURE_TERMINAL,
-    STRUCTURE_CONTAINER,
     STRUCTURE_NUKER,
     STRUCTURE_OBSERVER
 ];
