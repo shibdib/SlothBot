@@ -173,7 +173,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 pathInfo.findAttempt = true;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
-                console.log(creep.name + ' pathing error')
+                console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "."+ creep.pos.y + "."+ creep.pos.roomName +" to " + target.x + "."+ target.y + "."+ target.roomName +"</font>")
             }
         }
         pathInfo.path = serializePath(creep.pos, ret.path);
