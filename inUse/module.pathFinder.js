@@ -96,6 +96,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
         creep.say(ICONS.recycle);
+        pathInfo.findAttempt = undefined;
+        creep.memory.badPathing = undefined;
         return creep.move(nextDirection);
     } else {
         creep.say(ICONS.moveTo);
