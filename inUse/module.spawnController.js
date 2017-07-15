@@ -263,7 +263,8 @@ function scouts(spawn, level) {
 scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 
 function haulers(spawn, level) {
-    if (spawn.room.controller.level < 4 || !spawn.room.memory.storageBuilt) {
+    let storage = spawn.room.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
+    if (spawn.room.controller.level < 4 || !storage[0]) {
         if (_.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
             spawn.room.memory.storageBuilt = true;
         }
@@ -277,7 +278,7 @@ function haulers(spawn, level) {
             console.log(spawn.room.name + ' Spawning a basicHauler');
             return true;
         }
-    } else if (spawn.room.memory.storageBuilt === true) {
+    } else if (storage[0]) {
         if (_.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'storage'), 'id').length < 1) {
             spawn.room.memory.storageBuilt = undefined;
         }
