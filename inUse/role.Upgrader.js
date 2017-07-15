@@ -41,7 +41,7 @@ function role(creep) {
     }
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
+            creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller, {range: 3});
         }
     } else {
         if (creep.memory.energyDestination) {
