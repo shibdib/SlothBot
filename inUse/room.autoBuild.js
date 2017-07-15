@@ -2,6 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 let functions = require('module.functions');
+let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 
@@ -13,11 +14,11 @@ function roomBuilding() {
         if (!spawn.room.memory.primarySpawn) {
             spawn.room.memory.primarySpawn = spawn.id;
         } else if (spawn.room.memory.primarySpawn === spawn.id) {
-            roadSources(spawn);
+            buildRoads(spawn);
             buildExtensions(spawn);
-            roadController(spawn);
             buildTower(spawn);
             buildStorage(spawn);
+            buildRamparts(spawn);
 
             if (Game.time % 300 === 0) {
                 borderWalls(spawn);
@@ -35,53 +36,45 @@ function roomBuilding() {
 }
 module.exports.roomBuilding = profiler.registerFN(roomBuilding, 'roomBuilding');
 
-function roadSources(spawn) {
-    if (constructionSites.length > 30) {
-        if (spawn.room.controller.level >= 3) {
-            const sources = spawn.room.find(FIND_SOURCES);
-            for (let i = 0; i < sources.length; i++) {
-                let path = spawn.room.findPath(spawn.pos, sources[i].pos, {
-                    maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
-                });
-                for (let i = 0; i < path.length; i++) {
-                    if (path[i] !== undefined) {
-                        let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
-                        const roadCheck = build.lookFor(LOOK_STRUCTURES);
-                        const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-                        if (constructionCheck.length > 0 || roadCheck.length > 0) {
-                        } else {
-                            build.createConstructionSite(STRUCTURE_ROAD);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-roadSources = profiler.registerFN(roadSources, 'roadSourcesBuilder');
+function buildRoads(spawn) {
+    let spawner = spawn.room.find(FIND_MY_SPAWNS)[0];
 
-function roadController(spawn) {
-    if (constructionSites.length > 30) {
-        if (spawn.room.controller.level >= 2) {
-            let controller = spawn.room.controller;
-            let path = spawn.room.findPath(spawn.pos, controller.pos, {
-                maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
-            });
-            for (let i = 0; i < path.length; i++) {
-                if (path[i] !== undefined) {
-                    let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
-                    const roadCheck = build.lookFor(LOOK_STRUCTURES);
-                    const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-                    if (constructionCheck.length > 0 || roadCheck.length > 0) {
-                    } else {
-                        build.createConstructionSite(STRUCTURE_ROAD);
-                    }
-                }
-            }
+    for (let source of spawn.room.find(FIND_SOURCES)) {
+        buildRoadAround(spawn.room, source.pos);
+        buildRoadFromTo(spawn.room, spawner, source);
+    }
+
+    if (spawn.room.controller) {
+        buildRoadAround(spawn.room, spawn.room.controller.pos);
+        let target = spawn.room.controller.pos.findClosestByRange(FIND_SOURCES);
+        if (target) {
+            buildRoadFromTo(spawn.room, spawn.room.controller, target);
         }
     }
 }
-roadController = profiler.registerFN(roadController, 'roadControllerBuilder');
+buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
+
+function buildRamparts(spawn) {
+    if (spawn.room.controller.level >= 4) {
+        let protectedStructures = [
+            STRUCTURE_SPAWN,
+            STRUCTURE_EXTENSION,
+            STRUCTURE_LINK,
+            STRUCTURE_STORAGE,
+            STRUCTURE_TOWER,
+            STRUCTURE_POWER_SPAWN,
+            STRUCTURE_LAB,
+            STRUCTURE_TERMINAL,
+            STRUCTURE_CONTAINER,
+            STRUCTURE_NUKER,
+            STRUCTURE_OBSERVER
+        ];
+        for (let store of spawn.room.find(FIND_STRUCTURES, {filter: (s) => protectedStructures.includes(s.structureType)})) {
+            spawn.room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
+        }
+    }
+}
+buildRamparts = profiler.registerFN(buildRamparts, 'buildRampartsBuilder');
 
 function buildExtensions(spawn) {
     if (spawn.room.controller.level >= 2) {
@@ -374,4 +367,27 @@ borderWalls = profiler.registerFN(borderWalls, 'borderWallsBuilder');
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function buildRoadFromTo(room, start, end) {
+    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: true});
+    for (let point of path) {
+        buildRoad(new RoomPosition(point.x, point.y, room.name));
+    }
+}
+function buildRoadAround(room, position) {
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name));
+            }
+        }
+    }
+}
+function buildRoad(position) {
+    const roadableStructures = [
+        STRUCTURE_RAMPART,
+        STRUCTURE_CONTAINER
+    ];
+    if (_.any(position.lookFor(LOOK_STRUCTURES), (s) => !roadableStructures.includes(s.structureType))) return;
+    position.createConstructionSite(STRUCTURE_ROAD);
 }
