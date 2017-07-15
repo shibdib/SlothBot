@@ -1,8 +1,6 @@
 const profiler = require('screeps-profiler');
 borderCheck = function () {
-    if (this.memory._shibMove.path) {
-        this.shibMove(this.memory._shibMove.target)
-    } else if (this.pos.x === 0 || this.pos.y === 0 || this.pos.x === 49 || this.pos.y === 49) {
+    if (this.pos.x === 0 || this.pos.y === 0 || this.pos.x === 49 || this.pos.y === 49) {
         if (this.pos.x === 0 && this.pos.y === 0) {
             this.move(BOTTOM_RIGHT);
         }
