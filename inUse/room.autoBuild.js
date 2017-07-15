@@ -7,6 +7,16 @@ const profiler = require('screeps-profiler');
 
 
 let constructionSites = _.filter(Game.constructionSites);
+let protectedStructures = [
+    STRUCTURE_SPAWN,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TOWER,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_CONTAINER,
+    STRUCTURE_NUKER,
+    STRUCTURE_OBSERVER
+];
 
 function roomBuilding() {
     for (let name in Game.spawns) {
@@ -18,6 +28,7 @@ function roomBuilding() {
             buildExtensions(spawn);
             buildTower(spawn);
             buildStorage(spawn);
+            buildRamparts(spawn);
 
             if (Game.time % 300 === 0) {
                 borderWalls(spawn);
@@ -25,12 +36,11 @@ function roomBuilding() {
             for (let key in Game.constructionSites) {
                 let sources = spawn.room.find(FIND_SOURCES);
                 if (Game.constructionSites[key].pos.checkForAllStructure().length > 0 || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1) {
-                    if (Game.constructionSites[key].structureType !== STRUCTURE_CONTAINER) {
+                    if (!_.includes(protectedStructures, Game.constructionSites[key].structureType)) {
                         Game.constructionSites[key].remove();
                     }
                 }
             }
-            buildRamparts(spawn);
         }
     }
 }
@@ -56,16 +66,6 @@ buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
 
 function buildRamparts(spawn) {
     if (spawn.room.controller.level >= 4) {
-        let protectedStructures = [
-            STRUCTURE_SPAWN,
-            STRUCTURE_STORAGE,
-            STRUCTURE_TOWER,
-            STRUCTURE_POWER_SPAWN,
-            STRUCTURE_TERMINAL,
-            STRUCTURE_CONTAINER,
-            STRUCTURE_NUKER,
-            STRUCTURE_OBSERVER
-        ];
         for (let store of spawn.room.find(FIND_STRUCTURES, {filter: (s) => protectedStructures.includes(s.structureType)})) {
             spawn.room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
