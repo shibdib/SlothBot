@@ -30,12 +30,9 @@ function role(creep) {
                 if (creep.withdraw(container[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container[0]);
                 }
-            } else if (creep.memory.source) {
-                if (creep.harvest(Game.getObjectById(creep.memory.source)) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(Game.getObjectById(creep.memory.source));
-                }
-            } else if (!creep.memory.source) {
-                creep.findSource();
+            } else {
+                let source = creep.pos.findClosestByRange(FIND_SOURCES);
+                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
         }
     } else if (!creep.memory.destinationReached && creep.memory.hauling === true) {
