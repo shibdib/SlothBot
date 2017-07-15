@@ -50,6 +50,10 @@ function role(creep) {
             } else {
                 creep.findEnergy();
             }
+            if (!creep.memory.energyDestination && creep.room.controller.level <= 2) {
+                let source = creep.pos.findClosestByRange(FIND_SOURCES);
+                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+            }
         }
     }
 }
