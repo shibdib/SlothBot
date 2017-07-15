@@ -174,6 +174,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 pathInfo.findAttempt = true;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
+                if (!creep.memory.badPathing) creep.memory.badPathing = 1;
+                if (creep.memory.badPathing) creep.memory.badPathing++;
+                if (creep.memory.badPathing > 15) {
+                    console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " is stuck, suiciding for the good of the CPU.</font>");
+                    creep.suicide();
+                }
                 console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "."+ creep.pos.y + "."+ creep.pos.roomName +" to " + target.x + "."+ target.y + "."+ target.roomName +" reverting to moveTo</font>")
                 return creep.moveTo(target);
             }
