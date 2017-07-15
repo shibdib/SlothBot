@@ -28,7 +28,7 @@ function role(creep) {
                 creep.rangedAttack(hostiles);
         }
     } else {
-        let targets = _.min(creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
+        let targets = _.min(creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true}), 'hits');
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
         } else if (targets) {
