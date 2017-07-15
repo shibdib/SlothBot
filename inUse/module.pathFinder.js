@@ -148,7 +148,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             }
             roomsSearched++;
             let matrix;
-            let room = Game.rooms[roomName];
+            let room = creep.room;
             if (room) {
                 if (options.ignoreStructures) {
                     matrix = new PathFinder.CostMatrix();
