@@ -31,12 +31,12 @@ tacticSquadLeaderMedic = function () {
                     this.memory.attackStarted = true;
                 }
             }
+        } else if (this.memory.attackType === 'siege' || this.memory.attackType === 'decon' && siege.length === 0) {
+            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 22});
         } else if (this.memory.attackType === 'raid' || siege.length > 0) {
             this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
             this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
-        } else if (this.memory.attackType === 'siege') {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 4});
         }
     } else if (targets.id && this.pos.getRangeTo(armedHostile) > this.pos.getRangeTo(targets)) {
         if (this.heal(targets) === ERR_NOT_IN_RANGE) {
