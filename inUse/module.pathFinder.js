@@ -14,7 +14,10 @@ function shibMove(creep, heading, options = {}) {
         allowHostile: false,
         allowSK: false,
         forceRepath: false,
+        findRoute: false,
         repathChance: 1,
+        preferHighway: false,
+        highwayBias: 2.5,
         maxRooms: 16
     });
     if (creep.fatigue > 0) {
@@ -75,11 +78,11 @@ function shibMove(creep, heading, options = {}) {
 
         //Otherwise find a path
     } else {
-        shibPath(creep, pathInfo, origin, target, options);
+        shibPath(creep, heading, pathInfo, origin, target, options);
     }
 }
 
-function shibPath(creep, pathInfo, origin, target, options) {
+function shibPath(creep, heading, pathInfo, origin, target, options) {
     creep.borderCheck();
     pathInfo.pathPosTime = 1;
     //check for cached
@@ -90,7 +93,8 @@ function shibPath(creep, pathInfo, origin, target, options) {
         pathInfo.path = cached;
         if (pathInfo.path.length <= 1) {
             options.useCache = false;
-            shibPath(creep, pathInfo, origin, target, options);
+            options.useFindRoute = true;
+            return shibPath(creep, heading, pathInfo, origin, target, options);
         }
         pathInfo.usingCached = true;
         let nextDirection = parseInt(pathInfo.path[0], 10);
@@ -102,9 +106,21 @@ function shibPath(creep, pathInfo, origin, target, options) {
         pathInfo.usingCached = false;
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
-        let roomsSearched = 0;
         let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
+        let allowedRooms = options.route;
+        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
+            let route = findRoute(origin.roomName, target.roomName, options);
+            if (route) {
+                allowedRooms = route;
+            }
+        }
+        let roomsSearched = 0;
         let callback = (roomName) => {
+            if (allowedRooms) {
+                if (!allowedRooms[roomName]) {
+                    return false;
+                }
+            }
             if (!options.allowHostile && checkAvoid(roomName)
                 && roomName !== destRoomName && roomName !== originRoomName) {
                 return false;
@@ -151,7 +167,8 @@ function shibPath(creep, pathInfo, origin, target, options) {
         });
         if (ret.incomplete || options.ensurePath || ret.length <= 1) {
             if (roomDistance <= 2) {
-                return creep.moveTo(target)
+                options.useFindRoute = true;
+                return shibPath(creep, heading, pathInfo, origin, target, options);
             }
         }
         pathInfo.path = serializePath(creep.pos, ret.path);
@@ -165,40 +182,40 @@ function shibPath(creep, pathInfo, origin, target, options) {
 
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 10;
+    let allowedRooms = {[origin]: true, [destination]: true};
+    let highwayBias = 1;
+    if (options.preferHighway) {
+        highwayBias = 2.5;
+        if (options.highwayBias) {
+            highwayBias = options.highwayBias;
+        }
+    }
     return Game.map.findRoute(origin, destination, {
-        routeCallback: (roomName) => {
-            if (options.routeCallback) {
-                let outcome = options.routeCallback(roomName);
-                if (outcome !== undefined) {
-                    return outcome;
-                }
-            }
-            let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
-            if (rangeToRoom > restrictDistance) {
-                // room is too far out of the way
-                return Number.POSITIVE_INFINITY;
-            }
-            if (!options.allowHostile && checkAvoid(roomName) &&
-                roomName !== destination && roomName !== origin) {
-                // room is marked as "avoid" in room memory
-                return Number.POSITIVE_INFINITY;
-            }
-            let parsed;
+        routeCallback(roomName) {
+            let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+            let isHighway = (parsed[1] % 10 === 0) ||
+                (parsed[2] % 10 === 0);
+            let isMyRoom = Game.rooms[roomName] &&
+                Game.rooms[roomName].controller &&
+                Game.rooms[roomName].controller.my;
+            if (isHighway || isMyRoom) {
+                return 1;
+            } else
             // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
             if (!options.allowSK && !Game.rooms[roomName]) {
-                if (!parsed) {
-                    parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-                }
                 let fMod = parsed[1] % 10;
                 let sMod = parsed[2] % 10;
                 let isSK = !(fMod === 5 && sMod === 5) &&
                     ((fMod >= 4) && (fMod <= 6)) &&
                     ((sMod >= 4) && (sMod <= 6));
                 if (isSK) {
-                    return 10;
+                    return 10 * highwayBias;
                 }
             }
-        },
+            return 2.5;
+        }
+    }).forEach(function(info) {
+        allowedRooms[info.room] = true;
     });
 }
 
