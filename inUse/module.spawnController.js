@@ -263,11 +263,7 @@ function scouts(spawn, level) {
 scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 
 function haulers(spawn, level) {
-    let storage = spawn.room.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
-    if (spawn.room.controller.level < 4 || !storage[0]) {
-        if (_.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
-            spawn.room.memory.storageBuilt = true;
-        }
+    if (spawn.room.controller.level < 4 || !Memory.stats.roomSummary[spawn.pos.roomName].has_storage) {
         let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === spawn.room.name);
         if (basicHauler.length < 2 && spawn.createCreep(SPAWN[level].hauler, 'basicHauler' + Game.time, {
                 role: 'basicHauler',
@@ -278,10 +274,7 @@ function haulers(spawn, level) {
             console.log(spawn.room.name + ' Spawning a basicHauler');
             return true;
         }
-    } else if (storage[0]) {
-        if (_.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'storage'), 'id').length < 1) {
-            spawn.room.memory.storageBuilt = undefined;
-        }
+    } else if (Memory.stats.roomSummary[spawn.pos.roomName].has_storage) {
         let pawn = _.filter(Game.creeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn') && creep.memory.assignedRoom === spawn.room.name);
         if (pawn.length === 0) {
             level = 1;
