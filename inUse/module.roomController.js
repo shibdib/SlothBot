@@ -318,6 +318,7 @@ function roomControl() {
         }
 
         //Process Build Queue
+        cleanQueue(currentRoom);
         currentRoom.processBuildQueue();
 
 
@@ -406,3 +407,9 @@ function neighborCheck(spawnRoom, remoteRoom) {
     }
 }
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
+
+function cleanQueue(room){
+    for (let key in room.memory.creepBuildQueue) {
+        if (room.memory.creepBuildQueue[key].room !== room.name) delete room.memory.creepBuildQueue[key];
+    }
+}
