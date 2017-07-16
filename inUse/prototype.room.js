@@ -123,7 +123,7 @@ Room.prototype.processBuildQueue = function () {
                             delete spawn.room.memory.creepBuildQueue[random.role];
                         } else {
                             spawn.room.visual.text('Queued - ' +
-                                topPriority.role,
+                                _.capitalize(topPriority.role),
                                 spawn.pos.x + 1,
                                 spawn.pos.y,
                                 {align: 'left', opacity: 0.8}
@@ -131,7 +131,7 @@ Room.prototype.processBuildQueue = function () {
                         }
                     } else {
                         spawn.room.visual.text('Queued - ' +
-                            topPriority.role,
+                            _.capitalize(topPriority.role),
                             spawn.pos.x + 1,
                             spawn.pos.y,
                             {align: 'left', opacity: 0.8}
