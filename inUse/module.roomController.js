@@ -104,7 +104,7 @@ function roomControl() {
                     count = 4;
                 }
                 if (upgraders.length < count) {
-                    queueCreep(currentRoom, 2, {
+                    queueCreep(currentRoom, 1, {
                         role: 'upgrader'
                     })
                 }
