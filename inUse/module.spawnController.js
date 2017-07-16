@@ -449,7 +449,7 @@ function remotes(spawn, level) {
         if (spawn.room.memory.remoteRooms) {
             for (let key in spawn.room.memory.remoteRooms) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.remoteRooms[key] && creep.memory.role === 'remoteHarvester');
-                if (remoteHarvester.length < Memory.roomCache[key].sources.length && spawn.createCreep(SPAWN[level].remoteHarvester, 'remoteHarvester' + Game.time, {
+                if (remoteHarvester.length < Memory.roomCache[spawn.room.memory.remoteRooms[key]].sources.length && spawn.createCreep(SPAWN[level].remoteHarvester, 'remoteHarvester' + Game.time, {
                         role: 'remoteHarvester',
                         roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
