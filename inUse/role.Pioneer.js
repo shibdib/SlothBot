@@ -52,7 +52,7 @@ function role(creep) {
         }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
         creep.findConstruction();
-        if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
+        if (creep.memory.task === 'build') {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             if (creep.build(construction) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(construction, {range: 3});
@@ -64,8 +64,8 @@ function role(creep) {
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(repairNeeded, {range: 3});
                 }
-            } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
+            } else if (creep.upgradeController(Game.room.controller) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(Game.room.controller);
             }
         }
     }
