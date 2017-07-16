@@ -92,7 +92,7 @@ module.exports.cacheRoomIntel = function (creep) {
             sk: sk
         };
         Memory.roomCache = cache;
-        if (sk) {
+        if (sk || sources.length > 0) {
             for (let key in Game.spawns) {
                 if (Game.map.getRoomLinearDistance(Game.spawns[key].pos.roomName, room.name) <= 2) {
                     if (Game.spawns[key].room.memory.skRooms) {
@@ -101,6 +101,15 @@ module.exports.cacheRoomIntel = function (creep) {
                         }
                     } else {
                         Game.spawns[key].room.memory.skRooms = [];
+                    }
+                    if (Game.map.getRoomLinearDistance(Game.spawns[key].pos.roomName, room.name) <= 1 && !owner && !sk) {
+                        if (Game.spawns[key].room.memory.remoteRooms) {
+                            if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === false) {
+                                Game.spawns[key].room.memory.remoteRooms.push(room.name);
+                            }
+                        } else {
+                            Game.spawns[key].room.memory.remoteRooms = [];
+                        }
                     }
                 }
             }

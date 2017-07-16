@@ -338,7 +338,7 @@ function workers(spawn, level) {
             if (spawn.room.controller.level === 8) {
                 count = 1;
             }
-            else if (spawn.room.controller.level >= 6){
+            else if (spawn.room.controller.level >= 6) {
                 count = 2;
             } else {
                 count = 4;
@@ -446,26 +446,26 @@ function remotes(spawn, level) {
                 }
             }
         }
-        for (let key in Memory.roomCache) {
-            if (neighborCheck(spawn.room.name, key) === true && key !== spawn.room.name && Memory.roomCache[key].sources.length > 0) {
-                let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHarvester');
+        if (spawn.room.memory.remoteRooms) {
+            for (let key in spawn.room.memory.remoteRooms) {
+                let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.remoteRooms[key] && creep.memory.role === 'remoteHarvester');
                 if (remoteHarvester.length < Memory.roomCache[key].sources.length && spawn.createCreep(SPAWN[level].remoteHarvester, 'remoteHarvester' + Game.time, {
                         role: 'remoteHarvester',
                         roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
-                        destination: key
+                        destination: spawn.room.memory.remoteRooms[key]
                     }) === 'remoteHarvester' + Game.time) {
                     console.log(spawn.room.name + ' Spawning a remoteHarvester');
                     return true;
                 }
-                let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHauler');
+                let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.remoteRooms[key] && creep.memory.role === 'remoteHauler');
                 if (remoteHauler.length < 1 && spawn.createCreep(SPAWN[level].remoteHauler, 'remoteHauler' + Game.time, {
                         role: 'remoteHauler',
                         roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
-                        destination: key
+                        destination: spawn.room.memory.remoteRooms[key]
                     }) === 'remoteHauler' + Game.time) {
                     console.log(spawn.room.name + ' Spawning an remoteHauler');
                     return true;
