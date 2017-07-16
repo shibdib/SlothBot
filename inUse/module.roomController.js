@@ -88,7 +88,7 @@ function roomControl() {
             })
         }
         if (currentRoom.controller.level >= 6) {
-            let minerals = spawn.pos.findClosestByRange(FIND_MINERALS);
+            let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
             let mineralHarvester = _.filter(roomCreeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester');
             if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0) {
                 queueCreep(currentRoom, 5, {
