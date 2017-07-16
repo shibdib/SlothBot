@@ -8,6 +8,10 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     //Invader detection
     invaderCheck(creep);
+    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
+        return creep.flee(hostiles);
+    }
 
     if(creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})){
         creep.memory.role = 'worker';
