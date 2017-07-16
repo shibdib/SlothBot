@@ -79,8 +79,8 @@ function buildExtensions(spawn) {
             let x;
             let y;
             for (let i = 1; i < 5; i++) {
-                x = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
-                y = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
+                x = getRandomInt(-_.round(spawn.room.controller.level*1.5, 0), _.round(spawn.room.controller.level*1.5, 0));
+                y = getRandomInt(-_.round(spawn.room.controller.level*1.5, 0), _.round(spawn.room.controller.level*1.5, 0));
                 let pos = new RoomPosition(spawn.pos.x + x, spawn.pos.y + y, spawn.pos.roomName);
                 if (pos.checkForAllStructure().length > 0) continue;
                 switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
