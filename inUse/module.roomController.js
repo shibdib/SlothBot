@@ -62,7 +62,7 @@ function roomControl() {
                 let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
                 let mineralHauler = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHauler');
                 if (mineralHauler.length < 1 && minerals.mineralAmount > 0) {
-                    queueCreep(currentRoom, 5, {
+                    queueCreep(currentRoom, 3, {
                         role: 'mineralHauler',
                         assignedMineral: minerals.id
                     })
@@ -84,7 +84,7 @@ function roomControl() {
                 count = 4;
             }
             if (upgraders.length < count) {
-                queueCreep(currentRoom, 5, {
+                queueCreep(currentRoom, 1, {
                     role: 'upgrader'
                 })
             }
@@ -92,7 +92,7 @@ function roomControl() {
                 let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
                 let mineralHarvester = _.filter(roomCreeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester');
                 if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0) {
-                    queueCreep(currentRoom, 5, {
+                    queueCreep(currentRoom, 2, {
                         role: 'mineralHarvester',
                         assignedMineral: minerals.id
                     })
@@ -114,7 +114,7 @@ function roomControl() {
                     if (Game.flags[pioneer] && Game.flags[pioneer].pos.roomName !== currentRoom.name) {
                         let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === pioneer && creep.memory.role === 'pioneer');
                         if (pioneers.length < 1) {
-                            queueCreep(currentRoom, 5, {
+                            queueCreep(currentRoom, 3, {
                                 role: 'pioneer',
                                 destination: pioneer
                             })
@@ -125,28 +125,28 @@ function roomControl() {
                     for (let key in currentRoom.memory.skRooms) {
                         let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKranged');
                         if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100))) {
-                            queueCreep(currentRoom, 5, {
+                            queueCreep(currentRoom, 3, {
                                 role: 'SKranged',
                                 destination: currentRoom.memory.skRooms[key]
                             })
                         }
                         let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKattacker');
                         if (SKAttacker.length < 1) {
-                            queueCreep(currentRoom, 5, {
+                            queueCreep(currentRoom, 3, {
                                 role: 'SKattacker',
                                 destination: currentRoom.memory.skRooms[key]
                             })
                         }
                         let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKworker');
                         if (SKworker.length < 4 && (SKRanged.length > 0 || SKAttacker.length > 0)) {
-                            queueCreep(currentRoom, 5, {
+                            queueCreep(currentRoom, 4, {
                                 role: 'SKworker',
                                 destination: currentRoom.memory.skRooms[key]
                             })
                         }
                         let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'remoteHauler');
                         if (SKhauler.length < SKworker.length && (SKRanged.length > 0 || SKAttacker.length > 0)) {
-                            queueCreep(currentRoom, 5, {
+                            queueCreep(currentRoom, 4, {
                                 role: 'remoteHauler',
                                 destination: currentRoom.memory.skRooms[key]
                             })
@@ -157,14 +157,14 @@ function roomControl() {
                     for (let key in currentRoom.memory.remoteRooms) {
                         let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[key] && creep.memory.role === 'remoteHarvester');
                         if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[key]].sources.length) {
-                            queueCreep(currentRoom, 5, {
+                            queueCreep(currentRoom, 3, {
                                 role: 'remoteHarvester',
                                 destination: currentRoom.memory.remoteRooms[key]
                             })
                         }
                         let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[key] && creep.memory.role === 'remoteHauler');
                         if (remoteHauler.length < 1) {
-                            queueCreep(currentRoom, 5, {
+                            queueCreep(currentRoom, 3, {
                                 role: 'remoteHauler',
                                 destination: currentRoom.memory.remoteRooms[key]
                             })
@@ -174,7 +174,7 @@ function roomControl() {
                 if (currentRoom.controller.level >= 4) {
                     let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === currentRoom.name && creep.memory.role === 'reserver');
                     if (reserver.length < _.round(Object.keys(Game.map.describeExits(currentRoom.name)).length, 0) / 2) {
-                        queueCreep(currentRoom, 5, {
+                        queueCreep(currentRoom, 2, {
                             role: 'reserver'
                         })
                     }
@@ -243,7 +243,7 @@ function roomControl() {
                     }
                     let attackers = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'attacker');
                     if (attackers.length < Memory.militaryNeeds[key].attacker) {
-                        queueCreep(currentRoom, 1, {
+                        queueCreep(currentRoom, 2, {
                             role: 'attacker',
                             attackTarget: key,
                             attackType: Memory.warControl[key].type,
@@ -257,7 +257,7 @@ function roomControl() {
                     }
                     let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'healer');
                     if (healer.length < Memory.militaryNeeds[key].healer) {
-                        queueCreep(currentRoom, 1, {
+                        queueCreep(currentRoom, 2, {
                             role: 'healer',
                             attackTarget: key,
                             attackType: Memory.warControl[key].type,
@@ -272,7 +272,7 @@ function roomControl() {
                     if (currentRoom.controller.level >= 3) {
                         let drainer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'drainer');
                         if (drainer.length < Memory.militaryNeeds[key].drainer) {
-                            queueCreep(currentRoom, 1, {
+                            queueCreep(currentRoom, 2, {
                                 role: 'drainer',
                                 attackTarget: key,
                                 attackType: Memory.warControl[key].type,
@@ -286,7 +286,7 @@ function roomControl() {
                         }
                         let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'ranged');
                         if (ranged.length < Memory.militaryNeeds[key].ranged) {
-                            queueCreep(currentRoom, 1, {
+                            queueCreep(currentRoom, 2, {
                                 role: 'ranged',
                                 attackTarget: key,
                                 attackType: Memory.warControl[key].type,
@@ -300,7 +300,7 @@ function roomControl() {
                         }
                         let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'deconstructor');
                         if (deconstructor.length < Memory.militaryNeeds[key].deconstructor) {
-                            queueCreep(currentRoom, 1, {
+                            queueCreep(currentRoom, 2, {
                                 role: 'deconstructor',
                                 attackTarget: key,
                                 attackType: Memory.warControl[key].type,
