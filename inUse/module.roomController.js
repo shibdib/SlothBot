@@ -342,6 +342,7 @@ module.exports.roomControl = profiler.registerFN(roomControl, 'roomControl');
 
 
 function queueCreep(room, importance, options = {}) {
+    let cache = room.memory.creepBuildQueue || {};
     if (!room.memory.creepBuildQueue) room.memory.creepBuildQueue = {};
     _.defaults(options, {
         role: undefined,
