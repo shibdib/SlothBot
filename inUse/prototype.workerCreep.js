@@ -391,11 +391,12 @@ getEnergy = function (range = 50, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length > 1) {
+                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.getRangeTo(this) * (1.1 - containerAmountWeighted);
+                const containerDistWeighted = object.pos.getRangeTo(this) * (1.1 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
@@ -444,10 +445,11 @@ getEnergy = function (range = 50, hauler = false) {
         for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
+                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
                 if (object.store[RESOURCE_ENERGY] <= 5000 || object.pos.getRangeTo(this) > range) {
                     continue;
                 }
-                const terminalDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1;
+                const terminalDistWeighted = _.round(object.pos.getRangeTo(this) * 0.3, 0) + 1 + (numberOfUsers / 2);
                 terminals.push({
                     id: terminal[i],
                     distWeighted: terminalDistWeighted,
