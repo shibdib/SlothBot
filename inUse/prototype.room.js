@@ -150,3 +150,20 @@ Room.prototype.processBuildQueue = function () {
         }
     }
 };
+//Room Cache
+///////////////////////////////////////////////////
+//STRUCTURE CACHE
+///////////////////////////////////////////////////
+Room.prototype.cacheRoomStructures = function (id) {
+    let structure = Game.getObjectById(id);
+    if (structure) {
+        let room = structure.room;
+        let cache = room.memory.structureCache || {};
+        let key = room.name + '.' + structure.pos.x + '.' + structure.pos.y;
+        cache[key] = {
+            id: structure.id,
+            type: structure.structureType
+        };
+        room.memory.structureCache = cache;
+    }
+};

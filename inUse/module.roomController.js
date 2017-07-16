@@ -329,7 +329,7 @@ function roomControl() {
             currentRoom.memory.structureCache = undefined;
             for (let structures of currentRoom.find(FIND_STRUCTURES)) {
                 if (structures.room === currentRoom && structures.structureType !== STRUCTURE_ROAD && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
-                    cache.cacheRoomStructures(structures.id);
+                    currentRoom.cacheRoomStructures(structures.id);
                 }
             }
         }
