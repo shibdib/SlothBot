@@ -47,7 +47,7 @@ Room.prototype.processBuildQueue = function () {
                 let topPriority = _.min(spawn.room.memory.creepBuildQueue, 'importance');
                 let role = topPriority.role;
                 let body = _.get(SPAWN[level], role);
-                if (topPriority) {
+                if (topPriority && typeof topPriority === 'object') {
                     _.defaults(topPriority, {
                         role: undefined,
                         assignedRoom: undefined,
