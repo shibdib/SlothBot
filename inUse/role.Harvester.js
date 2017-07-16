@@ -24,17 +24,16 @@ function role(creep) {
     if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
         depositEnergy(creep);
-    } else {
-        if (creep.memory.assignedSource) {
-            source = Game.getObjectById(creep.memory.assignedSource);
-            if (source.energy === 0) {
-                creep.idleFor(source.ticksToRegeneration + 1)
-            } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(source);
-            }
-        } else {
-            creep.findSource();
+    } else if (creep.memory.assignedSource) {
+        source = Game.getObjectById(creep.memory.assignedSource);
+        if (source.energy === 0) {
+            creep.idleFor(source.ticksToRegeneration + 1)
+        } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+            creep.shibMove(source);
         }
+    } else {
+        creep.findSource();
+        creep.memory.assignedSource = creep.memory.source;
     }
 }
 module.exports.role = profiler.registerFN(role, 'harvesterRole');
