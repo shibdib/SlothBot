@@ -265,7 +265,7 @@ scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 function haulers(spawn, level) {
     if (spawn.room.controller.level < 4 || !Memory.stats.roomSummary[spawn.pos.roomName].has_storage) {
         let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === spawn.room.name);
-        if (basicHauler.length < 2 && spawn.createCreep(SPAWN[level].hauler, 'basicHauler' + Game.time, {
+        if (basicHauler.length < 3 && spawn.createCreep(SPAWN[level].hauler, 'basicHauler' + Game.time, {
                 role: 'basicHauler',
                 roleGroup: 'haulers',
                 assignedSpawn: spawn.id,
