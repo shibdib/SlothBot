@@ -119,7 +119,7 @@ module.exports.loop = function () {
         Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
         if (Game.time % 10 === 0) {
             let spawnController = require('module.spawnController');
-            spawnController.creepRespawn();
+            //spawnController.creepRespawn();
         }
 
         //Alliance List Management
