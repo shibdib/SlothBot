@@ -30,13 +30,10 @@ function roomControl() {
 
             //Harvesters
             let sources = currentRoom.find(FIND_SOURCES);
-            for (let i = 0; i < sources.length; i++) {
-                if (_.filter(roomCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.assignedSource === sources[i].id).length < 1) {
-                    queueCreep(currentRoom, 1, {
-                        role: 'stationaryHarvester',
-                        assignedSource: sources[i].id
-                    })
-                }
+            if (_.filter(roomCreeps, (c) => c.memory.role === 'stationaryHarvester').length < sources.length) {
+                queueCreep(currentRoom, 1, {
+                    role: 'stationaryHarvester'
+                })
             }
 
             //Haulers
@@ -318,7 +315,6 @@ function roomControl() {
         }
 
         //Process Build Queue
-        cleanQueue(currentRoom);
         currentRoom.processBuildQueue();
 
 
@@ -407,9 +403,3 @@ function neighborCheck(spawnRoom, remoteRoom) {
     }
 }
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
-
-function cleanQueue(room){
-    for (let key in room.memory.creepBuildQueue) {
-        if (room.memory.creepBuildQueue[key].room !== room.name) delete room.memory.creepBuildQueue[key];
-    }
-}
