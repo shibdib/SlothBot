@@ -3,7 +3,6 @@
  */
 
 let _ = require('lodash');
-let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
 function role(creep) {

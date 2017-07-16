@@ -1,4 +1,3 @@
-let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
 const DEFAULT_MAXOPS = 10000;

@@ -8,7 +8,6 @@
 "use strict";
 
 let doNotAggress = RawMemory.segments[2];
-let cache = require('module.cache');
 Object.defineProperty(exports, "__esModule", {value: true});
 class Traveler {
     /**
