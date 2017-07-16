@@ -231,7 +231,7 @@ harvesters = profiler.registerFN(harvesters, 'harvestersSpawn');
 
 function scouts(spawn, level) {
     if (spawn.room.controller.level >= 2) {
-        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
+        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.assignedRoom === spawn.room.name);
         if (explorers.length < 1 && spawn.createCreep(SPAWN[level].explorer, 'explorer' + Game.time, {
                 role: 'explorer',
                 roleGroup: 'remotes',
