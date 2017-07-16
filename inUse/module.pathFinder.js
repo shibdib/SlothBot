@@ -44,6 +44,7 @@ function shibMove(creep, heading, options = {}) {
 
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
+    if (!origin || !target) return;
     //Delete path if target changed
    // if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
     //clear path if stuck
