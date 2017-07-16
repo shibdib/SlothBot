@@ -7,7 +7,7 @@ let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    cache.cacheRoomIntel(creep);
+    creep.cacheRoomIntel();
     if (!creep.memory.targetRooms || !creep.memory.destination) {
         creep.memory.targetRooms = Game.map.describeExits(creep.pos.roomName);
         creep.memory.destination = _.sample(creep.memory.targetRooms);
@@ -18,7 +18,7 @@ function role(creep) {
             creep.memory.destinationReached = true;
         }
     } else {
-        cache.cacheRoomIntel(creep);
+        creep.cacheRoomIntel();
         creep.memory.destination = undefined;
         creep.memory.targetRooms = undefined;
         creep.memory.destinationReached = undefined;

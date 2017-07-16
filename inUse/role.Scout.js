@@ -7,7 +7,7 @@ let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    cache.cacheRoomIntel(creep);
+    creep.cacheRoomIntel();
     if (creep.memory.destinationReached !== true) {
         let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
         if (creep.pos.getRangeTo(armedHostile) < 2) {
@@ -19,12 +19,12 @@ function role(creep) {
             ensurePath: true
         });
         if (creep.pos.roomName === creep.memory.destination) {
-            cache.cacheRoomIntel(creep);
+            creep.cacheRoomIntel();
             creep.memory.destinationReached = true;
         }
     } else {
         creep.say("I.See.U", true);
-        cache.cacheRoomIntel(creep);
+        creep.cacheRoomIntel();
     }
 }
 

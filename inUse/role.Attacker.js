@@ -7,7 +7,7 @@ let cache = require('module.cache');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    cache.cacheRoomIntel(creep);
+    creep.cacheRoomIntel();
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [];
         let count = 1;
