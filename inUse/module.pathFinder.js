@@ -18,7 +18,7 @@ function shibMove(creep, heading, options = {}) {
         repathChance: 1,
         preferHighway: false,
         highwayBias: 2.5,
-        maxRooms: 16
+        maxRooms: 1
     });
     if (creep.fatigue > 0) {
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
@@ -170,9 +170,10 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             roomCallback: callback,
         });
         if (ret.incomplete || options.ensurePath) {
-            if (roomDistance <= 2 && !pathInfo.findAttempt) {
+            if (!pathInfo.findAttempt) {
                 options.useFindRoute = true;
                 options.allowSK = true;
+                options.maxRooms = 16;
                 pathInfo.findAttempt = true;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
