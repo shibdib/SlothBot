@@ -36,9 +36,8 @@ module.exports.loop = function () {
         Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //CLEANUP
-        if (Game.time % 150 === 0) {
-            let cache = require('module.cache');
-            cache.cleanPathCache(); //clean path cache
+        if (Game.time % 1000 === 0) {
+            cleanPathCache(); //clean path cache
         }
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
@@ -181,4 +180,16 @@ module.exports.loop = function () {
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
+};
+
+cleanPathCache = function () {
+    let counter = 0;
+    let tick = Game.time;
+    for (let key in Memory.pathCache) {
+        let cached = Memory.pathCache[key];
+        if (cached.tick + EST_TICKS_PER_DAY < tick || cached.tick === undefined) {
+            Memory.pathCache[key] = undefined;
+            counter += 1;
+        }
+    }
 };
