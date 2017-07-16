@@ -42,12 +42,14 @@ function roomControl() {
             }
 
             //Haulers
-            if (currentRoom.controller.level < 4 || !currentRoom.memory.storageBuilt) {
+            let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn'));
+            if (currentRoom.controller.level < 4 || !currentRoom.memory.storageBuilt || pawn.length === 0) {
+
                 if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
                     currentRoom.memory.storageBuilt = true;
                 }
                 if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === currentRoom.name).length < 3) {
-                    queueCreep(currentRoom, 2, {
+                    queueCreep(currentRoom, 1, {
                         role: 'basicHauler'
                     })
                 }
@@ -55,7 +57,7 @@ function roomControl() {
                 if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length < 1) {
                     currentRoom.memory.storageBuilt = undefined;
                 }
-                if (_.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn') && creep.memory.assignedRoom === currentRoom.name).length < 4) {
+                if (pawn.length < 4) {
                     queueCreep(currentRoom, 2, {
                         role: 'pawn'
                     })
