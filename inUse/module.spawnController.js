@@ -434,7 +434,7 @@ function remotes(spawn, level) {
                     return true;
                 }
                 let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'remoteHauler');
-                if (SKhauler.length < SKworker.length && (SKRanged.length > 0 || SKAttacker.length > 0) && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
+                if (SKhauler.length < SKworker.length / 2 && (SKRanged.length > 0 || SKAttacker.length > 0) && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
                         role: 'remoteHauler',
                         roleGroup: 'haulers',
                         assignedSpawn: spawn.id,
