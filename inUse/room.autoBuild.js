@@ -48,6 +48,7 @@ module.exports.roomBuilding = profiler.registerFN(roomBuilding, 'roomBuilding');
 
 function buildRoads(spawn) {
     let spawner = spawn.room.find(FIND_MY_SPAWNS)[0];
+    let mineral = spawn.room.find(FIND_MINERALS)[0];
 
     for (let source of spawn.room.find(FIND_SOURCES)) {
         buildRoadAround(spawn.room, source.pos);
@@ -60,6 +61,11 @@ function buildRoads(spawn) {
         if (target) {
             buildRoadFromTo(spawn.room, spawn.room.controller, target);
         }
+    }
+
+    if (mineral) {
+        buildRoadAround(spawn.room, mineral.pos);
+        buildRoadFromTo(spawn.room, spawner, mineral);
     }
 }
 buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
