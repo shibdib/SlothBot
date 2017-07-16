@@ -58,7 +58,7 @@ function roomControl() {
                 let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
                 let mineralHauler = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === currentRoom.name);
                 if (mineralHauler.length < 1 && minerals.mineralAmount > 0) {
-                    queueCreep(currentRoom, 3, {
+                    queueCreep(currentRoom, 2, {
                         role: 'mineralHauler',
                         assignedMineral: minerals.id
                     })
