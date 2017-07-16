@@ -219,7 +219,7 @@ function roomControl() {
                 if (assistNeeded.length > 0) {
                     for (let key in assistNeeded) {
                         if (neighborCheck(currentRoom.name, assistNeeded[key].name) === true) {
-                            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[key].name && creep.memory.role === 'responder');
+                            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[key].name && creep.memory.role === 'responder' && creep.memory.assignedRoom === currentRoom.name);
                             if (responder.length < assistNeeded[key].memory.numberOfHostiles) {
                                 queueCreep(currentRoom, 1, {
                                     role: 'responder',
@@ -315,6 +315,7 @@ function roomControl() {
         }
 
         //Process Build Queue
+        cleanQueue(currentRoom);
         currentRoom.processBuildQueue();
 
 
@@ -381,6 +382,12 @@ function queueCreep(room, importance, options = {}) {
             waitForDeconstructor: options.waitForDeconstructor
         };
         if (!room.memory.creepBuildQueue[key]) room.memory.creepBuildQueue = cache;
+    }
+}
+
+function cleanQueue(room){
+    for (let key in room.memory.creepBuildQueue) {
+        if (room.memory.creepBuildQueue[key].room !== room.name) delete room.memory.creepBuildQueue[key]
     }
 }
 
