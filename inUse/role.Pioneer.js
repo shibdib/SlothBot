@@ -27,7 +27,7 @@ function role(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
-        if (creep.room.name === Game.getObjectById(creep.memory.assignedSpawn).pos.roomName) {
+        if (creep.room.name === creep.memory.assignedRoom) {
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
                 return null;
