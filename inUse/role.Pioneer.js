@@ -68,7 +68,7 @@ function role(creep) {
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(repairNeeded, {range: 3});
                 }
-            } else if (Game.room.controller && creep.upgradeController(Game.room.controller) === ERR_NOT_IN_RANGE) {
+            } else if (Game.room && Game.room.controller && creep.upgradeController(Game.room.controller) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(Game.room.controller);
             }
         }
