@@ -269,7 +269,7 @@ function roomControl() {
                             waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
                         })
                     }
-                    if (spawn.room.controller.level >= 3) {
+                    if (currentRoom.controller.level >= 3) {
                         let drainer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'drainer');
                         if (drainer.length < Memory.militaryNeeds[key].drainer) {
                             queueCreep(currentRoom, 1, {
@@ -284,8 +284,6 @@ function roomControl() {
                                 waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
                             })
                         }
-                    }
-                    if (spawn.room.controller.level >= 3) {
                         let ranged = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'ranged');
                         if (ranged.length < Memory.militaryNeeds[key].ranged) {
                             queueCreep(currentRoom, 1, {
