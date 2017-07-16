@@ -35,7 +35,7 @@ function towerControl() {
                     tower.heal(woundedCreep);
                     continue;
                 }
-                if (tower.room.memory.responseNeeded !== true && tower.energy > tower.energyCapacity * 0.50) {
+                if (tower.room.memory.responseNeeded !== true && tower.energy > tower.energyCapacity * 0.60) {
                     if (barriers) {
                         tower.repair(barriers);
                         continue;

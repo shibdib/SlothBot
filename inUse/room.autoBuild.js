@@ -83,25 +83,26 @@ function buildExtensions(spawn) {
                 y = getRandomInt(-spawn.room.controller.level, spawn.room.controller.level);
                 let pos = new RoomPosition(spawn.pos.x + x, spawn.pos.y + y, spawn.pos.roomName);
                 if (pos.checkForAllStructure().length > 0) continue;
-                let buildReturn = pos.createConstructionSite(STRUCTURE_EXTENSION);
-                if (buildReturn === OK) {
-                    if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) continue;
-                    let path = spawn.room.findPath(spawn.pos, pos, {
-                        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
-                    });
-                    for (let i = 0; i < path.length; i++) {
-                        if (path[i] !== undefined) {
-                            let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
-                            const roadCheck = build.lookFor(LOOK_STRUCTURES);
-                            const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-                            if (constructionCheck.length > 0 || roadCheck.length > 0) {
-                            } else {
-                                build.createConstructionSite(STRUCTURE_ROAD);
+                switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
+                    case OK:
+                        if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) continue;
+                        let path = spawn.room.findPath(spawn.pos, pos, {
+                            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+                        });
+                        for (let i = 0; i < path.length; i++) {
+                            if (path[i] !== undefined) {
+                                let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
+                                const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                                const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                                if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                                } else {
+                                    build.createConstructionSite(STRUCTURE_ROAD);
+                                }
                             }
                         }
-                    }
-                } else if (buildReturn === ERR_RCL_NOT_ENOUGH) {
-                    break;
+                        continue;
+                    case ERR_RCL_NOT_ENOUGH:
+                        break;
                 }
             }
         }

@@ -8,6 +8,10 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     //Invader detection
     invaderCheck(creep);
+    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
+        return creep.flee(hostiles);
+    }
 
     if(creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})){
         creep.memory.role = 'worker';
@@ -52,7 +56,7 @@ function role(creep) {
         }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
         creep.findConstruction();
-        if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
+        if (creep.memory.task === 'build') {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             if (creep.build(construction) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(construction, {range: 3});
@@ -64,8 +68,10 @@ function role(creep) {
                 if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(repairNeeded, {range: 3});
                 }
-            } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
+            } else if (Game.room && Game.room.controller && creep.upgradeController(Game.room.controller) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(Game.room.controller);
+            } else {
+                creep.idleFor(10);
             }
         }
     }

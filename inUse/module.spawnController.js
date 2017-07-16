@@ -215,7 +215,7 @@ function harvesters(spawn, level) {
         if (_.filter(Game.creeps, (creep) => creep.memory.assignedRoom === spawn.room.name && creep.memory.role === 'stationaryHarvester').length === 0) {
             level = 1;
         }
-        if ((stationaryHarvester.length < 1 || (stationaryHarvester.length === 1 && stationaryHarvester[0].ticksToLive < 50)) && spawn.createCreep(SPAWN[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
+        if ((stationaryHarvester.length < 1 || (stationaryHarvester.length === 1 && stationaryHarvester[0].ticksToLive < 100)) && spawn.createCreep(SPAWN[level].stationaryHarvester, 'stationaryHarvester' + Game.time, {
                 role: 'stationaryHarvester',
                 roleGroup: 'workers',
                 assignedSpawn: spawn.id,
@@ -231,7 +231,7 @@ harvesters = profiler.registerFN(harvesters, 'harvestersSpawn');
 
 function scouts(spawn, level) {
     if (spawn.room.controller.level >= 2) {
-        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
+        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.assignedRoom === spawn.room.name);
         if (explorers.length < 1 && spawn.createCreep(SPAWN[level].explorer, 'explorer' + Game.time, {
                 role: 'explorer',
                 roleGroup: 'remotes',
@@ -265,7 +265,7 @@ scouts = profiler.registerFN(scouts, 'scoutsSpawn');
 function haulers(spawn, level) {
     if (spawn.room.controller.level < 4 || !Memory.stats.roomSummary[spawn.pos.roomName].has_storage) {
         let basicHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === spawn.room.name);
-        if (basicHauler.length < 2 && spawn.createCreep(SPAWN[level].hauler, 'basicHauler' + Game.time, {
+        if (basicHauler.length < 3 && spawn.createCreep(SPAWN[level].hauler, 'basicHauler' + Game.time, {
                 role: 'basicHauler',
                 roleGroup: 'haulers',
                 assignedSpawn: spawn.id,
@@ -338,7 +338,7 @@ function workers(spawn, level) {
             if (spawn.room.controller.level === 8) {
                 count = 1;
             }
-            else if (spawn.room.controller.level >= 6){
+            else if (spawn.room.controller.level >= 6) {
                 count = 2;
             } else {
                 count = 4;
@@ -434,7 +434,7 @@ function remotes(spawn, level) {
                     return true;
                 }
                 let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.skRooms[key] && creep.memory.role === 'remoteHauler');
-                if (SKhauler.length < SKworker.length && (SKRanged.length > 0 || SKAttacker.length > 0) && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
+                if (SKhauler.length < SKworker.length / 2 && (SKRanged.length > 0 || SKAttacker.length > 0) && spawn.createCreep(SPAWN[level].remoteHauler, 'SKhauler' + Game.time, {
                         role: 'remoteHauler',
                         roleGroup: 'haulers',
                         assignedSpawn: spawn.id,
@@ -446,26 +446,26 @@ function remotes(spawn, level) {
                 }
             }
         }
-        for (let key in Memory.roomCache) {
-            if (neighborCheck(spawn.room.name, key) === true && key !== spawn.room.name && Memory.roomCache[key].sources.length > 0) {
-                let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHarvester');
-                if (remoteHarvester.length < Memory.roomCache[key].sources.length && spawn.createCreep(SPAWN[level].remoteHarvester, 'remoteHarvester' + Game.time, {
+        if (spawn.room.memory.remoteRooms) {
+            for (let key in spawn.room.memory.remoteRooms) {
+                let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.remoteRooms[key] && creep.memory.role === 'remoteHarvester');
+                if (remoteHarvester.length < Memory.roomCache[spawn.room.memory.remoteRooms[key]].sources.length && spawn.createCreep(SPAWN[level].remoteHarvester, 'remoteHarvester' + Game.time, {
                         role: 'remoteHarvester',
                         roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
-                        destination: key
+                        destination: spawn.room.memory.remoteRooms[key]
                     }) === 'remoteHarvester' + Game.time) {
                     console.log(spawn.room.name + ' Spawning a remoteHarvester');
                     return true;
                 }
-                let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'remoteHauler');
+                let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === spawn.room.memory.remoteRooms[key] && creep.memory.role === 'remoteHauler');
                 if (remoteHauler.length < 1 && spawn.createCreep(SPAWN[level].remoteHauler, 'remoteHauler' + Game.time, {
                         role: 'remoteHauler',
                         roleGroup: 'remotes',
                         assignedSpawn: spawn.id,
                         assignedRoom: spawn.room.name,
-                        destination: key
+                        destination: spawn.room.memory.remoteRooms[key]
                     }) === 'remoteHauler' + Game.time) {
                     console.log(spawn.room.name + ' Spawning an remoteHauler');
                     return true;
