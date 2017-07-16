@@ -65,7 +65,7 @@ function roomControl() {
                         currentRoom.memory.storageBuilt = true;
                     }
                     if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === currentRoom.name).length < 3) {
-                        queueCreep(currentRoom, 1, {
+                        queueCreep(currentRoom, 2, {
                             role: 'basicHauler'
                         })
                     }
