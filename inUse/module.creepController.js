@@ -51,7 +51,7 @@ function creepControl() {
         //Workers
         if (creep.memory.role === 'worker') roleWorker.role(creep);
         if (creep.memory.role === 'upgrader') roleUpgrader.role(creep);
-        if (creep.memory.role === 'stationaryHarvester') roleHarvester.role(creep);
+        if (creep.memory.role === 'stationaryHarvester' || creep.memory.role === 'basicHarvester') roleHarvester.role(creep);
         if (creep.memory.role === 'mineralHarvester') roleMineralHarvester.role(creep);
         if (creep.memory.role === 'resupply') roleResupply.role(creep);
 

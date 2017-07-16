@@ -29,7 +29,13 @@ function roomControl() {
 
             //Harvesters
             let sources = currentRoom.find(FIND_SOURCES);
-            if (_.filter(roomCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.assignedRoom === currentRoom.name).length < sources.length) {
+            let harvesters = _.filter(roomCreeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.assignedRoom === currentRoom.name)
+            if (harvesters.length === 0) {
+                queueCreep(currentRoom, 1, {
+                    role: 'basicHarvester'
+                })
+            }
+            if (harvesters.length < sources.length) {
                 queueCreep(currentRoom, 1, {
                     role: 'stationaryHarvester'
                 })
