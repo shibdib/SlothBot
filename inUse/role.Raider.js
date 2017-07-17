@@ -15,7 +15,7 @@ function role(creep) {
         creep.memory.returning = false;
     }
     if (creep.memory.returning === true) {
-        if (creep.room.name === Game.getObjectById(creep.memory.assignedSpawn).pos.roomName) {
+        if (creep.room.name === creep.memory.assignedRoom) {
             let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
             if (terminal.length > 0) {

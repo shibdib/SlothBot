@@ -11,7 +11,7 @@ function role(creep) {
         invaderCheck(creep);
         if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
             creep.memory.invaderCooldown++;
-            creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom));
             creep.memory.destinationReached = false;
             return null;
         } else if (creep.memory.invaderCooldown > 50) {
@@ -84,7 +84,7 @@ function role(creep) {
                 }
                 creep.findStorage();
             } else {
-                creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn), {
+                creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {
                     range: 5
                 });
             }
