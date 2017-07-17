@@ -31,11 +31,12 @@ let globals = function () {
         healer: 6,
         deconstructor: 6,
         drainer: 6,
-        ranged: 4,
+        ranged: 6,
         responder: 1,
-        raider: 5,
+        raider: 7,
+        // Misc
         claimer: 2,
-        reserver: 3,
+        reserver: 2,
         explorer: 2,
         scout: 2,
     };
