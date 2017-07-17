@@ -34,42 +34,67 @@ function role(creep) {
         creep.memory.destinationReached = true;
     }
 
-    let armedHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1 || e.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
-    let closestHostileSpawn = creep.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
-    let closestHostileTower = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
-    let closestHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => _.includes(RawMemory.segments[2], e.owner['username']) === false});
     let friendlies = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
-    if (armedHostile) {
-        if (creep.pos.roomName === creep.memory.assignedRoom) {
-            if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
-                findDefensivePosition(creep, armedHostile);
-            }
-            creep.rangedAttack(armedHostile);
+    let creepsInRoom = this.room.find(FIND_CREEPS);
+    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+    let inRangeCreeps = this.pos.findInRange(creepsInRoom, 1);
+    let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+    let closestArmed = this.pos.findClosestByPath(armedHostile);
+    let closestHostile = this.pos.findClosestByPath(hostiles);
+    let closestStructure = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER});
+    let healers = _.filter(creepsInRoom, (h) => h.memory && h.memory.role === 'healer');
+    let closestHealer = this.pos.findClosestByPath(healers);
+    let needsHeals = this.pos.findInRange(creepsInRoom, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
+
+    //Retreat if wounded
+    if (this.getActiveBodyparts(TOUGH) === 0) {
+        this.heal(this);
+        if (closestHealer) {
+            this.shibMove(closestHealer, {allowHostile: false, movingTarget: true});
+            return null;
         } else {
-            if (creep.attack(armedHostile) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(armedHostile);
-            }
-            creep.rangedAttack(armedHostile);
+            this.retreat();
         }
-    } else if (closestHostileTower) {
-        if (creep.attack(closestHostileTower) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(closestHostileTower);
-        }
-    } else if (closestHostileSpawn) {
-        if (creep.attack(closestHostileSpawn) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(closestHostileSpawn);
-        }
-    } else if (closestHostile) {
-        if (creep.pos.roomName === creep.memory.assignedRoom) {
-            if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                findDefensivePosition(creep, closestHostile);
+    }
+    if (this.hits < this.hitsMax) {
+        this.heal(this);
+    } else if (needsHeals.length > 0) {
+        this.rangedHeal(needsHeals[0]);
+    }
+    if (closestArmed || closestHostile) {
+        this.memory.inCombat = true;
+        this.borderCheck();
+        if (closestArmed) {
+            this.memory.meleeTarget = closestArmed.id;
+            if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
+                if (this.attack(closestArmed) === ERR_NOT_IN_RANGE) {
+                    this.shibMove(closestArmed, {forceRepath: true});
+                }
+                if (inRangeArmed.length > 1) {
+                    this.rangedMassAttack();
+                } else {
+                    this.rangedAttack(closestArmed);
+                }
+            } else if (this.pos.getRangeTo(closestArmed) <= 3) {
+                this.kite(5);
             }
-            creep.rangedAttack(closestHostile);
-        } else {
-            if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(closestHostile);
+        } else if (closestHostile) {
+            this.memory.meleeTarget = closestHostile.id;
+            if (this.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+                this.shibMove(closestHostile, {forceRepath: true});
             }
-            creep.rangedAttack(closestHostile);
+            if (inRangeHostile.length > 1) {
+                this.rangedMassAttack();
+            } else {
+                this.rangedAttack(closestHostile);
+            }
+        }
+    } else if (closestStructure) {
+        this.memory.inCombat = undefined;
+        if (this.attack(closestStructure) === ERR_NOT_IN_RANGE) {
+            this.shibMove(closestStructure);
         }
     } else if (friendlies.length > 0 && creep.room.memory.responseNeeded !== true && creep.memory.destinationReached === true) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
@@ -81,7 +106,7 @@ function role(creep) {
         if (creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
             creep.memory.destinationReached = true;
         }
-        creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 21}); //to move to any room
+        creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 15}); //to move to any room
     } else if (Game.getObjectById(creep.memory.assignedRampart)) {
         if (Game.getObjectById(creep.memory.assignedRampart).pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.y !== creep.pos.y) {
             creep.shibMove(Game.getObjectById(creep.memory.assignedRampart));
