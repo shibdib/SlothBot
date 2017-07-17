@@ -73,19 +73,9 @@ function roomControl() {
                     if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length < 1) {
                         currentRoom.memory.storageBuilt = undefined;
                     }
-                    if (pawn.length < 5) {
+                    if (pawn.length < 6) {
                         queueCreep(currentRoom, PRIORITIES.pawn, {
                             role: 'pawn'
-                        })
-                    }
-                }
-                if (currentRoom.controller.level >= 6) {
-                    let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
-                    let mineralHauler = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === currentRoom.name);
-                    if (mineralHauler.length < 1 && minerals.mineralAmount > 0) {
-                        queueCreep(currentRoom, PRIORITIES.mineralHauler, {
-                            role: 'mineralHauler',
-                            assignedMineral: minerals.id
                         })
                     }
                 }
@@ -115,14 +105,6 @@ function roomControl() {
                     if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0) {
                         queueCreep(currentRoom, PRIORITIES.mineralHarvester, {
                             role: 'mineralHarvester',
-                            assignedMineral: minerals.id
-                        })
-                    }
-                    const labTech = _.filter(roomCreeps, (creep) => creep.memory.role === 'labTech' && creep.memory.assignedRoom === currentRoom.name);
-                    const labs = _.filter(Game.structures, (s) => s.room.name === roomCreeps.name && s.structureType === STRUCTURE_LAB);
-                    if (labTech.length < 1 && labs.length >= 3) {
-                        queueCreep(currentRoom, PRIORITIES.labTech, {
-                            role: 'labTech',
                             assignedMineral: minerals.id
                         })
                     }

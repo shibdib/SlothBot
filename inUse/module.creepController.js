@@ -33,8 +33,18 @@ function creepControl() {
             let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
             let roomCreeps = _.filter(Game.creeps, (c) => c.memory.assignedRoom === creep.room.name);
             let fillers = _.filter(roomCreeps, (c) => c.memory.role === 'filler');
+            let getters = _.filter(roomCreeps, (c) => c.memory.role === 'getter');
+            let labTech = _.filter(roomCreeps, (c) => c.memory.role === 'labTech');
+            let mineralHauler = _.filter(roomCreeps, (c) => c.memory.role === 'mineralHauler');
+            let mineral = creep.pos.findClosestByRange(FIND_MINERALS);
             if (fillers.length < 2) {
                 creep.memory.role = 'filler';
+                continue;
+            } else if (creep.room.controller.level >= 6 && getters.length > 0 && labTech.length === 0) {
+                creep.memory.role = 'labTech';
+                continue;
+            } else if (creep.room.controller.level >= 6 && getters.length > 0 && mineralHauler.length === 0 && mineral.mineralAmount > 0) {
+                creep.memory.role = 'mineralHauler';
                 continue;
             } else {
                 creep.memory.role = 'getter';
