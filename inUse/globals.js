@@ -16,7 +16,7 @@ let globals = function () {
         basicHauler: 2,
         pawn: 2,
         mineralHauler: 2,
-        labTech: 4,
+        labTech: 3,
         // Remotes
         remoteHarvester: 3,
         remoteHauler: 3,

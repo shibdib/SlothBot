@@ -78,7 +78,8 @@ function roomControl() {
                             role: 'pawn'
                         })
                     }
-                } else if (currentRoom.controller.level >= 6) {
+                }
+                if (currentRoom.controller.level >= 6) {
                     let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
                     let mineralHauler = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHauler' && creep.memory.assignedRoom === currentRoom.name);
                     if (mineralHauler.length < 1 && minerals.mineralAmount > 0) {
