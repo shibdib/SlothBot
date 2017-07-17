@@ -51,7 +51,7 @@ function roomControl() {
                         role: 'basicHarvester'
                     })
                 }
-                if (harvesters.length < sources.length) {
+                if (harvesters.length < sources.length || (harvesters[0].ticksToLive < 100 && harvesters.length <= sources.length + 1)) {
                     queueCreep(currentRoom, PRIORITIES.basicHauler, {
                         role: 'stationaryHarvester'
                     })
