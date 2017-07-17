@@ -58,6 +58,7 @@ findSource = function () {
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
             if (_.filter(Game.creeps, (c) => c.memory.source === source[i].id).length === 0) {
+                console.log(source[i])
                 if (this.shibMove(source[i]) !== ERR_NO_PATH) {
                     if (source[i].id) {
                         this.memory.source = source[i].id;
@@ -847,6 +848,7 @@ Creep.prototype.cacheRoomIntel = function () {
             level = room.controller.level;
         }
         let key = room.name;
+        if (Memory.roomCache[key]) delete Memory.roomCache[key];
         cache[key] = {
             cached: Game.time,
             name: room.name,
@@ -859,7 +861,7 @@ Creep.prototype.cacheRoomIntel = function () {
             sk: sk
         };
         Memory.roomCache = cache;
-        if (sk || sources.length > 0) {
+        if ((sk || sources.length > 0) && !owner) {
             for (let key in Game.spawns) {
                 if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 2) {
                     if (sk) {

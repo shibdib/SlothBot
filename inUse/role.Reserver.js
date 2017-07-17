@@ -6,11 +6,10 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    //Invader detection
-    invaderCheck(creep);
+    creep.cacheRoomIntel();
     let reservers = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'reserver' && c.name !== creep.name});
     if (creep.memory.invaderDetected === true) {
-        creep.shibMove(Game.getObjectById(creep.memory.assignedSpawn));
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom));
         creep.memory.visitedRooms.push(creep.memory.currentDestination);
         creep.memory.currentDestination = undefined;
     }

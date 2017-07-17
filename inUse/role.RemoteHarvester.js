@@ -9,6 +9,7 @@ function role(creep) {
     let source;
     //Invader detection
     invaderCheck(creep);
+    creep.cacheRoomIntel();
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
         creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom));
