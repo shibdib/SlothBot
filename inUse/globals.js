@@ -4,6 +4,42 @@ let globals = function () {
         'CaptainMuscles',
     ];
 
+    global.PRIORITIES = {
+        // Harvesters
+        stationaryHarvester: 1,
+        basicHarvester: 1,
+        // Workers
+        worker: 4,
+        upgrader: 3,
+        mineralHarvester: 3,
+        // Haulers
+        basicHauler: 2,
+        pawn: 2,
+        mineralHauler: 3,
+        labTech: 4,
+        // Remotes
+        remoteHarvester: 3,
+        remoteHauler: 3,
+        pioneer: 3,
+        // SK
+        SKworker: 5,
+        SKattacker: 5,
+        SKranged: 5,
+        SKhauler: 5,
+        // Military
+        attacker: 6,
+        healer: 6,
+        deconstructor: 6,
+        drainer: 6,
+        ranged: 4,
+        responder: 1,
+        raider: 5,
+        claimer: 2,
+        reserver: 3,
+        explorer: 2,
+        scout: 2,
+    };
+
     global.SPAWN = {
         1: {
             stationaryHarvester: [WORK, WORK, CARRY, MOVE],
