@@ -23,12 +23,15 @@ function role(creep) {
             let mineralContainer = Game.getObjectById(creep.memory.mineralDestination);
             if (mineralContainer) {
                 if (mineralContainer.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
+                    let mineral = creep.pos.findClosestByRange(FIND_MINERALS);
                     if (_.sum(mineralContainer.store) > 0) {
                         for (const resourceType in mineralContainer.store) {
                             if (creep.withdraw(mineralContainer, resourceType) === ERR_NOT_IN_RANGE) {
                                 creep.shibMove(mineralContainer);
                             }
                         }
+                    } else if (mineral.mineralAmount === 0) {
+                        creep.memory.role = 'pawn';
                     } else {
                         creep.idleFor(15);
                     }
