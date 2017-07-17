@@ -65,7 +65,7 @@ function role(creep) {
                 }
             }
         } else {
-            if (creep.pos.getRangeTo(Game.getObjectById(creep.memory.assignedSpawn)) <= 50 && creep.pos.roomName !== creep.memory.destination) {
+            if (creep.pos.roomName === creep.memory.assignedRoom) {
                 creep.memory.destinationReached = false;
                 let terminal = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id');
                 let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
