@@ -15,7 +15,7 @@ function role(creep) {
         creep.memory.currentDestination = undefined;
     }
     if (!creep.memory.targetRooms) {
-        creep.memory.targetRooms = Game.map.describeExits(creep.memory.assignedRoom)
+        creep.memory.targetRooms = Game.rooms[creep.memory.assignedRoom].memory.remoteRooms
     }
     if (creep.memory.reserving) {
         if ((creep.room.controller.reservation && creep.room.controller.reservation['ticksToEnd'] >= 1500) || creep.room.controller.owner) {
