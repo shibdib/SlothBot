@@ -41,7 +41,7 @@ Room.prototype.getExtensionCount = function () {
 Room.prototype.processBuildQueue = function () {
     for (let name in Game.spawns) {
         let spawn = Game.spawns[name];
-        let level = getLevel(spawn);
+        let level = spawn.room.controller.level;
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue) {
                 let topPriority = _.min(spawn.room.memory.creepBuildQueue, 'importance');
@@ -83,52 +83,6 @@ Room.prototype.processBuildQueue = function () {
                         }) === role + Game.time) {
                         console.log(spawn.room.name + ' Spawning a ' + role);
                         delete spawn.room.memory.creepBuildQueue[topPriority.role];
-                    } else if (topPriority.importance !== 1) {
-                        let random = _.sample(spawn.room.memory.creepBuildQueue);
-                        let role = random.role;
-                        _.defaults(random, {
-                            role: undefined,
-                            assignedRoom: undefined,
-                            assignedSource: undefined,
-                            destination: undefined,
-                            assignedMineral: undefined,
-                            responseTarget: undefined,
-                            attackTarget: undefined,
-                            attackType: undefined,
-                            siegePoint: undefined,
-                            staging: undefined,
-                            waitForHealers: undefined,
-                            waitForAttackers: undefined,
-                            waitForRanged: undefined,
-                            waitForDeconstructor: undefined
-                        });
-                        if (spawn.createCreep(body, role + Game.time, {
-                                born: Game.time,
-                                role: random.role,
-                                assignedRoom: random.assignedRoom,
-                                assignedSource: random.assignedSource,
-                                destination: random.destination,
-                                assignedMineral: random.assignedMineral,
-                                responseTarget: random.responseTarget,
-                                attackTarget: random.attackTarget,
-                                attackType: random.attackType,
-                                siegePoint: random.siegePoint,
-                                staging: random.staging,
-                                waitForHealers: random.waitForHealers,
-                                waitForAttackers: random.waitForAttackers,
-                                waitForRanged: random.waitForRanged,
-                                waitForDeconstructor: random.waitForDeconstructor
-                            }) === role + Game.time) {
-                            console.log(spawn.room.name + ' Spawning a ' + role);
-                            delete spawn.room.memory.creepBuildQueue[random.role];
-                        } else {
-                            spawn.room.visual.text('Queued - ' +
-                                _.capitalize(topPriority.role),
-                                spawn.pos.x + 1,
-                                spawn.pos.y,
-                                {align: 'left', opacity: 0.8}
-                            );
-                        }
                     } else {
                         spawn.room.visual.text('Queued - ' +
                             _.capitalize(topPriority.role),
@@ -167,23 +121,3 @@ Room.prototype.cacheRoomStructures = function (id) {
         room.memory.structureCache = cache;
     }
 };
-function getLevel(spawn) {
-    let energy = spawn.room.energyCapacityAvailable;
-    if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
-        return 1;
-    } else if (energy >= RCL_2_ENERGY && energy < RCL_3_ENERGY) {
-        return 2
-    } else if (energy >= RCL_3_ENERGY && energy < RCL_4_ENERGY) {
-        return 3
-    } else if (energy >= RCL_4_ENERGY && energy < RCL_5_ENERGY) {
-        return 4
-    } else if (energy >= RCL_5_ENERGY && energy < RCL_6_ENERGY) {
-        return 5
-    } else if (energy >= RCL_6_ENERGY && energy < RCL_7_ENERGY) {
-        return 6
-    } else if (energy >= RCL_7_ENERGY && energy < RCL_8_ENERGY) {
-        return 7
-    } else if (energy >= RCL_8_ENERGY) {
-        return 8
-    }
-}
