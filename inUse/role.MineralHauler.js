@@ -38,18 +38,23 @@ function role(creep) {
                 }
             }
         } else {
-            let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
-            if (container && container.id) {
-                if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
-                    creep.shibMove(container);
-                    creep.memory.mineralDestination = container.id;
+            if (creep.memory.assignedMineral) {
+                let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
+                if (container && container.id) {
+                    if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 5) {
+                        creep.shibMove(container);
+                        creep.memory.mineralDestination = container.id;
+                    } else {
+                        creep.shibMove(Game.getObjectById(creep.memory.assignedMineral))
+                    }
                 } else {
                     creep.shibMove(Game.getObjectById(creep.memory.assignedMineral))
                 }
             } else {
-                creep.shibMove(Game.getObjectById(creep.memory.assignedMineral))
+                creep.memory.assignedMineral = creep.pos.findClosestByRange(FIND_MINERALS).id;
             }
         }
+
     } else {
         if (!creep.memory.terminalID) {
             let terminal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
