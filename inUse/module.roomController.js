@@ -73,7 +73,7 @@ function roomControl() {
                     if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length < 1) {
                         currentRoom.memory.storageBuilt = undefined;
                     }
-                    if (pawn.length < 6) {
+                    if (pawn.length < 5) {
                         queueCreep(currentRoom, PRIORITIES.pawn, {
                             role: 'pawn'
                         })
