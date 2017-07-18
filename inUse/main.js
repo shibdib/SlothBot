@@ -178,6 +178,13 @@ module.exports.loop = function () {
         RawMemory.setDefaultPublicSegment(1);
         RawMemory.setActiveSegments([1, 2, 10, 50]);
 
+        //Cache Foreign Segments
+        RawMemory.setActiveForeignSegment("Bovius");
+        if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === "Bovius" && RawMemory.foreignSegment.id === 0) {
+            // Can't use data if you can't see it.
+            Memory.marketCache = RawMemory.foreignSegment.data;
+        }
+
         Memory.stats.cpu.used = Game.cpu.getUsed();
     });
 };
