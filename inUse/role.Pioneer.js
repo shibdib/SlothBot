@@ -50,7 +50,7 @@ function role(creep) {
         if (!Game.flags[creep.memory.destination]) {
             creep.suicide();
         }
-        creep.shibMove(Game.flags[creep.memory.destination]);
+        creep.shibMove(Game.flags[creep.memory.destination], {allowSK: true, maxRooms: 16});
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }
