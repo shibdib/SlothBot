@@ -54,19 +54,10 @@ wrongRoom = function () {
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 
 findSource = function () {
-    const source = this.room.find(FIND_SOURCES);
+    const source = this.room.find(FIND_SOURCES, {filter: (s) => _.filter(Game.creeps, (c) => c.memory.source === s.id).length === 0});
     if (source.length > 0) {
-        for (let i = 0; i < source.length; i++) {
-            if (_.filter(Game.creeps, (c) => c.memory.source === source[i].id).length === 0) {
-                console.log(source[i])
-                if (this.shibMove(source[i]) !== ERR_NO_PATH) {
-                    if (source[i].id) {
-                        this.memory.source = source[i].id;
-                        return source[i];
-                    }
-                }
-            }
-        }
+        this.memory.source = this.pos.findClosestByRange(source).id;
+        return this.pos.findClosestByRange(source).id;
     }
     return null;
 };
