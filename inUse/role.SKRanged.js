@@ -31,11 +31,11 @@ function role(creep) {
         }
         return null;
     }
-    let targets = _.min(creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true}), 'hits');
+    let targets = creep.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
-    } else if (targets) {
-        creep.rangedHeal(targets);
+    } else if (targets.length > 0) {
+        creep.rangedHeal(targets[0]);
     }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     let hostileHealer = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(HEAL) > 2});
