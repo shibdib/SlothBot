@@ -4,42 +4,81 @@ let globals = function () {
         'CaptainMuscles',
     ];
 
-    global.PRIORITIES = {
-        // Harvesters
-        stationaryHarvester: 1,
-        basicHarvester: 1,
-        // Workers
-        worker: 4,
-        upgrader: 3,
-        mineralHarvester: 3,
-        // Haulers
-        basicHauler: 2,
-        pawn: 2,
-        mineralHauler: 3,
-        labTech: 4,
-        // Remotes
-        remoteHarvester: 5,
-        remoteHauler: 5,
-        pioneer: 4,
-        // SK
-        SKworker: 6,
-        SKattacker: 6,
-        SKranged: 6,
-        SKhauler: 6,
-        // Military
-        attacker: 7,
-        healer: 7,
-        deconstructor: 7,
-        drainer: 7,
-        ranged: 7,
-        responder: 1,
-        raider: 7,
-        // Misc
-        claimer: 2,
-        reserver: 2,
-        explorer: 2,
-        scout: 2,
-    };
+    if (!Memory.war) {
+        global.PRIORITIES = {
+            // Harvesters
+            stationaryHarvester: 1,
+            basicHarvester: 1,
+            // Workers
+            worker: 4,
+            upgrader: 3,
+            mineralHarvester: 3,
+            // Haulers
+            basicHauler: 2,
+            pawn: 2,
+            mineralHauler: 3,
+            labTech: 4,
+            // Remotes
+            remoteHarvester: 5,
+            remoteHauler: 5,
+            pioneer: 4,
+            // SK
+            SKworker: 6,
+            SKattacker: 6,
+            SKranged: 6,
+            SKhauler: 6,
+            // Military
+            attacker: 7,
+            healer: 7,
+            deconstructor: 7,
+            drainer: 7,
+            ranged: 7,
+            responder: 1,
+            raider: 7,
+            // Misc
+            claimer: 2,
+            reserver: 2,
+            explorer: 2,
+            scout: 2,
+        };
+    } else {
+        global.PRIORITIES = {
+            // Harvesters
+            stationaryHarvester: 1,
+            basicHarvester: 1,
+            // Workers
+            worker: 4,
+            upgrader: 3,
+            mineralHarvester: 8,
+            // Haulers
+            basicHauler: 2,
+            pawn: 2,
+            mineralHauler: 8,
+            labTech: 4,
+            // Remotes
+            remoteHarvester: 5,
+            remoteHauler: 5,
+            pioneer: 8,
+            // SK
+            SKworker: 6,
+            SKattacker: 6,
+            SKranged: 6,
+            SKhauler: 6,
+            // Military
+            attacker: 3,
+            healer: 3,
+            deconstructor: 3,
+            drainer: 3,
+            ranged: 3,
+            responder: 1,
+            raider: 3,
+            // Misc
+            claimer: 2,
+            reserver: 2,
+            explorer: 2,
+            scout: 2,
+        };
+    }
 
     global.SPAWN = {
         1: {
