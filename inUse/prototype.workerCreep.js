@@ -130,6 +130,12 @@ findRepair = function (level) {
         this.memory.task = 'repair';
         return;
     }
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000 * level);
+    if (site.length > 0) {
+        this.memory.constructionSite = site[0].id;
+        this.memory.task = 'repair';
+        return;
+    }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 500000 * level);
     if (site.length > 0) {
         this.memory.constructionSite = site[0].id;
@@ -669,7 +675,7 @@ findEssentials = function () {
                         });
                     } else {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.6, 0) + 1 - towerAmountWeighted;
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 1.1, 0) + 1 - towerAmountWeighted;
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
