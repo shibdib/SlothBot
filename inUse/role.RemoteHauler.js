@@ -103,12 +103,15 @@ module.exports.role = profiler.registerFN(role, 'remoteHaulerRole');
 function invaderCheck(creep) {
     let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
     if (invader) {
-        creep.room.memory.responseNeeded = true;
         if (!creep.memory.invaderCooldown) {
             creep.memory.invaderCooldown = 1;
         }
+        let number = creep.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
+        creep.room.memory.responseNeeded = true;
         creep.room.memory.tickDetected = Game.time;
-        creep.memory.invaderDetected = true;
+        if (!creep.room.memory.numberOfHostiles || creep.room.memory.numberOfHostiles < number.length) {
+            creep.room.memory.numberOfHostiles = number.length;
+        }
     } else if (creep.room.memory.tickDetected < Game.time - 150 || creep.room.memory.responseNeeded === false) {
         creep.memory.invaderDetected = undefined;
         creep.memory.invaderID = undefined;
