@@ -316,7 +316,7 @@ function creepQueueChecks(currentRoom) {
 
         //Responder
         if (currentRoom.controller.level >= 4) {
-            let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
+            let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true && !room.memory.sk);
             if (assistNeeded.length > 0) {
                 for (let key in assistNeeded) {
                     if (neighborCheck(currentRoom.name, assistNeeded[key].name) === true && !Memory.roomCache[assistNeeded[key].name].sk) {
