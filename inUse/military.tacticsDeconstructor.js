@@ -4,6 +4,12 @@
 const profiler = require('screeps-profiler');
 
 tacticSiege = function () {
+    if (this.room.controller && this.room.controller.owner && _.includes(RawMemory.segments[2], this.room.controller.owner['username']) === false && this.room.controller.safeMode) {
+        this.memory.attackStarted = 'safe';
+        Memory.warControl[this.memory.attackTarget] = undefined;
+        Memory.militaryNeeds[this.memory.attackTarget] = undefined;
+        this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
+    }
     let squadLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
         let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);

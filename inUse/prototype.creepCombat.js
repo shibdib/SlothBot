@@ -199,21 +199,26 @@ Creep.prototype.fightRanged = function (target) {
     } else {
         let opportunity = _.min(this.pos.findInRange(FIND_CREEPS, 3, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false}), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
-        this.shibMove(target, {movingTarget: true, ignoreCreeps: false});
+        this.shibMove(target, {forceRepath: true, ignoreCreeps: false});
     }
 };
 
 Creep.prototype.siege = function () {
-    this.borderCheck();
     this.memory.hitsLost = this.memory.hitsLast - this.hits;
     this.memory.hitsLast = this.hits;
+    this.heal(this);
     if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 150 || this.memory.healing === true) {
+        this.memory.siegeComplete = undefined;
         this.memory.healing = true;
         let healers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.role === 'healer'), 45);
         if (healers.length > 0) {
-            this.shibMove(healers[0], {forceRepath: true});
+            this.shibMove(healers[0], {forceRepath: true, ignoreCreeps: false});
         } else {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23, forceRepath: true});
+            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {
+                range: 23,
+                forceRepath: true,
+                ignoreCreeps: false
+            });
         }
         if (this.hits === this.hitsMax) {
             this.memory.healing = undefined;
@@ -228,7 +233,14 @@ Creep.prototype.siege = function () {
         target = this.pos.findClosestByPath(FIND_STRUCTURES);
     }
     if (Game.getObjectById(this.memory.siegeTarget)) {
-        target = Game.getObjectById(this.memory.siegeTarget);
+        let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false}), 'hits');
+        if (lowHit.length > 0) {
+            target = lowHit[0];
+            this.memory.siegeTarget = target.id;
+            this.memory.siegeComplete = undefined;
+        } else {
+            target = Game.getObjectById(this.memory.siegeTarget);
+        }
     }
     if (!target || target === null) {
         this.memory.siegeComplete = true;
@@ -262,6 +274,13 @@ Creep.prototype.siege = function () {
         }
     }
     if (!target || target === null) {
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false});
+        if (target) {
+            this.memory.siegeTarget = target.id;
+            this.memory.siegeComplete = true;
+        }
+    }
+    if (!target || target === null) {
         let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false}), 'hits');
         if (lowHit.length > 0) {
             target = lowHit[0];
@@ -272,6 +291,7 @@ Creep.prototype.siege = function () {
     if (!target || target === null) {
         target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false});
         if (target) {
+            this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = undefined;
         }
     }

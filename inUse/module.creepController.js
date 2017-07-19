@@ -14,6 +14,8 @@ function creepControl() {
         }
         creep.notifyWhenAttacked(false);
 
+        if (!creep.memory.role) creep.suicide();
+
         //Military
         if (Game.cpu.bucket > 1500) {
             if (creep.memory.role === 'ranged') roleRanged.role(creep);
