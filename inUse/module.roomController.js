@@ -112,7 +112,8 @@ neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
 
 function creepQueueChecks(currentRoom) {
     delete currentRoom.memory.creepBuildQueue;
-    let roomCreeps = currentRoom.find(FIND_MY_CREEPS)
+    let war = Memory.war;
+    let roomCreeps = currentRoom.find(FIND_MY_CREEPS);
     if (roomCreeps.length < 2) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === currentRoom.name)
         if (harvesters.length === 0) {
@@ -170,14 +171,21 @@ function creepQueueChecks(currentRoom) {
         //Workers
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === currentRoom.name);
         let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === currentRoom.name);
-        if (worker.length < 2 && upgraders.length > 0) {
+        let count;
+        if (war === true) {
+            count = 1;
+        } else {
+            count = 2;
+        }
+        if (worker.length < count && upgraders.length > 0) {
             queueCreep(currentRoom, PRIORITIES.worker, {
                 role: 'worker'
             })
         }
-        let count;
         if (currentRoom.controller.level >= 6) {
             count = 2;
+        } else if (war === true) {
+            count = 1;
         } else {
             count = 4;
         }
@@ -186,7 +194,7 @@ function creepQueueChecks(currentRoom) {
                 role: 'upgrader'
             })
         }
-        if (currentRoom.controller.level >= 6) {
+        if (currentRoom.controller.level >= 6 && !war) {
             let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
             let mineralHarvester = _.filter(roomCreeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester' && creep.memory.assignedRoom === currentRoom.name);
             if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0) {
@@ -198,7 +206,7 @@ function creepQueueChecks(currentRoom) {
         }
 
         //Remotes
-        if (currentRoom.controller.level >= 3) {
+        if (currentRoom.controller.level >= 3 && !war) {
             for (let i = 0; i < 20; i++) {
                 let pioneer = 'pioneer' + i;
                 if (Game.flags[pioneer] && Game.flags[pioneer].pos.roomName !== currentRoom.name) {
@@ -211,7 +219,7 @@ function creepQueueChecks(currentRoom) {
                     }
                 }
             }
-            if (currentRoom.controller.level >= 7 && currentRoom.memory.skRooms) {
+            if (currentRoom.controller.level >= 7 && currentRoom.memory.skRooms && !war) {
                 for (let key in currentRoom.memory.skRooms) {
                     let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKranged' && creep.memory.assignedRoom === currentRoom.name);
                     if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100))) {
@@ -243,7 +251,7 @@ function creepQueueChecks(currentRoom) {
                     }
                 }
             }
-            if (currentRoom.memory.remoteRooms) {
+            if (currentRoom.memory.remoteRooms && !war) {
                 for (let keys in currentRoom.memory.remoteRooms) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
                     if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length) {
