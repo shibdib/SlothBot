@@ -40,48 +40,22 @@ function role(creep) {
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeCreeps = creep.pos.findInRange(creepsInRoom, 1);
     let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
-    let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let closestArmed = creep.pos.findClosestByPath(armedHostile);
     let closestHostile = creep.pos.findClosestByPath(hostiles);
     let closestStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER});
-    let healers = _.filter(creepsInRoom, (h) => h.memory && h.memory.role === 'healer');
-    let closestHealer = creep.pos.findClosestByPath(healers);
-    let needsHeals = creep.pos.findInRange(creepsInRoom, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
-
-    //Retreat if wounded
-    if (creep.getActiveBodyparts(TOUGH) === 0) {
-        creep.heal(creep);
-        if (closestHealer) {
-            creep.shibMove(closestHealer, {allowHostile: false, movingTarget: true});
-            return null;
-        } else {
-            creep.retreat();
-        }
-    }
-    if (creep.hits < creep.hitsMax) {
-        creep.heal(creep);
-    } else if (needsHeals.length > 0) {
-        creep.rangedHeal(needsHeals[0]);
-    }
     if (closestArmed || closestHostile) {
         creep.memory.inCombat = true;
         creep.borderCheck();
         if (closestArmed) {
             creep.memory.meleeTarget = closestArmed.id;
-            if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
-                if (creep.attack(closestArmed) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(closestArmed, {forceRepath: true, ignoreCreeps: false});
-                }
-                if (inRangeArmed.length > 1) {
-                    creep.rangedMassAttack();
-                } else {
-                    creep.rangedAttack(closestArmed);
-                }
-            } else if (creep.pos.getRangeTo(closestArmed) <= 3) {
-                creep.kite(5);
+            if (creep.pos.getRangeTo(closestArmed) <= 3) creep.rangedAttack(closestArmed);
+            if (creep.attack(closestArmed) === ERR_NOT_IN_RANGE) {
+                if (creep.hits < creep.hitsMax) creep.heal(creep);
+                creep.shibMove(closestArmed, {forceRepath: true, ignoreCreeps: false});
             }
         } else if (closestHostile) {
             creep.memory.meleeTarget = closestHostile.id;
+            if (creep.pos.getRangeTo(closestHostile) <= 3) creep.rangedAttack(closestHostile);
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(closestHostile, {forceRepath: true, ignoreCreeps: false});
             }
@@ -91,7 +65,9 @@ function role(creep) {
                 creep.rangedAttack(closestHostile);
             }
         }
-    } else if (closestStructure) {
+    } else if (creep.hits < creep.hitsMax) {
+        creep.heal(creep);
+    }  else if (closestStructure) {
         creep.memory.inCombat = undefined;
         if (creep.attack(closestStructure) === ERR_NOT_IN_RANGE) {
             creep.shibMove(closestStructure);
