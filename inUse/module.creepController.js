@@ -39,11 +39,10 @@ function creepControl() {
         //Haulers
         if (creep.memory.role === "pawn") {
             let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
-            let roomCreeps = _.filter(Game.creeps, (c) => c.memory.assignedRoom === creep.room.name);
-            let fillers = _.filter(roomCreeps, (c) => c.memory.role === 'filler');
-            let getters = _.filter(roomCreeps, (c) => c.memory.role === 'getter');
-            let labTech = _.filter(roomCreeps, (c) => c.memory.role === 'labTech');
-            let mineralHauler = _.filter(roomCreeps, (c) => c.memory.role === 'mineralHauler');
+            let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
+            let getters = _.filter(Game.creeps, (c) => c.memory.role === 'getter' && c.memory.assignedRoom === creep.room.name);
+            let labTech = _.filter(Game.creeps, (c) => c.memory.role === 'labTech' && c.memory.assignedRoom === creep.room.name);
+            let mineralHauler = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHauler' && c.memory.assignedRoom === creep.room.name);
             let mineral = creep.pos.findClosestByRange(FIND_MINERALS);
             if (fillers.length < 2) {
                 creep.memory.role = 'filler';
