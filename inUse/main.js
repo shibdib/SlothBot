@@ -88,7 +88,7 @@ module.exports.loop = function () {
         if (Game.cpu.bucket > 5000) {
             if (Game.time % 10 === 0) {
                 //let labController = require('module.labController');
-               // labController.labControl();
+                // labController.labControl();
             }
         }
         Memory.stats.cpu.postLab = Game.cpu.getUsed();
