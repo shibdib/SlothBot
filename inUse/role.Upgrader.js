@@ -32,7 +32,7 @@ function role(creep) {
         return null;
     }
     //ANNOUNCE
-    let sentence = ['Spawn', 'More', 'Overlords'];
+    let sentence = ['Spawn', 'More', 'Overlords', '#Overlords'];
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);
     //INITIAL CHECKS
