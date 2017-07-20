@@ -175,6 +175,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 options.allowSK = true;
                 options.maxRooms = 16;
                 pathInfo.findAttempt = true;
+                options.maxOps = 30000;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
