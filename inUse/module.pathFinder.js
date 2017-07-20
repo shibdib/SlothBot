@@ -106,7 +106,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = options.route;
-        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 1))) {
+        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
             let route;
             if (options.useCache) {
                 route = getRoute(origin, target);
@@ -179,7 +179,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 options.allowSK = true;
                 options.maxRooms = 16;
                 pathInfo.findAttempt = true;
-                options.maxOps = 30000;
+                options.maxOps = 10000;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
