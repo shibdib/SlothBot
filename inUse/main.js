@@ -114,13 +114,6 @@ module.exports.loop = function () {
             }
         }
 
-        //Spawn Management
-        Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
-        if (Game.time % 10 === 0) {
-            let spawnController = require('module.spawnController');
-            //spawnController.creepRespawn();
-        }
-
         //Alliance List Management
         let doNotAggress = [
             {"username": "Shibdib", "status": "alliance"},
