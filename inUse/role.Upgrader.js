@@ -31,6 +31,10 @@ function role(creep) {
         }
         return null;
     }
+    //ANNOUNCE
+    let sentence = ['Spawn', 'More', 'Overlords'];
+    let word = Game.time % sentence.length;
+    creep.say(sentence[word], true);
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
