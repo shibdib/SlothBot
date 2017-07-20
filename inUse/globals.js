@@ -16,8 +16,6 @@ let globals = function () {
             // Haulers
             basicHauler: 2,
             pawn: 2,
-            mineralHauler: 3,
-            labTech: 4,
             // Remotes
             remoteHarvester: 5,
             remoteHauler: 5,
@@ -53,8 +51,6 @@ let globals = function () {
             // Haulers
             basicHauler: 2,
             pawn: 2,
-            mineralHauler: 8,
-            labTech: 4,
             // Remotes
             remoteHarvester: 5,
             remoteHauler: 5,
