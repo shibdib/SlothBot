@@ -123,6 +123,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 const exitDir = Game.map.findExit(origin.roomName, target.roomName);
                 const exit = creep.pos.findClosestByRange(exitDir);
                 target = normalizePos(exit);
+                options.range = 0;
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             }
         }
