@@ -1,4 +1,5 @@
 const profiler = require('screeps-profiler');
+let _ = require('lodash');
 
 const DEFAULT_MAXOPS = 10000;
 const STATE_STUCK = 3;
@@ -105,17 +106,24 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = options.route;
-        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 0))) {
+        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 1))) {
             let route;
-            if (options.useCache) {
-                route = getRoute(origin, target);
-            }
-            if (!route) {
+            if (roomDistance < 3) {
+                if (options.useCache) {
+                    route = getRoute(origin, target);
+                }
+                if (!route) {
+                    route = findRoute(origin.roomName, target.roomName, options);
+                }
+                if (route) {
+                    allowedRooms = route;
+                    cacheRoute(origin, target, route);
+                }
+            } else {
                 route = findRoute(origin.roomName, target.roomName, options);
-            }
-            if (route) {
-                allowedRooms = route;
-                cacheRoute(origin, target, route);
+                target = new RoomPosition(25, 25, route[2].room);
+                options.range = 13;
+                allowedRooms = _.take(route, 3);
             }
         }
         let roomsSearched = 0;
