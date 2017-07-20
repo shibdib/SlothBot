@@ -26,7 +26,7 @@ let doNotSell = [RESOURCE_CATALYZED_UTRIUM_ACID,
 let tradeAmount = 25000;
 let energyAmount = 50000;
 let reactionAmount = 1000;
-let boostAmount = 1000;
+let boostAmount = 2000;
 
 
 function terminalControl() {
