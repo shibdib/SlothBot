@@ -5,6 +5,7 @@ global.NODE_USAGE = {
     , last: Game.time
     , total: 0
 }; // NOTE: Can't put this in the global file since the require caches can be reset outside of a global reset
+Memory.stats.cpu.preRequires = Game.cpu.getUsed();
 require("globals")(); // NOTE: All globals not from an external resource should be declared here
 require("prototype.workerCreep");
 require("prototype.roomPosition");
@@ -20,12 +21,14 @@ let _ = require('lodash');
 let screepsPlus = require('screepsplus');
 require('module.traveler');
 require('module.pathFinder');
+Memory.stats.cpu.postRequires = Game.cpu.getUsed();
 
 // This line monkey patches the global prototypes.
 profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
+        Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //Get tick duration
         Memory.stats.tickLength = Math.round(new Date() / 1000) - Memory.stats.tickOldEpoch;
@@ -33,9 +36,9 @@ module.exports.loop = function () {
 
         //GRAFANA
         screepsPlus.collect_stats();
-        Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //CLEANUP
+        Memory.stats.cpu.preCleanup = Game.cpu.getUsed();
         if (Game.time % 1000 === 0) {
             cleanPathCache(); //clean path cache
         }
@@ -44,18 +47,7 @@ module.exports.loop = function () {
                 delete Memory.creeps[name];
             }
         }
-
-        //ATTACK CHECKS
-        for (let i = 0; i < 5; i++) {
-            let attack = 'attack' + i;
-            if (Game.flags[attack]) {
-                if (Game.flags[attack].room) {
-                    if (Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_CREEPS) === null && Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_SPAWNS) === null) {
-                        Game.flags[attack].remove();
-                    }
-                }
-            }
-        }
+        Memory.stats.cpu.postCleanup = Game.cpu.getUsed();
 
         //Room Management
         Memory.stats.cpu.preRoom = Game.cpu.getUsed();
@@ -63,24 +55,31 @@ module.exports.loop = function () {
             let roomController = require('module.roomController');
             roomController.roomControl();
         }
+        Memory.stats.cpu.postRoom = Game.cpu.getUsed();
 
         //Military management
         Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
         if (Game.cpu.bucket > 1500) {
             let attackController = require('military.attack');
             let defenseController = require('military.defense');
+            Memory.stats.cpu.preMilitaryDefense = Game.cpu.getUsed();
             defenseController.controller();
+            Memory.stats.cpu.postMilitaryDefense = Game.cpu.getUsed();
+            Memory.stats.cpu.preMilitaryAttack = Game.cpu.getUsed();
             attackController.controller();
+            Memory.stats.cpu.postMilitaryAttack = Game.cpu.getUsed();
         } else {
             let raiders = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout');
             for (let i=0; i < raiders.length; i++) {
                 raiders[i].suicide();
             }
         }
+        Memory.stats.cpu.postMilitary = Game.cpu.getUsed();
 
         //Creep Management
         Memory.stats.cpu.preCreep = Game.cpu.getUsed();
         creepController.creepControl();
+        Memory.stats.cpu.postCreep = Game.cpu.getUsed();
 
         //Tower Management
         Memory.stats.cpu.preTower = Game.cpu.getUsed();
@@ -88,6 +87,7 @@ module.exports.loop = function () {
             let towerController = require('module.towerController');
             towerController.towerControl();
         }
+        Memory.stats.cpu.postTower = Game.cpu.getUsed();
 
         //Link Management
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
@@ -95,6 +95,7 @@ module.exports.loop = function () {
             let linkController = require('module.linkController');
             //linkController.linkControl();
         }
+        Memory.stats.cpu.postLink = Game.cpu.getUsed();
 
         //Lab Management
         Memory.stats.cpu.preLab = Game.cpu.getUsed();
@@ -104,6 +105,7 @@ module.exports.loop = function () {
                // labController.labControl();
             }
         }
+        Memory.stats.cpu.postLab = Game.cpu.getUsed();
 
         //Terminal Management
         Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
@@ -116,6 +118,7 @@ module.exports.loop = function () {
         Memory.stats.cpu.postTerminal = Game.cpu.getUsed();
 
         //Alliance List Management
+        Memory.stats.cpu.preSegments = Game.cpu.getUsed();
         let doNotAggress = [
             {"username": "Shibdib", "status": "alliance"},
             {"username": "PostCrafter", "status": "alliance"},
@@ -178,6 +181,7 @@ module.exports.loop = function () {
             // Can't use data if you can't see it.
             Memory.marketCache = RawMemory.foreignSegment.data;
         }
+        Memory.stats.cpu.postSegments = Game.cpu.getUsed();
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
         let used = Memory.stats.cpu.used - Memory.stats.cpu.init;
