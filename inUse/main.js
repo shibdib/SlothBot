@@ -1,19 +1,12 @@
 //modules
 //Setup globals and prototypes
-global.NODE_USAGE = {
-    first: Game.time
-    , last: Game.time
-    , total: 0
-}; // NOTE: Can't put this in the global file since the require caches can be reset outside of a global reset
-Memory.stats.cpu.preRequires = Game.cpu.getUsed();
-require("globals")(); // NOTE: All globals not from an external resource should be declared here
+require("globals")();
 require("prototype.roomPosition");
 require("prototype.room");
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
 require('module.pathFinder');
-Memory.stats.cpu.postRequires = Game.cpu.getUsed();
 
 // This line monkey patches the global prototypes.
 profiler.enable();
