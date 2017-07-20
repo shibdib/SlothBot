@@ -145,3 +145,54 @@ Room.prototype.cacheRoomStructures = function (id) {
         room.memory.structureCache = cache;
     }
 };
+
+Room.prototype.handleNukeAttack = function () {
+    let nukes = this.find(FIND_NUKES);
+    if (nukes.length === 0) {
+        return false;
+    }
+
+    let sorted = _.sortBy(nukes, function (object) {
+        return object.timeToLand;
+    });
+    if (sorted[0].timeToLand < 100) {
+        this.controller.activateSafeMode();
+    }
+
+    let findSaveableStructures = function (object) {
+        if (object.structureType === STRUCTURE_ROAD) {
+            return false;
+        }
+        if (object.structureType === STRUCTURE_RAMPART) {
+            return false;
+        }
+        return object.structureType !== STRUCTURE_WALL;
+
+    };
+
+    let isRampart = function (object) {
+        return object.structureType === STRUCTURE_RAMPART;
+    };
+
+    for (let nuke of nukes) {
+        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 4, {
+            filter: findSaveableStructures
+        });
+        this.log('Nuke attack !!!!!');
+        for (let structure of structures) {
+            let lookConstructionSites = structure.pos.lookFor(LOOK_CONSTRUCTION_SITES);
+            if (lookConstructionSites.length > 0) {
+                continue;
+            }
+            let lookStructures = structure.pos.lookFor(LOOK_STRUCTURES);
+            let lookRampart = _.findIndex(lookStructures, isRampart);
+            if (lookRampart > -1) {
+                continue;
+            }
+            this.log('Build rampart: ' + JSON.stringify(structure.pos));
+            structure.pos.createConstructionSite(STRUCTURE_RAMPART);
+        }
+    }
+
+    return true;
+};
