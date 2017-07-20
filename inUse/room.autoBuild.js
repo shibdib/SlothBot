@@ -84,9 +84,9 @@ function buildExtensions(spawn) {
         if (_.filter(spawn.room.memory.structureCache, 'type', 'extension').length < spawn.room.getExtensionCount()) {
             let x;
             let y;
-            for (let i = 1; i < 5; i++) {
-                x = getRandomInt(-_.round(spawn.room.controller.level + 1, 0), _.round(spawn.room.controller.level + 1, 0));
-                y = getRandomInt(-_.round(spawn.room.controller.level + 1, 0), _.round(spawn.room.controller.level + 1, 0));
+            for (let i = 1; i < 8; i++) {
+                x = getRandomInt(-_.round(i*1.5, 0), _.round(i*1.5, 0));
+                y = getRandomInt(-_.round(i*1.5, 0), _.round(i*1.5, 0));
                 let pos = new RoomPosition(spawn.pos.x + x, spawn.pos.y + y, spawn.pos.roomName);
                 if (pos.checkForAllStructure().length > 0) continue;
                 switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
@@ -95,9 +95,9 @@ function buildExtensions(spawn) {
                         let path = spawn.room.findPath(spawn.pos, pos, {
                             maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
                         });
-                        for (let i = 0; i < path.length; i++) {
-                            if (path[i] !== undefined) {
-                                let build = new RoomPosition(path[i].x, path[i].y, spawn.room.name);
+                        for (let p = 0; p < path.length; p++) {
+                            if (path[p] !== undefined) {
+                                let build = new RoomPosition(path[p].x, path[p].y, spawn.room.name);
                                 const roadCheck = build.lookFor(LOOK_STRUCTURES);
                                 const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
                                 if (constructionCheck.length > 0 || roadCheck.length > 0) {
