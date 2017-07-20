@@ -47,7 +47,7 @@ function shibMove(creep, heading, options = {}) {
     let target = normalizePos(heading);
     if (!origin || !target) return;
     //Delete path if target changed
-   // if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
+    // if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
@@ -108,23 +108,18 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let allowedRooms = options.route;
         if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 1))) {
             let route;
-            if (roomDistance < 3) {
-                if (options.useCache) {
-                    route = getRoute(origin, target);
-                }
-                if (!route) {
-                    route = findRoute(origin.roomName, target.roomName, options);
-                }
-                if (route) {
-                    allowedRooms = route;
-                    cacheRoute(origin, target, route);
-                }
-            } else {
-                const exitDir = Game.map.findExit(origin.roomName, target.roomName);
-                const exit = creep.pos.findClosestByRange(exitDir);
-                target = normalizePos(exit);
-                options.range = 0;
-                return shibPath(creep, heading, pathInfo, origin, target, options);
+            if (options.useCache) {
+                route = getRoute(origin, target);
+            }
+            if (!route) {
+                route = findRoute(origin.roomName, target.roomName, options);
+            }
+            if (route) {
+                allowedRooms = route;
+                cacheRoute(origin, target, route);
+            }
+            if (!route) {
+                findExit(creep, heading, pathInfo, origin, target, options);
             }
         }
         let roomsSearched = 0;
@@ -193,7 +188,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " is stuck, suiciding for the good of the CPU.</font>");
                     creep.suicide();
                 }
-                console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "."+ creep.pos.y + "."+ creep.pos.roomName +" to " + target.x + "."+ target.y + "."+ target.roomName +" reverting to moveTo</font>")
+                console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " reverting to moveTo</font>")
                 return creep.moveTo(target);
             }
         }
@@ -247,9 +242,17 @@ function findRoute(origin, destination, options = {}) {
             }
             return 2.5;
         }
-    }).forEach(function(info) {
+    }).forEach(function (info) {
         allowedRooms[info.room] = true;
     });
+}
+
+function findExit(creep, heading, pathInfo, origin, target, options) {
+    const exitDir = Game.map.findExit(origin.roomName, target.roomName);
+    const exit = creep.pos.findClosestByRange(exitDir);
+    target = normalizePos(exit);
+    options.range = 0;
+    return shibPath(creep, heading, pathInfo, origin, target, options);
 }
 
 //FUNCTIONS
@@ -268,6 +271,7 @@ function addCreepsToMatrix(room, matrix) {
     room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
     return matrix;
 }
+
 function getStructureMatrix(room, freshMatrix) {
     if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
         room.memory.structureMatrixTick = Game.time;
@@ -276,11 +280,13 @@ function getStructureMatrix(room, freshMatrix) {
     }
     return this.structureMatrixCache[room.name];
 }
+
 function getCreepMatrix(room) {
     room.memory.creepMatrixTick = Game.time;
     creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
     return creepMatrixCache[room.name];
 }
+
 function addStructuresToMatrix(room, matrix, roadCost) {
     let impassibleStructures = [];
     for (let structure of room.find(FIND_STRUCTURES)) {
@@ -339,6 +345,7 @@ function updateRoomStatus(room) {
         }
     }
 }
+
 function positionAtDirection(origin, direction) {
     let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
     let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
@@ -349,6 +356,7 @@ function positionAtDirection(origin, direction) {
     }
     return new RoomPosition(x, y, origin.roomName);
 }
+
 function cacheRoute(from, to, route) {
     let key = getPathKey(from, to);
     let cache = Memory.routeCache || {};
@@ -360,6 +368,7 @@ function cacheRoute(from, to, route) {
     };
     Memory.routeCache = cache;
 }
+
 function getRoute(from, to) {
     let cache = Memory.routeCache;
     if (cache) {
@@ -385,6 +394,7 @@ function cachePath(from, to, path) {
     };
     Memory.pathCache = cache;
 }
+
 function getPath(from, to) {
     let cache = Memory.pathCache;
     if (cache) {
@@ -398,12 +408,15 @@ function getPath(from, to) {
         return null;
     }
 }
+
 function getPathKey(from, to) {
     return getPosKey(from) + '$' + getPosKey(to);
 }
+
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
+
 structureMatrixCache = {};
 creepMatrixCache = {};
 
