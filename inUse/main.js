@@ -179,7 +179,8 @@ module.exports.loop = function () {
         }
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
-        if (Memory.stats.cpu.used - Memory.stats.cpu.init > Game.cpu.limit * 2) console.log("<font color='#adff2f'>Abnormally High CPU Usage - " + Memory.stats.cpu.used - Memory.stats.cpu.init + " CPU</font>");
+        let used = Memory.stats.cpu.used - Memory.stats.cpu.init;
+        if (used > Game.cpu.limit * 2) console.log("<font color='#adff2f'>Abnormally High CPU Usage - " + used + " CPU</font>");
     });
 };
 
