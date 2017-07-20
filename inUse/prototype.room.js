@@ -39,8 +39,9 @@ Room.prototype.getExtensionCount = function () {
 };
 
 Room.prototype.processBuildQueue = function () {
-    for (let name in Game.spawns) {
-        let spawn = Game.spawns[name];
+    let spawns = this.find(FIND_MY_SPAWNS);
+    for (let key in spawns) {
+        let spawn = spawns[key];
         if (spawn.room.name !== this.name) continue;
         let level = getLevel(spawn);
         if (!spawn.spawning) {
