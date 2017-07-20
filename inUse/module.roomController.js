@@ -23,6 +23,7 @@ function roomControl() {
         }**/
 
         //CREEP AMOUNT CHECKS
+        Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
         if (Game.time % 10 === 0) {
             creepQueueChecks(currentRoom);
         }
@@ -30,6 +31,7 @@ function roomControl() {
         //Process Build Queue
         cleanQueue(currentRoom);
         currentRoom.processBuildQueue();
+        Memory.stats.cpu.postSpawn = Game.cpu.getUsed();
 
 
         //Room Building
@@ -111,7 +113,6 @@ function neighborCheck(spawnRoom, remoteRoom) {
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
 
 function creepQueueChecks(currentRoom) {
-    Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
     delete currentRoom.memory.creepBuildQueue;
     let war = Memory.war;
     let roomCreeps = currentRoom.find(FIND_MY_CREEPS);
@@ -421,6 +422,5 @@ function creepQueueChecks(currentRoom) {
             }
         }
     }
-    Memory.stats.cpu.postSpawn = Game.cpu.getUsed();
 }
 creepQueueChecks = profiler.registerFN(creepQueueChecks, 'creepQueueChecks');
