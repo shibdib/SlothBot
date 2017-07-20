@@ -93,7 +93,7 @@ module.exports.loop = function () {
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
         if (Game.cpu.bucket > 2500) {
             let linkController = require('module.linkController');
-            linkController.linkControl();
+            //linkController.linkControl();
         }
 
         //Lab Management
