@@ -120,10 +120,10 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     cacheRoute(origin, target, route);
                 }
             } else {
-                route = findRoute(origin.roomName, target.roomName, options);
-                target = new RoomPosition(25, 25, route[2].room);
-                options.range = 13;
-                allowedRooms = _.take(route, 3);
+                const exitDir = Game.map.findExit(origin.roomName, target.roomName);
+                const exit = creep.pos.findClosestByRange(exitDir);
+                target = normalizePos(exit);
+                return shibPath(creep, heading, pathInfo, origin, target, options);
             }
         }
         let roomsSearched = 0;

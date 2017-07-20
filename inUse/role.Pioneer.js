@@ -9,7 +9,7 @@ function role(creep) {
     //Invader detection
     invaderCheck(creep);
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) {
         return creep.flee(hostiles);
     }
 
