@@ -257,7 +257,7 @@ function findExit(creep, heading, pathInfo, origin, target, options) {
 
 //FUNCTIONS
 function normalizePos(destination) {
-    if (!(destination instanceof RoomPosition)) {
+    if (destination && !(destination instanceof RoomPosition)) {
         return destination.pos;
     }
     return destination;
