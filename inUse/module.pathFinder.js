@@ -117,8 +117,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             if (route) {
                 allowedRooms = route;
                 cacheRoute(origin, target, route);
-            }
-            if (!route) {
+            } else {
                 findExit(creep, heading, pathInfo, origin, target, options);
             }
         }
