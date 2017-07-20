@@ -43,12 +43,14 @@ function role(creep) {
         if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
             creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller, {range: 3});
         }
+        if (creep.memory.terminal && creep.pos.getRangeTo(Game.getObjectById(creep.memory.terminal)) <= 1) creep.withdraw(Game.getObjectById(creep.memory.terminal), RESOURCE_ENERGY);
     } else {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else {
+            if (!creep.memory.terminal) creep.memory.terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0}).id;
             let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy > 0});
-            let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
+            let terminal = Game.getObjectById(creep.memory.terminal);
             if (terminal && creep.pos.getRangeTo(terminal) < 5) {
                 if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(terminal);

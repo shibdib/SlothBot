@@ -32,7 +32,7 @@ function shibMove(creep, heading, options = {}) {
     }
     let pathInfo = creep.memory._shibMove;
 
-    let rangeToDestination = creep.pos.getRangeTo(heading)
+    let rangeToDestination = creep.pos.getRangeTo(heading);
     if (rangeToDestination <= options.range) {
         return OK;
     } else if (rangeToDestination <= 1) {
@@ -188,7 +188,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " is stuck, suiciding for the good of the CPU.</font>");
                     creep.suicide();
                 }
-                console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " reverting to moveTo</font>")
+                console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " reverting to moveTo</font>");
                 return creep.moveTo(target);
             }
         }
@@ -252,7 +252,7 @@ function findExit(creep, heading, pathInfo, origin, target, options) {
     const exit = creep.pos.findClosestByRange(exitDir);
     target = normalizePos(exit);
     options.range = 0;
-    return shibPath(creep, heading, pathInfo, origin, target, options);
+    if (target && target.roomName) return shibPath(creep, heading, pathInfo, origin, target, options)
 }
 
 //FUNCTIONS
