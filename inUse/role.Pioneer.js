@@ -10,7 +10,7 @@ function role(creep) {
     invaderCheck(creep);
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) {
-        return creep.flee(hostiles);
+        return creep.retreat();
     }
 
     if(creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})){
