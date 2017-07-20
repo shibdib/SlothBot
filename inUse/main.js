@@ -36,7 +36,7 @@ module.exports.loop = function () {
 
         //Room Management
         Memory.stats.cpu.preRoom = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 5000) {
+        if (Game.cpu.bucket > 1000) {
             let roomController = require('module.roomController');
             roomController.roomControl();
         }
