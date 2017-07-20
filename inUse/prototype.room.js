@@ -41,6 +41,7 @@ Room.prototype.getExtensionCount = function () {
 Room.prototype.processBuildQueue = function () {
     for (let name in Game.spawns) {
         let spawn = Game.spawns[name];
+        if (spawn.room.name !== this.name) continue;
         let level = getLevel(spawn);
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue) {
@@ -83,7 +84,6 @@ Room.prototype.processBuildQueue = function () {
                         }) === role + Game.time) {
                         console.log(spawn.room.name + ' Spawning a ' + role);
                         delete spawn.room.memory.creepBuildQueue[topPriority.role];
-                        return;
                     } else {
                         let chance = _.min(spawn.pos.findInRange(FIND_MY_CREEPS, 1), 'ticksToLive');
                         if (chance && chance.ticksToLive < 1000) spawn.renewCreep(chance);
