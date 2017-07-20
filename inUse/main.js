@@ -113,6 +113,7 @@ module.exports.loop = function () {
                 terminalController.terminalControl();
             }
         }
+        Memory.stats.cpu.postTerminal = Game.cpu.getUsed();
 
         //Alliance List Management
         let doNotAggress = [
