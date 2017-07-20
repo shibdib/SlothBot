@@ -7,19 +7,11 @@ global.NODE_USAGE = {
 }; // NOTE: Can't put this in the global file since the require caches can be reset outside of a global reset
 Memory.stats.cpu.preRequires = Game.cpu.getUsed();
 require("globals")(); // NOTE: All globals not from an external resource should be declared here
-require("prototype.workerCreep");
 require("prototype.roomPosition");
 require("prototype.room");
-require("prototype.creepCombat");
-require("military.tacticsRanged");
-require("military.tacticsMelee");
-require("military.tacticsMedic");
-require("military.tacticsDeconstructor");
-let creepController = require('module.creepController');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
-require('module.traveler');
 require('module.pathFinder');
 Memory.stats.cpu.postRequires = Game.cpu.getUsed();
 
@@ -78,6 +70,7 @@ module.exports.loop = function () {
 
         //Creep Management
         Memory.stats.cpu.preCreep = Game.cpu.getUsed();
+        let creepController = require('module.creepController');
         creepController.creepControl();
         Memory.stats.cpu.postCreep = Game.cpu.getUsed();
 

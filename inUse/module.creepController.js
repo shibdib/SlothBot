@@ -3,6 +3,12 @@
  */
 //Roles
 let profiler = require('screeps-profiler');
+require("prototype.workerCreep");
+require("prototype.creepCombat");
+require("military.tacticsRanged");
+require("military.tacticsMelee");
+require("military.tacticsMedic");
+require("military.tacticsDeconstructor");
 
 function creepControl() {
     for (let name in Game.creeps) {
