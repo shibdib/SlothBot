@@ -111,6 +111,7 @@ function neighborCheck(spawnRoom, remoteRoom) {
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
 
 function creepQueueChecks(currentRoom) {
+    Memory.stats.cpu.preSpawn = Game.cpu.getUsed();
     delete currentRoom.memory.creepBuildQueue;
     let war = Memory.war;
     let roomCreeps = currentRoom.find(FIND_MY_CREEPS);
@@ -420,5 +421,6 @@ function creepQueueChecks(currentRoom) {
             }
         }
     }
+    Memory.stats.cpu.postSpawn = Game.cpu.getUsed();
 }
 creepQueueChecks = profiler.registerFN(creepQueueChecks, 'creepQueueChecks');
