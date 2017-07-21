@@ -5,9 +5,6 @@ let _ = require('lodash');
 let profiler = require('screeps-profiler');
 
 let reactionNeeds = [
-    RESOURCE_OXYGEN,
-    RESOURCE_GHODIUM,
-    RESOURCE_KEANIUM
 ];
 
 let boostNeeds = [RESOURCE_CATALYZED_GHODIUM_ACID];
