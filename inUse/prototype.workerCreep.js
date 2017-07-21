@@ -84,31 +84,36 @@ findConstruction = function () {
     let construction = this.room.find(FIND_MY_CONSTRUCTION_SITES);
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return;
     }
     site = _.filter(construction, (s) => s.structureType !== STRUCTURE_RAMPART);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return;
     }
@@ -120,49 +125,57 @@ findRepair = function (level) {
     let structures = this.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000 * level);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 500000 * level);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 500000 * level);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
     site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000 && s.pos.lookFor(LOOK_CREEPS).length === 0);
     if (site.length > 0) {
-        this.memory.constructionSite = site[0].id;
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
@@ -339,28 +352,6 @@ findEnergy = function (range = 50, hauler = false) {
             harvest: false
         });
     }
-    /**
-     //Dropped Energy
-     let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
-     if (dropped.length > 0) {
-        let droppedEnergy = [];
-        for (let i = 0; i < dropped.length; i++) {
-            if (dropped[i]) {
-                const droppedDistWeighted = _.round(dropped[i].pos.getRangeTo(creep) * 0.3, 0) + 1;
-                droppedEnergy.push({
-                    id: dropped[i].id,
-                    distWeighted: droppedDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestDropped = _.min(droppedEnergy, 'distWeighted');
-        energy.push({
-            id: bestDropped.id,
-            distWeighted: bestDropped.distWeighted,
-            harvest: false
-        });
-    }**/
 
     let sorted = _.min(energy, 'distWeighted');
 
@@ -652,7 +643,7 @@ findEssentials = function () {
     }
     //Tower
     let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
-    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));
     if (tower.length > 0 && harvester.length >= 2) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
@@ -660,7 +651,7 @@ findEssentials = function () {
             if (object) {
                 if (object.pos.getRangeTo(this) > 1) {
                     if (object.room.memory.responseNeeded === true) {
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.2, 0);
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.01, 0);
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
@@ -675,7 +666,7 @@ findEssentials = function () {
                         });
                     } else {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 1.1, 0) + 1 - towerAmountWeighted;
+                        const towerDistWeighted = _.round(object.pos.getRangeTo(this) * 0.5, 0) + 1 - towerAmountWeighted;
                         towers.push({
                             id: tower[i],
                             distWeighted: towerDistWeighted,
@@ -827,61 +818,66 @@ Creep.prototype.idleFor = function (ticks = 0) {
  creep.idleFor(6);
  *///Room intel
 Creep.prototype.cacheRoomIntel = function () {
-    if (this.memory.lastRoom !== this.room.name) {
-        this.memory.lastRoom = this.room.name;
-        let room = this.room;
-        let owner = undefined;
-        let level = undefined;
-        let hostiles = undefined;
-        let sk = undefined;
-        let towers = undefined;
-        if (room) {
-            let cache = Memory.roomCache || {};
-            let sources = room.find(FIND_SOURCES);
-            hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
-            towers = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_TOWER && _.includes(RawMemory.segments[2], e.owner['username']) === false});
-            if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
-            let minerals = room.find(FIND_MINERALS);
-            if (room.controller) {
-                owner = room.controller.owner;
-                level = room.controller.level;
-            }
-            let key = room.name;
-            if (Memory.roomCache[key]) delete Memory.roomCache[key];
-            cache[key] = {
-                cached: Game.time,
-                name: room.name,
-                sources: sources,
-                minerals: minerals,
-                owner: owner,
-                level: level,
-                towers: towers.length,
-                hostiles: hostiles.length,
-                sk: sk
-            };
-            Memory.roomCache = cache;
-            if ((sk || sources.length > 0) && !owner) {
-                for (let key in Game.spawns) {
-                    if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 2) {
-                        if (sk) {
-                            if (Game.spawns[key].room.memory.skRooms) {
-                                if (_.includes(Game.spawns[key].room.memory.skRooms, room.name) === false) {
-                                    Game.spawns[key].room.memory.skRooms.push(room.name);
-                                }
-                            } else {
-                                Game.spawns[key].room.memory.skRooms = [];
+    let room = Game.rooms[this.pos.roomName];
+    let owner = undefined;
+    let level = undefined;
+    let hostiles = undefined;
+    let sk = undefined;
+    let towers = undefined;
+    if (room) {
+        let cache = Memory.roomCache || {};
+        let sources = room.find(FIND_SOURCES);
+        hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
+        towers = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_TOWER && _.includes(RawMemory.segments[2], e.owner['username']) === false});
+        if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
+        let minerals = room.find(FIND_MINERALS);
+        if (room.controller) {
+            owner = room.controller.owner;
+            level = room.controller.level;
+        }
+        let key = room.name;
+        if (Memory.roomCache[key]) delete Memory.roomCache[key];
+        cache[key] = {
+            cached: Game.time,
+            name: room.name,
+            sources: sources,
+            minerals: minerals,
+            owner: owner,
+            level: level,
+            towers: towers.length,
+            hostiles: hostiles.length,
+            sk: sk
+        };
+        Memory.roomCache = cache;
+        if ((sk || sources.length > 0) && !owner) {
+            for (let key in Game.spawns) {
+                if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 2) {
+                    if (sk) {
+                        if (Game.spawns[key].room.memory.skRooms) {
+                            if (_.includes(Game.spawns[key].room.memory.skRooms, room.name) === false) {
+                                Game.spawns[key].room.memory.skRooms.push(room.name);
                             }
-                        }
-                        if (Game.map.getRoomLinearDistance(Game.spawns[key].pos.roomName, room.name) <= 1 && Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 2 && !owner && !sk) {
-                            if (Game.spawns[key].room.memory.remoteRooms) {
-                                if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === false) {
-                                    Game.spawns[key].room.memory.remoteRooms.push(room.name);
-                                }
-                            } else {
-                                Game.spawns[key].room.memory.remoteRooms = [];
-                            }
+                        } else {
+                            Game.spawns[key].room.memory.skRooms = [];
                         }
                     }
+                    if (Game.map.getRoomLinearDistance(Game.spawns[key].pos.roomName, room.name) <= 1 && Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 2 && !owner && !sk) {
+                        if (Game.spawns[key].room.memory.remoteRooms) {
+                            if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === false) {
+                                Game.spawns[key].room.memory.remoteRooms.push(room.name);
+                            }
+                        } else {
+                            Game.spawns[key].room.memory.remoteRooms = [];
+                        }
+                    }
+                }
+            }
+        } else if (owner) {
+            for (let key in Game.spawns) {
+                if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === true) {
+                    let newArray = _.filter(Game.spawns[key].room.memory.remoteRooms, (e) => e !== room.name);
+                    delete Game.spawns[key].room.memory.remoteRooms;
+                    Game.spawns[key].room.memory.remoteRooms = newArray;
                 }
             }
         }
