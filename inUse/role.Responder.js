@@ -82,8 +82,10 @@ function role(creep) {
         if (creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
             creep.memory.destinationReached = true;
         }
-        creep.moveTo(new RoomPosition(25, 25, Game.rooms[creep.memory.responseTarget].name), {range: 15}); //to move to any room
-    } else if (Game.getObjectById(creep.memory.assignedRampart)) {
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room
+    } else if (creep.pos.roomName !== creep.memory.responseTarget) {
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room
+    } else if (Game.getObjectById(creep.memory.assignedRampart) && Game.getObjectById(creep.memory.assignedRampart).pos.roomName === creep.memory.responseTarget) {
         if (Game.getObjectById(creep.memory.assignedRampart).pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.y !== creep.pos.y) {
             creep.shibMove(Game.getObjectById(creep.memory.assignedRampart));
         }
