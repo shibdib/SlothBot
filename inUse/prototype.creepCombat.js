@@ -153,25 +153,30 @@ Creep.prototype.fightRampart = function (target) {
     if (position === null) {
         return false;
     }
+    this.memory.assignedRampart = position.id;
     let range = target.pos.getRangeTo(position);
     if (range > 3) {
         return false;
     }
-    let returnCode = this.shibMove(position);
-    if (returnCode === OK) {
-        return true;
+    let returnCode;
+    if (position.pos.x !== this.pos.x && position.pos.y !== this.pos.y) {
+        returnCode = this.shibMove(position, {forceRepath: true, range: 0});
+        if (returnCode === OK) {
+            return true;
+        }
+        if (returnCode === ERR_TIRED) {
+            return true;
+        }
     }
-    if (returnCode === ERR_TIRED) {
-        return true;
-    }
-    this.log('creep_fight.fightRampart returnCode: ' + returnCode);
     let targets = this.pos.findInRange(FIND_HOSTILE_CREEPS, 3, {
         filter: this.room.findAttackCreeps
     });
     if (targets.length > 1) {
         this.rangedMassAttack();
+        returnCode = this.attack(target);
     } else {
         this.rangedAttack(target);
+        returnCode = this.attack(target);
     }
     return true;
 };
@@ -205,6 +210,7 @@ Creep.prototype.fightRanged = function (target) {
 
 Creep.prototype.siege = function () {
     this.memory.hitsLast = this.hits;
+    let healPower = this.getActiveBodyparts(HEAL) * HEAL_POWER;
     if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 140 || this.memory.healing === true || (!this.memory.hitsLost && this.hitsMax - this.hits >= 100)) {
         this.memory.siegeComplete = undefined;
         this.memory.healing = true;

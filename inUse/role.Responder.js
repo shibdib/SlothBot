@@ -36,38 +36,40 @@ function role(creep) {
 
     let friendlies = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
     let creepsInRoom = creep.room.find(FIND_CREEPS);
-    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 49 && c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeCreeps = creep.pos.findInRange(creepsInRoom, 1);
-    let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 49 && c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
     let closestArmed = creep.pos.findClosestByPath(armedHostile);
     let closestHostile = creep.pos.findClosestByPath(hostiles);
-    let closestStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER});
-    if (closestArmed || closestHostile) {
-        creep.memory.inCombat = true;
-        creep.borderCheck();
-        if (closestArmed) {
+    let closestStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER})
+    if (creep.pos.roomName !== creep.memory.responseTarget) {
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room
+    } else if (closestArmed) {
+        if (!creep.fightRampart(closestArmed)) {
+            creep.memory.inCombat = true;
+            creep.borderCheck();
             creep.memory.meleeTarget = closestArmed.id;
             if (creep.pos.getRangeTo(closestArmed) <= 3) creep.rangedAttack(closestArmed);
             if (creep.attack(closestArmed) === ERR_NOT_IN_RANGE) {
                 if (creep.hits < creep.hitsMax) creep.heal(creep);
                 creep.shibMove(closestArmed, {forceRepath: true, ignoreCreeps: false});
             }
-        } else if (closestHostile) {
+        }
+    } else if (closestHostile) {
+        if (!creep.fightRampart(closestHostile)) {
+            creep.memory.inCombat = true;
+            creep.borderCheck();
             creep.memory.meleeTarget = closestHostile.id;
             if (creep.pos.getRangeTo(closestHostile) <= 3) creep.rangedAttack(closestHostile);
             if (creep.attack(closestHostile) === ERR_NOT_IN_RANGE) {
+                if (creep.hits < creep.hitsMax) creep.heal(creep);
                 creep.shibMove(closestHostile, {forceRepath: true, ignoreCreeps: false});
-            }
-            if (inRangeHostile.length > 1) {
-                creep.rangedMassAttack();
-            } else {
-                creep.rangedAttack(closestHostile);
             }
         }
     } else if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
-    }  else if (closestStructure) {
+    } else if (closestStructure) {
         creep.memory.inCombat = undefined;
         if (creep.attack(closestStructure) === ERR_NOT_IN_RANGE) {
             creep.shibMove(closestStructure);
