@@ -17,10 +17,6 @@ function role(creep) {
         creep.memory.energyDestination = undefined;
         creep.memory.role = 'basicHauler';
     }
-    if (creep.memory.storage && Game.getObjectById(creep.memory.storage).store[RESOURCE_ENERGY] > 15000 && _.filter(Game.creeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name).length >= 2) {
-        creep.memory.energyDestination = undefined;
-        creep.memory.role = 'filler';
-    }
     if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
         creep.memory.energyDestination = undefined;
         creep.memory.role = 'basicHauler';
