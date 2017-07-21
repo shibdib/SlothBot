@@ -106,7 +106,9 @@ function cleanQueue(room){
 }
 
 function neighborCheck(spawnRoom, remoteRoom) {
-    return Game.map.getRoomLinearDistance(spawnRoom, remoteRoom) <= 1;
+    if (spawnRoom && remoteRoom) {
+        return Game.map.getRoomLinearDistance(spawnRoom, remoteRoom) <= 1;
+    }
 }
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
 
