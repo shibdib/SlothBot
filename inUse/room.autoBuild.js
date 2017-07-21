@@ -221,6 +221,10 @@ innerWalls = profiler.registerFN(innerWalls, 'innerWallsBuilder');
 function borderWalls(spawn) {
     if (spawn.room.controller.level >= 3) {
         let exits = spawn.room.memory.neighboringRooms;
+        if (!exits) {
+            spawn.room.memory.neighboringRooms = Game.map.describeExits(spawn.pos.roomName);
+            borderWalls(spawn);
+        }
         if (exits[1]) {
             for (let i = 0; i < 50; i++) {
                 let pos = new RoomPosition(i, 3, spawn.room.name);
