@@ -24,7 +24,10 @@ function role(creep) {
         }
     } else if (!creep.memory.currentDestination) {
         for (let key in creep.memory.targetRooms) {
-            creep.memory.currentDestination = creep.memory.targetRooms[key];
+            let currentReservers = _.filter(Game.creeps, (c) => c.memory.currentDestination === creep.memory.targetRooms[key] && c.memory.role === 'reserver');
+            if (currentReservers.length === 0) {
+                creep.memory.currentDestination = creep.memory.targetRooms[key];
+            }
         }
         creep.memory.visitedRooms = [];
     } else if (creep.pos.roomName !== creep.memory.currentDestination) {
@@ -34,10 +37,11 @@ function role(creep) {
             creep.shibMove(creep.room.controller);
             creep.memory.reserving = true;
         } else {
+            let currentReservers = _.filter(Game.creeps, (c) => c.memory.currentDestination === creep.memory.targetRooms[key] && c.memory.role === 'reserver');
             creep.memory.visitedRooms.push(creep.memory.currentDestination);
             creep.memory.currentDestination = undefined;
             for (let key in creep.memory.targetRooms) {
-                if (_.includes(creep.memory.visitedRooms, creep.memory.targetRooms[key]) === false) {
+                if (!_.includes(creep.memory.visitedRooms, creep.memory.targetRooms[key]) && currentReservers.length === 0) {
                     creep.memory.currentDestination = creep.memory.targetRooms[key];
                 }
             }
