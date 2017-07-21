@@ -31,6 +31,14 @@ function role(creep) {
         } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.shibMove(source);
         }
+        switch (creep.harvest(source)) {
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(source);
+                break;
+            case OK:
+                if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) <= 1) creep.transfer(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+                break;
+        }
     } else {
         creep.findSource();
         creep.memory.assignedSource = creep.memory.source;
