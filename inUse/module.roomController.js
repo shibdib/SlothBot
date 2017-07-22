@@ -176,23 +176,33 @@ function creepQueueChecks(currentRoom) {
         let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === currentRoom.name);
         let count;
         if (war === true) {
-            count = 1;
+            count = 10;
         } else {
-            count = 2;
+            count = 25;
         }
-        if (worker.length < count && upgraders.length > 0) {
+        let workerPower = 0;
+        for (let key in worker) {
+            let work = worker[key].getActiveBodyparts(WORK);
+            workerPower = workerPower + work;
+        }
+        if (workerPower < count && upgraders.length > 0 && worker.length < 8) {
             queueCreep(currentRoom, PRIORITIES.worker, {
                 role: 'worker'
             })
         }
-        if (level >= 6) {
-            count = 2;
+        if (level === 8) {
+            count = 15;
         } else if (war === true) {
-            count = 1;
+            count = 15;
         } else {
-            count = 4;
+            count = 30;
         }
-        if (upgraders.length < count) {
+        let upgradePower = 0;
+        for (let key in upgraders) {
+            let upgrade = upgraders[key].getActiveBodyparts(WORK);
+            upgradePower = upgradePower + upgrade;
+        }
+        if (upgradePower * UPGRADE_CONTROLLER_POWER < count && upgraders.length < 10) {
             queueCreep(currentRoom, PRIORITIES.upgrader, {
                 role: 'upgrader'
             })
