@@ -19,7 +19,7 @@ let globals = function () {
             // Remotes
             remoteHarvester: 5,
             remoteHauler: 5,
-            pioneer: 4,
+            pioneer: 5.5,
             // SK
             SKworker: 6,
             SKattacker: 6,
@@ -54,7 +54,7 @@ let globals = function () {
             // Remotes
             remoteHarvester: 5,
             remoteHauler: 5,
-            pioneer: 8,
+            pioneer: 5.5,
             // SK
             SKworker: 6,
             SKattacker: 6,
