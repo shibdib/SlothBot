@@ -18,8 +18,8 @@ let globals = function () {
             pawn: 2,
             // Remotes
             remoteHarvester: 5,
-            remoteHauler: 5,
-            pioneer: 5.5,
+            remoteHauler: 5.5,
+            pioneer: 5.7,
             // SK
             SKworker: 6,
             SKattacker: 6,
@@ -53,8 +53,8 @@ let globals = function () {
             pawn: 2,
             // Remotes
             remoteHarvester: 5,
-            remoteHauler: 5,
-            pioneer: 5.5,
+            remoteHauler: 5.5,
+            pioneer: 5.7,
             // SK
             SKworker: 6,
             SKattacker: 6,
