@@ -274,7 +274,7 @@ function creepQueueChecks(currentRoom) {
             }
             if (level >= 4) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === currentRoom.name && creep.memory.role === 'reserver' && creep.memory.assignedRoom === currentRoom.name);
-                if (reserver.length < _.round(Object.keys(Game.map.describeExits(currentRoom.name)).length, 0) / 2) {
+                if (reserver.length < _.round(Object.keys(currentRoom.memory.remoteRooms).length, 0) / 2) {
                     queueCreep(currentRoom, PRIORITIES.reserver, {
                         role: 'reserver'
                     })
