@@ -103,14 +103,14 @@ findConstruction = function () {
         this.memory.task = 'build';
         return;
     }
-    site = _.filter(construction, (s) => s.structureType !== STRUCTURE_RAMPART);
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return;
     }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
+    site = _.filter(construction);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -256,7 +256,7 @@ findEnergy = function (range = 50, hauler = false) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range) {
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || numberOfUsers >= 4) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
@@ -376,7 +376,7 @@ getEnergy = function (range = 50, hauler = false) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range) {
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || numberOfUsers >= 4) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
