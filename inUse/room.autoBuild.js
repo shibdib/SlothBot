@@ -85,10 +85,10 @@ function buildExtensions(spawn) {
             let x;
             let y;
             for (let i = 1; i < 8; i++) {
-                x = getRandomInt(-_.round(i*1.5, 0), _.round(i*1.5, 0));
-                y = getRandomInt(-_.round(i*1.5, 0), _.round(i*1.5, 0));
+                x = getRandomInt(-_.round(i, 0), _.round(i, 0));
+                y = getRandomInt(-_.round(i, 0), _.round(i, 0));
                 let pos = new RoomPosition(spawn.pos.x + x, spawn.pos.y + y, spawn.pos.roomName);
-                if (pos.checkForAllStructure().length > 0) continue;
+                if (pos.checkForAllStructure().length > 0 || pos.getRangeTo(spawn) === 1) continue;
                 switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
                     case OK:
                         if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) continue;
