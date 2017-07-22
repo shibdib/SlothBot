@@ -35,7 +35,7 @@ let globals = function () {
             raider: 7,
             // Misc
             claimer: 2,
-            reserver: 2,
+            reserver: 7,
             explorer: 2,
             scout: 2,
         };
@@ -70,7 +70,7 @@ let globals = function () {
             raider: 3,
             // Misc
             claimer: 2,
-            reserver: 2,
+            reserver: 7,
             explorer: 2,
             scout: 2,
         };
