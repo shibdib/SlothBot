@@ -65,7 +65,7 @@ function terminalControl() {
 module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalControl');
 
 function fillBuyOrders(terminal, globalOrders) {
-    if (terminal.store[RESOURCE_ENERGY]) {
+    if (terminal.store[RESOURCE_ENERGY] && Game.market.credits < 10000) {
         for (const resourceType in terminal.store) {
             if (resourceType !== RESOURCE_ENERGY) {
                 if (Game.market.credits > 250) {
