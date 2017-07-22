@@ -18,7 +18,7 @@ function role(creep) {
         creep.say(ICONS.tired);
         creep.memory.boostAttempt = undefined;
         creep.memory.renewing = true;
-        return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
+        return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS), {repathChance: 0.6});
     }
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
