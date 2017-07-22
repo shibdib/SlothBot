@@ -11,7 +11,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === creep.memory.assignedRoom);
-    if (creep.room.controller.level >= 7 && creep.room.energyAvailable >= 500 && creep.ticksToLive < 100 && renewers.length < 2 || creep.memory.renewing) {
+    if (Game.time % 10 === 0 && creep.room.controller.level >= 7 && creep.room.energyAvailable >= 500 && creep.ticksToLive < 100 && renewers.length < 2 || creep.memory.renewing) {
         if (creep.ticksToLive >= 1000 || creep.room.energyAvailable >= 300) {
             return creep.memory.renewing = undefined;
         }
