@@ -13,6 +13,7 @@ function role(creep) {
         if (creep.ticksToLive >= 1000) {
             return creep.memory.renewing = undefined;
         }
+        creep.say(ICONS.tired);
         creep.memory.boostAttempt = undefined;
         creep.memory.renewing = true;
         return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
