@@ -883,3 +883,20 @@ Creep.prototype.cacheRoomIntel = function () {
         }
     }
 };
+
+
+Creep.prototype.renewalCheck = function (level = 7) {
+    let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === this.memory.assignedRoom);
+    if ((Game.time % 10 === 0 && this.room.controller.level >= level && this.room.energyAvailable >= 500 && this.ticksToLive < 100 && renewers.length < 2 && (_.min(this.room.memory.creepBuildQueue, 'importance').importance > 2 || !_.min(this.room.memory.creepBuildQueue, 'importance')) || this.memory.renewing)) {
+        if (this.ticksToLive >= 1000 || this.room.energyAvailable >= 300) {
+            return this.memory.renewing = undefined;
+        }
+        this.say(ICONS.tired);
+        this.memory.boostAttempt = undefined;
+        this.memory.boosted = undefined;
+        this.memory.renewing = true;
+        this.shibMove(this.pos.findClosestByRange(FIND_MY_SPAWNS), {repathChance: 0.6});
+        return true;
+    }
+    return false;
+};
