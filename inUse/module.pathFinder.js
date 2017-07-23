@@ -130,6 +130,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 let exit = creep.pos.findClosestByRange(exitDir);
                 target = normalizePos(exit);
                 delete pathInfo.path;
+                options.useFindRoute = false;
                 return shibPath(creep, target, pathInfo, origin, target, options);
             }
         }
