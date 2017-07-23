@@ -891,12 +891,19 @@ Creep.prototype.renewalCheck = function (level = 7) {
         if (this.ticksToLive >= 1000 || this.room.energyAvailable >= 300) {
             return this.memory.renewing = undefined;
         }
-        this.say(ICONS.tired);
-        this.memory.boostAttempt = undefined;
-        this.memory.boosted = undefined;
-        this.memory.renewing = true;
-        this.shibMove(this.pos.findClosestByRange(FIND_MY_SPAWNS), {repathChance: 0.6});
-        return true;
+        let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if (spawn) {
+            if (spawn.pos.getRangeTo(this) === 1) {
+                if (!spawn.spawning) return spawn.renewCreep(this);
+                return;
+            }
+            this.say(ICONS.tired);
+            this.memory.boostAttempt = undefined;
+            this.memory.boosted = undefined;
+            this.memory.renewing = true;
+            this.shibMove(this.pos.findClosestByRange(FIND_MY_SPAWNS), {repathChance: 0.6});
+            return true;
+        }
     }
     return false;
 };

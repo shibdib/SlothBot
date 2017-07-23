@@ -85,15 +85,6 @@ Room.prototype.processBuildQueue = function () {
                         }) === role + Game.time) {
                         console.log(spawn.room.name + ' Spawning a ' + role);
                         delete spawn.room.memory.creepBuildQueue[topPriority.role];
-                    } else if (topPriority.importance > 2 || !topPriority.importance) {
-                        let chance = _.min(spawn.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => !c.memory.boosted}), 'ticksToLive');
-                        if (chance && chance.ticksToLive < 1000) spawn.renewCreep(chance);
-                        spawn.room.visual.text('Queued - ' +
-                            _.capitalize(topPriority.role),
-                            spawn.pos.x + 1,
-                            spawn.pos.y,
-                            {align: 'left', opacity: 0.8}
-                        );
                     } else {
                         spawn.room.visual.text('Queued - ' +
                             _.capitalize(topPriority.role),
