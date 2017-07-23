@@ -256,11 +256,11 @@ findEnergy = function (range = 50, hauler = false) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
+                if (object.store[RESOURCE_ENERGY] < 20 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.rangeToTarget(this) * (1.1 - containerAmountWeighted) + (numberOfUsers / 2);
+                const containerDistWeighted = object.pos.rangeToTarget(this) * (1.02 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
@@ -376,11 +376,11 @@ getEnergy = function (range = 50, hauler = false) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
+                if (object.store[RESOURCE_ENERGY] < 20 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.rangeToTarget(this) * (1.1 - containerAmountWeighted) + (numberOfUsers / 2);
+                const containerDistWeighted = object.pos.rangeToTarget(this) * (1.02 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
