@@ -10,28 +10,34 @@ function towerControl() {
     towers:
         for (let tower of _.values(Game.structures)) {
             if (tower.structureType === STRUCTURE_TOWER) {
-                const barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 500});
-                const road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
-                const woundedCreep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true});
-                const closestHostile = tower.room.find(FIND_CREEPS, {filter: (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 1) && _.includes(doNotAggress, s.owner['username']) === false});
-                if (closestHostile.length > 0) {
-                    for (let i = 0; i < closestHostile.length; i++) {
-                        if (closestHostile[i].pos.getRangeTo(tower) < 5) {
-                            tower.attack(closestHostile[i]);
+                let creeps = tower.room.find(FIND_CREEPS);
+                let barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500});
+                let road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
+                let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true);
+                let headShot = _.filter(creeps, (c) => c.hits <= 150 && _.includes(doNotAggress, c.owner['username']) === false);
+                let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 1) && _.includes(doNotAggress, s.owner['username']) === false);
+                if (armedHostile.length > 0) {
+                    for (let i = 0; i < armedHostile.length; i++) {
+                        if (armedHostile[i].pos.getRangeTo(tower) < 8) {
+                            tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
-                            tower.attack(closestHostile[i]);
+                        } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c) => c.memory.role === 'responder'})) <= 3) {
+                            tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (closestHostile[i].pos.getRangeTo(closestHostile[i].pos.findClosestByRange(FIND_MY_CREEPS)) <= 1) {
-                            tower.attack(closestHostile[i]);
+                        } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(FIND_MY_CREEPS)) <= 1) {
+                            tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (closestHostile[i].owner['username'] === 'Invader') {
-                            tower.attack(closestHostile[i]);
+                        } else if (armedHostile[i].owner['username'] === 'Invader') {
+                            tower.attack(armedHostile[i]);
                             continue towers;
                         }
                     }
                 }
-                if (woundedCreep) {
+                if (headShot.length > 0) {
+                    tower.attack(headShot[0]);
+                    continue;
+                }
+                if (woundedCreep.length > 0) {
                     tower.heal(woundedCreep);
                     continue;
                 }
@@ -57,7 +63,7 @@ function findRepair(tower) {
 
     let site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax});
     if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000});
+        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 2500});
     }
     if (site === null) {
         site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax});
@@ -70,12 +76,6 @@ function findRepair(tower) {
     }
     if (site === null) {
         site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2});
-    }
-    if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 100000});
-    }
-    if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL && s.hits < 100000});
     }
     if (site !== null && site !== undefined) {
         return site.id;
