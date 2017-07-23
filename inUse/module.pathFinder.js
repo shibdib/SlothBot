@@ -195,7 +195,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 options.maxRooms = 16;
                 pathInfo.findAttempt = true;
                 options.maxOps = 30000;
-                console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " retrying.</font>");
+                //console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " retrying.</font>");
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
