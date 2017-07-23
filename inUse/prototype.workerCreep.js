@@ -137,7 +137,7 @@ findRepair = function (level) {
         this.memory.task = 'repair';
         return;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000 * level);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -260,7 +260,7 @@ findEnergy = function (range = 250, hauler = false) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.rangeToTarget(this) * (1.02 - containerAmountWeighted) + (numberOfUsers / 2);
+                const containerDistWeighted = object.pos.rangeToTarget(this) * (2 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
@@ -380,7 +380,7 @@ getEnergy = function (range = 250, hauler = false) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.rangeToTarget(this) * (1.02 - containerAmountWeighted) + (numberOfUsers / 2);
+                const containerDistWeighted = object.pos.rangeToTarget(this) * (2 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
