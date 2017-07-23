@@ -37,7 +37,7 @@ function role(creep) {
                 creep.shibMove(source);
                 break;
             case OK:
-                if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) <= 1) creep.transfer(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+                if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) <= 1 && Game.getObjectById(creep.memory.containerID).hits > Game.getObjectById(creep.memory.containerID).hitsMax * 0.25) creep.transfer(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
                 break;
         }
     } else {
