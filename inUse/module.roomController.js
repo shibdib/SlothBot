@@ -198,7 +198,7 @@ function creepQueueChecks(currentRoom) {
         } else if (war === true) {
             count = 15;
         } else {
-            count = 30;
+            count = 35;
         }
         let upgradePower = 0;
         for (let key in upgraders) {
