@@ -188,7 +188,7 @@ function creepQueueChecks(currentRoom) {
             let work = worker[key].getActiveBodyparts(WORK);
             workerPower = workerPower + work;
         }
-        if (workerPower < count && upgraders.length > 0 && worker.length < 8) {
+        if (workerPower < count && upgraders.length > 0 && worker.length < 5) {
             queueCreep(currentRoom, PRIORITIES.worker, {
                 role: 'worker'
             })
@@ -205,7 +205,7 @@ function creepQueueChecks(currentRoom) {
             let upgrade = upgraders[key].getActiveBodyparts(WORK);
             upgradePower = upgradePower + upgrade;
         }
-        if (upgradePower * UPGRADE_CONTROLLER_POWER < count && upgraders.length < 10) {
+        if (upgradePower * UPGRADE_CONTROLLER_POWER < count && upgraders.length < 5) {
             queueCreep(currentRoom, PRIORITIES.upgrader, {
                 role: 'upgrader'
             })
