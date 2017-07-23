@@ -46,13 +46,17 @@ RoomPosition.prototype.checkForWall = function () {
     return this.lookFor(LOOK_TERRAIN)[0] === 'wall';
 };
 
+RoomPosition.prototype.checkForRampart = function () {
+    return this.lookFor(LOOK_STRUCTURES)[0] === 'rampart';
+};
+
 RoomPosition.prototype.checkForObstacleStructure = function () {
     return this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
 };
 
 RoomPosition.prototype.checkForRoad = function () {
     if (this.roomName)
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
+        return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
 };
 
 RoomPosition.prototype.checkForAllStructure = function () {
@@ -86,3 +90,40 @@ RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
     }
     return this.getAdjacentPosition((direction - 1) % 8 + 1);
 };
+
+RoomPosition.prototype.rangeToTarget = function (target) {
+    let cached = getCachedTargetDistance(this, target);
+    if (cached) return cached;
+    return cacheTargetDistance(this, target);
+};
+
+function cacheTargetDistance (origin, target) {
+    let key = getPathKey(origin, target.pos);
+    let cache = Memory.distanceCache || {};
+    let distance = origin.findPathTo(target).length;
+    cache[key] = {
+        distance: distance
+    };
+    Memory.distanceCache = cache;
+    return distance;
+}
+
+function getCachedTargetDistance (origin, target) {
+    let cache = Memory.distanceCache;
+    if (cache) {
+        let cachedDistance = cache[getPathKey(origin, target.pos)];
+        if (cachedDistance) {
+            return cachedDistance.distance;
+        }
+    } else {
+        return null;
+    }
+}
+
+function getPathKey(from, to) {
+    return getPosKey(from) + '$' + getPosKey(to);
+}
+
+function getPosKey(pos) {
+    return pos.x + 'x' + pos.y + pos.roomName;
+}
