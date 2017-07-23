@@ -256,7 +256,7 @@ findEnergy = function (range = 50, hauler = false) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if ((object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || numberOfUsers >= 4) && this.pos.getRangeTo(object) > 1) {
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
@@ -376,7 +376,7 @@ getEnergy = function (range = 50, hauler = false) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if ((object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || numberOfUsers >= 4) && this.pos.getRangeTo(object) > 1) {
+                if (object.store[RESOURCE_ENERGY] === 0 || object.pos.getRangeTo(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
