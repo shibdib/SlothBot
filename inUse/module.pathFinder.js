@@ -131,6 +131,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 target = normalizePos(exit);
                 delete pathInfo.path;
                 options.useFindRoute = false;
+                options.range = 0;
                 return shibPath(creep, target, pathInfo, origin, target, options);
             }
         }
