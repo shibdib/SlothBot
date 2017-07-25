@@ -22,6 +22,13 @@ module.exports.loop = function () {
         //GRAFANA
         screepsPlus.collect_stats();
 
+        if (Game.cpu.bucket > 1000) {
+            let expendable = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout' || h.memory.role === 'explorer' || h.memory.role === 'remoteHarvester' || h.memory.role === 'remoteHauler' || h.memory.role === 'SKworker' || h.memory.role === 'scout');
+            for (let i=0; i < expendable.length; i++) {
+                expendable[i].suicide();
+            }
+        }
+
         //CLEANUP
         Memory.stats.cpu.preCleanup = Game.cpu.getUsed();
         if (Game.time % 1000 === 0) {
@@ -53,11 +60,6 @@ module.exports.loop = function () {
             Memory.stats.cpu.preMilitaryAttack = Game.cpu.getUsed();
             attackController.controller();
             Memory.stats.cpu.postMilitaryAttack = Game.cpu.getUsed();
-        } else {
-            let raiders = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout');
-            for (let i=0; i < raiders.length; i++) {
-                raiders[i].suicide();
-            }
         }
         Memory.stats.cpu.postMilitary = Game.cpu.getUsed();
 
