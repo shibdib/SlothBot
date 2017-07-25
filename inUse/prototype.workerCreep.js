@@ -308,7 +308,7 @@ findEnergy = function (range = 250, hauler = false) {
             for (let i = 0; i < link.length; i++) {
                 const object = Game.getObjectById(link[i]);
                 if (object) {
-                    if (object.energy === 0) {
+                    if (object.energy === 0 || object.pos.rangeToTarget(this) > range || object.id === object.room.memory.controllerLink) {
                         continue;
                     }
                     const linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
@@ -403,7 +403,7 @@ getEnergy = function (range = 250, hauler = false) {
             for (let i = 0; i < link.length; i++) {
                 const object = Game.getObjectById(link[i]);
                 if (object) {
-                    if (object.energy === 0 || object.pos.rangeToTarget(this) > range) {
+                    if (object.energy === 0 || object.pos.rangeToTarget(this) > range || object.id === object.room.memory.controllerLink) {
                         continue;
                     }
                     const linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
