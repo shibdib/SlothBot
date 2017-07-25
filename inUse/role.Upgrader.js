@@ -61,11 +61,11 @@ function role(creep) {
             }
             let link = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy > 0});
             let terminal = Game.getObjectById(creep.memory.terminal);
-            if (terminal && creep.pos.getRangeTo(terminal) < 5) {
+            if (terminal && creep.pos.getRangeTo(terminal) < 5 && terminal.store[RESOURCE_ENERGY] > 0) {
                 if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(terminal);
                 }
-            } else if (link && creep.pos.getRangeTo(link) < 5) {
+            } else if (link && creep.pos.getRangeTo(link) < 5 && link.energy > 0) {
                 if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(link);
                 }
