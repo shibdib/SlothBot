@@ -235,7 +235,7 @@ function creepQueueChecks(currentRoom) {
                     }
                 }
             }
-            if (level >= 7 && currentRoom.memory.skRooms && !war) {
+            if (level >= 7 && currentRoom.memory.skRooms && !war && Game.cpu.bucket > 5000) {
                 for (let key in currentRoom.memory.skRooms) {
                     let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKranged' && creep.memory.assignedRoom === currentRoom.name);
                     if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100))) {
@@ -267,7 +267,7 @@ function creepQueueChecks(currentRoom) {
                     }
                 }
             }
-            if (currentRoom.memory.remoteRooms && !war) {
+            if (currentRoom.memory.remoteRooms && !war && Game.cpu.bucket > 5000) {
                 for (let keys in currentRoom.memory.remoteRooms) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
                     if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length) {
