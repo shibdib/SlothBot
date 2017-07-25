@@ -11,7 +11,7 @@ function linkControl() {
                 link.room.memory.storageLink = link.id;
                 continue;
             }
-            if (link.room.memory.storageLink) {
+            if (Game.getObjectById(link.room.memory.storageLink)) {
                 let storageLink = Game.getObjectById(link.room.memory.storageLink);
                 if (link.room.memory.storageLink !== link.id && storageLink.energy < 700) {
                     link.transferEnergy(storageLink);
