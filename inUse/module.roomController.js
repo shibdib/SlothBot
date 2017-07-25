@@ -222,7 +222,7 @@ function creepQueueChecks(currentRoom) {
         }
 
         //Remotes
-        if (level >= 3 && !war) {
+        if (level >= 3 && !war && Game.cpu.bucket > 5000) {
             for (let i = 0; i < 20; i++) {
                 let pioneer = 'pioneer' + i;
                 if (Game.flags[pioneer] && Game.flags[pioneer].pos.roomName !== currentRoom.name) {
@@ -235,7 +235,7 @@ function creepQueueChecks(currentRoom) {
                     }
                 }
             }
-            if (level >= 7 && currentRoom.memory.skRooms && !war && Game.cpu.bucket > 5000) {
+            if (level >= 7 && currentRoom.memory.skRooms && !war) {
                 for (let key in currentRoom.memory.skRooms) {
                     let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKranged' && creep.memory.assignedRoom === currentRoom.name);
                     if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100))) {
@@ -267,7 +267,7 @@ function creepQueueChecks(currentRoom) {
                     }
                 }
             }
-            if (currentRoom.memory.remoteRooms && !war && Game.cpu.bucket > 5000) {
+            if (currentRoom.memory.remoteRooms && !war) {
                 for (let keys in currentRoom.memory.remoteRooms) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
                     if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length) {
@@ -308,7 +308,7 @@ function creepQueueChecks(currentRoom) {
         }
 
         //Scouts
-        if (level >= 2) {
+        if (level >= 2 && Game.cpu.bucket > 5000) {
             if (Game.time % 150 === 0) {
                 let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.assignedRoom === currentRoom.name);
                 if (explorers.length < 1) {
