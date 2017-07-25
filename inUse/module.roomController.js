@@ -175,13 +175,13 @@ function creepQueueChecks(currentRoom) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === currentRoom.name);
         let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === currentRoom.name);
         let count;
-        let constuction = _.filter(Game.constructionSites, (site) => site.pos.roomName === currentRoom.name);
+        let construction = _.filter(Game.constructionSites, (site) => site.pos.roomName === currentRoom.name);
         if (war === true) {
-            count = 10;
-        } else if (constuction.length > 5) {
-            count = 25;
+            count = 5;
+        } else if (construction.length > 5) {
+            count = 15;
         } else {
-            count = 10;
+            count = 5;
         }
         let workerPower = 0;
         for (let key in worker) {
