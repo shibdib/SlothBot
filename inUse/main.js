@@ -22,7 +22,7 @@ module.exports.loop = function () {
         //GRAFANA
         screepsPlus.collect_stats();
 
-        if (Game.cpu.bucket > 1000) {
+        if (Game.cpu.bucket < 1000) {
             let expendable = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout' || h.memory.role === 'explorer' || h.memory.role === 'remoteHarvester' || h.memory.role === 'remoteHauler' || h.memory.role === 'SKworker' || h.memory.role === 'scout');
             for (let i=0; i < expendable.length; i++) {
                 expendable[i].suicide();
