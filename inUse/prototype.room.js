@@ -64,7 +64,8 @@ Room.prototype.processBuildQueue = function () {
                         waitForHealers: undefined,
                         waitForAttackers: undefined,
                         waitForRanged: undefined,
-                        waitForDeconstructor: undefined
+                        waitForDeconstructor: undefined,
+                        reservationTarget: undefined
                     });
                     if (spawn.createCreep(body, role + Game.time, {
                             born: Game.time,
@@ -81,7 +82,8 @@ Room.prototype.processBuildQueue = function () {
                             waitForHealers: topPriority.waitForHealers,
                             waitForAttackers: topPriority.waitForAttackers,
                             waitForRanged: topPriority.waitForRanged,
-                            waitForDeconstructor: topPriority.waitForDeconstructor
+                            waitForDeconstructor: topPriority.waitForDeconstructor,
+                            reservationTarget: topPriority.reservationTarget
                         }) === role + Game.time) {
                         console.log(spawn.room.name + ' Spawning a ' + role);
                         delete spawn.room.memory.creepBuildQueue[topPriority.role];
