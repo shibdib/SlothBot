@@ -34,7 +34,7 @@ let globals = function () {
             deconstructor: 7,
             drainer: 7,
             ranged: 7,
-            responder: 1,
+            responder: 1.5,
             raider: 7,
             // Misc
             claimer: 2,
@@ -72,7 +72,7 @@ let globals = function () {
             deconstructor: 3,
             drainer: 3,
             ranged: 3,
-            responder: 1,
+            responder: 1.5,
             raider: 3,
             // Misc
             claimer: 2,
