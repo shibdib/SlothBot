@@ -18,10 +18,6 @@ function role(creep) {
         creep.memory.energyDestination = undefined;
         creep.memory.role = 'basicHauler';
     }
-    if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
-        creep.memory.energyDestination = undefined;
-        creep.memory.role = 'basicHauler';
-    }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
     }
@@ -36,6 +32,7 @@ function role(creep) {
         }
     } else {
         if (creep.memory.storage) {
+            if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
             if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
             }
