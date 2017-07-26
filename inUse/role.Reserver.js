@@ -6,6 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    if (creep.room.controller.reservation)creep.room.memory.reservationExpires = Game.time + creep.room.controller.reservation['ticksToEnd'];
     creep.cacheRoomIntel();
     if (creep.memory.reserving) {
         if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE || creep.signController(creep.room.controller, "Reserved Territory of Overlords - #overlords on Slack") === ERR_NOT_IN_RANGE) {
