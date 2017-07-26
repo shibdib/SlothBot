@@ -152,7 +152,7 @@ function creepQueueChecks(currentRoom) {
 
         //Haulers
         let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech'));
-        if (level < 4 || !currentRoom.memory.storageBuilt || pawn.length === 0) {
+        if (level < 4 || !currentRoom.memory.storageBuilt) {
 
             if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
                 currentRoom.memory.storageBuilt = true;
@@ -166,7 +166,11 @@ function creepQueueChecks(currentRoom) {
             if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length < 1) {
                 currentRoom.memory.storageBuilt = undefined;
             }
-            if (pawn.length < 6) {
+            if (pawn.length < 2) {
+                queueCreep(currentRoom, 1, {
+                    role: 'pawn'
+                })
+            } else if (pawn.length < 6) {
                 queueCreep(currentRoom, PRIORITIES.pawn, {
                     role: 'pawn'
                 })
