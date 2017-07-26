@@ -72,7 +72,8 @@ function queueCreep(room, importance, options = {}) {
         waitForHealers: undefined,
         waitForAttackers: undefined,
         waitForRanged: undefined,
-        waitForDeconstructor: undefined
+        waitForDeconstructor: undefined,
+        reservationTarget: undefined
     });
     if (room) {
         let key = options.role;
@@ -93,7 +94,8 @@ function queueCreep(room, importance, options = {}) {
             waitForHealers: options.waitForHealers,
             waitForAttackers: options.waitForAttackers,
             waitForRanged: options.waitForRanged,
-            waitForDeconstructor: options.waitForDeconstructor
+            waitForDeconstructor: options.waitForDeconstructor,
+            reservationTarget: options.reservationTarget
         };
         if (!room.memory.creepBuildQueue[key]) room.memory.creepBuildQueue = cache;
     }
@@ -287,12 +289,12 @@ function creepQueueChecks(currentRoom) {
             }
             if (level >= 4) {
                 let remotes = currentRoom.memory.remoteRooms;
-                for (let i = 0; i < remotes.length; i++) {
-                    let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === currentRoom.name && creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[i]);
+                for (let key in remotes) {
+                    let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === currentRoom.name && creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[key]);
                     if (reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) {
                         queueCreep(currentRoom, PRIORITIES.reserver, {
                             role: 'reserver',
-                            reservationTarget: remotes[i]
+                            reservationTarget: remotes[key]
                         })
                     }
                 }
