@@ -286,11 +286,15 @@ function creepQueueChecks(currentRoom) {
                 }
             }
             if (level >= 4) {
-                let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === currentRoom.name && creep.memory.role === 'reserver' && creep.memory.assignedRoom === currentRoom.name);
-                if (reserver.length < 1) {
-                    queueCreep(currentRoom, PRIORITIES.reserver, {
-                        role: 'reserver'
-                    })
+                let remotes = currentRoom.memory.remoteRooms;
+                for (let key in remotes) {
+                    let reserver = _.filter(Game.creeps, (creep) => creep.memory.assignedRoom === currentRoom.name && creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[key]);
+                    if (reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) {
+                        queueCreep(currentRoom, PRIORITIES.reserver, {
+                            role: 'reserver',
+                            reservationTarget: remotes[key]
+                        })
+                    }
                 }
             }
             for (let i = 0; i < 20; i++) {
