@@ -121,4 +121,3 @@ let roleClaimer = require('role.Claimer');
 let roleResponder = require('role.Responder');
 let roleScout = require('role.Scout');
 let roleDrainer = require('role.Drainer');
-let roleSwarm = require('role.Swarm');
