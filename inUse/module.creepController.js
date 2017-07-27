@@ -47,7 +47,7 @@ function creepControl() {
             let labTech = _.filter(Game.creeps, (c) => c.memory.role === 'labTech' && c.memory.assignedRoom === creep.room.name);
             let mineralHauler = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHauler' && c.memory.assignedRoom === creep.room.name);
             let mineral = creep.pos.findClosestByRange(FIND_MINERALS);
-            if (fillers.length < 1) {
+            if (fillers.length < 2) {
                 creep.memory.role = 'filler';
                 continue;
             } else if (creep.room.controller.level >= 6 && getters.length > 0 && labTech.length === 0 && lab) {
