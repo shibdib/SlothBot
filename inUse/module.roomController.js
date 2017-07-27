@@ -157,7 +157,7 @@ function creepQueueChecks(currentRoom) {
             if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
                 currentRoom.memory.storageBuilt = true;
             }
-            if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === currentRoom.name).length < 3) {
+            if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === currentRoom.name).length < 2) {
                 queueCreep(currentRoom, PRIORITIES.basicHauler, {
                     role: 'basicHauler'
                 })
@@ -170,7 +170,7 @@ function creepQueueChecks(currentRoom) {
                 queueCreep(currentRoom, 1, {
                     role: 'pawn'
                 })
-            } else if (pawn.length < 6) {
+            } else if (pawn.length < 4) {
                 queueCreep(currentRoom, PRIORITIES.pawn, {
                     role: 'pawn'
                 })
