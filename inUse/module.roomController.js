@@ -218,8 +218,9 @@ function creepQueueChecks(currentRoom) {
         }
         if (level >= 6 && !war) {
             let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
+            let extractor = Game.getObjectById(_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'extractor'), 'id')[0]);
             let mineralHarvester = _.filter(roomCreeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester' && creep.memory.assignedRoom === currentRoom.name);
-            if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0) {
+            if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0 && extractor) {
                 queueCreep(currentRoom, PRIORITIES.mineralHarvester, {
                     role: 'mineralHarvester',
                     assignedMineral: minerals.id
