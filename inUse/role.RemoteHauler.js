@@ -6,9 +6,9 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (creep.renewalCheck(4)) return null;
+    if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[this.memory.assignedRoom].find(FIND_MY_SPAWNS)[0]);
     //Invader detection
-    if (!_.startsWith(creep.name, 'SK')) {
+    if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
         invaderCheck(creep);
         if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
             creep.memory.invaderCooldown++;
@@ -48,7 +48,7 @@ function role(creep) {
                         }
                     }
                 } else {
-                    let energy = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 500});
+                    let energy = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100});
                     if (energy.length > 0) {
                         for (const resourceType in energy.store) {
                             if (creep.pickup(energy, resourceType) === ERR_NOT_IN_RANGE) {
@@ -88,8 +88,17 @@ function role(creep) {
                     if (creep.memory.storageDestination) {
                         let storageItem = Game.getObjectById(creep.memory.storageDestination);
                         for (const resourceType in creep.carry) {
-                            if (creep.transfer(storageItem, resourceType) === ERR_NOT_IN_RANGE) {
-                                creep.shibMove(storageItem);
+                            switch (creep.transfer(storageItem, resourceType)) {
+                                case OK:
+                                    delete creep.memory.storageDestination;
+                                    break;
+                                case ERR_NOT_IN_RANGE:
+                                    creep.shibMove(storageItem);
+                                    break;
+                                case ERR_FULL:
+                                    delete creep.memory.storageDestination;
+                                    creep.findStorage();
+                                    break;
                             }
                         }
                     }

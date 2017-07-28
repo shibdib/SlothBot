@@ -9,7 +9,7 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
-    if (creep.renewalCheck()) return null;
+    if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [RESOURCE_CATALYZED_GHODIUM_ACID];
         let count = 1;

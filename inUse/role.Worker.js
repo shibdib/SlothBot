@@ -10,7 +10,7 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
-    if (creep.renewalCheck()) return null;
+    if (creep.renewalCheck()) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
@@ -21,21 +21,26 @@ function role(creep) {
         creep.memory.working = true;
     }
     if (creep.memory.working === true) {
-        creep.findConstruction();
-        if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
-            let construction = Game.getObjectById(creep.memory.constructionSite);
-            if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(construction, {range: 3});
-            }
+        let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000});
+        if (newRamps.length > 0) {
+            creep.repair(newRamps[0]);
         } else {
-            creep.findRepair(creep.room.controller.level);
-            if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
-                let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
-                if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(repairNeeded, {range: 3});
+            creep.findConstruction();
+            if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
+                let construction = Game.getObjectById(creep.memory.constructionSite);
+                if (creep.build(construction) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(construction, {range: 3});
                 }
-            } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
+            } else {
+                creep.findRepair(creep.room.controller.level);
+                if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
+                    let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
+                    if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(repairNeeded, {range: 3});
+                    }
+                } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
+                }
             }
         }
     }

@@ -56,6 +56,11 @@ function role(creep) {
                 creep.shibMove(closestArmed, {forceRepath: true, ignoreCreeps: false});
             }
         }
+    } else if (closestStructure) {
+        creep.memory.inCombat = undefined;
+        if (creep.attack(closestStructure) === ERR_NOT_IN_RANGE) {
+            creep.shibMove(closestStructure);
+        }
     } else if (closestHostile) {
         if (!creep.fightRampart(closestHostile)) {
             creep.memory.inCombat = true;
@@ -69,11 +74,6 @@ function role(creep) {
         }
     } else if (creep.hits < creep.hitsMax) {
         creep.heal(creep);
-    } else if (closestStructure) {
-        creep.memory.inCombat = undefined;
-        if (creep.attack(closestStructure) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(closestStructure);
-        }
     } else if (friendlies.length > 0 && creep.room.memory.responseNeeded !== true && creep.memory.destinationReached === true) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
             if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {

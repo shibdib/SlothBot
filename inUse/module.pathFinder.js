@@ -48,7 +48,7 @@ function shibMove(creep, heading, options = {}) {
     let target = normalizePos(heading);
     if (!origin || !target) return;
     //Delete path if target changed
-    // if (pathInfo.target && target !== pathInfo.target) delete pathInfo.path;
+    if (pathInfo.target) if (pathInfo.target.roomName + pathInfo.target.x + pathInfo.target.y !== target.roomName + target.x + target.y) delete pathInfo.path;
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
@@ -169,13 +169,16 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     matrix = new PathFinder.CostMatrix();
                     if (!options.ignoreCreeps) {
                         addCreepsToMatrix(room, matrix);
+                        addSksToMatrix(room, matrix);
                     }
                 }
                 else if (options.ignoreCreeps || roomName !== originRoomName) {
                     matrix = getStructureMatrix(room, options.freshMatrix);
+                    addSksToMatrix(room, matrix);
                 }
                 else {
                     matrix = getCreepMatrix(room);
+                    addSksToMatrix(room, matrix);
                 }
             }
             return matrix;
@@ -278,6 +281,31 @@ function checkAvoid(roomName) {
 
 function addCreepsToMatrix(room, matrix) {
     room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
+    return matrix;
+}
+
+function addSksToMatrix(room, matrix) {
+    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
+    let fMod = parsed[1] % 10;
+    let sMod = parsed[2] % 10;
+    let isSK = !(fMod === 5 && sMod === 5) &&
+        ((fMod >= 4) && (fMod <= 6)) &&
+        ((sMod >= 4) && (sMod <= 6));
+    if (isSK) {
+        let sk = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
+        if (sk.length > 0) {
+            for (let c = 0; c < sk.length; c++) {
+                matrix.set(sk[c].pos.x, sk[c].pos.y, 0xff);
+                let sites = sk[c].room.lookForAtArea(LOOK_TERRAIN, sk[c].pos.y - 4, sk[c].pos.x - 4, sk[c].pos.y + 4, sk[c].pos.x + 4, true);
+                for (let key in sites) {
+                    let position = new RoomPosition(sites[key].x, sites[key].y, room.name);
+                    if (!position.checkForWall()) {
+                        matrix.set(position.x, position.y, 15)
+                    }
+                }
+            }
+        }
+    }
     return matrix;
 }
 

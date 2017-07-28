@@ -256,7 +256,7 @@ findEnergy = function (range = 250, hauler = false) {
             const object = Game.getObjectById(container[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] < 20 || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
+                if (object.store[RESOURCE_ENERGY] < 20 || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1) || (object.room.controller.level >= 4 && object.store[RESOURCE_ENERGY] < 1200)) {
                     continue;
                 }
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
@@ -521,6 +521,9 @@ findStorage = function () {
         for (let i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
             if (object) {
+                if (object.energy === object.energyCapacity) {
+                    continue;
+                }
                 if (object.pos.getRangeTo(this) > 1) {
                     if (object.room.memory.responseNeeded === true) {
                         const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0);
@@ -887,23 +890,23 @@ Creep.prototype.cacheRoomIntel = function () {
 
 Creep.prototype.renewalCheck = function (level = 7) {
     let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === this.memory.assignedRoom);
-    if (this.room.controller && Game.time % 10 === 0 && (this.room.controller.level >= level && this.room.energyAvailable >= 500 && this.ticksToLive < 100 && renewers.length < 2 && (_.min(this.room.memory.creepBuildQueue, 'importance').importance > 2 || !_.min(this.room.memory.creepBuildQueue, 'importance')) || this.memory.renewing)) {
-        if (this.ticksToLive >= 1000 || this.room.energyAvailable >= 300) {
+    if (Game.rooms[this.memory.assignedRoom].controller && ((this.memory.renewing && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300) || (Game.rooms[this.memory.assignedRoom].controller.level >= level && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300 && this.ticksToLive < 100 && renewers.length < 2))) {
+        if (this.ticksToLive >= 1000) {
             return this.memory.renewing = undefined;
         }
         let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
         if (spawn) {
             if (spawn.pos.getRangeTo(this) === 1) {
                 if (!spawn.spawning) return spawn.renewCreep(this);
-                return;
+                return true;
             }
             this.say(ICONS.tired);
             this.memory.boostAttempt = undefined;
             this.memory.boosted = undefined;
             this.memory.renewing = true;
-            this.shibMove(this.pos.findClosestByRange(FIND_MY_SPAWNS), {repathChance: 0.6});
             return true;
         }
     }
+    this.memory.renewing = undefined;
     return false;
 };

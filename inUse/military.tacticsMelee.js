@@ -29,12 +29,13 @@ meleeTeamLeader = function () {
     let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let closestArmed = this.pos.findClosestByPath(armedHostile);
     let closestHostile = this.pos.findClosestByPath(hostiles);
+    let closestStructure = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER});
     let healers = _.filter(creepsInRoom, (h) => h.memory && h.memory.role === 'healer');
     let closestHealer = this.pos.findClosestByPath(healers);
     let needsHeals = this.pos.findInRange(creepsInRoom, 3, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
 
     //Retreat if wounded
-    if (this.getActiveBodyparts(TOUGH) === 0) {
+    if (this.getActiveBodyparts(TOUGH) === 0 && this.pos.getRangeTo(closestArmed) > 1) {
         this.heal(this);
         if (closestHealer) {
             this.shibMove(closestHealer, {allowHostile: false, movingTarget: true});
@@ -62,10 +63,11 @@ meleeTeamLeader = function () {
         this.memory.inCombat = true;
         this.borderCheck();
         if (closestArmed) {
+            this.say('1')
             this.memory.meleeTarget = closestArmed.id;
             if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
                 if (this.attack(closestArmed) === ERR_NOT_IN_RANGE) {
-                    this.shibMove(closestArmed, {movingTarget: true});
+                    this.shibMove(closestArmed, {forceRepath: true});
                 }
                 if (inRangeArmed.length > 1) {
                     this.rangedMassAttack();
@@ -74,13 +76,14 @@ meleeTeamLeader = function () {
                 }
             } else if (this.pos.getRangeTo(closestArmed) <= 3) {
                 this.kite(5);
-            } else if (rangedLeader[0]) {
-                this.shibMove(rangedLeader[0], {movingTarget: true});
+            } else if (rangedLeader) {
+                this.shibMove(rangedLeader, {forceRepath: true});
             }
+            return;
         } else if (closestHostile) {
             this.memory.meleeTarget = closestHostile.id;
             if (this.attack(closestHostile) === ERR_NOT_IN_RANGE) {
-                this.shibMove(closestHostile, {movingTarget: true});
+                this.shibMove(closestHostile, {forceRepath: true});
             }
             if (inRangeHostile.length > 1) {
                 this.rangedMassAttack();
@@ -88,10 +91,15 @@ meleeTeamLeader = function () {
                 this.rangedAttack(closestHostile);
             }
         }
+    } else if (closestStructure && this.room.name === this.memory.attackTarget) {
+        this.memory.inCombat = undefined;
+        if (this.attack(closestStructure) === ERR_NOT_IN_RANGE) {
+            this.shibMove(closestStructure);
+        }
     } else if (squadLeader && this.room.name === squadLeader.pos.roomName) {
         this.memory.inCombat = undefined;
         if (this.pos.getRangeTo(squadLeader) > 4) {
-            this.shibMove(squadLeader, {allowHostile: true, movingTarget: true});
+            this.shibMove(squadLeader, {allowHostile: true, forceRepath: true});
         }
     } else if (this.memory.attackType === 'raid' || siege.length > 0) {
         this.memory.inCombat = undefined;

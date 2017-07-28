@@ -218,17 +218,12 @@ Creep.prototype.siege = function () {
         if (healers.length > 0) {
             this.shibMove(healers[0], {forceRepath: true, ignoreCreeps: false});
         } else {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23, forceRepath: true, ignoreCreeps: false});
-        }
-        if (this.hits === this.hitsMax) {
-            this.memory.healing = undefined;
+            this.shibMove(new RoomPosition(25, 25, this.memory.fallBackRoom), {range: 23, forceRepath: true, ignoreCreeps: false});
         }
         return true;
     }
     this.memory.hitsLost = this.memory.hitsLast - this.hits;
     let target;
-    let squadTarget = this.room.find(FIND_MY_CREEPS, {filter: (s) => s.memory.siegeTarget && s.id !== this.id});
-    if (squadTarget.length > 0) target = Game.getObjectById(squadTarget[0].memory.siegeTarget);
     if (this.memory.attackType === 'clean') {
         target = this.pos.findClosestByPath(FIND_STRUCTURES);
     }

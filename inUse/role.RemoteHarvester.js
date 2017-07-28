@@ -6,10 +6,12 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[this.memory.assignedRoom].find(FIND_MY_SPAWNS)[0]);
     let source;
     //Invader detection
-    invaderCheck(creep);
     creep.cacheRoomIntel();
+    invaderCheck(creep);   
+    if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
     if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
         creep.memory.invaderCooldown++;
         creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom));
@@ -17,6 +19,7 @@ function role(creep) {
         return null;
     } else if (creep.memory.invaderCooldown > 50) {
         creep.memory.invaderCooldown = undefined;
+    }
     }
     //Initial move
     if (creep.carry.energy === 0) {
@@ -34,10 +37,14 @@ function role(creep) {
     } else {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
-            if (source.energy === 0) {
-                creep.idleFor(source.ticksToRegeneration + 1)
-            } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(source);
+            if (source) {
+                if (source.energy === 0) {
+                    creep.idleFor(source.ticksToRegeneration + 1)
+                } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(source);
+                }
+            } else {
+                creep.memory.source = undefined;
             }
         } else {
             creep.findSource();
