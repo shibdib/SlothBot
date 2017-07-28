@@ -897,7 +897,7 @@ Creep.prototype.renewalCheck = function (level = 7) {
         let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
         if (spawn) {
             if (spawn.pos.getRangeTo(this) === 1) {
-                if (!spawn.spawning) return spawn.renewCreep(this);
+                if (!spawn.spawning) spawn.renewCreep(this);
                 return true;
             }
             this.say(ICONS.tired);
