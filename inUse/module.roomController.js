@@ -38,13 +38,11 @@ function roomControl() {
         }
 
         //Cache Buildings
-        if (Game.time % 10 === 0) {
+        if (Game.time % 50 === 0) {
             currentRoom.memory.structureCache = undefined;
             for (let structures of currentRoom.find(FIND_STRUCTURES)) {
                 if (structures.room === currentRoom && structures.structureType !== STRUCTURE_ROAD && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
                     currentRoom.cacheRoomStructures(structures.id);
-                } else {
-                    currentRoom.cacheRoomBarriers(structures.id);
                 }
             }
         }
