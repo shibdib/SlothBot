@@ -141,12 +141,13 @@ Room.prototype.cacheRoomStructures = function (id) {
         let key = room.name + '.' + structure.pos.x + '.' + structure.pos.y;
         cache[key] = {
             id: structure.id,
-            type: structure.structureType
+            type: structure.structureType,
+            hits: structure.hits,
+            hitsMax: structure.hitsMax
         };
         room.memory.structureCache = cache;
     }
 };
-
 Room.prototype.cacheRoomBarriers = function (id) {
     let structure = Game.getObjectById(id);
     if (structure) {
@@ -155,7 +156,9 @@ Room.prototype.cacheRoomBarriers = function (id) {
         let key = room.name + '.' + structure.pos.x + '.' + structure.pos.y;
         cache[key] = {
             id: structure.id,
-            type: structure.structureType
+            type: structure.structureType,
+            hits: structure.hits,
+            hitsMax: structure.hitsMax
         };
         room.memory.barrierCache = cache;
     }
