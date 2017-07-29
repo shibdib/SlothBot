@@ -23,6 +23,7 @@ function shibMove(creep, heading, options = {}) {
     });
     if (creep.fatigue > 0) {
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
+        creep.idleFor(creep.fatigue);
         return;
     }
 
@@ -73,7 +74,19 @@ function shibMove(creep, heading, options = {}) {
         let nextDirection = parseInt(pathInfo.path[0], 10);
         if (nextDirection && pathInfo.newPos) {
             pathInfo.newPos = positionAtDirection(origin, nextDirection);
-            return creep.move(nextDirection);
+            switch (creep.move(nextDirection)) {
+                case OK:
+                    return;
+                case ERR_TIRED:
+                    creep.idleFor(creep.fatigue);
+                    return;
+                case ERR_NO_BODYPART:
+                    creep.idleFor(10);
+                    return;
+                case ERR_BUSY:
+                    creep.idleFor(10);
+                    return;
+            }
         } else {
             delete pathInfo.path;
         }
