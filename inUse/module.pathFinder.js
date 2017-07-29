@@ -1,7 +1,7 @@
 const profiler = require('screeps-profiler');
 let _ = require('lodash');
 
-const DEFAULT_MAXOPS = 10000;
+const DEFAULT_MAXOPS = 30000;
 const STATE_STUCK = 3;
 
 function shibMove(creep, heading, options = {}) {
@@ -47,8 +47,8 @@ function shibMove(creep, heading, options = {}) {
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     if (!origin || !target) return;
-    //Delete path if target changed
-    if (pathInfo.target) if (pathInfo.target.roomName + pathInfo.target.x + pathInfo.target.y !== target.roomName + target.x + target.y) delete pathInfo.path;
+    //Delete path if target changed and path is in same room
+    //if (pathInfo.target) if (pathInfo.target.roomName + pathInfo.target.x + pathInfo.target.y !== target.roomName + target.x + target.y && creep.pos.roomName === target.roomName) delete pathInfo.path;
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
@@ -83,6 +83,7 @@ function shibMove(creep, heading, options = {}) {
         shibPath(creep, heading, pathInfo, origin, target, options);
     }
 }
+shibMove = profiler.registerFN(shibMove, 'shibMove');
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
     creep.borderCheck();
@@ -186,7 +187,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
             maxOps: options.maxOps,
             maxRooms: options.maxRooms,
-            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
+            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 5,
             swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
             roomCallback: callback,
         });
@@ -222,6 +223,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         return creep.move(nextDirection);
     }
 }
+shibPath = profiler.registerFN(shibPath, 'shibPath');
 
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
@@ -266,6 +268,7 @@ function findRoute(origin, destination, options = {}) {
         allowedRooms[info.room] = true;
     });
 }
+findRoute = profiler.registerFN(findRoute, 'shibFindRoute');
 
 //FUNCTIONS
 function normalizePos(destination) {
@@ -274,15 +277,18 @@ function normalizePos(destination) {
     }
     return destination;
 }
+normalizePos = profiler.registerFN(normalizePos, 'shibNormalizePos');
 
 function checkAvoid(roomName) {
     return Memory.rooms && Memory.rooms[roomName] && Memory.rooms[roomName].avoid;
 }
+checkAvoid = profiler.registerFN(checkAvoid, 'shibCheckAvoid');
 
 function addCreepsToMatrix(room, matrix) {
     room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
     return matrix;
 }
+addCreepsToMatrix = profiler.registerFN(addCreepsToMatrix, 'shibAddCreepsToMatrix');
 
 function addSksToMatrix(room, matrix) {
     let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
@@ -308,6 +314,7 @@ function addSksToMatrix(room, matrix) {
     }
     return matrix;
 }
+addSksToMatrix = profiler.registerFN(addSksToMatrix, 'shibAddSksToMatrix');
 
 function getStructureMatrix(room, freshMatrix) {
     if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
@@ -317,12 +324,14 @@ function getStructureMatrix(room, freshMatrix) {
     }
     return this.structureMatrixCache[room.name];
 }
+getStructureMatrix = profiler.registerFN(getStructureMatrix, 'shibGetStructureMatrix');
 
 function getCreepMatrix(room) {
     room.memory.creepMatrixTick = Game.time;
     creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
     return creepMatrixCache[room.name];
 }
+getCreepMatrix = profiler.registerFN(getCreepMatrix, 'shibGetCreepMatrix');
 
 function addStructuresToMatrix(room, matrix, roadCost) {
     let impassibleStructures = [];
@@ -354,6 +363,7 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     }
     return matrix;
 }
+addStructuresToMatrix = profiler.registerFN(addStructuresToMatrix, 'shibAddStructuresToMatrix');
 
 function serializePath(startPos, path, color = "orange") {
     let serializedPath = "";
@@ -368,6 +378,7 @@ function serializePath(startPos, path, color = "orange") {
     }
     return serializedPath;
 }
+serializePath = profiler.registerFN(serializePath, 'shibSerializePath');
 
 function updateRoomStatus(room) {
     if (!room) {
@@ -382,6 +393,7 @@ function updateRoomStatus(room) {
         }
     }
 }
+updateRoomStatus = profiler.registerFN(updateRoomStatus, 'shibUpdateRoomStatus');
 
 function positionAtDirection(origin, direction) {
     let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
@@ -393,9 +405,9 @@ function positionAtDirection(origin, direction) {
     }
     return new RoomPosition(x, y, origin.roomName);
 }
+positionAtDirection = profiler.registerFN(positionAtDirection, 'shibPositionAtDirection');
 
 function cacheRoute(from, to, route) {
-    console.log(route)
     let key = getPathKey(from, to);
     let cache = Memory.routeCache || {};
     let tick = Game.time;
@@ -406,6 +418,7 @@ function cacheRoute(from, to, route) {
     };
     Memory.routeCache = cache;
 }
+cacheRoute = profiler.registerFN(cacheRoute, 'shibCacheRoute');
 
 function getRoute(from, to) {
     let cache = Memory.routeCache;
@@ -420,6 +433,7 @@ function getRoute(from, to) {
         return null;
     }
 }
+getRoute = profiler.registerFN(getRoute, 'shibGetRoute');
 
 function cachePath(from, to, path) {
     let key = getPathKey(from, to);
@@ -432,6 +446,7 @@ function cachePath(from, to, path) {
     };
     Memory.pathCache = cache;
 }
+cachePath = profiler.registerFN(cachePath, 'shibCachePath');
 
 function getPath(from, to) {
     let cache = Memory.pathCache;
@@ -446,6 +461,7 @@ function getPath(from, to) {
         return null;
     }
 }
+getPath = profiler.registerFN(getPath, 'shibGetPath');
 
 function getPathKey(from, to) {
     return getPosKey(from) + '$' + getPosKey(to);
