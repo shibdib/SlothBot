@@ -233,7 +233,19 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         cachePath(origin, target, pathInfo.path);
         pathInfo.findAttempt = undefined;
         creep.memory.badPathing = undefined;
-        return creep.move(nextDirection);
+        switch (creep.move(nextDirection)) {
+            case OK:
+                return;
+            case ERR_TIRED:
+                creep.idleFor(2);
+                return;
+            case ERR_NO_BODYPART:
+                creep.idleFor(10);
+                return;
+            case ERR_BUSY:
+                creep.idleFor(10);
+                return;
+        }
     }
 }
 shibPath = profiler.registerFN(shibPath, 'shibPath');
