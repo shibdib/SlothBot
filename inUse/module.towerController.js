@@ -11,9 +11,10 @@ function towerControl() {
         for (let tower of _.values(Game.structures)) {
             if (tower.structureType === STRUCTURE_TOWER) {
                 let creeps = tower.room.find(FIND_CREEPS);
-                let barriers = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500});
-                let towers = tower.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER});
-                let road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25});
+                let structures = tower.room.find(FIND_STRUCTURES);
+                let barriers = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500), 'hits');
+                let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
+                let road = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25), 'hits');
                 let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true);
                 let headShot = _.filter(creeps, (c) => c.hitsMax <= 150 * towers.length && _.includes(doNotAggress, c.owner['username']) === false);
                 let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 1) && _.includes(doNotAggress, s.owner['username']) === false);
@@ -53,7 +54,7 @@ function towerControl() {
                         continue;
                     }
                     if (Game.getObjectById(findRepair(tower))) {
-                        tower.repair(Game.getObjectById(findRepair(tower)));
+                        tower.repair(Game.getObjectById(findRepair(tower, structures)));
                     }
                 }
             }
@@ -61,36 +62,27 @@ function towerControl() {
 }
 module.exports.towerControl = profiler.registerFN(towerControl, 'towerControl');
 
-function findRepair(tower) {
+function findRepair(tower, structures) {
 
-    let site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax});
+    let site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax});
     if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 2500});
+        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 2500});
     }
     if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax});
+        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax});
     }
     if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax});
+        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax});
     }
     if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.75});
+        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.75});
     }
     if (site === null) {
-        site = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2});
+        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2});
     }
     if (site !== null && site !== undefined) {
         return site.id;
     }
 }
 findRepair = profiler.registerFN(findRepair, 'findRepairTower');
-
-function findWounded(tower) {
-
-    const creep = tower.pos.findClosestByRange(FIND_CREEPS, {filter: (s) => s.hits < s.hitsMax});
-    if (creep !== null && creep !== undefined) {
-        return creep.id;
-    }
-}
-findWounded = profiler.registerFN(findWounded, 'findRepairTower');
 
