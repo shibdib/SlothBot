@@ -43,6 +43,8 @@ function roomControl() {
             for (let structures of currentRoom.find(FIND_STRUCTURES)) {
                 if (structures.room === currentRoom && structures.structureType !== STRUCTURE_ROAD && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
                     currentRoom.cacheRoomStructures(structures.id);
+                } else {
+                    currentRoom.cacheRoomBarriers(structures.id);
                 }
             }
         }

@@ -147,6 +147,20 @@ Room.prototype.cacheRoomStructures = function (id) {
     }
 };
 
+Room.prototype.cacheRoomBarriers = function (id) {
+    let structure = Game.getObjectById(id);
+    if (structure) {
+        let room = structure.room;
+        let cache = room.memory.barrierCache || {};
+        let key = room.name + '.' + structure.pos.x + '.' + structure.pos.y;
+        cache[key] = {
+            id: structure.id,
+            type: structure.structureType
+        };
+        room.memory.barrierCache = cache;
+    }
+};
+
 Room.prototype.handleNukeAttack = function () {
     let nukes = this.find(FIND_NUKES);
     if (nukes.length === 0) {
