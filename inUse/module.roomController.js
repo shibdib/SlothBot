@@ -284,7 +284,7 @@ function creepQueueChecks(currentRoom) {
                         })
                     }
                     let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHauler' && creep.memory.assignedRoom === currentRoom.name);
-                    if (remoteHauler.length < 2 && remoteHarvester.length >= 1) {
+                    if (remoteHauler.length < 1 && remoteHarvester.length >= 1) {
                         queueCreep(currentRoom, PRIORITIES.remoteHauler, {
                             role: 'remoteHauler',
                             destination: currentRoom.memory.remoteRooms[keys]
