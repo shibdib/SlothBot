@@ -9,16 +9,7 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
-    let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === creep.memory.assignedRoom);
-    if (Game.time % 10 === 0 && creep.room.controller.level >= 4 && creep.room.energyAvailable >= 500 && creep.ticksToLive < 100 && renewers.length < 2 || creep.memory.renewing) {
-        if (creep.ticksToLive >= 1000 || creep.room.energyAvailable >= 300) {
-            return creep.memory.renewing = undefined;
-        }
-        creep.say(ICONS.tired);
-        creep.memory.boostAttempt = undefined;
-        creep.memory.renewing = true;
-        return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS), {repathChance: 0.6});
-    }
+    //if (creep.renewalCheck(4)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     let source;
 //INITIAL CHECKS
     if (creep.borderCheck()) return null;
@@ -46,7 +37,7 @@ function role(creep) {
                 creep.shibMove(source);
                 break;
             case OK:
-                if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) <= 1) creep.transfer(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+                if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) <= 1 && Game.getObjectById(creep.memory.containerID).hits > Game.getObjectById(creep.memory.containerID).hitsMax * 0.25) creep.transfer(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
                 break;
         }
     } else {

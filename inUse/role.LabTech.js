@@ -9,6 +9,7 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
+    if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
@@ -82,24 +83,14 @@ function role(creep) {
         if (!creep.carry[creep.memory.haulingMineral] || !creep.memory.haulingMineral) {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
             for (const resourceType in creep.carry) {
-                switch (creep.transfer(storage, resourceType)) {
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(storage);
-                        break;
-                    case ERR_FULL:
-                        break;
+                if (creep.transfer(storage, resourceType) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(storage);
                 }
             }
         } else if (creep.memory.deliverTo) {
             let storageItem = Game.getObjectById(creep.memory.deliverTo);
-            switch (creep.transfer(storageItem, creep.memory.haulingMineral)) {
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(storageItem);
-                    break;
-                case ERR_FULL:
-                    delete creep.memory.deliverTo;
-                    delete creep.memory.haulingMineral;
-                    break;
+            if (creep.transfer(storageItem, creep.memory.haulingMineral) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(storageItem);
             }
         }
     }

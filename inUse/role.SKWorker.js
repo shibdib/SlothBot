@@ -27,7 +27,7 @@ function role(creep) {
         }
         return null;
     } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        creep.retreat();
+        creep.flee(hostiles);
     } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);

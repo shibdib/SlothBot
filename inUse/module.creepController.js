@@ -39,6 +39,8 @@ function creepControl() {
         //Haulers
         if (creep.memory.role === "pawn") {
             let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
+            let lab = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'lab'), 'id')[0]);
+            let extractor = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'extractor'), 'id')[0]);
             let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
             let getters = _.filter(Game.creeps, (c) => c.memory.role === 'getter' && c.memory.assignedRoom === creep.room.name);
             let labTech = _.filter(Game.creeps, (c) => c.memory.role === 'labTech' && c.memory.assignedRoom === creep.room.name);
@@ -47,10 +49,10 @@ function creepControl() {
             if (fillers.length < 2) {
                 creep.memory.role = 'filler';
                 continue;
-            } else if (creep.room.controller.level >= 6 && getters.length > 0 && labTech.length === 0) {
+            } else if (creep.room.controller.level >= 6 && getters.length > 0 && labTech.length === 0 && lab) {
                 creep.memory.role = 'labTech';
                 continue;
-            } else if (creep.room.controller.level >= 6 && getters.length > 0 && mineralHauler.length === 0 && mineral.mineralAmount > 0) {
+            } else if (creep.room.controller.level >= 6 && getters.length > 0 && mineralHauler.length === 0 && mineral.mineralAmount > 0 && extractor) {
                 creep.memory.role = 'mineralHauler';
                 continue;
             } else {
@@ -67,6 +69,7 @@ function creepControl() {
 
         //Workers
         if (creep.memory.role === 'worker') roleWorker.role(creep);
+        if (creep.memory.role === 'waller') roleWaller.role(creep);
         if (creep.memory.role === 'upgrader') roleUpgrader.role(creep);
         if (creep.memory.role === 'stationaryHarvester' || creep.memory.role === 'basicHarvester') roleHarvester.role(creep);
         if (creep.memory.role === 'mineralHarvester') roleMineralHarvester.role(creep);
@@ -96,6 +99,7 @@ let roleLabTech = require('role.LabTech');
 let roleMineralHauler = require('role.MineralHauler');
 let roleResupply = require('role.Resupply');
 let roleWorker = require('role.Worker');
+let roleWaller = require('role.Waller');
 let roleHarvester = require('role.Harvester');
 let roleMineralHarvester = require('role.MineralHarvester');
 let roleUpgrader = require('role.Upgrader');

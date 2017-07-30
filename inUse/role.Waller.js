@@ -5,10 +5,6 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-
-/**
- * @return {null}
- */
 function role(creep) {
     if (creep.renewalCheck()) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     //INITIAL CHECKS
@@ -21,30 +17,27 @@ function role(creep) {
         creep.memory.working = true;
     }
     if (creep.memory.working === true) {
-        let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000});
-        if (newRamps.length > 0) {
-            creep.repair(newRamps[0]);
-        } else {
-            creep.findConstruction();
-            if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
-                let construction = Game.getObjectById(creep.memory.constructionSite);
-                if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(construction, {range: 3});
-                }
+        if (!creep.memory.currentTarget) {
+            let barrier = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART}), 'hits');
+            creep.memory.currentTarget = barrier.id;
+            if (barrier.hits < 500000) {
+                creep.memory.targetHits = 500000;
+            } else if (barrier.hits < 500000 * creep.room.controller.level) {
+                creep.memory.targetHits = 500000 * creep.room.controller.level;
             } else {
-                creep.findRepair(creep.room.controller.level);
-                if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
-                    let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
-                    if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(repairNeeded, {range: 3});
-                    }
-                } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
-                }
+                creep.memory.targetHits = barrier.hits + 500000;
+            }
+        } else {
+            let target = Game.getObjectById(creep.memory.currentTarget);
+            switch (creep.repair(target)) {
+                case OK:
+                    if (target.hits >= creep.memory.targetHits + 2000) delete creep.memory.currentTarget;
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(target)
             }
         }
-    }
-    else {
+    } else {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else {
@@ -63,4 +56,5 @@ function role(creep) {
         }
     }
 }
-module.exports.role = profiler.registerFN(role, 'workerRole');
+
+module.exports.role = profiler.registerFN(role, 'wallerRole');

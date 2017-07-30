@@ -9,25 +9,12 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
-    let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === creep.memory.assignedRoom);
-    if (Game.time % 10 === 0 && creep.room.controller.level >= 6 && creep.room.energyAvailable >= 500 && creep.ticksToLive < 100 && renewers.length < 2 || creep.memory.renewing) {
-        if (creep.ticksToLive >= 1000 || creep.room.energyAvailable >= 300) {
-            return creep.memory.renewing = undefined;
-        }
-        creep.say(ICONS.tired);
-        creep.memory.boostAttempt = undefined;
-        creep.memory.renewing = true;
-        return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS), {repathChance: 0.6});
-    }
+    if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     let fillers = _.filter(Game.creeps, (creep) => (creep.memory.role === 'filler' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
     if (fillers.length === 0) {
-        creep.memory.energyDestination = undefined;
-        creep.memory.role = 'basicHauler';
-    }
-    if (!creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE})) {
         creep.memory.energyDestination = undefined;
         creep.memory.role = 'basicHauler';
     }
@@ -45,6 +32,7 @@ function role(creep) {
         }
     } else {
         if (creep.memory.storage) {
+            if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
             if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
             }

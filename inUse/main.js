@@ -22,6 +22,13 @@ module.exports.loop = function () {
         //GRAFANA
         screepsPlus.collect_stats();
 
+        if (Game.cpu.bucket < 1000) {
+            let expendable = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout' || h.memory.role === 'explorer' || h.memory.role === 'remoteHarvester' || h.memory.role === 'remoteHauler' || h.memory.role === 'SKworker' || h.memory.role === 'pioneer');
+            for (let i = 0; i < expendable.length; i++) {
+                expendable[i].suicide();
+            }
+        }
+
         //CLEANUP
         Memory.stats.cpu.preCleanup = Game.cpu.getUsed();
         if (Game.time % 1000 === 0) {
@@ -44,21 +51,14 @@ module.exports.loop = function () {
 
         //Military management
         Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 1500) {
-            let attackController = require('military.attack');
-            let defenseController = require('military.defense');
-            Memory.stats.cpu.preMilitaryDefense = Game.cpu.getUsed();
-            defenseController.controller();
-            Memory.stats.cpu.postMilitaryDefense = Game.cpu.getUsed();
-            Memory.stats.cpu.preMilitaryAttack = Game.cpu.getUsed();
-            attackController.controller();
-            Memory.stats.cpu.postMilitaryAttack = Game.cpu.getUsed();
-        } else {
-            let raiders = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout');
-            for (let i=0; i < raiders.length; i++) {
-                raiders[i].suicide();
-            }
-        }
+        let attackController = require('military.attack');
+        let defenseController = require('military.defense');
+        Memory.stats.cpu.preMilitaryDefense = Game.cpu.getUsed();
+        defenseController.controller();
+        Memory.stats.cpu.postMilitaryDefense = Game.cpu.getUsed();
+        Memory.stats.cpu.preMilitaryAttack = Game.cpu.getUsed();
+        attackController.controller();
+        Memory.stats.cpu.postMilitaryAttack = Game.cpu.getUsed();
         Memory.stats.cpu.postMilitary = Game.cpu.getUsed();
 
         //Creep Management
@@ -69,17 +69,15 @@ module.exports.loop = function () {
 
         //Tower Management
         Memory.stats.cpu.preTower = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 2500) {
-            let towerController = require('module.towerController');
-            towerController.towerControl();
-        }
+        let towerController = require('module.towerController');
+        towerController.towerControl();
         Memory.stats.cpu.postTower = Game.cpu.getUsed();
 
         //Link Management
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
         if (Game.cpu.bucket > 2500) {
             let linkController = require('module.linkController');
-            //linkController.linkControl();
+            linkController.linkControl();
         }
         Memory.stats.cpu.postLink = Game.cpu.getUsed();
 

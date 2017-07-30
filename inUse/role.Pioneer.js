@@ -9,8 +9,8 @@ function role(creep) {
     //Invader detection
     invaderCheck(creep);
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) {
-        return creep.retreat();
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
+        return creep.flee(hostiles);
     }
 
     if(creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})){
@@ -50,7 +50,7 @@ function role(creep) {
         if (!Game.flags[creep.memory.destination]) {
             creep.suicide();
         }
-        creep.shibMove(Game.flags[creep.memory.destination], {allowSK: true, maxRooms: 16});
+        creep.shibMove(Game.flags[creep.memory.destination]);
         if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
             creep.memory.destinationReached = true;
         }

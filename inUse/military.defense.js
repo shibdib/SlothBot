@@ -55,22 +55,22 @@ function invaderCheck(spawn) {
 invaderCheck = profiler.registerFN(invaderCheck, 'invaderCheckDefense');
 
 function rampartManager(spawn) {
-    let rampart = _.pluck(_.filter(spawn.room.memory.structureCache, 'type', 'rampart'), 'id');
+    let rampart = spawn.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
     if (rampart.length > 0) {
-        if (Game.getObjectById(rampart[0])) {
+        if (rampart[0]) {
             if (!spawn.room.memory.responseNeeded) {
                 for (let i = 0; i < rampart.length; i++) {
-                    if (Game.getObjectById(rampart[i])) {
-                        if (Game.getObjectById(rampart[i]).isPublic === false) {
-                            Game.getObjectById(rampart[i]).setPublic(true);
+                    if (rampart[i]) {
+                        if (rampart[i].isPublic === false) {
+                            rampart[i].setPublic(true);
                         }
                     }
                 }
             } else {
                 for (let i = 0; i < rampart.length; i++) {
-                    if (Game.getObjectById(rampart[i])) {
-                        if (Game.getObjectById(rampart[i]).isPublic === true) {
-                            Game.getObjectById(rampart[i]).setPublic(false);
+                    if (rampart[i]) {
+                        if (rampart[i].isPublic === true) {
+                            rampart[i].setPublic(false);
                         }
                     }
                 }

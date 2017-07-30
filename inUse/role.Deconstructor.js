@@ -24,7 +24,7 @@ function role(creep) {
         }
         return null;
     }
-    creep.tacticSiege();
+    return creep.tacticSiege();
 }
 
 module.exports.role = profiler.registerFN(role, 'deconstructorRole');

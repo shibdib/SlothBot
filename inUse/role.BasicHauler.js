@@ -29,6 +29,14 @@ function role(creep) {
             creep.withdrawEnergy();
         } else {
             creep.findEnergy();
+            if (!creep.memory.energyDestination) {
+                let energy = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100 && s.resourceType === RESOURCE_ENERGY});
+                if (energy.length > 0) {
+                    if (creep.pickup(energy[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(energy[0]);
+                    }
+                }
+            }
         }
     } else {
         if (creep.memory.storageDestination) {

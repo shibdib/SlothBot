@@ -9,7 +9,7 @@ tacticSquadLeaderMedic = function () {
     let squad = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget);
     let siege = _.filter(squad, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     let inCombat = _.min(_.filter(squad, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.inCombat === true), 'hits');
-    let targets = _.min(this.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true}), 'hits');
+    let targets = _.min(this.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true && c.pos.roomName === this.pos.roomName}), 'hits');
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
     if (!armedHostile || this.pos.getRangeTo(armedHostile) >= 6) {
         if (targets.id) {
@@ -27,13 +27,13 @@ tacticSquadLeaderMedic = function () {
                 let nearbyHealers = this.pos.findInRange(_.filter(squad, (h) => h.memory.role === 'healer'), 35);
                 let nearbyRanged = this.pos.findInRange(_.filter(squad, (h) => h.memory.role === 'ranged'), 35);
                 let nearbyDeconstructors = this.pos.findInRange(_.filter(squad, (h) => h.memory.role === 'deconstructor'), 35);
-                if ((nearbyRanged.length >= this.memory.waitForRanged && nearbyAttackers.length >= this.memory.waitForAttackers && nearbyHealers.length >= this.memory.waitForHealers && nearbyDeconstructors.length >= this.memory.waitForDeconstructor) || (this.memory.attackType === 'raid' && _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget).length > 0) || (this.memory.attackType === 'decon' && _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget).length > 0)) {
+                if ((nearbyRanged.length >= this.memory.waitForRanged && nearbyAttackers.length >= this.memory.waitForAttackers && nearbyHealers.length >= this.memory.waitForHealers && nearbyDeconstructors.length >= this.memory.waitForDeconstructor) || (this.memory.attackType === 'raid' && _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget).length > 0) || (this.memory.attackType === 'decon' && _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget).length > 0) || (this.memory.attackType === 'defend' && _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget).length > 0)) {
                     this.memory.attackStarted = true;
                 }
             }
         } else if (this.memory.attackType === 'siege' || this.memory.attackType === 'decon' && siege.length === 0) {
             this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 22});
-        } else if (this.memory.attackType === 'raid' || siege.length > 0) {
+        } else if (this.memory.attackType === 'raid'|| this.memory.attackType === 'defend' || siege.length > 0) {
             this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 12});
         } else if (this.memory.attackType !== 'siege' || siege.length > 0) {
             this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});

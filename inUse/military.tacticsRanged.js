@@ -36,6 +36,8 @@ rangedTeamLeader = function () {
             return null;
         } else {
             this.retreat();
+            this.rangedAttack(inRangeArmed[0]);
+            return null;
         }
     }
     if (this.hits < this.hitsMax) {

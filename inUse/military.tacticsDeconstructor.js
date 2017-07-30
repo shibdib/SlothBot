@@ -10,6 +10,9 @@ tacticSiege = function () {
         Memory.militaryNeeds[this.memory.attackTarget] = undefined;
         this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     }
+    if (this.hits === this.hitsMax) {
+        this.memory.healing = undefined;
+    }
     let squadLeader;
     if (!this.memory.assignedSquadLeader || !Game.getObjectById(this.memory.assignedSquadLeader)) {
         let leaders = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.squadLeader === true);
@@ -19,6 +22,9 @@ tacticSiege = function () {
         squadLeader = Game.getObjectById(this.memory.assignedSquadLeader);
     }
     let armedHostile = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
+    if (this.pos.getRangeTo(armedHostile) <= 3) {
+        return this.retreat(8);
+    }
     if (this.hits < this.hitsMax) {
         this.heal(this);
     }
@@ -37,7 +43,8 @@ tacticSiege = function () {
         if (this.pos.getRangeTo(armedHostile) <= 2) {
             this.retreat(8);
         } else {
-            this.siege();
+            this.say('HI! :D', true);
+            return this.siege();
         }
     } else if ((!squadLeader || squadLeader.memory.attackStarted !== true) && this.memory.attackType !== 'decon' && this.memory.attackType !== 'clean') {
         this.memory.siege = undefined;
@@ -46,8 +53,8 @@ tacticSiege = function () {
     } else if (this.memory.siegeStarted !== true) {
         this.memory.siege = undefined;
         this.memory.fallBackRoom = this.pos.roomName;
-        if (this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.siegePoint)) > 24) {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
+        if (this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.attackTarget)) > 30) {
+            this.shibMove(new RoomPosition(25, 25, this.memory.attackTarget), {range: 23});
         } else {
             this.memory.siegeStarted = true;
         }
