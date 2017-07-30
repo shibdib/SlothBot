@@ -31,8 +31,8 @@ module.exports.loop = function () {
 
         //CLEANUP
         Memory.stats.cpu.preCleanup = Game.cpu.getUsed();
-        if (Game.time % 1000 === 0) {
-            cleanPathCache(); //clean path cache
+        if (Game.time % 100 === 0) {
+            cleanCacheByUsage(1); //clean cache
         }
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
@@ -173,14 +173,31 @@ module.exports.loop = function () {
     });
 };
 
-cleanPathCache = function () {
-    let counter = 0;
-    let tick = Game.time;
-    for (let key in Memory.pathCache) {
-        let cached = Memory.pathCache[key];
-        if (cached.tick + EST_TICKS_PER_DAY < tick || cached.tick === undefined) {
-            Memory.pathCache[key] = undefined;
-            counter += 1;
+function cleanCacheByUsage(usage) {
+    if (Memory.pathCache && _.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
+        console.log('Cleaning path cache (usage == ' + usage + ')...');
+        let counter = 0;
+        for (let key in Memory.pathCache) {
+            let cached = Memory.pathCache[key];
+            if (!cached.uses || cached.uses === usage) {
+                Memory.pathCache[key] = undefined;
+                counter += 1;
+            }
         }
+        Game.notify('Path cache of usage ' + usage + ' cleaned! ' + counter + ' paths removed', 6 * 60);
+        cleanCacheByUsage(usage + 1);
     }
-};
+    if (Memory.distanceCache && _.size(Memory.distanceCache) > 1500) { //1500 entries ~= 100kB
+        console.log('Cleaning Distance cache (usage == ' + usage + ')...');
+        let counter = 0;
+        for (let key in Memory.distanceCache) {
+            let cached = Memory.distanceCache[key];
+            if (!cached.uses || cached.uses === usage) {
+                Memory.distanceCache[key] = undefined;
+                counter += 1;
+            }
+        }
+        Game.notify('Distance cache of usage ' + usage + ' cleaned! ' + counter + ' paths removed', 6 * 60);
+        cleanCacheByUsage(usage + 1);
+    }
+}
