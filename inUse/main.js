@@ -179,7 +179,7 @@ function cleanCacheByUsage(usage) {
         let counter = 0;
         for (let key in Memory.pathCache) {
             let cached = Memory.pathCache[key];
-            if (!cached.uses || cached.uses === usage) {
+            if (cached && (!cached.uses || cached.uses === usage)) {
                 Memory.pathCache[key] = undefined;
                 counter += 1;
             }
@@ -192,7 +192,7 @@ function cleanCacheByUsage(usage) {
         let counter = 0;
         for (let key in Memory.distanceCache) {
             let cached = Memory.distanceCache[key];
-            if (!cached.uses || cached.uses === usage) {
+            if (cached && (!cached.uses || cached.uses === usage)) {
                 Memory.distanceCache[key] = undefined;
                 counter += 1;
             }
