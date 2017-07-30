@@ -20,7 +20,7 @@ function linkControl() {
                 let controllerLink = Game.getObjectById(link.room.memory.controllerLink);
                 if (storageLink.energy < 700 && (controllerLink && controllerLink.energy > 250)) {
                     link.transferEnergy(storageLink);
-                } else if (controllerLink && controllerLink.energy > 250) {
+                } else if (controllerLink && controllerLink.energy < 250) {
                     link.transferEnergy(controllerLink);
                 } else if (storageLink.energy < 700) {
                     link.transferEnergy(storageLink);
