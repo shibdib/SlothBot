@@ -10,7 +10,12 @@ function role(creep) {
     if (!Game.map.describeExits(creep.pos.roomName)) creep.suicide();
     if (!creep.memory.targetRooms || !creep.memory.destination) {
         creep.memory.targetRooms = Game.map.describeExits(creep.pos.roomName);
-        creep.memory.destination = _.sample(creep.memory.targetRooms);
+        let target = _.sample(creep.memory.targetRooms);
+        if (Game.map.isRoomAvailable(target)) {
+            creep.memory.destination = target;
+        } else {
+            return;
+        }
     }
     if (creep.memory.destinationReached !== true) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true});
