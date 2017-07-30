@@ -808,6 +808,8 @@ Creep.prototype.idleFor = function (ticks = 0) {
 Creep.prototype.cacheRoomIntel = function () {
     let room = Game.rooms[this.pos.roomName];
     let owner = undefined;
+    let reservation = undefined;
+    let reservationTick = undefined;
     let level = undefined;
     let hostiles = undefined;
     let sk = undefined;
@@ -822,6 +824,10 @@ Creep.prototype.cacheRoomIntel = function () {
         if (room.controller) {
             owner = room.controller.owner;
             level = room.controller.level;
+            if (room.controller.reservation) {
+                reservation = room.controller.reservation.username;
+                reservationTick = room.controller.reservation.ticksToEnd + Game.time;
+            }
         }
         let key = room.name;
         if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -831,6 +837,8 @@ Creep.prototype.cacheRoomIntel = function () {
             sources: sources,
             minerals: minerals,
             owner: owner,
+            reservation: reservation,
+            reservationTick: reservationTick,
             level: level,
             towers: towers.length,
             hostiles: hostiles.length,
@@ -849,7 +857,7 @@ Creep.prototype.cacheRoomIntel = function () {
                             Game.spawns[key].room.memory.skRooms = [];
                         }
                     }
-                    if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 3 && !owner && !sk) {
+                    if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 3 && !owner && !sk && !reservation) {
                         if (Game.spawns[key].room.memory.remoteRooms) {
                             if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === false) {
                                 Game.spawns[key].room.memory.remoteRooms.push(room.name);
@@ -857,6 +865,8 @@ Creep.prototype.cacheRoomIntel = function () {
                         } else {
                             Game.spawns[key].room.memory.remoteRooms = [];
                         }
+                    } else if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === true) {
+                        _.remove(Game.spawns[key].room.memory.remoteRooms, room.name);
                     }
                 }
             }

@@ -7,6 +7,9 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     let source;
+    if (Game.time % 50 === 0) {
+        creep.cacheRoomIntel();
+    }
     //Invader detection
     invaderCheck(creep);
     if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
