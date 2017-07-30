@@ -277,7 +277,7 @@ function creepQueueChecks(currentRoom) {
             if (currentRoom.memory.remoteRooms && !war) {
                 for (let keys in currentRoom.memory.remoteRooms) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
-                    if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length) {
+                    if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 2) {
                         queueCreep(currentRoom, PRIORITIES.remoteHarvester, {
                             role: 'remoteHarvester',
                             destination: currentRoom.memory.remoteRooms[keys]
