@@ -9,12 +9,15 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
-    //if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
+    if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
+    let mineralHarvester = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHarvester' && c.memory.assignedRoom === creep.room.name);
+    if (mineralHarvester.length === 0 && Game.getObjectById(creep.memory.assignedMineral).mineralAmount < 100) creep.memory.role = 'pawn';
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
+        creep.memory.mineralDestination = undefined;
     }
     if (_.sum(creep.carry) > creep.carryCapacity / 2) {
         creep.memory.hauling = true;

@@ -5,18 +5,19 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-/**
- * @return {null}
- */
 function role(creep) {
     if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
-    let fillers = _.filter(Game.creeps, (creep) => (creep.memory.role === 'filler' || creep.memory.role === 'basicHauler') && creep.memory.assignedRoom === creep.room.name);
+    let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
+    let mineralHauler = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHauler' && c.memory.assignedRoom === creep.room.name);
+    let mineralHarvester = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHarvester' && c.memory.assignedRoom === creep.room.name);
+    if (Game.getObjectById(creep.memory.storage) && Game.getObjectById(creep.memory.storage).store[RESOURCE_ENERGY] >= 25000 && fillers.length < 3) return creep.memory.role = 'filler';
+    if (mineralHarvester.length > 0 && mineralHauler.length === 0) return creep.memory.role = 'mineralHauler';
     if (fillers.length === 0) {
         creep.memory.energyDestination = undefined;
-        creep.memory.role = 'basicHauler';
+        return creep.memory.role = 'filler';
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
