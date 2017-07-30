@@ -24,6 +24,8 @@ function linkControl() {
                     link.transferEnergy(controllerLink);
                 } else if (storageLink.energy < 700) {
                     link.transferEnergy(storageLink);
+                } else if (controllerLink && controllerLink.energy < 700) {
+                    link.transferEnergy(controllerLink);
                 }
             }
         }
