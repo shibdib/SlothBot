@@ -23,7 +23,6 @@ function shibMove(creep, heading, options = {}) {
     });
     if (creep.fatigue > 0) {
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
-        creep.idleFor(2);
         return;
     }
 
@@ -78,7 +77,6 @@ function shibMove(creep, heading, options = {}) {
                 case OK:
                     return;
                 case ERR_TIRED:
-                    creep.idleFor(2);
                     return;
                 case ERR_NO_BODYPART:
                     creep.idleFor(10);
@@ -237,7 +235,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             case OK:
                 return;
             case ERR_TIRED:
-                creep.idleFor(2);
                 return;
             case ERR_NO_BODYPART:
                 creep.idleFor(10);
