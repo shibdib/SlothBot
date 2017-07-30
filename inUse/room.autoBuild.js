@@ -417,6 +417,8 @@ function buildRoadFromTo(room, start, end) {
         buildRoad(new RoomPosition(point.x, point.y, room.name));
     }
 }
+
+buildRoadFromTo = profiler.registerFN(buildRoadFromTo, 'buildRoadFromToFunctionBuilder');
 function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
@@ -426,14 +428,15 @@ function buildRoadAround(room, position) {
         }
     }
 }
+
+buildRoadAround = profiler.registerFN(buildRoadAround, 'buildRoadAroundFunctionBuilder');
+
 function buildRoad(position) {
-    const roadableStructures = [
-        STRUCTURE_RAMPART,
-        STRUCTURE_CONTAINER
-    ];
-    if (_.any(position.lookFor(LOOK_STRUCTURES), (s) => !roadableStructures.includes(s.structureType))) return;
+    if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
+
+buildRoad = profiler.registerFN(buildRoad, 'buildRoadFunctionBuilder');
 
 function formatPos(pos) {
     return pos.x + pos.y;
