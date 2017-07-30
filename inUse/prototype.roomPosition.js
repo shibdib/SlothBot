@@ -100,7 +100,7 @@ RoomPosition.prototype.rangeToTarget = function (target) {
 function cacheTargetDistance (origin, target) {
     let key = getPathKey(origin, target.pos);
     let cache = Memory.distanceCache || {};
-    let distance = origin.findPathTo(target).length;
+    let distance = origin.getRangeTo(target);
     cache[key] = {
         distance: distance
     };
