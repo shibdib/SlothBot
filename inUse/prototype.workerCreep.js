@@ -14,30 +14,39 @@ borderCheck = function () {
             this.move(TOP_LEFT);
         }
         else if (this.pos.x === 49) {
-            if (this.move(LEFT) !== ERR_NO_PATH) {
-            } else if (this.move(TOP_LEFT) !== ERR_NO_PATH) {
+            if (Math.random() < .33) {
+                this.move(LEFT)
+            } else if (Math.random() < .33) {
+                this.move(TOP_LEFT)
             } else {
-                this.move(BOTTOM_LEFT);
+                this.move(BOTTOM_LEFT)
             }
         }
         else if (this.pos.x === 0) {
-            if (this.move(RIGHT) !== ERR_NO_PATH) {
-            } else if (this.move(TOP_RIGHT) !== ERR_NO_PATH) {
+            if (Math.random() < .33) {
+                this.move(RIGHT)
+            } else if (Math.random() < .33) {
+                this.move(TOP_RIGHT)
             } else {
+                this.move(BOTTOM_RIGHT)
             }
         }
         else if (this.pos.y === 0) {
-            if (this.move(BOTTOM) !== ERR_NO_PATH) {
-            } else if (this.move(BOTTOM_RIGHT) !== ERR_NO_PATH) {
+            if (Math.random() < .33) {
+                this.move(BOTTOM)
+            } else if (Math.random() < .33) {
+                this.move(BOTTOM_RIGHT)
             } else {
-                this.move(BOTTOM_LEFT);
+                this.move(BOTTOM_LEFT)
             }
         }
         else if (this.pos.y === 49) {
-            if (this.move(TOP) !== ERR_NO_PATH) {
-            } else if (this.move(TOP_RIGHT) !== ERR_NO_PATH) {
+            if (Math.random() < .33) {
+                this.move(TOP)
+            } else if (Math.random() < .33) {
+                this.move(TOP_RIGHT)
             } else {
-                this.move(TOP_LEFT);
+                this.move(TOP_LEFT)
             }
         }
         return true;
@@ -301,31 +310,19 @@ findEnergy = function (range = 250, hauler = false) {
         });
     }
     //Links
-    if (hauler === false) {
-        let link = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'link'), 'id');
-        if (link.length > 0) {
-            let links = [];
-            for (let i = 0; i < link.length; i++) {
-                const object = Game.getObjectById(link[i]);
-                if (object) {
-                    if (object.energy === 0 || object.pos.rangeToTarget(this) > range || object.id === object.room.memory.controllerLink) {
-                        continue;
-                    }
-                    const linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
-                    links.push({
-                        id: link[i],
-                        distWeighted: linkDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
-            let bestLink = _.min(links, 'distWeighted');
-            energy.push({
-                id: bestLink.id,
-                distWeighted: bestLink.distWeighted,
-                harvest: false
-            });
+    let storageLink = Game.getObjectById(this.room.memory.storageLink);
+    if (storageLink) {
+        let linkDistWeighted;
+        const object = storageLink;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && object.energy > 0 && numberOfUsers.length === 0) {
+            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
         }
+        energy.push({
+            id: storageLink.id,
+            distWeighted: linkDistWeighted,
+            harvest: false
+        });
     }
     //Terminal
     let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
@@ -396,31 +393,19 @@ getEnergy = function (range = 250, hauler = false) {
         });
     }
     //Links
-    if (hauler === false) {
-        let link = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'link'), 'id');
-        if (link.length > 0) {
-            let links = [];
-            for (let i = 0; i < link.length; i++) {
-                const object = Game.getObjectById(link[i]);
-                if (object) {
-                    if (object.energy === 0 || object.pos.rangeToTarget(this) > range || object.id === object.room.memory.controllerLink) {
-                        continue;
-                    }
-                    const linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
-                    links.push({
-                        id: link[i],
-                        distWeighted: linkDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
-            let bestLink = _.min(links, 'distWeighted');
-            energy.push({
-                id: bestLink.id,
-                distWeighted: bestLink.distWeighted,
-                harvest: false
-            });
+    let storageLink = Game.getObjectById(this.room.memory.storageLink);
+    if (storageLink) {
+        let linkDistWeighted;
+        const object = storageLink;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && object.energy > 0 && numberOfUsers === 0) {
+            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
         }
+        energy.push({
+            id: storageLink.id,
+            distWeighted: linkDistWeighted,
+            harvest: false
+        });
     }
     //Terminal
     let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
@@ -497,7 +482,7 @@ findStorage = function () {
             const object = Game.getObjectById(sStorage[i]);
             if (object) {
                 if (object.pos.getRangeTo(this) > 1) {
-                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * 2, 0) + 1;
+                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.25, 0) + 1;
                     storages.push({
                         id: sStorage[i],
                         distWeighted: storageDistWeighted,
@@ -864,7 +849,7 @@ Creep.prototype.cacheRoomIntel = function () {
                             Game.spawns[key].room.memory.skRooms = [];
                         }
                     }
-                    if (Game.map.getRoomLinearDistance(Game.spawns[key].pos.roomName, room.name) <= 1 && Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 2 && !owner && !sk) {
+                    if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 3 && !owner && !sk) {
                         if (Game.spawns[key].room.memory.remoteRooms) {
                             if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === false) {
                                 Game.spawns[key].room.memory.remoteRooms.push(room.name);
@@ -889,6 +874,7 @@ Creep.prototype.cacheRoomIntel = function () {
 
 
 Creep.prototype.renewalCheck = function (level = 7) {
+    if (Game.time % 10 !== 0) return false;
     let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === this.memory.assignedRoom);
     if (Game.rooms[this.memory.assignedRoom].controller && ((this.memory.renewing && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300) || (Game.rooms[this.memory.assignedRoom].controller.level >= level && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300 && this.ticksToLive < 100 && renewers.length < 2))) {
         if (this.ticksToLive >= 1000) {
@@ -898,6 +884,7 @@ Creep.prototype.renewalCheck = function (level = 7) {
         if (spawn) {
             if (spawn.pos.getRangeTo(this) === 1) {
                 if (!spawn.spawning) spawn.renewCreep(this);
+                if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
                 return true;
             }
             this.say(ICONS.tired);
