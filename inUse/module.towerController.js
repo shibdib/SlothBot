@@ -43,7 +43,6 @@ function towerControl() {
                         tower.heal(woundedCreep[0]);
                     }
                 } else if (tower.energy > tower.energyCapacity * 0.60) {
-                    let structures = tower.room.find(FIND_STRUCTURES);
                     let barriers = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500), 'hits');
                     if (barriers) {
                         tower.repair(barriers);

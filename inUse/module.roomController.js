@@ -7,7 +7,7 @@ function roomControl() {
 
     for (let name in Game.rooms) {
         let currentRoom = Game.rooms[name];
-        if (currentRoom.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).length === 0) continue;
+        if (!currentRoom.controller || (currentRoom.controller.owner && currentRoom.controller.owner.username !== 'Shibdib')) continue;
 
         //RCL
         //let level = Game.spawns[name].room.controller.level;

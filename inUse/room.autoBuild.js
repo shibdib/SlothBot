@@ -171,6 +171,8 @@ function borderWalls(spawn, structures) {
         let cache = spawn.room.memory.borderWallCache || {};
         if (spawn.room.controller.level >= 3) {
             let exits = spawn.room.memory.neighboringRooms;
+            let construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+            let rampart = _.filter(structures, (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL);
             if (!exits) {
                 spawn.room.memory.neighboringRooms = Game.map.describeExits(spawn.pos.roomName);
                 borderWalls(spawn);
@@ -182,11 +184,9 @@ function borderWalls(spawn, structures) {
                     if (!border.checkForWall() && !pos.checkForWall()) {
                         let path = spawn.room.findPath(border, spawn.pos, {
                             costCallback: function (roomName, costMatrix) {
-                                const rampart = _.filter(structures, (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL);
                                 for (let i = 0; i < rampart.length; i++) {
                                     costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                                 }
-                                const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
                                 for (let i = 0; i < construction.length; i++) {
                                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                                 }
@@ -239,11 +239,9 @@ function borderWalls(spawn, structures) {
                     if (!border.checkForWall() && !pos.checkForWall()) {
                         let path = spawn.room.findPath(border, spawn.pos, {
                             costCallback: function (roomName, costMatrix) {
-                                const rampart = _.filter(structures, (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL);
                                 for (let i = 0; i < rampart.length; i++) {
                                     costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                                 }
-                                const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
                                 for (let i = 0; i < construction.length; i++) {
                                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                                 }
@@ -296,11 +294,9 @@ function borderWalls(spawn, structures) {
                     if (!border.checkForWall() && !pos.checkForWall()) {
                         let path = spawn.room.findPath(border, spawn.pos, {
                             costCallback: function (roomName, costMatrix) {
-                                const rampart = _.filter(structures, (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL);
                                 for (let i = 0; i < rampart.length; i++) {
                                     costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                                 }
-                                const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
                                 for (let i = 0; i < construction.length; i++) {
                                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                                 }
@@ -353,11 +349,9 @@ function borderWalls(spawn, structures) {
                     if (!border.checkForWall() && !pos.checkForWall()) {
                         let path = spawn.room.findPath(border, spawn.pos, {
                             costCallback: function (roomName, costMatrix) {
-                                const rampart = _.filter(structures, (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL);
                                 for (let i = 0; i < rampart.length; i++) {
                                     costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                                 }
-                                const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
                                 for (let i = 0; i < construction.length; i++) {
                                     costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                                 }
