@@ -54,7 +54,7 @@ function role(creep) {
                         }
                     }
                 } else {
-                    creep.moveRandom();
+                    creep.idleFor(2);
                 }
             } else {
                 if (!Game.getObjectById(creep.memory.containerID) || _.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
