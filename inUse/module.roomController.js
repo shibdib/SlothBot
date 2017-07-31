@@ -277,7 +277,7 @@ function creepQueueChecks(currentRoom) {
             if (currentRoom.memory.remoteRooms && !war) {
                 for (let keys in currentRoom.memory.remoteRooms) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
-                    if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 2) {
+                    if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 1 && !Game.rooms[currentRoom.memory.remoteRooms[keys]].memory.noRemote) {
                         queueCreep(currentRoom, PRIORITIES.remoteHarvester, {
                             role: 'remoteHarvester',
                             destination: currentRoom.memory.remoteRooms[keys]
@@ -296,7 +296,7 @@ function creepQueueChecks(currentRoom) {
                 let remotes = currentRoom.memory.remoteRooms;
                 for (let key in remotes) {
                     let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[key]);
-                    if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.reservationExpires || Game.rooms[remotes[key]].memory.reservationExpires <= Game.time + 150)) {
+                    if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.reservationExpires || Game.rooms[remotes[key]].memory.reservationExpires <= Game.time + 150) && !Game.rooms[currentRoom.memory.remoteRooms[keys]].memory.noRemote) {
                         queueCreep(currentRoom, PRIORITIES.reserver, {
                             role: 'reserver',
                             reservationTarget: remotes[key]
