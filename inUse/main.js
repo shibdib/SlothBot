@@ -1,19 +1,11 @@
 //modules
 //Setup globals and prototypes
-require("globals")(); // NOTE: All globals not from an external resource should be declared here
-require("prototype.workerCreep");
+require("globals")();
 require("prototype.roomPosition");
 require("prototype.room");
-require("prototype.creepCombat");
-require("military.tacticsRanged");
-require("military.tacticsMelee");
-require("military.tacticsMedic");
-require("military.tacticsDeconstructor");
-let creepController = require('module.creepController');
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
-require('module.traveler');
 require('module.pathFinder');
 
 // This line monkey patches the global prototypes.
@@ -21,9 +13,25 @@ profiler.enable();
 
 module.exports.loop = function () {
     profiler.wrap(function () {
+        Memory.stats.cpu.init = Game.cpu.getUsed();
+
+        //Get tick duration
+        Memory.stats.tickLength = Math.round(new Date() / 1000) - Memory.stats.tickOldEpoch;
+        Memory.stats.tickOldEpoch = Math.round(new Date() / 1000);
+
+        //GRAFANA
+        screepsPlus.collect_stats();
+
+        if (Game.cpu.bucket < 1000) {
+            let expendable = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout' || h.memory.role === 'explorer' || h.memory.role === 'remoteHarvester' || h.memory.role === 'remoteHauler' || h.memory.role === 'SKworker' || h.memory.role === 'pioneer');
+            for (let i = 0; i < expendable.length; i++) {
+                expendable[i].suicide();
+            }
+        }
 
         //CLEANUP
-        if (Game.time % 1 === 0) {
+        Memory.stats.cpu.preCleanup = Game.cpu.getUsed();
+        if (Game.time % 100 === 0) {
             cleanPathCacheByUsage(1); //clean path and distance caches
             cleanDistanceCacheByUsage(1);
         }
@@ -32,70 +40,70 @@ module.exports.loop = function () {
                 delete Memory.creeps[name];
             }
         }
-
-        //ATTACK CHECKS
-        for (let i = 0; i < 5; i++) {
-            let attack = 'attack' + i;
-            if (Game.flags[attack]) {
-                if (Game.flags[attack].room) {
-                    if (Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_CREEPS) === null && Game.flags[attack].pos.findClosestByRange(FIND_HOSTILE_SPAWNS) === null) {
-                        Game.flags[attack].remove();
-                    }
-                }
-            }
-        }
+        Memory.stats.cpu.postCleanup = Game.cpu.getUsed();
 
         //Room Management
-        if (Game.cpu.bucket > 5000) {
+        Memory.stats.cpu.preRoom = Game.cpu.getUsed();
+        if (Game.cpu.bucket > 1000) {
             let roomController = require('module.roomController');
             roomController.roomControl();
         }
+        Memory.stats.cpu.postRoom = Game.cpu.getUsed();
 
         //Military management
-        if (Game.cpu.bucket > 1500) {
-            let attackController = require('military.attack');
-            let defenseController = require('military.defense');
-            defenseController.controller();
-            attackController.controller();
-        } else {
-            let raiders = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout');
-            for (let i = 0; i < raiders.length; i++) {
-                raiders[i].suicide();
-            }
-        }
+        Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
+        let attackController = require('military.attack');
+        let defenseController = require('military.defense');
+        Memory.stats.cpu.preMilitaryDefense = Game.cpu.getUsed();
+        defenseController.controller();
+        Memory.stats.cpu.postMilitaryDefense = Game.cpu.getUsed();
+        Memory.stats.cpu.preMilitaryAttack = Game.cpu.getUsed();
+        attackController.controller();
+        Memory.stats.cpu.postMilitaryAttack = Game.cpu.getUsed();
+        Memory.stats.cpu.postMilitary = Game.cpu.getUsed();
 
         //Creep Management
+        Memory.stats.cpu.preCreep = Game.cpu.getUsed();
+        let creepController = require('module.creepController');
         creepController.creepControl();
+        Memory.stats.cpu.postCreep = Game.cpu.getUsed();
 
         //Tower Management
-        if (Game.cpu.bucket > 2500) {
-            let towerController = require('module.towerController');
-            towerController.towerControl();
-        }
+        Memory.stats.cpu.preTower = Game.cpu.getUsed();
+        let towerController = require('module.towerController');
+        towerController.towerControl();
+        Memory.stats.cpu.postTower = Game.cpu.getUsed();
 
         //Link Management
+        Memory.stats.cpu.preLink = Game.cpu.getUsed();
         if (Game.cpu.bucket > 2500) {
             let linkController = require('module.linkController');
             linkController.linkControl();
         }
+        Memory.stats.cpu.postLink = Game.cpu.getUsed();
 
         //Lab Management
+        Memory.stats.cpu.preLab = Game.cpu.getUsed();
         if (Game.cpu.bucket > 5000) {
             if (Game.time % 10 === 0) {
                 //let labController = require('module.labController');
-                //labController.labControl();
+                // labController.labControl();
             }
         }
+        Memory.stats.cpu.postLab = Game.cpu.getUsed();
 
         //Terminal Management
+        Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
         if (Game.cpu.bucket > 5000) {
-            if (Game.time % 50 === 0) {
+            if (Game.time % 25 === 0) {
                 let terminalController = require('module.terminalController');
                 terminalController.terminalControl();
             }
         }
+        Memory.stats.cpu.postTerminal = Game.cpu.getUsed();
 
         //Alliance List Management
+        Memory.stats.cpu.preSegments = Game.cpu.getUsed();
         let doNotAggress = [
             {"username": "Shibdib", "status": "alliance"},
             {"username": "PostCrafter", "status": "alliance"},
@@ -154,6 +162,17 @@ module.exports.loop = function () {
         RawMemory.setDefaultPublicSegment(1);
         RawMemory.setActiveSegments([1, 2, 10, 50]);
 
+        //Cache Foreign Segments
+        RawMemory.setActiveForeignSegment("Bovius");
+        if (RawMemory.foreignSegment && RawMemory.foreignSegment.username === "Bovius" && RawMemory.foreignSegment.id === 0) {
+            // Can't use data if you can't see it.
+            Memory.marketCache = RawMemory.foreignSegment.data;
+        }
+        Memory.stats.cpu.postSegments = Game.cpu.getUsed();
+
+        Memory.stats.cpu.used = Game.cpu.getUsed();
+        let used = Memory.stats.cpu.used - Memory.stats.cpu.init;
+        if (used > Game.cpu.limit * 2) console.log("<font color='#adff2f'>Abnormally High CPU Usage - " + used + " CPU</font>");
     });
 };
 
