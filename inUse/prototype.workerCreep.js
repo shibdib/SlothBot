@@ -907,3 +907,22 @@ Creep.prototype.renewalCheck = function (level = 7) {
     this.memory.renewing = undefined;
     return false;
 };
+
+
+Creep.prototype.invaderCheck = function () {
+    if (this.room.memory.lastInvaderCheck === Game.time) return;
+    this.room.memory.lastInvaderCheck = Game.time;
+    let creeps = this.room.find(FIND_CREEPS);
+    let invader = _.filter(creeps, (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    if (invader.length > 0) {
+        this.room.memory.responseNeeded = true;
+        this.room.memory.tickDetected = Game.time;
+        if (!this.room.memory.numberOfHostiles || this.room.memory.numberOfHostiles < invader.length) {
+            this.room.memory.numberOfHostiles = invader.length;
+        }
+    } else if (this.room.memory.tickDetected < Game.time - 30 || this.room.memory.responseNeeded === false) {
+        this.room.memory.numberOfHostiles = undefined;
+        this.room.memory.responseNeeded = undefined;
+        this.room.memory.alertEmail = undefined;
+    }
+}
