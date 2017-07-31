@@ -11,7 +11,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
-    let basicHaulers = _.filter(Game.creeps, (creep) => creep.memory.role === 'basicHauler' && creep.memory.assignedRoom === creep.room.name);
+    let basicHaulers = _.filter(Game.creeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === creep.room.name);
     if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2) {
         creep.memory.energyDestination = undefined;
         creep.memory.storageDestination = undefined;
@@ -28,7 +28,7 @@ function role(creep) {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else {
-            creep.findEnergy();
+            creep.getEnergy();
             if (!creep.memory.energyDestination) {
                 let energy = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100 && s.resourceType === RESOURCE_ENERGY});
                 if (energy.length > 0) {
