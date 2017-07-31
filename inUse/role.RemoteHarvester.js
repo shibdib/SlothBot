@@ -22,11 +22,13 @@ function role(creep) {
             creep.memory.invaderCooldown = undefined;
         }
     }
+    
     //Mark room as no go if reserved or owned by someone else
     if (creep.room.controller && (creep.room.controller.reservation.username !== 'Shibdib' || creep.room.owner)) {
         creep.room.memory.noRemote = true;
         creep.suicide();
     }
+
     //Initial move
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
