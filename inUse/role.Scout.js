@@ -26,5 +26,4 @@ function role(creep) {
         creep.cacheRoomIntel();
     }
 }
-
 module.exports.role = profiler.registerFN(role, 'scoutRole');
