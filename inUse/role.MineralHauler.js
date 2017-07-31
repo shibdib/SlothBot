@@ -14,7 +14,7 @@ function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     let mineralHarvester = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHarvester' && c.memory.assignedRoom === creep.room.name);
-    if (mineralHarvester.length === 0 && Game.getObjectById(creep.memory.assignedMineral).mineralAmount < 100) creep.memory.role = 'pawn';
+    if (mineralHarvester.length === 0 && creep.memory.assignedMineral && Game.getObjectById(creep.memory.assignedMineral).mineralAmount < 100) creep.memory.role = 'pawn';
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
         creep.memory.mineralDestination = undefined;
