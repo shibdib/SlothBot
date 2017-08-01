@@ -33,7 +33,7 @@ function towerControl() {
                             }
                         }
                     }
-                    let headShot = _.filter(creeps, (c) => c.hitsMax <= 150 * towers.length && _.includes(doNotAggress, c.owner['username']) === false);
+                    let headShot = _.filter(creeps, (c) => c.hits <= 150 * towers.length && _.includes(doNotAggress, c.owner['username']) === false);
                     if (headShot.length > 0) {
                         tower.attack(headShot[0]);
                         continue;
@@ -43,14 +43,14 @@ function towerControl() {
                         tower.heal(woundedCreep[0]);
                     }
                 } else if (tower.energy > tower.energyCapacity * 0.60) {
-                    let barriers = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500), 'hits');
-                    if (barriers) {
-                        tower.repair(barriers);
+                    let barriers = _.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500);
+                    if (barriers.length > 0) {
+                        tower.repair(barriers[0]);
                         continue;
                     }
-                    let road = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25), 'hits');
-                    if (road) {
-                        tower.repair(road);
+                    let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25);
+                    if (road.length > 0) {
+                        tower.repair(road[0]);
                         continue;
                     }
                     if (Game.getObjectById(findRepair(tower))) {
