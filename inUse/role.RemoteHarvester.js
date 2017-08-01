@@ -24,7 +24,7 @@ function role(creep) {
     }
 
     //Mark room as no go if reserved or owned by someone else
-    if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username) !== 'Shibdib' || creep.room.owner)) {
+    if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== 'Shibdib') || creep.room.owner)) {
         creep.room.memory.noRemote = true;
         creep.suicide();
     }

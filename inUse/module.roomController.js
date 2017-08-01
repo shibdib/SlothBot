@@ -206,15 +206,31 @@ function creepQueueChecks(currentRoom) {
         } else {
             count = 35;
         }
+        let number;
+        if (level === 8) {
+            number = 1;
+        } else if (level >= 5) {
+            number = 3;
+        } else {
+            number = 8;
+        }
         let upgradePower = 0;
         for (let key in upgraders) {
             let upgrade = upgraders[key].getActiveBodyparts(WORK);
             upgradePower = upgradePower + upgrade;
         }
-        if (upgradePower * UPGRADE_CONTROLLER_POWER < count && upgraders.length < 5) {
+        if (upgradePower * UPGRADE_CONTROLLER_POWER < count && upgraders.length < number) {
             queueCreep(currentRoom, PRIORITIES.upgrader, {
                 role: 'upgrader'
             })
+        }
+        if (level >= 3) {
+            let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller' && creep.memory.assignedRoom === currentRoom.name);
+            if (wallers.length < 2 && upgraders.length > 0) {
+                queueCreep(currentRoom, PRIORITIES.waller, {
+                    role: 'waller'
+                })
+            }
         }
         if (level >= 6 && !war) {
             let minerals = currentRoom.controller.pos.findClosestByRange(FIND_MINERALS);
@@ -277,7 +293,7 @@ function creepQueueChecks(currentRoom) {
             if (currentRoom.memory.remoteRooms && !war) {
                 for (let keys in currentRoom.memory.remoteRooms) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
-                    if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 1 && (!Game.rooms[currentRoom.memory.remoteRooms[keys]] || !Game.rooms[currentRoom.memory.remoteRooms[keys]].memory.noRemote)) {
+                    if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 2 && (!Game.rooms[currentRoom.memory.remoteRooms[keys]] || !Game.rooms[currentRoom.memory.remoteRooms[keys]].memory.noRemote)) {
                         queueCreep(currentRoom, PRIORITIES.remoteHarvester, {
                             role: 'remoteHarvester',
                             destination: currentRoom.memory.remoteRooms[keys]
