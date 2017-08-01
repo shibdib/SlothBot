@@ -434,10 +434,10 @@ function balanceEnergy(terminal, energyInRoom) {
     terminal.room.memory.energySurplus = energyInRoom >= energyAmount + (energyAmount * 0.10);
     terminal.room.memory.energyNeeded = energyInRoom < energyAmount;
     let needingRooms = _.filter(Game.rooms, (r) => r.memory && r.memory.energyNeeded);
-    let cost = Game.market.calcTransactionCost(energyAmount * 0.10, needingRooms[0].name, terminal.room.name);
+    let cost;
+    if (needingRooms[0]) cost = Game.market.calcTransactionCost(energyAmount * 0.10, needingRooms[0].name, terminal.room.name);
     if (needingRooms[0] && terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] >= (energyAmount * 0.10) + cost && !terminal.cooldown) {
         terminal.send(RESOURCE_ENERGY, energyAmount * 0.10, needingRooms[0].name, terminal.room.name + ' energy distributed to ' + needingRooms[0].name);
     }
 }
-
 balanceEnergy = profiler.registerFN(balanceEnergy, 'orderCleanupTerminal');
