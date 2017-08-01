@@ -172,9 +172,9 @@ function queueTroops() {
                 cache[key] = {
                     scout: 0,
                     attacker: 0,
-                    healer: 1,
+                    healer: 0,
                     deconstructor: 2,
-                    drainer: 3,
+                    drainer: 2,
                     ranged: 0
                 };
                 Memory.militaryNeeds = cache;
