@@ -415,7 +415,7 @@ getEnergy = function (range = 250, hauler = false) {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] <= 5000 || object.pos.rangeToTarget(this) > range) {
+                if (object.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5 || object.pos.rangeToTarget(this) > range) {
                     continue;
                 }
                 const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1 + (numberOfUsers / 2);
@@ -671,7 +671,7 @@ findEssentials = function () {
             harvest: false
         });
     }
-    //Terminal
+    //Terminal room.memory.energySurplus
     let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
     if (terminal.length > 0) {
         let terminals = [];
@@ -679,12 +679,21 @@ findEssentials = function () {
             const object = Game.getObjectById(terminal[i]);
             if (object) {
                 if (object.pos.getRangeTo(this) > 1) {
-                    const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 1.1, 0) + 1;
-                    terminals.push({
-                        id: terminal[i],
-                        distWeighted: terminalDistWeighted,
-                        harvest: false
-                    });
+                    if (object.room.memory.energySurplus && object.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.5) {
+                        const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0) + 1;
+                        terminals.push({
+                            id: terminal[i],
+                            distWeighted: terminalDistWeighted,
+                            harvest: false
+                        });
+                    } else {
+                        const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 1.1, 0) + 1;
+                        terminals.push({
+                            id: terminal[i],
+                            distWeighted: terminalDistWeighted,
+                            harvest: false
+                        });
+                    }
                 }
             }
         }

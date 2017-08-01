@@ -4,6 +4,27 @@ let globals = function () {
         'CaptainMuscles',
     ];
 
+    //Terminal
+    global.REACTION_NEEDS = [];
+
+    global.BOOST_NEEDS = [RESOURCE_CATALYZED_GHODIUM_ACID];
+
+    global.TRADE_TARGETS = [RESOURCE_HYDROGEN,
+        RESOURCE_OXYGEN,
+        RESOURCE_UTRIUM,
+        RESOURCE_KEANIUM,
+        RESOURCE_LEMERGIUM,
+        RESOURCE_ZYNTHIUM,
+        RESOURCE_CATALYST];
+
+    global.DO_NOT_SELL_LIST = [RESOURCE_CATALYZED_UTRIUM_ACID,
+        RESOURCE_CATALYZED_GHODIUM_ACID];
+
+    global.TRADE_AMOUNT = 5000;
+    global.ENERGY_AMOUNT = 50000;
+    global.REACTION_AMOUNT = 1000;
+    global.BOOST_AMOUNT = 1000;
+
     if (!Memory.war) {
         global.PRIORITIES = {
             // Harvesters
