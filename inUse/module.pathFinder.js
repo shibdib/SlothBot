@@ -79,7 +79,6 @@ function shibMove(creep, heading, options = {}) {
                 case ERR_TIRED:
                     return;
                 case ERR_NO_BODYPART:
-                    creep.idleFor(10);
                     return;
                 case ERR_BUSY:
                     creep.idleFor(10);
@@ -237,7 +236,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             case ERR_TIRED:
                 return;
             case ERR_NO_BODYPART:
-                creep.idleFor(10);
                 return;
             case ERR_BUSY:
                 creep.idleFor(10);
