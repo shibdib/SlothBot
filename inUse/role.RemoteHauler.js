@@ -98,7 +98,7 @@ function role(creep) {
                             break;
                     }
                 } else {
-                    let link = creep.pos.findInRange(FIND_STRUCTURES, 6, {filter: (s) => s.structureType === STRUCTURE_LINK});
+                    let link = creep.pos.findInRange(FIND_STRUCTURES, 8, {filter: (s) => s.structureType === STRUCTURE_LINK});
                     if (link.length > 0 && link[0].id !== creep.room.memory.storageLink) {
                         creep.memory.dropOffLink = link[0].id;
                     }
