@@ -440,4 +440,5 @@ function balanceEnergy(terminal, energyInRoom) {
         terminal.send(RESOURCE_ENERGY, energyAmount * 0.10, needingRooms[0].name, terminal.room.name + ' energy distributed to ' + needingRooms[0].name);
     }
 }
-balanceEnergy = profiler.registerFN(balanceEnergy, 'orderCleanupTerminal');
+
+balanceEnergy = profiler.registerFN(balanceEnergy, 'orderCleanupTerminal'); 
