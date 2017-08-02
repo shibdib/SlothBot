@@ -13,6 +13,8 @@ function role(creep) {
     let SKRanged = _.filter(Game.creeps, (sk) => sk.memory.destination === creep.memory.destination && (sk.memory.role === 'SKranged' || sk.memory.role === 'SKattacker'));
     if (SKRanged.length === 0) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 20});
+        creep.memory.harvesting = undefined;
+        creep.memory.source = undefined;
         return;
     }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
@@ -20,15 +22,13 @@ function role(creep) {
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
     }
+    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = undefined;
+    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (!creep.memory.destinationReached) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
-        }
-        return null;
+        return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
         creep.flee(hostiles);
-    } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
+    } else if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.harvesting === false) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
         }
@@ -37,6 +37,7 @@ function role(creep) {
     } else {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
+            if (!source || source.pos.roomName !== creep.pos.roomName) return creep.memory.source = undefined;
             if (source.energy === 0) {
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
