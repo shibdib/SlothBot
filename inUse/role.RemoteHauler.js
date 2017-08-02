@@ -46,13 +46,14 @@ function role(creep) {
                         }
                     }
                 } else if (creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100}).length > 0) {
-                    for (const resourceType in creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100})[0].store) {
-                        if (creep.pickup(creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100})[0], resourceType) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100})[0]);
+                    let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100})[0];
+                    for (const resourceType in dropped) {
+                        if (creep.pickup(dropped, resourceType) === ERR_NOT_IN_RANGE) {
+                            creep.shibMove(dropped);
                         }
                     }
                 } else {
-                    creep.idleFor(2);
+                    creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20, offRoad: true});
                 }
             } else {
                 if (!Game.getObjectById(creep.memory.containerID) || _.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
