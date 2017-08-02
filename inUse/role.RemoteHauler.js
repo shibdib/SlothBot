@@ -18,12 +18,10 @@ function role(creep) {
         } else if (creep.memory.invaderCooldown > 50) {
             creep.memory.invaderCooldown = undefined;
         }
-    } else {
-        let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
-        if (creep.pos.getRangeTo(invader) < 5) {
-            creep.flee(invader);
-            return null;
-        }
+    }
+    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
+        return creep.flee(hostiles);
     }
     if (creep.pos.roomName !== creep.memory.destination) {
         creep.memory.destinationReached = false;
