@@ -10,10 +10,10 @@ function towerControl() {
     towers:
         for (let tower of _.values(Game.structures)) {
             if (tower.structureType === STRUCTURE_TOWER) {
-                let structures = tower.room.find(FIND_STRUCTURES);
-                let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
                 if (tower.room.memory.responseNeeded === true) {
                     let creeps = tower.room.find(FIND_CREEPS);
+                    let structures = tower.room.find(FIND_STRUCTURES);
+                    let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
                     let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 1) && _.includes(doNotAggress, s.owner['username']) === false);
                     let healers = _.filter(creeps, (s) => (s.getActiveBodyparts(HEAL) >= 6 && _.includes(doNotAggress, s.owner['username']) === false));
                     if (armedHostile.length > 0) {
@@ -43,6 +43,12 @@ function towerControl() {
                         tower.heal(woundedCreep[0]);
                     }
                 } else if (tower.energy > tower.energyCapacity * 0.60) {
+                    let creeps = tower.room.find(FIND_CREEPS);
+                    let structures = tower.room.find(FIND_STRUCTURES);
+                    let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true);
+                    if (woundedCreep.length > 0) {
+                        tower.heal(woundedCreep[0]);
+                    }
                     let barriers = _.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500);
                     if (barriers.length > 0) {
                         tower.repair(barriers[0]);
@@ -55,6 +61,11 @@ function towerControl() {
                     }
                     if (Game.getObjectById(findRepair(tower))) {
                         tower.repair(Game.getObjectById(findRepair(tower, structures)));
+                    }
+                } else {
+                    let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.05);
+                    if (road.length > 0) {
+                        tower.repair(road[0]);
                     }
                 }
             }
