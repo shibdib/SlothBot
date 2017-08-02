@@ -39,12 +39,7 @@ function role(creep) {
             if (!creep.memory.containerID) {
                 let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) >= 100});
                 if (container.length > 0) {
-                    creep.memory.containerID = container[0].id;
-                    for (const resourceType in container.store) {
-                        if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(container);
-                        }
-                    }
+                    creep.memory.containerID = _.sample(container).id;
                 } else if (creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100}).length > 0) {
                     let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (s) => s.amount > 100})[0];
                     for (const resourceType in dropped) {
@@ -57,10 +52,13 @@ function role(creep) {
                 }
             } else {
                 if (!Game.getObjectById(creep.memory.containerID) || _.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
-                    creep.memory.containerID = undefined;
+                    return creep.memory.containerID = undefined;
                 }
-                if (creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(Game.getObjectById(creep.memory.containerID), {offRoad: true});
+                let container = Game.getObjectById(creep.memory.containerID)
+                for (const resourceType in container.store) {
+                    if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(container);
+                    }
                 }
             }
         } else {
@@ -98,7 +96,7 @@ function role(creep) {
                     }
                 } else {
                     let link = creep.pos.findInRange(FIND_STRUCTURES, 8, {filter: (s) => s.structureType === STRUCTURE_LINK});
-                    if (link.length > 0 && link[0].id !== creep.room.memory.storageLink) {
+                    if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] > 0) {
                         creep.memory.dropOffLink = link[0].id;
                     }
                     creep.findStorage();
