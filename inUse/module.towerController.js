@@ -63,6 +63,7 @@ function towerControl() {
                         tower.repair(Game.getObjectById(findRepair(tower, structures)));
                     }
                 } else {
+                    let structures = tower.room.find(FIND_STRUCTURES);
                     let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.05);
                     if (road.length > 0) {
                         tower.repair(road[0]);
