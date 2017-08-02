@@ -5,10 +5,10 @@ const profiler = require('screeps-profiler');
 
 function roomControl() {
 
+
     for (let name in Game.rooms) {
         let currentRoom = Game.rooms[name];
-        if (!currentRoom.controller || (currentRoom.controller.owner && currentRoom.controller.owner.username !== 'Shibdib')) continue;
-
+        if (currentRoom.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).length === 0) continue;
         //RCL
         //let level = Game.spawns[name].room.controller.level;
 
@@ -33,7 +33,7 @@ function roomControl() {
 
 
         //Room Building
-        if (Game.time % 75 === 0 && Game.bucket > 5000) {
+        if (Game.time % 75 === 0 && Game.bucket > 7500) {
             autoBuild.roomBuilding(currentRoom.name);
         }
 
@@ -101,16 +101,14 @@ function queueCreep(room, importance, options = {}) {
     }
 }
 
-function cleanQueue(room){
+function cleanQueue(room) {
     for (let key in room.memory.creepBuildQueue) {
         if (room.memory.creepBuildQueue[key].room !== room.name) delete room.memory.creepBuildQueue[key]
     }
 }
 
 function neighborCheck(spawnRoom, remoteRoom) {
-    if (spawnRoom && remoteRoom) {
-        return Game.map.getRoomLinearDistance(spawnRoom, remoteRoom) <= 1;
-    }
+    return Game.map.getRoomLinearDistance(spawnRoom, remoteRoom) <= 1;
 }
 neighborCheck = profiler.registerFN(neighborCheck, 'neighborCheckSpawn');
 
@@ -119,14 +117,14 @@ function creepQueueChecks(currentRoom) {
     let level = getLevel(currentRoom);
     let war = Memory.war;
     let roomCreeps = currentRoom.find(FIND_MY_CREEPS);
-    if (roomCreeps.length < 2) {
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === currentRoom.name)
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === currentRoom.name);
+    let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'basicHauler'));
+    if (harvesters.length === 0 || pawn.length === 0) {
         if (harvesters.length === 0) {
             queueCreep(currentRoom, PRIORITIES.basicHarvester, {
                 role: 'basicHarvester'
             })
         }
-        let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn'));
         if (level < 4 || !currentRoom.memory.storageBuilt || pawn.length === 0) {
             if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === currentRoom.name).length < 3) {
                 queueCreep(currentRoom, PRIORITIES.basicHauler, {
@@ -138,16 +136,24 @@ function creepQueueChecks(currentRoom) {
 
         //Harvesters
         let sources = currentRoom.find(FIND_SOURCES);
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === currentRoom.name)
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === currentRoom.name);
         if (harvesters.length === 0) {
             queueCreep(currentRoom, PRIORITIES.basicHarvester, {
                 role: 'basicHarvester'
             })
         }
+        harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.assignedRoom === currentRoom.name);
+        let basicHarvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'basicHarvester') && c.memory.assignedRoom === currentRoom.name);
         if (harvesters.length < sources.length || (harvesters[0].ticksToLive < 100 && harvesters.length < sources.length + 1)) {
             queueCreep(currentRoom, PRIORITIES.basicHauler, {
                 role: 'stationaryHarvester'
             })
+        } else {
+            if (level > 1) {
+                if (basicHarvesters.length > 0) {
+                    basicHarvesters[0].suicide();
+                }
+            }
         }
 
         //Haulers
@@ -245,7 +251,7 @@ function creepQueueChecks(currentRoom) {
         }
 
         //Remotes
-        if (level >= 3 && !war && Game.cpu.bucket > 5000) {
+        if (level >= 3) {
             for (let i = 0; i < 20; i++) {
                 let pioneer = 'pioneer' + i;
                 if (Game.flags[pioneer] && Game.flags[pioneer].pos.roomName !== currentRoom.name) {
@@ -261,21 +267,21 @@ function creepQueueChecks(currentRoom) {
             if (level >= 7 && currentRoom.memory.skRooms && !war) {
                 for (let key in currentRoom.memory.skRooms) {
                     let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKranged' && creep.memory.assignedRoom === currentRoom.name);
-                    if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100))) {
+                    /**if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100)) && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.skRooms[key]) < 2) {
                         queueCreep(currentRoom, PRIORITIES.SKranged, {
                             role: 'SKranged',
                             destination: currentRoom.memory.skRooms[key]
                         })
-                    }
+                    }**/
                     let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKattacker' && creep.memory.assignedRoom === currentRoom.name);
-                    if (SKAttacker.length < 1) {
+                    if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 100)) && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.skRooms[key]) < 2) {
                         queueCreep(currentRoom, PRIORITIES.SKattacker, {
                             role: 'SKattacker',
                             destination: currentRoom.memory.skRooms[key]
                         })
                     }
                     let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKworker' && creep.memory.assignedRoom === currentRoom.name);
-                    if (SKworker.length < 4 && (SKRanged.length > 0 || SKAttacker.length > 0)) {
+                    if (SKworker.length < Memory.roomCache[currentRoom.memory.skRooms[key]].sources.length + 1 && (SKRanged.length > 0 || SKAttacker.length > 0)) {
                         queueCreep(currentRoom, PRIORITIES.SKworker, {
                             role: 'SKworker',
                             destination: currentRoom.memory.skRooms[key]
@@ -290,7 +296,7 @@ function creepQueueChecks(currentRoom) {
                     }
                 }
             }
-            if (currentRoom.memory.remoteRooms && !war) {
+            if (currentRoom.memory.remoteRooms) {
                 for (let keys in currentRoom.memory.remoteRooms) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
                     if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 2 && (!Game.rooms[currentRoom.memory.remoteRooms[keys]] || !Game.rooms[currentRoom.memory.remoteRooms[keys]].memory.noRemote)) {
@@ -335,7 +341,7 @@ function creepQueueChecks(currentRoom) {
         }
 
         //Scouts
-        if (level >= 2 && Game.cpu.bucket > 5000) {
+        if (level >= 2) {
             if (Game.time % 150 === 0) {
                 let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.assignedRoom === currentRoom.name);
                 if (explorers.length < 1) {
@@ -364,7 +370,7 @@ function creepQueueChecks(currentRoom) {
             let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
             if (assistNeeded.length > 0) {
                 for (let key in assistNeeded) {
-                    if (neighborCheck((currentRoom.name, assistNeeded[key].name) === true || assistNeeded[key].name === currentRoom.name) && !assistNeeded[key].memory.sk) {
+                    if ((neighborCheck(currentRoom.name, assistNeeded[key].name) === true || assistNeeded[key].name === currentRoom.name) && !_.includes(currentRoom.memory.skRooms, assistNeeded[key].name)) {
                         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[key].name && creep.memory.role === 'responder');
                         if (responder.length < assistNeeded[key].memory.numberOfHostiles) {
                             queueCreep(currentRoom, PRIORITIES.responder, {
@@ -391,7 +397,7 @@ function creepQueueChecks(currentRoom) {
                         attackTarget: key,
                         attackType: Memory.warControl[key].type,
                         siegePoint: Memory.warControl[key].siegePoint,
-                        staging: 'E1S9',
+                        staging: STAGING_ROOM,
                         waitForHealers: Memory.militaryNeeds[key].healer,
                         waitForAttackers: Memory.militaryNeeds[key].attacker,
                         waitForRanged: Memory.militaryNeeds[key].ranged,
@@ -404,7 +410,7 @@ function creepQueueChecks(currentRoom) {
                         role: 'swarm',
                         attackTarget: key,
                         attackType: Memory.warControl[key].type,
-                        staging: 'E1S9'
+                        staging: STAGING_ROOM,
                     })
                 }
                 let healer = _.filter(Game.creeps, (creep) => creep.memory.attackTarget === key && creep.memory.role === 'healer');
@@ -414,7 +420,7 @@ function creepQueueChecks(currentRoom) {
                         attackTarget: key,
                         attackType: Memory.warControl[key].type,
                         siegePoint: Memory.warControl[key].siegePoint,
-                        staging: 'E1S9',
+                        staging: STAGING_ROOM,
                         waitForHealers: Memory.militaryNeeds[key].healer,
                         waitForAttackers: Memory.militaryNeeds[key].attacker,
                         waitForRanged: Memory.militaryNeeds[key].ranged,
@@ -429,7 +435,7 @@ function creepQueueChecks(currentRoom) {
                             attackTarget: key,
                             attackType: Memory.warControl[key].type,
                             siegePoint: Memory.warControl[key].siegePoint,
-                            staging: 'E1S9',
+                            staging: STAGING_ROOM,
                             waitForHealers: Memory.militaryNeeds[key].healer,
                             waitForAttackers: Memory.militaryNeeds[key].attacker,
                             waitForRanged: Memory.militaryNeeds[key].ranged,
@@ -443,7 +449,7 @@ function creepQueueChecks(currentRoom) {
                             attackTarget: key,
                             attackType: Memory.warControl[key].type,
                             siegePoint: Memory.warControl[key].siegePoint,
-                            staging: 'E1S9',
+                            staging: STAGING_ROOM,
                             waitForHealers: Memory.militaryNeeds[key].healer,
                             waitForAttackers: Memory.militaryNeeds[key].attacker,
                             waitForRanged: Memory.militaryNeeds[key].ranged,
@@ -457,7 +463,7 @@ function creepQueueChecks(currentRoom) {
                             attackTarget: key,
                             attackType: Memory.warControl[key].type,
                             siegePoint: Memory.warControl[key].siegePoint,
-                            staging: 'E1S9',
+                            staging: STAGING_ROOM,
                             waitForHealers: Memory.militaryNeeds[key].healer,
                             waitForAttackers: Memory.militaryNeeds[key].attacker,
                             waitForRanged: Memory.militaryNeeds[key].ranged,

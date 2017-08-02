@@ -55,6 +55,16 @@ function cacheAttacks() {
             Memory.warControl = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'swarm')) {
+            let cache = Memory.warControl || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'swarm'
+            };
+            Memory.warControl = cache;
+            Game.flags[name].remove();
+        }
     }
 }
 
@@ -77,7 +87,7 @@ function getIntel() {
         if (Memory.warControl[key]) {
             if (Memory.warControl[key].type === 'decon') {
                 if (!Memory.warControl[key].siegePoint) {
-                    let exit = Game.map.findExit(key, 'W53N83');
+                    let exit = Game.map.findExit(key, STAGING_ROOM);
                     let exits = Game.map.describeExits(key);
                     Memory.warControl[key].siegePoint = exits[exit];
                 }
@@ -85,13 +95,13 @@ function getIntel() {
             }
             if (Memory.warControl[key].type === 'clean') {
                 if (!Memory.warControl[key].siegePoint) {
-                    let exit = Game.map.findExit(key, 'W53N83');
+                    let exit = Game.map.findExit(key, STAGING_ROOM);
                     let exits = Game.map.describeExits(key);
                     Memory.warControl[key].siegePoint = exits[exit];
                 }
                 continue;
             }
-            if (Memory.warControl[key].type === 'defend') {
+            if (Memory.warControl[key].type === 'defend' || Memory.warControl[key].type === 'swarm') {
                 continue;
             }
             //check if scouted
@@ -100,7 +110,7 @@ function getIntel() {
                 if (Memory.roomCache[key] && Memory.roomCache[key].owner) {
                     Memory.warControl[key].type = 'siege';
                     if (!Memory.warControl[key].siegePoint) {
-                        let exit = Game.map.findExit(key, 'W53N83');
+                        let exit = Game.map.findExit(key, STAGING_ROOM);
                         let exits = Game.map.describeExits(key);
                         Memory.warControl[key].siegePoint = exits[exit];
                     }
@@ -173,9 +183,20 @@ function queueTroops() {
                     scout: 0,
                     attacker: 0,
                     healer: 0,
-                    deconstructor: 2,
+                    deconstructor: 4,
                     drainer: 2,
                     ranged: 0
+                };
+                Memory.militaryNeeds = cache;
+            } else if (Memory.warControl[key].type === 'swarm') {
+                cache[key] = {
+                    scout: 0,
+                    attacker: 0,
+                    healer: 0,
+                    deconstructor: 0,
+                    drainer: 0,
+                    ranged: 0,
+                    swarm: 5
                 };
                 Memory.militaryNeeds = cache;
             } else if (Memory.warControl[key].type === 'clean') {
@@ -190,7 +211,7 @@ function queueTroops() {
             } else if (Memory.warControl[key].type === 'defend') {
                 cache[key] = {
                     scout: 0,
-                    attacker: 0,
+                    attacker: 1,
                     healer: 1,
                     deconstructor: 0,
                     ranged: 1
@@ -209,9 +230,10 @@ function queueTroops() {
                 } else if (Memory.warControl[key].level === 2) {
                     cache[key] = {
                         scout: 1,
-                        attacker: 1,
+                        attacker: 2,
                         healer: 1,
                         deconstructor: 2,
+                        drainer: 2,
                         ranged: 1
                     };
                     Memory.militaryNeeds = cache;

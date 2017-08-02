@@ -5,7 +5,8 @@ let globals = function () {
     ];
 
     //Terminal
-    global.REACTION_NEEDS = [];
+    global.REACTION_NEEDS = [
+    ];
 
     global.BOOST_NEEDS = [RESOURCE_CATALYZED_GHODIUM_ACID];
 
@@ -25,6 +26,8 @@ let globals = function () {
     global.REACTION_AMOUNT = 1000;
     global.BOOST_AMOUNT = 1000;
 
+    global.STAGING_ROOM = 'E16S7';
+
     if (!Memory.war) {
         global.PRIORITIES = {
             // Harvesters
@@ -43,10 +46,10 @@ let globals = function () {
             remoteHauler: 3,
             pioneer: 4,
             // SK
-            SKworker: 8,
-            SKattacker: 8,
-            SKranged: 8,
-            SKhauler: 8,
+            SKworker: 3,
+            SKattacker: 4,
+            SKranged: 4,
+            SKhauler: 3,
             // Military
             attacker: 9,
             healer: 9,
@@ -67,36 +70,34 @@ let globals = function () {
             stationaryHarvester: 1,
             basicHarvester: 1,
             // Workers
-            worker: 4,
-            upgrader: 3,
+            worker: 7,
+            waller: 8,
+            upgrader: 6,
             mineralHarvester: 8,
             // Haulers
             basicHauler: 2,
             pawn: 2,
-            mineralHauler: 8,
-            labTech: 4,
             // Remotes
-            remoteHarvester: 5,
-            remoteHauler: 5,
-            pioneer: 8,
+            remoteHarvester: 4,
+            remoteHauler: 3,
+            pioneer: 4,
             // SK
             SKworker: 6,
             SKattacker: 6,
             SKranged: 6,
             SKhauler: 6,
             // Military
-            attacker: 3,
-            swarm: 3,
-            healer: 3,
-            deconstructor: 3,
-            drainer: 3,
-            ranged: 3,
+            attacker: 5,
+            healer: 5,
+            deconstructor: 5,
+            drainer: 5,
+            ranged: 5,
             responder: 1.5,
-            raider: 3,
+            raider: 5,
             // Misc
             claimer: 2,
-            reserver: 7,
-            explorer: 7,
+            reserver: 5,
+            explorer: 2,
             scout: 2,
         };
     }
@@ -241,7 +242,7 @@ let globals = function () {
             pioneer: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY],
             worker: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
             waller: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            upgrader: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
+            upgrader: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY],
             explorer: [MOVE],
             scout: [MOVE],
             SKworker: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, HEAL],
