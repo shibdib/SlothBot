@@ -14,7 +14,8 @@ let protectedStructures = [
     STRUCTURE_TERMINAL,
     STRUCTURE_CONTAINER,
     STRUCTURE_NUKER,
-    STRUCTURE_OBSERVER
+    STRUCTURE_OBSERVER,
+    STRUCTURE_LINK
 ];
 
 function roomBuilding() {
