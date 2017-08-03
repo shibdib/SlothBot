@@ -266,15 +266,17 @@ function creepQueueChecks(currentRoom) {
             }
             if (level >= 7 && currentRoom.memory.skRooms && !war) {
                 for (let key in currentRoom.memory.skRooms) {
+                    let SKRoom = Game.rooms[currentRoom.memory.skRooms[key]];
+                    if (!SKRoom) continue;
+                    let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKattacker' && creep.memory.assignedRoom === currentRoom.name);
                     let SKRanged = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKranged' && creep.memory.assignedRoom === currentRoom.name);
-                    /**if ((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100)) && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.skRooms[key]) < 2) {
+                    if (((SKRanged.length < 1 || (SKRanged.length === 1 && SKRanged[0].ticksToLive < 100)) && SKAttacker.length > 0) && Game.map.getRoomLinearDistance(currentRoom.name, SKRoom.name) < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
                         queueCreep(currentRoom, PRIORITIES.SKranged, {
                             role: 'SKranged',
                             destination: currentRoom.memory.skRooms[key]
                         })
-                    }**/
-                    let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKattacker' && creep.memory.assignedRoom === currentRoom.name);
-                    if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 100)) && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.skRooms[key]) < 2) {
+                    }
+                    if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 100)) && Game.map.getRoomLinearDistance(currentRoom.name, SKRoom.name) < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
                         queueCreep(currentRoom, PRIORITIES.SKattacker, {
                             role: 'SKattacker',
                             destination: currentRoom.memory.skRooms[key]
