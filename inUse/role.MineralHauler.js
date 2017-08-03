@@ -17,7 +17,6 @@ function role(creep) {
     if (mineralHarvester.length === 0 && creep.memory.assignedMineral && Game.getObjectById(creep.memory.assignedMineral).mineralAmount < 100) creep.memory.role = 'pawn';
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
-        creep.memory.mineralDestination = undefined;
     }
     if (_.sum(creep.carry) > creep.carryCapacity / 2) {
         creep.memory.hauling = true;
