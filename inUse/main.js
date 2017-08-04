@@ -32,8 +32,8 @@ module.exports.loop = function () {
         //CLEANUP
         Memory.stats.cpu.preCleanup = Game.cpu.getUsed();
         if (Game.time % 100 === 0) {
-            cleanPathCacheByUsage(1); //clean path and distance caches
-            cleanDistanceCacheByUsage(1);
+            cleanPathCacheByUsage(); //clean path and distance caches
+            cleanDistanceCacheByUsage();
         }
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
@@ -182,34 +182,20 @@ module.exports.loop = function () {
     });
 };
 
-function cleanPathCacheByUsage(usage) {
-    if (Memory.pathCache && _.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
-        console.log('Cleaning path cache (usage == ' + usage + ')...');
-        let counter = 0;
-        for (let key in Memory.pathCache) {
-            let cached = Memory.pathCache[key];
-            if (cached && (!cached.uses || cached.uses === usage)) {
-                Memory.pathCache[key] = undefined;
-                counter += 1;
-            }
-        }
-        Game.notify('Path cache of usage ' + usage + ' cleaned! ' + counter + ' paths removed', 6 * 60);
-        cleanPathCacheByUsage(usage + 1);
+function cleanPathCacheByUsage() {
+    if(Memory.pathCache && _.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
+        let sorted = _.sortBy(Memory.pathCache, 'uses');
+        let overage = (_.size(Memory.pathCache) - 1500) + 100;
+        console.log('Cleaning Path cache (Over max size by '+overage+')...');
+        Memory.pathCache = _.slice(sorted, overage, _.size(Memory.pathCache));
     }
 }
 
-function cleanDistanceCacheByUsage(usage) {
-    if (Memory.distanceCache && _.size(Memory.distanceCache) > 1500) { //1500 entries ~= 100kB
-        console.log('Cleaning Distance cache (usage == ' + usage + ')...');
-        let counter = 0;
-        for (let key in Memory.distanceCache) {
-            let cached = Memory.distanceCache[key];
-            if (cached && (!cached.uses || cached.uses === usage)) {
-                Memory.distanceCache[key] = undefined;
-                counter += 1;
-            }
-        }
-        Game.notify('Distance cache of usage ' + usage + ' cleaned! ' + counter + ' entries removed', 6 * 60);
-        cleanDistanceCacheByUsage(usage + 1);
+function cleanDistanceCacheByUsage() {
+    if(Memory.distanceCache && _.size(Memory.distanceCache) > 1500) { //1500 entries ~= 100kB
+        let sorted = _.sortBy(Memory.distanceCache, 'uses');
+        let overage = (_.size(Memory.distanceCache) - 1500) + 100;
+        console.log('Cleaning Distance cache (Over max size by '+overage+')...');
+        Memory.distanceCache = _.slice(sorted, overage, _.size(Memory.distanceCache));
     }
 }
