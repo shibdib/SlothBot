@@ -443,7 +443,7 @@ let globals = function () {
     global.defineCachedGetter = function (proto, propertyName, fn) {
         Object.defineProperty(proto, propertyName, {
             get: function () {
-                if (this === proto || this == undefined)
+                if (this === proto || this === undefined)
                     return;
                 let result = fn.call(this, this);
                 Object.defineProperty(this, propertyName, {
@@ -471,7 +471,7 @@ let globals = function () {
         }
         let rx = (WORLD_WIDTH >> 1) + ((room[1] === "W") ? (-Number(room[2])) : (Number(room[2]) + 1));
         let ry = (WORLD_HEIGHT >> 1) + ((room[3] === "N") ? (-Number(room[4])) : (Number(room[4]) + 1));
-        if (((rx > 0) && (rx <= WORLD_WIDTH) && (ry > 0) && (ry <= WORLD_HEIGHT)) == false) {
+        if (((rx > 0) && (rx <= WORLD_WIDTH) && (ry > 0) && (ry <= WORLD_HEIGHT)) === false) {
             return; //throw new Error("Invalid room name " + roomName);
         }
         return {xx: rx, yy: ry};
@@ -486,7 +486,7 @@ let globals = function () {
     // Helper function to convert RoomPosition objects into global coordinate objects
     global.toWorldPosition = function (rp) {
         let xx = (rp.x | 0), yy = (rp.y | 0);
-        if (((xx >= 0) && (xx < 50) && (yy >= 0) && (yy < 50)) == false) {
+        if (((xx >= 0) && (xx < 50) && (yy >= 0) && (yy < 50)) === false) {
             return; //throw new Error("Invalid room position");
         }
         let offset = parseRoomName(rp.roomName);
@@ -523,19 +523,19 @@ let globals = function () {
     global.private = false;
 
     global.agentRun = function () {//*
-        var statsDataJSON = "";
+        let statsDataJSON = "";
         if (private) {
-            var privObj = {priv: Memory.stats};
+            const privObj = {priv: Memory.stats};
             statsDataJSON = JSON.stringify(privObj);
         } else {
             statsDataJSON = JSON.stringify(Memory.stats)
         }
-        var passToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNoaWJkaWIiLCJpYXQiOjE0OTU5ODI2MjYsImF1ZCI6InNjcmVlcHNwbC51cyIsImlzcyI6InNjcmVlcHNwbC51cyJ9.LXs1xjahDuw58WUits-9BXaVepVTh5C-mUfJxUBi70M';
-        var output = `<SCRIPT>
+        const passToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNoaWJkaWIiLCJpYXQiOjE0OTU5ODI2MjYsImF1ZCI6InNjcmVlcHNwbC51cyIsImlzcyI6InNjcmVlcHNwbC51cyJ9.LXs1xjahDuw58WUits-9BXaVepVTh5C-mUfJxUBi70M';
+        const output = `<SCRIPT>
 if(!document.ticks)document.ticks={};
 if(document.ticks['t${Game.time}']===undefined){
  document.ticks['t${Game.time}']=true;
- var x=new XMLHttpRequest();
+ let x=new XMLHttpRequest();
  x.open("POST", "https://screepspl.us/api/stats/submit", true);
  x.setRequestHeader("Authorization","JWT " + "${passToken}");
  x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");

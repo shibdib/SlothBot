@@ -28,7 +28,7 @@ RoomPosition.prototype.findClosestStructure = function (structures, structureTyp
 };
 
 RoomPosition.prototype.getAdjacentPosition = function (direction) {
-    var adjacentPos = [
+    const adjacentPos = [
         [0, 0],
         [0, -1],
         [1, -1],

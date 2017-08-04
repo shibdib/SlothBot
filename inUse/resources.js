@@ -156,7 +156,8 @@ function summarize_room_internal(room) {
     //
     // Energy in a source when it resets (wasted/lost energy)
 
-    let retval = {
+    // console.log('Room ' + room.name + ': ' + JSON.stringify(retval));
+    return {
         room_name: room.name, // In case this gets taken out of context
         controller_level,
         controller_progress,
@@ -197,9 +198,6 @@ function summarize_room_internal(room) {
         ground_resources: reduced_resources,
         num_source_containers,
     };
-
-    // console.log('Room ' + room.name + ': ' + JSON.stringify(retval));
-    return retval;
 } // summarize_room
 
 function summarize_rooms() {
@@ -213,8 +211,7 @@ function summarize_rooms() {
     let retval = {};
 
     for (let r in Game.rooms) {
-        let summary = summarize_room_internal(Game.rooms[r]);
-        retval[r] = summary;
+        retval[r] = summarize_room_internal(Game.rooms[r]);
     }
 
     global.summarized_room_timestamp = now;

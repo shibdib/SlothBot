@@ -33,7 +33,7 @@ function shibMove(creep, heading, options = {}) {
     }
     let pathInfo = creep.memory._shibMove;
 
-    let rangeToDestination = creep.pos.getRangeTo(heading)
+    let rangeToDestination = creep.pos.getRangeTo(heading);
     if (rangeToDestination <= options.range) {
         return OK;
     } else if (rangeToDestination <= 1) {

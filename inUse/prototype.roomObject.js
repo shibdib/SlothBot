@@ -19,10 +19,10 @@
  * The prop parameter is the key used to store the target's id in memory. This
  * optionally allows us to have multiple target locks with different names.
  *
- * @param function selector - Gets a list of target candidates
- * @param function validator - Check if a target is still valid
- * @param function chooser - Pick the best target from the list
- * @param string prop - Property name in memory to store the target id
+ * @param selector
+ * @param validator
+ * @param chooser
+ * @param prop
  */
 RoomObject.prototype.getTarget = function (selector, validator = _.identity, chooser = _.first, prop = 'tid') {
     let tid = this.memory[prop];

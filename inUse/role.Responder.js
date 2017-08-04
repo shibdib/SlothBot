@@ -43,7 +43,7 @@ function role(creep) {
     let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 49 && c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
     let closestArmed = creep.pos.findClosestByPath(armedHostile);
     let closestHostile = creep.pos.findClosestByPath(hostiles);
-    let closestStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER})
+    let closestStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER});
     if (creep.pos.roomName !== creep.memory.responseTarget) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room
     } else if (closestArmed) {

@@ -384,7 +384,7 @@ Creep.prototype.squadHeal = function () {
         return true;
     }
     if (attacker === null) {
-        var cs = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
+        const cs = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
         this.moveTo(cs);
         return false;
     }
@@ -420,8 +420,8 @@ Room.prototype.findAttackCreeps = function (object) {
         return false;
     }
 
-    for (var item in object.body) {
-        var part = object.body[item];
+    for (let item in object.body) {
+        const part = object.body[item];
         if (part.energy === 0) {
             continue;
         }

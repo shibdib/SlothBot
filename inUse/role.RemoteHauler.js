@@ -54,7 +54,7 @@ function role(creep) {
                 if (!Game.getObjectById(creep.memory.containerID) || _.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
                     return creep.memory.containerID = undefined;
                 }
-                let container = Game.getObjectById(creep.memory.containerID)
+                let container = Game.getObjectById(creep.memory.containerID);
                 for (const resourceType in container.store) {
                     if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(container);

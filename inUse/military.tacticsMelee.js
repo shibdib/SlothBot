@@ -63,7 +63,7 @@ meleeTeamLeader = function () {
         this.memory.inCombat = true;
         this.borderCheck();
         if (closestArmed) {
-            this.say('1')
+            this.say('1');
             this.memory.meleeTarget = closestArmed.id;
             if (closestArmed.getActiveBodyparts(ATTACK) > 0) {
                 if (this.attack(closestArmed) === ERR_NOT_IN_RANGE) {

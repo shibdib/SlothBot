@@ -248,8 +248,7 @@ const Profiler = {
 
     endTick() {
         if (Game.time >= Memory.profiler.enabledTick) {
-            const cpuUsed = Game.cpu.getUsed();
-            Memory.profiler.totalTime += cpuUsed;
+            Memory.profiler.totalTime += Game.cpu.getUsed();
             Profiler.report();
         }
     },

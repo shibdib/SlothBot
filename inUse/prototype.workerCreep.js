@@ -934,4 +934,4 @@ Creep.prototype.invaderCheck = function () {
         this.room.memory.responseNeeded = undefined;
         this.room.memory.alertEmail = undefined;
     }
-}
+};
