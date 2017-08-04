@@ -27,17 +27,19 @@ function role(creep) {
     if (!creep.memory.destinationReached) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        creep.flee(hostiles);
+        creep.retreat();
     } else if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.harvesting === false) {
-        if (creep.hits < creep.hitsMax) {
-            creep.heal(creep);
-        }
         creep.memory.harvesting = false;
         SKdeposit(creep);
     } else {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (!source || source.pos.roomName !== creep.pos.roomName) return creep.memory.source = undefined;
+            if (!creep.memory.lair) {
+                creep.memory.lair = source.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
+            }
+            let lair = Game.getObjectById(creep.memory.lair);
+            if (creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 5) return creep.flee(lair);
             if (source.energy === 0) {
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
@@ -50,7 +52,10 @@ function role(creep) {
                         creep.heal(creep);
                         break;
                     case ERR_TIRED:
-                        creep.idleFor(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown)
+                        creep.idleFor(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown);
+                        break;
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        creep.idleFor(Game.getObjectById(creep.memory.source).ticksToRegeneration);
                 }
             }
         } else {
@@ -60,6 +65,7 @@ function role(creep) {
         }
     }
 }
+
 module.exports.role = profiler.registerFN(role, 'SKWorkerRole');
 
 function SKdeposit(creep) {
@@ -67,36 +73,43 @@ function SKdeposit(creep) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
     if (creep.memory.containerID) {
-        let container = Game.getObjectById(creep.memory.containerID);
-        if (container) {
-            creep.memory.containerBuilding = undefined;
-            let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
-            if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
-                switch (creep.repair(container)) {
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(container);
-                        break;
-                }
-                creep.say('Fixing');
-            } else if (otherContainers.length > 0) {
-                switch (creep.build(otherContainers[0])) {
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(otherContainers[0]);
-                        break;
-                }
-            } else if (_.sum(container.store) !== container.storeCapacity) {
-                for (const resourceType in creep.carry) {
-                    if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(container, {range: 0});
+        if (!creep.findConstruction()) {
+            let container = Game.getObjectById(creep.memory.containerID);
+            if (container) {
+                creep.memory.containerBuilding = undefined;
+                let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
+                if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
+                    switch (creep.repair(container)) {
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(container);
+                            break;
+                    }
+                    creep.say('Fixing');
+                } else if (otherContainers.length > 0) {
+                    switch (creep.build(otherContainers[0])) {
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(otherContainers[0]);
+                            break;
+                    }
+                } else if (_.sum(container.store) !== container.storeCapacity) {
+                    for (const resourceType in creep.carry) {
+                        if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
+                            creep.shibMove(container, {range: 0});
+                        }
                     }
                 }
+            }
+        } else {
+            let site = Game.getObjectById(creep.memory.constructionSite);
+            if (creep.build(site) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(site);
             }
         }
     } else {
         let buildSite = Game.getObjectById(creep.containerBuilding());
         if (!buildSite && creep.memory.containerBuilding !== true) {
             creep.harvesterContainerBuild();
-        } else {
+        } else if (creep.carry[RESOURCE_ENERGY] > 0) {
             creep.build(buildSite);
             creep.memory.containerBuilding = true;
         }
