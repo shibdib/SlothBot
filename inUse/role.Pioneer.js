@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     //Invader detection
-    invaderCheck(creep);
+    creep.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
         return creep.flee(hostiles);
@@ -55,43 +55,32 @@ function role(creep) {
             creep.memory.destinationReached = true;
         }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
-        creep.findConstruction();
-        if (creep.memory.task === 'build') {
-            let construction = Game.getObjectById(creep.memory.constructionSite);
-            if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(construction, {range: 3});
+        if (creep.room.controller && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
+            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(creep.room.controller);
             }
         } else {
-            creep.findRepair('1');
-            if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
-                let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
-                if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(repairNeeded, {range: 3});
+            creep.findConstruction();
+            if (creep.memory.task === 'build') {
+                let construction = Game.getObjectById(creep.memory.constructionSite);
+                if (creep.build(construction) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(construction, {range: 3});
                 }
-            } else if (Game.room && Game.room.controller && creep.upgradeController(Game.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(Game.room.controller);
             } else {
-                creep.idleFor(10);
+                creep.findRepair('1');
+                if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
+                    let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
+                    if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(repairNeeded, {range: 3});
+                    }
+                } else if (Game.room && Game.room.controller && creep.upgradeController(Game.room.controller) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(Game.room.controller);
+                } else {
+                    creep.idleFor(10);
+                }
             }
         }
     }
 }
 
 module.exports.role = profiler.registerFN(role, 'pioneerRole');
-
-function invaderCheck(creep) {
-    let invader = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], c.owner['username']) === false});
-    if (invader) {
-        creep.room.memory.responseNeeded = true;
-        if (!creep.memory.invaderCooldown) {
-            creep.memory.invaderCooldown = 1;
-        }
-        creep.room.memory.tickDetected = Game.time;
-        creep.memory.invaderDetected = true;
-    } else if (creep.room.memory.tickDetected < Game.time - 150 || creep.room.memory.responseNeeded === false) {
-        creep.memory.invaderDetected = undefined;
-        creep.memory.invaderID = undefined;
-        creep.room.memory.numberOfHostiles = undefined;
-        creep.room.memory.responseNeeded = false;
-    }
-}
