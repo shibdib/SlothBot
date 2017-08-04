@@ -25,22 +25,37 @@ function role(creep) {
     if (creep.carry.energy > creep.carryCapacity / 2) {
         creep.memory.hauling = true;
     }
-    if (creep.memory.hauling === false) {
-        if (creep.memory.energyDestination) {
-            creep.withdrawEnergy();
-        } else if (!creep.getEnergy()) {
-            creep.idleFor(10);
+    if (!creep.memory.storage || !Game.getObjectById(creep.memory.storage)) {
+        let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
+        if (storage.length > 0) {
+            creep.memory.storage = storage[0];
         }
-    } else {
-        if (creep.memory.storage) {
-            if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
-            if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
+    }
+    let storage = Game.getObjectById(creep.memory.storage);
+    let terminal = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id'));
+    if (storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+        if (creep.memory.hauling === false) {
+            if (creep.memory.energyDestination) {
+                creep.withdrawEnergy();
+            } else if (!creep.getEnergy()) {
+                creep.idleFor(10);
             }
-        } else if (!creep.memory.storage) {
-            let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
-            if (storage.length > 0) {
-                creep.memory.storage = storage[0];
+        } else {
+            if (creep.memory.storage) {
+                if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
+                if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
+                }
+            }
+        }
+    } else if (terminal) {
+        if (creep.memory.hauling === false) {
+            if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(storage);
+            }
+        } else {
+            if (creep.transfer(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(terminal);
             }
         }
     }
