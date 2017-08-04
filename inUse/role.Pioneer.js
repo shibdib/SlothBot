@@ -55,7 +55,7 @@ function role(creep) {
             creep.memory.destinationReached = true;
         }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
-        if (creep.room.controller && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
+        if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
             if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(creep.room.controller);
             }
