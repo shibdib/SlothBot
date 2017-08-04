@@ -31,26 +31,47 @@ function role(creep) {
         }
         return null;
     }
-    let targets = _.min(creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true}), 'hits');
-    if (creep.hits < creep.hitsMax) {
-        creep.heal(creep);
-    } else if (targets) {
-        creep.rangedHeal(targets);
-    }
-    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    let hostileHealer = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(HEAL) > 2});
-    if (!creep.memory.destinationReached) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
+    let SKAttacker = _.filter(Game.creeps, (c) => c.memory.role && c.memory.role === 'SKattacker' && c.memory.destination === creep.memory.destination);
+    if (SKAttacker.length === 0) {
+        if (creep.hits < creep.hitsMax) creep.heal(creep);
+        let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        let hostileHealer = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(HEAL) > 2});
+        if (!creep.memory.destinationReached) {
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
+            if (creep.pos.roomName === creep.memory.destination) {
+                creep.memory.destinationReached = true;
+            }
+        } else if (hostileHealer) {
+            creep.fightRanged(hostileHealer);
+        } else if (hostiles) {
+            creep.fightRanged(hostiles);
+        } else {
+            let lair = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}), 'ticksToSpawn');
+            creep.shibMove(lair, {range: 3});
         }
-    } else if (hostileHealer) {
-        creep.fightRanged(hostileHealer);
-    } else if (hostiles) {
-        creep.fightRanged(hostiles);
     } else {
-        let lair = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}), 'ticksToSpawn');
-        creep.shibMove(lair, {range: 3});
+        if (SKAttacker[0].hits < SKAttacker[0].hitsMax) {
+            switch (creep.heal(SKAttacker[0])) {
+                case OK:
+                    creep.shibMove(SKAttacker[0], {range: 0});
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(SKAttacker[0], {forceRepath: true});
+                    if (creep.hits < creep.hitsMax) creep.heal(creep);
+                    break;
+                case ERR_NO_BODYPART:
+                    break;
+                case ERR_INVALID_TARGET:
+                    break;
+            }
+        } else {
+            creep.shibMove(SKAttacker[0], {range: 0});
+            if (creep.hits < creep.hitsMax) creep.heal(creep);
+        }
+        let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        if (hostiles && creep.pos.getRangeTo(hostiles) < 4) {
+            creep.rangedAttack(hostiles);
+        }
     }
 }
 
