@@ -6,11 +6,12 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    creep.borderCheck();
     //Invader detection
     creep.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.flee(hostiles);
+        return creep.retreat();
     }
 
     if(creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})){
@@ -18,6 +19,9 @@ function role(creep) {
         creep.memory.assignedRoom = creep.room.name;
         creep.memory.assignedSpawn = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).id;
         return;
+    }
+    if ((Game.flags[creep.memory.destination] && creep.pos.roomName !== Game.flags[creep.memory.destination].pos.roomName) || (Game.rooms[creep.memory.destination] && creep.pos.roomName !== creep.memory.destination)) {
+        creep.memory.destinationReached = undefined;
     }
 
     if (creep.carry.energy === 0) {
@@ -47,11 +51,12 @@ function role(creep) {
             }
         }
     } else if (!creep.memory.destinationReached && creep.memory.hauling === true) {
-        if (!Game.flags[creep.memory.destination]) {
+        if (!Game.flags[creep.memory.destination] && !Game.rooms[creep.memory.destination]) {
             creep.suicide();
         }
-        creep.shibMove(Game.flags[creep.memory.destination]);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 1) {
+        if (Game.flags[creep.memory.destination]) creep.shibMove(Game.flags[creep.memory.destination]);
+        if (Game.rooms[creep.memory.destination]) creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        if ((Game.flags[creep.memory.destination] && creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) || (Game.rooms[creep.memory.destination] && creep.pos.roomName === creep.memory.destination)) {
             creep.memory.destinationReached = true;
         }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
