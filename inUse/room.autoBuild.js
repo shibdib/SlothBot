@@ -156,8 +156,9 @@ function buildStorage(spawn) {
 buildStorage = profiler.registerFN(buildStorage, 'buildStorageBuilder');
 
 function borderWalls(spawn, structures) {
-    if (spawn.room.memory.borderWallCache) {
-        let wall = spawn.room.memory.borderWallCache;
+    if (spawn.room.memory.borderWallCache) spawn.room.memory.borderWallCache = undefined;
+    if (spawn.room.memory.borderWallPlans) {
+        let wall = spawn.room.memory.borderWallPlans;
         for (let key in wall) {
             let pos = new RoomPosition(wall[key].x, wall[key].y, spawn.room.name);
             let state = pos.lookFor(LOOK_STRUCTURES);
@@ -169,7 +170,7 @@ function borderWalls(spawn, structures) {
             }
         }
     } else {
-        let cache = spawn.room.memory.borderWallCache || {};
+        let cache = spawn.room.memory.borderWallPlans || {};
         if (spawn.room.controller.level >= 3) {
             let exits = spawn.room.memory.neighboringRooms;
             let construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
@@ -201,7 +202,7 @@ function borderWalls(spawn, structures) {
                             const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
                             const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
                             const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) {
+                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
                                 cache[key] = {
@@ -209,7 +210,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -218,7 +219,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -227,7 +228,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             }
                         }
                     }
@@ -256,7 +257,7 @@ function borderWalls(spawn, structures) {
                             const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
                             const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
                             const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) {
+                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
                                 cache[key] = {
@@ -264,7 +265,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -273,7 +274,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -282,7 +283,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             }
                         }
                     }
@@ -311,7 +312,7 @@ function borderWalls(spawn, structures) {
                             const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
                             const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
                             const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) {
+                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
                                 cache[key] = {
@@ -319,7 +320,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -328,7 +329,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -337,7 +338,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             }
                         }
                     }
@@ -366,7 +367,7 @@ function borderWalls(spawn, structures) {
                             const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
                             const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
                             const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) {
+                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
                                 cache[key] = {
@@ -374,7 +375,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -383,7 +384,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             } else {
                                 let key = formatPos(pos);
                                 if (Memory.roomCache[key]) delete Memory.roomCache[key];
@@ -392,7 +393,7 @@ function borderWalls(spawn, structures) {
                                     x: pos.x,
                                     y: pos.y
                                 };
-                                spawn.room.memory.borderWallCache = cache;
+                                spawn.room.memory.borderWallPlans = cache;
                             }
                         }
                     }
