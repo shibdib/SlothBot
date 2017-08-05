@@ -290,7 +290,7 @@ function creepQueueChecks(currentRoom) {
                         })
                     }
                     let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'remoteHauler' && creep.memory.assignedRoom === currentRoom.name);
-                    if (SKhauler.length < SKworker.length && (SKAttacker.length > 0)) {
+                    if (SKhauler.length < SKworker.length/2 && (SKAttacker.length > 0)) {
                         queueCreep(currentRoom, PRIORITIES.remoteHauler, {
                             role: 'remoteHauler',
                             destination: currentRoom.memory.skRooms[key]
@@ -315,7 +315,7 @@ function creepQueueChecks(currentRoom) {
                         })
                     }
                     let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHauler' && creep.memory.assignedRoom === currentRoom.name);
-                    if (remoteHauler.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && remoteHarvester.length >= 1 && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 2) {
+                    if (remoteHauler.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length/2 && remoteHarvester.length >= 1 && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 2) {
                         queueCreep(currentRoom, PRIORITIES.remoteHauler, {
                             role: 'remoteHauler',
                             destination: currentRoom.memory.remoteRooms[keys]
