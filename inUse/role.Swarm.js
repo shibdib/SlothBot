@@ -1,10 +1,8 @@
-// noinspection Annotator
 /**
  * Created by Bob on 7/19/2017.
  */
 
 let _ = require('lodash');
-// noinspection Annotator
 const profiler = require('screeps-profiler');
 
 function role(creep) {
@@ -54,7 +52,6 @@ function role(creep) {
     swarmTactic(creep);
 }
 
-// noinspection Annotator
 module.exports.role = profiler.registerFN(role, '');
 
 

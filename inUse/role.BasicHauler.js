@@ -12,7 +12,7 @@ function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     let basicHaulers = _.filter(Game.creeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === creep.room.name);
-    if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2) {
+    if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2 && creep.room.controller.level >= 4) {
         creep.memory.energyDestination = undefined;
         creep.memory.storageDestination = undefined;
         creep.memory.role = 'pawn';
@@ -47,8 +47,15 @@ function role(creep) {
                 creep.memory.storageDestination = null;
                 creep.memory.path = null;
             }
-        } else if (!creep.findEssentials()) {
-            creep.idleFor(10);
+        } else {
+            let spawn = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'spawn'), 'id');
+            if (spawn.energy < 300) {
+                if (creep.transfer(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(spawn);
+                }
+            } else if (!creep.findEssentials()) {
+                creep.idleFor(10);
+            }
         }
     }
 }

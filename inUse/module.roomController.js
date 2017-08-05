@@ -145,7 +145,7 @@ function creepQueueChecks(currentRoom) {
         harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.assignedRoom === currentRoom.name);
         let basicHarvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'basicHarvester') && c.memory.assignedRoom === currentRoom.name);
         if (harvesters.length < sources.length || (harvesters[0].ticksToLive < 100 && harvesters.length < sources.length + 1)) {
-            queueCreep(currentRoom, PRIORITIES.basicHauler, {
+            queueCreep(currentRoom, PRIORITIES.stationaryHarvester, {
                 role: 'stationaryHarvester'
             })
         } else {
@@ -322,7 +322,7 @@ function creepQueueChecks(currentRoom) {
                         })
                     }
                     let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
-                    if (pioneers.length < 1) {
+                    if (pioneers.length < 1 && remoteHarvester.length > 0) {
                         queueCreep(currentRoom, PRIORITIES.pioneer, {
                             role: 'pioneer',
                             destination: currentRoom.memory.remoteRooms[keys]

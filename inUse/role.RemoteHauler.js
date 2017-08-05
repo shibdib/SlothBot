@@ -21,15 +21,16 @@ function role(creep) {
     }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.flee(hostiles);
+        return creep.retreat();
     }
     if (creep.pos.roomName !== creep.memory.destination) {
         creep.memory.destinationReached = false;
     }
-    if (creep.carry.energy === 0) {
+    if (_.sum(creep.carry) === 0) {
+        delete creep.memory.storageDestination;
         creep.memory.hauling = false;
     }
-    if (creep.carry.energy === creep.carryCapacity) {
+    if (_.sum(creep.carry) === creep.carryCapacity) {
         creep.memory.hauling = true;
         creep.memory.containerID = undefined;
     }
@@ -70,7 +71,6 @@ function role(creep) {
                     for (const resourceType in creep.carry) {
                         switch (creep.transfer(storageItem, resourceType)) {
                             case OK:
-                                delete creep.memory.storageDestination;
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(storageItem);
@@ -81,7 +81,7 @@ function role(creep) {
                                 break;
                         }
                     }
-                } else if (dropOffLink && creep.carry[RESOURCE_ENERGY] > 0) {
+                } else if (dropOffLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                     switch (creep.transfer(dropOffLink, RESOURCE_ENERGY)) {
                         case OK:
                             delete creep.memory.storageDestination;
@@ -96,12 +96,13 @@ function role(creep) {
                     }
                 } else {
                     let link = creep.pos.findInRange(FIND_STRUCTURES, 8, {filter: (s) => s.structureType === STRUCTURE_LINK});
-                    if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] > 0) {
+                    if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                         creep.memory.dropOffLink = link[0].id;
                     }
                     creep.findStorage();
                 }
             } else {
+                if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
                 creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {
                     range: 15
                 });

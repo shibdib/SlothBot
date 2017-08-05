@@ -7,6 +7,9 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (creep.pos.roomName !== creep.memory.destination) {
+        creep.memory.destinationReached = undefined;
+    }
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
         if (creep.pos.roomName === creep.memory.destination) {
@@ -27,12 +30,7 @@ function role(creep) {
                 creep.rangedAttack(hostiles);
         }
     } else {
-        let targets = _.min(creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true}), 'hits');
-        if (creep.hits < creep.hitsMax) {
-            creep.heal(creep);
-        } else if (targets) {
-            creep.rangedHeal(targets);
-        }
+        if (creep.hits < creep.hitsMax) creep.heal(creep);
         let lair = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}), 'ticksToSpawn');
         creep.shibMove(lair);
     }

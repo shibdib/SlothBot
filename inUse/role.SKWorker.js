@@ -80,6 +80,7 @@ function SKdeposit(creep) {
             let container = Game.getObjectById(creep.memory.containerID);
             if (container) {
                 if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) return creep.memory.containerID = undefined;
+                if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
                 creep.memory.containerBuilding = undefined;
                 let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
                 if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {

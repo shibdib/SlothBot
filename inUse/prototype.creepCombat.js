@@ -248,6 +248,13 @@ Creep.prototype.siege = function () {
         }
     }
     if (!target || target === null) {
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_STORAGE) && (!s.room.controller.owner || (s.room.controller && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false))});
+        if (target) {
+            this.memory.siegeTarget = target.id;
+            this.memory.siegeComplete = true;
+        }
+    }
+    if (!target || target === null) {
         target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TERMINAL) && (!s.room.controller.owner || (s.room.controller && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
@@ -269,11 +276,16 @@ Creep.prototype.siege = function () {
         }
     }
     if (!target || target === null) {
-        let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false))}), 'hits');
-        if (lowHit.length > 0) {
-            target = lowHit[0];
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD) && (!s.room.controller || (s.room.controller && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false))});
+        if (target) {
             this.memory.siegeTarget = target.id;
-            this.memory.siegeComplete = undefined;
+            this.memory.siegeComplete = true;
+        }
+    }
+    if (!target || target === null) {
+        target = this.pos.findClosestByPath(FIND_CONSTRUCTION_SITES, {filter: (s) => (!s.room.controller || (s.room.controller && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false))});
+        if (target) {
+            return this.shibMove(target, {range: 0});
         }
     }
     if (!target || target === null) {
@@ -281,13 +293,6 @@ Creep.prototype.siege = function () {
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = undefined;
-        }
-    }
-    if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_STORAGE) && (!s.room.controller || (s.room.controller && _.includes(RawMemory.segments[2], s.room.controller.owner['username']) === false))});
-        if (target) {
-            this.memory.siegeTarget = target.id;
-            this.memory.siegeComplete = true;
         }
     }
     /**if (!target || target.pos.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})) {

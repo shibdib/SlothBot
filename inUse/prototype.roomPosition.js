@@ -56,7 +56,7 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
 
 RoomPosition.prototype.checkForRoad = function () {
     if (this.roomName)
-        return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
 };
 
 RoomPosition.prototype.checkForAllStructure = function () {
@@ -68,20 +68,16 @@ RoomPosition.prototype.checkForAllStructure = function () {
 };
 
 RoomPosition.prototype.isExit = function () {
-    if (this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48) {
-        return true;
-    }
-    return false;
+    return this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48;
+
 };
 
 RoomPosition.prototype.isValid = function () {
     if (this.x < 0 || this.y < 0) {
         return false;
     }
-    if (this.x > 49 || this.y > 49) {
-        return false;
-    }
-    return true;
+    return !(this.x > 49 || this.y > 49);
+
 };
 
 RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
@@ -102,7 +98,8 @@ function cacheTargetDistance (origin, target) {
     let cache = Memory.distanceCache || {};
     let distance = origin.getRangeTo(target);
     cache[key] = {
-        distance: distance
+        distance: distance,
+        uses: 1
     };
     Memory.distanceCache = cache;
     return distance;
@@ -113,6 +110,8 @@ function getCachedTargetDistance (origin, target) {
     if (cache) {
         let cachedDistance = cache[getPathKey(origin, target.pos)];
         if (cachedDistance) {
+            cachedDistance.uses += 1;
+            Memory.distanceCache = cache;
             return cachedDistance.distance;
         }
     } else {
