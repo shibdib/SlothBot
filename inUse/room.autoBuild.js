@@ -65,6 +65,21 @@ function buildRoads(spawn, structures) {
         buildRoadAround(spawn.room, mineral.pos);
         buildRoadFromTo(spawn.room, spawner, mineral);
     }
+
+    if (spawn.room.memory.neighboringRooms) {
+        if (spawn.room.memory.neighboringRooms['1']) {
+            buildRoadFromTo(spawn.room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_TOP));
+        }
+        if (spawn.room.memory.neighboringRooms['3']) {
+            buildRoadFromTo(spawn.room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_RIGHT));
+        }
+        if (spawn.room.memory.neighboringRooms['5']) {
+            buildRoadFromTo(spawn.room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_BOTTOM));
+        }
+        if (spawn.room.memory.neighboringRooms['7']) {
+            buildRoadFromTo(spawn.room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_LEFT));
+        }
+    }
 }
 buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
 
