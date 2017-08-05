@@ -22,6 +22,10 @@ function role(creep) {
             creep.memory.invaderCooldown = undefined;
         }
     }
+    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
+        return creep.retreat();
+    }
 
     //Mark room as no go if reserved or owned by someone else
     if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== 'Shibdib') || creep.room.owner)) {
@@ -64,6 +68,7 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
+    if (!creep.memory.buildAttempt) remoteRoads(creep);
     if (!creep.memory.containerID) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
@@ -91,3 +96,57 @@ function depositEnergy(creep) {
         }
     }
 }
+
+function remoteRoads(creep) {
+    creep.memory.buildAttempt = true;
+    if (creep.room.name !== creep.memory.destination) return;
+    let sources = creep.room.find(FIND_SOURCES);
+    let neighboring = Game.map.describeExits(creep.pos.roomName)
+    if (sources.length > 1) {
+        buildRoadFromTo(creep.room, sources[0], sources[1]);
+    }
+    for (let key in sources){
+        buildRoadAround(creep.room, sources[key].pos);
+        if (neighboring) {
+            if (neighboring['1']) {
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_TOP));
+            }
+            if (neighboring['3']) {
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_RIGHT));
+            }
+            if (neighboring['5']) {
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_BOTTOM));
+            }
+            if (neighboring['7']) {
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_LEFT));
+            }
+        }
+    }
+}
+
+function buildRoadFromTo(room, start, end) {
+    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: true});
+    for (let point of path) {
+        buildRoad(new RoomPosition(point.x, point.y, room.name));
+    }
+}
+
+buildRoadFromTo = profiler.registerFN(buildRoadFromTo, 'buildRoadFromToFunctionRemote');
+function buildRoadAround(room, position) {
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name));
+            }
+        }
+    }
+}
+
+buildRoadAround = profiler.registerFN(buildRoadAround, 'buildRoadAroundFunctionRemote');
+
+function buildRoad(position) {
+    if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
+    position.createConstructionSite(STRUCTURE_ROAD);
+}
+
+buildRoad = profiler.registerFN(buildRoad, 'buildRoadFunctionRemote');
