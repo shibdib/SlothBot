@@ -42,11 +42,11 @@ function role(creep) {
                 creep.idleFor(10);
             }
         } else {
-            if (creep.memory.storage) {
-                if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
-                if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
-                }
+            if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
+            let opportunity = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity});
+            if (opportunity.length > 0) creep.transfer(opportunity[0], RESOURCE_ENERGY);
+            if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
             }
         }
     } else if (terminal) {
