@@ -114,6 +114,7 @@ let globals = function () {
             scout: [MOVE]
         },
         2: {
+            responder: [TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE],
             stationaryHarvester: [WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             worker: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY],
