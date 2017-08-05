@@ -282,7 +282,7 @@ function creepQueueChecks(currentRoom) {
                             destination: currentRoom.memory.skRooms[key]
                         })
                     }
-                    let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKworker' && creep.memory.assignedRoom === currentRoom.name);
+                    let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.skRooms[key] && creep.memory.role === 'SKworker');
                     if (SKworker.length < Memory.roomCache[currentRoom.memory.skRooms[key]].sources.length + 1 && (SKAttacker.length > 0)) {
                         queueCreep(currentRoom, PRIORITIES.SKworker, {
                             role: 'SKworker',
@@ -307,7 +307,7 @@ function creepQueueChecks(currentRoom) {
             }
             if (currentRoom.memory.remoteRooms) {
                 for (let keys in currentRoom.memory.remoteRooms) {
-                    let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester' && creep.memory.assignedRoom === currentRoom.name);
+                    let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === currentRoom.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
                     if (remoteHarvester.length < Memory.roomCache[currentRoom.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(currentRoom.name, currentRoom.memory.remoteRooms[keys]) < 2 && (!Game.rooms[currentRoom.memory.remoteRooms[keys]] || !Game.rooms[currentRoom.memory.remoteRooms[keys]].memory.noRemote)) {
                         queueCreep(currentRoom, PRIORITIES.remoteHarvester, {
                             role: 'remoteHarvester',
