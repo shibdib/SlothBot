@@ -40,7 +40,7 @@ function role(creep) {
             let source = creep.pos.findClosestByRange(FIND_SOURCES);
             if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
         }
-    } else if (!creep.memory.destinationReached && creep.memory.hauling === true) {
+    } else if (!creep.memory.destinationReached) {
         if (!Game.flags[creep.memory.destination] && !Game.rooms[creep.memory.destination]) {
             creep.suicide();
         }
