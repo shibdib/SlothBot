@@ -14,7 +14,7 @@ function role(creep) {
         return creep.retreat();
     }
 
-    if(creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})){
+    if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})) {
         creep.memory.role = 'worker';
         creep.memory.assignedRoom = creep.room.name;
         creep.memory.assignedSpawn = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).id;
@@ -30,25 +30,15 @@ function role(creep) {
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.hauling = true;
     }
-    if (creep.memory.hauling === false) {
-        if (creep.room.name === creep.memory.assignedRoom) {
-            if (creep.memory.energyDestination) {
-                creep.withdrawEnergy();
-                return null;
-            } else {
-                creep.findEnergy();
-                return null;
+    if (creep.memory.destinationReached && creep.memory.hauling === false) {
+        let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100});
+        if (container.length > 0) {
+            if (creep.withdraw(container[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(container[0]);
             }
         } else {
-            let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100});
-            if (container.length > 0) {
-                if (creep.withdraw(container[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(container[0]);
-                }
-            } else {
-                let source = creep.pos.findClosestByRange(FIND_SOURCES);
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
-            }
+            let source = creep.pos.findClosestByRange(FIND_SOURCES);
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
         }
     } else if (!creep.memory.destinationReached && creep.memory.hauling === true) {
         if (!Game.flags[creep.memory.destination] && !Game.rooms[creep.memory.destination]) {
