@@ -36,6 +36,7 @@ function role(creep) {
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
         if (creep.pos.roomName === creep.memory.destination) {
+            creep.borderCheck();
             creep.memory.destinationReached = true;
         }
         return null;

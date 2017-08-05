@@ -90,43 +90,44 @@ Creep.prototype.findMineral = function () {
 };
 
 findConstruction = function () {
-    let construction = this.room.find(FIND_MY_CONSTRUCTION_SITES);
+    let construction = this.room.find(FIND_CONSTRUCTION_SITES);
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
-        return;
+        return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
-        return;
+        return true;
     }
     site = _.filter(construction, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
-        return;
+        return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
-        return;
+        return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
-        return;
+        return true;
     }
     this.memory.task = undefined;
+    return null;
 };
 Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 

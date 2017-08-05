@@ -34,6 +34,7 @@ function creepControl() {
             if (creep.memory.role === 'responder') roleResponder.role(creep);
             if (creep.memory.role === 'raider') roleRaider.role(creep);
             if (creep.memory.role === 'drainer') roleDrainer.role(creep);
+            if (creep.memory.role === 'swarm') roleSwarm.role(creep);
         }
 
         //Haulers
@@ -45,6 +46,7 @@ function creepControl() {
             let getters = _.filter(Game.creeps, (c) => c.memory.role === 'getter' && c.memory.assignedRoom === creep.room.name);
             let labTech = _.filter(Game.creeps, (c) => c.memory.role === 'labTech' && c.memory.assignedRoom === creep.room.name);
             let mineralHauler = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHauler' && c.memory.assignedRoom === creep.room.name);
+            let mineralHarvester = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHarvester' && c.memory.assignedRoom === creep.room.name);
             let mineral = creep.pos.findClosestByRange(FIND_MINERALS);
             if (fillers.length < 2) {
                 creep.memory.role = 'filler';
@@ -52,7 +54,7 @@ function creepControl() {
             } else if (creep.room.controller.level >= 6 && getters.length > 0 && labTech.length === 0 && lab) {
                 creep.memory.role = 'labTech';
                 continue;
-            } else if (creep.room.controller.level >= 6 && getters.length > 0 && mineralHauler.length === 0 && mineral.mineralAmount > 0 && extractor) {
+            } else if (creep.room.controller.level >= 6 && getters.length > 0 && mineralHauler.length === 0 && mineral.mineralAmount > 0 && extractor && mineralHarvester.length > 0) {
                 creep.memory.role = 'mineralHauler';
                 continue;
             } else {
@@ -79,6 +81,7 @@ function creepControl() {
             //SK
             if (creep.memory.role === 'SKworker') roleSKWorker.role(creep);
             if (creep.memory.role === 'SKranged') roleSKRanged.role(creep);
+            if (creep.memory.role === 'SKsupport') roleSKSupport.role(creep);
             if (creep.memory.role === 'SKattacker') roleSKAttacker.role(creep);
 
             //Remotes
@@ -105,6 +108,7 @@ let roleMineralHarvester = require('role.MineralHarvester');
 let roleUpgrader = require('role.Upgrader');
 let roleSKWorker = require('role.SKWorker');
 let roleSKRanged = require('role.SKRanged');
+let roleSKSupport = require('role.SKSupport');
 let roleSKAttacker = require('role.SKAttacker');
 let roleRemoteHarvester = require('role.RemoteHarvester');
 let roleRemoteHauler = require('role.RemoteHauler');
@@ -120,3 +124,4 @@ let roleClaimer = require('role.Claimer');
 let roleResponder = require('role.Responder');
 let roleScout = require('role.Scout');
 let roleDrainer = require('role.Drainer');
+let roleSwarm = require('role.Swarm');

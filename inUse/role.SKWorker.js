@@ -68,13 +68,17 @@ function role(creep) {
 
 module.exports.role = profiler.registerFN(role, 'SKWorkerRole');
 
+/**
+ * @return {undefined}
+ */
 function SKdeposit(creep) {
     if (!creep.memory.containerID) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
     if (creep.memory.containerID) {
-        if (!creep.findConstruction()) {
+        if (!creep.findConstruction() || _.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
             let container = Game.getObjectById(creep.memory.containerID);
+            if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) return creep.memory.containerID = undefined;
             if (container) {
                 creep.memory.containerBuilding = undefined;
                 let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
