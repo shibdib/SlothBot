@@ -45,6 +45,7 @@ function role(creep) {
             if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
             let opportunity = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity});
             if (opportunity.length > 0) creep.transfer(opportunity[0], RESOURCE_ENERGY);
+            if (creep.carry.energy === 0) delete creep.memory._shibMove;
             if (creep.transfer(Game.getObjectById(creep.memory.storage), RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(Game.getObjectById(creep.memory.storage), {offRoad: true});
             }
