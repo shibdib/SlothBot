@@ -894,7 +894,6 @@ Creep.prototype.cacheRoomIntel = function () {
 
 
 Creep.prototype.renewalCheck = function (level = 7) {
-    if (Game.time % 10 !== 0) return false;
     let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === this.memory.assignedRoom);
     if (Game.rooms[this.memory.assignedRoom].controller && ((this.memory.renewing && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300) || (Game.rooms[this.memory.assignedRoom].controller.level >= level && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300 && this.ticksToLive < 100 && renewers.length < 2))) {
         if (this.ticksToLive >= 1000) {
