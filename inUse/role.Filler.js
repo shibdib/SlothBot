@@ -24,10 +24,21 @@ function role(creep) {
         creep.memory.storageDestination = undefined;
         return creep.memory.role = 'basicHauler';
     }
-    if (creep.carry.energy === 0) {
+    if (_.sum(creep.carry) > creep.carry.energy) {
+        let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
+        for (const resourceType in creep.carry) {
+            if (!_.includes(DO_NOT_SELL_LIST, resourceType) && resourceType !== RESOURCE_ENERGY) {
+                if (creep.transfer(terminal, resourceType) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(terminal);
+                }
+            }
+        }
+        return;
+    }
+    if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
-    if (creep.carry.energy > creep.carryCapacity / 2) {
+    if (_.sum(creep.carry) > creep.carryCapacity / 2) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
@@ -41,7 +52,7 @@ function role(creep) {
                     creep.shibMove(storage);
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
-                    creep.idleFor(10);
+                    bookBalancer(creep);
             }
         } else if (!creep.memory.storage) {
             let storage = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id');
@@ -69,8 +80,24 @@ function role(creep) {
                     break;
             }
         } else if (!creep.findEssentials()) {
-            creep.idleFor(10);
+            bookBalancer(creep);
         }
     }
 }
+
 module.exports.role = profiler.registerFN(role, 'fillerRole');
+
+function bookBalancer(creep) {
+    let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
+    if (_.sum(storage.store) > storage.store[RESOURCE_ENERGY] && _.sum(creep.carry) !== creep.carryCapacity) {
+        for (const resourceType in storage.store) {
+            if (!_.includes(DO_NOT_SELL_LIST, resourceType)) {
+                if (creep.withdraw(storage, resourceType) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(storage);
+                }
+            }
+        }
+    } else {
+        creep.idleFor(10);
+    }
+}
