@@ -386,7 +386,7 @@ function creepQueueChecks(currentRoom) {
             let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
             if (assistNeeded.length > 0) {
                 for (let key in assistNeeded) {
-                    if ((neighborCheck(currentRoom.name, assistNeeded[key].name) === true || assistNeeded[key].name === currentRoom.name) && !_.includes(currentRoom.memory.skRooms, assistNeeded[key].name)) {
+                    if ((neighborCheck(currentRoom.name, assistNeeded[key].name) === true || assistNeeded[key].name === currentRoom.name) && !_.includes(currentRoom.memory.skRooms, assistNeeded[key].name) && !Game.rooms[assistNeeded[key]].memory.noRemote) {
                         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[key].name && creep.memory.role === 'responder');
                         if (responder.length < assistNeeded[key].memory.numberOfHostiles) {
                             queueCreep(currentRoom, PRIORITIES.responder, {
