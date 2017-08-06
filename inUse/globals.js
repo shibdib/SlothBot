@@ -47,8 +47,8 @@ let globals = function () {
             pioneer: 3,
             // SK
             SKworker: 3,
-            SKattacker: 4,
-            SKsupport: 4,
+            SKattacker: 5,
+            SKsupport: 5,
             SKhauler: 3,
             // Military
             attacker: 5,

@@ -9,18 +9,6 @@ function roomControl() {
     for (let name in Game.rooms) {
         let currentRoom = Game.rooms[name];
         if (currentRoom.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).length === 0) continue;
-        //RCL
-        //let level = Game.spawns[name].room.controller.level;
-
-        //Every 100 ticks
-        /**if (Game.time % 100 === 0) {
-            //autoBuild.run(name);
-            if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
-                //militaryFunctions.buildWalls(Game.spawns[name]);
-                militaryFunctions.borderWalls(Game.spawns[name]);
-                //militaryFunctions.roadNetwork(Game.spawns[name]);
-            }
-        }**/
 
         //CREEP AMOUNT CHECKS
         if (Game.time % 10 === 0 || !currentRoom.memory.creepBuildQueue) {
