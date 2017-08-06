@@ -11,19 +11,16 @@ function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
-    let mineralHauler = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHauler' && c.memory.assignedRoom === creep.room.name);
-    let mineralHarvester = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHarvester' && c.memory.assignedRoom === creep.room.name);
     if (creep.room.controller.level < 4) return creep.memory.role = 'basicHauler';
     if (Game.getObjectById(creep.memory.storage) && Game.getObjectById(creep.memory.storage).store[RESOURCE_ENERGY] >= 25000 && fillers.length < 3) return creep.memory.role = 'filler';
-    if (mineralHarvester.length > 0 && mineralHauler.length === 0) return creep.memory.role = 'mineralHauler';
     if (fillers.length === 0) {
         creep.memory.energyDestination = undefined;
         return creep.memory.role = 'filler';
     }
-    if (creep.carry.energy === 0) {
+    if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     }
-    if (creep.carry.energy > creep.carryCapacity / 2) {
+    if (_.sum(creep.carry) > creep.carryCapacity / 2) {
         creep.memory.hauling = true;
     }
     if (!creep.memory.storage || !Game.getObjectById(creep.memory.storage)) {
@@ -36,6 +33,8 @@ function role(creep) {
     let terminal = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id'));
     if (storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
         if (creep.memory.hauling === false) {
+            let minerals = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > 1000 && s.store[RESOURCE_ENERGY] === 0});
+            if (minerals.length > 0) return getMineral(creep, minerals[0]);
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
             } else if (!creep.getEnergy()) {
@@ -43,18 +42,20 @@ function role(creep) {
             }
         } else {
             if (!Game.getObjectById(creep.memory.storage)) creep.memory.role = 'basicHauler';
-            switch (creep.transfer(storage, RESOURCE_ENERGY)) {
-                case OK:
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    let opportunity = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity});
-                    if (opportunity.length > 0) creep.transfer(opportunity[0], RESOURCE_ENERGY);
-                    creep.shibMove(storage);
-                    break;
-                case ERR_FULL:
-                    delete creep.memory.storageDestination;
-                    creep.findStorage();
-                    break;
+            for (const resourceType in creep.carry) {
+                switch (creep.transfer(storage, resourceType)) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        let opportunity = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity});
+                        if (opportunity.length > 0 && creep.carry.energy > 0) creep.transfer(opportunity[0], RESOURCE_ENERGY);
+                        creep.shibMove(storage);
+                        break;
+                    case ERR_FULL:
+                        delete creep.memory.storageDestination;
+                        creep.findStorage();
+                        break;
+                }
             }
         }
     } else if (terminal) {
@@ -70,3 +71,11 @@ function role(creep) {
     }
 }
 module.exports.role = profiler.registerFN(role, 'getterRole');
+
+function getMineral(creep, container) {
+    for (const resourceType in container.store) {
+        if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
+            creep.shibMove(container);
+        }
+    }
+}
