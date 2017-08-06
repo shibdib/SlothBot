@@ -39,23 +39,9 @@ function creepControl() {
 
         //Haulers
         if (creep.memory.role === "pawn") {
-            let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id')[0]);
-            let lab = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'lab'), 'id')[0]);
-            let extractor = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'extractor'), 'id')[0]);
             let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
-            let getters = _.filter(Game.creeps, (c) => c.memory.role === 'getter' && c.memory.assignedRoom === creep.room.name);
-            let labTech = _.filter(Game.creeps, (c) => c.memory.role === 'labTech' && c.memory.assignedRoom === creep.room.name);
-            let mineralHauler = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHauler' && c.memory.assignedRoom === creep.room.name);
-            let mineralHarvester = _.filter(Game.creeps, (c) => c.memory.role === 'mineralHarvester' && c.memory.assignedRoom === creep.room.name);
-            let mineral = creep.pos.findClosestByRange(FIND_MINERALS);
-            if (fillers.length < 2) {
+            if (fillers.length < 1) {
                 creep.memory.role = 'filler';
-                continue;
-            } else if (creep.room.controller.level >= 6 && getters.length > 0 && labTech.length === 0 && lab) {
-                creep.memory.role = 'labTech';
-                continue;
-            } else if (creep.room.controller.level >= 6 && getters.length > 0 && mineralHauler.length === 0 && mineral.mineralAmount > 0 && extractor && mineralHarvester.length > 0) {
-                creep.memory.role = 'mineralHauler';
                 continue;
             } else {
                 creep.memory.role = 'getter';

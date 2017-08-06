@@ -9,6 +9,18 @@ function roomControl() {
     for (let name in Game.rooms) {
         let currentRoom = Game.rooms[name];
         if (currentRoom.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).length === 0) continue;
+        //RCL
+        //let level = Game.spawns[name].room.controller.level;
+
+        //Every 100 ticks
+        /**if (Game.time % 100 === 0) {
+            //autoBuild.run(name);
+            if (Game.spawns[name].memory.wallCheck !== true && level >= 3) {
+                //militaryFunctions.buildWalls(Game.spawns[name]);
+                militaryFunctions.borderWalls(Game.spawns[name]);
+                //militaryFunctions.roadNetwork(Game.spawns[name]);
+            }
+        }**/
 
         //CREEP AMOUNT CHECKS
         if (Game.time % 10 === 0 || !currentRoom.memory.creepBuildQueue) {
@@ -145,7 +157,7 @@ function creepQueueChecks(currentRoom) {
         }
 
         //Haulers
-        let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech'));
+        let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'pawn' || creep.memory.role === 'mineralHauler' || creep.memory.role === 'labTech'));
         if (level < 4 || !currentRoom.memory.storageBuilt) {
 
             if (_.pluck(_.filter(currentRoom.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
@@ -164,7 +176,7 @@ function creepQueueChecks(currentRoom) {
                 queueCreep(currentRoom, 1, {
                     role: 'pawn'
                 })
-            } else if (pawn.length < 4) {
+            } else if (pawn.length < 3) {
                 queueCreep(currentRoom, PRIORITIES.pawn, {
                     role: 'pawn'
                 })
@@ -374,7 +386,7 @@ function creepQueueChecks(currentRoom) {
             let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
             if (assistNeeded.length > 0) {
                 for (let key in assistNeeded) {
-                    if ((neighborCheck(currentRoom.name, assistNeeded[key].name) === true || assistNeeded[key].name === currentRoom.name) && !_.includes(currentRoom.memory.skRooms, assistNeeded[key].name) && !Game.rooms[assistNeeded[key]].memory.noRemote) {
+                    if ((neighborCheck(currentRoom.name, assistNeeded[key].name) === true || assistNeeded[key].name === currentRoom.name) && !_.includes(currentRoom.memory.skRooms, assistNeeded[key].name)) {
                         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[key].name && creep.memory.role === 'responder');
                         if (responder.length < assistNeeded[key].memory.numberOfHostiles) {
                             queueCreep(currentRoom, PRIORITIES.responder, {
