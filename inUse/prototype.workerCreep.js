@@ -816,6 +816,8 @@ Creep.prototype.idleFor = function (ticks = 0) {
  creep.idleFor(6);
  *///Room intel
 Creep.prototype.cacheRoomIntel = function () {
+    if (this.room.memory.lastIntelCache < Game.time - 100) return;
+    this.room.memory.lastIntelCache = Game.time;
     let room = Game.rooms[this.pos.roomName];
     let owner = undefined;
     let reservation = undefined;
