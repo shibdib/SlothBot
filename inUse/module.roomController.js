@@ -213,7 +213,7 @@ function creepQueueChecks(currentRoom) {
             count = 35;
         }
         let number;
-        if (level === 8) {
+        if (currentRoom.controller.level === 8) {
             number = 1;
         } else if (level >= 5) {
             number = 3;
