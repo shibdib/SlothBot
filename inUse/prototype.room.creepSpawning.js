@@ -45,7 +45,7 @@ Room.prototype.processBuildQueue = function () {
                             reservationTarget: topPriority.reservationTarget
                         }) === role + Game.time) {
                         console.log(spawn.room.name + ' Spawning a ' + role);
-                        Game.rooms[topPriority.assignedRoom].creepQueueChecks();
+                        return Game.rooms[topPriority.assignedRoom].creepQueueChecks();
                     } else {
                         spawn.room.visual.text('Queued - ' +
                             _.capitalize(topPriority.role),
