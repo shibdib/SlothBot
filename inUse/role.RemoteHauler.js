@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (Game.cpu.getUsed() > Game.cpu.limit) return;
     //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.assignedRoom].find(FIND_MY_SPAWNS)[0]);
     //Invader detection
     if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {

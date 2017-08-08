@@ -17,6 +17,14 @@ Room.prototype.getDroppedResources = function () {
     return this.droppedResources;
 };
 
+Room.prototype.getAssignedCreeps = function () {
+    return _.filter(Game.creeps, (c) => c.memory.assignedRoom === this.name);
+};
+
+Room.prototype.getCreepsInRoom = function () {
+    return _.filter(Game.creeps, (c) => c.pos.roomName === this.name);
+};
+
 Room.prototype.getExtensionCount = function () {
     let level = this.controller.level;
     if (level === 1) {
@@ -38,97 +46,7 @@ Room.prototype.getExtensionCount = function () {
     }
 };
 
-Room.prototype.processBuildQueue = function () {
-    let spawns = this.find(FIND_MY_SPAWNS);
-    for (let key in spawns) {
-        let spawn = spawns[key];
-        if (spawn.room.name !== this.name) continue;
-        let level = getLevel(spawn);
-        if (!spawn.spawning) {
-            if (spawn.room.memory.creepBuildQueue) {
-                let topPriority = _.min(spawn.room.memory.creepBuildQueue, 'importance');
-                let role = topPriority.role;
-                let body = _.get(SPAWN[level], role);
-                if (topPriority && typeof topPriority === 'object') {
-                    _.defaults(topPriority, {
-                        role: undefined,
-                        assignedRoom: undefined,
-                        assignedSource: undefined,
-                        destination: undefined,
-                        assignedMineral: undefined,
-                        responseTarget: undefined,
-                        attackTarget: undefined,
-                        attackType: undefined,
-                        siegePoint: undefined,
-                        staging: undefined,
-                        waitForHealers: undefined,
-                        waitForAttackers: undefined,
-                        waitForRanged: undefined,
-                        waitForDeconstructor: undefined,
-                        reservationTarget: undefined
-                    });
-                    if (spawn.createCreep(body, role + Game.time, {
-                            born: Game.time,
-                            role: topPriority.role,
-                            assignedRoom: topPriority.assignedRoom,
-                            assignedSource: topPriority.assignedSource,
-                            destination: topPriority.destination,
-                            assignedMineral: topPriority.assignedMineral,
-                            responseTarget: topPriority.responseTarget,
-                            attackTarget: topPriority.attackTarget,
-                            attackType: topPriority.attackType,
-                            siegePoint: topPriority.siegePoint,
-                            staging: topPriority.staging,
-                            waitForHealers: topPriority.waitForHealers,
-                            waitForAttackers: topPriority.waitForAttackers,
-                            waitForRanged: topPriority.waitForRanged,
-                            waitForDeconstructor: topPriority.waitForDeconstructor,
-                            reservationTarget: topPriority.reservationTarget
-                        }) === role + Game.time) {
-                        console.log(spawn.room.name + ' Spawning a ' + role);
-                        delete spawn.room.memory.creepBuildQueue;
-                    } else {
-                        spawn.room.visual.text('Queued - ' +
-                            _.capitalize(topPriority.role),
-                            spawn.pos.x + 1,
-                            spawn.pos.y,
-                            {align: 'left', opacity: 0.8}
-                        );
-                    }
-                }
-            }
-        } else {
-            let spawningCreep = Game.creeps[spawn.spawning.name];
-            spawn.room.visual.text(
-                spawningCreep.memory.role,
-                spawn.pos.x + 1,
-                spawn.pos.y,
-                {align: 'left', opacity: 0.8}
-            );
-        }
-    }
-};
 
-function getLevel(spawn) {
-    let energy = spawn.room.energyCapacityAvailable;
-    if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
-        return 1;
-    } else if (energy >= RCL_2_ENERGY && energy < RCL_3_ENERGY) {
-        return 2
-    } else if (energy >= RCL_3_ENERGY && energy < RCL_4_ENERGY) {
-        return 3
-    } else if (energy >= RCL_4_ENERGY && energy < RCL_5_ENERGY) {
-        return 4
-    } else if (energy >= RCL_5_ENERGY && energy < RCL_6_ENERGY) {
-        return 5
-    } else if (energy >= RCL_6_ENERGY && energy < RCL_7_ENERGY) {
-        return 6
-    } else if (energy >= RCL_7_ENERGY && energy < RCL_8_ENERGY) {
-        return 7
-    } else if (energy >= RCL_8_ENERGY) {
-        return 8
-    }
-}
 //Room Cache
 ///////////////////////////////////////////////////
 //STRUCTURE CACHE

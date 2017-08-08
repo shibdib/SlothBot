@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (Game.cpu.getUsed() > Game.cpu.limit) return;
     let source;
     if (creep.hits < creep.hitsMax) {
         creep.heal(creep);

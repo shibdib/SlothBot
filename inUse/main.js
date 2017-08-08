@@ -3,6 +3,7 @@
 require("globals")();
 require("prototype.roomPosition");
 require("prototype.room");
+require("prototype.room.creepSpawning");
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let screepsPlus = require('screepsplus');
@@ -22,15 +23,7 @@ module.exports.loop = function () {
         //GRAFANA
         screepsPlus.collect_stats();
 
-        if (Game.cpu.bucket < 1000) {
-            let expendable = _.filter(Game.creeps, (h) => h.memory.attackType === 'raid' || h.memory.role === 'scout' || h.memory.role === 'explorer' || h.memory.role === 'remoteHarvester' || h.memory.role === 'remoteHauler' || h.memory.role === 'SKworker' || h.memory.role === 'pioneer');
-            for (let i = 0; i < expendable.length; i++) {
-                expendable[i].suicide();
-            }
-        }
-
         //CLEANUP
-        Memory.stats.cpu.preCleanup = Game.cpu.getUsed();
         if (Game.time % 100 === 0) {
             cleanPathCacheByUsage(); //clean path and distance caches
             cleanDistanceCacheByUsage();
@@ -40,66 +33,46 @@ module.exports.loop = function () {
                 delete Memory.creeps[name];
             }
         }
-        Memory.stats.cpu.postCleanup = Game.cpu.getUsed();
 
         //Room Management
-        Memory.stats.cpu.preRoom = Game.cpu.getUsed();
         if (Game.cpu.getUsed() < Game.cpu.limit) {
             let roomController = require('module.roomController');
             roomController.roomControl();
         }
-        Memory.stats.cpu.postRoom = Game.cpu.getUsed();
 
         //Military management
-        Memory.stats.cpu.preMilitary = Game.cpu.getUsed();
         let attackController = require('military.attack');
         let defenseController = require('military.defense');
-        Memory.stats.cpu.preMilitaryDefense = Game.cpu.getUsed();
         defenseController.controller();
-        Memory.stats.cpu.postMilitaryDefense = Game.cpu.getUsed();
-        Memory.stats.cpu.preMilitaryAttack = Game.cpu.getUsed();
         attackController.controller();
-        Memory.stats.cpu.postMilitaryAttack = Game.cpu.getUsed();
-        Memory.stats.cpu.postMilitary = Game.cpu.getUsed();
 
         //Creep Management
-        Memory.stats.cpu.preCreep = Game.cpu.getUsed();
         let creepController = require('module.creepController');
         creepController.creepControl();
-        Memory.stats.cpu.postCreep = Game.cpu.getUsed();
 
         //Tower Management
-        Memory.stats.cpu.preTower = Game.cpu.getUsed();
         let towerController = require('module.towerController');
         towerController.towerControl();
-        Memory.stats.cpu.postTower = Game.cpu.getUsed();
 
         //Link Management
-        Memory.stats.cpu.preLink = Game.cpu.getUsed();
         if (Game.cpu.getUsed() < Game.cpu.limit) {
             let linkController = require('module.linkController');
             linkController.linkControl();
         }
-        Memory.stats.cpu.postLink = Game.cpu.getUsed();
 
         //Lab Management
-        Memory.stats.cpu.preLab = Game.cpu.getUsed();
         if (Game.cpu.getUsed() < Game.cpu.limit && Game.time % 10 === 0) {
                 //let labController = require('module.labController');
                 // labController.labControl();
         }
-        Memory.stats.cpu.postLab = Game.cpu.getUsed();
 
         //Terminal Management
-        Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
         if (Game.cpu.getUsed() < Game.cpu.limit && Game.time % 25 === 0) {
                 let terminalController = require('module.terminalController');
                 terminalController.terminalControl();
         }
-        Memory.stats.cpu.postTerminal = Game.cpu.getUsed();
 
         //Alliance List Management
-        Memory.stats.cpu.preSegments = Game.cpu.getUsed();
         let doNotAggress = [
             {"username": "Shibdib", "status": "alliance"},
             {"username": "PostCrafter", "status": "alliance"},
@@ -170,11 +143,10 @@ module.exports.loop = function () {
             // Can't use data if you can't see it.
             Memory.marketCache = RawMemory.foreignSegment.data;
         }
-        Memory.stats.cpu.postSegments = Game.cpu.getUsed();
 
         Memory.stats.cpu.used = Game.cpu.getUsed();
-        let used = Memory.stats.cpu.used - Memory.stats.cpu.init;
-        if (used > Game.cpu.limit * 2) console.log("<font color='#adff2f'>Abnormally High CPU Usage - " + used + " CPU</font>");
+        let used = Memory.stats.cpu.used;
+        if (Memory.stats.cpu.used > Game.cpu.limit * 2) console.log("<font color='#adff2f'>Abnormally High CPU Usage - " + used + " CPU</font>");
     });
 };
 

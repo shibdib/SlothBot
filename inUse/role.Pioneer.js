@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (Game.cpu.getUsed() > Game.cpu.limit) return;
     creep.borderCheck();
     //Invader detection
     creep.invaderCheck();
