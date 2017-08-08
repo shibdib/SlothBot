@@ -44,7 +44,7 @@ module.exports.loop = function () {
 
         //Room Management
         Memory.stats.cpu.preRoom = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 1000) {
+        if (Game.cpu.getUsed() < Game.cpu.limit) {
             let roomController = require('module.roomController');
             roomController.roomControl();
         }
@@ -76,7 +76,7 @@ module.exports.loop = function () {
 
         //Link Management
         Memory.stats.cpu.preLink = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 2500) {
+        if (Game.cpu.getUsed() < Game.cpu.limit) {
             let linkController = require('module.linkController');
             linkController.linkControl();
         }
@@ -84,21 +84,17 @@ module.exports.loop = function () {
 
         //Lab Management
         Memory.stats.cpu.preLab = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 5000) {
-            if (Game.time % 10 === 0) {
+        if (Game.cpu.getUsed() < Game.cpu.limit && Game.time % 10 === 0) {
                 //let labController = require('module.labController');
                 // labController.labControl();
-            }
         }
         Memory.stats.cpu.postLab = Game.cpu.getUsed();
 
         //Terminal Management
         Memory.stats.cpu.preTerminal = Game.cpu.getUsed();
-        if (Game.cpu.bucket > 5000) {
-            if (Game.time % 25 === 0) {
+        if (Game.cpu.getUsed() < Game.cpu.limit && Game.time % 25 === 0) {
                 let terminalController = require('module.terminalController');
                 terminalController.terminalControl();
-            }
         }
         Memory.stats.cpu.postTerminal = Game.cpu.getUsed();
 

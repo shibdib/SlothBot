@@ -34,6 +34,7 @@ function creepControl() {
         if (creep.memory.role === 'raider') roleRaider.role(creep);
         if (creep.memory.role === 'drainer') roleDrainer.role(creep);
         if (creep.memory.role === 'swarm') roleSwarm.role(creep);
+        if (Game.cpu.getUsed() > Game.cpu.limit) continue;
 
         //Haulers
         if (creep.memory.role === "pawn") {
