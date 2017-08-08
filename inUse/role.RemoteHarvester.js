@@ -125,7 +125,7 @@ function remoteRoads(creep) {
 }
 
 function buildRoadFromTo(room, start, end) {
-    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: true});
+    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
     for (let point of path) {
         buildRoad(new RoomPosition(point.x, point.y, room.name));
     }

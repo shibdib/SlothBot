@@ -424,7 +424,7 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 function buildRoadFromTo(room, start, end) {
-    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: true});
+    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
     for (let point of path) {
         buildRoad(new RoomPosition(point.x, point.y, room.name));
     }
