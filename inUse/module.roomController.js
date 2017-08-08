@@ -12,7 +12,7 @@ function roomControl() {
             currentRoom.memory._caches.creeps = _.filter(Game.creeps, (c) => c.room.name === currentRoom.name);
 
             //Process Build Queue
-            if (Game.time % 10 === 0) {
+            if (Game.time % 10 === 0 || !currentRoom.memory.creepBuildQueue) {
                 currentRoom.creepQueueChecks();
                 cleanQueue(currentRoom);
                 currentRoom.processBuildQueue();
