@@ -9,7 +9,6 @@ let _ = require('lodash');
 let screepsPlus = require('screepsplus');
 require('module.pathFinder');
 
-// This line monkey patches the global prototypes.
 profiler.enable();
 
 module.exports.loop = function () {
