@@ -4,11 +4,8 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function roomControl() {
-
-
-    for (let name in Game.rooms) {
-        let currentRoom = Game.rooms[name];
-        if (currentRoom.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).length === 0) continue;
+    for (let name in Game.spawns) {
+        let currentRoom = Game.spawns[name].room;
         if (!currentRoom.memory._caches || !currentRoom.memory._caches.tick || currentRoom.memory._caches.tick < Game.time) {
             currentRoom.memory._caches = {};
             currentRoom.memory._caches.tick = Game.time;
