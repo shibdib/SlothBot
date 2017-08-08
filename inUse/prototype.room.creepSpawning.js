@@ -45,7 +45,7 @@ Room.prototype.processBuildQueue = function () {
                             reservationTarget: topPriority.reservationTarget
                         }) === role + Game.time) {
                         console.log(spawn.room.name + ' Spawning a ' + role);
-                        delete spawn.room.memory.creepBuildQueue;
+                        Game.rooms[topPriority.assignedRoom].creepQueueChecks();
                     } else {
                         spawn.room.visual.text('Queued - ' +
                             _.capitalize(topPriority.role),
@@ -69,6 +69,7 @@ Room.prototype.processBuildQueue = function () {
 };
 
 Room.prototype.creepQueueChecks = function () {
+    delete this.room.memory.creepBuildQueue;
     let level = getLevel(this);
     let war = Memory.war;
     let roomCreeps = this.memory._caches.creeps;
