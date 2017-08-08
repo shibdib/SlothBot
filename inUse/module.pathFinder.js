@@ -5,6 +5,7 @@ const DEFAULT_MAXOPS = 30000;
 const STATE_STUCK = 3;
 
 function shibMove(creep, heading, options = {}) {
+    if (Game.cpu.getUsed() > Game.cpu.limit * 0.50 || Game.cpu.bucket < 1000) return ERR_TIRED;
     _.defaults(options, {
         useCache: true,
         ignoreCreeps: true,
