@@ -14,6 +14,9 @@ function role(creep) {
         return creep.retreat();
     }
 
+    if (creep.pos.roomName !== creep.memory.destination) {
+        creep.memory.destinationReached = false;
+    }
     if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})) {
         creep.memory.role = 'worker';
         creep.memory.assignedRoom = creep.room.name;
