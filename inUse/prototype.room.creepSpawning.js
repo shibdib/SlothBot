@@ -69,7 +69,7 @@ Room.prototype.processBuildQueue = function () {
 };
 
 Room.prototype.creepQueueChecks = function () {
-    delete this.room.memory.creepBuildQueue;
+    delete this.memory.creepBuildQueue;
     let level = getLevel(this);
     let war = Memory.war;
     let roomCreeps = this.memory._caches.creeps;
