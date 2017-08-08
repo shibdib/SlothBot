@@ -60,13 +60,13 @@ module.exports.loop = function () {
         }
 
         //Lab Management
-        if (Game.cpu.getUsed() < Game.cpu.limit && Game.time % 10 === 0) {
+        if ((Game.cpu.getUsed() <= Game.cpu.limit * 0.50 || Game.cpu.bucket >= 1000) && Game.time % 10 === 0) {
                 //let labController = require('module.labController');
                 // labController.labControl();
         }
 
         //Terminal Management
-        if (Game.cpu.getUsed() < Game.cpu.limit && Game.time % 25 === 0) {
+        if ((Game.cpu.getUsed() <= Game.cpu.limit * 0.50 || Game.cpu.bucket >= 1000) && Game.time % 25 === 0) {
                 let terminalController = require('module.terminalController');
                 terminalController.terminalControl();
         }

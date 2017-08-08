@@ -40,7 +40,7 @@ function creepControl() {
         if (creep.memory.role === 'SKattacker') roleSKAttacker.role(creep);
 
         //Non Essential
-        if (Game.cpu.getUsed() <= Game.cpu.limit * 0.90 || Game.cpu.bucket >= 1000) {
+        if (Game.cpu.getUsed() <= Game.cpu.limit * 0.50 || Game.cpu.bucket >= 1000) {
             if (creep.memory.role === "pawn") {
                 let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
                 if (fillers.length < 1) {
