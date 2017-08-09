@@ -87,8 +87,6 @@ function shibMove(creep, heading, options = {}) {
         } else {
             delete pathInfo.path;
         }
-
-        //Otherwise find a path
     } else {
         shibPath(creep, heading, pathInfo, origin, target, options);
     }
