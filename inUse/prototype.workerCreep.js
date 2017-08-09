@@ -232,8 +232,10 @@ harvestDepositLink = function () {
 Creep.prototype.harvestDepositLink = profiler.registerFN(harvestDepositLink, 'harvestDepositLinkCreepFunctions');
 
 harvesterContainerBuild = function () {
-    if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
-        return null;
+    if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1){
+        if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
+            return null;
+        }
     }
 };
 Creep.prototype.harvesterContainerBuild = profiler.registerFN(harvesterContainerBuild, 'harvesterContainerBuildCreepFunctions');
