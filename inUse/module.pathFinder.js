@@ -90,7 +90,6 @@ function shibMove(creep, heading, options = {}) {
 
         //Otherwise find a path
     } else {
-        if (Game.cpu.getUsed() > Game.cpu.limit * 0.50 || Game.cpu.bucket < 1000) return ERR_TIRED;
         shibPath(creep, heading, pathInfo, origin, target, options);
     }
 }
