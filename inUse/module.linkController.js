@@ -11,7 +11,7 @@ function linkControl() {
                 link.room.memory.storageLink = link.id;
                 continue;
             }
-            if (link.pos.findInRange(FIND_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_CONTROLLER}).length > 0) {
+            if (link.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_CONTROLLER}).length > 0) {
                 link.room.memory.controllerLink = link.id;
                 continue;
             }
