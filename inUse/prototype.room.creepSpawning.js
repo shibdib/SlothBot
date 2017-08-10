@@ -73,6 +73,7 @@ Room.prototype.creepQueueChecks = function () {
     let level = getLevel(this);
     let war = Memory.war;
     let roomCreeps = this.memory._caches.creeps;
+    if (level === 1) return roomStartup(this, roomCreeps);
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === this.name);
     let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'basicHauler'));
     if (harvesters.length === 0 || pawn.length === 0) {
@@ -512,6 +513,33 @@ function getLevel(room) {
         return 7
     } else if (energy >= RCL_8_ENERGY) {
         return 8
+    }
+}
+
+function roomStartup(room, roomCreeps) {
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === this.name);
+    if (harvesters.length < 2) {
+        queueCreep(room, 1, {
+            role: 'basicHarvester'
+        })
+    }
+    let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'basicHauler'));
+    if (pawn.length < 2) {
+        queueCreep(room, 2, {
+            role: 'basicHauler'
+        })
+    }
+    let worker = _.filter(roomCreeps, (creep) => (creep.memory.role === 'worker'));
+    if (worker.length < 2) {
+        queueCreep(room, 3, {
+            role: 'upgrader'
+        })
+    }
+    let upgrader = _.filter(roomCreeps, (creep) => (creep.memory.role === 'upgrader'));
+    if (upgrader.length < 5) {
+        queueCreep(room, 4, {
+            role: 'upgrader'
+        })
     }
 }
 
