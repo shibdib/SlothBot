@@ -517,7 +517,7 @@ function getLevel(room) {
 }
 
 function roomStartup(room, roomCreeps) {
-    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === this.name);
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester'));
     if (harvesters.length < 2) {
         queueCreep(room, 1, {
             role: 'basicHarvester'
