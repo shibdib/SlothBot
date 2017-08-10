@@ -89,6 +89,7 @@ module.exports.loop = function () {
             {"username": "Pav234", "status": "alliance"},
             {"username": "Picoplankton", "status": "alliance"},
             {"username": "Troedfach", "status": "alliance"},
+            {"username": "KOR_Solidarity", "status": "alliance"},
             {"username": "droben", "status": "nap"}
         ];
         let doNotAggressArray = [
@@ -108,7 +109,9 @@ module.exports.loop = function () {
             'Pav234',
             'Picoplankton',
             'Troedfach',
-            'droben'];
+            'KOR_Solidarity',
+            'droben'
+        ];
         let mainRaw = {
             "api": {
                 "version": "draft",
