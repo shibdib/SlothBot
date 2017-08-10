@@ -26,12 +26,12 @@ function roomBuilding() {
             spawn.room.memory.primarySpawn = spawn.id;
         } else if (spawn.room.memory.primarySpawn === spawn.id) {
             let structures = spawn.room.find(FIND_STRUCTURES);
-            buildRoads(spawn, structures);
+            if (spawn.room.controller.level >= 3) buildRoads(spawn, structures);
             buildExtensions(spawn);
-            buildTower(spawn);
-            buildStorage(spawn);
-            buildRamparts(spawn, structures);
-            borderWalls(spawn, structures);
+            if (spawn.room.controller.level >= 3) buildTower(spawn);
+            if (spawn.room.controller.level >= 4) buildStorage(spawn);
+            if (spawn.room.controller.level >= 3) buildRamparts(spawn, structures);
+            if (spawn.room.controller.level >= 3) borderWalls(spawn, structures);
             for (let key in Game.constructionSites) {
                 let sources = spawn.room.find(FIND_SOURCES);
                 if (Game.constructionSites[key].pos.checkForAllStructure().length > 0 || Game.constructionSites[key].pos.getRangeTo(sources[0]) <= 1 || Game.constructionSites[key].pos.getRangeTo(sources[1]) <= 1) {
