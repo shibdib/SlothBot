@@ -34,7 +34,7 @@ function role(creep) {
         }
         return null;
     }
-    if (_.filter(Game.creeps, (c) => c.memory.role === 'stationaryHarvester' && c.memory.assignedRoom === creep.memory.assignedRoom).length === 0) creep.memory.role = 'stationaryHarvester';
+    if (_.filter(Game.creeps, (c) => (c.memory.role === 'basicHarvester' || c.memory.role === 'stationaryHarvester') && c.memory.assignedRoom === creep.memory.assignedRoom).length === 0) creep.memory.role = 'stationaryHarvester';
     //ANNOUNCE
     let sentence = ['Spawn', 'More', 'Overlords', '#Overlords'];
     let word = Game.time % sentence.length;
