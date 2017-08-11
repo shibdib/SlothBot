@@ -279,7 +279,8 @@ Room.prototype.creepQueueChecks = function () {
                         })
                     }
                     let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
-                    if (pioneers.length < 1 && remoteHarvester.length > 0) {
+                    let site = _.filter(Game.constructionSites, (s) => s.pos.roomName === this.memory.remoteRooms[keys]);
+                    if (pioneers.length < 1 && remoteHarvester.length > 0 && site.length > 0) {
                         queueCreep(this, PRIORITIES.pioneer, {
                             role: 'pioneer',
                             destination: this.memory.remoteRooms[keys]
