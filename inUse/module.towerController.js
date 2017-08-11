@@ -16,6 +16,8 @@ function towerControl() {
                     let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
                     let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 1) && _.includes(doNotAggress, s.owner['username']) === false);
                     let healers = _.filter(creeps, (s) => (s.getActiveBodyparts(HEAL) >= 6 && _.includes(doNotAggress, s.owner['username']) === false));
+                    let healPower = 0;
+                    if (healers.length > 0) healPower = healers[0].getActiveBodyparts(HEAL) * HEAL_POWER;
                     if (armedHostile.length > 0) {
                         for (let i = 0; i < armedHostile.length; i++) {
                             if (armedHostile[i].pos.getRangeTo(tower) < 8) {
@@ -27,7 +29,7 @@ function towerControl() {
                             } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(FIND_MY_CREEPS)) <= 1) {
                                 tower.attack(armedHostile[i]);
                                 continue towers;
-                            } else if (armedHostile[i].owner['username'] === 'Invader' && healers.length === 0) {
+                            } else if (armedHostile[i].owner['username'] === 'Invader' && healers && healPower < TOWER_POWER_ATTACK * towers.length) {
                                 tower.attack(armedHostile[i]);
                                 continue towers;
                             }
@@ -42,7 +44,7 @@ function towerControl() {
                     if (woundedCreep.length > 0) {
                         tower.heal(woundedCreep[0]);
                     }
-                } else if (tower.energy > tower.energyCapacity * 0.60) {
+                } else if (tower.energy > tower.energyCapacity * 0.60 && Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000) {
                     let creeps = tower.room.find(FIND_CREEPS);
                     let structures = tower.room.find(FIND_STRUCTURES);
                     let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true);
@@ -62,7 +64,7 @@ function towerControl() {
                     if (Game.getObjectById(findRepair(tower))) {
                         tower.repair(Game.getObjectById(findRepair(tower, structures)));
                     }
-                } else {
+                } else if (Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000) {
                     let structures = tower.room.find(FIND_STRUCTURES);
                     let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.05);
                     if (road.length > 0) {
