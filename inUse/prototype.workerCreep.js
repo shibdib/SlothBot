@@ -851,7 +851,6 @@ Creep.prototype.cacheRoomIntel = function () {
             }
         }
         let key = room.name;
-        if (Memory.roomCache[key]) delete Memory.roomCache[key];
         cache[key] = {
             cached: Game.time,
             name: room.name,
