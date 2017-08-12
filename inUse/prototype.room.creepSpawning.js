@@ -144,11 +144,13 @@ Room.prototype.creepQueueChecks = function () {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === this.name);
         let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === this.name);
         let count;
+        let priority = PRIORITIES.worker;
         let construction = _.filter(Game.constructionSites, (site) => site.pos.roomName === this.name);
         if (war === true) {
             count = 5;
         } else if (construction.length > 5) {
             count = 15;
+            priority = 2;
         } else {
             count = 5;
         }
@@ -158,7 +160,7 @@ Room.prototype.creepQueueChecks = function () {
             workerPower = workerPower + work;
         }
         if (workerPower < count && upgraders.length > 0 && worker.length < 5) {
-            queueCreep(this, PRIORITIES.worker, {
+            queueCreep(this, priority, {
                 role: 'worker'
             })
         }
@@ -177,13 +179,15 @@ Room.prototype.creepQueueChecks = function () {
         } else {
             number = 8;
         }
+        priority = PRIORITIES.upgrader;
+        if (upgraders.length === 0) priority = 2;
         let upgradePower = 0;
         for (let key in upgraders) {
             let upgrade = upgraders[key].getActiveBodyparts(WORK);
             upgradePower = upgradePower + upgrade;
         }
         if (upgradePower * UPGRADE_CONTROLLER_POWER < count && upgraders.length < number) {
-            queueCreep(this, PRIORITIES.upgrader, {
+            queueCreep(this, priority, {
                 role: 'upgrader'
             })
         }
