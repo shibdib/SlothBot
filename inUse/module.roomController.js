@@ -20,7 +20,7 @@ function roomControl() {
 
 
             //Room Building
-            if (Game.time % 75 === 0 && Game.cpu.bucket > 7500) {
+            if (Game.time % 75 === 0 && Game.cpu.bucket > 500) {
                 autoBuild.roomBuilding(currentRoom.name);
             }
 
