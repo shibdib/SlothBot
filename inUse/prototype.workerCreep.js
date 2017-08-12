@@ -301,7 +301,7 @@ findEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < useStorage.length; i++) {
             const object = Game.getObjectById(useStorage[i]);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] <= 5000) {
+                if (object.store[RESOURCE_ENERGY] <= 1000) {
                     continue;
                 }
                 const useStorageDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
