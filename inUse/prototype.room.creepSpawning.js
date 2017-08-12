@@ -295,7 +295,7 @@ Room.prototype.creepQueueChecks = function () {
             if (level >= 4) {
                 let remotes = this.memory.remoteRooms;
                 for (let key in remotes) {
-                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
+                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(remotes[key]);
                     let fMod = parsed[1] % 10;
                     let sMod = parsed[2] % 10;
                     let isSK = ((fMod >= 4) && (fMod <= 6)) && ((sMod >= 4) && (sMod <= 6));
