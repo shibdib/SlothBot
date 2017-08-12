@@ -320,13 +320,11 @@ Room.prototype.creepQueueChecks = function () {
 
         //Scouts
         if (level >= 2) {
-            if (Game.time % 150 === 0) {
-                let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.assignedRoom === this.name);
-                if (explorers.length < 1) {
-                    queueCreep(this, PRIORITIES.explorer, {
-                        role: 'explorer'
-                    })
-                }
+            let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.assignedRoom === this.name);
+            if (explorers.length < 1) {
+                queueCreep(this, PRIORITIES.explorer, {
+                    role: 'explorer'
+                })
             }
             for (let key in Memory.militaryNeeds) {
                 if (!Memory.militaryNeeds[key]) {
