@@ -17,6 +17,9 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) {
         creep.memory.destinationReached = false;
     }
+    if ((Game.flags[creep.memory.destination] && creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) || (Game.rooms[creep.memory.destination] && creep.pos.roomName === creep.memory.destination)) {
+        creep.memory.destinationReached = true;
+    }
     if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})) {
         creep.memory.role = 'worker';
         creep.memory.assignedRoom = creep.room.name;
@@ -49,9 +52,6 @@ function role(creep) {
         }
         if (Game.flags[creep.memory.destination]) creep.shibMove(Game.flags[creep.memory.destination]);
         if (Game.rooms[creep.memory.destination]) creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
-        if ((Game.flags[creep.memory.destination] && creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) || (Game.rooms[creep.memory.destination] && creep.pos.roomName === creep.memory.destination)) {
-            creep.memory.destinationReached = true;
-        }
     } else if (creep.memory.destinationReached && creep.memory.hauling === true) {
         if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
             if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
