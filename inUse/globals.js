@@ -34,7 +34,7 @@ let globals = function () {
             basicHarvester: 1,
             // Workers
             worker: 7,
-            waller: 8,
+            waller: 4,
             upgrader: 6,
             mineralHarvester: 8,
             // Haulers
