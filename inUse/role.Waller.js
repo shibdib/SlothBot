@@ -12,6 +12,8 @@ function role(creep) {
     if (creep.wrongRoom()) return null;
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
+        creep.memory.currentTarget = undefined;
+        creep.memory.targetHits = undefined;
     }
     if (creep.carry.energy >= creep.carryCapacity * 0.75) {
         creep.memory.working = true;
