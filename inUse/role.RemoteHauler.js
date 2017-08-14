@@ -8,6 +8,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.assignedRoom].find(FIND_MY_SPAWNS)[0]);
     //Invader detection
+    if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
     if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
         creep.invaderCheck();
         if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
@@ -104,7 +105,6 @@ function role(creep) {
                     creep.findStorage();
                 }
             } else {
-                if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
                 creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {
                     range: 15
                 });
