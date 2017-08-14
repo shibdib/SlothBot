@@ -10,6 +10,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
+    if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [RESOURCE_CATALYZED_GHODIUM_ACID];
         let count = 1;
