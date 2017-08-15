@@ -37,6 +37,7 @@ module.exports.loop = function () {
             cleanPathCacheByUsage(); //clean path and distance caches
             cleanDistanceCacheByUsage();
         }
+        if (Game.time % EST_TICKS_PER_DAY === 0) Memory.pathCache = undefined;
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
                 delete Memory.creeps[name];
