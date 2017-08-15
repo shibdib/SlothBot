@@ -66,12 +66,13 @@ function swarmTactic(creep) {
     }
     let creepsInRoom = creep.room.find(FIND_CREEPS);
     let swarmCount = _.filter(Game.creeps, (c) => c.memory && c.memory.role === 'swarm' && c.memory.attackTarget === creep.memory.attackTarget);
-    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.x > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.x > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false && c.owner['username'] !== 'Source Keeper');
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1 || e.getActiveBodyparts(HEAL) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeCreeps = creep.pos.findInRange(hostiles, 3);
     let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let closestArmed = creep.pos.findClosestByPath(armedHostile);
     let closestHostile = creep.pos.findClosestByPath(hostiles);
+    let hostileStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && _.includes(RawMemory.segments[2], s.owner['username']) === false && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR});
     let healers = _.filter(creepsInRoom, (h) => h.memory && h.memory.role === 'healer');
     let closestHealer = creep.pos.findClosestByPath(healers);
     let needsHeals = creep.pos.findInRange(creepsInRoom, 1, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
@@ -105,17 +106,22 @@ function swarmTactic(creep) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 14});
     }
     if (creep.memory.swarmLeader !== true && creep.pos.getRangeTo(swarmLeader) > 4 && (!closestArmed || creep.pos.getRangeTo(swarmLeader) < creep.pos.getRangeTo(closestArmed))) {
-        creep.shibMove(swarmLeader, {repathChance: 0.5});
+        creep.shibMove(swarmLeader, {repathChance: 0.4, ignoreCreeps: true});
         if (inRangeArmed[0]) creep.rangedAttack(inRangeArmed[0]);
-    } else if (closestArmed || closestHostile) {
+    } else if (closestArmed || closestHostile || hostileStructure) {
         creep.memory.inCombat = true;
         creep.borderCheck();
         if (closestArmed) {
             creep.memory.rangedTarget = closestArmed.id;
             creep.fightRanged(closestArmed);
-        } else if (closestHostile) {
+        } else if (hostileStructure) {
+            creep.memory.rangedTarget = hostileStructure.id;
+            creep.fightRanged(hostileStructure);
+        }  else if (closestHostile && creep.pos.roomName === creep.memory.attackTarget) {
             creep.memory.rangedTarget = closestHostile.id;
             creep.fightRanged(closestHostile);
+        } else {
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.attackTarget), {range: 8});
         }
     } else if (swarmCount.length > 3 && creep.memory.swarmLeader) {
         creep.memory.attackStarted = true;
