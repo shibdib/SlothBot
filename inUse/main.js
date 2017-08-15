@@ -16,8 +16,18 @@ module.exports.loop = function () {
         Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //Get tick duration
+        if (!Memory.stats.tickOldEpoch) Memory.stats.tickOldEpoch = Math.round(new Date() / 1000);
         Memory.stats.tickLength = Math.round(new Date() / 1000) - Memory.stats.tickOldEpoch;
         Memory.stats.tickOldEpoch = Math.round(new Date() / 1000);
+
+        //Get avg over 100
+        if (!Memory.stats.avgTickArray) Memory.stats.avgTickArray = [];
+        if (!Memory.stats.avgTick) Memory.stats.avgTick = 3;
+        Memory.stats.avgTickArray.push(Memory.stats.tickLength);
+        if (Game.time % 100 === 0) {
+            Memory.stats.avgTick = _.sum(Memory.stats.avgTickArray)/Memory.stats.avgTickArray.length
+            Memory.stats.avgTickArray = undefined;
+        }
 
         //GRAFANA
         screepsPlus.collect_stats();
