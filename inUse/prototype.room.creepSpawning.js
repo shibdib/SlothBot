@@ -148,7 +148,7 @@ Room.prototype.creepQueueChecks = function () {
         let construction = _.filter(Game.constructionSites, (site) => site.pos.roomName === this.name);
         if (war === true) {
             count = 5;
-        } else if (construction.length > 5) {
+        } else if (construction.length > 0) {
             count = 15;
             priority = 2;
         } else {
