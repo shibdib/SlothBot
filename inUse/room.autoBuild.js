@@ -171,246 +171,152 @@ function buildStorage(spawn) {
 }
 buildStorage = profiler.registerFN(buildStorage, 'buildStorageBuilder');
 
-function borderWalls(spawn, structures) {
-    if (spawn.room.memory.borderWallCache) spawn.room.memory.borderWallCache = undefined;
-    if (spawn.room.memory.borderWallPlans) {
-        let wall = spawn.room.memory.borderWallPlans;
-        for (let key in wall) {
-            let pos = new RoomPosition(wall[key].x, wall[key].y, spawn.room.name);
-            let state = pos.lookFor(LOOK_STRUCTURES);
-            if (state[0] && state[0].structureType === wall[key].type) {
-            } else if (!state[0]) {
-                pos.createConstructionSite(wall[key].type);
-            } else if (state[0] && state[0].structureType !== wall[key].type) {
-                pos.createConstructionSite(wall[key].type);
+function borderWalls(spawn) {
+    if (spawn.room.controller.level >= 3) {
+        let exits = spawn.room.memory.neighboringRooms;
+        if (!exits) {
+            spawn.room.memory.neighboringRooms = Game.map.describeExits(spawn.pos.roomName);
+            borderWalls(spawn);
+        }
+        if (exits[1]) {
+            for (let i = 0; i < 50; i++) {
+                let pos = new RoomPosition(i, 3, spawn.room.name);
+                let border = new RoomPosition(i, 0, spawn.room.name);
+                if (!border.checkForWall() && !pos.checkForWall()) {
+                    let path = spawn.room.findPath(border, spawn.pos, {
+                        costCallback: function (roomName, costMatrix) {
+                            const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < rampart.length; i++) {
+                                costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
+                            }
+                            const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < construction.length; i++) {
+                                costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
+                            }
+                        },
+                        maxOps: 500, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
+                    });
+                    if (path[1]) {
+                        let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
+                        let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const roadCheck = pos.lookFor(LOOK_STRUCTURES);
+                        if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
+                        } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
+                            pos.createConstructionSite(STRUCTURE_WALL);
+                        } else {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
+                        }
+                    }
+                }
             }
         }
-    } else {
-        let cache = spawn.room.memory.borderWallPlans || {};
-        if (spawn.room.controller.level >= 3) {
-            let exits = spawn.room.memory.neighboringRooms;
-            let construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
-            let rampart = _.filter(structures, (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL);
-            if (!exits) {
-                spawn.room.memory.neighboringRooms = Game.map.describeExits(spawn.pos.roomName);
-                borderWalls(spawn);
-            }
-            if (exits[1]) {
-                for (let i = 0; i < 50; i++) {
-                    let pos = new RoomPosition(i, 3, spawn.room.name);
-                    let border = new RoomPosition(i, 0, spawn.room.name);
-                    if (!border.checkForWall() && !pos.checkForWall()) {
-                        let path = spawn.room.findPath(border, spawn.pos, {
-                            costCallback: function (roomName, costMatrix) {
-                                for (let i = 0; i < rampart.length; i++) {
-                                    costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
-                                }
-                                for (let i = 0; i < construction.length; i++) {
-                                    costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
-                                }
-                            },
-                            maxOps: 500, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
-                        });
-                        if (path[1]) {
-                            let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
-                            let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_WALL,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
+        if (exits[7]) {
+            for (let i = 0; i < 50; i++) {
+                let pos = new RoomPosition(3, i, spawn.room.name);
+                let border = new RoomPosition(0, i, spawn.room.name);
+                if (!border.checkForWall() && !pos.checkForWall()) {
+                    let path = spawn.room.findPath(border, spawn.pos, {
+                        costCallback: function (roomName, costMatrix) {
+                            const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < rampart.length; i++) {
+                                costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                             }
+                            const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < construction.length; i++) {
+                                costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
+                            }
+                        },
+                        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
+                    });
+                    if (path[1]) {
+                        let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
+                        let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const roadCheck = pos.lookFor(LOOK_STRUCTURES);
+                        if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
+                        } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
+                            pos.createConstructionSite(STRUCTURE_WALL);
+                        } else {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
                         }
                     }
                 }
             }
-            if (exits[7]) {
-                for (let i = 0; i < 50; i++) {
-                    let pos = new RoomPosition(3, i, spawn.room.name);
-                    let border = new RoomPosition(0, i, spawn.room.name);
-                    if (!border.checkForWall() && !pos.checkForWall()) {
-                        let path = spawn.room.findPath(border, spawn.pos, {
-                            costCallback: function (roomName, costMatrix) {
-                                for (let i = 0; i < rampart.length; i++) {
-                                    costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
-                                }
-                                for (let i = 0; i < construction.length; i++) {
-                                    costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
-                                }
-                            },
-                            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
-                        });
-                        if (path[1]) {
-                            let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
-                            let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_WALL,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
+        }
+        if (exits[3]) {
+            for (let i = 0; i < 50; i++) {
+                let pos = new RoomPosition(47, i, spawn.room.name);
+                let border = new RoomPosition(49, i, spawn.room.name);
+                if (!border.checkForWall() && !pos.checkForWall()) {
+                    let path = spawn.room.findPath(border, spawn.pos, {
+                        costCallback: function (roomName, costMatrix) {
+                            const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < rampart.length; i++) {
+                                costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                             }
+                            const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < construction.length; i++) {
+                                costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
+                            }
+                        },
+                        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
+                    });
+                    if (path[1]) {
+                        let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
+                        let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const roadCheck = pos.lookFor(LOOK_STRUCTURES);
+                        if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
+                        } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
+                            pos.createConstructionSite(STRUCTURE_WALL);
+                        } else {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
                         }
                     }
                 }
             }
-            if (exits[3]) {
-                for (let i = 0; i < 50; i++) {
-                    let pos = new RoomPosition(47, i, spawn.room.name);
-                    let border = new RoomPosition(49, i, spawn.room.name);
-                    if (!border.checkForWall() && !pos.checkForWall()) {
-                        let path = spawn.room.findPath(border, spawn.pos, {
-                            costCallback: function (roomName, costMatrix) {
-                                for (let i = 0; i < rampart.length; i++) {
-                                    costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
-                                }
-                                for (let i = 0; i < construction.length; i++) {
-                                    costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
-                                }
-                            },
-                            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
-                        });
-                        if (path[1]) {
-                            let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
-                            let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_WALL,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
+        }
+        if (exits[5]) {
+            for (let i = 0; i < 50; i++) {
+                let pos = new RoomPosition(i, 47, spawn.room.name);
+                let border = new RoomPosition(i, 49, spawn.room.name);
+                if (!border.checkForWall() && !pos.checkForWall()) {
+                    let path = spawn.room.findPath(border, spawn.pos, {
+                        costCallback: function (roomName, costMatrix) {
+                            const rampart = spawn.room.find(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < rampart.length; i++) {
+                                costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
                             }
-                        }
-                    }
-                }
-            }
-            if (exits[5]) {
-                for (let i = 0; i < 50; i++) {
-                    let pos = new RoomPosition(i, 47, spawn.room.name);
-                    let border = new RoomPosition(i, 49, spawn.room.name);
-                    if (!border.checkForWall() && !pos.checkForWall()) {
-                        let path = spawn.room.findPath(border, spawn.pos, {
-                            costCallback: function (roomName, costMatrix) {
-                                for (let i = 0; i < rampart.length; i++) {
-                                    costMatrix.set(rampart[i].pos.x, rampart[i].pos.y, 255);
-                                }
-                                for (let i = 0; i < construction.length; i++) {
-                                    costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
-                                }
-                            },
-                            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
-                        });
-                        if (path[1]) {
-                            let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
-                            let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-                            const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-                            const roadCheck = pos.lookFor(LOOK_STRUCTURES);
-                            if ((roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL)) && nearbyRamps.length + buildRamps.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_WALL,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
-                            } else {
-                                let key = formatPos(pos);
-                                if (Memory.roomCache[key]) delete Memory.roomCache[key];
-                                cache[key] = {
-                                    type: STRUCTURE_RAMPART,
-                                    x: pos.x,
-                                    y: pos.y
-                                };
-                                spawn.room.memory.borderWallPlans = cache;
+                            const construction = spawn.room.find(FIND_CONSTRUCTION_SITES, {filter: (r) => r.structureType === STRUCTURE_RAMPART || r.structureType === STRUCTURE_WALL});
+                            for (let i = 0; i < construction.length; i++) {
+                                costMatrix.set(construction[i].pos.x, construction[i].pos.y, 255);
                             }
+                        },
+                        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: true
+                    });
+                    if (path[1]) {
+                        let pos = new RoomPosition(path[1].x, path[1].y, spawn.room.name);
+                        let nearbyRamps = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        let nearbyWalls = pos.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const buildRamps = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+                        const buildWalls = pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+                        const roadCheck = pos.lookFor(LOOK_STRUCTURES);
+                        if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
+                        } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
+                            pos.createConstructionSite(STRUCTURE_WALL);
+                        } else {
+                            pos.createConstructionSite(STRUCTURE_RAMPART);
                         }
                     }
                 }
