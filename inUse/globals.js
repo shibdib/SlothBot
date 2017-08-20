@@ -34,7 +34,7 @@ let globals = function () {
             basicHarvester: 1,
             // Workers
             worker: 7,
-            waller: 4,
+            waller: 5,
             upgrader: 6,
             mineralHarvester: 8,
             // Haulers
@@ -429,7 +429,7 @@ let globals = function () {
     global.RCL_7_EXTENSIONS = 50;
     global.RCL_8_EXTENSIONS = 60;
 
-    global.EST_SEC_PER_TICK = 4.84; // time between ticks is currently averaging ~4.84 seconds (as of 2017/05/07)
+    global.EST_SEC_PER_TICK = Memory.stats.avgTick; // time between ticks is currently averaging ~4.84 seconds (as of 2017/05/07)
     global.EST_TICKS_PER_MIN = Math.ceil(60 / EST_SEC_PER_TICK); // 60s
     global.EST_TICKS_PER_DAY = Math.ceil(86400 / EST_SEC_PER_TICK); // 24h * 60m * 60s = 86400s
 
