@@ -546,6 +546,21 @@ findStorage = function () {
             harvest: false
         });
     }
+    //Links
+    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+    if (controllerLink) {
+        let linkDistWeighted;
+        const object = controllerLink;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && object.energy < object.energyCapacity / 2 && numberOfUsers === 0) {
+            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
+        }
+        storage.push({
+            id: controllerLink.id,
+            distWeighted: linkDistWeighted,
+            harvest: false
+        });
+    }
     //Terminal
     let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
     if (terminal.length > 0) {
@@ -636,6 +651,21 @@ findEssentials = function () {
         storage.push({
             id: bestExtension.id,
             distWeighted: bestExtension.distWeighted,
+            harvest: false
+        });
+    }
+    //Links
+    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+    if (controllerLink) {
+        let linkDistWeighted;
+        const object = controllerLink;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && object.energy < object.energyCapacity / 2 && numberOfUsers === 0) {
+            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
+        }
+        storage.push({
+            id: controllerLink.id,
+            distWeighted: linkDistWeighted,
             harvest: false
         });
     }
