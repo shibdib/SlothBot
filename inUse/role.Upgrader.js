@@ -52,7 +52,8 @@ function role(creep) {
         if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
             creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller, {range: 3});
         }
-        if (creep.memory.terminal && creep.pos.getRangeTo(Game.getObjectById(creep.memory.terminal)) <= 1 && Game.getObjectById(creep.memory.terminal).store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 0.5) creep.withdraw(Game.getObjectById(creep.memory.terminal), RESOURCE_ENERGY);
+        if (creep.memory.terminal && creep.pos.getRangeTo(Game.getObjectById(creep.memory.terminal)) <= 1 && Game.getObjectById(creep.memory.terminal).store[RESOURCE_ENERGY] > 0) creep.withdraw(Game.getObjectById(creep.memory.terminal), RESOURCE_ENERGY);
+        if (creep.memory.controllerLink && creep.pos.getRangeTo(Game.getObjectById(creep.memory.controllerLink)) <= 1 && Game.getObjectById(creep.memory.controllerLink).energy > 0) creep.withdraw(Game.getObjectById(creep.memory.controllerLink), RESOURCE_ENERGY);
     } else {
         let link = Game.getObjectById(creep.room.memory.controllerLink);
         if (creep.memory.energyDestination) {
