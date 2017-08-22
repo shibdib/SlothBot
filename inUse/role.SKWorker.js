@@ -23,7 +23,10 @@ function role(creep) {
         creep.memory.harvesting = true;
     }
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = undefined;
-    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
+    if (creep.pos.roomName === creep.memory.destination) {
+        creep.memory.destinationReached = true;
+        creep.borderCheck();
+    }
     if (!creep.memory.destinationReached) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
@@ -130,6 +133,7 @@ function skRoads(creep) {
     sources = sources.concat(minerals);
     let neighboring = Game.map.describeExits(creep.pos.roomName);
     for (let key in sources){
+        if (_.size(Game.constructionSites) >= 50) return;
         buildRoadAround(creep.room, sources[key].pos);
         buildRoadFromTo(creep.room, sources[key], _.sample(sources));
         if (neighboring) {
@@ -153,6 +157,7 @@ function skRoads(creep) {
 function buildRoadFromTo(room, start, end) {
     let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
     for (let point of path) {
+        if (_.size(Game.constructionSites) >= 50) break;
         buildRoad(new RoomPosition(point.x, point.y, room.name));
     }
 }
@@ -162,6 +167,7 @@ function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
+                if (_.size(Game.constructionSites) >= 50) break;
                 buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name));
             }
         }

@@ -106,6 +106,7 @@ function remoteRoads(creep) {
         buildRoadFromTo(creep.room, sources[0], sources[1]);
     }
     for (let key in sources){
+        if (_.size(Game.constructionSites) >= 50) return;
         buildRoadAround(creep.room, sources[key].pos);
         if (neighboring) {
             if (neighboring['1']) {
@@ -124,9 +125,11 @@ function remoteRoads(creep) {
     }
 }
 
+
 function buildRoadFromTo(room, start, end) {
     let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
     for (let point of path) {
+        if (_.size(Game.constructionSites) >= 50) break;
         buildRoad(new RoomPosition(point.x, point.y, room.name));
     }
 }
@@ -136,6 +139,8 @@ function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
+                if (_.size(Game.constructionSites) >= 50) break;
+                if (!position || !position.x || !position.y || !room.name) continue;
                 buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name));
             }
         }
