@@ -21,7 +21,7 @@ function role(creep) {
         creep.memory.working = true;
     }
     if (creep.memory.working === true) {
-        let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000});
+        let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 500000});
         if (newRamps.length > 0) {
             creep.repair(newRamps[0]);
         } else {
