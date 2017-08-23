@@ -169,7 +169,7 @@ Room.prototype.creepQueueChecks = function () {
         } else if (war === true) {
             count = 15;
         } else {
-            count = 35;
+            count = 100;
         }
         let number;
         if (this.controller.level === 8) {
