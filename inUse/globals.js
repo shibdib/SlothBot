@@ -60,7 +60,7 @@ let globals = function () {
             raider: 5,
             // Misc
             claimer: 2,
-            reserver: 4.5,
+            reserver: 3.5,
             explorer: 2,
             scout: 2,
         };
