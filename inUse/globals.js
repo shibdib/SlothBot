@@ -39,7 +39,7 @@ let globals = function () {
             mineralHarvester: 8,
             // Haulers
             basicHauler: 2,
-            pawn: 2,
+            pawn: 4.5,
             // Remotes
             remoteHarvester: 4,
             remoteHauler: 3,
