@@ -11,12 +11,6 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
-    let basicHaulers = _.filter(Game.creeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === creep.room.name);
-    if (creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE}) && basicHaulers.length >= 2 && creep.room.controller.level >= 4) {
-        creep.memory.energyDestination = undefined;
-        creep.memory.storageDestination = undefined;
-        creep.memory.role = 'pawn';
-    }
     //INITIAL CHECKS
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
@@ -41,6 +35,7 @@ function role(creep) {
     } else {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            if (storageItem.energy === storageItem.energyCapacity) return creep.memory.storageDestination = undefined;
             if (creep.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.shibMove(storageItem);
             } else {
