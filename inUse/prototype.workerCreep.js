@@ -678,7 +678,7 @@ findEssentials = function () {
             const object = Game.getObjectById(tower[i]);
             if (object) {
                 if (object.pos.getRangeTo(this) > 1) {
-                    if (object.room.memory.responseNeeded === true) {
+                    if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
                         const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.01, 0);
                         towers.push({
                             id: tower[i],
