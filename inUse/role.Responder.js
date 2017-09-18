@@ -5,6 +5,18 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
+
+let protectedStructures = [
+    STRUCTURE_SPAWN,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TOWER,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_NUKER,
+    STRUCTURE_OBSERVER,
+    STRUCTURE_LINK
+];
+
 function role(creep) {
     creep.invaderCheck();
     if (creep.memory.boostAttempt !== true) {
@@ -90,7 +102,7 @@ function role(creep) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room
     } else if (Game.getObjectById(creep.memory.assignedRampart) && Game.getObjectById(creep.memory.assignedRampart).pos.roomName === creep.memory.responseTarget) {
         if (Game.getObjectById(creep.memory.assignedRampart).pos.x !== creep.pos.x || Game.getObjectById(creep.memory.assignedRampart).pos.y !== creep.pos.y) {
-            creep.shibMove(Game.getObjectById(creep.memory.assignedRampart));
+            creep.shibMove(Game.getObjectById(creep.memory.assignedRampart), {range: 0});
         }
     } else if (!creep.memory.assignedRampart || !Game.getObjectById(creep.memory.assignedRampart)) {
         findDefensivePosition(creep, creep);
@@ -105,7 +117,7 @@ function findDefensivePosition(creep, target) {
         let armedHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1 || e.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
         if (bestRampart && bestRampart.pos !== creep.pos) {
             creep.memory.pathAge = 999;
-            bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
+            bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && ((r.pos.lookFor(LOOK_CREEPS).length === 0 && r.pos.lookFor(protectedStructures).length === 0) || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
             creep.memory.assignedRampart = bestRampart.id;
             if (bestRampart.pos !== creep.pos && (creep.pos.getRangeTo(bestRampart) < creep.pos.getRangeTo(armedHostile) || !armedHostile)) {
                 creep.shibMove(bestRampart);
