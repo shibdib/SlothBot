@@ -143,33 +143,11 @@ Room.prototype.creepQueueChecks = function () {
         //Workers
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === this.name);
         let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === this.name);
-        let count;
         let priority = PRIORITIES.worker;
-        let construction = _.filter(Game.constructionSites, (site) => site.pos.roomName === this.name);
-        if (war === true) {
-            count = 5;
-        } else if (construction.length > 0) {
-            count = 15;
-            priority = 2;
-        } else {
-            count = 5;
-        }
-        let workerPower = 0;
-        for (let key in worker) {
-            let work = worker[key].getActiveBodyparts(WORK);
-            workerPower = workerPower + work;
-        }
-        if (workerPower < count && upgraders.length > 0 && worker.length < 5) {
+        if (upgraders.length > 0 && worker.length < 1) {
             queueCreep(this, priority, {
                 role: 'worker'
             })
-        }
-        if (level === 8) {
-            count = 15;
-        } else if (war === true) {
-            count = 15;
-        } else {
-            count = 100;
         }
         let number;
         if (this.controller.level === 8) {
@@ -177,16 +155,11 @@ Room.prototype.creepQueueChecks = function () {
         } else if (level >= 5) {
             number = 3;
         } else {
-            number = 8;
+            number = 5;
         }
         priority = PRIORITIES.upgrader;
         if (upgraders.length === 0) priority = 2;
-        let upgradePower = 0;
-        for (let key in upgraders) {
-            let upgrade = upgraders[key].getActiveBodyparts(WORK);
-            upgradePower = upgradePower + upgrade;
-        }
-        if (upgradePower * UPGRADE_CONTROLLER_POWER < count && upgraders.length < number) {
+        if (upgraders.length < number) {
             queueCreep(this, priority, {
                 role: 'upgrader'
             })
