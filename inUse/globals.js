@@ -34,16 +34,16 @@ let globals = function () {
             basicHarvester: 1,
             // Workers
             worker: 7,
-            waller: 5,
+            waller: 2.75,
             upgrader: 7,
             mineralHarvester: 8,
             // Haulers
             basicHauler: 2,
             pawn: 4.5,
             // Remotes
-            remoteHarvester: 3,
-            remoteHauler: 2,
-            pioneer: 2,
+            remoteHarvester: 3.25,
+            remoteHauler: 3,
+            pioneer: 3,
             // SK
             SKworker: 3,
             SKattacker: 5,
