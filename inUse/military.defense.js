@@ -47,7 +47,7 @@ function invaderCheck(spawn, creeps) {
         if (!spawn.room.memory.numberOfHostiles || spawn.room.memory.numberOfHostiles < invader.length) {
             spawn.room.memory.numberOfHostiles = invader.length;
         }
-    } else if (spawn.room.memory.tickDetected < Game.time - 30 || spawn.room.memory.responseNeeded === false) {
+    } else if (spawn.room.memory.tickDetected < Game.time - 100 || spawn.room.memory.responseNeeded === false) {
         spawn.room.memory.numberOfHostiles = undefined;
         spawn.room.memory.responseNeeded = undefined;
         spawn.room.memory.alertEmail = undefined;
