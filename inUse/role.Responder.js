@@ -52,7 +52,6 @@ function role(creep) {
     let hostiles = _.filter(creepsInRoom, (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false);
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeCreeps = creep.pos.findInRange(creepsInRoom, 1);
-    let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 49 && c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
     let closestArmed = creep.pos.findClosestByPath(armedHostile);
     let closestHostile = creep.pos.findClosestByPath(hostiles);
     let closestStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER});
