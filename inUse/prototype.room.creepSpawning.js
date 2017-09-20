@@ -177,7 +177,7 @@ Room.prototype.creepQueueChecks = function () {
             let minerals = this.controller.pos.findClosestByRange(FIND_MINERALS);
             let extractor = Game.getObjectById(_.pluck(_.filter(this.memory.structureCache, 'type', 'extractor'), 'id')[0]);
             let mineralHarvester = _.filter(roomCreeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester' && creep.memory.assignedRoom === this.name);
-            if (mineralHarvester.length < 2 && upgraders.length > 0 && minerals.mineralAmount > 0 && extractor) {
+            if (mineralHarvester.length < 1 && upgraders.length > 0 && minerals.mineralAmount > 0 && extractor) {
                 queueCreep(this, PRIORITIES.mineralHarvester, {
                     role: 'mineralHarvester',
                     assignedMineral: minerals.id
