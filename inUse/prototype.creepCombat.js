@@ -3,6 +3,17 @@
  */
 'use strict';
 
+let protectedStructures = [
+    STRUCTURE_SPAWN,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TOWER,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_NUKER,
+    STRUCTURE_OBSERVER,
+    STRUCTURE_LINK
+];
+
 Creep.prototype.findClosestSourceKeeper = function () {
     return this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
         filter: function (object) {
@@ -145,11 +156,7 @@ Creep.prototype.fightRampart = function (target) {
     if (!target) {
         return false;
     }
-    let position = target.pos.findClosestByRange(FIND_MY_STRUCTURES, {
-        filter: function (object) {
-            return object.structureType === STRUCTURE_RAMPART;
-        }
-    });
+    let position = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && ((r.pos.lookFor(LOOK_CREEPS).length === 0 && r.pos.lookFor(protectedStructures).length === 0) || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
     if (position === null) {
         return false;
     }
@@ -159,8 +166,9 @@ Creep.prototype.fightRampart = function (target) {
         return false;
     }
     let returnCode;
-    if (position.pos.x !== this.pos.x && position.pos.y !== this.pos.y) {
+    if (this.pos.getRangeTo(position) > 0) {
         returnCode = this.shibMove(position, {forceRepath: true, range: 0});
+        console.log(returnCode)
         if (returnCode === OK) {
             return true;
         }
@@ -168,14 +176,19 @@ Creep.prototype.fightRampart = function (target) {
             return true;
         }
     }
+    this.say('1')
     let targets = this.pos.findInRange(FIND_HOSTILE_CREEPS, 3, {
         filter: this.room.findAttackCreeps
     });
     if (targets.length > 1) {
         this.rangedMassAttack();
-        returnCode = this.attack(target);
     } else {
         this.rangedAttack(target);
+    }
+    let closeTargets = this.pos.findInRange(FIND_HOSTILE_CREEPS, 1, {
+        filter: this.room.findAttackCreeps
+    });
+    if (targets.length > 1) {
         returnCode = this.attack(target);
     }
     return true;
