@@ -144,7 +144,8 @@ Room.prototype.creepQueueChecks = function () {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === this.name);
         let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === this.name);
         let priority = PRIORITIES.worker;
-        if (upgraders.length > 0 && worker.length < 1) {
+        if (worker.length === 0) priority = 2;
+        if (upgraders.length > 0) {
             queueCreep(this, priority, {
                 role: 'worker'
             })
