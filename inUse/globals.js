@@ -41,8 +41,8 @@ let globals = function () {
             basicHauler: 2,
             pawn: 5,
             // Remotes
-            remoteHarvester: 3,
-            remoteHauler: 4,
+            remoteHarvester: 4,
+            remoteHauler: 3,
             pioneer: 3,
             // SK
             SKworker: 3,
