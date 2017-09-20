@@ -49,7 +49,7 @@ function role(creep) {
 
     let friendlies = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
     let creepsInRoom = creep.room.find(FIND_CREEPS);
-    let hostiles = _.filter(_.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let hostiles = _.filter(creepsInRoom, (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false);
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeCreeps = creep.pos.findInRange(creepsInRoom, 1);
     let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 49 && c.pos.x > 0 && c.pos.x < 49 && c.pos.y > 0 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
