@@ -118,8 +118,8 @@ function findDefensivePosition(creep, target) {
         if (bestRampart && bestRampart.pos !== creep.pos) {
             creep.memory.pathAge = 999;
             bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && ((r.pos.lookFor(LOOK_CREEPS).length === 0 && r.pos.lookFor(protectedStructures).length === 0) || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
-            creep.memory.assignedRampart = bestRampart.id;
-            if (bestRampart.pos !== creep.pos && (creep.pos.getRangeTo(bestRampart) < creep.pos.getRangeTo(armedHostile) || !armedHostile)) {
+            if (bestRampart && (bestRampart.pos !== creep.pos && (creep.pos.getRangeTo(bestRampart) < creep.pos.getRangeTo(armedHostile) || !armedHostile))) {
+                creep.memory.assignedRampart = bestRampart.id;
                 creep.shibMove(bestRampart);
             }
         }
