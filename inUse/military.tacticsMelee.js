@@ -22,7 +22,7 @@ meleeTeamLeader = function () {
     }
     let siege = _.filter(Game.creeps, (h) => h.memory.attackTarget === this.memory.attackTarget && h.memory.siegeComplete === true);
     let creepsInRoom = this.room.find(FIND_CREEPS);
-    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false && c.owner['username'] !== 'Source Keeper');
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
     let inRangeCreeps = this.pos.findInRange(creepsInRoom, 1);
     let inRangeHostile = _.filter(inRangeCreeps, (c) => c.pos.y < 47 && c.pos.y > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false);

@@ -41,9 +41,9 @@ let globals = function () {
             basicHauler: 2,
             pawn: 5,
             // Remotes
-            remoteHarvester: 5,
-            remoteHauler: 4,
-            pioneer: 4,
+            remoteHarvester: 4,
+            remoteHauler: 3,
+            pioneer: 3,
             // SK
             SKworker: 4,
             SKattacker: 5,
@@ -60,7 +60,7 @@ let globals = function () {
             raider: 3,
             // Misc
             claimer: 2,
-            reserver: 3,
+            reserver: 5,
             explorer: 2,
             scout: 2,
         };
