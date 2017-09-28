@@ -484,6 +484,56 @@ Creep.prototype.getEnergy = profiler.registerFN(getEnergy, 'getEnergyCreepFuncti
 
 findStorage = function () {
     let storage = [];
+    //Spawn
+    let spawn = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'spawn'), 'id');
+    if (spawn.length > 0) {
+        let spawns = [];
+        for (let i = 0; i < spawn.length; i++) {
+            const object = Game.getObjectById(spawn[i]);
+            if (object) {
+                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
+                    continue;
+                }
+                const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.8, 0) + 1;
+                spawns.push({
+                    id: spawn[i],
+                    distWeighted: spawnDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestSpawn = _.min(spawns, 'distWeighted');
+        storage.push({
+            id: bestSpawn.id,
+            distWeighted: bestSpawn.distWeighted,
+            harvest: false
+        });
+    }
+    //Extension
+    let extension = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'extension'), 'id');
+    if (extension.length > 0) {
+        let extensions = [];
+        for (let i = 0; i < extension.length; i++) {
+            const object = Game.getObjectById(extension[i]);
+            if (object) {
+                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
+                    continue;
+                }
+                const extensionDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.8, 0) + 1;
+                extensions.push({
+                    id: extension[i],
+                    distWeighted: extensionDistWeighted,
+                    harvest: false
+                });
+            }
+        }
+        let bestExtension = _.min(extensions, 'distWeighted');
+        storage.push({
+            id: bestExtension.id,
+            distWeighted: bestExtension.distWeighted,
+            harvest: false
+        });
+    }
     //Storage
     let sStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
     if (sStorage.length > 0) {
