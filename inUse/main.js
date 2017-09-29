@@ -170,7 +170,7 @@ module.exports.loop = wrapLoop(function() {
         let used = Memory.stats.cpu.used;
         if (Memory.stats.cpu.used > Game.cpu.limit * 2) console.log("<font color='#adff2f'>Abnormally High CPU Usage - " + used + " CPU</font>");
     });
-};
+});
 
 function cleanPathCacheByUsage() {
     if(Memory.pathCache && _.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
