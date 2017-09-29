@@ -11,10 +11,15 @@ require('module.pathFinder');
 
 profiler.enable();
 
-module.exports.loop = function () {
+module.exports.loop = wrapLoop(function() {
     profiler.wrap(function () {
         Memory.stats.cpu.init = Game.cpu.getUsed();
 
+        /**for (let key in Game.constructionSites) {
+            Game.constructionSites[key].remove()
+        }**/
+
+        if (Game.cpu.bucket < 1000) return;
         //Get tick duration
         if (!Memory.stats.tickOldEpoch) Memory.stats.tickOldEpoch = Math.round(new Date() / 1000);
         Memory.stats.tickLength = Math.round(new Date() / 1000) - Memory.stats.tickOldEpoch;
@@ -72,14 +77,14 @@ module.exports.loop = function () {
 
         //Lab Management
         if ((Game.cpu.getUsed() <= Game.cpu.limit * 0.50 || Game.cpu.bucket >= 1000) && Game.time % 10 === 0) {
-                //let labController = require('module.labController');
-                // labController.labControl();
+            //let labController = require('module.labController');
+            // labController.labControl();
         }
 
         //Terminal Management
         if ((Game.cpu.getUsed() <= Game.cpu.limit * 0.50 || Game.cpu.bucket >= 1000) && Game.time % 25 === 0) {
-                let terminalController = require('module.terminalController');
-                terminalController.terminalControl();
+            let terminalController = require('module.terminalController');
+            terminalController.terminalControl();
         }
 
         //Alliance List Management
@@ -183,4 +188,23 @@ function cleanDistanceCacheByUsage() {
         console.log('Cleaning Distance cache (Over max size by '+overage+')...');
         Memory.distanceCache = _.slice(sorted, overage, _.size(Memory.distanceCache));
     }
+}
+
+function wrapLoop(fn) {
+    let memory;
+    let tick;
+
+    return () => {
+        if (tick && tick + 1 === Game.time && memory) {
+            delete global.Memory;
+            Memory = memory;
+        } else {
+            memory = Memory;
+        }
+
+        tick = Game.time;
+
+        fn();
+        RawMemory.set(JSON.stringify(Memory));
+    };
 }
