@@ -9,11 +9,11 @@ function linkControl() {
         if (link.structureType === STRUCTURE_LINK && link.id !== link.room.memory.controllerLink && link.id !== link.room.memory.storageLink) {
             if (link.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_STORAGE}).length > 0) {
                 link.room.memory.storageLink = link.id;
-                continue;
+                return;
             }
             if (link.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_CONTROLLER}).length > 0) {
                 link.room.memory.controllerLink = link.id;
-                continue;
+                return;
             }
             if (Game.getObjectById(link.room.memory.storageLink) || Game.getObjectById(link.room.memory.controllerLink)) {
                 let storageLink = Game.getObjectById(link.room.memory.storageLink);
