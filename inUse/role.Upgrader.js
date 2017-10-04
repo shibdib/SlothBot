@@ -72,12 +72,9 @@ function role(creep) {
                 if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(terminal);
                 }
-            } else {
-                creep.findEnergy();
             }
-            if (!creep.memory.energyDestination && creep.room.controller.level <= 2) {
-                let source = creep.pos.findClosestByRange(FIND_SOURCES);
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+            if (!creep.memory.energyDestination && creep.room.controller.level <= 5) {
+                creep.findEnergy();
             }
         }
     }

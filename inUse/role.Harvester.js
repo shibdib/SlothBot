@@ -51,18 +51,17 @@ function depositEnergy(creep) {
     if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
+    if (!creep.memory.linkID) {
+        creep.memory.linkID = creep.harvestDepositLink();
+    }
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             if (container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);
                 creep.say('Fixing');
-            } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
-                creep.transfer(container, RESOURCE_ENERGY);
-            } else if (!creep.memory.linkID) {
-                creep.memory.linkID = creep.harvestDepositLink();
             }
-            if (creep.memory.linkID) {
+            else if (creep.memory.linkID && Game.getObjectById(creep.memory.linkID).energy !== Game.getObjectById(creep.memory.linkID).energyCapacity) {
                 let link = Game.getObjectById(creep.memory.linkID);
                 if (link) {
                     if (link.hits < link.hitsMax * 0.25) {
@@ -72,6 +71,9 @@ function depositEnergy(creep) {
                         creep.transfer(link, RESOURCE_ENERGY);
                     }
                 }
+            }
+            else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
+                creep.transfer(container, RESOURCE_ENERGY);
             }
         }
     } else {
