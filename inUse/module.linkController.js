@@ -15,7 +15,7 @@ function linkControl() {
                 link.room.memory.controllerLink = link.id;
                 return;
             }
-            if (Game.getObjectById(link.room.memory.storageLink) || Game.getObjectById(link.room.memory.controllerLink)) {
+            if (Game.getObjectById(link.room.memory.storageLink) || Game.getObjectById(link.room.memory.controllerLink) && link.energy > 100) {
                 let storageLink = Game.getObjectById(link.room.memory.storageLink);
                 if (!storageLink) link.room.memory.storageLink = undefined;
                 let controllerLink = Game.getObjectById(link.room.memory.controllerLink);
