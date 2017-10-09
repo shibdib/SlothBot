@@ -68,12 +68,24 @@ function depositEnergy(creep) {
                         creep.repair(link);
                         creep.say('Fixing');
                     } else if (link.energy !== link.energyCapacity) {
-                        creep.transfer(link, RESOURCE_ENERGY);
+                        switch (creep.transfer(link, RESOURCE_ENERGY)) {
+                            case OK:
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(link);
+                                break;
+                        }
                     }
                 }
             }
             else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
-                creep.transfer(container, RESOURCE_ENERGY);
+                switch (creep.transfer(container, RESOURCE_ENERGY)) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(container);
+                        break;
+                }
             }
         }
     } else {
