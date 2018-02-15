@@ -75,7 +75,7 @@ Room.prototype.creepQueueChecks = function () {
     delete this.memory.creepBuildQueue;
     let level = getLevel(this);
     let war = Memory.war;
-    let roomCreeps = this.memory._caches.creeps;
+    let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === this.name);
     if (level === 1) return roomStartup(this, roomCreeps);
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === this.name);
     let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'basicHauler'));

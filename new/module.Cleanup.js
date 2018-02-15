@@ -18,7 +18,7 @@ module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
 function cleanPathCacheByUsage() {
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
-        if (activeRoom.memory.pathCache && _.size(activeRoom.memory.pathCache) > 375) { 
+        if (activeRoom.memory.pathCache && _.size(activeRoom.memory.pathCache) > 375) {
             let sorted = _.sortBy(activeRoom.memory.pathCache, 'uses');
             let overage = (_.size(activeRoom.memory.pathCache) - 375) + 100;
             console.log('Cleaning Path cache for ' + activeRoom.name + ' (Over max size by ' + overage + ')...');
