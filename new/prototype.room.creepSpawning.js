@@ -532,6 +532,12 @@ function roomStartup(room, roomCreeps) {
             role: 'upgrader'
         })
     }
+    let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
+    if (explorers.length < 1) {
+        queueCreep(room, 5, {
+            role: 'explorer'
+        })
+    }
 }
 
 function neighborCheck(spawnRoom, remoteRoom) {
