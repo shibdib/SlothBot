@@ -16,11 +16,14 @@ function cleanup() {
 module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
 
 function cleanPathCacheByUsage() {
-    if(Memory.pathCache && _.size(Memory.pathCache) > 1500) { //1500 entries ~= 100kB
-        let sorted = _.sortBy(Memory.pathCache, 'uses');
-        let overage = (_.size(Memory.pathCache) - 1500) + 100;
-        console.log('Cleaning Path cache (Over max size by '+overage+')...');
-        Memory.pathCache = _.slice(sorted, overage, _.size(Memory.pathCache));
+    for (let key in Memory.ownedRooms) {
+        let activeRoom = Memory.ownedRooms[key];
+        if (activeRoom.memory.pathCache && _.size(activeRoom.memory.pathCache) > 375) { 
+            let sorted = _.sortBy(activeRoom.memory.pathCache, 'uses');
+            let overage = (_.size(activeRoom.memory.pathCache) - 375) + 100;
+            console.log('Cleaning Path cache for ' + activeRoom.name + ' (Over max size by ' + overage + ')...');
+            activeRoom.memory.pathCache = _.slice(sorted, overage, _.size(activeRoom.memory.pathCache));
+        }
     }
 }
 

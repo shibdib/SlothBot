@@ -99,7 +99,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     //check for cached
     let cached;
     let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
-    if (options.useCache && !options.checkPath) cached = getPath(origin, target);
+    if (options.useCache && !options.checkPath) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps && options.useCache) {
         pathInfo.target = target;
         pathInfo.path = cached;
@@ -225,7 +225,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
         pathInfo.target = target;
-        cachePath(origin, target, pathInfo.path);
+        cachePath(creep, origin, target, pathInfo.path);
         pathInfo.findAttempt = undefined;
         creep.memory.badPathing = undefined;
         switch (creep.move(nextDirection)) {
@@ -453,26 +453,26 @@ function getRoute(from, to) {
 }
 getRoute = profiler.registerFN(getRoute, 'shibGetRoute');
 
-function cachePath(from, to, path) {
+function cachePath(creep, from, to, path) {
     let key = getPathKey(from, to);
-    let cache = Memory.pathCache || {};
+    let cache = Game.rooms[creep.memory.overlord].memory.pathCache || {};
     let tick = Game.time;
     cache[key] = {
         path: path,
         uses: 1,
         tick: tick
     };
-    Memory.pathCache = cache;
+    Game.rooms[creep.memory.overlord].memory.pathCache = cache;
 }
 cachePath = profiler.registerFN(cachePath, 'shibCachePath');
 
-function getPath(from, to) {
-    let cache = Memory.pathCache;
+function getPath(creep, from, to) {
+    let cache = Game.rooms[creep.memory.overlord].memory.pathCache;
     if (cache) {
         let cachedPath = cache[getPathKey(from, to)];
         if (cachedPath) {
             cachedPath.uses += 1;
-            Memory.pathCache = cache;
+            Game.rooms[creep.memory.overlord].memory.pathCache = cache;
             return cachedPath.path;
         }
     } else {
