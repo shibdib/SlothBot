@@ -12,6 +12,7 @@ function mind(room, roomLimit) {
                 room.cacheRoomStructures(structures.id);
             }
         }
+        room.buildRoom();
     }
 
     // Manage creeps
