@@ -4,6 +4,16 @@ function mind(room, roomLimit) {
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
 
+    //Cache Buildings
+    if (Game.time % 50 === 0) {
+        room.memory.structureCache = undefined;
+        for (let structures of room.find(FIND_STRUCTURES)) {
+            if (structures.room === room && structures.structureType !== STRUCTURE_ROAD && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
+                room.cacheRoomStructures(structures.id);
+            }
+        }
+    }
+
     // Manage creeps
     if (Game.time % 10 === 0 || !room.memory.creepBuildQueue) {
         room.creepQueueChecks();
