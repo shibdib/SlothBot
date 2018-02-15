@@ -44,6 +44,10 @@ function buildExtensions(room) {
                 hub = new RoomPosition(room.memory.extensionHub2.x, room.memory.extensionHub2.y, room.name);
             }
         }
+        switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
+            case OK:
+            case ERR_RCL_NOT_ENOUGH:
+        }
         for (let i = 1; i < 8; i++) {
             let x = getRandomInt(1, 4);
             x = _.sample([x, -x]);
