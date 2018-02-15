@@ -8,13 +8,14 @@ function mind() {
     // Process Overlords
     let processed = 0;
     let overlordCount = Memory.ownedRooms.length;
-    for (let ownedRoom in Memory.ownedRooms) {
+    for (let key in Memory.ownedRooms) {
+        let activeRoom = Memory.ownedRooms[key];
         let cpuUsed = Game.cpu.getUsed();
         let cpuLimit = Game.cpu.limit - cpuUsed;
         let cpuTickLimit = Game.cpu.tickLimit - cpuUsed;
         let roomLimit = cpuLimit / (overlordCount - processed);
         if (cpuBucket > 2000) roomLimit = cpuTickLimit / (overlordCount - processed);
-        overlord.overlordMind(ownedRoom, roomLimit);
+        overlord.overlordMind(activeRoom, roomLimit);
         processed++;
     }
 }
