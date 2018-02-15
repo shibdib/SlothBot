@@ -14,9 +14,7 @@ let protectedStructures = [
 
 Room.prototype.buildRoom = function () {
     if (Game.constructionSites.length > 75) return;
-    if (this.controller.level === 2) {
-        buildExtensions(this);
-    }
+    buildExtensions(this);
 };
 
 function buildExtensions(room) {
