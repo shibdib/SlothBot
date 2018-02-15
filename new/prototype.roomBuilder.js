@@ -20,42 +20,51 @@ Room.prototype.buildRoom = function () {
 };
 
 function buildExtensions(room) {
-    if (_.filter(room.memory.structureCache, 'type', 'extension').length < room.getExtensionCount()) {
+    let extensionCount = room.getExtensionCount();
+    if (_.filter(room.memory.structureCache, 'type', 'extension').length < extensionCount) {
         let hub;
-        if (room.memory.extensionHub) {
-            hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        if (extensionCount <= 30) {
+            if (room.memory.extensionHub) {
+                hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+            } else {
+                findExtensionHub(room);
+                hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+            }
         } else {
-            findExtensionHub(room);
-            hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+            if (room.memory.extensionHub2) {
+                hub = new RoomPosition(room.memory.extensionHub2.x, room.memory.extensionHub2.y, room.name);
+            } else {
+                findExtensionHub(room, true);
+                hub = new RoomPosition(room.memory.extensionHub2.x, room.memory.extensionHub2.y, room.name);
+            }
         }
-        for (let x = 2; x < 6; x++) {
-            if (x === 3 || x === 5) continue;
+        for (let i = 1; i < 8; i++) {
+            let x = getRandomInt(1, 3);
             x = _.sample([x, -x]);
-            for (let y = 2; y < 6; y++) {
-                if (y === 3 || y === 5) continue;
-                y = _.sample([y, -y]);
-                let pos = new RoomPosition(hub.x + x, hub.y + y, room.name);
-                switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
-                    case OK:
-                        if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) continue;
-                        let path = hub.room.findPath(hub, pos, {
-                            maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
-                        });
-                        for (let p = 0; p < path.length; p++) {
-                            if (path[p] !== undefined) {
-                                let build = new RoomPosition(path[p].x, path[p].y, room.name);
-                                const roadCheck = build.lookFor(LOOK_STRUCTURES);
-                                const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
-                                if (constructionCheck.length > 0 || roadCheck.length > 0) {
-                                } else {
-                                    build.createConstructionSite(STRUCTURE_ROAD);
-                                }
+            let y = getRandomInt(1, 3);
+            y = _.sample([y, -y]);
+            let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
+            if (pos.checkForAllStructure().length > 0) continue;
+            switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
+                case OK:
+                    if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) continue;
+                    let path = Game.rooms[hub.roomName].findPath(hub, pos, {
+                        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+                    });
+                    for (let p = 0; p < path.length; p++) {
+                        if (path[p] !== undefined) {
+                            let build = new RoomPosition(path[p].x, path[p].y, hub.roomName);
+                            const roadCheck = build.lookFor(LOOK_STRUCTURES);
+                            const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
+                            if (constructionCheck.length > 0 || roadCheck.length > 0) {
+                            } else {
+                                build.createConstructionSite(STRUCTURE_ROAD);
                             }
                         }
-                        continue;
-                    case ERR_RCL_NOT_ENOUGH:
-                        break;
-                }
+                    }
+                    continue;
+                case ERR_RCL_NOT_ENOUGH:
+                    break;
             }
         }
     }
@@ -63,24 +72,32 @@ function buildExtensions(room) {
 
 buildExtensions = profiler.registerFN(buildExtensions, 'buildExtensionsRoom');
 
-function findExtensionHub(room) {
-    for (let name in Game.flags) {
-        if (_.startsWith(name, 'hub')) {
-            if (Game.flags[name].pos.roomName === room.name) {
-                room.memory.extensionHub = undefined;
-                room.memory.extensionHub.x = Game.flags[name].pos.x;
-                room.memory.extensionHub.y = Game.flags[name].pos.y;
-                return;
-            }
-        }
-    }
+function findExtensionHub(room, second = false) {
     for (let i = 1; i < 249; i++) {
         let pos = new RoomPosition(getRandomInt(8, 41), getRandomInt(8, 41), room.name);
-        if (pos.findInRange(FIND_STRUCTURES, 7, {filter: (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType)}).length === 0) {
-            room.memory.extensionHub = undefined;
-            room.memory.extensionHub.x = pos.x;
-            room.memory.extensionHub.y = pos.y;
-            return;
+        let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
+        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
+        let wall = false;
+        for (let key in terrain) {
+            let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+            if (!position.checkForWall()) {
+                continue;
+            }
+            wall = true;
+            break;
+        }
+        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
+            if (second === false) {
+                room.memory.extensionHub = {};
+                room.memory.extensionHub.x = pos.x;
+                room.memory.extensionHub.y = pos.y;
+                return;
+            } else {
+                room.memory.extensionHub2 = {};
+                room.memory.extensionHub2.x = pos.x;
+                room.memory.extensionHub2.y = pos.y;
+                return;
+            }
         }
     }
 }
