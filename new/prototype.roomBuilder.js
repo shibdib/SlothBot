@@ -34,7 +34,7 @@ function buildExtensions(room) {
             for (let y = 2; y < 6; y++) {
                 if (y === 3 || y === 5) continue;
                 y = _.sample([y, -y]);
-                let pos = new RoomPosition(hub.pos.x + x, hub.pos.y + y, room.name);
+                let pos = new RoomPosition(hub.x + x, hub.y + y, room.name);
                 switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
                     case OK:
                         if (pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length > 0) continue;
