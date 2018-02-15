@@ -27,8 +27,14 @@ function buildExtensions(room) {
             if (room.memory.extensionHub) {
                 hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
             } else {
-                findExtensionHub(room);
-                hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+                for (let key in Game.spawns) {
+                    if (Game.spawns[key].pos.roomName === room.name) {
+                        room.memory.extensionHub = {};
+                        room.memory.extensionHub.x = Game.spawns[key].pos.x;
+                        room.memory.extensionHub.y = Game.spawns[key].pos.y;
+                    }
+                    hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+                }
             }
         } else {
             if (room.memory.extensionHub2) {
@@ -39,9 +45,9 @@ function buildExtensions(room) {
             }
         }
         for (let i = 1; i < 8; i++) {
-            let x = getRandomInt(1, 3);
+            let x = getRandomInt(1, 4);
             x = _.sample([x, -x]);
-            let y = getRandomInt(1, 3);
+            let y = getRandomInt(1, 4);
             y = _.sample([y, -y]);
             let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
             if (pos.checkForAllStructure().length > 0) continue;
