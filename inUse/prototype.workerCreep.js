@@ -228,11 +228,15 @@ harvestDepositLink = function () {
     let link = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK});
     if (link) {
         if (this.pos.getRangeTo(link) <= 1) {
-            return link.id;
+            this.memory.linkID = link.id;
         } else if (this.pos.getRangeTo(link) <= 3) {
+            this.memory.linkID = link.id;
             this.shibMove(link);
-            return link.id;
         }
+    }
+    let storage = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
+    if (storage) {
+        this.memory.storageID = storage.id;
     }
     return null;
 };

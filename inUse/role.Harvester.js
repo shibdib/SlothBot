@@ -51,8 +51,8 @@ function depositEnergy(creep) {
     if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
-    if (!creep.memory.linkID) {
-        creep.memory.linkID = creep.harvestDepositLink();
+    if (!creep.memory.linkID || !creep.memory.storageID) {
+        creep.harvestDepositLink();
     }
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -61,19 +61,31 @@ function depositEnergy(creep) {
                 creep.repair(container);
                 creep.say('Fixing');
             }
-            else if (creep.memory.linkID && Game.getObjectById(creep.memory.linkID).energy !== Game.getObjectById(creep.memory.linkID).energyCapacity) {
+            else if (creep.memory.linkID && Game.getObjectById(creep.memory.linkID).energy !== Game.getObjectById(creep.memory.linkID).energyCapacity && Game.getObjectById(creep.memory.storageID).store[RESOURCE_ENERGY] > 1000) {
                 let link = Game.getObjectById(creep.memory.linkID);
                 if (link) {
                     if (link.hits < link.hitsMax * 0.25) {
                         creep.repair(link);
                         creep.say('Fixing');
                     } else if (link.energy !== link.energyCapacity) {
-                        creep.transfer(link, RESOURCE_ENERGY);
+                        switch (creep.transfer(link, RESOURCE_ENERGY)) {
+                            case OK:
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(link);
+                                break;
+                        }
                     }
                 }
             }
             else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
-                creep.transfer(container, RESOURCE_ENERGY);
+                switch (creep.transfer(container, RESOURCE_ENERGY)) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(container);
+                        break;
+                }
             }
         }
     } else {
