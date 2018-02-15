@@ -35,7 +35,7 @@ function role(creep) {
         }
         return null;
     }
-    if (_.filter(Game.creeps, (c) => (c.memory.role === 'basicHarvester' || c.memory.role === 'stationaryHarvester') && c.memory.assignedRoom === creep.memory.assignedRoom).length === 0) creep.memory.role = 'stationaryHarvester';
+    if (_.filter(Game.creeps, (c) => (c.memory.role === 'basicHarvester' || c.memory.role === 'stationaryHarvester') && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.role = 'stationaryHarvester';
     //ANNOUNCE
     let sentence = ['Spawn', 'More', 'Overlords', '#Overlords'];
     let word = Game.time % sentence.length;
@@ -49,8 +49,8 @@ function role(creep) {
         creep.memory.working = true;
     }
     if (creep.memory.working === true) {
-        if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller, {range: 3});
+        if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) {
+            creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
         }
         if (creep.memory.terminal && creep.pos.getRangeTo(Game.getObjectById(creep.memory.terminal)) <= 1 && Game.getObjectById(creep.memory.terminal).store[RESOURCE_ENERGY] > 0) creep.withdraw(Game.getObjectById(creep.memory.terminal), RESOURCE_ENERGY);
         if (creep.memory.controllerLink && creep.pos.getRangeTo(Game.getObjectById(creep.memory.controllerLink)) <= 1 && Game.getObjectById(creep.memory.controllerLink).energy > 0) creep.withdraw(Game.getObjectById(creep.memory.controllerLink), RESOURCE_ENERGY);

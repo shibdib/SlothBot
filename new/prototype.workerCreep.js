@@ -55,8 +55,8 @@ borderCheck = function () {
 Creep.prototype.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
 
 wrongRoom = function () {
-    if (this.memory.assignedRoom && this.pos.roomName !== this.memory.assignedRoom) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.assignedRoom), {range: 15});
+    if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 15});
         return true;
     }
 };
@@ -984,8 +984,8 @@ Creep.prototype.cacheRoomIntel = function () {
 
 
 Creep.prototype.renewalCheck = function (level = 7) {
-    let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.assignedRoom === this.memory.assignedRoom);
-    if (Game.rooms[this.memory.assignedRoom].controller && ((this.memory.renewing && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300) || (Game.rooms[this.memory.assignedRoom].controller.level >= level && Game.rooms[this.memory.assignedRoom].energyAvailable >= 300 && this.ticksToLive < 100 && renewers.length < 2))) {
+    let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.overlord === this.memory.overlord);
+    if (Game.rooms[this.memory.overlord].controller && ((this.memory.renewing && Game.rooms[this.memory.overlord].energyAvailable >= 300) || (Game.rooms[this.memory.overlord].controller.level >= level && Game.rooms[this.memory.overlord].energyAvailable >= 300 && this.ticksToLive < 100 && renewers.length < 2))) {
         if (this.ticksToLive >= 1000) {
             this.memory.boostAttempt = undefined;
             this.memory.boosted = undefined;

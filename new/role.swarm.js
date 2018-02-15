@@ -103,7 +103,7 @@ function swarmTactic(creep) {
         creep.memory.attackStarted = 'safe';
         Memory.warControl[creep.memory.attackTarget] = undefined;
         Memory.militaryNeeds[creep.memory.attackTarget] = undefined;
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom), {range: 14});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 14});
     }
     if (creep.memory.swarmLeader !== true && creep.pos.getRangeTo(swarmLeader) > 4 && (!closestArmed || creep.pos.getRangeTo(swarmLeader) < creep.pos.getRangeTo(closestArmed))) {
         creep.shibMove(swarmLeader, {repathChance: 0.4, ignoreCreeps: true});

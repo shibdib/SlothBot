@@ -18,7 +18,7 @@ Room.prototype.getDroppedResources = function () {
 };
 
 Room.prototype.getAssignedCreeps = function () {
-    return _.filter(Game.creeps, (c) => c.memory.assignedRoom === this.name);
+    return _.filter(Game.creeps, (c) => c.memory.overlord === this.name);
 };
 
 Room.prototype.getCreepsInRoom = function () {

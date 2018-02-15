@@ -15,7 +15,7 @@ function role(creep) {
     if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
         if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
             creep.memory.invaderCooldown++;
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.assignedRoom));
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord));
             creep.memory.destinationReached = false;
             return null;
         } else if (creep.memory.invaderCooldown > 50) {

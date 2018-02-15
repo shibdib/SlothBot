@@ -93,10 +93,10 @@ function summarize_room_internal(room) {
     const mineral_amount = mineral ? mineral.mineralAmount : 0;
     const extractors = room.find(FIND_STRUCTURES, {filter: s => s.structureType === STRUCTURE_EXTRACTOR});
     const num_extractors = extractors.length;
-    const creeps = _.filter(Game.creeps, c => c.memory.assignedRoom === room.name && c.my);
+    const creeps = _.filter(Game.creeps, c => c.memory.overlord === room.name && c.my);
     const num_creeps = creeps ? creeps.length : 0;
     const enemy_creeps = room.find(FIND_HOSTILE_CREEPS);
-    const creep_energy = _.sum(Game.creeps, c => c.memory.assignedRoom === room.name ? c.carry.energy : 0);
+    const creep_energy = _.sum(Game.creeps, c => c.memory.overlord === room.name ? c.carry.energy : 0);
     const num_enemies = enemy_creeps ? enemy_creeps.length : 0;
     const spawns = room.find(FIND_MY_SPAWNS);
     const num_spawns = spawns ? spawns.length : 0;

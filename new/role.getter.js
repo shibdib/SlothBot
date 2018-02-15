@@ -11,7 +11,7 @@ function role(creep) {
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
-    let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
+    let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.overlord === creep.room.name);
     if (creep.room.controller.level < 4) return creep.memory.role = 'basicHauler';
     if (Game.getObjectById(creep.memory.storage) && Game.getObjectById(creep.memory.storage).store[RESOURCE_ENERGY] >= 25000 && fillers.length < 3) return creep.memory.role = 'filler';
     if (fillers.length === 0) {

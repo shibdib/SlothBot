@@ -38,8 +38,8 @@ function role(creep) {
                     if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(repairNeeded, {range: 3});
                     }
-                } else if (creep.upgradeController(Game.rooms[creep.memory.assignedRoom].controller) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(Game.rooms[creep.memory.assignedRoom].controller);
+                } else if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(Game.rooms[creep.memory.overlord].controller);
                 }
             }
         }

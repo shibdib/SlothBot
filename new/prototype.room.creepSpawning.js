@@ -31,7 +31,7 @@ Room.prototype.processBuildQueue = function () {
                     if (spawn.createCreep(body, role + Game.time, {
                             born: Game.time,
                             role: role,
-                            overlord: topPriority.assignedRoom,
+                            overlord: topPriority.overlord,
                             assignedSource: topPriority.assignedSource,
                             destination: topPriority.destination,
                             assignedMineral: topPriority.assignedMineral,
@@ -77,7 +77,7 @@ Room.prototype.creepQueueChecks = function () {
     let war = Memory.war;
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === this.name);
     if (level === 1) return roomStartup(this, roomCreeps);
-    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === this.name);
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.overlord === this.name);
     let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'basicHauler'));
     if (harvesters.length === 0 || pawn.length === 0) {
         if (harvesters.length === 0) {
@@ -86,7 +86,7 @@ Room.prototype.creepQueueChecks = function () {
             })
         }
         if (level < 4 || !this.memory.storageBuilt || pawn.length === 0) {
-            if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === this.name).length < 3) {
+            if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.overlord === this.name).length < 3) {
                 queueCreep(this, PRIORITIES.basicHauler, {
                     role: 'basicHauler'
                 })
@@ -96,14 +96,14 @@ Room.prototype.creepQueueChecks = function () {
 
         //Harvesters
         let sources = this.find(FIND_SOURCES);
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.assignedRoom === this.name);
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' || c.memory.role === 'basicHarvester') && c.memory.overlord === this.name);
         if (harvesters.length === 0) {
             queueCreep(this, PRIORITIES.basicHarvester, {
                 role: 'basicHarvester'
             })
         }
-        harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.assignedRoom === this.name);
-        let basicHarvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'basicHarvester') && c.memory.assignedRoom === this.name);
+        harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.overlord === this.name);
+        let basicHarvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'basicHarvester') && c.memory.overlord === this.name);
         if (harvesters.length < sources.length || (harvesters[0].ticksToLive < 100 && harvesters.length < sources.length + 1)) {
             queueCreep(this, PRIORITIES.stationaryHarvester, {
                 role: 'stationaryHarvester'
@@ -122,7 +122,7 @@ Room.prototype.creepQueueChecks = function () {
             if (_.pluck(_.filter(this.memory.structureCache, 'type', 'storage'), 'id').length > 0) {
                 this.memory.storageBuilt = true;
             }
-            if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.assignedRoom === this.name).length < 2) {
+            if (_.filter(roomCreeps, (c) => c.memory.role === 'basicHauler' && c.memory.overlord === this.name).length < 2) {
                 queueCreep(this, PRIORITIES.basicHauler, {
                     role: 'basicHauler'
                 })
@@ -143,8 +143,8 @@ Room.prototype.creepQueueChecks = function () {
         }
 
         //Workers
-        let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.assignedRoom === this.name);
-        let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.assignedRoom === this.name);
+        let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader' && creep.memory.overlord === this.name);
+        let worker = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker' && creep.memory.overlord === this.name);
         let priority = PRIORITIES.worker;
         if (worker.length === 0) priority = 2;
         if (upgraders.length > 0 && worker.length < 2) {
@@ -168,7 +168,7 @@ Room.prototype.creepQueueChecks = function () {
             })
         }
         if (level >= 3) {
-            let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller' && creep.memory.assignedRoom === this.name);
+            let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller' && creep.memory.overlord === this.name);
             if (wallers.length < 2 && upgraders.length > 0) {
                 queueCreep(this, PRIORITIES.waller, {
                     role: 'waller'
@@ -178,7 +178,7 @@ Room.prototype.creepQueueChecks = function () {
         if (level >= 6 && !war) {
             let minerals = this.controller.pos.findClosestByRange(FIND_MINERALS);
             let extractor = Game.getObjectById(_.pluck(_.filter(this.memory.structureCache, 'type', 'extractor'), 'id')[0]);
-            let mineralHarvester = _.filter(roomCreeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester' && creep.memory.assignedRoom === this.name);
+            let mineralHarvester = _.filter(roomCreeps, (creep) => creep.memory.assignedMineral === minerals.id && creep.memory.role === 'mineralHarvester' && creep.memory.overlord === this.name);
             if (mineralHarvester.length < 1 && upgraders.length > 0 && minerals.mineralAmount > 0 && extractor) {
                 queueCreep(this, PRIORITIES.mineralHarvester, {
                     role: 'mineralHarvester',
@@ -205,8 +205,8 @@ Room.prototype.creepQueueChecks = function () {
                 for (let key in this.memory.skRooms) {
                     let SKRoom = Game.rooms[this.memory.skRooms[key]];
                     if (!SKRoom) continue;
-                    let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'SKattacker' && creep.memory.assignedRoom === this.name);
-                    let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'SKsupport' && creep.memory.assignedRoom === this.name);
+                    let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'SKattacker' && creep.memory.overlord === this.name);
+                    let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'SKsupport' && creep.memory.overlord === this.name);
                     if (((SKSupport.length < 1 || (SKSupport.length === 1 && SKSupport[0].ticksToLive < 100)) && SKAttacker.length > 0) && Game.map.getRoomLinearDistance(this.name, SKRoom.name) < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
                         queueCreep(this, PRIORITIES.SKsupport, {
                             role: 'SKsupport',
@@ -226,7 +226,7 @@ Room.prototype.creepQueueChecks = function () {
                             destination: this.memory.skRooms[key]
                         })
                     }
-                    let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'remoteHauler' && creep.memory.assignedRoom === this.name);
+                    let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === this.name);
                     if (SKhauler.length < SKworker.length / 2 && (SKAttacker.length > 0)) {
                         queueCreep(this, PRIORITIES.remoteHauler, {
                             role: 'remoteHauler',
@@ -251,7 +251,7 @@ Room.prototype.creepQueueChecks = function () {
                             destination: this.memory.remoteRooms[keys]
                         })
                     }
-                    let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.remoteRooms[keys] && creep.memory.role === 'remoteHauler' && creep.memory.assignedRoom === this.name);
+                    let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.remoteRooms[keys] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === this.name);
                     if (remoteHauler.length < Memory.roomCache[this.memory.remoteRooms[keys]].sources.length / 2 && remoteHarvester.length >= 1 && Game.map.getRoomLinearDistance(this.name, this.memory.remoteRooms[keys]) < 2) {
                         queueCreep(this, PRIORITIES.remoteHauler, {
                             role: 'remoteHauler',
@@ -301,7 +301,7 @@ Room.prototype.creepQueueChecks = function () {
 
         //Scouts
         if (level >= 2) {
-            let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.assignedRoom === this.name);
+            let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.overlord === this.name);
             if (explorers.length < 1) {
                 queueCreep(this, PRIORITIES.explorer, {
                     role: 'explorer'
@@ -444,7 +444,7 @@ function queueCreep(room, importance, options = {}) {
     if (!room.memory.creepBuildQueue) room.memory.creepBuildQueue = {};
     _.defaults(options, {
         role: undefined,
-        assignedRoom: undefined,
+        overlord: undefined,
         assignedSource: undefined,
         destination: undefined,
         assignedMineral: undefined,
@@ -466,7 +466,7 @@ function queueCreep(room, importance, options = {}) {
             room: room.name,
             importance: importance,
             role: options.role,
-            assignedRoom: room.name,
+            overlord: room.name,
             assignedSource: options.assignedSource,
             destination: options.destination,
             assignedMineral: options.assignedMineral,

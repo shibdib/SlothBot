@@ -42,7 +42,7 @@ function creepControl() {
         //Non Essential
         if (Game.cpu.getUsed() <= Game.cpu.limit * 0.75 || Game.cpu.bucket >= 1000) {
             if (creep.memory.role === "pawn") {
-                let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.assignedRoom === creep.room.name);
+                let fillers = _.filter(Game.creeps, (c) => c.memory.role === 'filler' && c.memory.overlord === creep.room.name);
                 if (fillers.length < 1) {
                     creep.memory.role = 'filler';
                     continue;
