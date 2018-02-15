@@ -430,8 +430,7 @@ Room.prototype.creepQueueChecks = function () {
                             waitForHealers: Memory.militaryNeeds[key].healer,
                             waitForAttackers: Memory.militaryNeeds[key].attacker,
                             waitForRanged: Memory.militaryNeeds[key].ranged,
-                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor,
-                            military: true
+                            waitForDeconstructor: Memory.militaryNeeds[key].deconstructor
                         })
                     }
                 }
