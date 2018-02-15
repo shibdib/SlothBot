@@ -13,14 +13,14 @@ function mind(room, roomLimit) {
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     let militaryCreeps = _.filter(roomCreeps, (r) => r.memory.military);
     // Military first
-    for (let minion in militaryCreeps){
+    for (let key in militaryCreeps){
         if (Game.cpu.getUsed() > cpuWindow) return;
-        minionController(minion);
+        minionController(militaryCreeps[key]);
     }
     // Worker minions
-    for (let minion in roomCreeps){
+    for (let key in roomCreeps){
         if (Game.cpu.getUsed() > cpuWindow) return;
-        minionController(minion);
+        minionController(roomCreeps[key]);
     }
 }
 module.exports.overlordMind = profiler.registerFN(mind, 'overlordMind');
