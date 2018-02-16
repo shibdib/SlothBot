@@ -14,7 +14,10 @@ let protectedStructures = [
 
 Room.prototype.buildRoom = function () {
     if (Game.constructionSites.length > 75) return;
+    let structures = this.find(FIND_STRUCTURES);
     buildExtensions(this);
+    buildRoads(this, structures);
+    buildWalls(this, structures);
 };
 
 function buildExtensions(room) {
@@ -113,6 +116,7 @@ function findExtensionHub(room, second = false) {
 findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
 
 function buildWalls(room, structures) {
+    if (room.controller.level < 3) return;
     for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
     }
@@ -137,8 +141,72 @@ function buildWalls(room, structures) {
     }
 }
 
+function buildRoads(room, structures) {
+    let spawner = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+    let mineral = room.find(FIND_MINERALS)[0];
+    for (let source of room.find(FIND_SOURCES)) {
+        buildRoadAround(room, source.pos);
+        buildRoadFromTo(room, spawner, source);
+    }
+    if (room.controller) {
+        buildRoadAround(room, room.controller.pos);
+        let target = room.controller.pos.findClosestByRange(FIND_SOURCES);
+        if (target) {
+            buildRoadFromTo(room, room.controller, target);
+        }
+    }
+    if (mineral) {
+        buildRoadAround(room, mineral.pos);
+        buildRoadFromTo(room, spawner, mineral);
+    }
+    if (room.memory.neighboringRooms) {
+        if (room.memory.neighboringRooms['1']) {
+            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_TOP));
+        }
+        if (room.memory.neighboringRooms['3']) {
+            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_RIGHT));
+        }
+        if (room.memory.neighboringRooms['5']) {
+            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_BOTTOM));
+        }
+        if (room.memory.neighboringRooms['7']) {
+            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_LEFT));
+        }
+    }
+}
+
+buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
+
 buildWalls = profiler.registerFN(buildWalls, 'buildWalls');
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
+
+function buildRoadFromTo(room, start, end) {
+    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
+    for (let point of path) {
+        buildRoad(new RoomPosition(point.x, point.y, room.name));
+    }
+}
+
+buildRoadFromTo = profiler.registerFN(buildRoadFromTo, 'buildRoadFromToFunctionBuilder');
+
+function buildRoadAround(room, position) {
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name));
+            }
+        }
+    }
+}
+
+buildRoadAround = profiler.registerFN(buildRoadAround, 'buildRoadAroundFunctionBuilder');
+
+function buildRoad(position) {
+    //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
+    position.createConstructionSite(STRUCTURE_ROAD);
+}
+
+buildRoad = profiler.registerFN(buildRoad, 'buildRoadFunctionBuilder');
