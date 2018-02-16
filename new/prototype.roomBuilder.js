@@ -112,6 +112,33 @@ function findExtensionHub(room, second = false) {
 
 findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
 
+function buildWalls(room, structures) {
+    for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
+        room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
+    }
+    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+    let safeZone = Game.rooms[hub.roomName].lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
+    for (let key in safeZone) {
+        let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+        if (position.getRangeTo(hub) === 6) {
+            let nearbyRamps = position.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+            let nearbyWalls = position.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+            const buildRamps = position.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
+            const buildWalls = position.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
+            const roadCheck = position.lookFor(LOOK_STRUCTURES);
+            if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
+                position.createConstructionSite(STRUCTURE_RAMPART);
+            } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
+                position.createConstructionSite(STRUCTURE_WALL);
+            } else {
+                position.createConstructionSite(STRUCTURE_RAMPART);
+            }
+        }
+    }
+}
+
+buildWalls = profiler.registerFN(buildWalls, 'buildWalls');
+
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
