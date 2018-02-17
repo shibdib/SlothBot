@@ -17,7 +17,7 @@ function mind(room, roomLimit) {
 
     // Manage creeps
     if (Game.time % 10 === 0 || !room.memory.creepBuildQueue) {
-        room.creepQueueChecks();
+        room.workerCreepQueue();
         cleanQueue(room);
         room.processBuildQueue();
     }

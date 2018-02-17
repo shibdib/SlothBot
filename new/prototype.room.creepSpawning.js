@@ -1,3 +1,5 @@
+let profiler = require('screeps-profiler');
+
 Room.prototype.processBuildQueue = function () {
     let spawns = Game.spawns;
     for (let key in spawns) {
@@ -437,7 +439,7 @@ Room.prototype.creepQueueChecks = function () {
             }
         }
     }
-}
+};
 
 function queueCreep(room, importance, options = {}) {
     let cache = room.memory.creepBuildQueue || {};
@@ -543,3 +545,71 @@ function roomStartup(room, roomCreeps) {
 function neighborCheck(spawnRoom, remoteRoom) {
     return Game.map.getRoomLinearDistance(spawnRoom, remoteRoom) <= 1;
 }
+
+workerCreepQueue = function () {
+    let queue = this.memory.creepBuildQueue;
+    let level = getLevel(this);
+    let energy = this.energyAvailable;
+    let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === this.name);
+    // Level 1 room management
+    if (level === 1) {roomStartup(this, roomCreeps);}
+    //Harvesters
+    if (!_.includes(queue, 'stationaryHarvester')) {
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
+        if (harvesters.length < 2 || (harvesters[0].ticksToLive < 100 && harvesters.length < 3)) {
+            queueCreep(this, PRIORITIES.stationaryHarvester, {
+                role: 'stationaryHarvester'
+            })
+        }
+    }
+    //Upgrader
+    if (!_.includes(queue, 'upgrader')) {
+        let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
+        if (upgraders.length < _.round((9 - level) / 2)) {
+            queueCreep(this, PRIORITIES.upgrader, {
+                role: 'upgrader'
+            })
+        }
+    }
+    //Worker
+    if (!_.includes(queue, 'worker')) {
+        let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
+        if (workers.length < _.round((12 - level) / 2)) {
+            queueCreep(this, PRIORITIES.worker, {
+                role: 'worker'
+            })
+        }
+    }
+    //Haulers
+    if (!_.includes(queue, 'hauler')) {
+        let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
+        if (hauler.length < 3 || (hauler[0].ticksToLive < 250 && hauler.length < 4)) {
+            queueCreep(this, PRIORITIES.hauler, {
+                role: 'hauler'
+            })
+        }
+    }
+    //SPECIALIZED
+    //Waller
+    if (level >= 3 && !_.includes(queue, 'waller')) {
+        let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
+        if (wallers.length < 2) {
+            queueCreep(this, PRIORITIES.waller, {
+                role: 'waller'
+            })
+        }
+    }
+    //Mineral Harvester
+    if (level >= 6 && !_.includes(queue, 'mineralHarvester')) {
+        let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
+        let extractor = Game.getObjectById(_.pluck(_.filter(this.memory.structureCache, 'type', 'extractor'), 'id')[0]);
+        if (mineralHarvesters.length < 1 && extractor) {
+            let minerals = this.controller.pos.findClosestByRange(FIND_MINERALS);
+            queueCreep(this, PRIORITIES.mineralHarvester, {
+                role: 'mineralHarvester',
+                assignedMineral: minerals.id
+            })
+        }
+    }
+};
+Room.prototype.workerCreepQueue = profiler.registerFN(workerCreepQueue, 'workerCreepQueue');

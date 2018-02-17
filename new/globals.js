@@ -27,80 +27,41 @@ let globals = function () {
 
     global.STAGING_ROOM = 'E16S7';
 
-    if (!Memory.war) {
-        global.PRIORITIES = {
-            // Harvesters
-            stationaryHarvester: 1,
-            basicHarvester: 1,
-            // Workers
-            worker: 7,
-            waller: 3,
-            upgrader: 7,
-            mineralHarvester: 3,
-            // Haulers
-            basicHauler: 2,
-            pawn: 5,
-            // Remotes
-            remoteHarvester: 4,
-            remoteHauler: 3,
-            pioneer: 3,
-            // SK
-            SKworker: 4,
-            SKattacker: 5,
-            SKsupport: 4,
-            SKhauler: 4,
-            // Military
-            attacker: 3,
-            healer: 3,
-            swarm: 3,
-            deconstructor: 3,
-            drainer: 3,
-            ranged: 3,
-            responder: 2,
-            raider: 3,
-            // Misc
-            claimer: 2,
-            reserver: 3,
-            explorer: 2,
-            scout: 2,
-        };
-    } else {
-        global.PRIORITIES = {
-            // Harvesters
-            stationaryHarvester: 1,
-            basicHarvester: 1,
-            // Workers
-            worker: 7,
-            waller: 8,
-            upgrader: 6,
-            mineralHarvester: 8,
-            // Haulers
-            basicHauler: 2,
-            pawn: 2,
-            // Remotes
-            remoteHarvester: 4,
-            remoteHauler: 3,
-            pioneer: 4,
-            // SK
-            SKworker: 6,
-            SKattacker: 6,
-            SKsupport: 6,
-            SKhauler: 6,
-            // Military
-            attacker: 5,
-            healer: 5,
-            deconstructor: 5,
-            drainer: 5,
-            ranged: 5,
-            responder: 1.5,
-            raider: 5,
-            // Misc
-            claimer: 2,
-            reserver: 5,
-            explorer: 2,
-            scout: 2,
-        };
-    }
+    global.PRIORITIES = {
+        // Harvesters
+        stationaryHarvester: 1,
+        basicHarvester: 1,
+        // Workers
+        worker: 5,
+        waller: 3,
+        upgrader: 4,
+        mineralHarvester: 9,
+        // Haulers
+        hauler: 2,
+        // Remotes
+        remoteHarvester: 6,
+        remoteHauler: 6,
+        pioneer: 5,
+        // SK
+        SKworker: 7,
+        SKattacker: 8,
+        SKsupport: 7,
+        SKhauler: 7,
+        // Military
+        attacker: 3,
+        healer: 3,
+        swarm: 3,
+        deconstructor: 3,
+        drainer: 3,
+        ranged: 3,
+        responder: 2,
+        raider: 3,
+        // Misc
+        claimer: 2,
+        reserver: 3,
+        explorer: 2,
+        scout: 2,
+    };
 
     global.SPAWN = {
         1: {
@@ -108,17 +69,17 @@ let globals = function () {
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             worker: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             pawn: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             explorer: [MOVE],
             scout: [MOVE]
         },
         2: {
-            stationaryHarvester: [WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             worker: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY],
             upgrader: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             pawn: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             explorer: [MOVE],
             scout: [MOVE]
@@ -130,11 +91,10 @@ let globals = function () {
             attacker: [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, RANGED_ATTACK],
             swarm: [TOUGH, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, HEAL],
             healer: [MOVE, MOVE, HEAL, HEAL],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
-            pawn: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             deconstructor: [TOUGH, MOVE, MOVE, MOVE, MOVE, WORK, WORK, HEAL],
             drainer: [WORK, MOVE, MOVE, MOVE, HEAL, HEAL],
-            stationaryHarvester: [MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             remoteHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY],
             remoteHauler: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
@@ -155,10 +115,9 @@ let globals = function () {
             drainer: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
             deconstructor: [TOUGH, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
             healer: [MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
-            pawn: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             resupply: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            stationaryHarvester: [MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             remoteHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
             remoteHauler: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
@@ -180,10 +139,9 @@ let globals = function () {
             healer: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL, HEAL],
             ranged: [TOUGH, TOUGH, TOUGH, TOUGH, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
             deconstructor: [TOUGH, TOUGH, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
-            pawn: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, WORK, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY],
             resupply: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            stationaryHarvester: [MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             remoteHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
             remoteHauler: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
@@ -195,7 +153,7 @@ let globals = function () {
             scout: [MOVE]
         },
         6: {
-            responder: [TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,HEAL],
+            responder: [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL],
             raider: [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
             claimer: [CLAIM, MOVE],
             reserver: [CLAIM, CLAIM, MOVE, MOVE],
@@ -205,10 +163,9 @@ let globals = function () {
             healer: [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL],
             ranged: [TOUGH, TOUGH, TOUGH, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
             deconstructor: [TOUGH, TOUGH, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
-            pawn: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, WORK, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY],
             resupply: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            stationaryHarvester: [MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             mineralHarvester: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
             remoteHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
@@ -221,7 +178,7 @@ let globals = function () {
             scout: [MOVE]
         },
         7: {
-            responder: [TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,HEAL],
+            responder: [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL],
             raider: [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
             claimer: [CLAIM, MOVE],
             reserver: [CLAIM, CLAIM, MOVE, MOVE],
@@ -231,10 +188,9 @@ let globals = function () {
             ranged: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL],
             deconstructor: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL],
             drainer: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, HEAL, HEAL],
-            pawn: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, WORK, MOVE],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY],
             resupply: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            stationaryHarvester: [MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             mineralHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
             remoteHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
@@ -252,7 +208,7 @@ let globals = function () {
             SKhauler: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
         },
         8: {
-            responder: [TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,HEAL],
+            responder: [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL],
             raider: [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
             claimer: [CLAIM, MOVE],
             reserver: [CLAIM, CLAIM, MOVE, MOVE],
@@ -262,10 +218,9 @@ let globals = function () {
             ranged: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL],
             deconstructor: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL, HEAL, HEAL],
             drainer: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, HEAL, HEAL],
-            pawn: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, WORK, MOVE],
-            basicHauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY],
             resupply: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            stationaryHarvester: [MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             mineralHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
             remoteHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
