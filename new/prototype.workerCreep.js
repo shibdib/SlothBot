@@ -274,6 +274,9 @@ findEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = Game.getObjectById(container[i]);
             if (object) {
+                if (this.room.memory.controllerContainer === object.id) {
+                    continue;
+                }
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
                 if (object.store[RESOURCE_ENERGY] < 20 || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1) || (object.room.controller.level >= 4 && object.store[RESOURCE_ENERGY] < 1200)) {
                     continue;
@@ -701,6 +704,21 @@ findEssentials = function () {
         storage.push({
             id: bestExtension.id,
             distWeighted: bestExtension.distWeighted,
+            harvest: false
+        });
+    }
+    //Controller Container
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer) {
+        let containerDistWeighted;
+        const object = controllerContainer;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && object.energy < object.energyCapacity / 2 && numberOfUsers === 0) {
+            containerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
+        }
+        storage.push({
+            id: controllerContainer.id,
+            distWeighted: containerDistWeighted,
             harvest: false
         });
     }
