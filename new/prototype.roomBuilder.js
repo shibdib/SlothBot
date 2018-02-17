@@ -50,9 +50,9 @@ function buildExtensions(room) {
             case ERR_RCL_NOT_ENOUGH:
         }
         for (let i = 1; i < 8; i++) {
-            let x = getRandomInt(1, 4);
+            let x = getRandomInt(1, 5);
             x = _.sample([x, -x]);
-            let y = getRandomInt(1, 4);
+            let y = getRandomInt(1, 5);
             y = _.sample([y, -y]);
             let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
             if (pos.checkForAllStructure().length > 0) continue;
