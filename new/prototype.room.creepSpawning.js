@@ -574,7 +574,7 @@ workerCreepQueue = function () {
     //Worker
     if (!_.includes(queue, 'worker')) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
-        if (workers.length < _.round((12 - level) / 2)) {
+        if (workers.length < _.round((9 - level) / 2)) {
             queueCreep(this, PRIORITIES.worker, {
                 role: 'worker'
             })
