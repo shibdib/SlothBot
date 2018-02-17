@@ -713,7 +713,7 @@ findEssentials = function () {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && object.energy < object.energyCapacity / 2 && numberOfUsers === 0) {
+        if (object && object.store[RESOURCE_ENERGY] < object.storeCapacity / 4 && numberOfUsers === 0) {
             containerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
         }
         storage.push({
