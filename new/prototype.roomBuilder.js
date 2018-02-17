@@ -125,18 +125,7 @@ function buildWalls(room, structures) {
     for (let key in safeZone) {
         let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
         if (position.getRangeTo(hub) === 6) {
-            let nearbyRamps = position.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-            let nearbyWalls = position.findInRange(FIND_STRUCTURES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-            const buildRamps = position.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_RAMPART});
-            const buildWalls = position.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (r) => r.structureType === STRUCTURE_WALL});
-            const roadCheck = position.lookFor(LOOK_STRUCTURES);
-            if (roadCheck.length > 0 && (roadCheck[0].structureType !== STRUCTURE_WALL || roadCheck[0].structureType !== STRUCTURE_RAMPART)) {
-                position.createConstructionSite(STRUCTURE_RAMPART);
-            } else if (nearbyRamps.length + buildRamps.length > 0 && nearbyWalls.length + buildWalls.length === 0) {
-                position.createConstructionSite(STRUCTURE_WALL);
-            } else {
-                position.createConstructionSite(STRUCTURE_RAMPART);
-            }
+            position.createConstructionSite(STRUCTURE_RAMPART);
         }
     }
 }
