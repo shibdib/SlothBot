@@ -18,6 +18,8 @@ claimNewRoom = function () {
                 }
             }
         this.memory.claimTarget = _.max(possibles, 'claimValue')[0];
+        Game.rooms[this.memory.claimTarget].memory.claimWorthy = undefined;
+        Game.notify(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name)
     }
 };
 Room.prototype.claimNewRoom = profiler.registerFN(claimNewRoom, 'claimNewRoom');
