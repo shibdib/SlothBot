@@ -321,7 +321,7 @@ function roomStartup(room, roomCreeps) {
     let containers = room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (pawn.length < 2 && containers.length > 0) {
         queueCreep(room, 2, {
-            role: 'basicHauler'
+            role: 'hauler'
         })
     }
     let worker = _.filter(roomCreeps, (creep) => (creep.memory.role === 'worker'));
