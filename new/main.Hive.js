@@ -1,6 +1,7 @@
 let profiler = require('screeps-profiler');
 let overlord = require('main.Overlord');
 let defense = require('military.defense');
+let links = require('module.linkController');
 
 function mind() {
     Memory.ownedRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner['username'] === 'Shibdib');
@@ -8,6 +9,9 @@ function mind() {
 
     // Handle Defense
     defense.controller();
+
+    // Handle Links
+    if (Game.time % 10 === 0) links.linkControl();
 
     // Process Overlords
     let processed = 0;
