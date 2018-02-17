@@ -19,6 +19,7 @@ Room.prototype.buildRoom = function () {
     buildRoads(this, structures);
     buildWalls(this, structures);
     buildStorage(this, structures);
+    buildTowers(this, structures);
 };
 
 function buildExtensions(room) {
@@ -150,6 +151,24 @@ function buildStorage(room, structures) {
 }
 
 buildStorage = profiler.registerFN(buildStorage, 'buildStorage');
+
+function buildTowers(room, structures) {
+    if (room.controller.level < 4) return;
+    let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (!storage) {
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let safeZone = Game.rooms[hub.roomName].lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true);
+        for (let key in safeZone) {
+            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+            if (position.getRangeTo(hub) === 5) {
+                if (position.checkForAllStructure().length > 0) continue;
+                position.createConstructionSite(STRUCTURE_TOWER);
+            }
+        }
+    }
+}
+
+buildTowers = profiler.registerFN(buildTowers, 'buildTowers');
 
 function buildRoads(room, structures) {
     let spawner = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
