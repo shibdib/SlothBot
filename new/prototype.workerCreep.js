@@ -999,16 +999,18 @@ Creep.prototype.cacheRoomIntel = function () {
             }
         }
         if (Game.map.isRoomAvailable(this.pos.roomName) && sources.length > 1) {
+            let wall = 0;
             let plains = 0;
             let terrain = room.lookForAtArea(LOOK_TERRAIN, 49, 49, 49, 49, true);
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (!position.checkForPlain()) {
-                    continue;
+                if (position.checkForWall()) {
+                    wall++
+                } else if (position.checkForPlain()) {
+                    plains++
                 }
-                plains++;
             }
-            if (plains > 1000) {
+            if (wall < 700 && plains > 300) {
                 let sourceDist = sources[0].pos.getRangeTo(sources[1]);
                 claimValue = plains / sourceDist;
                 claimWorthy = true;
