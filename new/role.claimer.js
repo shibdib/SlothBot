@@ -11,8 +11,9 @@ function role(creep) {
         creep.suicide();
     }
     if (!creep.memory.destinationReached) {
-        creep.moveTo(Game.flags[creep.memory.destination]);
-        if (creep.pos.getRangeTo(Game.flags[creep.memory.destination]) <= 3) {
+        let destination = new RoomPosition(25, 25, creep.memory.destination);
+        creep.shibMove(destination);
+        if (creep.pos.getRangeTo(destination) <= 10) {
             creep.memory.destinationReached = true;
         }
     } else {

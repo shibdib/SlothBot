@@ -133,10 +133,49 @@ findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
+    //Pioneer initial builder spawn creation
+    if (this.memory.initialBuilder) {
+        findExtensionHub(this.room);
+        if (this.room.memory.extensionHub) {
+            let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
+            switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
+                case OK:
+            }
+        }
+    }
     this.memory.task = undefined;
     return null;
 };
 Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
+
+function findExtensionHub(room) {
+    for (let i = 1; i < 249; i++) {
+        let pos = new RoomPosition(getRandomInt(8, 41), getRandomInt(8, 41), room.name);
+        let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
+        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
+        let wall = false;
+        for (let key in terrain) {
+            let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+            if (!position.checkForWall()) {
+                continue;
+            }
+            wall = true;
+            break;
+        }
+        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
+            room.memory.extensionHub = {};
+            room.memory.extensionHub.x = pos.x;
+            room.memory.extensionHub.y = pos.y;
+            return;
+        }
+    }
+}
+
+findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+}
 
 findRepair = function (level) {
     let structures = this.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
@@ -932,6 +971,8 @@ Creep.prototype.cacheRoomIntel = function () {
     let hostiles = undefined;
     let sk = undefined;
     let towers = undefined;
+    let claimValue = undefined;
+    let claimWorthy = undefined;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.find(FIND_SOURCES);
@@ -947,6 +988,24 @@ Creep.prototype.cacheRoomIntel = function () {
                 reservationTick = room.controller.reservation.ticksToEnd + Game.time;
             }
         }
+        if (Game.map.isRoomAvailable(this.pos.roomName) && sources.length > 1) {
+            let plains = 0;
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 49, 49, 49, 49, true);
+            for (let key in terrain) {
+                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                if (!position.checkForPlain()) {
+                    continue;
+                }
+                plains++;
+            }
+            if (plains > 1000) {
+                let sourceDist = sources[0].pos.getRangeTo(sources[1]);
+                claimValue = plains / sourceDist;
+                claimWorthy = true;
+            } else {
+                claimWorthy = false;
+            }
+        }
         let key = room.name;
         cache[key] = {
             cached: Game.time,
@@ -959,7 +1018,9 @@ Creep.prototype.cacheRoomIntel = function () {
             level: level,
             towers: towers.length,
             hostiles: hostiles.length,
-            sk: sk
+            sk: sk,
+            claimValue: claimValue,
+            claimWorthy: claimWorthy
         };
         Memory.roomCache = cache;
         if ((sk || sources.length > 0) && !owner) {

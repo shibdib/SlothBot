@@ -46,6 +46,10 @@ RoomPosition.prototype.checkForWall = function () {
     return this.lookFor(LOOK_TERRAIN)[0] === 'wall';
 };
 
+RoomPosition.prototype.checkForPlain = function () {
+    return this.lookFor(LOOK_TERRAIN)[0] === 'plain';
+};
+
 RoomPosition.prototype.checkForRampart = function () {
     return this.lookFor(LOOK_STRUCTURES)[0] === 'rampart';
 };
