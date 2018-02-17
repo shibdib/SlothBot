@@ -2,6 +2,7 @@ let profiler = require('screeps-profiler');
 
 claimNewRoom = function () {
     let worthyRooms = _.filter(Memory.roomCache, (room) => room.claimWorthy);
+    let possibles = {};
     if (worthyRooms.length > 0) {
         loop1:
             for (let key in worthyRooms) {
@@ -13,9 +14,10 @@ claimNewRoom = function () {
                 }
                 let distance = Game.map.getRoomLinearDistance(this.name, key);
                 if (distance < 5) {
-                    this.memory.claimTarget = key;
+                    possibles = worthyRooms[key];
                 }
             }
+        this.memory.claimTarget = _.max(possibles, 'claimValue')[0];
     }
 };
 Room.prototype.claimNewRoom = profiler.registerFN(claimNewRoom, 'claimNewRoom');

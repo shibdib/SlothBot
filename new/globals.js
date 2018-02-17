@@ -75,7 +75,7 @@ let globals = function () {
             scout: [MOVE]
         },
         2: {
-            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
+            stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             worker: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY],
             upgrader: [MOVE, MOVE, MOVE, MOVE, WORK, WORK, CARRY, CARRY],
