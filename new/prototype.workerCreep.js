@@ -135,6 +135,16 @@ findConstruction = function () {
     }
     //Pioneer initial builder spawn creation
     if (this.memory.initialBuilder) {
+        for (let structures of this.room.find(FIND_STRUCTURES)) {
+            if (structures.structureType === STRUCTURE_SPAWN) {
+                for (let key in Memory.ownedRooms) {
+                    if (Memory.ownedRooms[key].claimTarget === this.pos.roomName) {
+                        Memory.ownedRooms[key].claimTarget = undefined;
+                        return this.suicide();
+                    }
+                }
+            }
+        }
         findExtensionHub(this.room);
         if (this.room.memory.extensionHub) {
             let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
