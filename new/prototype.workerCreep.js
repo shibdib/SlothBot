@@ -459,7 +459,7 @@ getEnergy = function (range = 250, hauler = false) {
         let linkDistWeighted;
         const object = storageLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && object.energy > 0 && numberOfUsers === 0) {
+        if (object && object.energy > 0 && numberOfUsers < 2) {
             linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
         }
         energy.push({
