@@ -25,7 +25,7 @@ function controller() {
             let responders = _.filter(creeps, (c) => c.memory && c.memory.role && c.memory.role === 'responder');
             if (hostiles.length > 0 && tower.energy === 0 && responders.length === 0) {
                 room.controller.activateSafeMode();
-                Game.notify(pos.roomName + ' has entered safe mode.')
+                Game.notify(room.name + ' has entered safe mode.')
             }
         }
     }
