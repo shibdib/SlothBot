@@ -15,6 +15,7 @@ function mind() {
 
     // Process Overlords
     let processed = 0;
+    let activeClaim;
     let overlordCount = Memory.ownedRooms.length;
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
@@ -26,7 +27,10 @@ function mind() {
         if (cpuBucket > 2000) roomLimit = cpuTickLimit / (overlordCount - processed);
         overlord.overlordMind(activeRoom, roomLimit);
         //Expansion Manager
-        if (Game.time % 500 === 0 && activeRoom.controller.level >= 4 && !activeRoom.memory.claimTarget && Game.gcl.level - 2 > overlordCount) activeRoom.claimNewRoom();
+        if (Game.time % 500 === 0 && activeRoom.controller.level >= 4 && !activeRoom.memory.claimTarget && Game.gcl.level - 2 > overlordCount && !activeClaim) {
+            activeRoom.claimNewRoom();
+            if (activeRoom.memory.claimTarget) activeClaim = true;
+        }
         processed++;
     }
 }
