@@ -10,7 +10,7 @@ function role(creep) {
     let signs = ["Reserved Territory of Overlords - #overlords on Slack", "Overlords Frontier - Visit at your own risk.", "Join Overlords! #overlords", "Overlords Reserved Room"];
     creep.invaderCheck();
     if (creep.room.controller.reservation)creep.room.memory.reservationExpires = Game.time + creep.room.controller.reservation['ticksToEnd'];
-    creep.cacheRoomIntel();
+    creep.room.cacheRoomIntel();
     if (creep.memory.reserving) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:

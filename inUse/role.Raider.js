@@ -6,7 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.cacheRoomIntel();
+    creep.room.cacheRoomIntel();
     if (creep.carry.energy === creep.carryCapacity) {
         creep.memory.returning = true;
         creep.memory.destinationReached = false;

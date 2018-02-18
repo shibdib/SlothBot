@@ -6,7 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.cacheRoomIntel();
+    creep.room.cacheRoomIntel();
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
             RESOURCE_GHODIUM_OXIDE,
