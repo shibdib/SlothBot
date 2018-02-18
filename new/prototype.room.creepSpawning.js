@@ -592,11 +592,13 @@ workerCreepQueue = function () {
     }
     //Worker
     if (!_.includes(queue, 'worker')) {
-        let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
-        if (workers.length < 2) {
-            queueCreep(this, PRIORITIES.worker, {
-                role: 'worker'
-            })
+        if (_.filter(Game.constructionSites, (site) => site.pos.roomName === this.name).length > 0) {
+            let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
+            if (workers.length < 2) {
+                queueCreep(this, PRIORITIES.worker, {
+                    role: 'worker'
+                })
+            }
         }
     }
     //Haulers
