@@ -48,11 +48,13 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'harvesterRole');
 
 function depositEnergy(creep) {
+    let link;
     if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
     if (!creep.memory.linkID) {
         creep.memory.linkID = creep.harvestDepositLink();
+        link = Game.getObjectById(creep.memory.linkID);
     }
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -61,7 +63,7 @@ function depositEnergy(creep) {
                 creep.repair(container);
                 creep.say('Fixing');
             }
-            else if (creep.memory.linkID && Game.getObjectById(creep.memory.linkID).energy !== Game.getObjectById(creep.memory.linkID).energyCapacity) {
+            else if (link && link.energy !== link.energyCapacity && creep.pos.getRangeTo(link) === 1) {
                 let link = Game.getObjectById(creep.memory.linkID);
                 if (link) {
                     if (link.hits < link.hitsMax * 0.25) {
