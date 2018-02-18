@@ -3,10 +3,7 @@ let profiler = require('screeps-profiler');
 function mind(room, roomLimit) {
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
-
-    //Clean rooms
-
-
+    
     //Cache Buildings
     if (Game.time % 50 === 0) {
         room.memory.structureCache = undefined;
