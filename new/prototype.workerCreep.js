@@ -791,7 +791,7 @@ findEssentials = function () {
         let workerWeighted;
         const object = workers[0];
         if (object) {
-            workerWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
+            workerWeighted = _.round(object.pos.rangeToTarget(this) * 0.2, 0) + 1;
         }
         storage.push({
             id: object.id,
