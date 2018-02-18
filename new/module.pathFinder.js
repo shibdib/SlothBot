@@ -215,7 +215,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 if (creep.memory.badPathing) creep.memory.badPathing++;
                 if (creep.memory.badPathing > 25) {
                     console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " is stuck, suiciding for the good of the CPU.</font>");
-                    creep.suicide();
+                    return creep.suicide();
                 }
                 return creep.moveTo(target);
             }
