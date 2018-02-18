@@ -39,12 +39,12 @@ function role(creep) {
     //ANNOUNCE
     if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
     if (creep.memory.announcer) {
-        let sentence = ['~~', 'Spawn', 'More', 'Overlords', '#Overlords'];
+        let sentence = ['~', 'Spawn', 'More', 'Overlords', '#Overlords'];
         if (creep.room.memory.claimTarget) {
-            sentence.concat(['~~', 'Planned', 'Expansion:', creep.room.memory.claimTarget]);
+            sentence = sentence.concat(['~', 'Planned', 'Expansion:', creep.room.memory.claimTarget]);
         }
         if (creep.room.memory.responseNeeded) {
-            sentence.concat(['~~', 'ROOM', 'SECURITY', 'ACTIVATED']);
+            sentence = sentence.concat(['~', 'ROOM', 'SECURITY', 'ACTIVATED']);
         }
         let word = Game.time % sentence.length;
         creep.say(sentence[word], true);
