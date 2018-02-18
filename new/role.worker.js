@@ -49,7 +49,9 @@ function role(creep) {
     else {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
-        } else if (!deliveryManagement(creep)) {
+        } else if (deliveryManagement(creep)) {
+            creep.say('Fedex PLZ', true);
+        } else {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {
                 if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -58,12 +60,10 @@ function role(creep) {
             } else {
                 creep.findEnergy();
             }
-            if (!creep.memory.energyDestination && creep.room.controller.level <= 2) {
+            if (!creep.memory.energyDestination) {
                 let source = creep.pos.findClosestByRange(FIND_SOURCES);
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
-        } else {
-            creep.say('Fedex PLZ', true);
         }
     }
 }
