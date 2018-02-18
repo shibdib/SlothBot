@@ -582,7 +582,7 @@ workerCreepQueue = function () {
         }
     }
     //Upgrader
-    if (!_.includes(queue, 'upgrader')) {
+    if (!_.includes(queue, 'upgrader') && level === this.controller.level) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         if (upgraders.length < _.round((9 - level) / 2)) {
             queueCreep(this, PRIORITIES.upgrader, {
@@ -621,7 +621,7 @@ workerCreepQueue = function () {
     }
     //SPECIALIZED
     //Waller
-    if (level >= 3 && !_.includes(queue, 'waller')) {
+    if (level >= 3 && !_.includes(queue, 'waller') && level === this.controller.level) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         if (wallers.length < 1) {
             queueCreep(this, PRIORITIES.waller, {
@@ -630,7 +630,7 @@ workerCreepQueue = function () {
         }
     }
     //Mineral Harvester
-    if (level >= 6 && !_.includes(queue, 'mineralHarvester')) {
+    if (level >= 6 && !_.includes(queue, 'mineralHarvester') && level === this.controller.level) {
         let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
         let extractor = Game.getObjectById(_.pluck(_.filter(this.memory.structureCache, 'type', 'extractor'), 'id')[0]);
         if (mineralHarvesters.length < 1 && extractor) {
