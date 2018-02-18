@@ -15,6 +15,15 @@ let protectedStructures = [
 Room.prototype.buildRoom = function () {
     if (Game.constructionSites.length > 75) return;
     let structures = this.find(FIND_STRUCTURES);
+    if (!this.memory.extensionHub) {
+        for (let key in Game.spawns) {
+            if (Game.spawns[key].pos.roomName === this.name) {
+                this.memory.extensionHub = {};
+                this.memory.extensionHub.x = Game.spawns[key].pos.x;
+                this.memory.extensionHub.y = Game.spawns[key].pos.y;
+            }
+        }
+    }
     buildExtensions(this);
     buildRoads(this, structures);
     buildWalls(this, structures);
@@ -27,18 +36,7 @@ function buildExtensions(room) {
     if (_.filter(room.memory.structureCache, 'type', 'extension').length < extensionCount) {
         let hub;
         if (extensionCount <= 30) {
-            if (room.memory.extensionHub) {
-                hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-            } else {
-                for (let key in Game.spawns) {
-                    if (Game.spawns[key].pos.roomName === room.name) {
-                        room.memory.extensionHub = {};
-                        room.memory.extensionHub.x = Game.spawns[key].pos.x;
-                        room.memory.extensionHub.y = Game.spawns[key].pos.y;
-                    }
-                    hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-                }
-            }
+            hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         } else {
             if (room.memory.extensionHub2) {
                 hub = new RoomPosition(room.memory.extensionHub2.x, room.memory.extensionHub2.y, room.name);
