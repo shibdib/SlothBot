@@ -7,9 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     //Initial move
-    if (!Game.flags[creep.memory.destination]) {
-        creep.suicide();
-    }
     if (!creep.memory.destinationReached) {
         let destination = new RoomPosition(25, 25, creep.memory.destination);
         creep.shibMove(destination);
