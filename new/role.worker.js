@@ -72,6 +72,9 @@ module.exports.role = profiler.registerFN(role, 'workerRole');
 function deliveryManagement(creep) {
     if (creep.memory.deliveryRequestTime) {
         if (creep.memory.deliveryRequestTime < Game.time - 12) {
+            if (creep.memory.deliveryRequestTime < Game.time - 30) {
+                creep.memory.deliveryIncoming = false;
+            }
             return creep.memory.deliveryIncoming;
         }
     } else {
