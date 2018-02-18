@@ -18,7 +18,7 @@ function mind(room, roomLimit) {
     // Manage creep spawning
     if (Game.time % 10 === 0) {
         room.workerCreepQueue();
-        if (!room.memory.creepBuildQueue && room.controller.level >= 4) room.remoteCreepQueue();
+        if (room.controller.level >= 4) room.remoteCreepQueue();
         cleanQueue(room);
         room.processBuildQueue();
     }
