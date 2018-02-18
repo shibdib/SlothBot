@@ -20,6 +20,7 @@ function role(creep) {
     if (creep.carry.energy >= creep.carryCapacity * 0.75) {
         creep.memory.working = true;
         creep.memory.deliveryRequestTime = undefined;
+        creep.memory.deliveryIncoming = undefined;
     }
     if (creep.memory.working === true) {
         let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 50000});
