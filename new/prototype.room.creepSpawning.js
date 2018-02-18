@@ -664,6 +664,7 @@ Room.prototype.workerCreepQueue = profiler.registerFN(workerCreepQueue, 'workerC
 
 remoteCreepQueue = function () {
     let level = getLevel(this);
+    if (level !== this.controller.level) return;
     let queue = this.memory.creepBuildQueue;
     //Explorer
     if (!_.includes(queue, 'explorer')) {
