@@ -80,6 +80,7 @@ function deliveryManagement(creep) {
             }
             return creep.memory.deliveryIncoming;
         }
+        return true;
     } else {
         creep.memory.deliveryRequestTime = Game.time;
         return true;
