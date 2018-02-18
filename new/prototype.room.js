@@ -118,7 +118,7 @@ Room.prototype.handleNukeAttack = function () {
 Room.prototype.cacheRoomIntel = function () {
     if (this.memory.lastIntelCache > Game.time - 100) return;
     this.memory.lastIntelCache = Game.time;
-    let room = Game.rooms[this.pos.roomName];
+    let room = Game.rooms[this.name];
     let owner = undefined;
     let reservation = undefined;
     let reservationTick = undefined;
@@ -143,7 +143,7 @@ Room.prototype.cacheRoomIntel = function () {
                 reservationTick = room.controller.reservation.ticksToEnd + Game.time;
             }
         }
-        if (Game.map.isRoomAvailable(this.pos.roomName) && sources.length > 1) {
+        if (Game.map.isRoomAvailable(this.name) && sources.length > 1) {
             let wall = 0;
             let plains = 0;
             let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
