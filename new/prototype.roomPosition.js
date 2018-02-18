@@ -43,7 +43,7 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
 };
 
 RoomPosition.prototype.countOpenTerrainAround = function () {
-    const terrainArray = source.room.lookForAtArea(LOOK_TERRAIN, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
+    const terrainArray = Game.rooms[this.roomName].lookForAtArea(LOOK_TERRAIN, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
     const plainArray = _.filter(terrainArray, 'terrain', 'plain');
     const swampArray = _.filter(terrainArray, 'terrain', 'swamp');
     if (plainArray.length + swampArray.length > 0) {
