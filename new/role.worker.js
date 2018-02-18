@@ -19,6 +19,7 @@ function role(creep) {
     }
     if (creep.carry.energy >= creep.carryCapacity * 0.75) {
         creep.memory.working = true;
+        creep.memory.deliveryRequestTime = undefined;
     }
     if (creep.memory.working === true) {
         let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 50000});
@@ -47,7 +48,7 @@ function role(creep) {
     else {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
-        } else {
+        } else if (!deliveryManagement(creep)) {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {
                 if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -60,7 +61,20 @@ function role(creep) {
                 let source = creep.pos.findClosestByRange(FIND_SOURCES);
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
+        } else {
+            creep.say('Fedex PLZ', true);
         }
     }
 }
 module.exports.role = profiler.registerFN(role, 'workerRole');
+
+function deliveryManagement(creep) {
+    if (creep.memory.deliveryRequestTime) {
+        if (creep.memory.deliveryRequestTime < Game.time - 12) {
+            return creep.memory.deliveryIncoming;
+        }
+    } else {
+        creep.memory.deliveryRequestTime = Game.time;
+        return true;
+    }
+}

@@ -785,6 +785,20 @@ findEssentials = function () {
             harvest: false
         });
     }
+    //Worker Deliveries
+    let workers = _.filter(Game.creeps, (h) => h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
+    if (workers.length > 0 && this.ticksToLive > 30) {
+        let workerWeighted;
+        const object = workers[0];
+        if (object) {
+            workerWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
+        }
+        storage.push({
+            id: object.id,
+            distWeighted: workerWeighted,
+            harvest: false
+        });
+    }
     //Tower
     let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
     let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));

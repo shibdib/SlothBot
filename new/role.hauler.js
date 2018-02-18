@@ -35,6 +35,10 @@ function role(creep) {
     } else {
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            if (!storageItem) {
+                creep.memory.storageDestination = undefined;
+                creep.findEssentials();
+            }
             switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
                 case OK:
                     creep.memory.storageDestination = undefined;
@@ -46,6 +50,9 @@ function role(creep) {
                     break;
                 case ERR_FULL:
                     creep.memory.storageDestination = undefined;
+                    if (storageItem.memory) {
+                        storageItem.memory.deliveryIncoming = undefined;
+                    }
                     creep.findEssentials();
                     break;
             }
