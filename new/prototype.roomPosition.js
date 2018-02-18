@@ -42,6 +42,15 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
     return new RoomPosition(this.x + adjacentPos[direction][0], this.y + adjacentPos[direction][1], this.roomName);
 };
 
+RoomPosition.prototype.countOpenTerrainAround = function () {
+    const terrainArray = source.room.lookForAtArea(LOOK_TERRAIN, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
+    const plainArray = _.filter(terrainArray, 'terrain', 'plain');
+    const swampArray = _.filter(terrainArray, 'terrain', 'swamp');
+    if (plainArray.length + swampArray.length > 0) {
+        return plainArray.length + swampArray.length;
+    }
+};
+
 RoomPosition.prototype.checkForWall = function () {
     return this.lookFor(LOOK_TERRAIN)[0] === 'wall';
 };
@@ -60,7 +69,7 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
 
 RoomPosition.prototype.checkForRoad = function () {
     if (this.roomName)
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
+        return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
 };
 
 RoomPosition.prototype.checkForAllStructure = function () {
@@ -97,7 +106,7 @@ RoomPosition.prototype.rangeToTarget = function (target) {
     return cacheTargetDistance(this, target);
 };
 
-function cacheTargetDistance (origin, target) {
+function cacheTargetDistance(origin, target) {
     let key = getPathKey(origin, target.pos);
     let cache = Memory.distanceCache || {};
     let distance = origin.getRangeTo(target);
@@ -109,7 +118,7 @@ function cacheTargetDistance (origin, target) {
     return distance;
 }
 
-function getCachedTargetDistance (origin, target) {
+function getCachedTargetDistance(origin, target) {
     let cache = Memory.distanceCache;
     if (cache) {
         let cachedDistance = cache[getPathKey(origin, target.pos)];
@@ -130,3 +139,32 @@ function getPathKey(from, to) {
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
+
+//SemperRabbit Shares
+RoomPosition.prototype.isEqualToXY = function (x, y) {
+    return x === this.x && y === this.y;
+};
+RoomPosition.prototype.isEqualToPos = function (obj) {
+    return obj.x === this.x && obj.y === this.y && obj.roomName === this.roomName;
+};
+RoomPosition.prototype.isEqualToRoomObject = function (obj) {
+    return obj.pos.x === this.x && obj.pos.y === this.y && obj.pos.roomName === this.roomName;
+};
+RoomPosition.prototype.inRangeToXY = function (x, y, range) {
+    return ((x - this.x) < 0 ? (this.x - x) : (x - this.x)) <= range && ((y - this.y) < 0 ? (this.y - y) : (y - this.y)) <= range;
+};
+RoomPosition.prototype.inRangeToPos = function (obj, range) {
+    return ((obj.x - this.x) < 0 ? (this.x - obj.x) : (obj.x - this.x)) <= range && ((obj.y - this.y) < 0 ? (this.y - obj.y) : (obj.y - this.y)) <= range;
+};
+RoomPosition.prototype.inRangeToRoomObject = function (obj, range) {
+    return ((obj.pos.x - this.x) < 0 ? (this.x - obj.pos.x) : (obj.pos.x - this.x)) <= range && ((obj.pos.y - this.y) < 0 ? (this.y - obj.pos.y) : (obj.pos.y - this.y)) <= range;
+};
+RoomPosition.prototype.isNearToXY = function (x, y) {
+    return ((x - this.x) < 0 ? (this.x - x) : (x - this.x)) <= 1 && ((y - this.y) < 0 ? (this.y - y) : (y - this.y)) <= 1;
+};
+RoomPosition.prototype.isNearToPos = function (obj) {
+    return ((obj.x - this.x) < 0 ? (this.x - obj.x) : (obj.x - this.x)) <= 1 && ((obj.y - this.y) < 0 ? (this.y - obj.y) : (obj.y - this.y)) <= 1;
+};
+RoomPosition.prototype.isNearToRoomObject = function (obj) {
+    return ((obj.pos.x - this.x) < 0 ? (this.x - obj.pos.x) : (obj.pos.x - this.x)) <= 1 && ((obj.pos.y - this.y) < 0 ? (this.y - obj.pos.y) : (obj.pos.y - this.y)) <= 1;
+};

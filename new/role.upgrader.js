@@ -38,6 +38,12 @@ function role(creep) {
     if (_.filter(Game.creeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.role = 'stationaryHarvester';
     //ANNOUNCE
     let sentence = ['Spawn', 'More', 'Overlords', '#Overlords'];
+    if (creep.room.memory.claimTarget) {
+        sentence = ['Planned', 'Expansion:', creep.room.memory.claimTarget];
+    }
+    if (creep.room.memory.responseNeeded) {
+        sentence = ['MILITARY', 'RESPONSE', 'REQUESTED'];
+    }
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);
     //INITIAL CHECKS
