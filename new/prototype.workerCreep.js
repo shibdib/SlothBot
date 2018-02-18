@@ -1001,7 +1001,7 @@ Creep.prototype.cacheRoomIntel = function () {
         if (Game.map.isRoomAvailable(this.pos.roomName) && sources.length > 1) {
             let wall = 0;
             let plains = 0;
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 49, 49, 49, 49, true);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.checkForWall()) {
