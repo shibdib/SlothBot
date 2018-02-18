@@ -4,10 +4,17 @@ function mind(room, roomLimit) {
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
 
+    //Clean rooms
+
+
     //Cache Buildings
     if (Game.time % 50 === 0) {
         room.memory.structureCache = undefined;
         for (let structures of room.find(FIND_STRUCTURES)) {
+            if (structures.owner && structures.owner !== 'Shibdib') {
+                structures.destroy();
+                continue;
+            }
             if (structures.room === room && structures.structureType !== STRUCTURE_ROAD && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
                 room.cacheRoomStructures(structures.id);
             }
