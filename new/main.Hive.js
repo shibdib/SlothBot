@@ -31,9 +31,8 @@ function mind() {
         if (cpuBucket > 2000) roomLimit = cpuTickLimit / (overlordCount - processed);
         overlord.overlordMind(activeRoom, roomLimit);
         //Expansion Manager
-        if (Game.time % 500 === 0 && activeRoom.controller.level >= 4 && !activeRoom.memory.claimTarget && Game.gcl.level - 2 > overlordCount && !activeClaim) {
+        if (Game.time % 500 === 0 && !activeRoom.memory.activeClaim && activeRoom.controller.level >= 4 && Game.gcl.level - 2 > overlordCount && !activeClaim) {
             activeRoom.claimNewRoom();
-            if (activeRoom.memory.claimTarget) activeClaim = true;
         }
         processed++;
     }

@@ -138,8 +138,8 @@ findConstruction = function () {
         for (let structures of this.room.find(FIND_STRUCTURES)) {
             if (structures.structureType === STRUCTURE_SPAWN) {
                 for (let key in Memory.ownedRooms) {
-                    if (Memory.ownedRooms[key].claimTarget === this.pos.roomName) {
-                        Memory.ownedRooms[key].claimTarget = undefined;
+                    if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
+                        Game.rooms[key].memory.activeClaim = undefined;
                         return this.suicide();
                     }
                 }
@@ -150,6 +150,11 @@ findConstruction = function () {
             let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
             switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
                 case OK:
+                    for (let key in Memory.ownedRooms) {
+                        if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
+                            Game.rooms[key].memory.activeClaim = true;
+                        }
+                    }
             }
         }
     }
