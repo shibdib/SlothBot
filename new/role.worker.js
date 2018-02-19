@@ -61,7 +61,7 @@ function role(creep) {
                 creep.findEnergy();
             }
             if (!creep.memory.energyDestination) {
-                let source = creep.pos.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() > 1});
+                let source = creep.pos.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() > 2});
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
         }
