@@ -46,8 +46,10 @@ RoomPosition.prototype.countOpenTerrainAround = function () {
     const terrainArray = Game.rooms[this.roomName].lookForAtArea(LOOK_TERRAIN, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
     const plainArray = _.filter(terrainArray, 'terrain', 'plain');
     const swampArray = _.filter(terrainArray, 'terrain', 'swamp');
-    if (plainArray.length + swampArray.length > 0) {
-        return plainArray.length + swampArray.length;
+    const structures = Game.rooms[this.roomName].lookForAtArea(LOOK_STRUCTURES, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
+    const wall = _.filter(structures, 'structure', 'constructedWall');
+    if (plainArray.length + swampArray.length - wall.length > 0) {
+        return plainArray.length + swampArray.length - wall.length;
     }
 };
 

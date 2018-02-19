@@ -143,7 +143,7 @@ Room.prototype.cacheRoomIntel = function () {
                 reservationTick = room.controller.reservation.ticksToEnd + Game.time;
             }
         }
-        if (Game.map.isRoomAvailable(this.name) && sources.length > 1) {
+        if (Game.map.isRoomAvailable(this.name) && sources.length > 1 && room.controller.pos.countOpenTerrainAround() > 0) {
             let wall = 0;
             let plains = 0;
             let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);

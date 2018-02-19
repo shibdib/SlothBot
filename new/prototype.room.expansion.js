@@ -15,7 +15,7 @@ claimNewRoom = function () {
                     }
                 }
                 let distance = Game.map.getRoomLinearDistance(this.name, worthyName);
-                if (2 <= distance < 5) {
+                if (2 <= distance < 4) {
                     possibles[key] = worthyRooms[key];
                 }
             }
