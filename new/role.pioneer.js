@@ -9,6 +9,8 @@ function role(creep) {
     creep.borderCheck();
     //Invader detection
     creep.invaderCheck();
+    //Intel collection
+    creep.room.cacheRoomIntel();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
         return creep.retreat();
