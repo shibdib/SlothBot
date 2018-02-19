@@ -152,10 +152,10 @@ buildStorage = profiler.registerFN(buildStorage, 'buildStorage');
 
 function buildTowers(room, structures) {
     if (room.controller.level < 3) return;
-    let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    if (!storage) {
+    let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER)[0];
+    if (!tower || tower.length < 5) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let safeZone = Game.rooms[hub.roomName].lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true);
+        let safeZone = shuffle(Game.rooms[hub.roomName].lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
             if (position.getRangeTo(hub) === 5) {
@@ -235,3 +235,23 @@ function buildRoad(position) {
 }
 
 buildRoad = profiler.registerFN(buildRoad, 'buildRoadFunctionBuilder');
+
+function shuffle(array) {
+    let counter = array.length;
+
+    // While there are elements in the array
+    while (counter > 0) {
+        // Pick a random index
+        let index = Math.floor(Math.random() * counter);
+
+        // Decrease counter by 1
+        counter--;
+
+        // And swap the last element with it
+        let temp = array[counter];
+        array[counter] = array[index];
+        array[index] = temp;
+    }
+
+    return array;
+}
