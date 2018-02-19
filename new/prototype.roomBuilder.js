@@ -151,7 +151,7 @@ function buildStorage(room, structures) {
 buildStorage = profiler.registerFN(buildStorage, 'buildStorage');
 
 function buildTowers(room, structures) {
-    if (room.controller.level < 4) return;
+    if (room.controller.level < 3) return;
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (!storage) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
