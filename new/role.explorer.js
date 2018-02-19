@@ -20,7 +20,19 @@ function role(creep) {
     if (creep.memory.destinationReached !== true) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true});
         if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
+            creep.room.cacheRoomIntel();
+            if ((creep.room.controller.sign && creep.room.controller.sign['username'] !== 'Shibdib') || !creep.room.controller.sign) {
+                let signs = ["#overlords was here.", "#overlords has collected intel from this room. We See You.", "Join Overlords! #overlords"];
+                switch (creep.signController(creep.room.controller, _.sample(signs))) {
+                    case OK:
+                        creep.memory.destinationReached = true;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.controller);
+                }
+            } else {
+                creep.memory.destinationReached = true;
+            }
         }
     } else {
         creep.room.cacheRoomIntel();

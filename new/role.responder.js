@@ -49,16 +49,18 @@ function role(creep) {
 
     let friendlies = creep.pos.findInRange(FIND_CREEPS, 15, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
     let creepsInRoom = creep.room.find(FIND_CREEPS);
+    let structuresInRoom = creep.room.find(FIND_STRUCTURES,  {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username'])});
     let hostiles = _.filter(creepsInRoom, (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false);
     let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-    let inRangeCreeps = creep.pos.findInRange(creepsInRoom, 1);
     let closestArmed = creep.pos.findClosestByPath(armedHostile);
     let closestHostile = creep.pos.findClosestByPath(hostiles);
-    let closestStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER});
-    let cleanRoom = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username']) && s.structureType !== STRUCTURE_CONTROLLER});
-    if (creep.pos.roomName !== creep.memory.responseTarget) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room
-    } else if (closestArmed) {
+    let vulnerableStructure = creep.pos.findClosestByPath(_.filter(structuresInRoom, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER && !s.pos.checkForRampart()));
+    let ramparts = creep.pos.findClosestByPath(_.filter(structuresInRoom, (s) => s.structureType === STRUCTURE_RAMPART));
+    let constructionSite = creep.pos.findClosestByPath(_.filter(creep.room.find(FIND_CONSTRUCTION_SITES), (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username'])));
+    if (creep.hits < creep.hitsMax) {
+        creep.heal(creep);
+    }
+    if (closestArmed) {
         if (!creep.fightRampart(closestArmed)) {
             creep.memory.inCombat = true;
             creep.borderCheck();
@@ -69,10 +71,11 @@ function role(creep) {
                 creep.shibMove(closestArmed, {forceRepath: true, ignoreCreeps: false});
             }
         }
-    } else if (closestStructure) {
+    } else if (vulnerableStructure) {
         creep.memory.inCombat = undefined;
-        if (creep.attack(closestStructure) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(closestStructure);
+        if (creep.pos.getRangeTo(vulnerableStructure) <= 3) creep.rangedAttack(vulnerableStructure);
+        if (creep.attack(vulnerableStructure) === ERR_NOT_IN_RANGE) {
+            creep.shibMove(vulnerableStructure);
         }
     } else if (closestHostile) {
         if (!creep.fightRampart(closestHostile)) {
@@ -85,13 +88,14 @@ function role(creep) {
                 creep.shibMove(closestHostile, {forceRepath: true, ignoreCreeps: false});
             }
         }
-    } else if (cleanRoom) {
+    } else if (ramparts) {
         creep.memory.inCombat = undefined;
-        if (creep.attack(closestStructure) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(closestStructure);
+        if (creep.pos.getRangeTo(vulnerableStructure) <= 3) creep.rangedAttack(vulnerableStructure);
+        if (creep.attack(ramparts) === ERR_NOT_IN_RANGE) {
+            creep.shibMove(ramparts);
         }
-    } else if (creep.hits < creep.hitsMax) {
-        creep.heal(creep);
+    } else if (constructionSite) {
+        creep.shibMove(constructionSite, {range: 0});
     } else if (friendlies.length > 0 && creep.room.memory.responseNeeded !== true && creep.memory.destinationReached === true) {
         if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
             if (creep.heal(friendlies[0]) === ERR_NOT_IN_RANGE) {
