@@ -3,12 +3,12 @@ let profiler = require('screeps-profiler');
 function mind(room, roomLimit) {
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
-    
+
     //Cache Buildings
     if (Game.time % 50 === 0) {
         room.memory.structureCache = undefined;
         for (let structures of room.find(FIND_STRUCTURES)) {
-            if (structures.owner && structures.owner !== 'Shibdib') {
+            if (structures.owner && structures.owner['username'] !== 'Shibdib') {
                 structures.destroy();
                 continue;
             }
