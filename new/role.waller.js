@@ -26,7 +26,7 @@ function role(creep) {
                     case OK:
                         break;
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(site)
+                        creep.shibMove(site, {range: 3})
                 }
             } else if (barrier) {
                 creep.memory.currentTarget = barrier.id;
@@ -45,7 +45,7 @@ function role(creep) {
                     if (target.hits >= creep.memory.targetHits + 2000) delete creep.memory.currentTarget;
                     break;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(target)
+                    creep.shibMove(target, {range: 3})
             }
         }
     } else {
