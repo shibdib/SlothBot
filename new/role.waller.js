@@ -20,16 +20,6 @@ function role(creep) {
     if (creep.memory.working === true) {
         if (!creep.memory.currentTarget) {
             let barrier = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART}), 'hits');
-            creep.memory.currentTarget = barrier.id;
-            if (barrier) {
-                if (barrier.hits < 500000) {
-                    creep.memory.targetHits = 500000;
-                } else if (barrier.hits < 500000 * creep.room.controller.level) {
-                    creep.memory.targetHits = 500000 * creep.room.controller.level;
-                } else {
-                    creep.memory.targetHits = barrier.hits + 500000;
-                }
-            }
             let site = creep.room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0];
             if (site) {
                 switch (creep.build(site)) {
@@ -37,6 +27,15 @@ function role(creep) {
                         break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(site)
+                }
+            } else if (barrier) {
+                creep.memory.currentTarget = barrier.id;
+                if (barrier.hits < 500000) {
+                    creep.memory.targetHits = 500000;
+                } else if (barrier.hits < 500000 * creep.room.controller.level) {
+                    creep.memory.targetHits = 500000 * creep.room.controller.level;
+                } else {
+                    creep.memory.targetHits = barrier.hits + 500000;
                 }
             }
         } else {
