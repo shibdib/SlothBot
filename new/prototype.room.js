@@ -142,7 +142,7 @@ Room.prototype.cacheRoomIntel = function () {
                 reservation = room.controller.reservation.username;
                 reservationTick = room.controller.reservation.ticksToEnd + Game.time;
             }
-            if (Game.map.isRoomAvailable(this.name) && sources.length > 1 && room.controller.pos.countOpenTerrainAround() > 0) {
+            if (!owner && !reservation && sources.length > 1 && room.controller.pos.countOpenTerrainAround() > 0) {
                 let wall = 0;
                 let plains = 0;
                 let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
@@ -161,6 +161,9 @@ Room.prototype.cacheRoomIntel = function () {
                 } else {
                     claimWorthy = false;
                 }
+            } else {
+                claimValue = undefined;
+                claimWorthy = false;
             }
         }
         let key = room.name;
