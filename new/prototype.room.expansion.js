@@ -7,18 +7,15 @@ claimNewRoom = function () {
         this.memory.claimTarget = undefined;
         loop1:
             for (let key in worthyRooms) {
-                if (worthyRooms[key].owner || worthyRooms[key].reservation || worthyRooms[key].lastIntelCache < Game.time - 1000) continue;
                 let worthyName = worthyRooms[key].name;
+                if (worthyRooms[key].owner || worthyRooms[key].reservation || worthyRooms[key].lastIntelCache < Game.time - 1000 || 4 < Game.map.getRoomLinearDistance(this.name, worthyName) < 2) continue;
                 for (let key in Memory.ownedRooms) {
                     let distance = Game.map.getRoomLinearDistance(worthyName, key);
                     if (distance < 2) {
                         continue loop1;
                     }
                 }
-                let distance = Game.map.getRoomLinearDistance(this.name, worthyName);
-                if (2 <= distance < 4) {
-                    possibles[key] = worthyRooms[key];
-                }
+                possibles[key] = worthyRooms[key];
             }
         this.memory.claimTarget = _.pluck(_.sortBy(possibles, 'claimValue'), 'name')[0];
         if (this.memory.claimTarget) {
