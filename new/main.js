@@ -12,6 +12,9 @@ profiler.enable();
 
 module.exports.loop = wrapLoop(function() {
     profiler.wrap(function () {
+        //Update allies
+        populateLOANlist();
+
         Memory.stats.cpu.init = Game.cpu.getUsed();
 
         //Grafana
