@@ -4,9 +4,10 @@ claimNewRoom = function () {
     let worthyRooms = _.filter(Memory.roomCache, (room) => room.claimWorthy && room.name !== this.name && room.sources.length === 2);
     if (worthyRooms.length > 0) {
         let possibles = {};
+        this.memory.claimTarget = undefined;
         loop1:
             for (let key in worthyRooms) {
-                if (worthyRooms[key].owner || worthyRooms[key].reservation) continue;
+                if (worthyRooms[key].lastIntelCache < Game.time - 1000) continue;
                 let worthyName = worthyRooms[key].name;
                 for (let key in Memory.ownedRooms) {
                     let distance = Game.map.getRoomLinearDistance(worthyName, key);
@@ -24,6 +25,8 @@ claimNewRoom = function () {
             Memory.roomCache[this.memory.claimTarget].claimWorthy = undefined;
             Game.notify(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name);
             console.log(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name);
+        } else {
+            console.log(this.name + ' Could not find any valid expansion rooms.');
         }
     }
 };
