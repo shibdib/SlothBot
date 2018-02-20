@@ -23,6 +23,10 @@ function role(creep) {
         creep.memory.destinationReached = true;
     }
     if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})) {
+        if (creep.memory.initialBuilder) {
+            Game.rooms[creep.memory.overlord].memory.claimTarget = undefined;
+            Game.rooms[creep.memory.overlord].memory.activeClaim = undefined;
+        }
         creep.memory.role = 'worker';
         creep.memory.overlord = creep.room.name;
         creep.memory.assignedSpawn = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).id;
