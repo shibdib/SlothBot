@@ -467,6 +467,7 @@ function queueCreep(room, importance, options = {}) {
         waitForRanged: undefined,
         waitForDeconstructor: undefined,
         reservationTarget: undefined,
+        initialBuilder: undefined,
         reboot: undefined
     });
     if (room) {
@@ -490,6 +491,7 @@ function queueCreep(room, importance, options = {}) {
             waitForRanged: options.waitForRanged,
             waitForDeconstructor: options.waitForDeconstructor,
             reservationTarget: options.reservationTarget,
+            initialBuilder: options.initialBuilder,
             reboot: options.reboot
         };
         if (!room.memory.creepBuildQueue[key]) room.memory.creepBuildQueue = cache;
