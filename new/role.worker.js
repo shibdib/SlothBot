@@ -23,7 +23,7 @@ function role(creep) {
         creep.memory.deliveryIncoming = undefined;
     }
     if (creep.memory.working === true) {
-        let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 50000});
+        let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 15000});
         if (newRamps.length > 0) {
             creep.repair(newRamps[0]);
         } else {
