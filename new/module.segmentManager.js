@@ -24,28 +24,7 @@ function segmentManager() {
         {"username": "droben", "status": "nap"},
         {"username": "Mashee", "status": "nap"}
     ];
-    let doNotAggressArray = [
-        'Shibdib',
-        'PostCrafter',
-        'Rising',
-        'wages123',
-        'SpaceRedleg',
-        'Donat',
-        'KageJ',
-        'BrinkDaDrink',
-        'Tyac',
-        'herghost',
-        'kirk',
-        'arcath',
-        'Smokeman',
-        'Pav234',
-        'Picoplankton',
-        'Troedfach',
-        'KOR_Solidarity',
-        'starking1',
-        'droben',
-        'Mashee'
-    ];
+    let doNotAggressArray = global.LOANlist;
     let mainRaw = {
         "api": {
             "version": "draft",
