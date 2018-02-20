@@ -8,7 +8,7 @@ claimNewRoom = function () {
         loop1:
             for (let key in worthyRooms) {
                 let worthyName = worthyRooms[key].name;
-                if (worthyRooms[key].owner || worthyRooms[key].reservation || worthyRooms[key].lastIntelCache < Game.time - 1000 || 4 < Game.map.getRoomLinearDistance(this.name, worthyName) < 2) continue;
+                if (!Game.map.isRoomAvailable(worthyName) || 4 < Game.map.getRoomLinearDistance(this.name, worthyName) || Game.map.getRoomLinearDistance(this.name, worthyName) < 2 || _.filter(Memory.ownedRooms, (room) => room.claimTarget && room.claimTarget === worthyName).length > 0) continue;
                 for (let key in Memory.ownedRooms) {
                     let distance = Game.map.getRoomLinearDistance(worthyName, key);
                     if (distance < 2) {
