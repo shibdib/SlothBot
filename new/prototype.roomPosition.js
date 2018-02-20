@@ -78,7 +78,7 @@ RoomPosition.prototype.checkForAllStructure = function () {
     if (Game.rooms[this.roomName]) {
         return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART});
     } else {
-        return 0;
+        return undefined;
     }
 };
 
