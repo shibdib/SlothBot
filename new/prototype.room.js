@@ -142,25 +142,25 @@ Room.prototype.cacheRoomIntel = function () {
                 reservation = room.controller.reservation.username;
                 reservationTick = room.controller.reservation.ticksToEnd + Game.time;
             }
-        }
-        if (Game.map.isRoomAvailable(this.name) && sources.length > 1 && room.controller.pos.countOpenTerrainAround() > 0) {
-            let wall = 0;
-            let plains = 0;
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
-            for (let key in terrain) {
-                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (position.checkForWall()) {
-                    wall++
-                } else if (position.checkForPlain()) {
-                    plains++
+            if (Game.map.isRoomAvailable(this.name) && sources.length > 1 && room.controller.pos.countOpenTerrainAround() > 0) {
+                let wall = 0;
+                let plains = 0;
+                let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
+                for (let key in terrain) {
+                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                    if (position.checkForWall()) {
+                        wall++
+                    } else if (position.checkForPlain()) {
+                        plains++
+                    }
                 }
-            }
-            if (wall < 700 && plains > 300) {
-                let sourceDist = sources[0].pos.getRangeTo(sources[1]);
-                claimValue = plains / sourceDist;
-                claimWorthy = true;
-            } else {
-                claimWorthy = false;
+                if (wall < 700 && plains > 300) {
+                    let sourceDist = sources[0].pos.getRangeTo(sources[1]);
+                    claimValue = plains / sourceDist;
+                    claimWorthy = true;
+                } else {
+                    claimWorthy = false;
+                }
             }
         }
         let key = room.name;
