@@ -613,7 +613,7 @@ workerCreepQueue = function () {
     }
     if (!_.includes(queue, 'hauler')) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-        if (hauler.length < 3 || (hauler[0].ticksToLive < 250 && hauler.length < 4)) {
+        if (hauler.length < 2 || (hauler[0].ticksToLive < 250 && hauler.length < 3)) {
             queueCreep(this, PRIORITIES.hauler, {
                 role: 'hauler'
             })
