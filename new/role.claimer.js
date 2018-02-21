@@ -9,19 +9,33 @@ function role(creep) {
     //Initial move
     if (!creep.memory.destinationReached) {
         let destination = new RoomPosition(25, 25, creep.memory.destination);
-        creep.shibMove(destination);
-        if (creep.pos.getRangeTo(destination) <= 10) {
-            creep.memory.destinationReached = true;
-        }
+        creep.shibMove(destination, {range: 17});
+        if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     } else {
         if (creep.room.controller) {
             if (!creep.memory.signed) {
                 let signs = ["Territory of Overlords - #overlords on Slack", "Overlords - Visit at your own risk.", "Join Overlords! #overlords"];
-                creep.signController(creep.room.controller, _.sample(signs));
-                creep.memory.signed = true;
-            }
-            if (creep.claimController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(creep.room.controller);
+                switch (creep.signController(creep.room.controller, _.sample(signs))) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.controller);
+                        break;
+                    case OK:
+                        creep.memory.signed = true;
+                }
+            } else {
+                switch (creep.claimController(creep.room.controller)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.controller);
+                        break;
+                    case ERR_BUSY:
+                        break;
+                    case ERR_NOT_FOUND:
+                        break;
+                    case ERR_INVALID_TARGET:
+                        break;
+                    case OK:
+                        Game.rooms[creep.memory.overlord].memory.activeClaim = true;
+                }
             }
         }
     }
