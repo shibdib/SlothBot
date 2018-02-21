@@ -765,7 +765,7 @@ remoteCreepQueue = function () {
         for (let key in remotes) {
             if (checkIfSK(remotes[key])) continue;
             let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[key]);
-            if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.reservationExpires || Game.rooms[remotes[key]].memory.reservationExpires <= Game.time + 250) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.noRemote)) {
+            if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.reservationExpires || Game.rooms[remotes[key]].memory.reservationExpires <= Game.time + 250) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.noRemote) && Game.map.getRoomLinearDistance(this.name, Game.rooms[remotes[key]].name) < 2) {
                 queueCreep(this, PRIORITIES.reserver, {
                     role: 'reserver',
                     reservationTarget: remotes[key]
