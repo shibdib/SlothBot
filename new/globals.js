@@ -504,6 +504,26 @@ if(document.ticks['t${Game.time}']===undefined){
 //*/
     };
 
+    global.shuffle = function (array) {
+        let counter = array.length;
+
+        // While there are elements in the array
+        while (counter > 0) {
+            // Pick a random index
+            let index = Math.floor(Math.random() * counter);
+
+            // Decrease counter by 1
+            counter--;
+
+            // And swap the last element with it
+            let temp = array[counter];
+            array[counter] = array[index];
+            array[index] = temp;
+        }
+
+        return array;
+    };
+
 
 // League Of Automated Nations allied users list by Kamots
 // Provides global.LOANlist as array of allied usernames. Array is empty if not in an alliance, but still defined.
