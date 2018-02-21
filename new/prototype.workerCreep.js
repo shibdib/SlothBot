@@ -996,7 +996,7 @@ Creep.prototype.idleFor = function (ticks = 0) {
 };
 
 
-Creep.prototype.renewalCheck = function (level = 7) {
+Creep.prototype.renewalCheck = function (level = 8) {
     let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.overlord === this.memory.overlord);
     if (Game.rooms[this.memory.overlord].controller && ((this.memory.renewing && Game.rooms[this.memory.overlord].energyAvailable >= 300) || (Game.rooms[this.memory.overlord].controller.level >= level && Game.rooms[this.memory.overlord].energyAvailable >= 300 && this.ticksToLive < 100 && renewers.length < 2))) {
         if (this.ticksToLive >= 1000) {
