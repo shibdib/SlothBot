@@ -62,7 +62,7 @@ function role(creep) {
                             }
                         }
                     } else {
-                        let storage = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
+                        let storage = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE});
                         if (storage && _.sum(storage.store) !== storage.storeCapacity) {
                             for (const resourceType in creep.carry) {
                                 if (creep.transfer(storage, resourceType) === ERR_NOT_IN_RANGE) {
