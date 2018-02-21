@@ -102,8 +102,7 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     let constructionSite = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
     if (constructionSite && !_.includes(RawMemory.segments[2], constructionSite.owner['username'])) {
         this.say('KCS!!');
-        console.log('Killing a constructionSite in ' + constructionSite.pos.roomName + ' owned by ' + constructionSite.owner['username']);
-        let returnCode = this.shibMove(constructionSite);
+        let returnCode = this.shibMove(constructionSite, {range:0});
         return true;
     }
     return false;
