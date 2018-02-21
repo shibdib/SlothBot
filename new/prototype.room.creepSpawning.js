@@ -678,9 +678,9 @@ remoteCreepQueue = function () {
     //Remotes
     if (this.memory.remoteRooms) {
         for (let keys in this.memory.remoteRooms) {
+            let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
             if (!_.includes(queue, 'remoteHarvester')) {
-                let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
-                if (remoteHarvester.length < Memory.roomCache[this.memory.remoteRooms[keys]].sources.length && Game.map.getRoomLinearDistance(this.name, this.memory.remoteRooms[keys]) < 2 && (!Game.rooms[this.memory.remoteRooms[keys]] || !Game.rooms[this.memory.remoteRooms[keys]].memory.noRemote)) {
+                if (remoteHarvester.length < Memory.roomCache[this.memory.remoteRooms[keys]].sources.length && Game.map.findRoute(this.name, this.memory.remoteRooms[keys]).length < 2 && (!Game.rooms[this.memory.remoteRooms[keys]] || !Game.rooms[this.memory.remoteRooms[keys]].memory.noRemote)) {
                     queueCreep(this, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
                         destination: this.memory.remoteRooms[keys]
@@ -689,7 +689,7 @@ remoteCreepQueue = function () {
             }
             if (!_.includes(queue, 'remoteHauler')) {
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.remoteRooms[keys] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === this.name);
-                if (remoteHauler.length < Memory.roomCache[this.memory.remoteRooms[keys]].sources.length / 2 && Game.map.getRoomLinearDistance(this.name, this.memory.remoteRooms[keys]) < 2) {
+                if (remoteHauler.length < remoteHarvester.length && Game.map.findRoute(this.name, this.memory.remoteRooms[keys]).length < 2) {
                     queueCreep(this, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler',
                         destination: this.memory.remoteRooms[keys]
@@ -765,7 +765,7 @@ remoteCreepQueue = function () {
         for (let key in remotes) {
             if (checkIfSK(remotes[key])) continue;
             let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[key]);
-            if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.reservationExpires || Game.rooms[remotes[key]].memory.reservationExpires <= Game.time + 150) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.noRemote)) {
+            if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.reservationExpires || Game.rooms[remotes[key]].memory.reservationExpires <= Game.time + 250) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.noRemote)) {
                 queueCreep(this, PRIORITIES.reserver, {
                     role: 'reserver',
                     reservationTarget: remotes[key]
