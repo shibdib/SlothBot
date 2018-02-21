@@ -49,6 +49,7 @@ function depositMineral(creep) {
         creep.memory.containerID = mineralContainer(creep);
     }
     if (creep.memory.containerID) {
+        creep.room.memory.mineralContainer = creep.memory.containerID;
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             if (_.sum(container.store) !== container.storeCapacity) {

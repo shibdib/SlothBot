@@ -19,6 +19,18 @@ function role(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling === false) {
+        let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.mineralHauling && creep.memory.overlord === this.name);
+        if (Game.getObjectById(creep.room.memory.mineralContainer) && _.sum(Game.getObjectById(creep.room.memory.mineralContainer)) > 1000 && (mineralHauler.length === 0 || creep.memory.mineralHauling)) {
+            creep.memory.mineralHauling = true;
+            let mineralContainer = Game.getObjectById(this.memory.mineralContainer);
+            for (const resourceType in mineralContainer.store) {
+                if (creep.withdraw(mineralContainer, resourceType) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(mineralContainer);
+                }
+            }
+            return null;
+        }
+        creep.memory.mineralHauling = undefined;
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else {
@@ -33,6 +45,27 @@ function role(creep) {
             }
         }
     } else {
+        if (creep.memory.mineralHauling) {
+            if (!creep.memory.terminalID) {
+                let terminal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL});
+                if (terminal) {
+                    creep.memory.terminalID = terminal.id;
+                }
+            }
+            if (creep.memory.terminalID) {
+                let terminal = Game.getObjectById(creep.memory.terminalID);
+                if (terminal) {
+                    if (_.sum(terminal.store) !== terminal.storeCapacity) {
+                        for (const resourceType in creep.carry) {
+                            if (creep.transfer(terminal, resourceType) === ERR_NOT_IN_RANGE) {
+                                creep.shibMove(terminal);
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (!storageItem) {
@@ -68,4 +101,5 @@ function role(creep) {
         }
     }
 }
+
 module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
