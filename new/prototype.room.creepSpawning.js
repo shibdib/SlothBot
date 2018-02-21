@@ -712,7 +712,7 @@ remoteCreepQueue = function () {
             }
             // Remote Response
             if (!_.includes(queue, 'remoteResponse')) {
-                if (Game.rooms[this.memory.remoteRooms[keys]].memory.responseNeeded === true && !this.memory.responseNeeded) {
+                if (Game.rooms[this.memory.remoteRooms[keys]] && Game.rooms[this.memory.remoteRooms[keys]].memory.responseNeeded === true && !this.memory.responseNeeded) {
                     let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.memory.remoteRooms[keys] && creep.memory.role === 'responder');
                     if (responder.length < Game.rooms[this.memory.remoteRooms[keys]].memory.numberOfHostiles) {
                         queueCreep(this, PRIORITIES.remoteResponse, {
