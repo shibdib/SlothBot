@@ -774,7 +774,7 @@ remoteCreepQueue = function () {
         }
     }
     //Claimer
-    if (!_.includes(queue, 'claimer') && this.memory.claimTarget) {
+    if (!_.includes(queue, 'claimer') && this.memory.claimTarget && !this.memory.activeClaim) {
         let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.claimTarget && creep.memory.role === 'claimer');
         if (claimer.length < 1 && !_.includes(Memory.ownedRooms, this.memory.claimTarget)) {
             queueCreep(this, 2, {
