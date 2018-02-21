@@ -5,6 +5,7 @@ function cleanup() {
     if (Game.time % 100 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         cleanDistanceCacheByUsage();
+        cleanConstructionSites();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) Memory.pathCache = undefined;
     for (let name in Memory.creeps) {
@@ -37,5 +38,13 @@ function cleanDistanceCacheByUsage() {
         let overage = (_.size(Memory.distanceCache) - 1500) + 100;
         console.log('Cleaning Distance cache (Over max size by '+overage+')...');
         Memory.distanceCache = _.slice(sorted, overage, _.size(Memory.distanceCache));
+    }
+}
+
+function cleanConstructionSites() {
+    for (let key in Game.constructionSites) {
+        if (Game.constructionSites[key].pos.find(FIND_MY_CREEPS).length === 0) {
+            Game.constructionSites[key].remove();
+        }
     }
 }
