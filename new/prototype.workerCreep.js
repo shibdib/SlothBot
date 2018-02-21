@@ -940,7 +940,6 @@ Creep.prototype.findDeliveries = profiler.registerFN(findDeliveries, 'findDelive
 
 /**
  * Globally patch creep actions to log error codes.
- */
 ['attack', 'attackController', 'build', 'claimController', 'dismantle', 'drop',
     'generateSafeMode', 'harvest', 'heal', 'move', 'moveByPath', 'moveTo', 'pickup',
     'rangedAttack', 'rangedHeal', 'rangedMassAttack', 'repair', 'reserveController',
@@ -955,6 +954,7 @@ Creep.prototype.findDeliveries = profiler.registerFN(findDeliveries, 'findDelive
         return status;
     }
 });
+ */
 
 /**
  * Set the unit to idle-mode until recall tick
