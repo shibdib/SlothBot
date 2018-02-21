@@ -12,6 +12,10 @@ function cleanup() {
             delete Memory.creeps[name];
         }
     }
+    let buggedCreep = _.filter(Game.creeps, (c) => !c.memory.role);
+    for (let key in buggedCreep) {
+        buggedCreep[key].suicide();
+    }
 }
 module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
 

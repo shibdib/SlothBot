@@ -44,7 +44,7 @@ function towerControl() {
                     if (woundedCreep.length > 0) {
                         tower.heal(woundedCreep[0]);
                     }
-                } else if (tower.energy > tower.energyCapacity * 0.60 && Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000) {
+                } else if (tower.energy > tower.energyCapacity * 0.25 && Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000) {
                     let creeps = tower.room.find(FIND_CREEPS);
                     let structures = tower.room.find(FIND_STRUCTURES);
                     let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(doNotAggress, c.owner['username']) === true);
