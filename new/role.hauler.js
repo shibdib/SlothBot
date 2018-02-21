@@ -22,7 +22,7 @@ function role(creep) {
         let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.mineralHauling && creep.memory.overlord === this.name);
         if (Game.getObjectById(creep.room.memory.mineralContainer) && _.sum(Game.getObjectById(creep.room.memory.mineralContainer)) > 1000 && (mineralHauler.length === 0 || creep.memory.mineralHauling)) {
             creep.memory.mineralHauling = true;
-            let mineralContainer = Game.getObjectById(this.memory.mineralContainer);
+            let mineralContainer = Game.getObjectById(creep.room.memory.mineralContainer);
             for (const resourceType in mineralContainer.store) {
                 if (creep.withdraw(mineralContainer, resourceType) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(mineralContainer);
