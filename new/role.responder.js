@@ -48,13 +48,11 @@ module.exports.role = profiler.registerFN(role, 'responderRole');
 
 function findDefensivePosition(creep, target) {
     if (target) {
-        let bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && ((r.pos.lookFor(LOOK_CREEPS).length === 0 && r.pos.lookFor(protectedStructures).length === 0) || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
-        let armedHostile = creep.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1 || e.getActiveBodyparts(WORK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
-        if (bestRampart && bestRampart.pos !== creep.pos) {
-            creep.memory.pathAge = 999;
-            if (bestRampart && (bestRampart.pos !== creep.pos && (creep.pos.getRangeTo(bestRampart) < creep.pos.getRangeTo(armedHostile) || !armedHostile))) {
-                creep.memory.assignedRampart = bestRampart.id;
-                creep.shibMove(bestRampart, {range: 0});
+        let bestRampart = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
+        if (bestRampart) {
+            creep.memory.assignedRampart = bestRampart.id;
+            if (bestRampart.pos !== creep.pos) {
+                creep.shibMove(bestRampart, {forceRepath: true, range: 0});
             }
         }
     }

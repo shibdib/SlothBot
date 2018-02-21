@@ -149,7 +149,7 @@ Creep.prototype.fightRampart = function (target) {
     if (!target) {
         return false;
     }
-    let position = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && ((r.pos.lookFor(LOOK_CREEPS).length === 0 && r.pos.lookFor(protectedStructures).length === 0) || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
+    let position = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
     if (position === null) {
         return false;
     }
