@@ -24,8 +24,8 @@ Room.prototype.processBuildQueue = function () {
                         assignedMineral: undefined,
                         military: undefined,
                         responseTarget: undefined,
-                        attackTarget: undefined,
-                        attackType: undefined,
+                        targetRoom: undefined,
+                        operation: undefined,
                         siegePoint: undefined,
                         staging: undefined,
                         waitForHealers: undefined,
@@ -45,8 +45,8 @@ Room.prototype.processBuildQueue = function () {
                             assignedMineral: topPriority.assignedMineral,
                             military: topPriority.military,
                             responseTarget: topPriority.responseTarget,
-                            attackTarget: topPriority.attackTarget,
-                            attackType: topPriority.attackType,
+                            targetRoom: topPriority.targetRoom,
+                            operation: topPriority.operation,
                             siegePoint: topPriority.siegePoint,
                             staging: topPriority.staging,
                             waitForHealers: topPriority.waitForHealers,
@@ -458,8 +458,8 @@ function queueCreep(room, importance, options = {}) {
         destination: undefined,
         assignedMineral: undefined,
         responseTarget: undefined,
-        attackTarget: undefined,
-        attackType: undefined,
+        targetRoom: undefined,
+        operation: undefined,
         siegePoint: undefined,
         staging: undefined,
         waitForHealers: undefined,
@@ -482,8 +482,8 @@ function queueCreep(room, importance, options = {}) {
             destination: options.destination,
             assignedMineral: options.assignedMineral,
             responseTarget: options.responseTarget,
-            attackTarget: options.attackTarget,
-            attackType: options.attackType,
+            targetRoom: options.targetRoom,
+            operation: options.operation,
             siegePoint: options.siegePoint,
             staging: options.staging,
             waitForHealers: options.waitForHealers,
@@ -798,6 +798,27 @@ remoteCreepQueue = function () {
     }
 };
 Room.prototype.remoteCreepQueue = profiler.registerFN(remoteCreepQueue, 'remoteCreepQueue');
+
+militaryCreepQueue = function () {
+    let queue = this.memory.creepBuildQueue;
+    let level = getLevel(this);
+    // Cleaning
+    if (this.memory.cleaningTargets.length > 0 && !_.includes(queue, 'deconstructor') && level >= 4) {
+        for (let key in this.memory.cleaningTargets) {
+            let target = this.memory.cleaningTargets[key].name;
+            let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === target && creep.memory.role === 'deconstructor');
+            if (deconstructor.length < 1) {
+                queueCreep(this, PRIORITIES.deconstructor, {
+                    role: 'deconstructor',
+                    targetRoom: target,
+                    operation: 'clean',
+                    reboot: true
+                })
+            }
+        }
+    }
+};
+Room.prototype.militaryCreepQueue = profiler.registerFN(militaryCreepQueue, 'militaryCreepQueue');
 
 function checkIfSK(roomName) {
     let parsed;

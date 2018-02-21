@@ -24,7 +24,7 @@ function role(creep) {
         }
         return null;
     }
-    return creep.tacticSiege();
+    if (this.memory.operation === 'clean') return creep.cleanRoom();
 }
 
 module.exports.role = profiler.registerFN(role, 'deconstructorRole');

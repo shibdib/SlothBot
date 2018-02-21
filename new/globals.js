@@ -77,6 +77,7 @@ let globals = function () {
             explorer: [MOVE],
             scout: [MOVE],
             responder: [TOUGH,TOUGH,MOVE,MOVE,MOVE,ATTACK],
+            deconstructor: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK],
         },
         2: {
             stationaryHarvester: [MOVE, WORK, WORK, WORK, WORK, CARRY],
