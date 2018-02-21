@@ -50,7 +50,11 @@ Creep.prototype.fleeFromHostile = function (hostile) {
 };
 
 Creep.prototype.attackHostile = function (hostile) {
-
+    if (this.pos.getRangeTo(hostile) <= 3) this.rangedAttack(hostile);
+    if (this.attack(hostile) === ERR_NOT_IN_RANGE) {
+        if (this.hits < this.hitsMax) this.heal(this);
+        this.shibMove(hostile, {forceRepath: true, ignoreCreeps: false});
+    }
 };
 
 Creep.prototype.healMyCreeps = function () {
@@ -105,7 +109,7 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     });
     if (constructionSite !== null) {
         this.say('kcs');
-        this.log('Kill constructionSite: ' + JSON.stringify(constructionSite));
+        console.log('Kill constructionSite: ' + JSON.stringify(constructionSite));
         let returnCode = this.shibMove(constructionSite);
         return true;
     }
@@ -126,11 +130,8 @@ Creep.prototype.handleDefender = function () {
     if (this.healAllyCreeps()) {
         return true;
     }
-    if (this.moveToHostileConstructionSites()) {
-        return true;
-    }
-    this.moveRandom();
-    return true;
+    return this.moveToHostileConstructionSites();
+
 };
 
 Creep.prototype.waitRampart = function () {
@@ -161,14 +162,10 @@ Creep.prototype.fightRampart = function (target) {
         return false;
     }
     this.memory.assignedRampart = position.id;
-    let range = target.pos.getRangeTo(position);
-    if (range > 3) {
-        return false;
-    }
     let returnCode;
     if (this.pos.getRangeTo(position) > 0) {
+        this.say(ICONS[STRUCTURE_RAMPART]);
         returnCode = this.shibMove(position, {forceRepath: true, range: 0});
-        console.log(returnCode)
         if (returnCode === OK) {
             return true;
         }
@@ -176,7 +173,6 @@ Creep.prototype.fightRampart = function (target) {
             return true;
         }
     }
-    this.say('1')
     let targets = this.pos.findInRange(FIND_HOSTILE_CREEPS, 3, {
         filter: this.room.findAttackCreeps
     });
@@ -188,8 +184,8 @@ Creep.prototype.fightRampart = function (target) {
     let closeTargets = this.pos.findInRange(FIND_HOSTILE_CREEPS, 1, {
         filter: this.room.findAttackCreeps
     });
-    if (targets.length > 1) {
-        returnCode = this.attack(target);
+    if (closeTargets.length > 0) {
+        this.attack(closeTargets[0]);
     }
     return true;
 };

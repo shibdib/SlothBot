@@ -42,7 +42,7 @@ module.exports.controller = profiler.registerFN(controller, 'defenseController')
 
 //Functions
 function invaderCheck(room, creeps) {
-    let invader = _.filter(creeps, (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let invader = _.filter(creeps, (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
     if (invader.length > 0) {
         room.memory.responseNeeded = true;
         room.memory.tickDetected = Game.time;

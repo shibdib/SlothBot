@@ -30,7 +30,7 @@ function role(creep) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(creep.room.controller);
                 }
-            } else {
+            } else if (!creep.moveToHostileConstructionSites()) {
                 creep.memory.destinationReached = true;
             }
         }
