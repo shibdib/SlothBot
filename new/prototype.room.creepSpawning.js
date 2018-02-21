@@ -648,7 +648,7 @@ workerCreepQueue = function () {
         let assistNeeded = _.filter(Game.rooms, (room) => room.memory.responseNeeded === true);
         if (assistNeeded.length > 0) {
             for (let key in assistNeeded) {
-                if ((neighborCheck(this.name, assistNeeded[key].name) === true || assistNeeded[key].name === this.name) && !Game.rooms[assistNeeded[key].name].checkIfSK()) {
+                if ((neighborCheck(this.name, assistNeeded[key].name) === true || assistNeeded[key].name === this.name) && !checkIfSK(assistNeeded[key].name)) {
                     let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === assistNeeded[key].name && creep.memory.role === 'responder');
                     if (responder.length < assistNeeded[key].memory.numberOfHostiles) {
                         queueCreep(this, PRIORITIES.responder, {
@@ -765,11 +765,7 @@ remoteCreepQueue = function () {
     if (level >= 4 && !_.includes(queue, 'reserver')) {
         let remotes = this.memory.remoteRooms;
         for (let key in remotes) {
-            let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(remotes[key]);
-            let fMod = parsed[1] % 10;
-            let sMod = parsed[2] % 10;
-            let isSK = ((fMod >= 4) && (fMod <= 6)) && ((sMod >= 4) && (sMod <= 6));
-            if (isSK) continue;
+            if (checkIfSK(remotes[key])) continue;
             let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[key]);
             if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.reservationExpires || Game.rooms[remotes[key]].memory.reservationExpires <= Game.time + 150) && (!Game.rooms[remotes[key]] || !Game.rooms[remotes[key]].memory.noRemote)) {
                 queueCreep(this, PRIORITIES.reserver, {
@@ -799,3 +795,15 @@ remoteCreepQueue = function () {
     }
 };
 Room.prototype.remoteCreepQueue = profiler.registerFN(remoteCreepQueue, 'remoteCreepQueue');
+
+function checkIfSK(roomName) {
+    let parsed;
+    if (!parsed) {
+        parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+    }
+    let fMod = parsed[1] % 10;
+    let sMod = parsed[2] % 10;
+    return !(fMod === 5 && sMod === 5) &&
+        ((fMod >= 4) && (fMod <= 6)) &&
+        ((sMod >= 4) && (sMod <= 6));
+};

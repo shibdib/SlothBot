@@ -219,15 +219,3 @@ Room.prototype.cacheRoomIntel = function () {
         }
     }
 };
-
-Room.prototype.checkIfSK = function() {
-    let parsed;
-    if (!parsed) {
-        parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(this.name);
-    }
-    let fMod = parsed[1] % 10;
-    let sMod = parsed[2] % 10;
-    return !(fMod === 5 && sMod === 5) &&
-        ((fMod >= 4) && (fMod <= 6)) &&
-        ((sMod >= 4) && (sMod <= 6));
-};
