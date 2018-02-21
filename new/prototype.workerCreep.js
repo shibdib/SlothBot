@@ -142,17 +142,6 @@ findConstruction = function () {
     }
     //Pioneer initial builder spawn creation
     if (this.memory.initialBuilder) {
-        for (let structures of this.room.find(FIND_STRUCTURES)) {
-            if (structures.structureType === STRUCTURE_SPAWN) {
-                for (let key in Memory.ownedRooms) {
-                    if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
-                        Game.rooms[key].memory.activeClaim = undefined;
-                        return this.suicide();
-                    }
-                }
-            }
-        }
-        findExtensionHub(this.room);
         if (this.room.memory.extensionHub) {
             let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
             switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
@@ -163,6 +152,8 @@ findConstruction = function () {
                         }
                     }
             }
+        } else {
+            findExtensionHub(this.room);
         }
     }
     this.memory.task = undefined;
