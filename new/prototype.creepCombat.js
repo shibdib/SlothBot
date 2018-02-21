@@ -99,17 +99,10 @@ Creep.prototype.healAllyCreeps = function () {
 };
 
 Creep.prototype.moveToHostileConstructionSites = function () {
-    let constructionSite = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES, {
-        filter: function (object) {
-            if (!object.owner) {
-                return false;
-            }
-            return object.owner.username !== Memory.username;
-        }
-    });
-    if (constructionSite !== null) {
-        this.say('kcs');
-        console.log('Kill constructionSite: ' + JSON.stringify(constructionSite));
+    let constructionSite = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
+    if (constructionSite && !_.includes(RawMemory.segments[2], constructionSite.owner['username'])) {
+        this.say('KCS!!');
+        console.log('Killing a constructionSite in ' + constructionSite.pos.roomName + ' owned by ' + constructionSite.owner['username']);
         let returnCode = this.shibMove(constructionSite);
         return true;
     }

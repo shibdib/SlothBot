@@ -643,12 +643,12 @@ workerCreepQueue = function () {
     }
     // Local Responder
     if (!_.includes(queue, 'responder')) {
-        if (this.room.memory.responseNeeded === true) {
-            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.room.name && creep.memory.role === 'responder');
-            if (responder.length < this.room.memory.numberOfHostiles) {
+        if (this.memory.responseNeeded === true) {
+            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.name && creep.memory.role === 'responder');
+            if (responder.length < this.memory.numberOfHostiles) {
                 queueCreep(this, PRIORITIES.responder, {
                     role: 'responder',
-                    responseTarget: this.room.name,
+                    responseTarget: this.name,
                     military: true
                 })
             }
