@@ -1,6 +1,7 @@
 let profiler = require('screeps-profiler');
 
 claimNewRoom = function () {
+    let avoidRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && _.includes(global.LOANlist, r.controller.owner['username']));
     let worthyRooms = _.filter(Memory.roomCache, (room) => room.claimWorthy && room.name !== this.name && room.sources.length === 2);
     if (worthyRooms.length > 0) {
         let possibles = {};
@@ -9,9 +10,10 @@ claimNewRoom = function () {
             for (let key in worthyRooms) {
                 let worthyName = worthyRooms[key].name;
                 if (worthyRooms[key].owner || worthyRooms[key].reservation || 9 < Game.map.findRoute(this.name, worthyName).length || Game.map.getRoomLinearDistance(this.name, worthyName) > 4 || _.filter(Memory.ownedRooms, (room) => room.claimTarget && room.claimTarget === worthyName).length > 0) continue;
-                for (let key in Memory.ownedRooms) {
-                    let distance = Game.map.findRoute(worthyName, key).length;
-                    if (distance < 2) {
+                for (let key in avoidRooms) {
+                    let name = avoidRooms[key].name;
+                    let distance = Game.map.findRoute(worthyName, name).length;
+                    if (distance < 3) {
                         continue loop1;
                     }
                 }
