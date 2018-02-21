@@ -3,6 +3,7 @@ let profiler = require('screeps-profiler');
 claimNewRoom = function () {
     let avoidRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && _.includes(global.LOANlist, r.controller.owner['username']));
     let worthyRooms = _.filter(Memory.roomCache, (room) => room.claimWorthy && room.name !== this.name && room.sources.length === 2);
+    if (avoidRooms.length === 0) return;
     if (worthyRooms.length > 0) {
         let possibles = {};
         this.memory.claimTarget = undefined;
