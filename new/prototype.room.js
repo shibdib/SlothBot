@@ -133,7 +133,7 @@ Room.prototype.cacheRoomIntel = function () {
         let cache = Memory.roomCache || {};
         let sources = room.find(FIND_SOURCES);
         let structures = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD});
-        hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false});
+        hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
         towers = room.find(structures, {filter: (e) => e.structureType === STRUCTURE_TOWER});
         if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
         let minerals = room.find(FIND_MINERALS);

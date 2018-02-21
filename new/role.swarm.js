@@ -36,9 +36,9 @@ function role(creep) {
     if (swarmLeader.length === 0) creep.memory.swarmLeader = true;
     if (creep.memory.attackType === 'raid') {
         if (Game.time % 15 === 0 && Memory.warControl[creep.memory.attackTarget]) {
-            let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false});
-            let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
-            let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+            let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) === false});
+            let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
+            let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(FRIENDLIES, e.owner['username']) === false);
             if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {
                 Memory.warControl[creep.memory.attackTarget].threat = 2;
             }
@@ -66,16 +66,16 @@ function swarmTactic(creep) {
     }
     let creepsInRoom = creep.room.find(FIND_CREEPS);
     let swarmCount = _.filter(Game.creeps, (c) => c.memory && c.memory.role === 'swarm' && c.memory.attackTarget === creep.memory.attackTarget);
-    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.x > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(RawMemory.segments[2], c.owner['username']) === false && c.owner['username'] !== 'Source Keeper');
-    let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1 || e.getActiveBodyparts(HEAL) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+    let hostiles = _.filter(creepsInRoom, (c) => c.pos.y < 47 && c.pos.x > 3 && c.pos.x < 47 && c.pos.y > 3 && _.includes(FRIENDLIES, c.owner['username']) === false && c.owner['username'] !== 'Source Keeper');
+    let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1 || e.getActiveBodyparts(HEAL) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
     let inRangeCreeps = creep.pos.findInRange(hostiles, 3);
-    let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+    let inRangeArmed = _.filter(inRangeCreeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
     let closestArmed = creep.pos.findClosestByPath(armedHostile);
     let closestHostile = creep.pos.findClosestByPath(hostiles);
-    let hostileStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && _.includes(RawMemory.segments[2], s.owner['username']) === false && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR});
+    let hostileStructure = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.owner && _.includes(FRIENDLIES, s.owner['username']) === false && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR});
     let healers = _.filter(creepsInRoom, (h) => h.memory && h.memory.role === 'healer');
     let closestHealer = creep.pos.findClosestByPath(healers);
-    let needsHeals = creep.pos.findInRange(creepsInRoom, 1, {filter: (c) => c.hits < c.hitsMax && _.includes(RawMemory.segments[2], c.owner['username']) === true});
+    let needsHeals = creep.pos.findInRange(creepsInRoom, 1, {filter: (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner['username']) === true});
 
     //Retreat if wounded
     if (creep.getActiveBodyparts(TOUGH) === 0) {
@@ -99,7 +99,7 @@ function swarmTactic(creep) {
         return;
     }
     //Check if safe mode
-    if (creep.room.controller && creep.room.controller.owner && _.includes(RawMemory.segments[2], creep.room.controller.owner['username']) === false && creep.room.controller.safeMode) {
+    if (creep.room.controller && creep.room.controller.owner && _.includes(FRIENDLIES, creep.room.controller.owner['username']) === false && creep.room.controller.safeMode) {
         creep.memory.attackStarted = 'safe';
         Memory.warControl[creep.memory.attackTarget] = undefined;
         Memory.militaryNeeds[creep.memory.attackTarget] = undefined;

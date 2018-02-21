@@ -46,8 +46,8 @@ function role(creep) {
         creep.memory.destinationReached = true;
     }
     if (!creep.memory.destinationReached) {
-        let hostiles = _.filter(creep.room.find(FIND_CREEPS), (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false);
-        let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(RawMemory.segments[2], e.owner['username']) === false);
+        let hostiles = _.filter(creep.room.find(FIND_CREEPS), (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
+        let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
         }
@@ -58,7 +58,7 @@ function role(creep) {
         }
     } else {
         if (!creep.handleDefender()) {
-            let structuresInRoom = creep.room.find(FIND_STRUCTURES,  {filter: (s) => s.owner && !_.includes(RawMemory.segments[2], s.owner['username'])});
+            let structuresInRoom = creep.room.find(FIND_STRUCTURES,  {filter: (s) => s.owner && !_.includes(FRIENDLIES, s.owner['username'])});
             let vulnerableStructure = creep.pos.findClosestByPath(_.filter(structuresInRoom, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER && !s.pos.checkForRampart()));
             if (vulnerableStructure) {
                 creep.memory.inCombat = undefined;

@@ -403,7 +403,7 @@ function updateRoomStatus(room) {
         return;
     }
     if (room.controller) {
-        if (room.controller.owner && !room.controller.my && _.includes(RawMemory.segments[2], room.controller.owner['username']) === false) {
+        if (room.controller.owner && !room.controller.my && _.includes(FRIENDLIES, room.controller.owner['username']) === false) {
             room.memory.avoid = 1;
         }
         else {

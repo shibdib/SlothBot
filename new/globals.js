@@ -4,6 +4,8 @@ let globals = function () {
         'CaptainMuscles',
     ];
 
+    global.FRIENDLIES = RawMemory.segments[2];
+
     //Terminal
     global.REACTION_NEEDS = [];
 

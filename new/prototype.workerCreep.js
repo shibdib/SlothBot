@@ -1027,7 +1027,7 @@ Creep.prototype.invaderCheck = function () {
     if (this.room.memory.lastInvaderCheck === Game.time) return;
     this.room.memory.lastInvaderCheck = Game.time;
     let creeps = this.room.find(FIND_CREEPS);
-    let invader = _.filter(creeps, (c) => _.includes(RawMemory.segments[2], c.owner['username']) === false);
+    let invader = _.filter(creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
     if (invader.length > 0) {
         this.room.memory.responseNeeded = true;
         this.room.memory.tickDetected = Game.time;
