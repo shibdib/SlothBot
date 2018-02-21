@@ -41,15 +41,15 @@ let globals = function () {
         // Haulers
         hauler: 2,
         // Remotes
-        remoteHarvester: 6,
-        remoteHauler: 5,
+        remoteHarvester: 8,
+        remoteHauler: 7,
         pioneer: 7,
         remoteResponse: 3,
         // SK
-        SKworker: 7,
-        SKattacker: 8,
-        SKsupport: 7,
-        SKhauler: 7,
+        SKworker: 5,
+        SKattacker: 6,
+        SKsupport: 5,
+        SKhauler: 5,
         // Military
         attacker: 3,
         healer: 3,
