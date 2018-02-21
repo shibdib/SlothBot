@@ -4,9 +4,9 @@
 'use strict';
 
 RoomPosition.prototype.getClosestSource = function () {
-    let source = this.findClosestByRange(FIND_SOURCES_ACTIVE);
+    let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() > 2});
     if (source === null) {
-        source = this.findClosestByRange(FIND_SOURCES);
+        source = this.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() > 2});
     }
     return source;
 };

@@ -45,7 +45,7 @@ function role(creep) {
                     creep.shibMove(container[0]);
                 }
             } else {
-                let source = creep.pos.findClosestByRange(FIND_SOURCES);
+                let source = creep.pos.getClosestSource();
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
         } else {
