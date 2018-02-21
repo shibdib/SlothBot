@@ -435,6 +435,8 @@ findEnergy = function (range = 250, hauler = false) {
             let energyItem = Game.getObjectById(sorted.id);
             if (energyItem) {
                 this.memory.energyDestination = energyItem.id;
+            } else {
+                return null;
             }
         }
     }
