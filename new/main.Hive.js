@@ -1,6 +1,7 @@
 let profiler = require('screeps-profiler');
 let overlord = require('main.Overlord');
 let defense = require('military.defense');
+let highCommand = require('military.highCommand');
 let links = require('module.linkController');
 let observers = require('module.observerController');
 
@@ -11,10 +12,13 @@ function mind() {
     // Handle Defense
     defense.controller();
 
+    // High Command
+    if (Game.time % 150 === 0) highCommand.highCommand();
+
     // Handle Links
     if (Game.time % 10 === 0) links.linkControl();
 
-    //Observer Control
+    // Observer Control
     observers.observerControl();
 
     // Process Overlords
