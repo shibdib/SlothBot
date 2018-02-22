@@ -140,22 +140,6 @@ findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
-    //Pioneer initial builder spawn creation
-    if (this.memory.initialBuilder) {
-        if (this.room.memory.extensionHub) {
-            let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
-            switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
-                case OK:
-                    for (let key in Memory.ownedRooms) {
-                        if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
-                            Game.rooms[key].memory.activeClaim = true;
-                        }
-                    }
-            }
-        } else {
-            findExtensionHub(this.room);
-        }
-    }
     this.memory.task = undefined;
     return null;
 };

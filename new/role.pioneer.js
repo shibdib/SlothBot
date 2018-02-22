@@ -49,12 +49,54 @@ function role(creep) {
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
         } else {
-            if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
+            if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
+                if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+            } else if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(creep.room.controller);
                 }
             } else {
-                creep.findConstruction();
+                if (!creep.findConstruction()) {
+                    //Pioneer initial builder spawn creation
+                    if (this.memory.initialBuilder) {
+                        if (this.room.memory.extensionHub) {
+                            let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
+                            if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART).length === 0) {
+                                switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
+                                    case OK:
+                                        for (let key in Memory.ownedRooms) {
+                                            if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
+                                                Game.rooms[key].memory.activeClaim = true;
+                                            }
+                                        }
+                                }
+                            } else if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0].hits < 5000) {
+                                switch (hub.repair(_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0])) {
+                                    case OK:
+                                        for (let key in Memory.ownedRooms) {
+                                            if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
+                                                Game.rooms[key].memory.activeClaim = true;
+                                            }
+                                        }
+                                        break;
+                                    case ERR_NOT_IN_RANGE:
+                                        creep.shibMove(hub);
+                                }
+                            } else {
+                                switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
+                                    case OK:
+                                        for (let key in Memory.ownedRooms) {
+                                            if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
+                                                Game.rooms[key].memory.activeClaim = true;
+                                            }
+                                        }
+                                }
+                            }
+                        } else {
+                            findExtensionHub(this.room);
+                        }
+                    }
+                }
                 if (creep.memory.task === 'build') {
                     let construction = Game.getObjectById(creep.memory.constructionSite);
                     if (creep.build(construction) === ERR_NOT_IN_RANGE) {
@@ -81,3 +123,43 @@ function role(creep) {
 }
 
 module.exports.role = profiler.registerFN(role, 'pioneerRole');
+
+function findExtensionHub(room) {
+    for (let i = 1; i < 249; i++) {
+        let pos = new RoomPosition(getRandomInt(8, 41), getRandomInt(8, 41), room.name);
+        let built = room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
+        let inBuild = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
+        if (built.length > 0 || inBuild.length > 0) {
+            if (built[0]) {
+                room.memory.extensionHub = {};
+                room.memory.extensionHub.x = built[0].pos.x;
+                room.memory.extensionHub.y = built[0].pos.y;
+                return;
+            } else {
+                room.memory.extensionHub = {};
+                room.memory.extensionHub.x = inBuild[0].pos.x;
+                room.memory.extensionHub.y = inBuild[0].pos.y;
+                return;
+            }
+        }
+        let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
+        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
+        let wall = false;
+        for (let key in terrain) {
+            let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+            if (!position.checkForWall()) {
+                continue;
+            }
+            wall = true;
+            break;
+        }
+        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
+            room.memory.extensionHub = {};
+            room.memory.extensionHub.x = pos.x;
+            room.memory.extensionHub.y = pos.y;
+            return;
+        }
+    }
+}
+
+findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
