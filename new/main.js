@@ -12,6 +12,8 @@ let segments = require('module.segmentManager');
 
 module.exports.loop = function() {
     profiler.wrap(function () {
+        Memory.loggingLevel = 5; //Set level 1-5 (5 being most info)
+
         //Update allies
         populateLOANlist();
 
