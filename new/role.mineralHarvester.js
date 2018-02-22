@@ -82,5 +82,7 @@ function mineralContainer(creep) {
                 return container.id;
             }
         }
+    } else if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
+        creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
     }
 }
