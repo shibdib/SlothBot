@@ -8,7 +8,7 @@ let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
 
-profiler.enable();
+//profiler.enable();
 
 module.exports.loop = wrapLoop(function() {
     profiler.wrap(function () {
