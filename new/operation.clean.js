@@ -16,7 +16,7 @@ Creep.prototype.cleanRoom = function () {
                 this.suicide();
                 break;
             case ERR_NOT_IN_RANGE:
-                this.shibMove(creep.room.controller);
+                this.shibMove(this.room.controller);
         }
     } else {
         switch (this.dismantle(target)) {
