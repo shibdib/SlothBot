@@ -339,7 +339,7 @@ function placeBoostOrders(terminal, globalOrders, myOrders) {
             }
         }
 }
-placeReactionOrders = profiler.registerFN(placeReactionOrders, 'placeReactionOrdersTerminal');
+placeBoostOrders = profiler.registerFN(placeBoostOrders, 'placeReactionOrdersTerminal');
 
 function pricingUpdateSell(terminal, globalOrders, myOrders) {
     resource:
