@@ -170,7 +170,7 @@ buildTowers = profiler.registerFN(buildTowers, 'buildTowers');
 
 function buildRoads(room, structures) {
     if (room.controller.level < 3) return;
-    let spawner = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+    let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.find(FIND_MINERALS)[0];
     for (let source of room.find(FIND_SOURCES)) {
         buildRoadAround(room, source.pos);
@@ -187,10 +187,22 @@ function buildRoads(room, structures) {
         buildRoadAround(room, mineral.pos);
         buildRoadFromTo(room, spawner, mineral);
     }
-    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_TOP));
-    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_RIGHT));
-    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_BOTTOM));
-    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_LEFT));
+    try {
+        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_TOP));
+    } catch (e) {
+    }
+    try {
+        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_RIGHT));
+    } catch (e) {
+    }
+    try {
+        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_BOTTOM));
+    } catch (e) {
+    }
+    try {
+        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_LEFT));
+    } catch (e) {
+    }
 }
 
 buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
