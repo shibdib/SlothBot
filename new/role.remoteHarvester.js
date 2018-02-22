@@ -14,7 +14,7 @@ function role(creep) {
     creep.room.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.flee();
+        return creep.retreat();
     }
 
     //Mark room as no go if reserved or owned by someone else
