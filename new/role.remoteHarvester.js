@@ -12,19 +12,9 @@ function role(creep) {
     }
     //Invader detection
     creep.room.invaderCheck();
-    if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
-        if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
-            creep.memory.invaderCooldown++;
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord));
-            creep.memory.destinationReached = false;
-            return null;
-        } else if (creep.memory.invaderCooldown > 50) {
-            creep.memory.invaderCooldown = undefined;
-        }
-    }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.retreat();
+        return creep.flee();
     }
 
     //Mark room as no go if reserved or owned by someone else

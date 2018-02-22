@@ -7,14 +7,17 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.borderCheck();
+    if (Game.time % 50 === 0) {
+        creep.room.cacheRoomIntel();
+    }
     //Invader detection
     creep.room.invaderCheck();
-    //Intel collection
-    creep.room.cacheRoomIntel();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.retreat();
+        return creep.flee();
     }
+    //Intel collection
+    creep.room.cacheRoomIntel();
 
     if (creep.pos.roomName !== creep.memory.destination) {
         creep.memory.destinationReached = false;
