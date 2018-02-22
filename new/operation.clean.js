@@ -6,7 +6,7 @@ Creep.prototype.cleanRoom = function () {
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     }
     this.borderCheck();
-    let creeps = this.pos.findClosestByRange(FIND_CREEPS);
+    let creeps = this.pos.findClosestByRange(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
     if (this.room.controller.reservation || creeps) {
         Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
     }
