@@ -5,15 +5,13 @@ Creep.prototype.cleanRoom = function () {
     if (this.room.name !== this.memory.targetRoom) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     }
+    this.borderCheck();
     let creeps = this.pos.findClosestByRange(FIND_CREEPS);
-    if ((this.room.controller && this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation['username'])) || creeps) {
+    if (this.room.controller.reservation || creeps) {
         Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
         this.suicide();
     }
-    let target;
-    if (this.memory.attackType === 'clean') {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES);
-    }
+    let target = this.pos.findClosestByPath(FIND_STRUCTURES);
     if (!target) {
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
             case OK:
@@ -26,12 +24,6 @@ Creep.prototype.cleanRoom = function () {
     } else {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
-                this.heal(this);
-                this.shibMove(target, {ignoreCreeps: false, repathChance: 0.5});
-                this.memory.siegeTarget = undefined;
-                break;
-            case ERR_NO_BODYPART:
-                if (this.getActiveBodyparts(ATTACK) > 0) this.attack(target);
                 this.shibMove(target, {ignoreCreeps: false, repathChance: 0.5});
                 break;
             case OK:
