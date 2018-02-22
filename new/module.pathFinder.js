@@ -324,7 +324,7 @@ function addSksToMatrix(room, matrix) {
                 for (let key in sites) {
                     let position = new RoomPosition(sites[key].x, sites[key].y, room.name);
                     if (!position.checkForWall()) {
-                        matrix.set(position.x, position.y, 15)
+                        matrix.set(position.x, position.y, 254)
                     }
                 }
             }
