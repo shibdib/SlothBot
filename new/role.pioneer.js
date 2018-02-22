@@ -58,15 +58,15 @@ function role(creep) {
             } else {
                 if (!creep.findConstruction()) {
                     //Pioneer initial builder spawn creation
-                    if (this.memory.initialBuilder) {
-                        if (this.room.memory.extensionHub) {
-                            let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
+                    if (creep.memory.initialBuilder) {
+                        if (creep.room.memory.extensionHub) {
+                            let hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
                             if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART).length === 0) {
                                 switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
-                                                Game.rooms[key].memory.activeClaim = true;
+                                            if (Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
+                                                Game.rooms[key].memory.activeClaim = creep;
                                             }
                                         }
                                 }
@@ -74,7 +74,7 @@ function role(creep) {
                                 switch (hub.repair(_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0])) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
+                                            if (Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = true;
                                             }
                                         }
@@ -86,14 +86,14 @@ function role(creep) {
                                 switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory.claimTarget === this.pos.roomName) {
+                                            if (Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = true;
                                             }
                                         }
                                 }
                             }
                         } else {
-                            findExtensionHub(this.room);
+                            findExtensionHub(creep.room);
                         }
                     }
                 }
