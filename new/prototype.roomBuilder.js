@@ -187,20 +187,10 @@ function buildRoads(room, structures) {
         buildRoadAround(room, mineral.pos);
         buildRoadFromTo(room, spawner, mineral);
     }
-    if (room.memory.neighboringRooms) {
-        if (room.memory.neighboringRooms['1']) {
-            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_TOP));
-        }
-        if (room.memory.neighboringRooms['3']) {
-            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_RIGHT));
-        }
-        if (room.memory.neighboringRooms['5']) {
-            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_BOTTOM));
-        }
-        if (room.memory.neighboringRooms['7']) {
-            buildRoadFromTo(room, spawner, spawner.pos.findClosestByRange(FIND_EXIT_LEFT));
-        }
-    }
+    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_TOP));
+    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_RIGHT));
+    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_BOTTOM));
+    buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_LEFT));
 }
 
 buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
