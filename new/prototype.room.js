@@ -238,7 +238,7 @@ Room.prototype.invaderCheck = function () {
     if (this.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
     if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) return;
     this.memory.lastInvaderCheck = Game.time;
-    let invader = _.filter(this.room.find(FIND_CREEPS), (c) => !_.includes(FRIENDLIES, c.owner['username']));
+    let invader = _.filter(this.find(FIND_CREEPS), (c) => !_.includes(FRIENDLIES, c.owner['username']));
     if (invader.length > 0) {
         this.memory.responseNeeded = true;
         this.memory.tickDetected = Game.time;
