@@ -54,6 +54,7 @@ function depositEnergy(creep) {
     }
     if (!creep.memory.linkID) {
         creep.memory.linkID = creep.harvestDepositLink();
+    } else {
         link = Game.getObjectById(creep.memory.linkID);
     }
     if (creep.memory.containerID) {
@@ -63,15 +64,12 @@ function depositEnergy(creep) {
                 creep.repair(container);
                 creep.say('Fixing');
             }
-            else if (link && link.energy !== link.energyCapacity && creep.pos.getRangeTo(link) === 1) {
-                let link = Game.getObjectById(creep.memory.linkID);
-                if (link) {
-                    if (link.hits < link.hitsMax * 0.25) {
-                        creep.repair(link);
-                        creep.say('Fixing');
-                    } else if (link.energy !== link.energyCapacity) {
-                        creep.transfer(link, RESOURCE_ENERGY);
-                    }
+            else if (link && link.energy !== link.energyCapacity) {
+                if (link.hits < link.hitsMax * 0.25) {
+                    creep.repair(link);
+                    creep.say('Fixing');
+                } else if (link.energy !== link.energyCapacity) {
+                    creep.transfer(link, RESOURCE_ENERGY);
                 }
             }
             else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {

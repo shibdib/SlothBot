@@ -11,7 +11,7 @@ function controller() {
         let room = Memory.ownedRooms[key];
         let creeps = room.find(FIND_CREEPS);
         let structures = room.find(FIND_STRUCTURES);
-        invaderCheck(room, creeps);
+        room.invaderCheck();
         //ramparts public unless needed
         rampartManager(room, structures);
         room.handleNukeAttack();
@@ -41,22 +41,6 @@ function controller() {
 module.exports.controller = profiler.registerFN(controller, 'defenseController');
 
 //Functions
-function invaderCheck(room, creeps) {
-    let invader = _.filter(creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) === false && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
-    if (invader.length > 0) {
-        room.memory.responseNeeded = true;
-        room.memory.tickDetected = Game.time;
-        if (!room.memory.numberOfHostiles || room.memory.numberOfHostiles < invader.length) {
-            room.memory.numberOfHostiles = invader.length;
-        }
-    } else if (room.memory.tickDetected < Game.time - 100 || room.memory.responseNeeded === false) {
-        room.memory.numberOfHostiles = undefined;
-        room.memory.responseNeeded = undefined;
-        room.memory.alertEmail = undefined;
-    }
-}
-
-invaderCheck = profiler.registerFN(invaderCheck, 'invaderCheckDefense');
 
 function rampartManager(room, structures) {
     let rampart = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);

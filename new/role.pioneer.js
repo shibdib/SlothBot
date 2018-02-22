@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     creep.borderCheck();
     //Invader detection
-    creep.invaderCheck();
+    creep.room.invaderCheck();
     //Intel collection
     creep.room.cacheRoomIntel();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
@@ -65,7 +65,7 @@ function role(creep) {
                                 switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
+                                            if (Game.rooms[key] && Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = creep;
                                             }
                                         }
@@ -74,7 +74,7 @@ function role(creep) {
                                 switch (creep.repair(_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0])) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
+                                            if (Game.rooms[key] && Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = true;
                                             }
                                         }
@@ -86,7 +86,7 @@ function role(creep) {
                                 switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
+                                            if (Game.rooms[key] && Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = true;
                                             }
                                         }

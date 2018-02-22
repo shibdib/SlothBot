@@ -11,7 +11,7 @@ function role(creep) {
         creep.room.cacheRoomIntel();
     }
     //Invader detection
-    creep.invaderCheck();
+    creep.room.invaderCheck();
     if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
         if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
             creep.memory.invaderCooldown++;

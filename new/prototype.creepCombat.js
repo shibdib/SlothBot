@@ -35,10 +35,17 @@ Creep.prototype.fleeFromHostile = function (hostile) {
 };
 
 Creep.prototype.attackHostile = function (hostile) {
+    this.memory.target = undefined;
     if (this.pos.getRangeTo(hostile) <= 3) this.rangedAttack(hostile);
+    let ally = this.pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c)=>c.memory.target});
+    if (this.pos.getRangeTo(ally) <= 3) {
+        let alliesHostile = Game.getObjectById(ally.memory.target);
+        if (alliesHostile) this.memory.target = hostile.id;
+    }
+    if (_.filter(this.room.find(FIND_MY_CREEPS), (c) => c.memory.target))
     if (this.attack(hostile) === ERR_NOT_IN_RANGE) {
         if (this.hits < this.hitsMax) this.heal(this);
-        this.shibMove(hostile, {forceRepath: true, ignoreCreeps: false});
+        this.shibMove(hostile, {forceRepath: true, ignoreCreeps: false, ignoreRoads: true});
     }
 };
 

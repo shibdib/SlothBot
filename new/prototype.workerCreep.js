@@ -717,6 +717,7 @@ Creep.prototype.findStorage = profiler.registerFN(findStorage, 'findStorageCreep
 
 findEssentials = function () {
     let storage = [];
+    let roomSpawnQueue = this.room.memory.creepBuildQueue;
     //Spawn
     let spawn = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'spawn'), 'id');
     if (spawn.length > 0) {
@@ -769,7 +770,7 @@ findEssentials = function () {
     }
     //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer) {
+    if (controllerContainer && !_.includes(roomSpawnQueue, 'responder')) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -784,7 +785,7 @@ findEssentials = function () {
     }
     //Links
     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (controllerLink) {
+    if (controllerLink && !_.includes(roomSpawnQueue, 'responder')) {
         let linkDistWeighted;
         const object = controllerLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -799,7 +800,7 @@ findEssentials = function () {
     }
     //Worker Deliveries
     let workers = _.filter(Game.creeps, (h) => h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
-    if (workers.length > 0 && this.ticksToLive > 30) {
+    if (workers.length > 0 && this.ticksToLive > 30 && !_.includes(roomSpawnQueue, 'responder')) {
         let workerWeighted;
         const object = workers[0];
         if (object) {
@@ -814,7 +815,7 @@ findEssentials = function () {
     //Tower
     let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
     let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));
-    if (tower.length > 0 && harvester.length >= 2) {
+    if (tower.length > 0 && harvester.length >= 2 && !_.includes(roomSpawnQueue, 'responder')) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
@@ -855,7 +856,7 @@ findEssentials = function () {
     }
     //Terminal room.memory.energySurplus
     let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
-    if (terminal.length > 0) {
+    if (terminal.length > 0 && !_.includes(roomSpawnQueue, 'responder')) {
         let terminals = [];
         for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
@@ -1012,23 +1013,4 @@ Creep.prototype.renewalCheck = function (level = 8) {
     }
     this.memory.renewing = undefined;
     return false;
-};
-
-
-Creep.prototype.invaderCheck = function () {
-    if (this.room.memory.lastInvaderCheck === Game.time) return;
-    this.room.memory.lastInvaderCheck = Game.time;
-    let creeps = this.room.find(FIND_CREEPS);
-    let invader = _.filter(creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
-    if (invader.length > 0) {
-        this.room.memory.responseNeeded = true;
-        this.room.memory.tickDetected = Game.time;
-        if (!this.room.memory.numberOfHostiles || this.room.memory.numberOfHostiles < invader.length) {
-            this.room.memory.numberOfHostiles = invader.length;
-        }
-    } else if (this.room.memory.tickDetected < Game.time - 30 || this.room.memory.responseNeeded === false) {
-        this.room.memory.numberOfHostiles = undefined;
-        this.room.memory.responseNeeded = undefined;
-        this.room.memory.alertEmail = undefined;
-    }
 };

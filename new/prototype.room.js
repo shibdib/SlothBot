@@ -230,3 +230,24 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
     }
 };
+
+
+Room.prototype.invaderCheck = function () {
+    let sk;
+    if (this.memory.lastInvaderCheck === Game.time) return;
+    if (this.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
+    if ((this.controller && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && !_.includes(FRIENDLIES, this.controller.reservation.username))) return;
+    this.memory.lastInvaderCheck = Game.time;
+    let invader = _.filter(this.room.find(FIND_CREEPS), (c) => !_.includes(FRIENDLIES, c.owner['username']));
+    if (invader.length > 0) {
+        this.memory.responseNeeded = true;
+        this.memory.tickDetected = Game.time;
+        if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
+            this.memory.numberOfHostiles = invader.length;
+        }
+    } else if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
+        this.memory.numberOfHostiles = undefined;
+        this.memory.responseNeeded = undefined;
+        this.memory.alertEmail = undefined;
+    }
+};

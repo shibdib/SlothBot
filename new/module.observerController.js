@@ -19,7 +19,15 @@ function observerControl() {
                 observer.observeRoom(target.name);
                 observer.room.memory.observerTarget = target.name;
             } else {
-                if (observer.room.memory.observerTarget) Game.rooms[observer.room.memory.observerTarget].cacheRoomIntel();
+                try {
+                    if (observer.room.memory.observerTarget) {
+                        Game.rooms[observer.room.memory.observerTarget].cacheRoomIntel();
+                        if (Game.map.getRoomLinearDistance(observer.room.memory.observerTarget, observer.room.name) <= 3) Game.rooms[observer.room.memory.observerTarget].invaderCheck();
+                    }
+                }
+                catch(err) {
+                    console.log('Observer error: ' + err)
+                }
             }
         }
     }

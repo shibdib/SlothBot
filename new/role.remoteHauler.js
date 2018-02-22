@@ -10,7 +10,7 @@ function role(creep) {
     //Invader detection
     if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
     if (!_.startsWith(creep.name, 'SK') && !creep.room.controller) {
-        creep.invaderCheck();
+        creep.room.invaderCheck();
         if (creep.memory.invaderDetected === true || creep.memory.invaderCooldown < 50) {
             creep.memory.invaderCooldown++;
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {forceRepath: true});

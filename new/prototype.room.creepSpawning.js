@@ -584,7 +584,7 @@ workerCreepQueue = function () {
         }
     }
     //Upgrader
-    if (!_.includes(queue, 'upgrader') && level === this.controller.level) {
+    if (!_.includes(queue, 'upgrader') && level === this.controller.level && !this.memory.responseNeeded) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         if (upgraders.length < _.round((9 - level) / 2)) {
             queueCreep(this, PRIORITIES.upgrader, {
@@ -593,7 +593,7 @@ workerCreepQueue = function () {
         }
     }
     //Worker
-    if (!_.includes(queue, 'worker') && _.filter(Game.constructionSites, (site) => site.pos.roomName === this.name).length > 0) {
+    if (!_.includes(queue, 'worker') && _.filter(Game.constructionSites, (site) => site.pos.roomName === this.name).length > 0 && !this.memory.responseNeeded) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < 2) {
             queueCreep(this, PRIORITIES.worker, {
@@ -630,7 +630,7 @@ workerCreepQueue = function () {
         }
     }
     //Mineral Harvester
-    if (level >= 6 && !_.includes(queue, 'mineralHarvester') && level === this.controller.level) {
+    if (level >= 6 && !_.includes(queue, 'mineralHarvester') && level === this.controller.level && !this.memory.responseNeeded) {
         let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
         let extractor = Game.getObjectById(_.pluck(_.filter(this.memory.structureCache, 'type', 'extractor'), 'id')[0]);
         if (mineralHarvesters.length < 1 && extractor) {
@@ -671,7 +671,7 @@ remoteCreepQueue = function () {
         }
     }
     //Remotes
-    if (this.memory.remoteRooms) {
+    if (this.memory.remoteRooms && !this.memory.responseNeeded) {
         for (let keys in this.memory.remoteRooms) {
             if (Game.map.findRoute(this.name, this.memory.remoteRooms[keys]).length >= 2 || checkIfSK(this.memory.remoteRooms[keys])) continue;
             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
@@ -726,7 +726,7 @@ remoteCreepQueue = function () {
         }
     }
     //SK Rooms
-    if (level >= 7 && this.memory.skRooms) {
+    if (level >= 7 && this.memory.skRooms && !this.memory.responseNeeded) {
         for (let key in this.memory.skRooms) {
             let SKRoom = Game.rooms[this.memory.skRooms[key]];
             if (!SKRoom) continue;

@@ -18,7 +18,7 @@ let protectedStructures = [
 ];
 
 function role(creep) {
-    creep.invaderCheck();
+    creep.room.invaderCheck();
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
             RESOURCE_KEANIUM_OXIDE
