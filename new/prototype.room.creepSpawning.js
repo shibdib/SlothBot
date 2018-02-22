@@ -742,7 +742,7 @@ remoteCreepQueue = function () {
                 }
             }
             if (!_.includes(queue, 'SKattacker')) {
-                if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 100)) && Game.map.findRoute(this.name, SKRoom.name).length < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
+                if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 250)) && Game.map.findRoute(this.name, SKRoom.name).length < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
                     queueCreep(this, PRIORITIES.SKattacker, {
                         role: 'SKattacker',
                         destination: this.memory.skRooms[key]
