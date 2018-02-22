@@ -701,7 +701,7 @@ remoteCreepQueue = function () {
                     })
                 }
             }
-            if (!_.includes(queue, 'reserver')) {
+            if (!_.includes(queue, 'reserver') && level >= 5) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === this.memory.remoteRooms[keys]);
                 if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[this.memory.remoteRooms[keys]] || !Game.rooms[this.memory.remoteRooms[keys]].memory.reservationExpires || Game.rooms[this.memory.remoteRooms[keys]].memory.reservationExpires <= Game.time + 250) && (!Game.rooms[this.memory.remoteRooms[keys]] || !Game.rooms[this.memory.remoteRooms[keys]].memory.noRemote)) {
                     queueCreep(this, PRIORITIES.reserver, {
