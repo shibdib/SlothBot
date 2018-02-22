@@ -240,6 +240,7 @@ Room.prototype.invaderCheck = function () {
     this.memory.lastInvaderCheck = Game.time;
     let invader = _.filter(this.find(FIND_CREEPS), (c) => !_.includes(FRIENDLIES, c.owner['username']));
     if (invader.length > 0) {
+        log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
         this.memory.responseNeeded = true;
         this.memory.tickDetected = Game.time;
         if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
