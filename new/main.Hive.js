@@ -3,6 +3,7 @@ let overlord = require('main.Overlord');
 let defense = require('military.defense');
 let highCommand = require('military.highCommand');
 let links = require('module.linkController');
+let terminals = require('module.terminalController');
 let observers = require('module.observerController');
 
 function mind() {
@@ -17,6 +18,9 @@ function mind() {
 
     // Handle Links
     if (Game.time % 10 === 0) links.linkControl();
+
+    // Handle Terminals
+    if (Game.time % 15 === 0) terminals.terminalControl();
 
     // Observer Control
     observers.observerControl();
