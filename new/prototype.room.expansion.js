@@ -24,9 +24,9 @@ claimNewRoom = function () {
         if (this.memory.claimTarget) {
             Memory.roomCache[this.memory.claimTarget].claimWorthy = undefined;
             Game.notify(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name);
-            console.log(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name);
+            log.i(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name);
         } else {
-            console.log(this.name + ' Could not find any valid expansion rooms.');
+            log.i(this.name + ' Could not find any valid expansion rooms.');
         }
     }
 };

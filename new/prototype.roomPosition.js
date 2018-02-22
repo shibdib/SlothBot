@@ -97,7 +97,7 @@ RoomPosition.prototype.isValid = function () {
 
 RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
     if (distance > 1) {
-        console.log('!!!! Distance > 1 not yet implemented');
+        log.i('!!!! Distance > 1 not yet implemented');
     }
     return this.getAdjacentPosition((direction - 1) % 8 + 1);
 };

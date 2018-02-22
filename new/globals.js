@@ -1,4 +1,8 @@
+let Log = require('logger');
+
 let globals = function () {
+
+    global.log = new Log();
 
     global.HOSTILES = [
         'CaptainMuscles',
@@ -577,6 +581,31 @@ if(document.ticks['t${Game.time}']===undefined){
         } else {
             global.LOANlist = [];
             return false;
+        }
+    };
+
+
+// courtesy of tedivm
+    global.mem_hack = function(){
+        if(Game.time !== global.compile_tick) {
+            let memory_start = Game.cpu.getUsed();
+            if(global.memhack_lastTime && global.memhack_LastMemory && Game.time === (global.memhack_lastTime + 1)){
+                delete global.Memory;
+                global.Memory = global.memhack_LastMemory;
+                RawMemory._parsed = global.memhack_LastMemory
+            }else{
+                Memory;
+                if(!Game.rooms['sim']) {
+                    global.memhack_LastMemory = RawMemory._parsed;
+                    global.memhack_lastTime = Game.time
+                }
+            }
+            let memory_end = Game.cpu.getUsed();
+            let memory_parse_cpu = memory_end - memory_start
+        } else {
+            Memory;
+            global.memhack_LastMemory = RawMemory._parsed;
+            global.memhack_lastTime = Game.time
         }
     }
 };

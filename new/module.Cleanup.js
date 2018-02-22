@@ -13,6 +13,11 @@ function cleanup() {
             delete Memory.creeps[name];
         }
     }
+    for(let name in Memory.flags) {
+        if(!Game.flags[name]) {
+            delete Memory.flags[name];
+        }
+    }
     let buggedCreep = _.filter(Game.creeps, (c) => !c.memory.role);
     for (let key in buggedCreep) {
         buggedCreep[key].suicide();
@@ -26,7 +31,7 @@ function cleanPathCacheByUsage() {
         if (activeRoom.memory && activeRoom.memory.pathCache && _.size(activeRoom.memory.pathCache) > 375) {
             let sorted = _.sortBy(activeRoom.memory.pathCache, 'uses');
             let overage = (_.size(activeRoom.memory.pathCache) - 375) + 100;
-            console.log('Cleaning Path cache for ' + activeRoom.name + ' (Over max size by ' + overage + ')...');
+            log.i('Cleaning Path cache for ' + activeRoom.name + ' (Over max size by ' + overage + ')...');
             activeRoom.memory.pathCache = _.slice(sorted, overage, _.size(activeRoom.memory.pathCache));
         }
     }
@@ -36,7 +41,7 @@ function cleanDistanceCacheByUsage() {
     if(Memory.distanceCache && _.size(Memory.distanceCache) > 1500) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory.distanceCache, 'uses');
         let overage = (_.size(Memory.distanceCache) - 1500) + 100;
-        console.log('Cleaning Distance cache (Over max size by '+overage+')...');
+        log.i('Cleaning Distance cache (Over max size by '+overage+')...');
         Memory.distanceCache = _.slice(sorted, overage, _.size(Memory.distanceCache));
     }
 }

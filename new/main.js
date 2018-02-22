@@ -26,7 +26,7 @@ module.exports.loop = wrapLoop(function() {
 
         //Bucket Check
         if (Game.cpu.bucket < 100 * Game.cpu.tickLimit && Game.cpu.bucket < Game.cpu.limit * 10) {
-            console.log('Skipping tick ' + Game.time + ' due to lack of CPU.');
+            log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
             return;
         }
 

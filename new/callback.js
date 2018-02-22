@@ -29,7 +29,7 @@ Callback.prototype = {
             try {
                 item.call(thisObj, o);
             } catch (err) {
-                console.log('Ignored error calling back ', item.name, 'with', o, '-', err);
+                log.e('Ignored error calling back ', item.name, 'with', o, '-', err);
             }
         });
     }

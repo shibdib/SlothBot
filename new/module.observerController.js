@@ -26,7 +26,7 @@ function observerControl() {
                     }
                 }
                 catch(err) {
-                    console.log('Observer error: ' + err)
+                    log.e('Observer error: ' + err)
                 }
             }
         }
