@@ -10,7 +10,7 @@ let segments = require('module.segmentManager');
 
 //profiler.enable();
 
-module.exports.loop = wrapLoop(function() {
+module.exports.loop = function() {
     profiler.wrap(function () {
         //Update allies
         populateLOANlist();
@@ -33,23 +33,4 @@ module.exports.loop = wrapLoop(function() {
         //Hive Mind
         hive.hiveMind();
     });
-});
-
-function wrapLoop(fn) {
-    let memory;
-    let tick;
-
-    return () => {
-        if (tick && tick + 1 === Game.time && memory) {
-            delete global.Memory;
-            Memory = memory;
-        } else {
-            memory = Memory;
-        }
-
-        tick = Game.time;
-
-        fn();
-        RawMemory.set(JSON.stringify(Memory));
-    };
-}
+};
