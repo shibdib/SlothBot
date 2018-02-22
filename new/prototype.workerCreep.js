@@ -346,8 +346,10 @@ findEnergy = function (range = 250, hauler = false) {
                 if (object.store[RESOURCE_ENERGY] < 20 || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1) || (object.room.controller.level >= 4 && object.store[RESOURCE_ENERGY] < 1200)) {
                     continue;
                 }
-                const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = object.pos.rangeToTarget(this) * (2 - containerAmountWeighted) + (numberOfUsers / 2);
+                let itemRange = object.pos.rangeToTarget(this);
+                if (itemRange > range) continue;
+                let containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
+                let containerDistWeighted = itemRange * (2 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
                     id: container[i],
                     distWeighted: containerDistWeighted,
@@ -372,7 +374,9 @@ findEnergy = function (range = 250, hauler = false) {
                 if (object.store[RESOURCE_ENERGY] <= 1000) {
                     continue;
                 }
-                const useStorageDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
+                let itemRange = object.pos.rangeToTarget(this);
+                if (itemRange > range) continue;
+                const useStorageDistWeighted = _.round(itemRange * 0.3, 0) + 1;
                 useStorages.push({
                     id: useStorage[i],
                     distWeighted: useStorageDistWeighted,
@@ -393,14 +397,17 @@ findEnergy = function (range = 250, hauler = false) {
         let linkDistWeighted;
         const object = storageLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && object.energy > 0 && numberOfUsers.length === 0) {
-            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
+        let itemRange = object.pos.rangeToTarget(this);
+        if (itemRange < range) {
+            if (object && object.energy > 0 && numberOfUsers.length === 0) {
+                linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
+            }
+            energy.push({
+                id: storageLink.id,
+                distWeighted: linkDistWeighted,
+                harvest: false
+            });
         }
-        energy.push({
-            id: storageLink.id,
-            distWeighted: linkDistWeighted,
-            harvest: false
-        });
     }
     //Terminal
     let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
@@ -408,8 +415,9 @@ findEnergy = function (range = 250, hauler = false) {
         let terminals = [];
         for (let i = 0; i < terminal.length; i++) {
             const object = Game.getObjectById(terminal[i]);
+            let itemRange = object.pos.rangeToTarget(this);
             if (object) {
-                if (object.store[RESOURCE_ENERGY] <= 5000) {
+                if (object.store[RESOURCE_ENERGY] <= 5000 || itemRange > range) {
                     continue;
                 }
                 const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;

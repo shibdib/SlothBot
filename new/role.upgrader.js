@@ -88,7 +88,7 @@ function role(creep) {
                     creep.shibMove(terminal);
                 }
             } else if (!creep.memory.energyDestination) {
-                if (!creep.findEnergy()) {
+                if (!creep.findEnergy(6)) {
                     let source = creep.pos.getClosestSource();
                     if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
                 }
