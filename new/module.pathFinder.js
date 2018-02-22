@@ -291,7 +291,11 @@ findRoute = profiler.registerFN(findRoute, 'shibFindRoute');
 //FUNCTIONS
 function normalizePos(destination) {
     if (!(destination instanceof RoomPosition)) {
-        return destination.pos;
+        if (destination) {
+            return destination.pos;
+        } else {
+            return null;
+        }
     }
     return destination;
 }
