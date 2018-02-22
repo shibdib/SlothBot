@@ -124,6 +124,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     let reservationTick = undefined;
     let level = undefined;
     let hostiles = undefined;
+    let nonCombats = undefined;
     let sk = undefined;
     let towers = undefined;
     let claimValue = undefined;
@@ -132,8 +133,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.find(FIND_SOURCES);
-        let structures = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD});
+        let structures = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER});
         hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
+        nonCombats = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
         towers = room.find(structures, {filter: (e) => e.structureType === STRUCTURE_TOWER});
         if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
         let minerals = room.find(FIND_MINERALS);
@@ -169,7 +171,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 claimWorthy = false;
             }
             // Handle abandoned rooms
-            if (!owner && !reservation && structures.length > 2) {
+            if (!owner && !reservation && structures.length > 2 && nonCombats + hostiles === 0) {
                 needsCleaning = true;
             }
         }
@@ -185,6 +187,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             level: level,
             towers: towers.length,
             hostiles: hostiles.length,
+            nonCombats: nonCombats.length,
             sk: sk,
             claimValue: claimValue,
             claimWorthy: claimWorthy,
