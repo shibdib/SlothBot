@@ -22,7 +22,7 @@ function observerControl() {
                 try {
                     if (observer.room.memory.observerTarget) {
                         Game.rooms[observer.room.memory.observerTarget].cacheRoomIntel();
-                        if (Game.map.getRoomLinearDistance(observer.room.memory.observerTarget, observer.room.name) <= 2) Game.rooms[observer.room.memory.observerTarget].invaderCheck();
+                        if (Game.map.findRoute(observer.room.memory.observerTarget, observer.room.name).length <= 2) Game.rooms[observer.room.memory.observerTarget].invaderCheck();
                     }
                 }
                 catch(err) {
