@@ -9,14 +9,12 @@ Creep.prototype.cleanRoom = function () {
     let creeps = this.pos.findClosestByRange(FIND_CREEPS);
     if (this.room.controller.reservation || creeps) {
         Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
-        this.suicide();
     }
     let target = this.pos.findClosestByPath(FIND_STRUCTURES);
     if (!target) {
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
             case OK:
                 Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
-                this.suicide();
                 break;
             case ERR_NOT_IN_RANGE:
                 this.shibMove(this.room.controller);
