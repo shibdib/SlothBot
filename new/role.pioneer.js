@@ -65,16 +65,16 @@ function role(creep) {
                                 switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
+                                            if (Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = creep;
                                             }
                                         }
                                 }
                             } else if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0].hits < 5000) {
-                                switch (hub.repair(_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0])) {
+                                switch (creep.repair(_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0])) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
+                                            if (Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = true;
                                             }
                                         }
@@ -86,7 +86,7 @@ function role(creep) {
                                 switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
+                                            if (Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
                                                 Game.rooms[key].memory.activeClaim = true;
                                             }
                                         }
