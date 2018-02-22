@@ -12,11 +12,7 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestEnemy = function () {
-    return this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
-        filter: function (object) {
-            return _.includes(FRIENDLIES, object.owner.username) === true
-        }
-    });
+    return this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
 };
 
 Creep.prototype.fleeFromHostile = function (hostile) {
@@ -53,7 +49,7 @@ Creep.prototype.healMyCreeps = function () {
         }
     });
     if (myCreeps.length > 0) {
-        this.say('heal', true);
+        this.say('Medic Here', true);
         this.moveTo(myCreeps[0]);
         if (this.pos.getRangeTo(myCreeps[0]) <= 1) {
             this.heal(myCreeps[0]);
@@ -102,7 +98,7 @@ Creep.prototype.handleDefender = function () {
     if (this.fightRampart(hostile)) {
         return true;
     }
-    if (hostile !== null) {
+    if (hostile) {
         return this.attackHostile(hostile);
     }
     if (this.healMyCreeps()) {
