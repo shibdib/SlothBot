@@ -22,7 +22,7 @@ Creep.prototype.cleanRoom = function () {
     } else {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
-                this.shibMove(target, {ignoreCreeps: false, repathChance: 0.5});
+                this.shibMove(target);
                 break;
             case OK:
                 return true;
