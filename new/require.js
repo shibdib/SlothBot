@@ -7,3 +7,6 @@ require("prototype.roomBuilder");
 require("prototype.room.creepSpawning");
 require("prototype.room.expansion");
 require('module.pathFinder');
+
+// Operations
+require("operation.clean");
