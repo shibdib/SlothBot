@@ -6,7 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.room.cacheRoomIntel();
+    creep.room.cacheRoomIntel(true);
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [];
         let count = 1;

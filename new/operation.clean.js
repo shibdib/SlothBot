@@ -5,7 +5,8 @@ Creep.prototype.cleanRoom = function () {
     if (this.room.name !== this.memory.targetRoom) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     }
-    if (this.room.controller && _.includes(FRIENDLIES, this.room.controller.reservation['username'])) {
+    let creeps = this.pos.findClosestByRange(FIND_CREEPS);
+    if ((this.room.controller && this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation['username'])) || creeps) {
         Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
         this.suicide();
     }

@@ -115,8 +115,8 @@ Room.prototype.handleNukeAttack = function () {
 
     return true;
 };
-Room.prototype.cacheRoomIntel = function () {
-    if (this.memory.lastIntelCache > Game.time - 100) return;
+Room.prototype.cacheRoomIntel = function (force = false) {
+    if (this.memory.lastIntelCache > Game.time - 100 && !force) return;
     this.memory.lastIntelCache = Game.time;
     let room = Game.rooms[this.name];
     let owner = undefined;
