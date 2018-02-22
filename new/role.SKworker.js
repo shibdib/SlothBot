@@ -80,38 +80,39 @@ function SKdeposit(creep) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
     if (creep.memory.containerID) {
-        if (!creep.findConstruction() || _.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
-            let container = Game.getObjectById(creep.memory.containerID);
-            if (container) {
-                if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) return creep.memory.containerID = undefined;
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container) {
+            if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) return creep.memory.containerID = undefined;
+            creep.memory.containerBuilding = undefined;
+            let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
+            if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
+                switch (creep.repair(container)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(container);
+                        break;
+                }
+                creep.say('Fixing');
+            } else if (otherContainers.length > 0) {
+                switch (creep.build(otherContainers[0])) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(otherContainers[0]);
+                        break;
+                }
+            } else if (_.sum(container.store) !== container.storeCapacity) {
                 if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
-                creep.memory.containerBuilding = undefined;
-                let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
-                if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
-                    switch (creep.repair(container)) {
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(container);
-                            break;
-                    }
-                    creep.say('Fixing');
-                } else if (otherContainers.length > 0) {
-                    switch (creep.build(otherContainers[0])) {
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(otherContainers[0]);
-                            break;
-                    }
-                } else if (_.sum(container.store) !== container.storeCapacity) {
-                    for (const resourceType in creep.carry) {
-                        if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(container, {range: 0});
-                        }
+                for (const resourceType in creep.carry) {
+                    if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(container, {range: 0});
                     }
                 }
-            }
-        } else {
-            let site = Game.getObjectById(creep.memory.constructionSite);
-            if (creep.build(site) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(site);
+            } else if (creep.carry[RESOURCE_ENERGY] > 0) {
+                creep.findConstruction();
+                if (creep.memory.task === 'build') {
+                    let construction = Game.getObjectById(creep.memory.constructionSite);
+                    if (creep.build(construction) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(construction, {range: 3});
+                    }
+                }
             }
         }
     } else {
@@ -132,7 +133,7 @@ function skRoads(creep) {
     let minerals = creep.room.find(FIND_MINERALS);
     sources = sources.concat(minerals);
     let neighboring = Game.map.describeExits(creep.pos.roomName);
-    for (let key in sources){
+    for (let key in sources) {
         if (_.size(Game.constructionSites) >= 50) return;
         buildRoadAround(creep.room, sources[key].pos);
         buildRoadFromTo(creep.room, sources[key], _.sample(sources));
@@ -163,6 +164,7 @@ function buildRoadFromTo(room, start, end) {
 }
 
 buildRoadFromTo = profiler.registerFN(buildRoadFromTo, 'buildRoadFromToFunctionRemote');
+
 function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
