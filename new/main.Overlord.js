@@ -47,6 +47,7 @@ function mind(room, roomLimit) {
 module.exports.overlordMind = profiler.registerFN(mind, 'overlordMind');
 
 function minionController(minion) {
+    if (minion.spawning) return;
     minion.notifyWhenAttacked(false);
     let memoryRole = minion.memory.role;
     let creepRole = require('role.' + memoryRole);
