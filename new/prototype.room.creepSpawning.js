@@ -759,7 +759,7 @@ remoteCreepQueue = function () {
             }
             if (!_.includes(queue, 'remoteHauler')) {
                 let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === this.name);
-                if (SKhauler.length < SKworker.length / 2 && (SKAttacker.length > 0)) {
+                if (SKhauler.length < 2 && (SKAttacker.length > 0)) {
                     queueCreep(this, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler',
                         destination: this.memory.skRooms[key]
