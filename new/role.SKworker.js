@@ -11,7 +11,7 @@ function role(creep) {
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
     let lair = Game.getObjectById(creep.memory.lair);
     if (lair && creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 10) return creep.flee(lair);
-    if (creep.hits < creep.hitsMax) return goHeal(creep);
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = undefined;
@@ -53,14 +53,6 @@ function role(creep) {
         }
     }
 }
-
-module.exports.role = profiler.registerFN(role, 'SKWorkerRole');
-
-function goHeal(creep) {
-    creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 20});
-}
-
-goHeal = profiler.registerFN(goHeal, 'goHeal');
 
 /**
  * @return {undefined}

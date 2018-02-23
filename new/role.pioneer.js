@@ -7,24 +7,17 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.borderCheck();
-    if (Game.time % 50 === 0) {
-        creep.room.cacheRoomIntel();
-    }
+    if (Game.time % 50 === 0) creep.room.cacheRoomIntel();
     //Invader detection
     creep.room.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.retreat();
-    }
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
+    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     //Intel collection
     creep.room.cacheRoomIntel();
 
-    if (creep.pos.roomName !== creep.memory.destination) {
-        creep.memory.destinationReached = false;
-    }
-    if (creep.pos.roomName === creep.memory.destination) {
-        creep.memory.destinationReached = true;
-    }
     if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})) {
         if (creep.memory.initialBuilder) {
             log.a(creep.room.name + ' is now an active room and no longer needs support.');

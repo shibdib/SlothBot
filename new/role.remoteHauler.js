@@ -13,12 +13,10 @@ function role(creep) {
     //Invader detection
     creep.room.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.retreat();
-    }
-    if (creep.pos.roomName !== creep.memory.destination) {
-        creep.memory.destinationReached = false;
-    }
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
+    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (_.sum(creep.carry) === 0) {
         delete creep.memory.storageDestination;
         creep.memory.hauling = false;

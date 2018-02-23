@@ -574,3 +574,8 @@ Room.prototype.handleNukeAttack = function () {
 
     return true;
 };
+
+
+Room.prototype.goHomeAndHeal = function () {
+    this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
+};

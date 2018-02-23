@@ -13,9 +13,10 @@ function role(creep) {
     //Invader detection
     creep.room.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        return creep.retreat();
-    }
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
+    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
 
     //Mark room as no go if reserved or owned by someone else
     if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== 'Shibdib') || creep.room.owner)) {
