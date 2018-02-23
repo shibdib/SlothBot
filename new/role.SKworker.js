@@ -7,31 +7,18 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     let source;
-    if (creep.hits < creep.hitsMax) {
-        creep.heal(creep);
-    }
-    let SKRanged = _.filter(Game.creeps, (sk) => sk.memory.destination === creep.memory.destination && (sk.memory.role === 'SKranged' || sk.memory.role === 'SKattacker'));
-    if (SKRanged.length === 0) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 20});
-        creep.memory.harvesting = undefined;
-        creep.memory.source = undefined;
-        return;
-    }
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
+    if (creep.hits < creep.hitsMax) return goHeal(creep);
     //Initial move
-    if (creep.carry.energy === 0) {
-        creep.memory.harvesting = true;
-    }
+    if (creep.carry.energy === 0) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = undefined;
-    if (creep.pos.roomName === creep.memory.destination) {
-        creep.memory.destinationReached = true;
-        creep.borderCheck();
-    }
-    if (!creep.memory.destinationReached) {
+    if (creep.pos.roomName !== creep.memory.destination) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
-    } else if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) {
-        creep.retreat();
-    } else if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.harvesting === false) {
+    }
+    creep.memory.destinationReached = true;
+    creep.borderCheck();
+    if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.harvesting === false) {
         creep.memory.harvesting = false;
         SKdeposit(creep);
     } else {
@@ -70,6 +57,12 @@ function role(creep) {
 }
 
 module.exports.role = profiler.registerFN(role, 'SKWorkerRole');
+
+function goHeal(creep) {
+    creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 20});
+}
+
+goHeal = profiler.registerFN(goHeal, 'goHeal');
 
 /**
  * @return {undefined}
@@ -134,7 +127,7 @@ function skRoads(creep) {
     sources = sources.concat(minerals);
     let neighboring = Game.map.describeExits(creep.pos.roomName);
     for (let key in sources) {
-        if (_.size(Game.constructionSites) >= 50) return;
+        if (_.size(Game.constructionSites) >= 35) return;
         buildRoadAround(creep.room, sources[key].pos);
         buildRoadFromTo(creep.room, sources[key], _.sample(sources));
         if (neighboring) {
@@ -153,7 +146,6 @@ function skRoads(creep) {
         }
     }
 }
-
 
 function buildRoadFromTo(room, start, end) {
     let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
