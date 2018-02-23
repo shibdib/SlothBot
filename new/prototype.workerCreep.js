@@ -275,20 +275,6 @@ harvestDepositContainer = function () {
 };
 Creep.prototype.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
 
-harvestDepositLink = function () {
-    let link = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK});
-    if (link) {
-        if (this.pos.getRangeTo(link) <= 1) {
-            return link.id;
-        } else if (this.pos.getRangeTo(link) <= 3) {
-            this.shibMove(link);
-            return link.id;
-        }
-    }
-    return null;
-};
-Creep.prototype.harvestDepositLink = profiler.registerFN(harvestDepositLink, 'harvestDepositLinkCreepFunctions');
-
 harvesterContainerBuild = function () {
     if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1){
         if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {

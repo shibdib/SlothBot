@@ -53,7 +53,7 @@ function depositEnergy(creep) {
         creep.memory.containerID = creep.harvestDepositContainer();
     }
     if (!creep.memory.linkID) {
-        creep.memory.linkID = creep.harvestDepositLink();
+        creep.memory.linkID = harvestDepositLink(creep);
     } else {
         link = Game.getObjectById(creep.memory.linkID);
     }
@@ -84,4 +84,28 @@ function depositEnergy(creep) {
             creep.harvesterContainerBuild();
         }
     }
-}
+};
+
+function harvestDepositLink(creep) {
+    if (!creep.memory.storageLink || !creep.memory.containerID) return;
+    let link = this.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK});
+    if (link) {
+        if (this.pos.getRangeTo(link) <= 1) {
+            return link.id;
+        } else if (this.pos.getRangeTo(link) <= 3) {
+            this.shibMove(link);
+            return link.id;
+        }
+    } else {
+        let container = Game.getObjectById(creep.memory.containerID);
+        let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
+        for (let key in zoneTerrain) {
+            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
+            if (position.checkForAllStructure().length > 0) continue;
+            try {
+                position.createConstructionSite(STRUCTURE_LINK);
+            } catch (e) {
+            }
+        }
+    }
+};

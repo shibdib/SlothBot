@@ -155,8 +155,7 @@ function buildLinks(room, structures) {
     if (room.controller.level < 5) return;
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (storage && !room.memory.storageLink) {
-        let pos = new RoomPosition(storage.pos.x, storage.pos.y, room.name);
-        let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, pos.y - 1, pos.x - 1, pos.y + 1, pos.x + 1, true);
+        let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 1, storage.pos.x - 1, storage.pos.y + 1, storage.pos.x + 1, true);
         for (let key in zoneTerrain) {
             let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
             if (position.checkForAllStructure().length > 0) continue;
