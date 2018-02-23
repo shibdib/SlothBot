@@ -88,12 +88,12 @@ function depositEnergy(creep) {
 
 function harvestDepositLink(creep) {
     if (!creep.memory.storageLink || !creep.memory.containerID) return;
-    let link = this.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK});
+    let link = creep.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
     if (link) {
-        if (this.pos.getRangeTo(link) <= 1) {
+        if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
-        } else if (this.pos.getRangeTo(link) <= 3) {
-            this.shibMove(link);
+        } else if (creep.pos.getRangeTo(link) <= 3) {
+            creep.shibMove(link);
             return link.id;
         }
     } else {
