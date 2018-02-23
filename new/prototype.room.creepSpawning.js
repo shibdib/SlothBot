@@ -568,7 +568,7 @@ workerCreepQueue = function () {
     }
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
-    if (harvesters.length === 0 && energy < 600) {
+    if (harvesters.length === 0) {
         this.memory.creepBuildQueue = undefined;
         queueCreep(this, PRIORITIES.stationaryHarvester, {
             role: 'stationaryHarvester',
