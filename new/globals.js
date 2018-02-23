@@ -49,6 +49,7 @@ let globals = function () {
         remoteHauler: 7,
         pioneer: 7,
         remoteResponse: 3,
+        reserver: 9,
         // SK
         SKworker: 5,
         SKattacker: 6,
@@ -65,7 +66,6 @@ let globals = function () {
         raider: 3,
         // Misc
         claimer: 2,
-        reserver: 5,
         explorer: 2,
         scout: 2,
     };
