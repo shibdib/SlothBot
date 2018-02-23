@@ -6,6 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    if (creep.hits < creep.hitsMax) creep.heal(creep);
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (creep.pos.roomName !== creep.memory.destination) {
         creep.memory.destinationReached = undefined;
@@ -18,13 +19,11 @@ function role(creep) {
     } else if (hostiles) {
         switch (creep.attack(hostiles)) {
             case ERR_NOT_IN_RANGE:
-                creep.heal(creep);
                 creep.rangedAttack(hostiles);
                 creep.shibMove(hostiles, {movingTarget: true, ignoreCreeps: false});
                 break;
             case ERR_NO_BODYPART:
                 creep.rangedAttack(hostiles);
-                creep.heal(creep);
                 break;
             default:
                 creep.rangedAttack(hostiles);
