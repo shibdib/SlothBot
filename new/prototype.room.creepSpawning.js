@@ -732,7 +732,7 @@ remoteCreepQueue = function () {
             if (!SKRoom) continue;
             let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'SKattacker' && creep.memory.overlord === this.name);
             let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'SKworker');
-            if (!_.includes(queue, 'SKsupport')) {
+            /**f (!_.includes(queue, 'SKsupport')) {
                 let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.skRooms[key] && creep.memory.role === 'SKsupport' && creep.memory.overlord === this.name);
                 if (((SKSupport.length < 1 || (SKSupport.length === 1 && SKSupport[0].ticksToLive < 100)) && SKAttacker.length > 0) && Game.map.findRoute(this.name, SKRoom.name).length < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
                     queueCreep(this, PRIORITIES.SKsupport, {
@@ -740,7 +740,7 @@ remoteCreepQueue = function () {
                         destination: this.memory.skRooms[key]
                     })
                 }
-            }
+            }**/
             if (!_.includes(queue, 'SKattacker')) {
                 if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 250)) && Game.map.findRoute(this.name, SKRoom.name).length < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
                     queueCreep(this, PRIORITIES.SKattacker, {
