@@ -98,13 +98,16 @@ function harvestDepositLink(creep) {
         }
     } else {
         let container = Game.getObjectById(creep.memory.containerID);
-        let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
-        for (let key in zoneTerrain) {
-            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
-            if (position.checkForAllStructure().length > 0) continue;
-            try {
-                position.createConstructionSite(STRUCTURE_LINK);
-            } catch (e) {
+        let inBuild = container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
+        if (!inBuild) {
+            let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
+            for (let key in zoneTerrain) {
+                let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
+                if (position.checkForAllStructure().length > 0) continue;
+                try {
+                    position.createConstructionSite(STRUCTURE_LINK);
+                } catch (e) {
+                }
             }
         }
     }
