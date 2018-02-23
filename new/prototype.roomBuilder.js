@@ -26,6 +26,7 @@ Room.prototype.buildRoom = function () {
     }
     buildExtensions(this);
     buildRoads(this, structures);
+    buildLinks(this, structures);
     buildWalls(this, structures);
     buildStorage(this, structures);
     buildTowers(this, structures);
@@ -121,7 +122,7 @@ function buildWalls(room, structures) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
     }
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    let safeZone = Game.rooms[hub.roomName].lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
+    let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
     for (let key in safeZone) {
         let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
         if (position.getRangeTo(hub) === 6) {
@@ -137,7 +138,7 @@ function buildStorage(room, structures) {
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (!storage) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let safeZone = Game.rooms[hub.roomName].lookForAtArea(LOOK_TERRAIN, hub.y - 2, hub.x - 2, hub.y + 2, hub.x + 2, true);
+        let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 2, hub.x - 2, hub.y + 2, hub.x + 2, true);
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
             if (position.getRangeTo(hub) === 2) {
@@ -149,6 +150,22 @@ function buildStorage(room, structures) {
 }
 
 buildStorage = profiler.registerFN(buildStorage, 'buildStorage');
+
+function buildLinks(room, structures) {
+    if (room.controller.level < 5) return;
+    let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (storage && !room.memory.storageLink) {
+        let pos = new RoomPosition(storage.pos.x, storage.pos.y, room.name);
+        let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, pos.y - 1, pos.x - 1, pos.y + 1, pos.x + 1, true);
+        for (let key in zoneTerrain) {
+            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
+            if (position.checkForAllStructure().length > 0) continue;
+            position.createConstructionSite(STRUCTURE_LINK);
+        }
+    }
+}
+
+buildLinks = profiler.registerFN(buildLinks, 'buildLinks');
 
 function buildTowers(room, structures) {
     if (room.controller.level < 3) return;
