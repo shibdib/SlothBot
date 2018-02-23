@@ -280,6 +280,12 @@ function findRoute(origin, destination, options = {}) {
                     return 4 * highwayBias;
                 }
             }
+            // Avoid rooms owned by others
+            if (Memory.roomCache[roomName]) {
+                if (Memory.roomCache[roomName].owner.username && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username)) {
+                    return 25 * highwayBias;
+                }
+            }
             return 2.5;
         }
     }).forEach(function (info) {
