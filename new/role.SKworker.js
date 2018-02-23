@@ -9,6 +9,8 @@ function role(creep) {
     let source;
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
+    let lair = Game.getObjectById(creep.memory.lair);
+    if (lair && creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 10) return creep.flee(lair);
     if (creep.hits < creep.hitsMax) return goHeal(creep);
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
@@ -25,12 +27,9 @@ function role(creep) {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (!source || source.pos.roomName !== creep.pos.roomName) return creep.memory.source = undefined;
-            if (!creep.memory.lair) {
-                creep.memory.lair = source.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
-            }
-            let lair = Game.getObjectById(creep.memory.lair);
-            if (creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 5) return creep.flee(lair);
+            if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
             if (source.energy === 0) {
+                if (lair && creep.pos.getRangeTo(lair) <= 6) return creep.flee(lair);
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
                 switch (creep.harvest(source)) {
@@ -39,13 +38,12 @@ function role(creep) {
                         break;
                     case ERR_NO_BODYPART:
                         creep.shibMove(source);
-                        creep.heal(creep);
                         break;
                     case ERR_TIRED:
                         creep.idleFor(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.idleFor(Game.getObjectById(creep.memory.source).ticksToRegeneration);
+                        break;
                 }
             }
         } else {
