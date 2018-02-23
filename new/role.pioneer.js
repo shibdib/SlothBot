@@ -53,11 +53,16 @@ function role(creep) {
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
         } else {
+            let container = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER}), 'hits');
             if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
             } else if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(creep.room.controller);
+                }
+            } else if (container && container.hits < 100000) {
+                if (creep.repair(container) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(container);
                 }
             } else {
                 if (!creep.findConstruction()) {
