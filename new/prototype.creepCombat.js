@@ -576,6 +576,6 @@ Room.prototype.handleNukeAttack = function () {
 };
 
 
-Room.prototype.goHomeAndHeal = function () {
+Creep.prototype.goHomeAndHeal = function () {
     this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
 };
