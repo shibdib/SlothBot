@@ -186,7 +186,7 @@ function buildTowers(room, structures) {
 buildTowers = profiler.registerFN(buildTowers, 'buildTowers');
 
 function buildRoads(room, structures) {
-    if (room.controller.level < 3) return;
+    if (room.controller.level < 3 || _.size(Game.constructionSites) >= 45) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.find(FIND_MINERALS)[0];
     for (let source of room.find(FIND_SOURCES)) {
