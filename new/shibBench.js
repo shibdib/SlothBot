@@ -1,6 +1,4 @@
-module.exports =
-
-    module.exports.shibBench = function (name, start, end = Game.cpu.getUsed()) {
+module.exports.shibBench = function (name, start, end = Game.cpu.getUsed()) {
         let key = name;
         let cache = Memory._benchmark || {};
         let tick = Game.time;
