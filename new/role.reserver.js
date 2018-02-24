@@ -16,8 +16,13 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
-    if (creep.room.controller.reservation)creep.room.memory.reservationExpires = Game.time + creep.room.controller.reservation['ticksToEnd'];
-    if (creep.memory.reserving) {
+    if (creep.room.controller.reservation) creep.room.memory.reservationExpires = Game.time + creep.room.controller.reservation['ticksToEnd'];
+    if (!creep.memory.destinationReached) {
+        if (creep.pos.roomName === creep.memory.reservationTarget) {
+            creep.memory.destinationReached = true;
+        }
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget));
+    } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation['username'] === 'Shibdib')) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:
                 if (!creep.memory.signed) {
@@ -27,16 +32,6 @@ function role(creep) {
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(creep.room.controller);
-        }
-    } else if (!creep.memory.destinationReached) {
-        if (creep.pos.roomName === creep.memory.reservationTarget) {
-            creep.memory.destinationReached = true;
-        }
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget));
-    } else {
-        if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation['username'] === 'Shibdib')) {
-            creep.shibMove(creep.room.controller);
-            creep.memory.reserving = true;
         }
     }
 }
