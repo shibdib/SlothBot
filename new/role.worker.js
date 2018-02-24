@@ -44,12 +44,11 @@ function role(creep) {
                 }
             }
         }
-    }
-    else {
+    } else {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else if (deliveryManagement(creep)) {
-            creep.say('Fedex PLZ', true);
+            creep.say(ICONS.wait1, true);
         } else {
             let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
             if (storage) {

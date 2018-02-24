@@ -590,6 +590,11 @@ findStorage = function () {
         for (let i = 0; i < sStorage.length; i++) {
             const object = Game.getObjectById(sStorage[i]);
             if (object) {
+                let weight;
+                weight = 0.25;
+                if (object.store[RESOURCE_ENERGY] < 1500) {
+                    weight = 1.2;
+                }
                 if (object.pos.getRangeTo(this) > 1) {
                     const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.25, 0) + 1;
                     storages.push({
