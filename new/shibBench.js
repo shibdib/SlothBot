@@ -40,11 +40,6 @@ module.exports.processBench = function () {
     // Store bucket info
     let bucket = Memory._benchmark['bucket'] || {};
     bucket['title'] = 'bucket';
-    if (bucket['avg']) {
-        bucket['avg'] = (bucket['avg'] + Game.cpu.bucket) / 2;
-    } else {
-        bucket['avg'] = Game.cpu.bucket
-    }
     bucket['used'] = (bucket['used'] + (10000 - Game.cpu.bucket));
     Memory._benchmark['bucket'] = bucket;
     if (Memory.reportBench) {
@@ -68,14 +63,14 @@ module.exports.processBench = function () {
                     bucketTotal = sorted[key]['used'];
                     continue;
                 }
-                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 3));
-                if (Memory.reportBenchNotify) Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 3));
+                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'], 3) * sorted[key]['useCount']);
+                if (Memory.reportBenchNotify) Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'], 3) * sorted[key]['useCount']);
             }
             log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
             log.e('Total Bucket Used - ' + bucketTotal + '. Average Bucket Level: ' + bucketAvg);
             log.e('---------------------------------------------------------------------------');
             if (Memory.reportBenchNotify) Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
-            if (Memory.reportBenchNotify) Game.notify('Total Bucket Used - ' + bucketTotal + '. Average Bucket Level: ' + bucketAvg);
+            if (Memory.reportBenchNotify) Game.notify('Total Bucket Used - ' + bucketTotal);
             Memory.reportBench = undefined;
             Memory.reportBenchNotify = undefined;
         }
