@@ -521,7 +521,7 @@ getEnergy = function (range = 250, hauler = false) {
             }
         }
         let bestStorage = _.min(storages, 'distWeighted');
-        storage.push({
+        energy.push({
             id: bestStorage.id,
             distWeighted: bestStorage.distWeighted,
             harvest: false
