@@ -623,7 +623,7 @@ workerCreepQueue = function () {
     //Waller
     if (level >= 3 && !_.includes(queue, 'waller') && level === this.controller.level) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        if (wallers.length < 1) {
+        if (wallers.length < 2) {
             queueCreep(this, PRIORITIES.waller, {
                 role: 'waller'
             })
