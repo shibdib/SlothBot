@@ -5,19 +5,9 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-
-let protectedStructures = [
-    STRUCTURE_SPAWN,
-    STRUCTURE_STORAGE,
-    STRUCTURE_TOWER,
-    STRUCTURE_POWER_SPAWN,
-    STRUCTURE_TERMINAL,
-    STRUCTURE_NUKER,
-    STRUCTURE_OBSERVER,
-    STRUCTURE_LINK
-];
-
 function role(creep) {
+    if (Game.time % 50 === 0) creep.room.cacheRoomIntel();
+    creep.borderCheck();
     creep.room.invaderCheck();
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
@@ -38,7 +28,6 @@ function role(creep) {
         }
         return null;
     }
-    creep.borderCheck();
     if (creep.hits < creep.hitsMax / 2) {
         creep.heal(creep);
     }

@@ -6,8 +6,8 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.borderCheck();
     if (Game.time % 50 === 0) creep.room.cacheRoomIntel();
+    creep.borderCheck();
     //Invader detection
     creep.room.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
