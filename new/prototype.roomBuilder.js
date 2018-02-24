@@ -127,18 +127,12 @@ function buildWalls(room, structures) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
     }
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 7, hub.x - 7, hub.y + 7, hub.x + 7, true);
+    let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
     for (let key in safeZone) {
         let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
         if (position.getRangeTo(hub) === 6) {
             position.createConstructionSite(STRUCTURE_RAMPART);
             position.createConstructionSite(STRUCTURE_ROAD);
-        }
-        if (room.controller.level >= 5) {
-            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.getRangeTo(hub) >= 6) {
-                position.createConstructionSite(STRUCTURE_RAMPART);
-            }
         }
     }
 }
