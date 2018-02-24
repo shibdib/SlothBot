@@ -61,9 +61,9 @@ currentStats = function (notify = false) {
             overallAvg = sorted[key]['avg'];
             continue;
         }
-        log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
+        log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 2));
     }
-    log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
+    log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 2));
     log.e('---------------------------------------------------------------------------');
     if (notify) {
         Game.notify('~~~~~BENCHMARK REPORT~~~~~');
@@ -73,9 +73,9 @@ currentStats = function (notify = false) {
                 overallAvg = sorted[key]['avg'];
                 continue;
             }
-            Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
+            Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 2));
         }
-        Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
+        Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 2));
     }
 };
 

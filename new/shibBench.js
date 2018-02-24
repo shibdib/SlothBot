@@ -50,9 +50,9 @@ module.exports.processBench = function () {
                     overallAvg = sorted[key]['avg'];
                     continue;
                 }
-                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
+                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 2));
             }
-            log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
+            log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 2));
             log.e('---------------------------------------------------------------------------');
             if (Memory.reportBenchNotify) {
                 Game.notify('~~~~~BENCHMARK REPORT~~~~~');
@@ -62,9 +62,9 @@ module.exports.processBench = function () {
                         overallAvg = sorted[key]['avg'];
                         continue;
                     }
-                    Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
+                    Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 2));
                 }
-                Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
+                Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 2));
             }
             Memory.reportBench = undefined;
             Memory.reportBenchNotify = undefined;
