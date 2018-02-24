@@ -1,5 +1,6 @@
 const profiler = require('screeps-profiler');
 let _ = require('lodash');
+let shib = require("shibBench");
 
 const DEFAULT_MAXOPS = 30000;
 const STATE_STUCK = 3;
@@ -27,17 +28,20 @@ function shibMove(creep, heading, options = {}) {
         radius: 0.55,
         stroke: 'black'
     });
+    let pathingStart = Game.cpu.getUsed();
     updateRoomStatus(creep.room);
     if (!creep.memory._shibMove || options.forceRepath || Math.random() > options.repathChance) creep.memory._shibMove = {};
     let pathInfo = creep.memory._shibMove;
     let rangeToDestination = creep.pos.getRangeTo(heading);
     if (rangeToDestination <= options.range) {
+        shib.shibBench('pathfinding', pathingStart);
         return OK;
     } else if (rangeToDestination <= 1) {
         if (rangeToDestination === 1) {
             let direction = creep.pos.getDirectionTo(heading);
             return creep.move(direction);
         }
+        shib.shibBench('pathfinding', pathingStart);
         return OK;
     }
     let origin = normalizePos(creep);
@@ -67,20 +71,23 @@ function shibMove(creep, heading, options = {}) {
             pathInfo.newPos = positionAtDirection(origin, nextDirection);
             switch (creep.move(nextDirection)) {
                 case OK:
-                    return;
+                    break;
                 case ERR_TIRED:
-                    return;
+                    break;
                 case ERR_NO_BODYPART:
-                    return;
+                    break;
                 case ERR_BUSY:
                     creep.idleFor(10);
-                    return;
+                    break;
             }
+            shib.shibBench('pathfinding', pathingStart);
         } else {
             delete pathInfo.path;
+            shib.shibBench('pathfinding', pathingStart);
         }
     } else {
         shibPath(creep, heading, pathInfo, origin, target, options);
+        shib.shibBench('pathfinding', pathingStart);
     }
 }
 shibMove = profiler.registerFN(shibMove, 'shibMove');
