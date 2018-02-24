@@ -38,16 +38,15 @@ module.exports.processBench = function () {
     }
     if (Memory.reportBench) {
         if (Game.time <= Memory.reportBench) {
-            log.a('~~~~~BENCHMARK REPORT~~~~~');
-            for (let key in _.sortBy(Memory._benchmark, 'avg')) {
-                let entry = Memory._benchmark[key];
-                log.a(key + ' - Was Used ' + entry['useCount'] + ' times over ' + entry['tickCount'] + ' ticks. Average CPU Used: ' + entry['avg']);
+            let sorted = _.sortBy(Memory._benchmark, 'avg');
+            log.e('~~~~~BENCHMARK REPORT~~~~~');
+            for (let key in sorted) {
+                log.a(key + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
             }
             if (Memory.reportBenchNotify) {
                 Game.notify('~~~~~BENCHMARK REPORT~~~~~');
-                for (let key in _.sortBy(Memory._benchmark, 'avg')) {
-                    let entry = Memory._benchmark[key];
-                    Game.notify(key + ' - Was Used ' + entry['useCount'] + ' times over ' + entry['tickCount'] + ' ticks. Average CPU Used: ' + entry['avg']);
+                for (let key in sorted) {
+                    log.a(key + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
                 }
             }
             Memory.reportBench = undefined;
