@@ -41,14 +41,28 @@ module.exports.processBench = function () {
         if (Game.time <= Memory.reportBench) {
             let sorted = _.sortBy(Memory._benchmark, 'avg');
             log.e('~~~~~BENCHMARK REPORT~~~~~');
+            let totalTicks;
+            let overallAvg;
             for (let key in sorted) {
-                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
+                if (sorted[key]['title'] === 'Total') {
+                    totalTicks = sorted[key]['tickCount'];
+                    overallAvg = sorted[key]['avg'];
+                    continue;
+                }
+                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
             }
+            log.a('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
             if (Memory.reportBenchNotify) {
                 Game.notify('~~~~~BENCHMARK REPORT~~~~~');
                 for (let key in sorted) {
-                    log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
+                    if (sorted[key]['title'] === 'Total') {
+                        totalTicks = sorted[key]['tickCount'];
+                        overallAvg = sorted[key]['avg'];
+                        continue;
+                    }
+                    Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
                 }
+                Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
             }
             Memory.reportBench = undefined;
             Memory.reportBenchNotify = undefined;
