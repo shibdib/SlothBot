@@ -1,4 +1,5 @@
 const profiler = require('screeps-profiler');
+let shib = require("shibBench");
 borderCheck = function () {
     if (this.pos.x === 0 || this.pos.y === 0 || this.pos.x === 49 || this.pos.y === 49) {
         if (this.pos.x === 0 && this.pos.y === 0) {
@@ -285,6 +286,7 @@ harvesterContainerBuild = function () {
 Creep.prototype.harvesterContainerBuild = profiler.registerFN(harvesterContainerBuild, 'harvesterContainerBuildCreepFunctions');
 
 withdrawEnergy = function () {
+    let start = Game.cpu.getUsed();
     if (!this.memory.energyDestination) {
         return null;
     } else {
@@ -299,6 +301,7 @@ withdrawEnergy = function () {
             this.memory.energyDestination = undefined;
         }
     }
+    shib.shibBench('withdrawEnergy', start, Game.cpu.getUsed());
 };
 Creep.prototype.withdrawEnergy = profiler.registerFN(withdrawEnergy, 'withdrawEnergyCreepFunctions');
 

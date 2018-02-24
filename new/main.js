@@ -7,6 +7,7 @@ let screepsPlus = require('screepsplus');
 let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
+let shib = require("shibBench");
 
 //profiler.enable();
 
@@ -34,5 +35,7 @@ module.exports.loop = function() {
 
         //Hive Mind
         hive.hiveMind();
+
+        shib.benchAverage();
     });
 };
