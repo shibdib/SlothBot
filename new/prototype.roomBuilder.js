@@ -85,6 +85,7 @@ function buildExtensions(room) {
 buildExtensions = profiler.registerFN(buildExtensions, 'buildExtensionsRoom');
 
 function findExtensionHub(room, second = false) {
+    let secondArray = [];
     for (let i = 1; i < 249; i++) {
         let pos = new RoomPosition(getRandomInt(8, 41), getRandomInt(8, 41), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
@@ -105,12 +106,16 @@ function findExtensionHub(room, second = false) {
                 room.memory.extensionHub.y = pos.y;
                 return;
             } else {
-                room.memory.extensionHub2 = {};
-                room.memory.extensionHub2.x = pos.x;
-                room.memory.extensionHub2.y = pos.y;
-                return;
+                secondArray.push(pos);
             }
         }
+    }
+    if (second && secondArray.length > 0) {
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let hub2 = hub.findClosestByPath(secondArray);
+        room.memory.extensionHub2 = {};
+        room.memory.extensionHub2.x = hub2.x;
+        room.memory.extensionHub2.y = hub2.y;
     }
 }
 
