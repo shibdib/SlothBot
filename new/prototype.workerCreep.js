@@ -593,10 +593,10 @@ findStorage = function () {
                 let weight;
                 weight = 0.25;
                 if (object.store[RESOURCE_ENERGY] < 1500) {
-                    weight = 1.2;
+                    weight = 0.98;
                 }
                 if (object.pos.getRangeTo(this) > 1) {
-                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.25, 0) + 1;
+                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
                     storages.push({
                         id: sStorage[i],
                         distWeighted: storageDistWeighted,
