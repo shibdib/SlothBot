@@ -14,9 +14,8 @@ function role(creep) {
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
-    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
-    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
-    if (creep.room.controller.reservation) creep.room.memory.reservationExpires = Game.time + creep.room.controller.reservation['ticksToEnd'];
+    if (creep.pos.roomName !== creep.memory.reservationTarget) creep.memory.destinationReached = false;
+    if (creep.pos.roomName === creep.memory.reservationTarget) creep.memory.destinationReached = true;
     if (!creep.memory.destinationReached) {
         if (creep.pos.roomName === creep.memory.reservationTarget) {
             creep.memory.destinationReached = true;
@@ -29,6 +28,7 @@ function role(creep) {
                     creep.signController(creep.room.controller, _.sample(signs));
                     creep.memory.signed = true;
                 }
+                creep.room.memory.reservationExpires = Game.time + creep.room.controller.reservation['ticksToEnd'];
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(creep.room.controller);
