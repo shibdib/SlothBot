@@ -6,7 +6,8 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.room.cacheRoomIntel(true);
+    if (!creep.memory.lastRoom || creep.memory.lastRoom !== creep.room.roomName) creep.room.cacheRoomIntel(true);
+    creep.memory.lastRoom = creep.room.roomName;
     if (creep.memory.destinationReached !== true) {
         let armedHostile = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(doNotAggress, e.owner['username']) === false});
         if (creep.pos.getRangeTo(armedHostile) < 2) {
