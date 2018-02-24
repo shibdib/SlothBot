@@ -37,7 +37,7 @@ module.exports.loop = function() {
         //Hive Mind
         hive.hiveMind();
 
-        shib.shibBench('main', mainCpu);
-        shib.benchAverage();
+        shib.shibBench('Total', mainCpu);
+        shib.processBench();
     });
 };
