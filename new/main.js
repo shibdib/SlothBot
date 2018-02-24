@@ -50,33 +50,33 @@ requestBench = function (ticks, notify = false) {
 };
 
 currentStats = function (notify = false) {
+    let sorted = _.sortBy(Memory._benchmark, 'avg');
     log.e('---------------------------------------------------------------------------');
     log.e('~~~~~BENCHMARK REPORT~~~~~');
+    if (notify) Game.notify('~~~~~BENCHMARK REPORT~~~~~');
     let totalTicks;
     let overallAvg;
-    let sorted = _.sortBy(Memory._benchmark, 'avg');
+    let bucketAvg;
+    let bucketTotal;
     for (let key in sorted) {
         if (sorted[key]['title'] === 'Total') {
             totalTicks = sorted[key]['tickCount'];
             overallAvg = sorted[key]['avg'];
             continue;
         }
-        log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 2));
-    }
-    log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 2));
-    log.e('---------------------------------------------------------------------------');
-    if (notify) {
-        Game.notify('~~~~~BENCHMARK REPORT~~~~~');
-        for (let key in sorted) {
-            if (sorted[key]['title'] === 'Total') {
-                totalTicks = sorted[key]['tickCount'];
-                overallAvg = sorted[key]['avg'];
-                continue;
-            }
-            Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 2));
+        if (sorted[key]['title'] === 'bucket') {
+            bucketAvg = sorted[key]['avg'];
+            bucketTotal = sorted[key]['used'];
+            continue;
         }
-        Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 2));
+        log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 3));
+        if (notify) Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + _.round(sorted[key]['avg'], 3));
     }
+    log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
+    log.e('Total Bucket Used - ' + bucketTotal + '. Average Bucket Level: ' + bucketAvg);
+    log.e('---------------------------------------------------------------------------');
+    if (notify) Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
+    if (notify) Game.notify('Total Bucket Used - ' + bucketTotal + '. Average Bucket Level: ' + bucketAvg);
 };
 
 resetBench = function () {
