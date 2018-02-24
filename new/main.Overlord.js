@@ -1,4 +1,5 @@
 let profiler = require('screeps-profiler');
+let shib = require("shibBench");
 
 function mind(room, roomLimit) {
     // Set CPU windows
@@ -52,7 +53,9 @@ function minionController(minion) {
     if (Game.time % 25 === 0) minion.room.cacheRoomIntel();
     let memoryRole = minion.memory.role;
     let creepRole = require('role.' + memoryRole);
+    let start = Game.cpu.getUsed();
     creepRole.role(minion);
+    shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
 module.exports.minionController = profiler.registerFN(minionController, 'minionController');
 

@@ -1,4 +1,4 @@
-module.exports.shibBench = function (name, start, end) {
+module.exports.shibBench = function (name, start, end = Game.cpu.getUsed()) {
     let key = name;
     let cache = Memory._benchmark || {};
     let tick = Game.time;
@@ -18,15 +18,16 @@ module.exports.shibBench = function (name, start, end) {
 
 module.exports.benchAverage = function () {
     for (let key in Memory._benchmark) {
-        storeAverage(Memory._benchmark[key])
+        storeAverage(Memory._benchmark[key], key)
     }
 };
 
 
-function storeAverage(mem) {
+function storeAverage(mem, key) {
     let avg = mem['avg'] || 0;
     let count = mem['count'] || 0;
     let raw = mem['raw'] || 0;
     mem['avg'] = (avg + raw) / 2;
     mem['count'] = count + 1;
+    Memory._benchmark[key] = mem;
 }
