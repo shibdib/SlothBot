@@ -13,6 +13,7 @@ let shib = require("shibBench");
 
 module.exports.loop = function() {
     profiler.wrap(function () {
+        let mainCpu = Game.cpu.getUsed();
         Memory.loggingLevel = 5; //Set level 1-5 (5 being most info)
 
         //Update allies
@@ -36,6 +37,7 @@ module.exports.loop = function() {
         //Hive Mind
         hive.hiveMind();
 
+        shib.shibBench('main', mainCpu);
         shib.benchAverage();
     });
 };

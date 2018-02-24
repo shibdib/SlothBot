@@ -2,6 +2,7 @@ let profiler = require('screeps-profiler');
 let shib = require("shibBench");
 
 function mind(room, roomLimit) {
+    let mindStart = Game.cpu.getUsed();
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
 
@@ -17,11 +18,14 @@ function mind(room, roomLimit) {
                 room.cacheRoomStructures(structures.id);
             }
         }
+        let roomBuild = Game.cpu.getUsed();
         room.buildRoom();
+        shib.shibBench('roomBuild', roomBuild);
     }
 
     // Manage creep spawning
     if (Game.time % 10 === 0) {
+        let creepSpawn = Game.cpu.getUsed();
         room.workerCreepQueue();
         if (room.controller.level >= 4) {
             room.remoteCreepQueue();
@@ -29,6 +33,7 @@ function mind(room, roomLimit) {
         }
         cleanQueue(room);
         room.processBuildQueue();
+        shib.shibBench('creepSpawn', creepSpawn);
     }
 
     // Manage creeps
@@ -44,6 +49,7 @@ function mind(room, roomLimit) {
         if (Game.cpu.getUsed() > cpuWindow) return;
         minionController(roomCreeps[key]);
     }
+    shib.shibBench('overlordMind', mindStart);
 }
 module.exports.overlordMind = profiler.registerFN(mind, 'overlordMind');
 
