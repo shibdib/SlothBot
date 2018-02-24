@@ -1,13 +1,14 @@
 module.exports.shibBench = function (name, start, end) {
-    if (!Memory._benchmark.name) Memory._benchmark.name = {};
-    let raw = Memory._benchmark.name['raw'] || 0;
+    let benchCache = Memory._benchmark || [];
+    let raw = benchCache[name]['raw'] || 0;
     if (raw === 0) {
-        Memory._benchmark.name['raw'] = end - start;
+        benchCache[name]['raw'] = end - start;
     } else {
         let current = end - start;
-        let raw = Memory._benchmark.name['raw'];
-        Memory._benchmark.name['raw'] = (current + raw) / 2;
+        let raw = benchCache[name]['raw'];
+        benchCache[name]['raw'] = (current + raw) / 2;
     }
+
 };
 
 module.exports.benchAverage = function () {
