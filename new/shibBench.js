@@ -40,6 +40,7 @@ module.exports.processBench = function () {
     if (Memory.reportBench) {
         if (Game.time <= Memory.reportBench) {
             let sorted = _.sortBy(Memory._benchmark, 'avg');
+            log.e('---------------------------------------------------------------------------');
             log.e('~~~~~BENCHMARK REPORT~~~~~');
             let totalTicks;
             let overallAvg;
@@ -52,6 +53,7 @@ module.exports.processBench = function () {
                 log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
             }
             log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
+            log.e('---------------------------------------------------------------------------');
             if (Memory.reportBenchNotify) {
                 Game.notify('~~~~~BENCHMARK REPORT~~~~~');
                 for (let key in sorted) {

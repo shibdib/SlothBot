@@ -50,6 +50,7 @@ requestBench = function (ticks, notify = false) {
 };
 
 currentStats = function (notify = false) {
+    log.e('---------------------------------------------------------------------------');
     log.e('~~~~~BENCHMARK REPORT~~~~~');
     let totalTicks;
     let overallAvg;
@@ -63,6 +64,7 @@ currentStats = function (notify = false) {
         log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
     }
     log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
+    log.e('---------------------------------------------------------------------------');
     if (notify) {
         Game.notify('~~~~~BENCHMARK REPORT~~~~~');
         for (let key in sorted) {
