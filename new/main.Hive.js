@@ -5,25 +5,42 @@ let highCommand = require('military.highCommand');
 let links = require('module.linkController');
 let terminals = require('module.terminalController');
 let observers = require('module.observerController');
+let shib = require("shibBench");
 
 function mind() {
     Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner['username'] === 'Shibdib'));
     let cpuBucket = Game.cpu.bucket;
 
     // Handle Defense
+    let cpu = Game.cpu.getUsed();
     defense.controller();
+    shib.shibBench('defenseController', cpu);
 
     // High Command
-    if (Game.time % 150 === 0) highCommand.highCommand();
+    if (Game.time % 150 === 0) {
+        cpu = Game.cpu.getUsed();
+        highCommand.highCommand();
+        shib.shibBench('highCommand', cpu);
+    }
 
     // Handle Links
-    if (Game.time % 10 === 0) links.linkControl();
+    if (Game.time % 10 === 0) {
+        cpu = Game.cpu.getUsed();
+        links.linkControl();
+        shib.shibBench('linkControl', cpu);
+    }
 
     // Handle Terminals
-    if (Game.time % 15 === 0) terminals.terminalControl();
+    if (Game.time % 15 === 0) {
+        cpu = Game.cpu.getUsed();
+        terminals.terminalControl();
+        shib.shibBench('terminalControl', cpu);
+    }
 
     // Observer Control
+    cpu = Game.cpu.getUsed();
     observers.observerControl();
+    shib.shibBench('observerControl', cpu);
 
     // Process Overlords
     let processed = 0;
