@@ -664,7 +664,7 @@ remoteCreepQueue = function () {
     //Explorer
     if (!_.includes(queue, 'explorer')) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.overlord === this.name);
-        if (explorers.length < 3) {
+        if (explorers.length < 1) {
             queueCreep(this, PRIORITIES.explorer, {
                 role: 'explorer'
             })
