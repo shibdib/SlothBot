@@ -51,7 +51,7 @@ module.exports.processBench = function () {
                 }
                 log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. Average CPU Used: ' + sorted[key]['avg']);
             }
-            log.a('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
+            log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + overallAvg);
             if (Memory.reportBenchNotify) {
                 Game.notify('~~~~~BENCHMARK REPORT~~~~~');
                 for (let key in sorted) {
