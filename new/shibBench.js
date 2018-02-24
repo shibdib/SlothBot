@@ -16,6 +16,7 @@ module.exports.shibBench = function (name, start, end = Game.cpu.getUsed()) {
             useCount = 1;
         }
         cache[key] = {
+            title: name,
             tick: tick,
             raw: raw,
             avg: avg,
@@ -41,12 +42,12 @@ module.exports.processBench = function () {
             let sorted = _.sortBy(Memory._benchmark, 'avg');
             log.e('~~~~~BENCHMARK REPORT~~~~~');
             for (let key in sorted) {
-                log.a(key + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
+                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
             }
             if (Memory.reportBenchNotify) {
                 Game.notify('~~~~~BENCHMARK REPORT~~~~~');
                 for (let key in sorted) {
-                    log.a(key + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
+                    log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
                 }
             }
             Memory.reportBench = undefined;

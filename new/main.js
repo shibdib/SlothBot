@@ -53,12 +53,12 @@ currentStats = function (notify = false) {
     log.a('~~~~~BENCHMARK REPORT~~~~~');
     let sorted = _.sortBy(Memory._benchmark, 'avg');
     for (let key in sorted) {
-        log.a(key + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
+        log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
     }
     if (notify) {
         Game.notify('~~~~~BENCHMARK REPORT~~~~~');
         for (let key in sorted) {
-            log.a(key + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
+            log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times over ' + sorted[key]['tickCount'] + ' ticks. Average CPU Used: ' + sorted[key]['avg']);
         }
     }
 };
