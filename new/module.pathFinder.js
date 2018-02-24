@@ -19,20 +19,17 @@ function shibMove(creep, heading, options = {}) {
         preferHighway: false,
         highwayBias: 2.5,
         maxRooms: 1,
-        checkPath: false
+        checkPath: false,
+        badRoom: undefined
     });
-    if (creep.fatigue > 0) {
-        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'black'});
-        return;
-    }
-
+    if (creep.fatigue > 0) return creep.room.visual.circle(creep.pos, {
+        fill: 'transparent',
+        radius: 0.55,
+        stroke: 'black'
+    });
     updateRoomStatus(creep.room);
-    if (!creep.memory._shibMove || options.forceRepath || Math.random() > options.repathChance) {
-        delete creep.memory._shibMove;
-        creep.memory._shibMove = {};
-    }
+    if (!creep.memory._shibMove || options.forceRepath || Math.random() > options.repathChance) creep.memory._shibMove = {};
     let pathInfo = creep.memory._shibMove;
-
     let rangeToDestination = creep.pos.getRangeTo(heading);
     if (rangeToDestination <= options.range) {
         return OK;
@@ -43,12 +40,9 @@ function shibMove(creep, heading, options = {}) {
         }
         return OK;
     }
-
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     if (!origin || !target) return;
-    //Delete path if target changed and path is in same room
-    //if (pathInfo.target) if (pathInfo.target.roomName + pathInfo.target.x + pathInfo.target.y !== target.roomName + target.x + target.y && creep.pos.roomName === target.roomName) delete pathInfo.path;
     //clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
@@ -61,9 +55,7 @@ function shibMove(creep, heading, options = {}) {
     //Execute path if target is valid and path is set
     if (pathInfo.path && !options.checkPath) {
         creep.borderCheck();
-        if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) {
-            pathInfo.path = pathInfo.path.slice(1);
-        }
+        if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             pathInfo.pathPosTime++;
         } else {
@@ -94,8 +86,6 @@ function shibMove(creep, heading, options = {}) {
 shibMove = profiler.registerFN(shibMove, 'shibMove');
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
-    creep.borderCheck();
-    pathInfo.pathPosTime = 1;
     //check for cached
     let cached;
     let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
@@ -128,6 +118,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 allowedRooms = route;
                 cacheRoute(origin, target, route);
             } else {
+                if (creep.memory.destination && creep.memory.destination !== creep.pos.roomName && target.roomName !== creep.memory.destination) target.roomName = creep.memory.destination;
                 let exitDir = Game.map.findExit(origin.roomName, target.roomName);
                 if (exitDir === ERR_NO_PATH) {
                     let nextRoom = Game.map.findRoute(origin.roomName, target.roomName)[0];
@@ -286,6 +277,8 @@ function findRoute(origin, destination, options = {}) {
                     return 25 * highwayBias;
                 }
             }
+            // Ban rooms flagged as bad
+            if (roomName === options.badRoom) return Infinity;
             return 2.5;
         }
     }).forEach(function (info) {

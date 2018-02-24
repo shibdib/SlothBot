@@ -441,4 +441,4 @@ function balanceEnergy(terminal, energyInRoom) {
     }
 }
 
-balanceEnergy = profiler.registerFN(balanceEnergy, 'orderCleanupTerminal');
+balanceEnergy = profiler.registerFN(balanceEnergy, 'balanceEnergyTerminal');
