@@ -536,9 +536,11 @@ Creep.prototype.getEnergy = profiler.registerFN(getEnergy, 'getEnergyCreepFuncti
 
 findStorage = function () {
     let storage = [];
+    let haulingEnergy;
+    if (this.carry[RESOURCE_ENERGY] === _.sum(this.carry)) haulingEnergy = true;
     //Spawn
     let spawn = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'spawn'), 'id');
-    if (spawn.length > 0) {
+    if (spawn.length > 0 && haulingEnergy) {
         let spawns = [];
         for (let i = 0; i < spawn.length; i++) {
             const object = Game.getObjectById(spawn[i]);
@@ -563,7 +565,7 @@ findStorage = function () {
     }
     //Extension
     let extension = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'extension'), 'id');
-    if (extension.length > 0) {
+    if (extension.length > 0 && haulingEnergy) {
         let extensions = [];
         for (let i = 0; i < extension.length; i++) {
             const object = Game.getObjectById(extension[i]);
@@ -618,7 +620,7 @@ findStorage = function () {
     //Tower
     let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
     let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
-    if (tower.length > 0 && harvester.length >= 2) {
+    if (tower.length > 0 && harvester.length >= 2 && haulingEnergy) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = Game.getObjectById(tower[i]);
@@ -655,7 +657,7 @@ findStorage = function () {
     }
     //Links
     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (controllerLink) {
+    if (controllerLink && haulingEnergy) {
         let linkDistWeighted;
         const object = controllerLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -701,10 +703,9 @@ findStorage = function () {
                     storageItem.memory.deliveryIncoming = true;
                 }
                 this.memory.storageDestination = storageItem.id;
-                this.shibMove(storageItem);
+                return this.shibMove(storageItem);
             }
         }
-        return true;
     }
 };
 Creep.prototype.findStorage = profiler.registerFN(findStorage, 'findStorageCreepFunctions');

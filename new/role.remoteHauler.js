@@ -67,7 +67,7 @@ function role(creep) {
                                 creep.shibMove(storageItem);
                                 break;
                             case ERR_FULL:
-                                delete creep.memory.storageDestination;
+                                creep.memory.storageDestination = undefined;
                                 creep.findStorage();
                                 break;
                         }
