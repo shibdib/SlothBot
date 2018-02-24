@@ -1042,7 +1042,7 @@ Creep.prototype.getSafe = function () {
     if (this.room.memory.responseNeeded) {
         let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
         if (this.pos.getRangeTo(hub) > 5) {
-            this.shibMove(hub, {range: 4});
+            this.shibMove(hub, {range: 4, forceRepath: true});
             return true;
         }
         return undefined;
