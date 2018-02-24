@@ -495,6 +495,38 @@ getEnergy = function (range = 250, hauler = false) {
             harvest: false
         });
     }
+    //Storage
+    let sStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
+    if (sStorage.length > 0) {
+        let storages = [];
+        for (let i = 0; i < sStorage.length; i++) {
+            const object = Game.getObjectById(sStorage[i]);
+            if (object) {
+                let weight;
+                weight = 0;
+                if (object.store[RESOURCE_ENERGY] > 50000) {
+                    weight = 0.3;
+                }
+                if (this.room.memory.responseNeeded) {
+                    weight = 0.8;
+                }
+                if (object.pos.getRangeTo(this) > 1) {
+                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
+                    storages.push({
+                        id: sStorage[i],
+                        distWeighted: storageDistWeighted,
+                        harvest: false
+                    });
+                }
+            }
+        }
+        let bestStorage = _.min(storages, 'distWeighted');
+        storage.push({
+            id: bestStorage.id,
+            distWeighted: bestStorage.distWeighted,
+            harvest: false
+        });
+    }
     /**
      //Dropped Energy
      let dropped = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (e) => e.resourceType === RESOURCE_ENERGY});
