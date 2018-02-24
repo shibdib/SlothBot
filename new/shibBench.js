@@ -1,13 +1,18 @@
 module.exports.shibBench = function (name, start, end) {
-    let benchCache = Memory._benchmark || [];
-    let raw = benchCache[name]['raw'] || 0;
-    if (raw === 0) {
-        benchCache[name]['raw'] = end - start;
+    let key = name;
+    let cache = Memory._benchmark || {};
+    let tick = Game.time;
+    let raw;
+    if (cache[key]) {
+        raw = ((end - start) + cache[key]['raw']) / 2;
     } else {
-        let current = end - start;
-        let raw = benchCache[name]['raw'];
-        benchCache[name]['raw'] = (current + raw) / 2;
+        raw = end - start;
     }
+    cache[key] = {
+        tick: tick,
+        raw: raw
+    };
+    Memory._benchmark = cache;
 
 };
 
