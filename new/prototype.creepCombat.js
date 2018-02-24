@@ -148,7 +148,7 @@ Creep.prototype.fightRampart = function (target) {
     this.memory.assignedRampart = position.id;
     let returnCode;
     if (this.pos.getRangeTo(position) > 0) {
-        this.say(ICONS[STRUCTURE_RAMPART]);
+        this.say(ICONS.attack, true);
         returnCode = this.shibMove(position, {forceRepath: true, range: 0});
         if (returnCode === OK) {
             return true;
