@@ -40,7 +40,11 @@ module.exports.processBench = function () {
     // Store bucket info
     let bucket = Memory._benchmark['bucket'] || {};
     bucket['title'] = 'bucket';
-    bucket['avg'] = (bucket['avg'] + Game.cpu.bucket) / 2 || Game.cpu.bucket;
+    if (bucket['avg']) {
+        bucket['avg'] = (bucket['avg'] + Game.cpu.bucket) / 2;
+    } else {
+        bucket['avg'] = Game.cpu.bucket
+    }
     bucket['used'] = (bucket['used'] + (10000 - Game.cpu.bucket));
     Memory._benchmark['bucket'] = bucket;
     if (Memory.reportBench) {
