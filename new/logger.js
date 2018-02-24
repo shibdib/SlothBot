@@ -73,7 +73,7 @@ class Log {
      * dedicate builder role creeps were out of work and just idling.
      **/
     w(message) {
-        this.cprint('WARN: ' + message, this.LOGGING_LEVEL.WARN, '#f4c542');
+        this.cprint('WARN: ' + message, this.LOGGING_LEVEL.WARN, '#f43e6d');
     }
 
     /**
@@ -84,7 +84,7 @@ class Log {
      * not met, you can print an error message saying so.
      **/
     e(message) {
-        this.cprint('ERROR: ' + message, this.LOGGING_LEVEL.ERROR, '#e50000');
+        this.cprint('ERROR: ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
     }
 
     /**
@@ -95,7 +95,7 @@ class Log {
      * an incoming enemy attack.
      **/
     a(message) {
-        this.cprint('ALERT: ' + message, this.LOGGING_LEVEL.ALERT, '#ff00d0');
+        this.cprint('ALERT: ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07');
     }
 
     /**
