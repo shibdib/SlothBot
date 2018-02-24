@@ -41,3 +41,32 @@ module.exports.loop = function() {
         shib.processBench();
     });
 };
+
+requestBench = function (ticks, notify = false) {
+    Memory._benchmark = undefined;
+    Memory.reportBench = Game.time + ticks;
+    Memory.reportBenchNotify = notify;
+    log.a('Benchmark Queued');
+};
+
+currentStats = function (notify = false) {
+    log.a('~~~~~BENCHMARK REPORT~~~~~');
+    for (let key in _.sortBy(Memory._benchmark, 'avg')) {
+        let entry = Memory._benchmark[key];
+        log.a(key + ' - Was Used ' + entry['useCount'] + ' times over ' + entry['tickCount'] + ' ticks. Average CPU Used: ' + entry['avg']);
+    }
+    if (notify) {
+        Game.notify('~~~~~BENCHMARK REPORT~~~~~');
+        for (let key in _.sortBy(Memory._benchmark, 'avg')) {
+            let entry = Memory._benchmark[key];
+            Game.notify(key + ' - Was Used ' + entry['useCount'] + ' times over ' + entry['tickCount'] + ' ticks. Average CPU Used: ' + entry['avg']);
+        }
+    }
+};
+
+resetBench = function () {
+    Memory._benchmark = undefined;
+    Memory.reportBench = undefined;
+    Memory.reportBenchNotify = undefined;
+    log.a('Benchmarks Reset');
+};
