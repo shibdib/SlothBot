@@ -36,7 +36,7 @@ module.exports.benchAverage = function () {
 function storeAverage(mem, key) {
     let avg = mem['avg'] || 0;
     let raw = mem['raw'] || 0;
-    let count = mem['count'] || 0;
+    let count = mem['tickCount'] || 0;
     mem['avg'] = (avg + raw) / 2;
     mem['tickCount'] = count + 1;
     Memory._benchmark[key] = mem;
