@@ -6,7 +6,8 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.room.cacheRoomIntel();
+    creep.borderCheck();
+    creep.room.cacheRoomIntel(true);
     if (!Game.map.describeExits(creep.pos.roomName)) creep.suicide();
     if (!creep.memory.targetRooms || !creep.memory.destination) {
         creep.memory.targetRooms = Game.map.describeExits(creep.pos.roomName);
@@ -20,7 +21,6 @@ function role(creep) {
     if (creep.memory.destinationReached !== true) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true});
         if (creep.pos.roomName === creep.memory.destination) {
-            creep.room.cacheRoomIntel();
             if (((creep.room.controller && creep.room.controller.sign && creep.room.controller.sign['username'] !== 'Shibdib') || (creep.room.controller && !creep.room.controller.sign)) && creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1).length === 0) {
                 let signs = ["#overlords was here.", "#overlords has collected intel from this room. We See You.", "Join Overlords! #overlords"];
                 switch (creep.signController(creep.room.controller, _.sample(signs))) {
@@ -35,7 +35,6 @@ function role(creep) {
             }
         }
     } else {
-        creep.room.cacheRoomIntel();
         creep.memory.destination = undefined;
         creep.memory.targetRooms = undefined;
         creep.memory.destinationReached = undefined;

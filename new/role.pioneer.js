@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (Game.time % 50 === 0) creep.room.cacheRoomIntel();
     creep.borderCheck();
     //Invader detection
     creep.room.invaderCheck();
@@ -15,8 +14,6 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
-    //Intel collection
-    creep.room.cacheRoomIntel();
 
     if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})) {
         if (creep.memory.initialBuilder) {

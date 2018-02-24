@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.overlord].find(FIND_MY_SPAWNS)[0]);
-    if (Game.time % 50 === 0) creep.room.cacheRoomIntel();
     creep.borderCheck();
     //Invader detection
     creep.room.invaderCheck();

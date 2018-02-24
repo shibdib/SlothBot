@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.overlord].find(FIND_MY_SPAWNS)[0]);
-    if (Game.time % 50 === 0) creep.room.cacheRoomIntel();
     creep.borderCheck();
     let signs = ["Reserved Territory of Overlords - #overlords on Slack", "Overlords Frontier - Visit at your own risk.", "Join Overlords! #overlords", "Overlords Reserved Room"];
     //Invader detection
@@ -18,7 +17,6 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (creep.room.controller.reservation)creep.room.memory.reservationExpires = Game.time + creep.room.controller.reservation['ticksToEnd'];
-    creep.room.cacheRoomIntel();
     if (creep.memory.reserving) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:
