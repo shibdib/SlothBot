@@ -9,7 +9,6 @@ function role(creep) {
     creep.borderCheck();
     if (!creep.memory.lastRoom || creep.memory.lastRoom !== creep.room.roomName) creep.room.cacheRoomIntel(true);
     creep.memory.lastRoom = creep.room.roomName;
-    if (!Game.map.describeExits(creep.pos.roomName)) creep.suicide();
     if (!creep.memory.targetRooms || !creep.memory.destination) {
         creep.memory.targetRooms = Game.map.describeExits(creep.pos.roomName);
         let target = _.sample(creep.memory.targetRooms);
