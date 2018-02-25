@@ -114,7 +114,7 @@ function buildWalls(room, structures) {
     let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
     for (let key in safeZone) {
         let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-        if (position.getRangeTo(hub) === 6) {
+        if (position && position.getRangeTo(hub) === 6) {
             position.createConstructionSite(STRUCTURE_RAMPART);
             if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_ROAD);
         }
@@ -123,7 +123,7 @@ function buildWalls(room, structures) {
         let outerRing = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
         for (let key in outerRing) {
             let position = new RoomPosition(outerRing[key].x, outerRing[key].y, room.name);
-            if (position.getRangeTo(hub) === 9) {
+            if (position && position.getRangeTo(hub) === 9) {
                 position.createConstructionSite(STRUCTURE_RAMPART);
                 if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_ROAD);
             }
