@@ -202,7 +202,7 @@ function buildLabs(room, structures) {
     }
 }
 
-buildStorage = profiler.registerFN(buildLabs, 'buildLabs');
+buildLabs = profiler.registerFN(buildLabs, 'buildLabs');
 
 function buildLinks(room, structures) {
     if (room.controller.level < 5) return;
