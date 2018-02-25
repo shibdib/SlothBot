@@ -20,6 +20,8 @@ function mind(room, roomLimit) {
         }
         let roomBuild = Game.cpu.getUsed();
         room.buildRoom();
+        // Request builders
+        requestBuilders(room);
         shib.shibBench('roomBuild', roomBuild);
     }
 
@@ -71,3 +73,19 @@ function cleanQueue(room) {
     }
 }
 module.exports.cleanQueue = profiler.registerFN(cleanQueue, 'cleanCreepQueue');
+
+function requestBuilders(room) {
+    let spawns = _.filter(room.memory.structureCache, 'type', 'spawn');
+    if (spawns.length === 0) {
+        room.memory.buildersNeeded = true;
+    } else {
+        room.memory.buildersNeeded = undefined;
+        let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded && Game.map.findRoute(room.name, r.name).length < 7)[0];
+        if (needyRoom) {
+            room.memory.assistingRoom = needyRoom.name;
+            log.a(room.name + ' is sending builders to support ' + needyRoom.name);
+        } else {
+            room.memory.assistingRoom = undefined;
+        }
+    }
+}

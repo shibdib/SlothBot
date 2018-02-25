@@ -788,10 +788,22 @@ remoteCreepQueue = function () {
             })
         }
         let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.claimTarget && creep.memory.role === 'pioneer');
-        if (pioneers.length < -2 + level) {
+        if (!_.includes(queue, 'pioneer') && pioneers.length < -2 + level) {
             queueCreep(this, 2, {
                 role: 'pioneer',
                 destination: this.memory.claimTarget,
+                initialBuilder: true
+            })
+        }
+    }
+
+    // Assist room
+    if (!_.includes(queue, 'pioneer') && this.memory.assistingRoom) {
+        let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.assistingRoom && creep.memory.role === 'pioneer');
+        if (pioneers.length < -2 + level) {
+            queueCreep(this, 2, {
+                role: 'pioneer',
+                destination: this.memory.assistingRoom,
                 initialBuilder: true
             })
         }
