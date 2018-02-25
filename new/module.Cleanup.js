@@ -48,7 +48,7 @@ function cleanDistanceCacheByUsage() {
 
 function cleanConstructionSites() {
     for (let key in Game.constructionSites) {
-        if (!Game.constructionSites[key].room || !Game.constructionSites[key].pos.findClosestByRange(FIND_MY_CREEPS)) {
+        if ((!Game.constructionSites[key].room || !Game.constructionSites[key].pos.findClosestByRange(FIND_MY_CREEPS)) && Game.constructionSites[key].structureType !== STRUCTURE_SPAWN) {
             Game.constructionSites[key].remove();
         }
     }
