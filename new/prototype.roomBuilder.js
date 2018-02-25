@@ -187,7 +187,7 @@ function buildLabs(room, structures) {
                     break;
                 }
             }
-        } else {
+        } else if (labs) {
             let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 5, labs[0].pos.x - 5, labs[0].pos.y + 5, labs[0].pos.x + 5, true);
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, labHub.name);
