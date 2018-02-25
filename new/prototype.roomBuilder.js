@@ -13,7 +13,7 @@ let protectedStructures = [
 ];
 
 Room.prototype.buildRoom = function () {
-    if (Game.constructionSites.length > 75) return;
+    if (_.size(Game.constructionSites) > 75) return;
     let structures = this.find(FIND_STRUCTURES);
     if (!this.memory.extensionHub) {
         for (let key in Game.spawns) {
