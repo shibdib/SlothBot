@@ -126,22 +126,7 @@ module.exports.role = profiler.registerFN(role, 'pioneerRole');
 
 function findExtensionHub(room) {
     for (let i = 1; i < 249; i++) {
-        let pos = new RoomPosition(getRandomInt(8, 41), getRandomInt(8, 41), room.name);
-        let built = room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
-        let inBuild = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
-        if (built.length > 0 || inBuild.length > 0) {
-            if (built[0]) {
-                room.memory.extensionHub = {};
-                room.memory.extensionHub.x = built[0].pos.x;
-                room.memory.extensionHub.y = built[0].pos.y;
-                return;
-            } else {
-                room.memory.extensionHub = {};
-                room.memory.extensionHub.x = inBuild[0].pos.x;
-                room.memory.extensionHub.y = inBuild[0].pos.y;
-                return;
-            }
-        }
+        let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
         let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
         let wall = false;
@@ -157,9 +142,10 @@ function findExtensionHub(room) {
             room.memory.extensionHub = {};
             room.memory.extensionHub.x = pos.x;
             room.memory.extensionHub.y = pos.y;
-            return;
         }
     }
-}
+};
 
-findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+};
