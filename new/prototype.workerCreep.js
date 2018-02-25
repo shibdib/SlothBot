@@ -794,21 +794,6 @@ findEssentials = function () {
             harvest: false
         });
     }
-    //Controller Container
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !_.includes(roomSpawnQueue, 'responder')) {
-        let containerDistWeighted;
-        const object = controllerContainer;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && object.store[RESOURCE_ENERGY] < object.storeCapacity / 2 && numberOfUsers === 0) {
-            containerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1 - (object.store[RESOURCE_ENERGY] / object.storeCapacity), 0) + 1;
-        }
-        storage.push({
-            id: controllerContainer.id,
-            distWeighted: containerDistWeighted,
-            harvest: false
-        });
-    }
     //Storage
     let sStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
     if (sStorage.length > 0) {
