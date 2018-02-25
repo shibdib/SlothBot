@@ -45,7 +45,7 @@ function buildExtensions(room) {
             let y;
             x = getRandomInt(1, 5);
             y = getRandomInt(1, 5);
-            if (extensionCount >= 25) {
+            if (extensionCount >= 30) {
                 x = getRandomInt(7, 8);
                 y = getRandomInt(7, 8);
             }
@@ -119,7 +119,7 @@ function buildWalls(room, structures) {
             if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_ROAD);
         }
     }
-    if (extensionCount > 25) {
+    if (extensionCount > 30) {
         let outerRing = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
         for (let key in outerRing) {
             let position = new RoomPosition(outerRing[key].x, outerRing[key].y, room.name);
