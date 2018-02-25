@@ -28,6 +28,7 @@ Room.prototype.buildRoom = function () {
     buildLinks(this, structures);
     buildStorage(this, structures);
     buildTowers(this, structures);
+    buildLabs(this, structures);
     if (_.size(Game.constructionSites) > 50) return;
     buildWalls(this, structures);
     buildRoads(this, structures);
