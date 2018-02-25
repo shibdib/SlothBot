@@ -151,6 +151,54 @@ function buildStorage(room, structures) {
 
 buildStorage = profiler.registerFN(buildStorage, 'buildStorage');
 
+function buildLabs(room, structures) {
+    if (room.controller.level < 6) return;
+    if (!room.memory.reactionRoom) {
+        let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB)[0];
+        if (!lab) {
+            let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+            let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 2, hub.x - 2, hub.y + 2, hub.x + 2, true));
+            for (let key in safeZone) {
+                let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+                if (position.getRangeTo(hub) === 2) {
+                    if (position.checkForAllStructure().length > 0) continue;
+                    position.createConstructionSite(STRUCTURE_LAB);
+                }
+            }
+        }
+    } else {
+        let labs = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
+        if (labs.length === 0) {
+            for (let i = 1; i < 249; i++) {
+                let good = false;
+                let labPos;
+                let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
+                let labHub = room.lookForAtArea(LOOK_TERRAIN, pos.y - 5, pos.x - 5, pos.y + 5, pos.x + 5, true);
+                for (let key in labHub) {
+                    labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
+                    if (labPos.checkForImpassible()) break;
+                    good = true;
+                }
+                if (good) {
+                    labPos.createConstructionSite(STRUCTURE_LAB);
+                    break;
+                }
+            }
+        } else {
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 5, labs[0].pos.x - 5, labs[0].pos.y + 5, labs[0].pos.x + 5, true);
+            for (let key in labHub) {
+                let position = new RoomPosition(labHub[key].x, labHub[key].y, labHub.name);
+                if (position.findInRange(labs, 1) >= 2 || position.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LAB}) >= 2) {
+                    if (position.checkForAllStructure().length > 0) continue;
+                    position.createConstructionSite(STRUCTURE_LAB);
+                }
+            }
+        }
+    }
+}
+
+buildStorage = profiler.registerFN(buildLabs, 'buildLabs');
+
 function buildLinks(room, structures) {
     if (room.controller.level < 5) return;
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
@@ -174,7 +222,7 @@ function buildTowers(room, structures) {
     let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER)[0];
     if (!tower || tower.length < 5) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let safeZone = shuffle(Game.rooms[hub.roomName].lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
+        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
             if (position.getRangeTo(hub) === 5) {

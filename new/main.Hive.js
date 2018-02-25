@@ -5,6 +5,7 @@ let highCommand = require('military.highCommand');
 let links = require('module.linkController');
 let terminals = require('module.terminalController');
 let observers = require('module.observerController');
+let labs = require('module.labController');
 let shib = require("shibBench");
 
 function mind() {
@@ -36,6 +37,14 @@ function mind() {
         terminals.terminalControl();
         shib.shibBench('terminalControl', cpu);
     }
+
+    // Handle Labs
+    if (Game.time % 15 === 0) {
+        cpu = Game.cpu.getUsed();
+        labs.labManager();
+        shib.shibBench('labControl', cpu);
+    }
+
 
     // Observer Control
     cpu = Game.cpu.getUsed();
