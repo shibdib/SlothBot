@@ -82,6 +82,18 @@ RoomPosition.prototype.checkForAllStructure = function () {
     }
 };
 
+RoomPosition.prototype.checkForImpassible = function () {
+    if (Game.rooms[this.roomName]) {
+        let structure = this.lookFor(LOOK_STRUCTURES, {filter: (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType)});
+        let wall = this.lookFor(LOOK_TERRAIN)[0] === 'wall';
+        if (structure || wall) {
+            return true;
+        }
+    } else {
+        return undefined;
+    }
+};
+
 RoomPosition.prototype.isExit = function () {
     return this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48;
 

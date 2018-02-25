@@ -132,7 +132,7 @@ function buildWalls(room, structures) {
         let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
         if (position.getRangeTo(hub) === 6) {
             position.createConstructionSite(STRUCTURE_RAMPART);
-            position.createConstructionSite(STRUCTURE_ROAD);
+            if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_ROAD);
         }
     }
 }
