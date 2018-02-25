@@ -5,7 +5,7 @@ let globals = function () {
     global.log = new Log();
 
     global.HOSTILES = [
-        'CaptainMuscles',
+        'Shylo132',
     ];
 
     global.FRIENDLIES = RawMemory.segments[2];

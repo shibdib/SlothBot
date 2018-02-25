@@ -14,6 +14,10 @@ function highCommand() {
         if (localTargets.length > 0) {
             Memory.ownedRooms[key].memory.localTargets = localTargets;
         }
+        let enemyTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 1000 && r.owner && _.includes(HOSTILES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
+        if (localTargets.length > 0) {
+            Memory.ownedRooms[key].memory.enemyTargets = enemyTargets;
+        }
     }
 }
 
