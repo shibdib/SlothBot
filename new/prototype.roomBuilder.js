@@ -35,25 +35,21 @@ Room.prototype.buildRoom = function () {
 function buildExtensions(room) {
     let extensionCount = room.getExtensionCount();
     if (_.filter(room.memory.structureCache, 'type', 'extension').length < extensionCount) {
-        let hub;
-        if (extensionCount <= 30) {
-            hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        } else {
-            if (room.memory.extensionHub2) {
-                hub = new RoomPosition(room.memory.extensionHub2.x, room.memory.extensionHub2.y, room.name);
-            } else {
-                findExtensionHub(room, true);
-                hub = new RoomPosition(room.memory.extensionHub2.x, room.memory.extensionHub2.y, room.name);
-            }
-        }
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
             case OK:
             case ERR_RCL_NOT_ENOUGH:
         }
         for (let i = 1; i < 8; i++) {
-            let x = getRandomInt(1, 5);
+            let x;
+            let y;
+            x = getRandomInt(1, 5);
+            y = getRandomInt(1, 5);
+            if (extensionCount >= 25) {
+                x = getRandomInt(7, 8);
+                y = getRandomInt(7, 8);
+            }
             x = _.sample([x, -x]);
-            let y = getRandomInt(1, 5);
             y = _.sample([y, -y]);
             let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
             if (pos.checkForAllStructure().length > 0) continue;
@@ -84,10 +80,9 @@ function buildExtensions(room) {
 
 buildExtensions = profiler.registerFN(buildExtensions, 'buildExtensionsRoom');
 
-function findExtensionHub(room, second = false) {
-    let secondArray = [];
+function findExtensionHub(room) {
     for (let i = 1; i < 249; i++) {
-        let pos = new RoomPosition(getRandomInt(8, 41), getRandomInt(8, 41), room.name);
+        let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
         let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
         let wall = false;
@@ -100,28 +95,17 @@ function findExtensionHub(room, second = false) {
             break;
         }
         if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
-            if (second === false) {
-                room.memory.extensionHub = {};
-                room.memory.extensionHub.x = pos.x;
-                room.memory.extensionHub.y = pos.y;
-                return;
-            } else {
-                secondArray.push(pos);
-            }
+            room.memory.extensionHub = {};
+            room.memory.extensionHub.x = pos.x;
+            room.memory.extensionHub.y = pos.y;
         }
-    }
-    if (second && secondArray.length > 0) {
-        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let hub2 = hub.findClosestByPath(secondArray);
-        room.memory.extensionHub2 = {};
-        room.memory.extensionHub2.x = hub2.x;
-        room.memory.extensionHub2.y = hub2.y;
     }
 }
 
 findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
 
 function buildWalls(room, structures) {
+    let extensionCount = room.getExtensionCount();
     if (room.controller.level < 3) return;
     for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
@@ -133,6 +117,16 @@ function buildWalls(room, structures) {
         if (position.getRangeTo(hub) === 6) {
             position.createConstructionSite(STRUCTURE_RAMPART);
             if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_ROAD);
+        }
+    }
+    if (extensionCount > 25) {
+        let outerRing = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
+        for (let key in outerRing) {
+            let position = new RoomPosition(outerRing[key].x, outerRing[key].y, room.name);
+            if (position.getRangeTo(hub) === 9) {
+                position.createConstructionSite(STRUCTURE_RAMPART);
+                if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_ROAD);
+            }
         }
     }
 }
