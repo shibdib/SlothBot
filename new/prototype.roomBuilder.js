@@ -156,7 +156,8 @@ function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
     if (!room.memory.reactionRoom) {
         let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-        if (!lab) {
+        let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
+        if (!lab && !sites) {
             let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
             let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 2, hub.x - 2, hub.y + 2, hub.x + 2, true));
             for (let key in safeZone) {
