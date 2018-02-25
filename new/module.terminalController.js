@@ -26,6 +26,7 @@ function terminalControl() {
                     return 0;
                 }
             });
+            let storage = Game.getObjectById(_.pluck(_.filter(terminal.room.memory.structureCache, 'type', 'storage'), 'id'));
             //Energy balancer
             balanceEnergy(terminal, energyInRoom);
 
@@ -49,10 +50,11 @@ function terminalControl() {
             extendBuyOrders(terminal, globalOrders, myOrders);
             placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
             placeReactionOrders(terminal, globalOrders, myOrders);
-            placeBoostOrders(terminal, globalOrders, myOrders);
+            placeBoostOrders(terminal, storage, globalOrders, myOrders);
         }
     }
 }
+
 module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalControl');
 
 function fillBuyOrders(terminal, globalOrders) {
@@ -83,7 +85,7 @@ function fillBuyOrders(terminal, globalOrders) {
                             }
                         } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                             if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
-                                log.i(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits</font>");
+                                log.i(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
                             }
                         } else {
                             let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
@@ -133,6 +135,7 @@ function fillBuyOrders(terminal, globalOrders) {
         }
     }
 }
+
 fillBuyOrders = profiler.registerFN(fillBuyOrders, 'fillBuyOrdersTerminal');
 
 function extendSellOrders(terminal, myOrders) {
@@ -156,6 +159,7 @@ function extendSellOrders(terminal, myOrders) {
             }
         }
 }
+
 extendSellOrders = profiler.registerFN(extendSellOrders, 'extendSellOrdersTerminal');
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
@@ -183,6 +187,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
             }
         }
 }
+
 placeSellOrders = profiler.registerFN(placeSellOrders, 'placeSellOrdersTerminal');
 
 function extendBuyOrders(terminal, globalOrders, myOrders) {
@@ -216,6 +221,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
         }
     }
 }
+
 extendBuyOrders = profiler.registerFN(extendBuyOrders, 'extendBuyOrdersTerminal');
 
 function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
@@ -271,6 +277,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
         }
     }
 }
+
 placeBuyOrders = profiler.registerFN(placeBuyOrders, 'placeBuyOrdersTerminal');
 
 function placeReactionOrders(terminal, globalOrders, myOrders) {
@@ -307,22 +314,19 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
             }
         }
 }
+
 placeReactionOrders = profiler.registerFN(placeReactionOrders, 'placeReactionOrdersTerminal');
 
-function placeBoostOrders(terminal, globalOrders, myOrders) {
+function placeBoostOrders(terminal, storage, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < boostNeeds.length; i++) {
-            if (terminal.store[boostNeeds[i]] < boostAmount || !terminal.store[boostNeeds[i]] && Game.market.credits > 500) {
+            let storedBoost = storage.store[boostNeeds[i]] + terminal.store[boostNeeds[i]] || 0;
+            if (storedBoost < boostAmount && Game.market.credits > 500) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === boostNeeds[i] &&
                     order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === boostNeeds[i] && myOrders[key].type === ORDER_BUY) {
-                        let currentSupply;
-                        if (isNaN(terminal.store[boostNeeds[i]]) === true) {
-                            currentSupply = myOrders[key].remainingAmount;
-                        } else {
-                            currentSupply = terminal.store[boostNeeds[i]] + myOrders[key].remainingAmount;
-                        }
+                        let currentSupply = storedBoost + myOrders[key].remainingAmount;
                         if (Game.market.credits * 0.1 > (boostAmount - currentSupply) * buyOrder.price) {
                             if (Game.market.extendOrder(myOrders[key].id, boostAmount - currentSupply) === OK) {
                                 log.i("MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + boostAmount - currentSupply);
@@ -339,6 +343,7 @@ function placeBoostOrders(terminal, globalOrders, myOrders) {
             }
         }
 }
+
 placeBoostOrders = profiler.registerFN(placeBoostOrders, 'placeReactionOrdersTerminal');
 
 function pricingUpdateSell(terminal, globalOrders, myOrders) {
@@ -374,6 +379,7 @@ function pricingUpdateSell(terminal, globalOrders, myOrders) {
             }
         }
 }
+
 pricingUpdateSell = profiler.registerFN(pricingUpdateSell, 'pricingUpdateSellTerminal');
 
 function pricingUpdateBuy(terminal, globalOrders, myOrders) {
@@ -402,6 +408,7 @@ function pricingUpdateBuy(terminal, globalOrders, myOrders) {
         }
     }
 }
+
 pricingUpdateBuy = profiler.registerFN(pricingUpdateBuy, 'pricingUpdateBuyTerminal');
 
 function orderCleanup(myOrders) {
@@ -428,6 +435,7 @@ function orderCleanup(myOrders) {
         }
     }
 }
+
 orderCleanup = profiler.registerFN(orderCleanup, 'orderCleanupTerminal');
 
 function balanceEnergy(terminal, energyInRoom) {
