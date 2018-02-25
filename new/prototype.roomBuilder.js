@@ -25,11 +25,12 @@ Room.prototype.buildRoom = function () {
         }
     }
     buildExtensions(this);
-    buildRoads(this, structures);
     buildLinks(this, structures);
-    buildWalls(this, structures);
     buildStorage(this, structures);
     buildTowers(this, structures);
+    if (_.size(Game.constructionSites) > 50) return;
+    buildWalls(this, structures);
+    buildRoads(this, structures);
 };
 
 function buildExtensions(room) {
