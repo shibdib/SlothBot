@@ -170,7 +170,8 @@ function buildLabs(room, structures) {
         }
     } else {
         let labs = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
-        if (labs.length === 0) {
+        let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
+        if (labs.length === 0 && !sites) {
             for (let i = 1; i < 249; i++) {
                 let good = false;
                 let labPos;
