@@ -19,6 +19,7 @@ function role(creep) {
         if (creep.memory.initialBuilder) {
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
             Game.rooms[creep.memory.overlord].memory.activeClaim = undefined;
+            Game.rooms[creep.memory.overlord].memory.assistingRoom = undefined;
         }
         creep.memory.role = 'worker';
         creep.memory.overlord = creep.room.name;
