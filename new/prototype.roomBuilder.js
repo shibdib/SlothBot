@@ -161,7 +161,7 @@ function buildLabs(room, structures) {
             for (let key in safeZone) {
                 let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
                 if (position.getRangeTo(hub) === 2) {
-                    if (position.checkForAllStructure().length > 0) continue;
+                    if (position.checkForImpassible().length > 0) continue;
                     position.createConstructionSite(STRUCTURE_LAB);
                 }
             }
