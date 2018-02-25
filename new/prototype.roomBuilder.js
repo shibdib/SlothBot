@@ -160,13 +160,15 @@ buildStorage = profiler.registerFN(buildStorage, 'buildStorage');
 function buildLinks(room, structures) {
     if (room.controller.level < 5) return;
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    let inBuild = storage.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
-    if (storage && !room.memory.storageLink && inBuild.length === 0) {
-        let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 1, storage.pos.x - 1, storage.pos.y + 1, storage.pos.x + 1, true);
-        for (let key in zoneTerrain) {
-            let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
-            if (position.checkForAllStructure().length > 0) continue;
-            position.createConstructionSite(STRUCTURE_LINK);
+    if (storage) {
+        let inBuild = storage.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK});
+        if (storage && !room.memory.storageLink && inBuild.length === 0) {
+            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 1, storage.pos.x - 1, storage.pos.y + 1, storage.pos.x + 1, true);
+            for (let key in zoneTerrain) {
+                let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
+                if (position.checkForAllStructure().length > 0) continue;
+                position.createConstructionSite(STRUCTURE_LINK);
+            }
         }
     }
 }
