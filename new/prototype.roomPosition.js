@@ -92,6 +92,7 @@ RoomPosition.prototype.checkForImpassible = function () {
     } else {
         return undefined;
     }
+    return undefined;
 };
 
 RoomPosition.prototype.isExit = function () {
