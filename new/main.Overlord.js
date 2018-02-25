@@ -26,33 +26,34 @@ function mind(room, roomLimit) {
     }
 
     // Manage creep spawning
+    let creepSpawn = Game.cpu.getUsed();
     if (Game.time % 10 === 0) {
-        let creepSpawn = Game.cpu.getUsed();
         room.workerCreepQueue();
         if (room.controller.level >= 4) {
             room.remoteCreepQueue();
             room.militaryCreepQueue();
         }
-        cleanQueue(room);
-        room.processBuildQueue();
-        shib.shibBench('creepSpawn', creepSpawn);
     }
+    cleanQueue(room);
+    room.processBuildQueue();
+    shib.shibBench('creepSpawn', creepSpawn);
 
     // Manage creeps
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name));
     let militaryCreeps = shuffle(_.filter(roomCreeps, (r) => r.memory.military));
     // Military first
-    for (let key in militaryCreeps){
+    for (let key in militaryCreeps) {
         if (Game.cpu.getUsed() > cpuWindow) return;
         minionController(militaryCreeps[key]);
     }
     // Worker minions
-    for (let key in roomCreeps){
+    for (let key in roomCreeps) {
         if (Game.cpu.getUsed() > cpuWindow) return;
         minionController(roomCreeps[key]);
     }
     shib.shibBench('overlordMind', mindStart);
 }
+
 module.exports.overlordMind = profiler.registerFN(mind, 'overlordMind');
 
 function minionController(minion) {
@@ -65,6 +66,7 @@ function minionController(minion) {
     creepRole.role(minion);
     shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
+
 module.exports.minionController = profiler.registerFN(minionController, 'minionController');
 
 function cleanQueue(room) {
@@ -72,6 +74,7 @@ function cleanQueue(room) {
         if (room.memory.creepBuildQueue[key].room !== room.name) delete room.memory.creepBuildQueue[key]
     }
 }
+
 module.exports.cleanQueue = profiler.registerFN(cleanQueue, 'cleanCreepQueue');
 
 function requestBuilders(room) {
