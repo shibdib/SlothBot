@@ -225,14 +225,19 @@ buildLinks = profiler.registerFN(buildLinks, 'buildLinks');
 function buildTowers(room, structures) {
     if (room.controller.level < 3) return;
     let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER)[0];
-    if (!tower || tower.length < 5) {
+    if (tower.length < 6) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
             if (position.getRangeTo(hub) === 5) {
-                if (position.checkForAllStructure().length > 0) continue;
-                position.createConstructionSite(STRUCTURE_TOWER);
+                if (position.checkForImpassible().length > 0) continue;
+                switch (position.createConstructionSite(STRUCTURE_TOWER)) {
+                    case OK:
+                        continue;
+                    case ERR_RCL_NOT_ENOUGH:
+                        return;
+                }
             }
         }
     }
