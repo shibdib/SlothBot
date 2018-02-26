@@ -345,7 +345,7 @@ remoteCreepQueue = function () {
             // Remote Response
             if (!_.includes(queue, 'remoteResponse')) {
                 if (Game.rooms[this.memory.remoteRooms[keys]] && Game.rooms[this.memory.remoteRooms[keys]].memory.responseNeeded === true && !this.memory.responseNeeded) {
-                    let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.memory.remoteRooms[keys] && creep.memory.role === 'responder');
+                    let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.memory.remoteRooms[keys] && creep.memory.role === 'remoteResponse');
                     if (responder.length < Game.rooms[this.memory.remoteRooms[keys]].memory.numberOfHostiles) {
                         queueCreep(this, PRIORITIES.remoteResponse, {
                             role: 'remoteResponse',
@@ -440,13 +440,13 @@ remoteCreepQueue = function () {
             })
         }
     }
-    if (!_.includes(queue, 'remoteResponse') && this.memory.assistingRoom) {
-        if (Game.rooms[this.memory.assistingRoom] && Game.rooms[this.memory.assistingRoom].memory.responseNeeded === true && !this.memory.responseNeeded) {
-            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.memory.assistingRoom && creep.memory.role === 'responder');
-            if (responder.length < Game.rooms[this.memory.assistingRoom].memory.numberOfHostiles) {
+    if (!_.includes(queue, 'remoteResponse') && this.memory.sendingResponse) {
+        if (Game.rooms[this.memory.sendingResponse] && Game.rooms[this.memory.sendingResponse].memory.responseNeeded === true && !this.memory.responseNeeded) {
+            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.memory.sendingResponse && creep.memory.role === 'remoteResponse');
+            if (responder.length < Game.rooms[this.memory.sendingResponse].memory.numberOfHostiles) {
                 queueCreep(this, 2, {
                     role: 'remoteResponse',
-                    responseTarget: this.memory.assistingRoom,
+                    responseTarget: this.memory.sendingResponse,
                     military: true
                 })
             }
