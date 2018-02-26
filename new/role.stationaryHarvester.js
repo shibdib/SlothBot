@@ -89,7 +89,7 @@ function depositEnergy(creep) {
 
 function harvestDepositLink(creep) {
     if (!creep.room.memory.storageLink || !creep.memory.containerID) return;
-    let link = creep.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
+    let link = creep.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink})[0];
     if (link) {
         if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
