@@ -146,50 +146,6 @@ findConstruction = function () {
 };
 Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
-function findExtensionHub(room) {
-    for (let i = 1; i < 249; i++) {
-        let pos = new RoomPosition(getRandomInt(8, 41), getRandomInt(8, 41), room.name);
-        let built = room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
-        let inBuild = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
-        if (built.length > 0 || inBuild.length > 0) {
-            if (built[0]) {
-                room.memory.extensionHub = {};
-                room.memory.extensionHub.x = built[0].pos.x;
-                room.memory.extensionHub.y = built[0].pos.y;
-                return;
-            } else {
-                room.memory.extensionHub = {};
-                room.memory.extensionHub.x = inBuild[0].pos.x;
-                room.memory.extensionHub.y = inBuild[0].pos.y;
-                return;
-            }
-        }
-        let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
-        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
-        let wall = false;
-        for (let key in terrain) {
-            let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-            if (!position.checkForWall()) {
-                continue;
-            }
-            wall = true;
-            break;
-        }
-        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
-            room.memory.extensionHub = {};
-            room.memory.extensionHub.x = pos.x;
-            room.memory.extensionHub.y = pos.y;
-            return;
-        }
-    }
-}
-
-findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
-
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
 findRepair = function (level) {
     let structures = this.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
@@ -703,29 +659,30 @@ findStorage = function () {
         });
     }
     //Terminal
-    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
-    if (terminal.length > 0) {
-        let terminals = [];
-        for (let i = 0; i < terminal.length; i++) {
-            const object = Game.getObjectById(terminal[i]);
-            if (object) {
-                if (object.pos.getRangeTo(this) > 1) {
-                    const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
-                    terminals.push({
-                        id: terminal[i],
-                        distWeighted: terminalDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
+    let terminal = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id')[0]);
+    if (terminal) {
+        if (terminal.pos.getRangeTo(this) > 1) {
+            const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
+            storage.push({
+                id: terminal.id,
+                distWeighted: terminalDistWeighted,
+                harvest: false
+            });
         }
-        let bestTerminal = _.min(terminals, 'distWeighted');
-        storage.push({
-            id: bestTerminal.id,
-            distWeighted: bestTerminal.distWeighted,
-            harvest: false
-        });
     }
+    //Nuker
+    let nuker = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'nuker'), 'id')[0]);
+    if (nuker) {
+        if (nuker.pos.getRangeTo(this) > 1) {
+            const nukerDistWeighted = _.round(nuker.pos.rangeToTarget(this) * 0.1, 0) + 1;
+            storage.push({
+                id: nuker.id,
+                distWeighted: nukerDistWeighted,
+                harvest: false
+            });
+        }
+    }
+    //Sort
     let sorted = _.min(storage, 'distWeighted');
     if (sorted) {
         let storageItem = Game.getObjectById(sorted.id);
@@ -916,38 +873,39 @@ findEssentials = function () {
         });
     }
     //Terminal room.memory.energySurplus
-    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
-    if (terminal.length > 0 && !_.includes(roomSpawnQueue, 'responder')) {
-        let terminals = [];
-        for (let i = 0; i < terminal.length; i++) {
-            const object = Game.getObjectById(terminal[i]);
-            if (object) {
-                if (object.pos.getRangeTo(this) > 1) {
-                    if (object.room.memory.energySurplus && object.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.5) {
-                        const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0) + 1;
-                        terminals.push({
-                            id: terminal[i],
-                            distWeighted: terminalDistWeighted,
-                            harvest: false
-                        });
-                    } else {
-                        const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 1.1, 0) + 1;
-                        terminals.push({
-                            id: terminal[i],
-                            distWeighted: terminalDistWeighted,
-                            harvest: false
-                        });
-                    }
-                }
+    let terminal = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id')[0]);
+    if (terminal) {
+        if (terminal.pos.getRangeTo(this) > 1) {
+            if (terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.5) {
+                const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.1, 0) + 1;
+                storage.push({
+                    id: terminal.id,
+                    distWeighted: terminalDistWeighted,
+                    harvest: false
+                });
+            } else {
+                const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 1.1, 0) + 1;
+                storage.push({
+                    id: terminal.id,
+                    distWeighted: terminalDistWeighted,
+                    harvest: false
+                });
             }
         }
-        let bestTerminal = _.min(terminals, 'distWeighted');
-        storage.push({
-            id: bestTerminal.id,
-            distWeighted: bestTerminal.distWeighted,
-            harvest: false
-        });
     }
+    //Nuker
+    let nuker = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'nuker'), 'id')[0]);
+    if (nuker) {
+        if (nuker.pos.getRangeTo(this) > 1) {
+            const nukerDistWeighted = _.round(nuker.pos.rangeToTarget(this) * 0.1, 0) + 1;
+            storage.push({
+                id: nuker.id,
+                distWeighted: nukerDistWeighted,
+                harvest: false
+            });
+        }
+    }
+    //Sort
     let sorted = _.min(storage, 'distWeighted');
     if (sorted) {
         let storageItem = Game.getObjectById(sorted.id);
