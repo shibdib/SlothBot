@@ -27,7 +27,7 @@ function role(creep) {
     if (meleeLeader.length === 0) creep.memory.meleeLeader = true;
     if (creep.memory.attackType === 'raid') {
         if (Game.time % 15 === 0 && Memory.warControl[creep.memory.attackTarget]) {
-            let hostiles = creep.room.find(FIND_CREEPS, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) === false});
+            let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
             let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
             let healers = _.filter(hostiles, (e) => (e.getActiveBodyparts(HEAL) >= 3) && _.includes(FRIENDLIES, e.owner['username']) === false);
             if ((armedHostile.length > 3 && healers.length > 1) || armedHostile.length > 4 && healers.length > 0) {

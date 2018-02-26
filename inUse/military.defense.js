@@ -16,7 +16,7 @@ function controller(room) {
                 Game.notify(room.name + ' - Enemy detected, initiating defense mode.')
             }
             if (spawn.room.memory.responseNeeded) {
-                let hostiles = _.filter(creeps, (c) => c.pos.y < 45 && c.pos.y > 5 && c.pos.x < 45 && c.pos.y > 5 && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(RawMemory.segments[2], c.owner['username']) === false && c.owner['username'] !== 'Invader');
+                let hostiles = _.filter(creeps, (c) => c.pos.y < 45 && c.pos.y > 5 && c.pos.x < 45 && c.pos.y > 5 && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && !_.includes(FRIENDLIES, c.owner['username']) && c.owner['username'] !== 'Invader');
                 let tower = _.max(room.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER}), 'energy');
                 let responders = _.filter(creeps, (c) => c.memory && c.memory.role && c.memory.role === 'responder');
                 if (hostiles.length > 0 && tower.energy === 0 && responders.length === 0) {

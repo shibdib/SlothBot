@@ -8,8 +8,8 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     let source;
     creep.borderCheck();
-    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
+    let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     let lair = Game.getObjectById(creep.memory.lair);
     if (lair && creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 10) return creep.flee(lair);
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();

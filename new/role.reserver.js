@@ -11,8 +11,8 @@ function role(creep) {
     let signs = ["Reserved Territory of Overlords - #overlords on Slack", "Overlords Frontier - Visit at your own risk.", "Join Overlords! #overlords", "Overlords Reserved Room"];
     //Invader detection
     creep.room.invaderCheck();
-    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 5) return creep.retreat();
+    let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.reservationTarget) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.reservationTarget) creep.memory.destinationReached = true;

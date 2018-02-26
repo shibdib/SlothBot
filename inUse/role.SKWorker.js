@@ -17,7 +17,7 @@ function role(creep) {
         creep.memory.source = undefined;
         return;
     }
-    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
     //Initial move
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;

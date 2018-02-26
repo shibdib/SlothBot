@@ -34,7 +34,7 @@ function role(creep) {
         creep.memory.destinationReached = true;
     }
     if (!creep.memory.destinationReached) {
-        let hostiles = _.filter(creep.room.find(FIND_CREEPS), (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
+        let hostiles = _.filter(creep.room.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
         let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
