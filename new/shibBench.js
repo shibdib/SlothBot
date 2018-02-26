@@ -43,7 +43,7 @@ module.exports.processBench = function () {
     bucket['used'] = (bucket['used'] + (10000 - Game.cpu.bucket));
     Memory._benchmark['bucket'] = bucket;
     if (Memory.reportBench) {
-        if (Game.time <= Memory.reportBench) {
+        if (Game.time >= Memory.reportBench) {
             let sorted = _.sortBy(Memory._benchmark, 'avg');
             log.e('---------------------------------------------------------------------------');
             log.e('~~~~~BENCHMARK REPORT~~~~~');
