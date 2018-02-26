@@ -15,7 +15,7 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
 
-    if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN})) {
+    if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.my})) {
         if (creep.memory.initialBuilder) {
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
             Game.rooms[creep.memory.overlord].memory.activeClaim = undefined;
@@ -66,7 +66,7 @@ function role(creep) {
                                     case OK:
                                         for (let key in Memory.ownedRooms) {
                                             if (Game.rooms[key] && Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
-                                                Game.rooms[key].memory.activeClaim = creep;
+                                                Game.rooms[key].memory.activeClaim = true;
                                             }
                                         }
                                 }
