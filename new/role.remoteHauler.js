@@ -73,24 +73,41 @@ function role(creep) {
                         }
                     }
                 } else if (dropOffLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
+                    creep.memory.storageDestination = dropOffLink.id;
                     switch (creep.transfer(dropOffLink, RESOURCE_ENERGY)) {
                         case OK:
-                            delete creep.memory.storageDestination;
+                            creep.memory.storageDestination = undefined;
                             break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(dropOffLink);
                             break;
                         case ERR_FULL:
-                            delete creep.memory.storageDestination;
+                            creep.memory.storageDestination = undefined;
                             creep.findStorage();
                             break;
                     }
                 } else {
                     let link = creep.pos.findInRange(FIND_STRUCTURES, 8, {filter: (s) => s.structureType === STRUCTURE_LINK});
+                    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
                     if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                         creep.memory.dropOffLink = link[0].id;
+                    } else if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
+                        creep.memory.storageDestination = controllerContainer.id;
+                        switch (creep.transfer(controllerContainer, RESOURCE_ENERGY)) {
+                            case OK:
+                                creep.memory.storageDestination = undefined;
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(controllerContainer);
+                                break;
+                            case ERR_FULL:
+                                creep.memory.storageDestination = undefined;
+                                creep.findStorage();
+                                break;
+                        }
+                    } else {
+                        creep.findStorage();
                     }
-                    creep.findStorage();
                 }
             } else {
                 creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {
