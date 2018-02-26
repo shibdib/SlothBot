@@ -193,8 +193,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
             maxOps: options.maxOps,
             maxRooms: options.maxRooms,
-            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 5,
-            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 15 : 20,
+            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 15,
+            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 50 : 65,
             roomCallback: callback,
         });
         if (ret.incomplete || options.ensurePath) {
