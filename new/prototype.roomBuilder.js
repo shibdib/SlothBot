@@ -235,6 +235,7 @@ function buildTowers(room, structures) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
             if (position.getRangeTo(hub) === 5) {
                 if (position.checkForImpassible().length > 0) continue;
+                if (position.checkForAllStructure().length > 0) continue;
                 switch (position.createConstructionSite(STRUCTURE_TOWER)) {
                     case OK:
                         continue;
