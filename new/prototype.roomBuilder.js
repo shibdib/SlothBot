@@ -164,7 +164,7 @@ function buildLabs(room, structures) {
             for (let key in safeZone) {
                 let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
                 if (position.getRangeTo(hub) === 2) {
-                    if (position.checkForImpassible().length > 0) continue;
+                    if (position.checkForImpassible()) continue;
                     position.createConstructionSite(STRUCTURE_LAB);
                 }
             }
@@ -234,7 +234,7 @@ function buildTowers(room, structures) {
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
             if (position.getRangeTo(hub) === 5) {
-                if (position.checkForImpassible().length > 0) continue;
+                if (position.checkForImpassible()) continue;
                 if (position.checkForAllStructure().length > 0) continue;
                 switch (position.createConstructionSite(STRUCTURE_TOWER)) {
                     case OK:
