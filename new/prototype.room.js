@@ -81,7 +81,7 @@ Object.defineProperty(Room.prototype, 'mineral', {
             if (!this.memory.mineralId) {
                 // Find the sources and store their id's in memory,
                 // NOT the full objects
-                this.memory.mineralId = this.mineral
+                this.memory.mineralId = this.find(FIND_MINERALS)
                     .map(mineral => mineral.id);
             }
             // Get the source objects from the id's in memory and store them locally
@@ -95,6 +95,33 @@ Object.defineProperty(Room.prototype, 'mineral', {
         // to set the memory value as well as the local value
         this.memory.mineral = newValue.map(mineral => mineral.id);
         this._mineral = newValue;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'structures', {
+    get: function () {
+        // If we dont have the value stored locally
+        if (!this._structures) {
+            // If we dont have the value stored in memory
+            if (!this.memory.structureIds) {
+                // Find the sources and store their id's in memory,
+                // NOT the full objects
+                this.memory.structureIds = this.find(FIND_STRUCTURES)
+                    .map(structures => structures.id);
+            }
+            // Get the source objects from the id's in memory and store them locally
+            this._structures = this.memory.structureIds.map(id => Game.getObjectById(id));
+        }
+        // return the locally stored value
+        return this._structures;
+    },
+    set: function (newValue) {
+        // when storing in memory you will want to change the setter
+        // to set the memory value as well as the local value
+        this.memory.structures = newValue.map(structures => structures.id);
+        this._structures = newValue;
     },
     enumerable: false,
     configurable: true
