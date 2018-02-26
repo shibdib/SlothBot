@@ -59,14 +59,8 @@ module.exports.controller = profiler.registerFN(controller, 'defenseController')
 
 //Functions
 
-function rampartManager(room, structures, attack = false) {
-    let tickState;
-    if (!attack) {
-        tickState = undefined;
-    } else {
-        tickState = true;
-    }
-    if (tickState !== room.memory.rampartState) {
+function rampartManager(room, structures, attack = undefined) {
+    if (attack !== room.memory.rampartState) {
         let rampart = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);
         if (rampart.length > 0) {
             if (rampart[0]) {
