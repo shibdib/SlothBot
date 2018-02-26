@@ -115,7 +115,7 @@ function SKdeposit(creep) {
 function skRoads(creep) {
     creep.memory.buildAttempt = true;
     if (creep.room.name !== creep.memory.destination) return;
-    let sources = creep.room.find(FIND_SOURCES);
+    let sources = creep.room._sources;
     let minerals = creep.room.find(FIND_MINERALS);
     sources = sources.concat(minerals);
     let neighboring = Game.map.describeExits(creep.pos.roomName);

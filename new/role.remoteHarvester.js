@@ -89,8 +89,8 @@ function depositEnergy(creep) {
 function remoteRoads(creep) {
     creep.memory.buildAttempt = true;
     if (creep.room.name !== creep.memory.destination) return;
-    let sources = creep.room.find(FIND_SOURCES);
-    let neighboring = Game.map.describeExits(creep.pos.roomName)
+    let sources = creep.room._sources;
+    let neighboring = Game.map.describeExits(creep.pos.roomName);
     if (sources.length > 1) {
         buildRoadFromTo(creep.room, sources[0], sources[1]);
     }

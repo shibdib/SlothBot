@@ -28,7 +28,7 @@
 // Determines the number of containers that are adjacent to sources.
 // NOTE: THIS MUST MATCH CALCULATIONS IN role.harvester2.determine_destination()!!!
 function count_source_containers(room) {
-    let room_sources = room.find(FIND_SOURCES);
+    let room_sources = room._sources;
 
     // Go through all sources and all nearby containers, and pick one that is not
     // claimed by another harvester2 for now.

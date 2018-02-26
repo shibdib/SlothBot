@@ -31,7 +31,7 @@ function role(creep) {
         if (creep.wrongRoom()) return null;
         if (creep.carry.energy === 0) {
             creep.memory.working = null;
-        } else if (creep.carry.energy >= creep.carryCapacity * 0.75) creep.memory.working = true;
+        } else if (creep.isFull) creep.memory.working = true;
         if (creep.memory.working === true) {
             if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
             if (creep.room.memory.controllerContainer && creep.pos.getRangeTo(Game.getObjectById(creep.room.memory.controllerContainer)) <= 1 && Game.getObjectById(creep.room.memory.controllerContainer).store[RESOURCE_ENERGY] > 0) creep.withdraw(Game.getObjectById(creep.room.memory.controllerContainer), RESOURCE_ENERGY);

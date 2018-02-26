@@ -13,7 +13,7 @@ function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
-    if (_.sum(creep.carry) > creep.carryCapacity / 2) creep.memory.hauling = true;
+    if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe()) {
         if (!terminalWorker(creep) && !mineralHauler(creep)) {
             if (creep.memory.hauling === false) {

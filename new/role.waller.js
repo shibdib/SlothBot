@@ -14,7 +14,7 @@ function role(creep) {
         if (creep.carry.energy === 0) {
             creep.memory.working = null;
         }
-        if (creep.carry.energy >= creep.carryCapacity * 0.75) {
+        if (creep.isFull) {
             creep.memory.working = true;
         }
         if (creep.memory.working === true) {

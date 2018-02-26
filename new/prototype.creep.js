@@ -133,3 +133,14 @@ Creep.prototype.tryToBoost = function (boosts) {
         }
     }
 };
+
+Object.defineProperty(Creep.prototype, 'isFull', {
+    get: function () {
+        if (!this._isFull) {
+            this._isFull = _.sum(this.carry) > this.carryCapacity * 0.8;
+        }
+        return this._isFull;
+    },
+    enumerable: false,
+    configurable: true
+});
