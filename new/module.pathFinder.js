@@ -59,22 +59,16 @@ function shibMove(creep, heading, options = {}) {
     //Execute path if target is valid and path is set
     if (pathInfo.path && !options.checkPath) {
         creep.borderCheck();
-        let nextDirection = parseInt(pathInfo.path[0], 10);
-        pathInfo.newPos = positionAtDirection(origin, nextDirection);
         if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             pathInfo.pathPosTime++;
-            if (pathInfo.pathPosTime > 0 && pathInfo.newPos.lookFor(LOOK_CREEPS)[0]) {
-                let blocker = pathInfo.newPos.lookFor(LOOK_CREEPS)[0];
-                if (blocker.my && (!blocker.memory._shibMove || (blocker.memory._shibMove && blocker.memory._shibMove.pathPosTime === 0))) {
-                    blocker.moveRandom();
-                }
-            }
         } else {
             pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
             pathInfo.pathPosTime = 0;
         }
+        let nextDirection = parseInt(pathInfo.path[0], 10);
         if (nextDirection && pathInfo.newPos) {
+            pathInfo.newPos = positionAtDirection(origin, nextDirection);
             switch (creep.move(nextDirection)) {
                 case OK:
                     break;
@@ -122,7 +116,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
             let route;
             if (options.useCache) {
-                route = getRoute(creep, origin, target);
+                route = getRoute(origin, target);
             }
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) {
                 route = findRoute(origin.roomName, target.roomName, options);
@@ -199,8 +193,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
             maxOps: options.maxOps,
             maxRooms: options.maxRooms,
-            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 15,
-            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 50 : 65,
+            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 5,
+            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 15 : 20,
             roomCallback: callback,
         });
         if (ret.incomplete || options.ensurePath) {
@@ -441,26 +435,26 @@ function positionAtDirection(origin, direction) {
 }
 positionAtDirection = profiler.registerFN(positionAtDirection, 'shibPositionAtDirection');
 
-function cacheRoute(creep, from, to, route) {
+function cacheRoute(from, to, route) {
     let key = getPathKey(from, to);
-    let cache = Game.rooms[creep.memory.overlord].memory.routeCache || {};
+    let cache = Memory.routeCache || {};
     let tick = Game.time;
     cache[key] = {
         route: JSON.stringify(route),
         uses: 1,
         tick: tick
     };
-    Game.rooms[creep.memory.overlord].memory.routeCache = cache;
+    Memory.routeCache = cache;
 }
 cacheRoute = profiler.registerFN(cacheRoute, 'shibCacheRoute');
 
-function getRoute(creep, from, to) {
-    let cache = Game.rooms[creep.memory.overlord].memory.routeCache;
+function getRoute(from, to) {
+    let cache = Memory.routeCache;
     if (cache) {
         let cachedRoute = cache[getPathKey(from, to)];
         if (cachedRoute) {
             cachedRoute.uses += 1;
-            Game.rooms[creep.memory.overlord].memory.routeCache = cache;
+            Memory.routeCache = cache;
             return JSON.parse(cachedRoute.route);
         }
     } else {
