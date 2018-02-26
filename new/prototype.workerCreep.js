@@ -551,7 +551,7 @@ findStorage = function () {
     }
     //Tower
     let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let harvester = _.filter(this.room.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    let harvester = _.filter(this.room.creeps, (h) => h.my && h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
     if (tower.length > 0 && harvester.length >= 2 && haulingEnergy) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
@@ -698,7 +698,7 @@ findEssentials = function () {
     }
     //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !_.includes(roomSpawnQueue, 'responder')) {
+    if (controllerContainer && !_.includes(roomSpawnQueue, 'responder') && controllerContainer.store[RESOURCE_ENERGY] !== controllerContainer.storeCapacity) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -764,7 +764,7 @@ findEssentials = function () {
     }
     //Tower
     let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let harvester = _.filter(this.room.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));
+    let harvester = _.filter(this.room.creeps, (h) => h.my && h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));
     if (tower.length > 0 && harvester.length >= 2 && !_.includes(roomSpawnQueue, 'responder')) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
@@ -886,10 +886,10 @@ Creep.prototype.findDeliveries = profiler.registerFN(findDeliveries, 'findDelive
 
 /**
  * Globally patch creep actions to log error codes.
-['attack', 'attackController', 'build', 'claimController', 'dismantle', 'drop',
-    'generateSafeMode', 'harvest', 'heal', 'move', 'moveByPath', 'moveTo', 'pickup',
-    'rangedAttack', 'rangedHeal', 'rangedMassAttack', 'repair', 'reserveController',
-    'signController', 'suicide', 'transfer', 'upgradeController', 'withdraw'].forEach(function (method) {
+ ['attack', 'attackController', 'build', 'claimController', 'dismantle', 'drop',
+ 'generateSafeMode', 'harvest', 'heal', 'move', 'moveByPath', 'moveTo', 'pickup',
+ 'rangedAttack', 'rangedHeal', 'rangedMassAttack', 'repair', 'reserveController',
+ 'signController', 'suicide', 'transfer', 'upgradeController', 'withdraw'].forEach(function (method) {
     let original = Creep.prototype[method];
     // Magic
     Creep.prototype[method] = function () {
