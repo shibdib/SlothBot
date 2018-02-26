@@ -109,7 +109,6 @@ findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
 
 function controllerSupplier(room, structures) {
     let controllerContainer = room.controller.pos.findInRange(structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
-    room.memory.controllerContainer = controllerContainer.id;
     if (room.controller.level < 6) {
         if (!controllerContainer) {
             let controllerBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
@@ -123,6 +122,8 @@ function controllerSupplier(room, structures) {
                     }
                 }
             }
+        } else {
+            room.memory.controllerContainer = controllerContainer.id;
         }
     } else {
         let controllerLink = room.controller.pos.findInRange(structures, 3, {filter: (s) => s.structureType === STRUCTURE_LINK});
