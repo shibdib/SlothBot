@@ -42,7 +42,7 @@ function towerControl() {
                     if (woundedCreep.length > 0) {
                         tower.heal(woundedCreep[0]);
                     }
-                } else if (tower.energy > tower.energyCapacity * 0.25 && Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000) {
+                } else if (tower.energy > tower.energyCapacity * 0.25 && Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000 && Game.time % 10 === 0) {
                     let creeps = tower.room.find(FIND_CREEPS);
                     let structures = tower.room.find(FIND_STRUCTURES);
                     let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner['username']) === true);
@@ -61,12 +61,6 @@ function towerControl() {
                     }
                     if (Game.getObjectById(findRepair(tower))) {
                         tower.repair(Game.getObjectById(findRepair(tower, structures)));
-                    }
-                } else if (Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000) {
-                    let structures = tower.room.find(FIND_STRUCTURES);
-                    let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.05);
-                    if (road.length > 0) {
-                        tower.repair(road[0]);
                     }
                 }
             }
