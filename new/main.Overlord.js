@@ -101,7 +101,7 @@ function cleanQueue(room) {
 module.exports.cleanQueue = profiler.registerFN(cleanQueue, 'cleanCreepQueue');
 
 function requestBuilders(room) {
-    let spawns = _.filter(room.memory.structureCache, 'type', 'spawn');
+    let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (spawns.length === 0) {
         room.memory.buildersNeeded = true;
     } else {

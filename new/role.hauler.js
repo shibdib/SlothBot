@@ -49,15 +49,8 @@ function role(creep) {
                             creep.findEssentials();
                             break;
                     }
-                } else {
-                    let spawn = _.pluck(_.filter(creep.room.memory.structureCache, 'type', 'spawn'), 'id');
-                    if (spawn.energy < 300) {
-                        if (creep.transfer(spawn, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(spawn);
-                        }
-                    } else if (!creep.findEssentials()) {
-                        creep.idleFor(10);
-                    }
+                } else if (!creep.findEssentials()) {
+                    creep.idleFor(10);
                 }
             }
         }
@@ -84,7 +77,7 @@ function mineralHauler(creep) {
             return true;
         }
     } else {
-        let terminal = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id'));
+        let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         for (let resourceType in creep.carry) {
             switch (creep.transfer(terminal, resourceType)) {
                 case OK:
@@ -99,7 +92,7 @@ function mineralHauler(creep) {
 }
 
 function terminalWorker(creep) {
-    let terminal = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'terminal'), 'id'));
+    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let terminalWorker = _.filter(Game.creeps, (creep) => creep.memory.terminalWorker && creep.memory.overlord === creep.room.name)[0];
     if (!creep.memory.terminalWorker && (!terminal || terminalWorker)) return undefined;
     if (creep.memory.hauling === false) {
@@ -114,7 +107,7 @@ function terminalWorker(creep) {
             return true;
         }
     } else {
-        let storage = Game.getObjectById(_.pluck(_.filter(creep.room.memory.structureCache, 'type', 'storage'), 'id'));
+        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:

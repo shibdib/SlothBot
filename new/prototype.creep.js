@@ -76,7 +76,7 @@ Creep.prototype.getSafe = function () {
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
-    if (!Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'lab'), 'id')[0])) return this.memory.boostAttempt = true;
+    if (!_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
         this.memory.requestedBoosts = {};
         let boostObject = {
