@@ -66,11 +66,11 @@ module.exports.processBench = function () {
                 log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3));
                 if (Memory.reportBenchNotify) Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3));
             }
-            log.e('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
-            log.e('Total Bucket Used - ' + bucketTotal + '.');
+            log.e('Ticks Covered: ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
+            log.e('Total Bucket Used: ' + bucketTotal + '. Current Bucket: ' + Game.cpu.bucket);
             log.e('---------------------------------------------------------------------------');
-            if (Memory.reportBenchNotify) Game.notify('Ticks Covered - ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
-            if (Memory.reportBenchNotify) Game.notify('Total Bucket Used - ' + bucketTotal);
+            if (Memory.reportBenchNotify) Game.notify('Ticks Covered: ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
+            if (Memory.reportBenchNotify) Game.notify('Total Bucket Used: ' + bucketTotal + '. Current Bucket: ' + Game.cpu.bucket);
             Memory.reportBench = undefined;
             Memory.reportBenchNotify = undefined;
         }
