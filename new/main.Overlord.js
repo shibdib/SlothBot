@@ -83,7 +83,7 @@ function requestBuilders(room) {
         room.memory.buildersNeeded = true;
     } else {
         room.memory.buildersNeeded = undefined;
-        let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded && Game.map.findRoute(room.name, r.name).length < 7)[0];
+        let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded && Game.map.findRoute(room.name, r.name).length < 9)[0];
         if (needyRoom) {
             if (room.memory.assistingRoom !== needyRoom.name) {
                 room.memory.assistingRoom = needyRoom.name;
