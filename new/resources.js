@@ -35,7 +35,7 @@ function count_source_containers(room) {
     // TODO: Prefer to pick one at a source that isn't already claimed.
     let retval = 0;
 
-    for (let source of room_sources) {
+    for (let source of room._sources) {
         let nearby_containers =
             source.pos.findInRange(FIND_STRUCTURES, 2, {filter: s => s.structureType === STRUCTURE_CONTAINER});
         // console.log(room.name + ', source: ' + source.id + ', nearby containers: ' + nearby_containers.length);
