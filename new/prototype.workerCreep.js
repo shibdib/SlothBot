@@ -268,7 +268,7 @@ findEnergy = function (range = 250, hauler = false) {
     if (container.length > 0) {
         let containers = [];
         for (let i = 0; i < container.length; i++) {
-            const object = Game.getObjectById(container[i]);
+            const object = container[i];
             if (object) {
                 if (this.room.memory.controllerContainer === object.id) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -280,7 +280,7 @@ findEnergy = function (range = 250, hauler = false) {
                 let containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
                 let containerDistWeighted = itemRange * (2 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
-                    id: container[i],
+                    id: container[i].id,
                     distWeighted: containerDistWeighted,
                     harvest: false
                 });
@@ -370,7 +370,7 @@ getEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
             if (object) {
-                if (object.id === this.room.controllerContainer) continue;
+                if (object.id === this.room.memory.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
                 if (object.store[RESOURCE_ENERGY] < 20 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
                     continue;
@@ -378,7 +378,7 @@ getEnergy = function (range = 250, hauler = false) {
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
                 const containerDistWeighted = object.pos.rangeToTarget(this) * (2 - containerAmountWeighted) + (numberOfUsers / 2);
                 containers.push({
-                    id: container[i],
+                    id: container[i].id,
                     distWeighted: containerDistWeighted,
                     harvest: false
                 });
@@ -494,7 +494,7 @@ findStorage = function () {
                 }
                 const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.8, 0) + 1;
                 spawns.push({
-                    id: spawn[i],
+                    id: spawn[i].id,
                     distWeighted: spawnDistWeighted,
                     harvest: false
                 });
@@ -519,7 +519,7 @@ findStorage = function () {
                 }
                 const extensionDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.8, 0) + 1;
                 extensions.push({
-                    id: extension[i],
+                    id: extension[i].id,
                     distWeighted: extensionDistWeighted,
                     harvest: false
                 });
