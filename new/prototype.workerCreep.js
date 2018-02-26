@@ -77,7 +77,7 @@ Creep.prototype.findMineral = function () {
     const source = this.room.find(FIND_MINERALS);
     if (source.length > 0) {
         for (let i = 0; i < source.length; i++) {
-            if (source[i].pos.findInRange(FIND_CREEPS, 2, {filter: (c) => c.memory && (c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester' || c.memory.role === 'SKworker' || c.memory.role === 'mineralHarvester')}).length === 0) {
+            if (_.filter(source[i].pos.findInRange(FIND_CREEPS, 2), (c) => c.memory && (c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester' || c.memory.role === 'SKworker' || c.memory.role === 'mineralHarvester')).length === 0) {
                 if (this.shibMove(source[i]) !== ERR_NO_PATH) {
                     if (source[i].id) {
                         this.memory.source = source[i].id;

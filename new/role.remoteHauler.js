@@ -62,7 +62,8 @@ function role(creep) {
                             case OK:
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                let opportunity = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity});
+                                let adjacentStructure = creep.pos.findInRange(FIND_STRUCTURES, 1);
+                                let opportunity = _.filter(adjacentStructure, (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
                                 if (opportunity.length > 0) creep.transfer(opportunity[0], RESOURCE_ENERGY);
                                 creep.shibMove(storageItem);
                                 break;
@@ -87,7 +88,7 @@ function role(creep) {
                             break;
                     }
                 } else {
-                    let link = creep.pos.findInRange(FIND_STRUCTURES, 8, {filter: (s) => s.structureType === STRUCTURE_LINK});
+                    let link = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 8), (s) => s.structureType === STRUCTURE_LINK);
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                         creep.memory.dropOffLink = link[0].id;

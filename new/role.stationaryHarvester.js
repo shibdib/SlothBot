@@ -89,7 +89,7 @@ function depositEnergy(creep) {
 
 function harvestDepositLink(creep) {
     if (!creep.room.memory.storageLink || !creep.memory.containerID) return;
-    let link = creep.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink})[0];
+    let link = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 3), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
@@ -99,7 +99,7 @@ function harvestDepositLink(creep) {
         }
     } else {
         let container = Game.getObjectById(creep.memory.containerID);
-        let inBuild = container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
+        let inBuild = _.filter(container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!inBuild) {
             let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
             for (let key in zoneTerrain) {

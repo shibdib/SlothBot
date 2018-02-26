@@ -42,9 +42,10 @@ function role(creep) {
                             creep.memory.storageDestination = undefined;
                             break;
                         case ERR_NOT_IN_RANGE:
-                            let opportunity = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity});
+                            let adjacentStructure = creep.pos.findInRange(FIND_STRUCTURES, 1);
+                            let opportunity = _.filter(adjacentStructure, (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
                             if (opportunity.length > 0) creep.transfer(opportunity[0], RESOURCE_ENERGY);
-                            let refillChance = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_STORAGE) && s.store[RESOURCE_ENERGY] > ENERGY_AMOUNT / 2});
+                            let refillChance = _.filter(adjacentStructure, (s) => (s.structureType === STRUCTURE_STORAGE) && s.store[RESOURCE_ENERGY] > ENERGY_AMOUNT / 2);
                             if (refillChance.length > 0) creep.withdraw(refillChance[0], RESOURCE_ENERGY);
                             creep.shibMove(storageItem);
                             break;

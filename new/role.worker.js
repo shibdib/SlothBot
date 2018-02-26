@@ -24,7 +24,7 @@ function role(creep) {
     if (!creep.getSafe()) {
         if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
         if (creep.memory.working === true) {
-            let newRamps = creep.pos.findInRange(FIND_MY_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 15000});
+            let newRamps = _.filter(creep.pos.findInRange(FIND_MY_STRUCTURES, 3), (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 15000);
             if (newRamps.length > 0) {
                 creep.repair(newRamps[0]);
             } else {
