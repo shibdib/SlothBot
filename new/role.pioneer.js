@@ -14,6 +14,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
+    let ignoreStructures = false;
 
     if (creep.memory.destinationReached && creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.my})) {
         if (creep.memory.initialBuilder) {
@@ -33,15 +34,16 @@ function role(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.destinationReached) {
+        if (creep.memory.initialBuilder) ignoreStructures = true;
         if (creep.memory.hauling === false) {
             let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100);
             if (container.length > 0) {
                 if (creep.withdraw(container[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(container[0]);
+                    creep.shibMove(container[0], {ignoreStructures: ignoreStructures});
                 }
             } else {
                 let source = creep.pos.getClosestSource();
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source, {ignoreStructures: ignoreStructures})
             }
         } else {
             let container = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER), 'hits');
@@ -49,11 +51,11 @@ function role(creep) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
             } else if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(creep.room.controller);
+                    creep.shibMove(creep.room.controller, {ignoreStructures: ignoreStructures});
                 }
             } else if (container && container.hits < 100000) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(container);
+                    creep.shibMove(container, {ignoreStructures: ignoreStructures});
                 }
             } else {
                 if (!creep.findConstruction()) {
@@ -80,7 +82,7 @@ function role(creep) {
                                         }
                                         break;
                                     case ERR_NOT_IN_RANGE:
-                                        creep.shibMove(hub);
+                                        creep.shibMove(hub, {ignoreStructures: ignoreStructures});
                                 }
                             } else {
                                 switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
