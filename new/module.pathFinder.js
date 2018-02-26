@@ -116,14 +116,14 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
             let route;
             if (options.useCache) {
-                route = getRoute(origin, target);
+                route = getRoute(creep, origin, target);
             }
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) {
                 route = findRoute(origin.roomName, target.roomName, options);
             }
             if (route) {
                 allowedRooms = route;
-                cacheRoute(origin, target, route);
+                cacheRoute(creep, origin, target, route);
             } else {
                 if (creep.memory.destination && creep.memory.destination !== creep.pos.roomName && target.roomName !== creep.memory.destination) target.roomName = creep.memory.destination;
                 let exitDir = Game.map.findExit(origin.roomName, target.roomName);
@@ -435,26 +435,26 @@ function positionAtDirection(origin, direction) {
 }
 positionAtDirection = profiler.registerFN(positionAtDirection, 'shibPositionAtDirection');
 
-function cacheRoute(from, to, route) {
+function cacheRoute(creep, from, to, route) {
     let key = getPathKey(from, to);
-    let cache = Memory.routeCache || {};
+    let cache = Game.rooms[creep.memory.overlord].memory.routeCache || {};
     let tick = Game.time;
     cache[key] = {
         route: JSON.stringify(route),
         uses: 1,
         tick: tick
     };
-    Memory.routeCache = cache;
+    Game.rooms[creep.memory.overlord].memory.routeCache = cache;
 }
 cacheRoute = profiler.registerFN(cacheRoute, 'shibCacheRoute');
 
-function getRoute(from, to) {
-    let cache = Memory.routeCache;
+function getRoute(creep, from, to) {
+    let cache = Game.rooms[creep.memory.overlord].memory.routeCache;
     if (cache) {
         let cachedRoute = cache[getPathKey(from, to)];
         if (cachedRoute) {
             cachedRoute.uses += 1;
-            Memory.routeCache = cache;
+            Game.rooms[creep.memory.overlord].memory.routeCache = cache;
             return JSON.parse(cachedRoute.route);
         }
     } else {
