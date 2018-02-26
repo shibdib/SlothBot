@@ -440,7 +440,7 @@ remoteCreepQueue = function () {
             })
         }
     }
-    if (!_.includes(queue, 'pioneer') && this.memory.assistingRoom) {
+    if (!_.includes(queue, 'remoteResponse') && this.memory.assistingRoom) {
         if (Game.rooms[this.memory.assistingRoom] && Game.rooms[this.memory.assistingRoom].memory.responseNeeded === true && !this.memory.responseNeeded) {
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === this.memory.assistingRoom && creep.memory.role === 'responder');
             if (responder.length < Game.rooms[this.memory.assistingRoom].memory.numberOfHostiles) {
