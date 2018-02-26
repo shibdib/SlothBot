@@ -49,7 +49,7 @@ function buildExtensions(room) {
             let y;
             x = getRandomInt(1, 5);
             y = getRandomInt(1, 5);
-            if (extensionCount >= 30) {
+            if (extensionCount >= 60) {
                 x = getRandomInt(7, 8);
                 y = getRandomInt(7, 8);
             }
