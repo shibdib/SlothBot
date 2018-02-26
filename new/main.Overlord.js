@@ -15,16 +15,11 @@ function mind(room, roomLimit) {
     defense.controller(room);
     shib.shibBench('defenseController', cpu);
 
-    //Cache Buildings
+    //Build Room
     if (Game.time % 50 === 0) {
-        room.memory.structureCache = undefined;
         for (let structures of room.structures) {
             if (structures.owner && structures.owner['username'] !== 'Shibdib') {
                 structures.destroy();
-                continue;
-            }
-            if (structures.room === room && structures.structureType !== STRUCTURE_ROAD && structures.structureType !== STRUCTURE_WALL && structures.structureType !== STRUCTURE_RAMPART) {
-                room.cacheRoomStructures(structures.id);
             }
         }
         let roomBuild = Game.cpu.getUsed();

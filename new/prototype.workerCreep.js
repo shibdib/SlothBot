@@ -91,7 +91,7 @@ Creep.prototype.findMineral = function () {
 };
 
 findConstruction = function () {
-    let construction = this.room.find(FIND_CONSTRUCTION_SITES);
+    let construction = this.room.constructionSites;
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_SPAWN);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -147,7 +147,7 @@ findConstruction = function () {
 Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
 findRepair = function (level) {
-    let structures = this.room.find(FIND_STRUCTURES, {filter: (s) => s.hits < s.hitsMax});
+    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -209,7 +209,7 @@ findRepair = function (level) {
 Creep.prototype.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
 
 containerBuilding = function () {
-    let site = this.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    let site = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site !== null && site !== undefined) {
         if (this.pos.getRangeTo(site) <= 1) {
             return site.id;
@@ -219,7 +219,7 @@ containerBuilding = function () {
 Creep.prototype.containerBuilding = profiler.registerFN(containerBuilding, 'containerBuildingCreepFunctions');
 
 harvestDepositContainer = function () {
-    let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    let container = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (container) {
         if (this.pos.getRangeTo(container) <= 1) {
             return container.id;
@@ -264,7 +264,7 @@ Creep.prototype.withdrawEnergy = profiler.registerFN(withdrawEnergy, 'withdrawEn
 findEnergy = function (range = 250, hauler = false) {
     let energy = [];
     //Container
-    let container = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'container'), 'id');
+    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (container.length > 0) {
         let containers = [];
         for (let i = 0; i < container.length; i++) {
@@ -294,31 +294,25 @@ findEnergy = function (range = 250, hauler = false) {
         });
     }
     //storages
-    let useStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
-    if (useStorage.length > 0) {
-        let useStorages = [];
-        for (let i = 0; i < useStorage.length; i++) {
-            const object = Game.getObjectById(useStorage[i]);
-            if (object) {
-                if (object.store[RESOURCE_ENERGY] <= 1000) {
-                    continue;
-                }
-                let itemRange = object.pos.rangeToTarget(this);
-                if (itemRange > range) continue;
-                const useStorageDistWeighted = _.round(itemRange * 0.3, 0) + 1;
-                useStorages.push({
-                    id: useStorage[i],
-                    distWeighted: useStorageDistWeighted,
-                    harvest: false
-                });
-            }
+    //Storage
+    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (sStorage) {
+        let weight;
+        weight = 0.3;
+        if (sStorage.store[RESOURCE_ENERGY] < 1000) {
+            weight = 0.1;
         }
-        let bestStorage = _.min(useStorages, 'distWeighted');
-        energy.push({
-            id: bestStorage.id,
-            distWeighted: bestStorage.distWeighted,
-            harvest: false
-        });
+        if (this.room.memory.responseNeeded) {
+            weight = 0.8;
+        }
+        if (sStorage.pos.getRangeTo(this) > 1) {
+            const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
+            energy.push({
+                id: sStorage.id,
+                distWeighted: storageDistWeighted,
+                harvest: false
+            });
+        }
     }
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
@@ -339,28 +333,15 @@ findEnergy = function (range = 250, hauler = false) {
         }
     }
     //Terminal
-    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
-    if (terminal.length > 0) {
-        let terminals = [];
-        for (let i = 0; i < terminal.length; i++) {
-            const object = Game.getObjectById(terminal[i]);
-            let itemRange = object.pos.rangeToTarget(this);
-            if (object) {
-                if (object.store[RESOURCE_ENERGY] <= 5000 || itemRange > range) {
-                    continue;
-                }
-                const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
-                terminals.push({
-                    id: terminal[i],
-                    distWeighted: terminalDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestTerminal = _.min(terminals, 'distWeighted');
+    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    if (terminal) {
+        let weight = 0.3;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
+        if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5 || terminal.pos.rangeToTarget(this) > range) weight = 0.2;
+        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
         energy.push({
-            id: bestTerminal.id,
-            distWeighted: bestTerminal.distWeighted,
+            id: terminal.id,
+            distWeighted: terminalDistWeighted,
             harvest: false
         });
     }
@@ -383,7 +364,7 @@ Creep.prototype.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFun
 getEnergy = function (range = 250, hauler = false) {
     let energy = [];
     //Container
-    let container = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'container'), 'id');
+    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (container.length > 0) {
         let containers = [];
         for (let i = 0; i < container.length; i++) {
@@ -426,62 +407,37 @@ getEnergy = function (range = 250, hauler = false) {
         });
     }
     //Terminal
-    let terminal = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id');
-    if (terminal.length > 0) {
-        let terminals = [];
-        for (let i = 0; i < terminal.length; i++) {
-            const object = Game.getObjectById(terminal[i]);
-            if (object) {
-                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5 || object.pos.rangeToTarget(this) > range) {
-                    continue;
-                }
-                const terminalDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1 + (numberOfUsers / 2);
-                terminals.push({
-                    id: terminal[i],
-                    distWeighted: terminalDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestTerminal = _.min(terminals, 'distWeighted');
+    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    if (terminal) {
+        let weight = 0.3;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
+        if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5 || terminal.pos.rangeToTarget(this) > range) weight = 0;
+        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
         energy.push({
-            id: bestTerminal.id,
-            distWeighted: bestTerminal.distWeighted,
+            id: terminal.id,
+            distWeighted: terminalDistWeighted,
             harvest: false
         });
     }
     //Storage
-    let sStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
-    if (sStorage.length > 0) {
-        let storages = [];
-        for (let i = 0; i < sStorage.length; i++) {
-            const object = Game.getObjectById(sStorage[i]);
-            if (object) {
-                let weight;
-                weight = 0;
-                if (object.store[RESOURCE_ENERGY] > 50000) {
-                    weight = 0.3;
-                }
-                if (this.room.memory.responseNeeded) {
-                    weight = 0.8;
-                }
-                if (object.pos.getRangeTo(this) > 1) {
-                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-                    storages.push({
-                        id: sStorage[i],
-                        distWeighted: storageDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
+    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (sStorage) {
+        let weight;
+        weight = 0;
+        if (sStorage.store[RESOURCE_ENERGY] > 50000) {
+            weight = 0.3;
         }
-        let bestStorage = _.min(storages, 'distWeighted');
-        energy.push({
-            id: bestStorage.id,
-            distWeighted: bestStorage.distWeighted,
-            harvest: false
-        });
+        if (this.room.memory.responseNeeded) {
+            weight = 0.8;
+        }
+        if (sStorage.pos.getRangeTo(this) > 1) {
+            const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
+            energy.push({
+                id: sStorage.id,
+                distWeighted: storageDistWeighted,
+                harvest: false
+            });
+        }
     }
     /**
      //Dropped Energy
@@ -527,7 +483,7 @@ findStorage = function () {
     let haulingEnergy;
     if (this.carry[RESOURCE_ENERGY] === _.sum(this.carry)) haulingEnergy = true;
     //Spawn
-    let spawn = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'spawn'), 'id');
+    let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (spawn.length > 0 && haulingEnergy) {
         let spawns = [];
         for (let i = 0; i < spawn.length; i++) {
@@ -552,7 +508,7 @@ findStorage = function () {
         });
     }
     //Extension
-    let extension = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'extension'), 'id');
+    let extension = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (extension.length > 0 && haulingEnergy) {
         let extensions = [];
         for (let i = 0; i < extension.length; i++) {
@@ -577,37 +533,25 @@ findStorage = function () {
         });
     }
     //Storage
-    let sStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
-    if (sStorage.length > 0) {
-        let storages = [];
-        for (let i = 0; i < sStorage.length; i++) {
-            const object = Game.getObjectById(sStorage[i]);
-            if (object) {
-                let weight;
-                weight = 0.25;
-                if (object.store[RESOURCE_ENERGY] < 1500) {
-                    weight = 0.98;
-                }
-                if (object.pos.getRangeTo(this) > 1) {
-                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-                    storages.push({
-                        id: sStorage[i],
-                        distWeighted: storageDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
+    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (sStorage) {
+        let weight;
+        weight = 0.25;
+        if (sStorage.store[RESOURCE_ENERGY] < 1500) {
+            weight = 0.98;
         }
-        let bestStorage = _.min(storages, 'distWeighted');
-        storage.push({
-            id: bestStorage.id,
-            distWeighted: bestStorage.distWeighted,
-            harvest: false
-        });
+        if (sStorage.pos.getRangeTo(this) > 1) {
+            const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
+            storage.push({
+                id: sStorage.id,
+                distWeighted: storageDistWeighted,
+                harvest: false
+            });
+        }
     }
     //Tower
-    let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
-    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
+    let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+    let harvester = _.filter(this.room.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
     if (tower.length > 0 && harvester.length >= 2 && haulingEnergy) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
@@ -659,7 +603,7 @@ findStorage = function () {
         });
     }
     //Terminal
-    let terminal = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id')[0]);
+    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     if (terminal) {
         if (terminal.pos.getRangeTo(this) > 1) {
             const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
@@ -671,7 +615,7 @@ findStorage = function () {
         }
     }
     //Nuker
-    let nuker = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'nuker'), 'id')[0]);
+    let nuker = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (nuker) {
         if (nuker.pos.getRangeTo(this) > 1) {
             const nukerDistWeighted = _.round(nuker.pos.rangeToTarget(this) * 0.1, 0) + 1;
@@ -703,7 +647,7 @@ findEssentials = function () {
     let storage = [];
     let roomSpawnQueue = this.room.memory.creepBuildQueue;
     //Spawn
-    let spawn = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'spawn'), 'id');
+    let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (spawn.length > 0) {
         let spawns = [];
         for (let i = 0; i < spawn.length; i++) {
@@ -728,7 +672,7 @@ findEssentials = function () {
         });
     }
     //Extension
-    let extension = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'extension'), 'id');
+    let extension = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (extension.length > 0) {
         let extensions = [];
         for (let i = 0; i < extension.length; i++) {
@@ -773,33 +717,21 @@ findEssentials = function () {
         });
     }
     //Storage
-    let sStorage = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'storage'), 'id');
-    if (sStorage.length > 0) {
-        let storages = [];
-        for (let i = 0; i < sStorage.length; i++) {
-            const object = Game.getObjectById(sStorage[i]);
-            if (object) {
-                let weight;
-                weight = 0.25;
-                if (object.store[RESOURCE_ENERGY] < 1500) {
-                    weight = 0.98;
-                }
-                if (object.pos.getRangeTo(this) > 1) {
-                    const storageDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-                    storages.push({
-                        id: sStorage[i],
-                        distWeighted: storageDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
+    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (sStorage) {
+        let weight;
+        weight = 0.25;
+        if (sStorage.store[RESOURCE_ENERGY] < 1500) {
+            weight = 0.98;
         }
-        let bestStorage = _.min(storages, 'distWeighted');
-        storage.push({
-            id: bestStorage.id,
-            distWeighted: bestStorage.distWeighted,
-            harvest: false
-        });
+        if (sStorage.pos.getRangeTo(this) > 1) {
+            const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
+            storage.push({
+                id: sStorage.id,
+                distWeighted: storageDistWeighted,
+                harvest: false
+            });
+        }
     }
     //Links
     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
@@ -817,7 +749,7 @@ findEssentials = function () {
         });
     }
     //Worker Deliveries
-    let workers = _.filter(Game.creeps, (h) => h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
+    let workers = _.filter(this.room.creeps, (h) => h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
     if (workers.length > 0 && this.ticksToLive > 30 && !_.includes(roomSpawnQueue, 'responder')) {
         let workerWeighted;
         const object = workers[0];
@@ -831,8 +763,8 @@ findEssentials = function () {
         });
     }
     //Tower
-    let tower = _.pluck(_.filter(this.room.memory.structureCache, 'type', 'tower'), 'id');
-    let harvester = _.filter(Game.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));
+    let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+    let harvester = _.filter(this.room.creeps, (h) => h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));
     if (tower.length > 0 && harvester.length >= 2 && !_.includes(roomSpawnQueue, 'responder')) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
@@ -873,7 +805,7 @@ findEssentials = function () {
         });
     }
     //Terminal room.memory.energySurplus
-    let terminal = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'terminal'), 'id')[0]);
+    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     if (terminal) {
         if (terminal.pos.getRangeTo(this) > 1) {
             if (terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.5) {
@@ -894,7 +826,7 @@ findEssentials = function () {
         }
     }
     //Nuker
-    let nuker = Game.getObjectById(_.pluck(_.filter(this.room.memory.structureCache, 'type', 'nuker'), 'id')[0]);
+    let nuker = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (nuker) {
         if (nuker.pos.getRangeTo(this) > 1) {
             const nukerDistWeighted = _.round(nuker.pos.rangeToTarget(this) * 0.1, 0) + 1;
