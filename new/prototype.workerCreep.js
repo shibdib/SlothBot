@@ -564,7 +564,7 @@ findStorage = function () {
                     if (object.room.memory.responseNeeded === true) {
                         const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0);
                         towers.push({
-                            id: tower[i],
+                            id: tower[i].id,
                             distWeighted: towerDistWeighted,
                             harvest: false
                         });
@@ -572,7 +572,7 @@ findStorage = function () {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
                         const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1.2, 0) + 1 - towerAmountWeighted;
                         towers.push({
-                            id: tower[i],
+                            id: tower[i].id,
                             distWeighted: towerDistWeighted,
                             harvest: false
                         });
@@ -658,7 +658,7 @@ findEssentials = function () {
                 }
                 const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
                 spawns.push({
-                    id: spawn[i],
+                    id: spawn[i].id,
                     distWeighted: spawnDistWeighted,
                     harvest: false
                 });
@@ -683,7 +683,7 @@ findEssentials = function () {
                 }
                 const extensionDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
                 extensions.push({
-                    id: extension[i],
+                    id: extension[i].id,
                     distWeighted: extensionDistWeighted,
                     harvest: false
                 });
@@ -774,14 +774,14 @@ findEssentials = function () {
                     if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
                         const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.01, 0);
                         towers.push({
-                            id: tower[i],
+                            id: tower[i].id,
                             distWeighted: towerDistWeighted,
                             harvest: false
                         });
                     } else if (object.energy < object.energyCapacity / 2) {
                         const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
                         towers.push({
-                            id: tower[i],
+                            id: tower[i].id,
                             distWeighted: towerDistWeighted,
                             harvest: false
                         });
@@ -789,7 +789,7 @@ findEssentials = function () {
                         const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
                         const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1, 0) + 1 - towerAmountWeighted;
                         towers.push({
-                            id: tower[i],
+                            id: tower[i].id,
                             distWeighted: towerDistWeighted,
                             harvest: false
                         });
