@@ -117,8 +117,10 @@ function controllerSupplier(room, structures) {
                 for (let key in containerSpots) {
                     let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
                     if (position && position.getRangeTo(room.controller) === 1) {
-                        if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_CONTAINER);
-                        break;
+                        if (!position.checkForImpassible()) {
+                            position.createConstructionSite(STRUCTURE_CONTAINER);
+                            break;
+                        }
                     }
                 }
             }
