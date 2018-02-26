@@ -129,10 +129,10 @@ function controllerSupplier(room, structures) {
             room.memory.controllerContainer = controllerContainer.id;
         }
     } else {
-        let controllerLink = room.controller.pos.findInRange(structures, 3, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
-        let inBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
+        let controllerLink = room.controller.pos.findInRange(structures, 2, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
+        let inBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
         if (!controllerLink && !inBuild) {
-            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 3, room.controller.pos.x - 3, room.controller.pos.y + 3, room.controller.pos.x + 3, true);
+            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 2, room.controller.pos.x - 2, room.controller.pos.y + 2, room.controller.pos.x + 2, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;

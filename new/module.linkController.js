@@ -12,7 +12,7 @@ function linkControl() {
                 link.room.memory.storageLink = link.id;
                 return;
             }
-            if (link.pos.findInRange(FIND_STRUCTURES, 3, {filter: (s) => s.structureType === STRUCTURE_CONTROLLER}).length > 0 && !Game.getObjectById(link.room.memory.controllerLink)) {
+            if (link.pos.findInRange(FIND_STRUCTURES, 2, {filter: (s) => s.structureType === STRUCTURE_CONTROLLER}).length > 0 && !Game.getObjectById(link.room.memory.controllerLink)) {
                 link.room.memory.controllerLink = link.id;
                 return;
             }

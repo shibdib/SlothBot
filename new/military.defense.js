@@ -2,7 +2,7 @@
  * Created by Bob on 7/1/2017.
  */
 const profiler = require('screeps-profiler');
-let towers = require('module.towerController')
+let towers = require('module.towerController');
 let shib = require("shibBench");
 
 function controller() {
