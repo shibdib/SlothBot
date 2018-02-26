@@ -21,7 +21,6 @@ function controller() {
             Game.notify(room.name + ' - Enemy detected, initiating defense mode.')
         }
         if (room.memory.responseNeeded) {
-            room.memory.rampartState = true;
             rampartManager(room, structures, true);
             let playerHostile = _.filter(creeps, (c) => (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(FRIENDLIES, c.owner['username']) === false && c.owner['username'] !== 'Invader')[0];
             let tower = _.max(room.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER}), 'energy');
@@ -31,7 +30,6 @@ function controller() {
             }
         } else {
             //ramparts public unless needed
-            room.memory.rampartState = undefined;
             rampartManager(room, structures);
             if (!room.memory.requestingSupport && room.controller.level > 4) {
                 let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.requestingSupport && Game.map.findRoute(room.name, r.name).length < 9)[0];
@@ -72,6 +70,7 @@ function rampartManager(room, structures, attack = undefined) {
                             }
                         }
                     }
+                    room.memory.rampartState = undefined;
                 } else {
                     for (let i = 0; i < rampart.length; i++) {
                         if (rampart[i]) {
@@ -80,6 +79,7 @@ function rampartManager(room, structures, attack = undefined) {
                             }
                         }
                     }
+                    room.memory.rampartState = true;
                 }
             }
         }
