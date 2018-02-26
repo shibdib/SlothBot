@@ -283,7 +283,7 @@ placeBuyOrders = profiler.registerFN(placeBuyOrders, 'placeBuyOrdersTerminal');
 function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
-            let minerals = terminal.pos.findClosestByRange(FIND_MINERALS);
+            let minerals = terminal.room.mineral[0];
             if (minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) {
                 continue;
             }

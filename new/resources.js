@@ -87,7 +87,7 @@ function summarize_room_internal(room) {
     const links = room.find(FIND_STRUCTURES, {filter: s => s.structureType === STRUCTURE_LINK && s.my});
     const num_links = links === null ? 0 : links.length;
     const link_energy = _.sum(links, l => l.energy);
-    const minerals = room.find(FIND_MINERALS);
+    const minerals = room.mineral;
     const mineral = minerals && minerals.length > 0 ? minerals[0] : null;
     const mineral_type = mineral ? mineral.mineralType : "";
     const mineral_amount = mineral ? mineral.mineralAmount : 0;

@@ -116,7 +116,7 @@ function skRoads(creep) {
     creep.memory.buildAttempt = true;
     if (creep.room.name !== creep.memory.destination) return;
     let sources = creep.room.sources;
-    let minerals = creep.room.find(FIND_MINERALS);
+    let minerals = creep.room.mineral;
     sources = sources.concat(minerals);
     let neighboring = Game.map.describeExits(creep.pos.roomName);
     for (let key in sources) {

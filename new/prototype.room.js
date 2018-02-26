@@ -73,6 +73,33 @@ Object.defineProperty(Room.prototype, 'sources', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'mineral', {
+    get: function () {
+        // If we dont have the value stored locally
+        if (!this._mineral) {
+            // If we dont have the value stored in memory
+            if (!this.memory.mineralId) {
+                // Find the sources and store their id's in memory,
+                // NOT the full objects
+                this.memory.mineralId = this.mineral
+                    .map(mineral => mineral.id);
+            }
+            // Get the source objects from the id's in memory and store them locally
+            this._mineral = this.memory.mineralId.map(id => Game.getObjectById(id));
+        }
+        // return the locally stored value
+        return this._mineral;
+    },
+    set: function (newValue) {
+        // when storing in memory you will want to change the setter
+        // to set the memory value as well as the local value
+        this.memory.mineral = newValue.map(mineral => mineral.id);
+        this._mineral = newValue;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 
 //Room Cache
 ///////////////////////////////////////////////////
@@ -115,7 +142,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         nonCombats = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
         towers = room.find(structures, {filter: (e) => e.structureType === STRUCTURE_TOWER});
         if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
-        let minerals = room.find(FIND_MINERALS);
+        let minerals = room.mineral;
         if (room.controller) {
             owner = room.controller.owner;
             level = room.controller.level;
