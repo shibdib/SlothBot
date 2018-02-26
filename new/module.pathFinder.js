@@ -281,7 +281,7 @@ function findRoute(origin, destination, options = {}) {
             // Avoid rooms owned by others
             if (Memory.roomCache[roomName]) {
                 if (Memory.roomCache[roomName].owner && Memory.roomCache[roomName].owner.username && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username)) {
-                    return 25 * highwayBias;
+                    return 125;
                 }
             }
             // Ban rooms flagged as bad
