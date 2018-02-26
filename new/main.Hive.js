@@ -8,6 +8,7 @@ function mind() {
     Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner['username'] === 'Shibdib'));
     let cpuBucket = Game.cpu.bucket;
 
+    let cpu;
     // High Command
     if (Game.time % 150 === 0) {
         cpu = Game.cpu.getUsed();
@@ -18,7 +19,7 @@ function mind() {
     // Handle Labs
     if (Game.time % 15 === 0) {
         cpu = Game.cpu.getUsed();
-        labs.labManager(room);
+        labs.labManager();
         shib.shibBench('labControl', cpu);
     }
 
