@@ -88,7 +88,7 @@ function role(creep) {
                     }
                 } else {
                     let link = creep.pos.findInRange(FIND_STRUCTURES, 8, {filter: (s) => s.structureType === STRUCTURE_LINK});
-                    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+                    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                         creep.memory.dropOffLink = link[0].id;
                     } else if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
