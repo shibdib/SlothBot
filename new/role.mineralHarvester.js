@@ -38,7 +38,7 @@ function role(creep) {
                 }
             }
         } else {
-            creep.memory.extractor = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).id;
+            creep.memory.extractor = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).id;
         }
     }
 }
@@ -72,7 +72,7 @@ function depositMineral(creep) {
 depositMineral = profiler.registerFN(depositMineral, 'depositMineralWorkers');
 
 function mineralContainer(creep) {
-    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
+    let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
     if (container) {
         if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 3) {
             if (creep.pos.getRangeTo(container) <= 1) {

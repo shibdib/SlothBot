@@ -28,7 +28,7 @@ function role(creep) {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (!source || source.pos.roomName !== creep.pos.roomName) return creep.memory.source = undefined;
-            if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
+            if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
             if (source.energy === 0) {
                 if (lair && creep.pos.getRangeTo(lair) <= 6) return creep.flee(lair);
                 creep.idleFor(source.ticksToRegeneration + 1)
@@ -41,7 +41,7 @@ function role(creep) {
                         creep.shibMove(source);
                         break;
                     case ERR_TIRED:
-                        creep.idleFor(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown);
+                        creep.idleFor(creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
                         break;

@@ -13,7 +13,7 @@ function role(creep) {
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
-            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
+            let lab = creep.pos.findClosestByRange(room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
             if (lab) {
                 count++;
                 switch (lab.boostCreep(creep)) {

@@ -15,7 +15,7 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
 
-    if (creep.memory.destinationReached && creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.my})) {
+    if (creep.memory.destinationReached && creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.my})) {
         if (creep.memory.initialBuilder) {
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
             Game.rooms[creep.memory.overlord].memory.activeClaim = undefined;
@@ -23,7 +23,7 @@ function role(creep) {
         }
         creep.memory.role = 'worker';
         creep.memory.overlord = creep.room.name;
-        creep.memory.assignedSpawn = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).id;
+        creep.memory.assignedSpawn = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN}).id;
         return;
     }
     if (creep.carry.energy === 0) {
@@ -34,7 +34,7 @@ function role(creep) {
     }
     if (creep.memory.destinationReached) {
         if (creep.memory.hauling === false) {
-            let container = creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100});
+            let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100);
             if (container.length > 0) {
                 if (creep.withdraw(container[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container[0]);
@@ -44,7 +44,7 @@ function role(creep) {
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
         } else {
-            let container = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER}), 'hits');
+            let container = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER), 'hits');
             if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
             } else if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
@@ -127,7 +127,7 @@ module.exports.role = profiler.registerFN(role, 'pioneerRole');
 function findExtensionHub(room) {
     for (let i = 1; i < 249; i++) {
         let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
-        let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
+        let closestStructure = pos.findClosestByRange(room.structures);
         let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
         let wall = false;
         for (let key in terrain) {

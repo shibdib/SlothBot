@@ -4,9 +4,11 @@
 
 const profiler = require('screeps-profiler');
 
-function linkControl() {
-    for (let link of _.values(Game.structures)) {
-        if (link.structureType === STRUCTURE_LINK && link.id !== link.room.memory.controllerLink && link.id !== link.room.memory.storageLink && link.cooldown === 0) {
+function linkControl(room) {
+    if (room.level < 5) return;
+    let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK);
+    for (let link of links) {
+        if (link.id !== room.memory.controllerLink && link.id !== room.memory.storageLink && link.cooldown === 0) {
             let energyPercentage = link.room.energyAvailable / link.room.energyCapacityAvailable;
             if (_.filter(link.pos.findInRange(FIND_STRUCTURES, 3), (s) => s.structureType === STRUCTURE_STORAGE).length > 0 && !Game.getObjectById(link.room.memory.storageLink)) {
                 link.room.memory.storageLink = link.id;

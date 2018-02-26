@@ -363,7 +363,7 @@ getCreepMatrix = profiler.registerFN(getCreepMatrix, 'shibGetCreepMatrix');
 
 function addStructuresToMatrix(room, matrix, roadCost) {
     let impassibleStructures = [];
-    for (let structure of room.find(FIND_STRUCTURES)) {
+    for (let structure of room.structures) {
         if (structure instanceof StructureRampart) {
             if (!structure.my && !structure.isPublic) {
                 impassibleStructures.push(structure);

@@ -79,7 +79,7 @@ RoomObject.prototype.clearTarget = function (prop = 'tid') {
 
 Creep.prototype.getRepairTarget = function () {
     return this.getTarget(
-        ({room, pos}) => room.find(FIND_STRUCTURES),
+        ({room, pos}) => room.structures,
         (structure) => structure.hits < structure.hitsMax,
         (candidates) => _.min(candidates, 'hits')
     );
@@ -87,7 +87,7 @@ Creep.prototype.getRepairTarget = function () {
 
 Creep.prototype.getLoadedContainerTarget = function () {
     return this.getTarget(
-        ({room, pos}) => room.find(FIND_STRUCTURES, {filter: s => s.structureType === STRUCTURE_CONTAINER}),
+        ({room, pos}) => _.filter(room.structures, s => s.structureType === STRUCTURE_CONTAINER),
         (container) => _.sum(container.store) > 0,
         (containers) => _.max(containers, c => _.sum(container.store))
     )

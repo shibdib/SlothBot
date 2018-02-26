@@ -13,7 +13,7 @@ function role(creep) {
         ];
         let count = 1;
         for (let i = 0; i < desiredReactions.length; i++) {
-            let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
+            let lab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
             if (lab) {
                 count++;
                 switch (lab.boostCreep(creep)) {
@@ -46,7 +46,7 @@ function role(creep) {
         } else if (hostiles) {
             creep.fightRanged(hostiles);
         } else {
-            let lair = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}), 'ticksToSpawn');
+            let lair = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
             creep.shibMove(lair, {range: 3});
         }
     } else {

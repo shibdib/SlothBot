@@ -7,8 +7,8 @@ let _ = require('lodash');
 
 function labManager(room) {
     for (let key in Memory.ownedRooms) {
-        room = Memory.ownedRooms[key];
         if (room.controller.level < 6) return;
+        room = Memory.ownedRooms[key];
         let reactionRoom = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom)[0];
         if (!reactionRoom) room.memory.reactionRoom = true;
         //if (room.memory.reactionRoom) manageReactions(room);

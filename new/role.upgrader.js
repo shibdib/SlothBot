@@ -58,11 +58,11 @@ function role(creep) {
                 }
             } else {
                 if (!container) {
-                    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
+                    let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
                     if (container) creep.room.memory.controllerContainer = container.id;
                 }
                 if (!creep.memory.terminal) {
-                    let terminal = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
+                    let terminal = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
                     if (terminal) creep.memory.terminal = terminal.id;
                 }
                 let terminal = Game.getObjectById(creep.memory.terminal);

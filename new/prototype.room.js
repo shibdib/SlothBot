@@ -111,6 +111,39 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'creeps', {
+    get: function () {
+        if (!this._creeps) {
+            this._creeps = this.find(FIND_CREEPS);
+        }
+        return this._creeps;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'constructionSites', {
+    get: function () {
+        if (!this._constructionSites) {
+            this._constructionSites = this.find(FIND_CONSTRUCTION_SITES);
+        }
+        return this._constructionSites;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'level', {
+    get: function () {
+        if (!this._level) {
+            this._level = this.controller.level;
+        }
+        return this._level;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 
 //Room Cache
 ///////////////////////////////////////////////////
@@ -148,11 +181,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
-        let structures = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER});
-        hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
-        nonCombats = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
-        towers = room.find(structures, {filter: (e) => e.structureType === STRUCTURE_TOWER});
-        if (room.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
+        let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER);
+        hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
+        nonCombats = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
+        towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
+        if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         let minerals = room.mineral;
         if (room.controller) {
             owner = room.controller.owner;
@@ -250,7 +283,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 Room.prototype.invaderCheck = function () {
     let sk;
     if (this.memory.lastInvaderCheck === Game.time) return;
-    if (this.find(FIND_STRUCTURES, {filter: (e) => e.structureType === STRUCTURE_KEEPER_LAIR}).length > 0) sk = true;
+    if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
     if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) return;
     this.memory.lastInvaderCheck = Game.time;
     let invader = _.filter(this.find(FIND_CREEPS), (c) => !_.includes(FRIENDLIES, c.owner['username']));

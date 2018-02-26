@@ -19,8 +19,8 @@ function role(creep) {
         }
         if (creep.memory.working === true) {
             if (!creep.memory.currentTarget) {
-                let barrier = _.min(creep.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART}), 'hits');
-                let site = creep.room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0];
+                let barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART), 'hits');
+                let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)[0];
                 if (site) {
                     switch (creep.build(site)) {
                         case OK:
@@ -52,7 +52,7 @@ function role(creep) {
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
             } else {
-                let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
+                let storage = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
                 if (storage) {
                     if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(storage);

@@ -4,7 +4,7 @@
 'use strict';
 
 Creep.prototype.findClosestSourceKeeper = function () {
-    return this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
+    return this.pos.findClosestByRange(this.room.creeps, {
         filter: function (object) {
             return object.owner.username === 'Source Keeper';
         }
@@ -12,7 +12,7 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestEnemy = function () {
-    return this.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
+    return this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
 };
 
 Creep.prototype.fleeFromHostile = function (hostile) {
@@ -37,12 +37,12 @@ Creep.prototype.fleeFromHostile = function (hostile) {
 Creep.prototype.attackHostile = function (hostile) {
     this.memory.target = undefined;
     if (this.pos.getRangeTo(hostile) <= 3) this.rangedAttack(hostile);
-    let ally = this.pos.findClosestByRange(FIND_MY_CREEPS, {filter: (c)=>c.memory.target});
+    let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c)=>c.memory.target && c.my});
     if (this.pos.getRangeTo(ally) <= 3) {
         let alliesHostile = Game.getObjectById(ally.memory.target);
         if (alliesHostile) this.memory.target = hostile.id;
     }
-    if (_.filter(this.room.find(FIND_MY_CREEPS), (c) => c.memory.target))
+    if (_.filter(this.room.find(this.room.creeps), (c) => c.memory.target && c.my))
     if (this.attack(hostile) === ERR_NOT_IN_RANGE) {
         if (this.hits < this.hitsMax) this.heal(this);
         this.shibMove(hostile, {forceRepath: true, ignoreCreeps: false, ignoreRoads: true});
@@ -69,7 +69,7 @@ Creep.prototype.healMyCreeps = function () {
 };
 
 Creep.prototype.healAllyCreeps = function () {
-    let allyCreeps = this.room.find(FIND_HOSTILE_CREEPS, {
+    let allyCreeps = this.room.find(this.room.creeps, {
         filter: function (object) {
             if (object.hits === object.hitsMax) {
                 return false;
@@ -91,7 +91,7 @@ Creep.prototype.healAllyCreeps = function () {
 };
 
 Creep.prototype.moveToHostileConstructionSites = function () {
-    let constructionSite = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
+    let constructionSite = this.pos.findClosestByRange(this.room.constructionSites);
     if (constructionSite && !_.includes(FRIENDLIES, constructionSite.owner['username'])) {
         this.say('KCS!!');
         let returnCode = this.shibMove(constructionSite, {range:0});
@@ -121,7 +121,7 @@ Creep.prototype.handleDefender = function () {
 Creep.prototype.waitRampart = function () {
     this.say('waitRampart');
     let creep = this;
-    let structure = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
+    let structure = this.pos.findClosestByPath(this.room.structures, {
         filter: function (object) {
             if (object.structureType !== STRUCTURE_RAMPART || object.pos.lookFor(LOOK_CREEPS).length !== 0) {
                 return false;
@@ -141,7 +141,7 @@ Creep.prototype.fightRampart = function (target) {
     if (!target) {
         return false;
     }
-    let position = target.pos.findClosestByPath(FIND_STRUCTURES, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
+    let position = target.pos.findClosestByPath(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
     if (position === null) {
         return false;
     }
@@ -218,10 +218,10 @@ Creep.prototype.siege = function () {
     this.memory.hitsLost = this.memory.hitsLast - this.hits;
     let target;
     if (this.memory.attackType === 'clean') {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES);
+        target = this.pos.findClosestByPath(this.room.structures);
     }
     if (Game.getObjectById(this.memory.siegeTarget)) {
-        let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))}), 'hits');
+        let lowHit = _.min(this.pos.findInRange(this.room.structures, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))}), 'hits');
         if (lowHit) {
             target = lowHit;
             this.memory.siegeTarget = target.id;
@@ -234,55 +234,55 @@ Creep.prototype.siege = function () {
         this.memory.siegeComplete = true;
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => (s.structureType === STRUCTURE_TOWER) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_STORAGE) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => (s.structureType === STRUCTURE_STORAGE) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TERMINAL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => (s.structureType === STRUCTURE_TERMINAL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_SPAWN) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => (s.structureType === STRUCTURE_SPAWN) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD) && (!s.room.controller || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD) && (!s.room.controller || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_CONSTRUCTION_SITES, {filter: (s) => (!s.room.controller || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.constructionSites, {filter: (s) => (!s.room.controller || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             return this.shibMove(target, {range: 0});
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = undefined;

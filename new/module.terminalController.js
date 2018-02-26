@@ -14,44 +14,44 @@ let reactionAmount = REACTION_AMOUNT;
 let boostAmount = BOOST_AMOUNT;
 
 
-function terminalControl() {
+function terminalControl(room) {
+    if (room.level < 6) return;
     let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
-    for (let terminal of _.values(Game.structures)) {
-        if (terminal.structureType === STRUCTURE_TERMINAL) {
-            let energyInRoom = _.sum(terminal.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-                if (s['structure'] && s['structure'].store) {
-                    return s['structure'].store[RESOURCE_ENERGY] || 0;
-                } else {
-                    return 0;
-                }
-            });
-            let storage = Game.getObjectById(_.pluck(_.filter(terminal.room.memory.structureCache, 'type', 'storage'), 'id'));
-            //Energy balancer
-            balanceEnergy(terminal, energyInRoom);
-
-            //Cleanup broken or old order
-            orderCleanup(myOrders);
-
-            //update prices every 30 ticks
-            if (Game.time % 30 === 0) {
-                pricingUpdateSell(terminal, globalOrders, myOrders);
-                pricingUpdateBuy(terminal, globalOrders, myOrders);
+    let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    if (terminal) {
+        let energyInRoom = _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+            if (s['structure'] && s['structure'].store) {
+                return s['structure'].store[RESOURCE_ENERGY] || 0;
+            } else {
+                return 0;
             }
+        });
+        let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        //Energy balancer
+        balanceEnergy(terminal, energyInRoom);
 
-            //extend old orders first
-            extendSellOrders(terminal, myOrders);
+        //Cleanup broken or old order
+        orderCleanup(myOrders);
 
-            //Try to put up a sell, otherwise fill buy
-            placeSellOrders(terminal, globalOrders, myOrders);
-            fillBuyOrders(terminal, globalOrders);
-
-            //Extend/Place buy orders if we have enough buffer cash
-            extendBuyOrders(terminal, globalOrders, myOrders);
-            placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
-            placeReactionOrders(terminal, globalOrders, myOrders);
-            placeBoostOrders(terminal, storage, globalOrders, myOrders);
+        //update prices every 30 ticks
+        if (Game.time % 30 === 0) {
+            pricingUpdateSell(terminal, globalOrders, myOrders);
+            pricingUpdateBuy(terminal, globalOrders, myOrders);
         }
+
+        //extend old orders first
+        extendSellOrders(terminal, myOrders);
+
+        //Try to put up a sell, otherwise fill buy
+        placeSellOrders(terminal, globalOrders, myOrders);
+        fillBuyOrders(terminal, globalOrders);
+
+        //Extend/Place buy orders if we have enough buffer cash
+        extendBuyOrders(terminal, globalOrders, myOrders);
+        placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
+        placeReactionOrders(terminal, globalOrders, myOrders);
+        placeBoostOrders(terminal, storage, globalOrders, myOrders);
     }
 }
 

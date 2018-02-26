@@ -24,7 +24,7 @@ function role(creep) {
     if (!creep.getSafe()) {
         if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
         if (creep.memory.working === true) {
-            let newRamps = _.filter(creep.pos.findInRange(FIND_MY_STRUCTURES, 3), (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 15000);
+            let newRamps = _.filter(creep.pos.findInRange(creep.room.structures, 3), (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 15000);
             if (newRamps.length > 0) {
                 creep.repair(newRamps[0]);
             } else {
@@ -52,7 +52,7 @@ function role(creep) {
             } else if (deliveryManagement(creep)) {
                 creep.say(ICONS.wait1, true);
             } else {
-                let storage = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
+                let storage = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
                 if (storage) {
                     if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(storage);

@@ -59,7 +59,7 @@ function role(creep) {
         }
     } else if (creep.memory.hauling === false) {
         if (creep.memory.deliverTo && creep.memory.haulingMineral) {
-            let structure = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.store && s.store[creep.memory.haulingMineral] > 0});
+            let structure = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.store && s.store[creep.memory.haulingMineral] > 0});
             if (Game.getObjectById(creep.memory.deliverTo).mineralType && Game.getObjectById(creep.memory.deliverTo).mineralType !== creep.memory.haulingMineral && creep.memory.haulingMineral !== RESOURCE_ENERGY) {
                 if (creep.withdraw(Game.getObjectById(creep.memory.deliverTo), Game.getObjectById(creep.memory.deliverTo).mineralType) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(Game.getObjectById(creep.memory.deliverTo));

@@ -1,15 +1,24 @@
 let profiler = require('screeps-profiler');
+let observers = require('module.observerController');
 let shib = require("shibBench");
+let defense = require('military.defense');
+let links = require('module.linkController');
+let terminals = require('module.terminalController');
 
 function mind(room, roomLimit) {
     let mindStart = Game.cpu.getUsed();
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
 
+    // Handle Defense
+    let cpu = Game.cpu.getUsed();
+    defense.controller(room);
+    shib.shibBench('defenseController', cpu);
+
     //Cache Buildings
     if (Game.time % 50 === 0) {
         room.memory.structureCache = undefined;
-        for (let structures of room.find(FIND_STRUCTURES)) {
+        for (let structures of room.structures) {
             if (structures.owner && structures.owner['username'] !== 'Shibdib') {
                 structures.destroy();
                 continue;
@@ -50,6 +59,25 @@ function mind(room, roomLimit) {
     for (let key in roomCreeps) {
         if (Game.cpu.getUsed() > cpuWindow) return;
         minionController(roomCreeps[key]);
+    }
+
+    // Observer Control
+    let observerCpu = Game.cpu.getUsed();
+    observers.observerControl(room);
+    shib.shibBench('observerControl', observerCpu);
+
+    // Handle Links
+    if (Game.time % 10 === 0) {
+        cpu = Game.cpu.getUsed();
+        links.linkControl(room);
+        shib.shibBench('linkControl', cpu);
+    }
+
+    // Handle Terminals
+    if (Game.time % 15 === 0) {
+        cpu = Game.cpu.getUsed();
+        terminals.terminalControl(room);
+        shib.shibBench('terminalControl', cpu);
     }
     shib.shibBench('overlordMind', mindStart);
 }
