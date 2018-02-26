@@ -38,13 +38,13 @@ Room.prototype.buildRoom = function () {
 function buildExtensions(room) {
     let extensionCount = room.getExtensionCount();
     if (!room.memory.extensionHub) findExtensionHub(room);
+    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+    switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
+        case OK:
+            break;
+        case ERR_RCL_NOT_ENOUGH:
+    }
     if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION).length < extensionCount) {
-        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
-            case OK:
-                break;
-            case ERR_RCL_NOT_ENOUGH:
-        }
         for (let i = 1; i < 8; i++) {
             let x;
             let y;

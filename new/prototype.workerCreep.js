@@ -749,7 +749,7 @@ findEssentials = function () {
         });
     }
     //Worker Deliveries
-    let workers = _.filter(this.room.creeps, (h) => h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
+    let workers = _.filter(this.room.creeps, (h) => h.my && h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
     if (workers.length > 0 && this.ticksToLive > 30 && !_.includes(roomSpawnQueue, 'responder')) {
         let workerWeighted;
         const object = workers[0];
