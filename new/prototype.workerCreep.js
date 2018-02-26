@@ -64,7 +64,7 @@ wrongRoom = function () {
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 
 findSource = function () {
-    const source = _.filter(this.room._sources, (s) => _.filter(Game.creeps, (c) => c.memory.source === s.id).length === 0);
+    const source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.memory.source === s.id).length === 0);
     if (source.length > 0) {
         this.memory.source = this.pos.findClosestByRange(source).id;
         return this.pos.findClosestByRange(source).id;

@@ -298,13 +298,13 @@ function buildRoads(room, structures) {
     if (room.controller.level < 3 || _.size(Game.constructionSites) >= 45) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.find(FIND_MINERALS)[0];
-    for (let source of room._sources) {
+    for (let source of room.sources) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
     }
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);
-        let target = room.controller.pos.findClosestByRange(FIND_SOURCES);
+        let target = room.controller.pos.findClosestByRange(room.sources);
         if (target) {
             buildRoadFromTo(room, room.controller, target);
         }

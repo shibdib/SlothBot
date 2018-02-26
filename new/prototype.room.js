@@ -109,7 +109,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     let needsCleaning = undefined;
     if (room) {
         let cache = Memory.roomCache || {};
-        let sources = room.find(FIND_SOURCES);
+        let sources = room.sources;
         let structures = room.find(FIND_STRUCTURES, {filter: (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER});
         hostiles = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
         nonCombats = room.find(FIND_CREEPS, {filter: (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner['username']) === false});
