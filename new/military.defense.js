@@ -31,7 +31,7 @@ function controller() {
         } else {
             //ramparts public unless needed
             rampartManager(room, structures);
-            if (!room.memory.requestingSupport) {
+            if (!room.memory.requestingSupport && room.controller.level > 4) {
                 let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.requestingSupport && Game.map.findRoute(room.name, r.name).length < 9)[0];
                 if (needyRoom) {
                     if (room.memory.sendingResponse !== needyRoom.name) {
