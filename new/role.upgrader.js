@@ -75,7 +75,7 @@ function role(creep) {
                 }
             } else {
                 if (!container) {
-                    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 3});
+                    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
                     if (container) creep.room.memory.controllerContainer = container.id;
                 }
                 if (!creep.memory.terminal) {
