@@ -227,7 +227,7 @@ buildLinks = profiler.registerFN(buildLinks, 'buildLinks');
 
 function buildTowers(room, structures) {
     if (room.controller.level < 3) return;
-    let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER)[0];
+    let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
     if (tower.length < 6) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
