@@ -25,13 +25,23 @@ function controller() {
             let hostiles = _.filter(creeps, (c) => c.pos.y < 45 && c.pos.y > 5 && c.pos.x < 45 && c.pos.y > 5 && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(FRIENDLIES, c.owner['username']) === false && c.owner['username'] !== 'Invader');
             let tower = _.max(room.find(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER}), 'energy');
             let responders = _.filter(creeps, (c) => c.memory && c.memory.role && c.memory.role === 'responder');
-            if (hostiles.length > 0 && tower.energy === 0 && responders.length === 0) {
-                room.controller.activateSafeMode();
-                Game.notify(room.name + ' has entered safe mode.')
+            if (tower.energy === 0 && responders.length === 0) {
+                room.memory.requestingSupport = true;
             }
         } else {
             //ramparts public unless needed
             rampartManager(room, structures);
+            if (!room.memory.requestingSupport) {
+                let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.requestingSupport && Game.map.findRoute(room.name, r.name).length < 9)[0];
+                if (needyRoom) {
+                    if (room.memory.sendingResponse !== needyRoom.name) {
+                        room.memory.sendingResponse = needyRoom.name;
+                        log.a(room.name + ' is responders to ' + needyRoom.name);
+                    }
+                } else {
+                    room.memory.sendingResponse = undefined;
+                }
+            }
         }
     }
 

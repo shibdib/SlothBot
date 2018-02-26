@@ -250,6 +250,7 @@ Room.prototype.invaderCheck = function () {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;
+        this.memory.requestingSupport = undefined;
     }
 };
 
