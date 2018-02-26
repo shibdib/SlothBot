@@ -125,10 +125,10 @@ function controllerSupplier(room, structures) {
             }
         }
     } else {
-        let controllerLink = room.controller.pos.findInRange(structures, 2, {filter: (s) => s.structureType === STRUCTURE_LINK});
-        let inBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2, {filter: (s) => s.structureType === STRUCTURE_LINK});
+        let controllerLink = room.controller.pos.findInRange(structures, 3, {filter: (s) => s.structureType === STRUCTURE_LINK});
+        let inBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK});
         if (!controllerLink && !inBuild) {
-            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 1, room.controller.pos.x - 1, room.controller.pos.y + 1, room.controller.pos.x + 1, true);
+            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 3, room.controller.pos.x - 3, room.controller.pos.y + 3, room.controller.pos.x + 3, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
@@ -137,6 +137,9 @@ function controllerSupplier(room, structures) {
             }
         } else if (controllerLink) {
             room.memory.controllerLink = controllerLink.id;
+            if (controllerContainer) {
+                controllerContainer.destroy();
+            }
         }
     }
 }
