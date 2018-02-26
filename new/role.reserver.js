@@ -28,7 +28,12 @@ function role(creep) {
                     creep.signController(creep.room.controller, _.sample(signs));
                     creep.memory.signed = true;
                 }
-                let ticks = creep.room.controller.reservation['ticksToEnd'] || 0;
+                let ticks;
+                if (creep.room.controller.reservation) {
+                    ticks = creep.room.controller.reservation['ticksToEnd'] || 0;
+                } else {
+                    ticks = 0;
+                }
                 creep.room.memory.reservationExpires = Game.time + ticks;
                 break;
             case ERR_NOT_IN_RANGE:
