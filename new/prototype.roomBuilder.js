@@ -126,8 +126,8 @@ function controllerSupplier(room, structures) {
             room.memory.controllerContainer = controllerContainer.id;
         }
     } else {
-        let controllerLink = room.controller.pos.findInRange(structures, 3, {filter: (s) => s.structureType === STRUCTURE_LINK});
-        let inBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK});
+        let controllerLink = room.controller.pos.findInRange(structures, 3, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
+        let inBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {filter: (s) => s.structureType === STRUCTURE_LINK})[0];
         if (!controllerLink && !inBuild) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 3, room.controller.pos.x - 3, room.controller.pos.y + 3, room.controller.pos.x + 3, true);
             for (let key in zoneTerrain) {
