@@ -118,7 +118,7 @@ function role(creep) {
             }
         }
     } else {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
 }
 
