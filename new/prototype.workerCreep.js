@@ -368,7 +368,7 @@ getEnergy = function (range = 250, hauler = false) {
     if (container.length > 0) {
         let containers = [];
         for (let i = 0; i < container.length; i++) {
-            const object = Game.getObjectById(container[i]);
+            const object = container[i];
             if (object) {
                 if (object.id === this.room.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -487,7 +487,7 @@ findStorage = function () {
     if (spawn.length > 0 && haulingEnergy) {
         let spawns = [];
         for (let i = 0; i < spawn.length; i++) {
-            const object = Game.getObjectById(spawn[i]);
+            const object = spawn[i];
             if (object) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
@@ -512,7 +512,7 @@ findStorage = function () {
     if (extension.length > 0 && haulingEnergy) {
         let extensions = [];
         for (let i = 0; i < extension.length; i++) {
-            const object = Game.getObjectById(extension[i]);
+            const object = extension[i];
             if (object) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
@@ -555,7 +555,7 @@ findStorage = function () {
     if (tower.length > 0 && harvester.length >= 2 && haulingEnergy) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
-            const object = Game.getObjectById(tower[i]);
+            const object = tower[i];
             if (object) {
                 if (object.energy === object.energyCapacity) {
                     continue;
@@ -651,7 +651,7 @@ findEssentials = function () {
     if (spawn.length > 0) {
         let spawns = [];
         for (let i = 0; i < spawn.length; i++) {
-            const object = Game.getObjectById(spawn[i]);
+            const object = spawn[i];
             if (object) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
@@ -676,7 +676,7 @@ findEssentials = function () {
     if (extension.length > 0) {
         let extensions = [];
         for (let i = 0; i < extension.length; i++) {
-            const object = Game.getObjectById(extension[i]);
+            const object = extension[i];
             if (object) {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
@@ -768,7 +768,7 @@ findEssentials = function () {
     if (tower.length > 0 && harvester.length >= 2 && !_.includes(roomSpawnQueue, 'responder')) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
-            const object = Game.getObjectById(tower[i]);
+            const object = tower[i];
             if (object) {
                 if (object.pos.getRangeTo(this) > 1) {
                     if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
