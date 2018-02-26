@@ -24,6 +24,7 @@ Room.prototype.buildRoom = function () {
             }
         }
     }
+    controllerSupplier(this, structures);
     buildExtensions(this);
     buildLinks(this, structures);
     buildStorage(this, structures);
@@ -105,6 +106,42 @@ function findExtensionHub(room) {
 }
 
 findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
+
+function controllerSupplier(room, structures) {
+    let controllerContainer = room.controller.pos.findInRange(structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+    room.memory.controllerContainer = controllerContainer.id;
+    if (room.controller.level < 6) {
+        if (!controllerContainer) {
+            let controllerBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+            if (!controllerBuild) {
+                let containerSpots = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 1, room.controller.pos.x - 1, room.controller.pos.y + 1, room.controller.pos.x + 1, true);
+                for (let key in containerSpots) {
+                    let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
+                    if (position && position.getRangeTo(room.controller) === 1) {
+                        if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_CONTAINER);
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        let controllerLink = room.controller.pos.findInRange(structures, 2, {filter: (s) => s.structureType === STRUCTURE_LINK});
+        let inBuild = room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2, {filter: (s) => s.structureType === STRUCTURE_LINK});
+        if (!controllerLink && !inBuild) {
+            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 1, room.controller.pos.x - 1, room.controller.pos.y + 1, room.controller.pos.x + 1, true);
+            for (let key in zoneTerrain) {
+                let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
+                if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
+                position.createConstructionSite(STRUCTURE_LINK);
+                break;
+            }
+        } else if (controllerLink) {
+            room.memory.controllerLink = controllerLink.id;
+        }
+    }
+}
+
+controllerSupplier = profiler.registerFN(controllerSupplier, 'controllerSupplier');
 
 function buildWalls(room, structures) {
     let extensionCount = room.getExtensionCount();
