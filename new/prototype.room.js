@@ -262,15 +262,18 @@ Room.prototype.handleNukeAttack = function () {
     let sorted = _.sortBy(nukes, function (object) {
         return object.timeToLand;
     });
-    if (sorted[0].timeToLand < 100) {
-        this.controller.activateSafeMode();
-    }
 
     let findSaveableStructures = function (object) {
         if (object.structureType === STRUCTURE_ROAD) {
             return false;
         }
         if (object.structureType === STRUCTURE_RAMPART) {
+            return false;
+        }
+        if (object.structureType === STRUCTURE_EXTENSION) {
+            return false;
+        }
+        if (object.structureType === STRUCTURE_CONTROLLER) {
             return false;
         }
         return object.structureType !== STRUCTURE_WALL;
@@ -296,7 +299,6 @@ Room.prototype.handleNukeAttack = function () {
             if (lookRampart > -1) {
                 continue;
             }
-            this.log('Build rampart: ' + JSON.stringify(structure.pos));
             structure.pos.createConstructionSite(STRUCTURE_RAMPART);
         }
     }

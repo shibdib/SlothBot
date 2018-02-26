@@ -189,13 +189,16 @@ function buildLabs(room, structures) {
                 }
             }
         } else if (labs[0]) {
-            let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 5, labs[0].pos.x - 5, labs[0].pos.y + 5, labs[0].pos.x + 5, true);
-            buildRoadFromTo(labs[0], room.controller);
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 2, labs[0].pos.x - 2, labs[0].pos.y + 2, labs[0].pos.x + 2, true);
+            buildRoadFromTo(room, labs[0], room.controller);
             for (let key in labHub) {
-                let position = new RoomPosition(labHub[key].x, labHub[key].y, labHub.name);
-                if (position.findInRange(labs, 1) >= 2 || position.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_LAB}) >= 2) {
-                    if (position.checkForAllStructure().length > 0) continue;
-                    position.createConstructionSite(STRUCTURE_LAB);
+                let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
+                if (position.checkForAllStructure().length > 0) continue;
+                switch (position.createConstructionSite(STRUCTURE_LAB)) {
+                    case OK:
+                        continue;
+                    case ERR_RCL_NOT_ENOUGH:
+                        return;
                 }
             }
         }
