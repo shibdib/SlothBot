@@ -59,16 +59,22 @@ function shibMove(creep, heading, options = {}) {
     //Execute path if target is valid and path is set
     if (pathInfo.path && !options.checkPath) {
         creep.borderCheck();
+        let nextDirection = parseInt(pathInfo.path[0], 10);
+        pathInfo.newPos = positionAtDirection(origin, nextDirection);
         if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             pathInfo.pathPosTime++;
+            if (pathInfo.pathPosTime > 0 && pathInfo.newPos.lookFor(LOOK_CREEPS)[0]) {
+                let blocker = pathInfo.newPos.lookFor(LOOK_CREEPS)[0];
+                if (blocker.my && (!blocker.memory._shibMove || (blocker.memory._shibMove && blocker.memory._shibMove.pathPosTime === 0))) {
+                    blocker.moveRandom();
+                }
+            }
         } else {
             pathInfo.pathPos = creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName;
             pathInfo.pathPosTime = 0;
         }
-        let nextDirection = parseInt(pathInfo.path[0], 10);
         if (nextDirection && pathInfo.newPos) {
-            pathInfo.newPos = positionAtDirection(origin, nextDirection);
             switch (creep.move(nextDirection)) {
                 case OK:
                     break;
@@ -123,7 +129,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             }
             if (route) {
                 allowedRooms = route;
-                cacheRoute(creep, origin, target, route);
+                cacheRoute(origin, target, route);
             } else {
                 if (creep.memory.destination && creep.memory.destination !== creep.pos.roomName && target.roomName !== creep.memory.destination) target.roomName = creep.memory.destination;
                 let exitDir = Game.map.findExit(origin.roomName, target.roomName);

@@ -11,30 +11,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     if (!creep.getSafe()) {
         if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
-        if (creep.memory.boostAttempt !== true) {
-            let desiredReactions = [RESOURCE_CATALYZED_GHODIUM_ACID];
-            let count = 1;
-            for (let i = 0; i < desiredReactions.length; i++) {
-                let lab = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.mineralType === desiredReactions[i] && s.mineralAmount >= 30 && s.energy >= 20});
-                if (lab) {
-                    count++;
-                    switch (lab.boostCreep(creep)) {
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(lab);
-                            break;
-                        case ERR_NOT_FOUND:
-                            count--;
-                            break;
-                        case OK:
-                            creep.memory.boosted = true;
-                    }
-                }
-            }
-            if (count === 1) {
-                creep.memory.boostAttempt = true;
-            }
-            return null;
-        }
+        if (creep.memory.boostAttempt !== true) creep.tryToBoost(['upgrade']);
         if (_.filter(Game.creeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.role = 'stationaryHarvester';
         //ANNOUNCE
         if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
@@ -66,12 +43,18 @@ function role(creep) {
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
             } else if (container && container.store[RESOURCE_ENERGY] > 0) {
-                if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(container);
+                switch (creep.withdraw(container, RESOURCE_ENERGY)) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(container);
                 }
             } else if (link && link.energy > 0) {
-                if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(link);
+                switch (creep.withdraw(link, RESOURCE_ENERGY)) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(link);
                 }
             } else {
                 if (!container) {
