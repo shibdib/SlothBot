@@ -15,8 +15,9 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
 
-    if (creep.memory.destinationReached && creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.my})) {
+    if (creep.memory.destinationReached && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0]) {
         if (creep.memory.initialBuilder) {
+            if (!creep.room.memory.extensionHub) findExtensionHub(creep.room);
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
             Game.rooms[creep.memory.overlord].memory.activeClaim = undefined;
             Game.rooms[creep.memory.overlord].memory.assistingRoom = undefined;
