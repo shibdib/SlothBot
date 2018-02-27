@@ -126,6 +126,13 @@ module.exports.role = profiler.registerFN(role, 'pioneerRole');
 
 function findExtensionHub(room) {
     for (let i = 1; i < 249; i++) {
+        let spawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
+        if (spawn) {
+            room.memory.extensionHub = {};
+            room.memory.extensionHub.x = spawn.x;
+            room.memory.extensionHub.y = spawn.y;
+            return;
+        }
         let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
         let closestStructure = pos.findClosestByRange(room.structures);
         let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
