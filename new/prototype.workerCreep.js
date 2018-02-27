@@ -233,7 +233,7 @@ harvestDepositContainer = function () {
 Creep.prototype.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
 
 harvesterContainerBuild = function () {
-    if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1){
+    if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
         if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
             return null;
         }
@@ -533,27 +533,22 @@ findStorage = function () {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = tower[i];
-            if (object) {
-                if (object.energy === object.energyCapacity) {
-                    continue;
-                }
-                if (object.pos.getRangeTo(this) > 1) {
-                    if (object.room.memory.responseNeeded === true) {
-                        const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0);
-                        towers.push({
-                            id: tower[i].id,
-                            distWeighted: towerDistWeighted,
-                            harvest: false
-                        });
-                    } else {
-                        const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1.2, 0) + 1 - towerAmountWeighted;
-                        towers.push({
-                            id: tower[i].id,
-                            distWeighted: towerDistWeighted,
-                            harvest: false
-                        });
-                    }
+            if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
+                if (object.room.memory.responseNeeded === true) {
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0);
+                    towers.push({
+                        id: tower[i].id,
+                        distWeighted: towerDistWeighted,
+                        harvest: false
+                    });
+                } else {
+                    const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1.2, 0) + 1 - towerAmountWeighted;
+                    towers.push({
+                        id: tower[i].id,
+                        distWeighted: towerDistWeighted,
+                        harvest: false
+                    });
                 }
             }
         }
@@ -746,31 +741,29 @@ findEssentials = function () {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = tower[i];
-            if (object) {
-                if (object.pos.getRangeTo(this) > 1) {
-                    if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
-                        const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.01, 0);
-                        towers.push({
-                            id: tower[i].id,
-                            distWeighted: towerDistWeighted,
-                            harvest: false
-                        });
-                    } else if (object.energy < object.energyCapacity / 2) {
-                        const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
-                        towers.push({
-                            id: tower[i].id,
-                            distWeighted: towerDistWeighted,
-                            harvest: false
-                        });
-                    } else {
-                        const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                        const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1, 0) + 1 - towerAmountWeighted;
-                        towers.push({
-                            id: tower[i].id,
-                            distWeighted: towerDistWeighted,
-                            harvest: false
-                        });
-                    }
+            if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
+                if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.01, 0);
+                    towers.push({
+                        id: tower[i].id,
+                        distWeighted: towerDistWeighted,
+                        harvest: false
+                    });
+                } else if (object.energy < object.energyCapacity / 2) {
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
+                    towers.push({
+                        id: tower[i].id,
+                        distWeighted: towerDistWeighted,
+                        harvest: false
+                    });
+                } else {
+                    const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1, 0) + 1 - towerAmountWeighted;
+                    towers.push({
+                        id: tower[i].id,
+                        distWeighted: towerDistWeighted,
+                        harvest: false
+                    });
                 }
             }
         }
