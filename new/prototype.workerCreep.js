@@ -628,7 +628,7 @@ findEssentials = function () {
                 if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
                     continue;
                 }
-                const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
+                const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
                 spawns.push({
                     id: spawn[i].id,
                     distWeighted: spawnDistWeighted,
@@ -743,7 +743,7 @@ findEssentials = function () {
             const object = tower[i];
             if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
                 if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.01, 0);
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.5, 0);
                     towers.push({
                         id: tower[i].id,
                         distWeighted: towerDistWeighted,
@@ -758,7 +758,7 @@ findEssentials = function () {
                     });
                 } else {
                     const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1, 0) + 1 - towerAmountWeighted;
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0) + 1 - towerAmountWeighted;
                     towers.push({
                         id: tower[i].id,
                         distWeighted: towerDistWeighted,
