@@ -2,6 +2,7 @@ let profiler = require('screeps-profiler');
 let overlord = require('main.Overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
+let spawning = require('module.creepSpawning');
 let shib = require("shibBench");
 
 function mind() {
@@ -42,5 +43,6 @@ function mind() {
         }
         processed++;
     }
+    spawning.processBuildQueue();
 }
 module.exports.hiveMind = profiler.registerFN(mind, 'hiveMind');

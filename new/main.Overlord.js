@@ -4,6 +4,7 @@ let shib = require("shibBench");
 let defense = require('military.defense');
 let links = require('module.linkController');
 let terminals = require('module.terminalController');
+let spawning = require('module.creepSpawning');
 
 function mind(room, roomLimit) {
     let mindStart = Game.cpu.getUsed();
@@ -32,14 +33,13 @@ function mind(room, roomLimit) {
     // Manage creep spawning
     let creepSpawn = Game.cpu.getUsed();
     if (Game.time % 10 === 0) {
-        room.workerCreepQueue();
+        spawning.workerCreepQueue(room);
         if (room.controller.level >= 4) {
-            room.remoteCreepQueue();
-            room.militaryCreepQueue();
+            spawning.remoteCreepQueue(room);
+            spawning.militaryCreepQueue(room);
         }
     }
     cleanQueue(room);
-    room.processBuildQueue();
     shib.shibBench('creepSpawn', creepSpawn);
 
     // Manage creeps
