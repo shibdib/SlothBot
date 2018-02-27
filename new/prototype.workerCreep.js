@@ -459,56 +459,6 @@ findStorage = function () {
     let storage = [];
     let haulingEnergy;
     if (this.carry[RESOURCE_ENERGY] === _.sum(this.carry)) haulingEnergy = true;
-    //Spawn
-    let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
-    if (spawn.length > 0 && haulingEnergy) {
-        let spawns = [];
-        for (let i = 0; i < spawn.length; i++) {
-            const object = spawn[i];
-            if (object) {
-                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
-                    continue;
-                }
-                const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.8, 0) + 1;
-                spawns.push({
-                    id: spawn[i].id,
-                    distWeighted: spawnDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestSpawn = _.min(spawns, 'distWeighted');
-        storage.push({
-            id: bestSpawn.id,
-            distWeighted: bestSpawn.distWeighted,
-            harvest: false
-        });
-    }
-    //Extension
-    let extension = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
-    if (extension.length > 0 && haulingEnergy) {
-        let extensions = [];
-        for (let i = 0; i < extension.length; i++) {
-            const object = extension[i];
-            if (object) {
-                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
-                    continue;
-                }
-                const extensionDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.8, 0) + 1;
-                extensions.push({
-                    id: extension[i].id,
-                    distWeighted: extensionDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestExtension = _.min(extensions, 'distWeighted');
-        storage.push({
-            id: bestExtension.id,
-            distWeighted: bestExtension.distWeighted,
-            harvest: false
-        });
-    }
     //Storage
     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (sStorage) {
@@ -561,7 +511,7 @@ findStorage = function () {
     }
     //Links
     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (controllerLink && haulingEnergy) {
+    if (controllerLink && haulingEnergy && !this.room.memory.responseNeeded) {
         let linkDistWeighted;
         const object = controllerLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -576,7 +526,7 @@ findStorage = function () {
     }
     //Terminal
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal) {
+    if (terminal && !this.room.memory.responseNeeded) {
         if (terminal.pos.getRangeTo(this) > 1) {
             const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
             storage.push({
@@ -586,17 +536,39 @@ findStorage = function () {
             });
         }
     }
-    //Nuker
-    let nuker = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
-    if (nuker) {
-        if (nuker.pos.getRangeTo(this) > 1) {
-            const nukerDistWeighted = _.round(nuker.pos.rangeToTarget(this) * 0.1, 0) + 1;
-            storage.push({
-                id: nuker.id,
-                distWeighted: nukerDistWeighted,
-                harvest: false
-            });
+    //Controller Container
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] !== controllerContainer.storeCapacity && haulingEnergy) {
+        let containerDistWeighted;
+        const object = controllerContainer;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && numberOfUsers === 0) {
+            let weight;
+            weight = 0.1;
+            if (object.store[RESOURCE_ENERGY] < 1000) {
+                weight = 0.7;
+            }
+            containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
         }
+        storage.push({
+            id: controllerContainer.id,
+            distWeighted: containerDistWeighted,
+            harvest: false
+        });
+    }
+    //Worker Deliveries
+    let workers = _.filter(this.room.creeps, (h) => h.my && h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
+    if (workers.length > 0 && this.ticksToLive > 30 && !this.room.memory.responseNeeded && haulingEnergy) {
+        let workerWeighted;
+        const object = workers[0];
+        if (object) {
+            workerWeighted = _.round(object.pos.rangeToTarget(this) * 0.2, 0) + 1;
+        }
+        storage.push({
+            id: object.id,
+            distWeighted: workerWeighted,
+            harvest: false
+        });
     }
     //Sort
     let sorted = _.min(storage, 'distWeighted');
@@ -665,55 +637,6 @@ findEssentials = function () {
         storage.push({
             id: bestExtension.id,
             distWeighted: bestExtension.distWeighted,
-            harvest: false
-        });
-    }
-    //Controller Container
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !_.includes(roomSpawnQueue, 'responder') && controllerContainer.store[RESOURCE_ENERGY] !== controllerContainer.storeCapacity) {
-        let containerDistWeighted;
-        const object = controllerContainer;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && numberOfUsers === 0) {
-            let weight;
-            weight = 0.1;
-            if (object.store[RESOURCE_ENERGY] < 1000) {
-                weight = 0.7;
-            }
-            containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-        }
-        storage.push({
-            id: controllerContainer.id,
-            distWeighted: containerDistWeighted,
-            harvest: false
-        });
-    }
-    //Links
-    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (controllerLink && !_.includes(roomSpawnQueue, 'responder')) {
-        let linkDistWeighted;
-        const object = controllerLink;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && object.energy < object.energyCapacity / 2 && numberOfUsers === 0) {
-            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
-        }
-        storage.push({
-            id: controllerLink.id,
-            distWeighted: linkDistWeighted,
-            harvest: false
-        });
-    }
-    //Worker Deliveries
-    let workers = _.filter(this.room.creeps, (h) => h.my && h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
-    if (workers.length > 0 && this.ticksToLive > 30 && !_.includes(roomSpawnQueue, 'responder')) {
-        let workerWeighted;
-        const object = workers[0];
-        if (object) {
-            workerWeighted = _.round(object.pos.rangeToTarget(this) * 0.2, 0) + 1;
-        }
-        storage.push({
-            id: object.id,
-            distWeighted: workerWeighted,
             harvest: false
         });
     }
