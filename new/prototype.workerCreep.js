@@ -536,26 +536,6 @@ findStorage = function () {
             });
         }
     }
-    //Controller Container
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] !== controllerContainer.storeCapacity && haulingEnergy) {
-        let containerDistWeighted;
-        const object = controllerContainer;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && numberOfUsers === 0) {
-            let weight;
-            weight = 0.1;
-            if (object.store[RESOURCE_ENERGY] < 1000) {
-                weight = 0.7;
-            }
-            containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-        }
-        storage.push({
-            id: controllerContainer.id,
-            distWeighted: containerDistWeighted,
-            harvest: false
-        });
-    }
     //Worker Deliveries
     let workers = _.filter(this.room.creeps, (h) => h.my && h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
     if (workers.length > 0 && this.ticksToLive > 30 && !this.room.memory.responseNeeded && haulingEnergy) {
@@ -684,6 +664,22 @@ findEssentials = function () {
                 });
             }
         }
+    }
+    //Controller Container
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] < 1000 && haulingEnergy) {
+        let containerDistWeighted;
+        const object = controllerContainer;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && numberOfUsers === 0) {
+            let weight = 0.5;
+            containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
+        }
+        storage.push({
+            id: controllerContainer.id,
+            distWeighted: containerDistWeighted,
+            harvest: false
+        });
     }
     //Nuker
     let nuker = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
