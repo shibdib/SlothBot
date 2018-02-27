@@ -20,6 +20,9 @@ function role(creep) {
             if (creep.room.memory.claimTarget) {
                 sentence = sentence.concat(['~', 'Planned', 'Expansion:', creep.room.memory.claimTarget]);
             }
+            if (creep.room.memory.assistingRoom) {
+                sentence = sentence.concat(['~', 'Sending', 'Builders', 'To', creep.room.memory.assistingRoom]);
+            }
             if (creep.room.memory.responseNeeded) {
                 sentence = sentence.concat(['~', 'ROOM', 'SECURITY', 'ACTIVATED']);
             }
