@@ -642,8 +642,7 @@ findEssentials = function () {
     }
     //Tower
     let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let harvester = _.filter(this.room.creeps, (h) => h.my && h.memory.assignedSpawn === this.memory.assignedSpawn && (h.memory.role === 'stationaryHarvester' || h.memory.role === 'basicHarvester'));
-    if (tower.length > 0 && harvester.length >= 2 && !_.includes(roomSpawnQueue, 'responder')) {
+    if (tower.length > 0 && !_.includes(roomSpawnQueue, 'responder')) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = tower[i];
@@ -657,14 +656,6 @@ findEssentials = function () {
                     });
                 } else if (object.energy < object.energyCapacity / 2) {
                     const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
-                    towers.push({
-                        id: tower[i].id,
-                        distWeighted: towerDistWeighted,
-                        harvest: false
-                    });
-                } else {
-                    const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0) + 1 - towerAmountWeighted;
                     towers.push({
                         id: tower[i].id,
                         distWeighted: towerDistWeighted,
