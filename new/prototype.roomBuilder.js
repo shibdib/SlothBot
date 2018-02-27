@@ -37,7 +37,7 @@ Room.prototype.buildRoom = function () {
 
 function buildExtensions(room) {
     let extensionCount = room.getExtensionCount();
-    if (!room.memory.extensionHub) return findExtensionHub(room);
+    if (!room.memory.extensionHub || !room.memory.extensionHub.x) return findExtensionHub(room);
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
         case OK:
