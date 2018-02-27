@@ -46,7 +46,15 @@ function role(creep) {
             }
         } else {
             let container = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER), 'hits');
-            if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
+            if (creep.memory.initialBuilder && creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]) {
+                switch (creep.dismantle(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0])) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]);
+                }
+            else
+                if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
             } else if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === 'Shibdib' && creep.room.controller.ticksToDowngrade < 3000) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
