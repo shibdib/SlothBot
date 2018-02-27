@@ -667,7 +667,7 @@ findEssentials = function () {
     }
     //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] < 1000 && haulingEnergy) {
+    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
