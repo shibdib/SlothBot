@@ -118,7 +118,7 @@ findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
 
 function controllerSupplier(room, structures) {
     let controllerContainer = _.filter(room.controller.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-    if (room.controller.level < 6) {
+    if (room.controller.level < 5) {
         if (!controllerContainer) {
             let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
             if (!controllerBuild) {
