@@ -18,7 +18,7 @@ function mind(room, roomLimit) {
     //Build Room
     if (Game.time % 50 === 0) {
         for (let structures of room.structures) {
-            if (structures.owner && structures.owner['username'] !== 'Shibdib') {
+            if ((structures.owner && structures.owner['username'] !== 'Shibdib') || structures.structureType === STRUCTURE_WALL) {
                 structures.destroy();
             }
         }
