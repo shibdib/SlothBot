@@ -334,7 +334,7 @@ findEnergy = function (range = 250, hauler = false) {
     }
     //Terminal
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.5) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 2000) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5 || terminal.pos.rangeToTarget(this) > range) weight = 0.2;
@@ -398,7 +398,7 @@ getEnergy = function (range = 250, hauler = false) {
         const object = storageLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
         if (object && object.energy > 0 && numberOfUsers < 2) {
-            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
+            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.5, 0) + 1;
         }
         energy.push({
             id: storageLink.id,
@@ -408,7 +408,7 @@ getEnergy = function (range = 250, hauler = false) {
     }
     //Terminal
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.5) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 2000) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
@@ -774,19 +774,12 @@ findEssentials = function () {
             harvest: false
         });
     }
-    //Terminal room.memory.energySurplus
+    //Terminal
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     if (terminal) {
         if (terminal.pos.getRangeTo(this) > 1) {
-            if (terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.5) {
-                const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.1, 0) + 1;
-                storage.push({
-                    id: terminal.id,
-                    distWeighted: terminalDistWeighted,
-                    harvest: false
-                });
-            } else {
-                const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 1.1, 0) + 1;
+            if (terminal.store[RESOURCE_ENERGY] < 1500) {
+                const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
                 storage.push({
                     id: terminal.id,
                     distWeighted: terminalDistWeighted,
