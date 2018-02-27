@@ -164,7 +164,7 @@ Room.prototype.cacheRoomStructures = function (id) {
 };
 
 Room.prototype.cacheRoomIntel = function (force = false) {
-    if (this.memory.lastIntelCache > Game.time - 100 && !force) return;
+    if (this.memory.lastIntelCache > Game.time - 250 && !force) return;
     this.memory.lastIntelCache = Game.time;
     let room = Game.rooms[this.name];
     let owner = undefined;
