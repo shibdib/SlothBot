@@ -66,7 +66,7 @@ function role(creep) {
                     if (terminal) creep.memory.terminal = terminal.id;
                 }
                 let terminal = Game.getObjectById(creep.memory.terminal);
-                if (terminal && creep.pos.getRangeTo(terminal) < 5 && terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 0.5) {
+                if (terminal && creep.pos.getRangeTo(terminal) < 5 && terminal.store[RESOURCE_ENERGY] > 2000) {
                     if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(terminal);
                     }
