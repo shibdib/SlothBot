@@ -27,7 +27,7 @@ function role(creep) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);
                     if (!storageItem) {
                         creep.memory.storageDestination = undefined;
-                        creep.findEssentials();
+                        if (!creep.findEssentials()) creep.findStorage();
                     }
                     switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
                         case OK:

@@ -688,23 +688,6 @@ findEssentials = function () {
             harvest: false
         });
     }
-    //Storage
-    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    if (sStorage) {
-        let weight;
-        weight = 0.05;
-        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
-            weight = 0.3;
-        }
-        if (sStorage.pos.getRangeTo(this) > 1) {
-            const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
-            storage.push({
-                id: sStorage.id,
-                distWeighted: storageDistWeighted,
-                harvest: false
-            });
-        }
-    }
     //Links
     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
     if (controllerLink && !_.includes(roomSpawnQueue, 'responder')) {
