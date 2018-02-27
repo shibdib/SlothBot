@@ -11,10 +11,9 @@ function role(creep) {
     creep.room.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
-
 
     if (creep.memory.destinationReached && creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.my})) {
         if (creep.memory.initialBuilder) {
@@ -34,10 +33,6 @@ function role(creep) {
         creep.memory.hauling = true;
     }
     if (creep.memory.destinationReached) {
-        if (creep.memory._shibMove && creep.memory._shibMove.newPos) {
-            let pos = new RoomPosition(creep.memory._shibMove.newPos.x, creep.memory._shibMove.newPos.y, creep.room.name);
-            if (pos.checkForImpassible()) return creep.dismantle(creep.memory._shibMove.newPos.lookFor(LOOK_STRUCTURES)[0]);
-        }
         if (creep.memory.hauling === false) {
             let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100);
             if (container.length > 0) {
