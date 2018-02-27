@@ -223,7 +223,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Worker
-    if (!_.includes(queue, 'worker') && _.filter(Game.constructionSites, (site) => site.pos.roomName === room.name).length > 0 && !room.memory.responseNeeded) {
+    if (!_.includes(queue, 'worker') && room.constructionSites.length > 0 && !room.memory.responseNeeded) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < 2) {
             queueCreep(room, PRIORITIES.worker, {
