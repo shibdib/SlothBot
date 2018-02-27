@@ -709,6 +709,8 @@ findEssentials = function () {
         } else {
             return undefined;
         }
+    } else {
+        return false;
     }
 };
 Creep.prototype.findEssentials = profiler.registerFN(findEssentials, 'findEssentialsCreepFunctions');
