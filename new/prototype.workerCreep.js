@@ -513,9 +513,9 @@ findStorage = function () {
     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (sStorage) {
         let weight;
-        weight = 0.25;
-        if (sStorage.store[RESOURCE_ENERGY] < 1500) {
-            weight = 0.98;
+        weight = 0.05;
+        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+            weight = 0.3;
         }
         if (sStorage.pos.getRangeTo(this) > 1) {
             const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -692,9 +692,9 @@ findEssentials = function () {
     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (sStorage) {
         let weight;
-        weight = 0.25;
-        if (sStorage.store[RESOURCE_ENERGY] < 1500) {
-            weight = 0.98;
+        weight = 0.05;
+        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+            weight = 0.3;
         }
         if (sStorage.pos.getRangeTo(this) > 1) {
             const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
