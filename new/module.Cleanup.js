@@ -6,6 +6,7 @@ function cleanup() {
         cleanPathCacheByUsage(); //clean path and distance caches
         cleanDistanceCacheByUsage();
         cleanConstructionSites();
+        cleanRoomIntel();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) Memory.pathCache = undefined;
     for (let name in Memory.creeps) {
@@ -51,5 +52,11 @@ function cleanConstructionSites() {
         if ((!Game.constructionSites[key].room || !Game.constructionSites[key].pos.findClosestByRange(FIND_MY_CREEPS)) && Game.constructionSites[key].structureType !== STRUCTURE_SPAWN) {
             Game.constructionSites[key].remove();
         }
+    }
+}
+
+function cleanRoomIntel() {
+    for (let key in Memory.roomCache) {
+        if (Memory.roomCache[key].cached + 1000 < Game.time) delete Memory.roomCache[key];
     }
 }
