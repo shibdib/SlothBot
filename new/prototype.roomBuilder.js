@@ -28,11 +28,15 @@ Room.prototype.buildRoom = function () {
     buildExtensions(this);
     buildLinks(this, structures);
     buildStorage(this, structures);
+    buildTerminal(this, structures);
     buildTowers(this, structures);
     buildLabs(this, structures);
     if (_.size(Game.constructionSites) > 50) return;
     buildWalls(this, structures);
     buildRoads(this, structures);
+    buildNuker(this, structures);
+    buildObserver(this, structures);
+    buildPowerSpawn(this, structures);
 };
 
 function buildExtensions(room) {
@@ -83,8 +87,6 @@ function buildExtensions(room) {
     }
 }
 
-buildExtensions = profiler.registerFN(buildExtensions, 'buildExtensionsRoom');
-
 function findExtensionHub(room) {
     for (let i = 1; i < 249; i++) {
         let inBuildSpawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
@@ -120,8 +122,6 @@ function findExtensionHub(room) {
         }
     }
 }
-
-findExtensionHub = profiler.registerFN(findExtensionHub, 'findExtensionHub');
 
 function controllerSupplier(room, structures) {
     let controllerContainer = _.filter(room.controller.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
@@ -164,8 +164,6 @@ function controllerSupplier(room, structures) {
     }
 }
 
-controllerSupplier = profiler.registerFN(controllerSupplier, 'controllerSupplier');
-
 function buildWalls(room, structures) {
     let extensionCount = room.getExtensionCount();
     if (room.controller.level < 3) return;
@@ -193,8 +191,6 @@ function buildWalls(room, structures) {
     }
 }
 
-buildWalls = profiler.registerFN(buildWalls, 'buildWalls');
-
 function buildStorage(room, structures) {
     if (room.controller.level < 4) return;
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
@@ -211,7 +207,63 @@ function buildStorage(room, structures) {
     }
 }
 
-buildStorage = profiler.registerFN(buildStorage, 'buildStorage');
+function buildTerminal(room, structures) {
+    if (room.controller.level < 6) return;
+    let terminal = _.filter(structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    if (!terminal) {
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 2, hub.x - 2, hub.y + 2, hub.x + 2, true));
+        for (let key in safeZone) {
+            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+            if (position.getRangeTo(hub) === 2) {
+                if (position.checkForAllStructure().length > 0) continue;
+                position.createConstructionSite(STRUCTURE_TERMINAL);
+            }
+        }
+    }
+}
+
+function buildObserver(room, structures) {
+    if (room.controller.level < 8) return;
+    let observer = _.filter(structures, (s) => s.structureType === STRUCTURE_OBSERVER)[0];
+    if (!observer) {
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
+        for (let key in safeZone) {
+            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+            if (position.checkForAllStructure().length > 0) continue;
+            position.createConstructionSite(STRUCTURE_OBSERVER);
+        }
+    }
+}
+
+function buildNuker(room, structures) {
+    if (room.controller.level < 8) return;
+    let nuker = _.filter(structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
+    if (!nuker) {
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
+        for (let key in safeZone) {
+            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+            if (position.checkForAllStructure().length > 0) continue;
+            position.createConstructionSite(STRUCTURE_NUKER);
+        }
+    }
+}
+
+function buildPowerSpawn(room, structures) {
+    if (room.controller.level < 8) return;
+    let powerSpawn = _.filter(structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
+    if (!powerSpawn) {
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
+        for (let key in safeZone) {
+            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+            if (position.checkForAllStructure().length > 0) continue;
+            position.createConstructionSite(STRUCTURE_POWER_SPAWN);
+        }
+    }
+}
 
 function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
@@ -265,8 +317,6 @@ function buildLabs(room, structures) {
     }
 }
 
-buildLabs = profiler.registerFN(buildLabs, 'buildLabs');
-
 function buildLinks(room, structures) {
     if (room.controller.level < 5) return;
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
@@ -283,8 +333,6 @@ function buildLinks(room, structures) {
         }
     }
 }
-
-buildLinks = profiler.registerFN(buildLinks, 'buildLinks');
 
 function buildTowers(room, structures) {
     if (room.controller.level < 3) return;
@@ -307,8 +355,6 @@ function buildTowers(room, structures) {
         }
     }
 }
-
-buildTowers = profiler.registerFN(buildTowers, 'buildTowers');
 
 function buildRoads(room, structures) {
     if (room.controller.level < 3 || _.size(Game.constructionSites) >= 45) return;
@@ -347,8 +393,6 @@ function buildRoads(room, structures) {
     }
 }
 
-buildRoads = profiler.registerFN(buildRoads, 'buildRoadsBuilder');
-
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
@@ -360,8 +404,6 @@ function buildRoadFromTo(room, start, end) {
     }
 }
 
-buildRoadFromTo = profiler.registerFN(buildRoadFromTo, 'buildRoadFromToFunctionBuilder');
-
 function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
@@ -372,11 +414,7 @@ function buildRoadAround(room, position) {
     }
 }
 
-buildRoadAround = profiler.registerFN(buildRoadAround, 'buildRoadAroundFunctionBuilder');
-
 function buildRoad(position) {
     //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
-
-buildRoad = profiler.registerFN(buildRoad, 'buildRoadFunctionBuilder');
