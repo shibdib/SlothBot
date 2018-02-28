@@ -90,6 +90,7 @@ function role(creep) {
                 } else {
                     let link = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 8), (s) => s.structureType === STRUCTURE_LINK);
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
+                    let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
                     if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                         creep.memory.dropOffLink = link[0].id;
                     } else if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
@@ -100,6 +101,20 @@ function role(creep) {
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(controllerContainer);
+                                break;
+                            case ERR_FULL:
+                                creep.memory.storageDestination = undefined;
+                                creep.findStorage();
+                                break;
+                        }
+                    } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < controllerLink.storeCapacity && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
+                        creep.memory.storageDestination = controllerLink.id;
+                        switch (creep.transfer(controllerLink, RESOURCE_ENERGY)) {
+                            case OK:
+                                creep.memory.storageDestination = undefined;
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(controllerLink);
                                 break;
                             case ERR_FULL:
                                 creep.memory.storageDestination = undefined;
