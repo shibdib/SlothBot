@@ -293,7 +293,7 @@ module.exports.remoteCreepQueue = function (room) {
     //Explorer
     if (!_.includes(queue, 'explorer')) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.overlord === room.name);
-        if (explorers.length < 1) {
+        if (explorers.length < 2) {
             queueCreep(room, PRIORITIES.explorer, {
                 role: 'explorer'
             })
