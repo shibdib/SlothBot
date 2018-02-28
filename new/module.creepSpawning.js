@@ -54,9 +54,7 @@ module.exports.processBuildQueue = function () {
                                 waitForDeconstructor: topPriority.waitForDeconstructor,
                                 reservationTarget: topPriority.reservationTarget,
                                 initialBuilder: topPriority.initialBuilder
-                            },
-                            energyStructures: _.sortBy(_.filter(spawn.room.structures, (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy > 0), s => spawn.pos.getRangeTo(s))
-
+                            }
                         }) === OK) {
                         log.i(spawn.room.name + ' Spawning a ' + role);
                         return delete spawn.room.memory.creepBuildQueue;
