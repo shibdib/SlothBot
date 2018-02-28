@@ -35,7 +35,7 @@ function mind() {
         let cpuLimit = Game.cpu.limit - cpuUsed;
         let cpuTickLimit = Game.cpu.tickLimit - cpuUsed;
         let roomLimit = cpuLimit / (overlordCount - processed);
-        if (cpuBucket > 2000) roomLimit = cpuTickLimit / (overlordCount - processed);
+        if (cpuBucket > 5000) roomLimit = cpuTickLimit / (overlordCount - processed);
         overlord.overlordMind(activeRoom, roomLimit);
         //Expansion Manager
         if (Game.time % 500 === 0 && !activeRoom.memory.activeClaim && activeRoom.controller.level >= 4 && Game.gcl.level - 2 > overlordCount && !activeClaim) {
