@@ -34,7 +34,7 @@ module.exports.processBuildQueue = function () {
                         initialBuilder: undefined
                     });
                     if (!topPriority.role) return;
-                    if (spawn.createCreep(body, role + Game.time, {
+                    if (spawn.spawnCreep(body, role + Game.time, {
                             memory: {
                                 born: Game.time,
                                 role: role,
