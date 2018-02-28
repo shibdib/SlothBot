@@ -1,59 +1,5 @@
 const profiler = require('screeps-profiler');
 let shib = require("shibBench");
-borderCheck = function () {
-    if (this.pos.x === 0 || this.pos.y === 0 || this.pos.x === 49 || this.pos.y === 49) {
-        if (this.pos.x === 0 && this.pos.y === 0) {
-            this.move(BOTTOM_RIGHT);
-        }
-        else if (this.pos.x === 0 && this.pos.y === 49) {
-            this.move(TOP_RIGHT);
-        }
-        else if (this.pos.x === 49 && this.pos.y === 0) {
-            this.move(BOTTOM_LEFT);
-        }
-        else if (this.pos.x === 49 && this.pos.y === 49) {
-            this.move(TOP_LEFT);
-        }
-        else if (this.pos.x === 49) {
-            if (Math.random() < .33) {
-                this.move(LEFT)
-            } else if (Math.random() < .33) {
-                this.move(TOP_LEFT)
-            } else {
-                this.move(BOTTOM_LEFT)
-            }
-        }
-        else if (this.pos.x === 0) {
-            if (Math.random() < .33) {
-                this.move(RIGHT)
-            } else if (Math.random() < .33) {
-                this.move(TOP_RIGHT)
-            } else {
-                this.move(BOTTOM_RIGHT)
-            }
-        }
-        else if (this.pos.y === 0) {
-            if (Math.random() < .33) {
-                this.move(BOTTOM)
-            } else if (Math.random() < .33) {
-                this.move(BOTTOM_RIGHT)
-            } else {
-                this.move(BOTTOM_LEFT)
-            }
-        }
-        else if (this.pos.y === 49) {
-            if (Math.random() < .33) {
-                this.move(TOP)
-            } else if (Math.random() < .33) {
-                this.move(TOP_RIGHT)
-            } else {
-                this.move(TOP_LEFT)
-            }
-        }
-        return true;
-    }
-};
-Creep.prototype.borderCheck = profiler.registerFN(borderCheck, 'borderCheck');
 
 wrongRoom = function () {
     if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {

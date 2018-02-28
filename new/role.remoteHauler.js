@@ -107,7 +107,7 @@ function role(creep) {
                                 creep.findStorage();
                                 break;
                         }
-                    } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < controllerLink.storeCapacity && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
+                    } else if (controllerLink && controllerLink.energy < controllerLink.energyCapacity && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                         creep.memory.storageDestination = controllerLink.id;
                         switch (creep.transfer(controllerLink, RESOURCE_ENERGY)) {
                             case OK:
