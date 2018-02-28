@@ -194,7 +194,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             maxOps: options.maxOps,
             maxRooms: options.maxRooms,
             plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 5,
-            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 15 : 20,
+            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 10 : 20,
             roomCallback: callback,
         });
         if (ret.incomplete || options.ensurePath) {
