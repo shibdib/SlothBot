@@ -87,7 +87,14 @@ buildExtensions = profiler.registerFN(buildExtensions, 'buildExtensionsRoom');
 
 function findExtensionHub(room) {
     for (let i = 1; i < 249; i++) {
-        let spawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
+        let inBuildSpawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
+        if (inBuildSpawn) {
+            room.memory.extensionHub = {};
+            room.memory.extensionHub.x = inBuildSpawn.x;
+            room.memory.extensionHub.y = inBuildSpawn.y;
+            return;
+        }
+        let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
         if (spawn) {
             room.memory.extensionHub = {};
             room.memory.extensionHub.x = spawn.x;
