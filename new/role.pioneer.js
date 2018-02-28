@@ -15,10 +15,10 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (creep.memory.destinationReached && (creep.pos.x === 1 || creep.pos.x === 48 || creep.pos.x === 1 || creep.pos.x === 48) && creep.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0]) {
-        if (creep.memory.lastPos === creep.pos) {
+        if (creep.memory.lastPos === creep.pos.x + ':' + creep.pos.y) {
             return creep.dismantle(creep.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0]);
         } else {
-            creep.memory.lastPos = creep.pos;
+            creep.memory.lastPos = creep.pos.x + ':' + creep.pos.y;
         }
     }
 
