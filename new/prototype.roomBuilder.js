@@ -29,12 +29,12 @@ Room.prototype.buildRoom = function () {
     buildTerminal(this, structures);
     buildTowers(this, structures);
     buildLabs(this, structures);
-    if (_.size(Game.constructionSites) > 50) return;
-    buildWalls(this, structures);
-    buildRoads(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
+    if (_.size(Game.constructionSites) > 50) return;
+    buildWalls(this, structures);
+    buildRoads(this, structures);
 };
 
 function buildExtensions(room) {
