@@ -37,7 +37,7 @@ Creep.prototype.fleeFromHostile = function (hostile) {
 Creep.prototype.attackHostile = function (hostile) {
     this.memory.target = undefined;
     if (this.pos.getRangeTo(hostile) <= 3) this.rangedAttack(hostile);
-    let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c)=>c.memory.target && c.my});
+    let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.my || _.includes(FRIENDLIES, c.owner.username)});
     if (this.pos.getRangeTo(ally) <= 3) {
         let alliesHostile = Game.getObjectById(ally.memory.target);
         if (alliesHostile) this.memory.target = hostile.id;
