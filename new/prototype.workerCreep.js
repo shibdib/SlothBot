@@ -63,7 +63,7 @@ wrongRoom = function () {
 };
 Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 
-findSource = function () {
+Creep.prototype.findSource = function () {
     const source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.memory.source === s.id).length === 0);
     if (source.length > 0) {
         this.memory.source = this.pos.findClosestByRange(source).id;
@@ -71,7 +71,6 @@ findSource = function () {
     }
     return null;
 };
-Creep.prototype.findSource = profiler.registerFN(findSource, 'findSourceCreepFunctions');
 
 Creep.prototype.findMineral = function () {
     const mineral = this.room.mineral;
