@@ -35,25 +35,29 @@ module.exports.processBuildQueue = function () {
                     });
                     if (!topPriority.role) return;
                     if (spawn.createCreep(body, role + Game.time, {
-                            born: Game.time,
-                            role: role,
-                            overlord: topPriority.overlord,
-                            assignedSource: topPriority.assignedSource,
-                            destination: topPriority.destination,
-                            assignedMineral: topPriority.assignedMineral,
-                            military: topPriority.military,
-                            responseTarget: topPriority.responseTarget,
-                            targetRoom: topPriority.targetRoom,
-                            operation: topPriority.operation,
-                            siegePoint: topPriority.siegePoint,
-                            staging: topPriority.staging,
-                            waitForHealers: topPriority.waitForHealers,
-                            waitForAttackers: topPriority.waitForAttackers,
-                            waitForRanged: topPriority.waitForRanged,
-                            waitForDeconstructor: topPriority.waitForDeconstructor,
-                            reservationTarget: topPriority.reservationTarget,
-                            initialBuilder: topPriority.initialBuilder
-                        }) === role + Game.time) {
+                            memory: {
+                                born: Game.time,
+                                role: role,
+                                overlord: topPriority.overlord,
+                                assignedSource: topPriority.assignedSource,
+                                destination: topPriority.destination,
+                                assignedMineral: topPriority.assignedMineral,
+                                military: topPriority.military,
+                                responseTarget: topPriority.responseTarget,
+                                targetRoom: topPriority.targetRoom,
+                                operation: topPriority.operation,
+                                siegePoint: topPriority.siegePoint,
+                                staging: topPriority.staging,
+                                waitForHealers: topPriority.waitForHealers,
+                                waitForAttackers: topPriority.waitForAttackers,
+                                waitForRanged: topPriority.waitForRanged,
+                                waitForDeconstructor: topPriority.waitForDeconstructor,
+                                reservationTarget: topPriority.reservationTarget,
+                                initialBuilder: topPriority.initialBuilder
+                            },
+                            energyStructures: _.sortBy(_.filter(spawn.room.structures, (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy > 0), s => spawn.pos.getRangeTo(s))
+
+                        }) === OK) {
                         log.i(spawn.room.name + ' Spawning a ' + role);
                         return delete spawn.room.memory.creepBuildQueue;
                     } else {
