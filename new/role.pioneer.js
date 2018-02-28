@@ -14,7 +14,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
-    if (creep.memory.destinationReached && (creep.pos.x === 0 || creep.pos.x === 48 || creep.pos.x === 0 || creep.pos.x === 48) && creep.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})) {
+    if (creep.memory.destinationReached && (creep.pos.x === 1 || creep.pos.x === 48 || creep.pos.x === 1 || creep.pos.x === 48) && creep.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0]) {
         if (creep.memory.lastPos === creep.pos) {
             return creep.dismantle(creep.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0]);
         } else {
