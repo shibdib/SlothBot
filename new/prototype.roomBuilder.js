@@ -1,5 +1,3 @@
-const profiler = require('screeps-profiler');
-
 let protectedStructures = [
     STRUCTURE_SPAWN,
     STRUCTURE_STORAGE,
