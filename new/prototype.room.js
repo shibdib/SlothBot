@@ -207,7 +207,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                         plains++
                     }
                 }
-                if (wall < 700 && plains > 300) {
+                if (wall < 600 && plains > 200) {
                     let sourceDist = sources[0].pos.getRangeTo(sources[1]);
                     claimValue = plains / sourceDist;
                     claimWorthy = true;
