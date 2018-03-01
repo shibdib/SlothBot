@@ -208,12 +208,12 @@ function buildStorage(room, structures) {
 function buildTerminal(room, structures) {
     if (room.controller.level < 6) return;
     let terminal = _.filter(structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (!terminal) {
-        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 2, hub.x - 2, hub.y + 2, hub.x + 2, true));
+    let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (!terminal && storage) {
+        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 2, storage.pos.x - 2, storage.pos.y + 2, storage.pos.x + 2, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.getRangeTo(hub) === 2) {
+            if (position.getRangeTo(storage) === 2) {
                 if (position.checkForAllStructure().length > 0) continue;
                 position.createConstructionSite(STRUCTURE_TERMINAL);
             }
