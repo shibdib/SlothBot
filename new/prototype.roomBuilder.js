@@ -28,7 +28,7 @@ Room.prototype.buildRoom = function () {
     buildStorage(this, structures);
     buildTerminal(this, structures);
     buildTowers(this, structures);
-    buildLabs(this, structures);
+    //buildLabs(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
