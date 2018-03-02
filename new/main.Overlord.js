@@ -109,6 +109,9 @@ function writeDetails(room) {
 
 function minionController(minion) {
     if (minion.spawning) return;
+    if (minion.idle) {
+        return minion.say(ICONS.wait18);
+    }
     minion.notifyWhenAttacked(false);
     if (Game.time % 25 === 0) minion.room.cacheRoomIntel();
     let memoryRole = minion.memory.role;
