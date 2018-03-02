@@ -340,10 +340,12 @@ getEnergy = function (range = 250, hauler = false) {
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 0) {
         let linkDistWeighted;
+        let weight = 0.5;
+        if (this.room.memory.responseNeeded) weight = 1;
         const object = storageLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
         if (object && object.energy > 0 && numberOfUsers < 2) {
-            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.5, 0) + 1;
+            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
         }
         energy.push({
             id: storageLink.id,
