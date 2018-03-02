@@ -15,7 +15,7 @@ function role(creep) {
     creep.repairRoad();
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
-    if (!creep.getSafe()) {
+    if (!creep.getSafe(true)) {
         if (!terminalWorker(creep) && !mineralHauler(creep)) {
             if (creep.memory.hauling === false) {
                 creep.getEnergy();
