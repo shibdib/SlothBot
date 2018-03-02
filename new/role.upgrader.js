@@ -10,7 +10,6 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     if (!creep.getSafe()) {
-        if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
         if (creep.memory.boostAttempt !== true) creep.tryToBoost(['upgrade']);
         if (_.filter(Game.creeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.role = 'stationaryHarvester';
         //ANNOUNCE
@@ -32,6 +31,7 @@ function role(creep) {
         //INITIAL CHECKS
         if (creep.borderCheck()) return null;
         if (creep.wrongRoom()) return null;
+        creep.repairRoad();
         if (creep.carry.energy === 0) {
             creep.memory.working = null;
         } else if (creep.isFull) creep.memory.working = true;

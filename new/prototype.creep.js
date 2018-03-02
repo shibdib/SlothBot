@@ -122,6 +122,8 @@ Creep.prototype.getSafe = function () {
             this.say(ICONS.withdraw);
             this.shibMove(hub, {range: 4, forceRepath: true});
             return true;
+        } else {
+            this.idleFor(10);
         }
         return undefined;
     }
