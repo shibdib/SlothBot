@@ -284,13 +284,14 @@ function buildLabs(room, structures) {
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
             for (let i = 1; i < 249; i++) {
-                let good = false;
                 let labPos;
                 let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
                 let labHub = room.lookForAtArea(LOOK_TERRAIN, pos.y - 5, pos.x - 5, pos.y + 5, pos.x + 5, true);
+                let good;
                 for (let key in labHub) {
                     labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                    if (labPos.checkForImpassible()) break;
+                    good = false;
+                    if (labPos.checkForAllStructure()) break;
                     good = true;
                 }
                 if (good) {
