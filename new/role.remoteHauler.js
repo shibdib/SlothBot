@@ -13,6 +13,7 @@ function role(creep) {
     let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    creep.repairRoad();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (_.sum(creep.carry) === 0) {

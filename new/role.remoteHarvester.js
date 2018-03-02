@@ -10,6 +10,7 @@ function role(creep) {
     creep.borderCheck();
     //Invader detection
     creep.room.invaderCheck();
+    creep.repairRoad();
     let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();

@@ -187,6 +187,12 @@ Creep.prototype.tryToBoost = function (boosts) {
     }
 };
 
+Creep.prototype.repairRoad = function () {
+    if (this.carry[RESOURCE_ENERGY] < 10 || this.getActiveBodyparts(WORK) === 0) return;
+    let road = _.filter(this.pos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.70)[0];
+    if (road) return this.repair(road);
+};
+
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {

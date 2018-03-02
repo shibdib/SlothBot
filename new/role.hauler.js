@@ -12,6 +12,7 @@ function role(creep) {
     //INITIAL CHECKS
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
+    creep.repairRoad();
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe()) {
