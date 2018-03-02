@@ -59,4 +59,7 @@ function cleanRoomIntel() {
     for (let key in Memory.roomCache) {
         if (Memory.roomCache[key].cached + 1000 < Game.time) delete Memory.roomCache[key];
     }
+    for (let key in Memory.rooms) {
+        if (Memory.rooms[key].lastIntelCache + 500 < Game.time) delete Memory.rooms[key];
+    }
 }
