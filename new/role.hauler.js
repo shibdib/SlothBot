@@ -18,11 +18,8 @@ function role(creep) {
     if (!creep.getSafe()) {
         if (!terminalWorker(creep) && !mineralHauler(creep)) {
             if (creep.memory.hauling === false) {
-                if (creep.memory.energyDestination) {
-                    creep.withdrawEnergy();
-                } else {
-                    creep.getEnergy();
-                }
+                creep.getEnergy();
+                creep.withdrawEnergy();
             } else {
                 if (creep.memory.storageDestination) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);
