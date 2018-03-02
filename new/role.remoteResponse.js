@@ -32,6 +32,8 @@ function role(creep) {
     }
     if (Game.rooms[creep.memory.responseTarget] && creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
         creep.memory.destinationReached = true;
+    } else {
+        creep.memory.destinationReached = undefined;
     }
     if (!creep.memory.destinationReached) {
         let hostiles = _.filter(creep.room.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
