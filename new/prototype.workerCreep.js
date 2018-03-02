@@ -317,7 +317,7 @@ getEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
             if (object) {
-                if (hub && object.getRangeTo(hub) > 5) continue;
+                if (hub && object.pos.getRangeTo(hub) > 5) continue;
                 if (object.id === this.room.memory.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
                 if (object.store[RESOURCE_ENERGY] < 20 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 4 && this.pos.getRangeTo(object) > 1)) {
