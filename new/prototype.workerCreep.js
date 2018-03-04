@@ -513,7 +513,7 @@ findStorage = function () {
 };
 Creep.prototype.findStorage = profiler.registerFN(findStorage, 'findStorageCreepFunctions');
 
-findEssentials = function () {
+Creep.prototype.findEssentials = function () {
     let storage = [];
     let roomSpawnQueue = this.room.memory.creepBuildQueue;
     //Spawn
@@ -659,7 +659,6 @@ findEssentials = function () {
         return false;
     }
 };
-Creep.prototype.findEssentials = profiler.registerFN(findEssentials, 'findEssentialsCreepFunctions');
 
 findDeliveries = function () {
     //Deliveries
