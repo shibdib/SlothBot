@@ -42,7 +42,7 @@ function towerControl(room) {
                 if (woundedCreep.length > 0) {
                     tower.heal(woundedCreep[0]);
                 }
-            } else if (tower.energy > tower.energyCapacity * 0.25 && Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000 && Game.time % 10 === 0) {
+            } else if (tower.energy > tower.energyCapacity * 0.25 && Game.cpu.getUsed() < Game.cpu.limit && Game.cpu.bucket > 2000 && Game.time % 10 === 0 && !_.includes(tower.room.memory.creepBuildQueue, 'stationaryHarvester') && !_.includes(tower.room.memory.creepBuildQueue, 'hauler')) {
                 let creeps = tower.room.find(FIND_CREEPS);
                 let structures = tower.room.find(FIND_STRUCTURES);
                 let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner['username']) === true);
