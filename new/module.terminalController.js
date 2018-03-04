@@ -433,10 +433,13 @@ function orderCleanup(myOrders) {
                 }
             }
         }
+        if (!Game.rooms[myOrders[key].roomName]) {
+            if (Game.market.cancelOrder(myOrders[key].id) === OK) {
+                log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we no longer own this room");
+            }
+        }
     }
 }
-
-orderCleanup = profiler.registerFN(orderCleanup, 'orderCleanupTerminal');
 
 function balanceEnergy(terminal, energyInRoom) {
     terminal.room.memory.energySurplus = energyInRoom >= energyAmount + (energyAmount * 0.10);
@@ -448,5 +451,3 @@ function balanceEnergy(terminal, energyInRoom) {
         terminal.send(RESOURCE_ENERGY, energyAmount * 0.10, needingRooms[0].name, terminal.room.name + ' energy distributed to ' + needingRooms[0].name);
     }
 }
-
-balanceEnergy = profiler.registerFN(balanceEnergy, 'orderCleanupTerminal');
