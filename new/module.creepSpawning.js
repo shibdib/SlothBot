@@ -237,7 +237,7 @@ module.exports.workerCreepQueue = function (room) {
     let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
     if (hauler.length === 0 && energy <= 350) {
         room.memory.creepBuildQueue = undefined;
-        queueCreep(room, PRIORITIES.hauler, {
+        queueCreep(room, 1, {
             role: 'hauler',
             reboot: true
         });
