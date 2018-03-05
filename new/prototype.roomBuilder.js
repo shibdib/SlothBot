@@ -11,7 +11,7 @@ let protectedStructures = [
 ];
 
 Room.prototype.buildRoom = function () {
-    if (!this.memory.extensionHub) findExtensionHub(this);
+    if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     if (_.size(Game.constructionSites) > 75) return;
     let structures = this.find(FIND_STRUCTURES);
     if (!this.memory.extensionHub) {
@@ -91,15 +91,15 @@ function findExtensionHub(room) {
         let inBuildSpawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
         if (inBuildSpawn) {
             room.memory.extensionHub = {};
-            room.memory.extensionHub.x = inBuildSpawn.x;
-            room.memory.extensionHub.y = inBuildSpawn.y;
+            room.memory.extensionHub.x = inBuildSpawn.pos.x;
+            room.memory.extensionHub.y = inBuildSpawn.pos.y;
             return;
         }
         let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
         if (spawn) {
             room.memory.extensionHub = {};
-            room.memory.extensionHub.x = spawn.x;
-            room.memory.extensionHub.y = spawn.y;
+            room.memory.extensionHub.x = spawn.pos.x;
+            room.memory.extensionHub.y = spawn.pos.y;
             return;
         }
         let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
