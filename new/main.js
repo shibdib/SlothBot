@@ -10,15 +10,21 @@ let segments = require('module.segmentManager');
 let shib = require("shibBench");
 
 //profiler.enable();
-global.lastMemoryTick = undefined;
+//global.lastMemoryTick = undefined;
 
 module.exports.loop = function() {
     profiler.wrap(function () {
-        //Dissi hack
-        tryInitSameMemory();
-
         let mainCpu = Game.cpu.getUsed();
+        //Dissi hack
+        //tryInitSameMemory();
+
+        //Logging level
         Memory.loggingLevel = 5; //Set level 1-5 (5 being most info)
+
+        //GC
+        let gcMem = Game.cpu.getUsed();
+        if (Game.cpu.getHeapStatistics().total_heap_size + Game.cpu.getHeapStatistics().externally_allocated_size > 0.85 * Game.cpu.getHeapStatistics().heap_size_limit) gc();
+        shib.shibBench('garbageCollection', gcMem);
 
         //Update allies
         populateLOANlist();
@@ -43,9 +49,6 @@ module.exports.loop = function() {
 
         shib.shibBench('Total', mainCpu);
         shib.processBench();
-
-        //GC
-        if (Game.cpu.getHeapStatistics().total_heap_size + Game.cpu.getHeapStatistics().externally_allocated_size > 0.85 * Game.cpu.getHeapStatistics().heap_size_limit) gc();
     });
 };
 
