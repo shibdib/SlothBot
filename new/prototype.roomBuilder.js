@@ -28,7 +28,7 @@ Room.prototype.buildRoom = function () {
     buildStorage(this, structures);
     buildTerminal(this, structures);
     buildTowers(this, structures);
-    //buildLabs(this, structures);
+    buildLabs(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
@@ -274,7 +274,7 @@ function buildLabs(room, structures) {
             for (let key in safeZone) {
                 let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
                 if (position.getRangeTo(hub) === 2) {
-                    if (position.checkForImpassible()) continue;
+                    if (position.checkForAllStructure().length > 0) continue;
                     position.createConstructionSite(STRUCTURE_LAB);
                 }
             }
@@ -291,7 +291,7 @@ function buildLabs(room, structures) {
                 for (let key in labHub) {
                     labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
                     good = false;
-                    if (labPos.checkForAllStructure()) break;
+                    if (labPos.checkForAllStructure().length > 0) break;
                     good = true;
                 }
                 if (good) {
