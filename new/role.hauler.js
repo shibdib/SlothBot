@@ -13,6 +13,10 @@ function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     creep.repairRoad();
+    if (creep.carry[RESOURCE_ENERGY] > 0) {
+        let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
+        if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
+    }
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
@@ -29,8 +33,6 @@ function role(creep) {
                             creep.memory.storageDestination = undefined;
                             break;
                         case ERR_NOT_IN_RANGE:
-                            let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
-                            if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
                             creep.shibMove(storageItem);
                             break;
                         case ERR_FULL:
