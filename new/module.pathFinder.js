@@ -4,6 +4,9 @@ let shib = require("shibBench");
 const DEFAULT_MAXOPS = 30000;
 const STATE_STUCK = 3;
 
+const structureMatrixCache = {};
+const creepMatrixCache = {};
+
 function shibMove(creep, heading, options = {}) {
     _.defaults(options, {
         useCache: true,
@@ -337,22 +340,20 @@ function addSksToMatrix(room, matrix) {
 }
 
 function getStructureMatrix(room, freshMatrix) {
-    if (!RawMemory.segments[40].structureMatrixCache) RawMemory.segments[40].structureMatrixCache = {};
-    if (!RawMemory.segments[40].structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
+    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
         room.memory.structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
-        RawMemory.segments[40].structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
+        structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
     }
-    return RawMemory.segments[40].structureMatrixCache[room.name];
+    return structureMatrixCache[room.name];
 }
 
 function getCreepMatrix(room) {
-    if (!RawMemory.segments[40].creepMatrixCache) RawMemory.segments[40].creepMatrixCache = {};
-    if (!RawMemory.segments[40].creepMatrixCache[room.name] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
+    if (!creepMatrixCache[room.name] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
         room.memory.creepMatrixTick = Game.time;
-        RawMemory.segments[40].creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
+        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
     }
-    return RawMemory.segments[40].creepMatrixCache[room.name];
+    return creepMatrixCache[room.name];
 }
 
 function addStructuresToMatrix(room, matrix, roadCost) {
@@ -484,9 +485,6 @@ function getPathKey(from, to) {
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
-
-structureMatrixCache = {};
-creepMatrixCache = {};
 
 // assigns a function to Creep.prototype: creep.travelTo(destination)
 Creep.prototype.shibMove = function (destination, options) {

@@ -39,6 +39,9 @@ module.exports.loop = function() {
 
         shib.shibBench('Total', mainCpu);
         shib.processBench();
+
+        //GC
+        gc();
     });
 };
 
