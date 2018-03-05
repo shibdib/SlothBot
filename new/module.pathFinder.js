@@ -1,4 +1,3 @@
-const profiler = require('screeps-profiler');
 let _ = require('lodash');
 let shib = require("shibBench");
 
@@ -90,7 +89,6 @@ function shibMove(creep, heading, options = {}) {
         shib.shibBench('pathfinding', pathingStart);
     }
 }
-shibMove = profiler.registerFN(shibMove, 'shibMove');
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
     //check for cached
@@ -239,7 +237,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         }
     }
 }
-shibPath = profiler.registerFN(shibPath, 'shibPath');
 
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
@@ -292,7 +289,6 @@ function findRoute(origin, destination, options = {}) {
         allowedRooms[info.room] = true;
     });
 }
-findRoute = profiler.registerFN(findRoute, 'shibFindRoute');
 
 //FUNCTIONS
 function normalizePos(destination) {
@@ -305,18 +301,15 @@ function normalizePos(destination) {
     }
     return destination;
 }
-normalizePos = profiler.registerFN(normalizePos, 'shibNormalizePos');
 
 function checkAvoid(roomName) {
     return Memory.rooms && Memory.rooms[roomName] && Memory.rooms[roomName].avoid;
 }
-checkAvoid = profiler.registerFN(checkAvoid, 'shibCheckAvoid');
 
 function addCreepsToMatrix(room, matrix) {
     room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
     return matrix;
 }
-addCreepsToMatrix = profiler.registerFN(addCreepsToMatrix, 'shibAddCreepsToMatrix');
 
 function addSksToMatrix(room, matrix) {
     let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
@@ -342,24 +335,25 @@ function addSksToMatrix(room, matrix) {
     }
     return matrix;
 }
-addSksToMatrix = profiler.registerFN(addSksToMatrix, 'shibAddSksToMatrix');
 
 function getStructureMatrix(room, freshMatrix) {
-    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
+    if (!RawMemory.segments[40].structureMatrixCache) RawMemory.segments[40].structureMatrixCache = {};
+    if (!RawMemory.segments[40].structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
         room.memory.structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
-        structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
+        RawMemory.segments[40].structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
     }
-    return this.structureMatrixCache[room.name];
+    return RawMemory.segments[40].structureMatrixCache[room.name];
 }
-getStructureMatrix = profiler.registerFN(getStructureMatrix, 'shibGetStructureMatrix');
 
 function getCreepMatrix(room) {
-    room.memory.creepMatrixTick = Game.time;
-    creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
-    return creepMatrixCache[room.name];
+    if (!RawMemory.segments[40].creepMatrixCache) RawMemory.segments[40].creepMatrixCache = {};
+    if (!RawMemory.segments[40].creepMatrixCache[room.name] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
+        room.memory.creepMatrixTick = Game.time;
+        RawMemory.segments[40].creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
+    }
+    return RawMemory.segments[40].creepMatrixCache[room.name];
 }
-getCreepMatrix = profiler.registerFN(getCreepMatrix, 'shibGetCreepMatrix');
 
 function addStructuresToMatrix(room, matrix, roadCost) {
     let impassibleStructures = [];
@@ -391,7 +385,6 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     }
     return matrix;
 }
-addStructuresToMatrix = profiler.registerFN(addStructuresToMatrix, 'shibAddStructuresToMatrix');
 
 function serializePath(startPos, path, color = "orange") {
     let serializedPath = "";
@@ -406,7 +399,6 @@ function serializePath(startPos, path, color = "orange") {
     }
     return serializedPath;
 }
-serializePath = profiler.registerFN(serializePath, 'shibSerializePath');
 
 function updateRoomStatus(room) {
     if (!room) {
@@ -421,7 +413,6 @@ function updateRoomStatus(room) {
         }
     }
 }
-updateRoomStatus = profiler.registerFN(updateRoomStatus, 'shibUpdateRoomStatus');
 
 function positionAtDirection(origin, direction) {
     let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
@@ -433,7 +424,6 @@ function positionAtDirection(origin, direction) {
     }
     return new RoomPosition(x, y, origin.roomName);
 }
-positionAtDirection = profiler.registerFN(positionAtDirection, 'shibPositionAtDirection');
 
 function cacheRoute(from, to, route) {
     let key = getPathKey(from, to);
@@ -446,7 +436,6 @@ function cacheRoute(from, to, route) {
     };
     Memory.routeCache = cache;
 }
-cacheRoute = profiler.registerFN(cacheRoute, 'shibCacheRoute');
 
 function getRoute(from, to) {
     let cache = Memory.routeCache;
@@ -461,7 +450,6 @@ function getRoute(from, to) {
         return null;
     }
 }
-getRoute = profiler.registerFN(getRoute, 'shibGetRoute');
 
 function cachePath(creep, from, to, path) {
     let key = getPathKey(from, to);
@@ -474,7 +462,6 @@ function cachePath(creep, from, to, path) {
     };
     Game.rooms[creep.memory.overlord].memory.pathCache = cache;
 }
-cachePath = profiler.registerFN(cachePath, 'shibCachePath');
 
 function getPath(creep, from, to) {
     let cache = Game.rooms[creep.memory.overlord].memory.pathCache;
@@ -489,7 +476,6 @@ function getPath(creep, from, to) {
         return null;
     }
 }
-getPath = profiler.registerFN(getPath, 'shibGetPath');
 
 function getPathKey(from, to) {
     return getPosKey(from) + '$' + getPosKey(to);

@@ -471,70 +471,6 @@ let globals = function () {
         );
     };
 
-    /*
-     For Screeps Visual: https://github.com/screepers/screeps-visual
-     NOTE: Run "loadVisual();" from the command line to see visuals when opening a new tab / steam client window.
-     */
-    /*
-     global.Visual = require('visual');
-     global.loadVisual = function() {
-     return console.log('<script>' +
-     'if(!window.visualLoaded){' +
-     '  $.getScript("https://screepers.github.io/screeps-visual/src/visual.screeps.user.js");' +
-     '  window.visualLoaded = true;' +
-     '}</script>'
-     );
-     };
-     */
-
-    global.private = false;
-
-    global.agentRun = function () {//*
-        let statsDataJSON = "";
-        if (private) {
-            const privObj = {priv: Memory.stats};
-            statsDataJSON = JSON.stringify(privObj);
-        } else {
-            statsDataJSON = JSON.stringify(Memory.stats)
-        }
-        const passToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNoaWJkaWIiLCJpYXQiOjE0OTU5ODI2MjYsImF1ZCI6InNjcmVlcHNwbC51cyIsImlzcyI6InNjcmVlcHNwbC51cyJ9.LXs1xjahDuw58WUits-9BXaVepVTh5C-mUfJxUBi70M';
-        const output = `<SCRIPT>
-if(!document.ticks)document.ticks={};
-if(document.ticks['t${Game.time}']===undefined){
- document.ticks['t${Game.time}']=true;
- let x=new XMLHttpRequest();
- x.open("POST", "https://screepspl.us/api/stats/submit", true);
- x.setRequestHeader("Authorization","JWT " + "${passToken}");
- x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
- x.onreadystatechange=function(){if(x.readyState===XMLHttpRequest.DONE&&x.status===200){console.log('resp',x.responseText);}};
- x.send(JSON.stringify(${statsDataJSON}))
-}
-</SCRIPT>`;
-        console.log(output.split('\n').join(';'));
-//*/
-    };
-
-    global.shuffle = function (array) {
-        let counter = array.length;
-
-        // While there are elements in the array
-        while (counter > 0) {
-            // Pick a random index
-            let index = Math.floor(Math.random() * counter);
-
-            // Decrease counter by 1
-            counter--;
-
-            // And swap the last element with it
-            let temp = array[counter];
-            array[counter] = array[index];
-            array[index] = temp;
-        }
-
-        return array;
-    };
-
-
 // League Of Automated Nations allied users list by Kamots
 // Provides global.LOANlist as array of allied usernames. Array is empty if not in an alliance, but still defined.
 // Updates on 2nd run and then every 1001 ticks or if the global scope gets cleared.
@@ -578,31 +514,5 @@ if(document.ticks['t${Game.time}']===undefined){
             return false;
         }
     };
-
-
-// courtesy of tedivm
-    global.mem_hack = function(){
-        if(Game.time !== global.compile_tick) {
-            let memory_start = Game.cpu.getUsed();
-            if(global.memhack_lastTime && global.memhack_LastMemory && Game.time === (global.memhack_lastTime + 1)){
-                delete global.Memory;
-                global.Memory = global.memhack_LastMemory;
-                RawMemory._parsed = global.memhack_LastMemory
-            }else{
-                Memory;
-                if(!Game.rooms['sim']) {
-                    global.memhack_LastMemory = RawMemory._parsed;
-                    global.memhack_lastTime = Game.time
-                }
-            }
-            let memory_end = Game.cpu.getUsed();
-            let memory_parse_cpu = memory_end - memory_start
-        } else {
-            Memory;
-            global.memhack_LastMemory = RawMemory._parsed;
-            global.memhack_lastTime = Game.time
-        }
-    }
-};
 
 module.exports = globals;
