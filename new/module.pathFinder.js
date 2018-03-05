@@ -343,17 +343,17 @@ function getStructureMatrix(room, freshMatrix) {
     if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
         room.memory.structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
-        structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1);
+        structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1).serialize();
     }
-    return structureMatrixCache[room.name];
+    return PathFinder.CostMatrix.deserialize(structureMatrixCache[room.name]);
 }
 
 function getCreepMatrix(room) {
     if (!creepMatrixCache[room.name] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
         room.memory.creepMatrixTick = Game.time;
-        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone());
+        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone()).serialize();
     }
-    return creepMatrixCache[room.name];
+    return PathFinder.CostMatrix.deserialize(creepMatrixCache[room.name]);
 }
 
 function addStructuresToMatrix(room, matrix, roadCost) {
