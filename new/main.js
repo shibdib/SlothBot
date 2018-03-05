@@ -10,9 +10,13 @@ let segments = require('module.segmentManager');
 let shib = require("shibBench");
 
 //profiler.enable();
+global.lastMemoryTick = undefined;
 
 module.exports.loop = function() {
     profiler.wrap(function () {
+        //Dissi hack
+        tryInitSameMemory();
+
         let mainCpu = Game.cpu.getUsed();
         Memory.loggingLevel = 5; //Set level 1-5 (5 being most info)
 
@@ -88,3 +92,16 @@ resetBench = function () {
     Memory.reportBenchNotify = undefined;
     log.a('Benchmarks Reset');
 };
+
+
+function tryInitSameMemory() {
+    if (lastMemoryTick && global.LastMemory && Game.time === (lastMemoryTick + 1)) {
+        delete global.Memory;
+        global.Memory = global.LastMemory;
+        RawMemory._parsed = global.LastMemory
+    } else {
+        Memory;
+        global.LastMemory = RawMemory._parsed
+    }
+    lastMemoryTick = Game.time
+}
