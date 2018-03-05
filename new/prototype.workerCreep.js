@@ -566,6 +566,21 @@ Creep.prototype.findEssentials = function () {
             harvest: false
         });
     }
+    //Storage
+    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    if (sStorage) {
+        let weight;
+        weight = 0;
+        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.75) {
+            weight = 0.3;
+        }
+        const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
+        storage.push({
+            id: sStorage.id,
+            distWeighted: storageDistWeighted,
+            harvest: false
+        });
+    }
     //Tower
     let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     if (tower.length > 0 && !_.includes(roomSpawnQueue, 'responder')) {
