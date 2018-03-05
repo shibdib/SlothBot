@@ -41,7 +41,7 @@ module.exports.loop = function() {
         shib.processBench();
 
         //GC
-        if (Game.cpu.getHeapStatistics().total_heap_size + Game.cpu.getHeapStatistics().externally_allocated_size > 0.95 * Game.cpu.getHeapStatistics().heap_size_limit) gc();
+        if (Game.cpu.getHeapStatistics().total_heap_size + Game.cpu.getHeapStatistics().externally_allocated_size > 0.85 * Game.cpu.getHeapStatistics().heap_size_limit) gc();
     });
 };
 
