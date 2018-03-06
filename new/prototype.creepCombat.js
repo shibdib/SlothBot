@@ -197,7 +197,7 @@ Creep.prototype.fightRanged = function (target) {
     } else {
         let opportunity = _.min(_.filter(this.pos.findInRange(FIND_CREEPS, 3), (c) => _.includes(FRIENDLIES, c.owner['username']) === false), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
-        this.shibMove(target, {forceRepath: true, ignoreCreeps: false});
+        this.shibMove(target, {forceRepath: true, ignoreCreeps: false, range: 3});
     }
 };
 
