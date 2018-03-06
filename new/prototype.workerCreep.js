@@ -399,6 +399,7 @@ getEnergy = function (range = 250, hauler = false) {
         return undefined;
     }
 };
+Creep.prototype.getEnergy = profiler.registerFN(getEnergy, 'getEnergyCreepFunctions');
 
 findStorage = function () {
     let storage = [];
