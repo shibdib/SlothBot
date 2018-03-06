@@ -366,7 +366,7 @@ getEnergy = function (range = 250, hauler = false) {
     }
     //Storage
     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    if (sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT) {
+    if (sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT) {
         let weight = 0.3;
         if (this.room.memory.responseNeeded) weight = 1.2;
         const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
