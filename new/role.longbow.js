@@ -22,7 +22,7 @@ function role(creep) {
         if (creep.room.name === creep.room.responseTarget) {
             let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
             let hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
-            if (hub.getRangeTo(hostile) > 7) return creep.fightRanged(hostile);
+            if (hub.getRangeTo(hostile) >= 12) return creep.fightRanged(hostile);
             if (!creep.handleDefender()) {
                 findDefensivePosition(creep, creep);
             }
