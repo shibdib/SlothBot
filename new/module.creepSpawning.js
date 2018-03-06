@@ -253,9 +253,9 @@ module.exports.workerCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (level >= 3 && !_.includes(queue, 'waller') && level === room.controller.level) {
+    if (level >= 3 && !_.includes(queue, 'waller') && level === room.controller.level && !room.memory.responseNeeded) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        if (wallers.length < 2) {
+        if (wallers.length < 1) {
             queueCreep(room, PRIORITIES.waller, {
                 role: 'waller'
             })
@@ -308,7 +308,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
             if (!_.includes(queue, 'remoteHarvester')) {
                 let sourceCount = 1;
-                if (Memory.roomCache[room.memory.remoteRooms[keys]]) sourceCount = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length;
+                if (Memory.roomCache[room.memory.remoteRooms[keys]] && level >= 7) sourceCount = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length;
                 if (remoteHarvester.length < sourceCount && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.noRemote)) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
