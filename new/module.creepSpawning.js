@@ -274,12 +274,22 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     // Local Responder
-    if (!_.includes(queue, 'responder')) {
-        if (room.memory.responseNeeded === true) {
+    if (room.memory.responseNeeded === true) {
+        if (!_.includes(queue, 'responder')) {
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
             if (responder.length < room.memory.numberOfHostiles) {
                 queueCreep(room, PRIORITIES.responder, {
                     role: 'responder',
+                    responseTarget: room.name,
+                    military: true
+                })
+            }
+        }
+        if (level >= 4 && !_.includes(queue, 'longbow')) {
+            let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
+            if (longbow.length < _.round(room.memory.numberOfHostiles / 2)) {
+                queueCreep(room, PRIORITIES.responder - 1, {
+                    role: 'longbow',
                     responseTarget: room.name,
                     military: true
                 })
