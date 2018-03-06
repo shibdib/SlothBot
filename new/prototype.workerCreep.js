@@ -320,9 +320,9 @@ getEnergy = function (range = 250, hauler = false) {
                 if (hub && object.pos.getRangeTo(hub) > 5) continue;
                 if (object.id === this.room.memory.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] < 20 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 1 && this.pos.getRangeTo(object) > 1)) continue;
+                if (object.store[RESOURCE_ENERGY] < 100 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 1 && this.pos.getRangeTo(object) > 1)) continue;
                 const containerAmountWeighted = (object.store[RESOURCE_ENERGY] / object.storeCapacity);
-                const containerDistWeighted = (object.pos.rangeToTarget(this) * containerAmountWeighted) + 1 + (numberOfUsers / 2);
+                const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * containerAmountWeighted, 0) + 1 + (numberOfUsers / 2);
                 containers.push({
                     id: container[i].id,
                     distWeighted: containerDistWeighted,
