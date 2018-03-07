@@ -27,9 +27,6 @@ module.exports.processBuildQueue = function () {
                         siegePoint: undefined,
                         staging: undefined,
                         waitFor: undefined,
-                        waitForAttackers: undefined,
-                        waitForRanged: undefined,
-                        waitForDeconstructor: undefined,
                         reservationTarget: undefined,
                         initialBuilder: undefined
                     });
@@ -49,9 +46,6 @@ module.exports.processBuildQueue = function () {
                                 siegePoint: topPriority.siegePoint,
                                 staging: topPriority.staging,
                                 waitFor: topPriority.waitFor,
-                                waitForAttackers: topPriority.waitForAttackers,
-                                waitForRanged: topPriority.waitForRanged,
-                                waitForDeconstructor: topPriority.waitForDeconstructor,
                                 reservationTarget: topPriority.reservationTarget,
                                 initialBuilder: topPriority.initialBuilder
                             }
@@ -94,10 +88,7 @@ function queueCreep(room, importance, options = {}) {
         operation: undefined,
         siegePoint: undefined,
         staging: undefined,
-        waitForHealers: undefined,
-        waitForAttackers: undefined,
-        waitForRanged: undefined,
-        waitForDeconstructor: undefined,
+        waitFor: undefined,
         reservationTarget: undefined,
         initialBuilder: undefined,
         reboot: undefined
@@ -118,10 +109,7 @@ function queueCreep(room, importance, options = {}) {
             operation: options.operation,
             siegePoint: options.siegePoint,
             staging: options.staging,
-            waitForHealers: options.waitForHealers,
-            waitForAttackers: options.waitForAttackers,
-            waitForRanged: options.waitForRanged,
-            waitForDeconstructor: options.waitForDeconstructor,
+            waitFor: options.waitFor,
             reservationTarget: options.reservationTarget,
             initialBuilder: options.initialBuilder,
             reboot: options.reboot
