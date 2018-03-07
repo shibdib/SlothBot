@@ -306,7 +306,7 @@ findEnergy = function (range = 250, hauler = false) {
 };
 Creep.prototype.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
 
-getEnergy = function (range = 250, hauler = false) {
+Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     let energy = [];
     //Container
     let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
@@ -368,7 +368,7 @@ getEnergy = function (range = 250, hauler = false) {
     }
     //Storage
     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    if (sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT || this.room.memory.responseNeeded && 1 > sStorage.pos.rangeToTarget(this) <= range) {
+    if ((sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 1.5 && 1 > sStorage.pos.rangeToTarget(this) <= range) || (sStorage && this.room.memory.responseNeeded)) {
         let weight = 0.3;
         if (this.room.memory.responseNeeded) weight = 1.2;
         const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -393,7 +393,6 @@ getEnergy = function (range = 250, hauler = false) {
         return undefined;
     }
 };
-Creep.prototype.getEnergy = profiler.registerFN(getEnergy, 'getEnergyCreepFunctions');
 
 findStorage = function () {
     let storage = [];
