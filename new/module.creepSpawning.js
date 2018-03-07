@@ -120,7 +120,11 @@ function queueCreep(room, importance, options = {}, military = false) {
             initialBuilder: options.initialBuilder,
             reboot: options.reboot
         };
-        if (!room.memory.creepBuildQueue[key]) room.memory.creepBuildQueue = cache;
+        if (!military) {
+            if (!room.memory.creepBuildQueue[key]) room.memory.creepBuildQueue = cache;
+        } else {
+            if (!Memory.militaryBuildQueue[key]) Memory.militaryBuildQueue = cache;
+        }
     }
 }
 
