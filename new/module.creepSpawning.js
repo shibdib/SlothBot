@@ -4,8 +4,9 @@ module.exports.processBuildQueue = function () {
         let spawn = spawns[key];
         let level = getLevel(spawn.room);
         if (!spawn.spawning) {
-            if (spawn.room.memory.creepBuildQueue) {
-                let topPriority = _.min(spawn.room.memory.creepBuildQueue, 'importance');
+            if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
+                let queue = Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue);
+                let topPriority = _.min(queue, 'importance');
                 let role = topPriority.role;
                 let body;
                 if (topPriority.reboot) {
@@ -35,7 +36,7 @@ module.exports.processBuildQueue = function () {
                             memory: {
                                 born: Game.time,
                                 role: role,
-                                overlord: topPriority.overlord,
+                                overlord: spawn.room.name,
                                 assignedSource: topPriority.assignedSource,
                                 destination: topPriority.destination,
                                 assignedMineral: topPriority.assignedMineral,
@@ -74,12 +75,17 @@ module.exports.processBuildQueue = function () {
     }
 };
 
-function queueCreep(room, importance, options = {}) {
-    let cache = room.memory.creepBuildQueue || {};
-    if (!room.memory.creepBuildQueue) room.memory.creepBuildQueue = {};
+function queueCreep(room, importance, options = {}, military = false) {
+    let cache;
+    if (!military) {
+        cache = room.memory.creepBuildQueue || {};
+        if (!room.memory.creepBuildQueue) room.memory.creepBuildQueue = {};
+    } else {
+        cache = Memory.militaryBuildQueue || {};
+        if (!Memory.militaryBuildQueue) Memory.militaryBuildQueue = {};
+    }
     _.defaults(options, {
         role: undefined,
-        overlord: undefined,
         assignedSource: undefined,
         destination: undefined,
         assignedMineral: undefined,
@@ -100,7 +106,6 @@ function queueCreep(room, importance, options = {}) {
             room: room.name,
             importance: importance,
             role: options.role,
-            overlord: room.name,
             assignedSource: options.assignedSource,
             destination: options.destination,
             assignedMineral: options.assignedMineral,
@@ -454,7 +459,7 @@ module.exports.remoteCreepQueue = function (room) {
 };
 
 module.exports.militaryCreepQueue = function (room) {
-    let queue = room.memory.creepBuildQueue;
+    let queue = Memory.militaryBuildQueue;
     let level = getLevel(room);
     // Cleaning
     if (room.memory.cleaningTargets && room.memory.cleaningTargets.length > 0 && !_.includes(queue, 'deconstructor') && level >= 4) {
@@ -467,7 +472,7 @@ module.exports.militaryCreepQueue = function (room) {
                     targetRoom: target,
                     operation: 'clean',
                     reboot: true
-                })
+                }, true)
             }
         }
     }
@@ -500,7 +505,7 @@ module.exports.militaryCreepQueue = function (room) {
                     targetRoom: key,
                     operation: 'harass',
                     waitFor: waitFor
-                })
+                }, true)
             }
             let attacker = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'attacker');
             if ((attacker.length < attackers || (attacker[0] && attacker[0].ticksToLive <= 500)) && !_.includes(queue, 'attacker')) {
@@ -509,7 +514,7 @@ module.exports.militaryCreepQueue = function (room) {
                     targetRoom: key,
                     operation: 'harass',
                     waitFor: waitFor
-                })
+                }, true)
             }
             let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer');
             if ((healer.length < healers || (healer[0] && healer[0].ticksToLive <= 500)) && !_.includes(queue, 'healer')) {
@@ -518,7 +523,7 @@ module.exports.militaryCreepQueue = function (room) {
                     targetRoom: key,
                     operation: 'harass',
                     waitFor: waitFor
-                })
+                }, true)
             }
         }
         // Drain
@@ -538,7 +543,7 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'drainer',
                     targetRoom: key,
                     operation: 'drain'
-                })
+                }, true)
             }
         }
     }
