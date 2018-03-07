@@ -160,7 +160,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 }
             }
     } else if (!this.memory.boostAttempt) {
-        if (this.memory.requestedBoosts.length === 0) {
+        if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length) {
             this.memory.requestedBoosts = undefined;
             return this.memory.boostAttempt = true;
         }
