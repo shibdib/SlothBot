@@ -9,6 +9,7 @@ function role(creep) {
     creep.room.invaderCheck();
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
     creep.borderCheck();
+    if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Responder Mode
     if (creep.memory.responseTarget) {
         if (creep.room.name !== creep.room.responseTarget) {
