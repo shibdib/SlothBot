@@ -555,9 +555,10 @@ Creep.prototype.findEssentials = function () {
             harvest: false
         });
     }
-    //Storage
-    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    if (sStorage) {
+    /**
+     //Storage
+     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+     if (sStorage) {
         if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
             let weight = 0.05;
             const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -568,7 +569,8 @@ Creep.prototype.findEssentials = function () {
             });
         }
     }
-    //Tower
+     **/
+        //Tower
     let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     if (tower.length > 0 && !_.includes(roomSpawnQueue, 'responder')) {
         let towers = [];
