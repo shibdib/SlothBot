@@ -12,7 +12,12 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestEnemy = function () {
-    return this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
+    let enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && 48 > c.pos.x > 1 && 48 > c.pos.y > 1});
+    if (enemy) {
+        return enemy;
+    } else {
+        return this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && 48 > c.pos.x > 1 && 48 > c.pos.y > 1});
+    }
 };
 
 Creep.prototype.fleeFromHostile = function (hostile) {
@@ -217,6 +222,7 @@ Creep.prototype.moveToStaging = function () {
     }
     let alreadyStaged = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === this.memory.targetRoom && creep.memory.stagingRoom)[0];
     if (alreadyStaged) {
+        this.memory.stagingRoom = alreadyStaged.memory.stagingRoom;
         this.shibMove(alreadyStaged, {repathChance: 0.5});
         return true;
     } else {
@@ -370,7 +376,7 @@ Creep.prototype.squadHeal = function () {
         }
         return true;
     }
-    creepToHeal = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.room.controller.owner['username']) && c.hits < c.hitsMax});
+    creepToHeal = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.hits < c.hitsMax});
     if (creepToHeal !== null) {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1 && hostileRange >= 2) {
@@ -386,6 +392,8 @@ Creep.prototype.squadHeal = function () {
         }
         return true;
     }
+    let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && (c.memory.role === 'attacker' || c.memory.role === 'longbow')});
+    this.shibMove(ally, {forceRepath: true, ignoreCreeps: false});
 };
 
 Creep.prototype.moveRandom = function (onPath) {
