@@ -353,8 +353,8 @@ Creep.prototype.siege = function () {
 
 Creep.prototype.squadHeal = function () {
     let range;
-    let hostileRange = this.pos.getRangeTo(this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.room.controller.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1)}));
-    let creepToHeal = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.room.controller.owner['username']) && c.hits < c.hitsMax * 0.7});
+    let hostileRange = this.pos.getRangeTo(this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1)}));
+    let creepToHeal = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.hits < c.hitsMax * 0.7});
     if (creepToHeal !== null) {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1 && hostileRange >= 2) {
