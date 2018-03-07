@@ -492,14 +492,14 @@ module.exports.militaryCreepQueue = function (room) {
             let attackers = 0;
             let healers = 0;
             let waitFor = 1;
-            if (opLevel === 1) {
+            if (opLevel === '1') {
                 longbows = 2;
                 waitFor = 1;
-            } else if (opLevel === 2) {
+            } else if (opLevel === '2') {
                 longbows = 2;
                 attackers = 1;
                 waitFor = 3;
-            } else if (opLevel === 3) {
+            } else if (opLevel === '3') {
                 longbows = 2;
                 attackers = 1;
                 healers = 1;
