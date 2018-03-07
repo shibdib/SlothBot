@@ -486,7 +486,7 @@ module.exports.militaryCreepQueue = function (room) {
     // Custom Flags
     for (let key in Memory.targetRooms) {
         // Harass
-        if (level >= 5 && Memory.targetRooms[key].type === 'harass' && !_.includes(queue, 'longbow') && Game.map.findRoute(room.name, key).length <= 15) {
+        if (level >= 5 && Memory.targetRooms[key].type === 'harass' && !_.includes(queue, 'longbow') && Game.map.findRoute(room.name, key).length <= 20) {
             let opLevel = Memory.targetRooms[key].level;
             let longbows = 0;
             let attackers = 0;
