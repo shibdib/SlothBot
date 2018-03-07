@@ -394,7 +394,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
 };
 
-findStorage = function () {
+Creep.prototype.findStorage = function () {
     let storage = [];
     let haulingEnergy;
     if (this.carry[RESOURCE_ENERGY] === _.sum(this.carry)) haulingEnergy = true;
@@ -403,9 +403,7 @@ findStorage = function () {
     if (sStorage) {
         let weight;
         weight = 0.05;
-        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
-            weight = 0.3;
-        }
+        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) weight = 0.3;
         const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
         storage.push({
             id: sStorage.id,
@@ -500,9 +498,9 @@ findStorage = function () {
                 return this.shibMove(storageItem);
             }
         }
+        return false;
     }
 };
-Creep.prototype.findStorage = profiler.registerFN(findStorage, 'findStorageCreepFunctions');
 
 Creep.prototype.findEssentials = function () {
     let storage = [];
@@ -560,8 +558,8 @@ Creep.prototype.findEssentials = function () {
     //Storage
     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (sStorage) {
-        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.75) {
-            let weight = 0.3;
+        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+            let weight = 0.05;
             const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
             storage.push({
                 id: sStorage.id,
