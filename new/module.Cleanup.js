@@ -2,7 +2,7 @@ const profiler = require('screeps-profiler');
 
 function cleanup() {
 //CLEANUP
-    if (Game.time % 100 === 0) {
+    if (Game.time % 2 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         cleanDistanceCacheByUsage();
         cleanConstructionSites();
@@ -27,13 +27,13 @@ function cleanup() {
 module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
 
 function cleanPathCacheByUsage() {
-    for (let key in Memory.ownedRooms) {
-        let activeRoom = Memory.ownedRooms[key];
-        if (activeRoom.memory && activeRoom.memory.pathCache && _.size(activeRoom.memory.pathCache) > 375) {
-            let sorted = _.sortBy(activeRoom.memory.pathCache, 'uses');
-            let overage = (_.size(activeRoom.memory.pathCache) - 375) + 100;
-            log.i('Cleaning Path cache for ' + activeRoom.name + ' (Over max size by ' + overage + ')...');
-            activeRoom.memory.pathCache = _.slice(sorted, overage, _.size(activeRoom.memory.pathCache));
+    for (let key in Memory.rooms) {
+        let activeRoom = Memory.rooms[key];
+        if (activeRoom && activeRoom.pathCache && _.size(activeRoom.pathCache) > 300) {
+            let sorted = _.sortBy(activeRoom.pathCache, 'uses');
+            let overage = (_.size(activeRoom.pathCache) - 300);
+            log.i('Cleaning Path cache for ' + key + ' (Over max size by ' + overage + ')...');
+            activeRoom.pathCache = _.slice(sorted, overage, _.size(activeRoom.pathCache));
         }
     }
 }
