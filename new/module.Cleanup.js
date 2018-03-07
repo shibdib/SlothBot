@@ -8,7 +8,7 @@ function cleanup() {
         cleanConstructionSites();
         cleanRoomIntel();
     }
-    if (Game.time % EST_TICKS_PER_DAY === 0) Memory.pathCache = undefined;
+    if (Game.time % EST_TICKS_PER_DAY === 0) delete Memory.pathCache;
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             delete Memory.creeps[name];
@@ -60,6 +60,6 @@ function cleanRoomIntel() {
         if (Memory.roomCache[key].cached + 1000 < Game.time) delete Memory.roomCache[key];
     }
     for (let key in Memory.rooms) {
-        if (Memory.rooms[key].lastIntelCache + 100 < Game.time && !Memory.rooms[key].extensionHub) delete Memory.rooms[key];
+        if (!Game.rooms[key] && !Memory.rooms[key].extensionHub) delete Memory.rooms[key];
     }
 }
