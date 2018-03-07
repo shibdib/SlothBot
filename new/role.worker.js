@@ -71,20 +71,22 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'workerRole');
 
 function deliveryManagement(creep) {
-    if (creep.memory.deliveryRequestTime) {
-        if (creep.memory.deliveryRequestTime < Game.time - 100) {
-            creep.memory.deliveryRequestTime = undefined;
+    if (!creep.findEnergy(6)) {
+        if (creep.memory.deliveryRequestTime) {
+            if (creep.memory.deliveryRequestTime < Game.time - 100) {
+                creep.memory.deliveryRequestTime = undefined;
+                return true;
+            }
+            if (creep.memory.deliveryRequestTime < Game.time - 15) {
+                if (creep.memory.deliveryRequestTime < Game.time - 30) {
+                    creep.memory.deliveryIncoming = false;
+                }
+                return creep.memory.deliveryIncoming;
+            }
+            return true;
+        } else {
+            creep.memory.deliveryRequestTime = Game.time;
             return true;
         }
-        if (creep.memory.deliveryRequestTime < Game.time - 15) {
-            if (creep.memory.deliveryRequestTime < Game.time - 30) {
-                creep.memory.deliveryIncoming = false;
-            }
-            return creep.memory.deliveryIncoming;
-        }
-        return true;
-    } else {
-        creep.memory.deliveryRequestTime = Game.time;
-        return true;
     }
 }
