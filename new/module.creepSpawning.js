@@ -52,6 +52,7 @@ module.exports.processBuildQueue = function () {
                             }
                         }) === OK) {
                         log.i(spawn.room.name + ' Spawning a ' + role);
+                        if (topPriority.military) delete Memory.militaryBuildQueue;
                         return delete spawn.room.memory.creepBuildQueue;
                     } else {
                         spawn.room.visual.text('Queued - ' +
@@ -471,7 +472,7 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'deconstructor',
                     targetRoom: target,
                     operation: 'clean',
-                    reboot: true
+                    military: true
                 }, true)
             }
         }
@@ -504,7 +505,8 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'longbow',
                     targetRoom: key,
                     operation: 'harass',
-                    waitFor: waitFor
+                    waitFor: waitFor,
+                    military: true
                 }, true)
             }
             let attacker = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'attacker');
@@ -513,7 +515,8 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'attacker',
                     targetRoom: key,
                     operation: 'harass',
-                    waitFor: waitFor
+                    waitFor: waitFor,
+                    military: true
                 }, true)
             }
             let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer');
@@ -522,7 +525,8 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'healer',
                     targetRoom: key,
                     operation: 'harass',
-                    waitFor: waitFor
+                    waitFor: waitFor,
+                    military: true
                 }, true)
             }
         }
@@ -542,7 +546,8 @@ module.exports.militaryCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.attacker, {
                     role: 'drainer',
                     targetRoom: key,
-                    operation: 'drain'
+                    operation: 'drain',
+                    military: true
                 }, true)
             }
         }
