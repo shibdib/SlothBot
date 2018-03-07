@@ -29,11 +29,6 @@ module.exports.loop = function() {
         //Update allies
         populateLOANlist();
 
-        Memory.stats.cpu.init = Game.cpu.getUsed();
-
-        //Grafana
-        screepsPlus.collect_stats();
-
         //Must run modules
         segments.segmentManager();
         cleanUp.cleanup();
