@@ -353,68 +353,39 @@ Creep.prototype.siege = function () {
 
 Creep.prototype.squadHeal = function () {
     let range;
-    let creepToHeal = this.pos.findClosestByRange(FIND_MY_CREEPS, {
-        filter: function (object) {
-            return object.hits < object.hitsMax / 1.5;
-        }
-    });
-
+    let hostileRange = this.pos.getRangeTo(this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.room.controller.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1)}));
+    let creepToHeal = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.room.controller.owner['username']) && c.hits < c.hitsMax * 0.7});
     if (creepToHeal !== null) {
         range = this.pos.getRangeTo(creepToHeal);
-        if (range <= 1) {
+        if (range <= 1 && hostileRange >= 2) {
             this.heal(creepToHeal);
         } else {
-            this.rangedHeal(creepToHeal);
-            this.moveTo(creepToHeal);
+            if (hostileRange < 2) {
+                this.rangedHeal(creepToHeal);
+                this.kite();
+            } else {
+                this.rangedHeal(creepToHeal);
+                this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: false});
+            }
         }
         return true;
     }
-
-    creepToHeal = this.pos.findClosestByRange(FIND_MY_CREEPS, {
-        filter: function (object) {
-            return object.hits < object.hitsMax;
-        }
-    });
-
+    creepToHeal = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.room.controller.owner['username']) && c.hits < c.hitsMax});
     if (creepToHeal !== null) {
         range = this.pos.getRangeTo(creepToHeal);
-        if (range > 1) {
-            this.rangedHeal(creepToHeal);
-        } else {
+        if (range <= 1 && hostileRange >= 2) {
             this.heal(creepToHeal);
-        }
-        if (creepToHeal.id === this.id) {
-            this.say('exit');
-            let exit = this.pos.findClosestByRange(FIND_EXIT);
-            this.moveTo(exit);
         } else {
-            this.say(JSON.stringify(creepToHeal));
-            this.moveTo(creepToHeal);
+            if (hostileRange < 2) {
+                this.rangedHeal(creepToHeal);
+                this.kite();
+            } else {
+                this.rangedHeal(creepToHeal);
+                this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: false});
+            }
         }
         return true;
     }
-
-    let attacker = this.pos.findClosestByRange(FIND_MY_CREEPS, {
-        filter: function (object) {
-            return object.memory.role === 'squadsiege';
-        }
-    });
-
-    if (this.pos.x === 0 ||
-        this.pos.x === 49 ||
-        this.pos.y === 0 ||
-        this.pos.y === 49
-    ) {
-        this.moveTo(25, 25);
-        return true;
-    }
-    if (attacker === null) {
-        const cs = this.pos.findClosestByRange(FIND_CONSTRUCTION_SITES);
-        this.moveTo(cs);
-        return false;
-    }
-    this.moveTo(attacker);
-    return false;
 };
 
 Creep.prototype.moveRandom = function (onPath) {

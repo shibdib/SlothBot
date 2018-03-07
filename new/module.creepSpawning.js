@@ -487,13 +487,49 @@ module.exports.militaryCreepQueue = function (room) {
     for (let key in Memory.targetRooms) {
         // Harass
         if (level >= 5 && Memory.targetRooms[key].type === 'harass' && !_.includes(queue, 'longbow') && Game.map.findRoute(room.name, key).length <= 15) {
+            let opLevel = Memory.targetRooms[key].level;
+            let longbows = 0;
+            let attackers = 0;
+            let healers = 0;
+            let waitFor = 1;
+            if (opLevel === 1) {
+                longbows = 2;
+                waitFor = 1;
+            } else if (opLevel === 2) {
+                longbows = 2;
+                attackers = 1;
+                waitFor = 3;
+            } else if (opLevel === 3) {
+                longbows = 2;
+                attackers = 1;
+                healers = 1;
+                waitFor = 4;
+            }
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
-            if (longbow.length < Memory.targetRooms[key].level || longbow[0].ticksToLive <= 500) {
+            if (longbow.length < longbows || longbow[0].ticksToLive <= 500) {
                 queueCreep(room, PRIORITIES.attacker, {
                     role: 'longbow',
                     targetRoom: key,
                     operation: 'harass',
-                    waitFor: Memory.targetRooms[key].level
+                    waitFor: waitFor
+                })
+            }
+            let attacker = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'attacker');
+            if (attacker.length < attackers || attacker[0].ticksToLive <= 500) {
+                queueCreep(room, PRIORITIES.attacker, {
+                    role: 'attacker',
+                    targetRoom: key,
+                    operation: 'harass',
+                    waitFor: waitFor
+                })
+            }
+            let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer');
+            if (healer.length < healers || healer[0].ticksToLive <= 500) {
+                queueCreep(room, PRIORITIES.attacker, {
+                    role: 'healer',
+                    targetRoom: key,
+                    operation: 'harass',
+                    waitFor: waitFor
                 })
             }
         }
