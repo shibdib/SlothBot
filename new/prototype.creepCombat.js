@@ -508,10 +508,10 @@ Creep.prototype.retreat = function (fleeRange = 7) {
 };
 
 Creep.prototype.borderHump = function () {
-    if (this.hits < this.hitsMax && this.room.name === this.memory.targetRoom) {
+    if (this.hits < this.hitsMax * 0.8 && this.room.name === this.memory.targetRoom) {
         let exit = this.pos.findClosestByRange(FIND_EXIT);
         return this.shibMove(exit, {ignoreCreeps: false});
-    } else if (this.hits < this.hitsMax * 0.8 && this.room.name !== this.memory.targetRoom) {
+    } else if (this.hits < this.hitsMax && this.room.name !== this.memory.targetRoom) {
         this.borderCheck();
         this.heal(this);
     } else if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
