@@ -89,4 +89,5 @@ function deliveryManagement(creep) {
             return true;
         }
     }
+    return false;
 }
