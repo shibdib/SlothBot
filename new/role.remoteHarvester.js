@@ -15,7 +15,14 @@ function role(creep) {
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 7) return creep.retreat();
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
-    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
+    if (creep.pos.roomName === creep.memory.destination) {
+        creep.memory.destinationReached = true;
+        if (creep.room.constructionSites.length > 0) {
+            creep.room.memory.requestingPioneer = true;
+        } else {
+            creep.room.memory.requestingPioneer = undefined;
+        }
+    }
 
     //Mark room as no go if reserved or owned by someone else
     if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== 'Shibdib') || creep.room.owner)) {
