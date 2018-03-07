@@ -207,7 +207,7 @@ Creep.prototype.fightRanged = function (target) {
 };
 
 Creep.prototype.moveToStaging = function () {
-    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1) return false;
+    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250) return false;
     if (this.memory.stagingRoom === this.room.name) {
         let inPlace = _.filter(this.room.creeps, (creep) => creep.memory.targetRoom === this.memory.targetRoom);
         if (inPlace.length >= this.memory.waitFor) {
