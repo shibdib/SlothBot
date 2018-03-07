@@ -69,11 +69,11 @@ function fillBuyOrders(terminal, globalOrders) {
                         order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.roomName === terminal.pos.roomName), 'price');
                     if (buyOrder.id && buyOrder.remainingAmount >= terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                         if (Game.market.deal(buyOrder.id, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                            log.i(" MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits");
+                            log.w(" MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits");
                         }
                     } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                         if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
-                            log.i(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
+                            log.w(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
                         }
                     } else {
                         let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
@@ -81,11 +81,11 @@ function fillBuyOrders(terminal, globalOrders) {
                             Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= 1000), 'price');
                         if (buyOrder.id && buyOrder.remainingAmount >= terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                             if (Game.market.deal(buyOrder.id, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                                log.i(" MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits");
+                                log.w(" MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits");
                             }
                         } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                             if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
-                                log.i(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
+                                log.w(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
                             }
                         } else {
                             let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
@@ -93,11 +93,11 @@ function fillBuyOrders(terminal, globalOrders) {
                                 Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= terminal.store[RESOURCE_ENERGY]), 'price');
                             if (buyOrder.id && buyOrder.remainingAmount >= terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                                 if (Game.market.deal(buyOrder.id, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                                    log.i(" MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits");
+                                    log.w(" MARKET: buyOrderFilled - " + (terminal.store[resourceType]) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType]) + " credits");
                                 }
                             } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType] && mySellOrder.id && buyOrder.price >= mySellOrder.price) {
                                 if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
-                                    log.i(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
+                                    log.w(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
                                 }
                             }
                         }
@@ -109,11 +109,11 @@ function fillBuyOrders(terminal, globalOrders) {
                         Game.market.calcTransactionCost(1000, terminal.pos.roomName, order.roomName) <= terminal.store[RESOURCE_ENERGY]), 'price');
                     if (buyOrder.id && buyOrder.remainingAmount >= terminal.store[resourceType]) {
                         if (Game.market.deal(buyOrder.id, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                            log.i(" MARKET: buyOrderFilled - " + (terminal.store[resourceType] - energyAmount) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType] - energyAmount) + " credits");
+                            log.w(" MARKET: buyOrderFilled - " + (terminal.store[resourceType] - energyAmount) + " " + resourceType + " for " + buyOrder.price * (terminal.store[resourceType] - energyAmount) + " credits");
                         }
                     } else if (buyOrder.id && buyOrder.remainingAmount < terminal.store[resourceType]) {
                         if (Game.market.deal(buyOrder.id, 1000, terminal.pos.roomName) === OK) {
-                            log.i(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
+                            log.w(" MARKET: buyOrderFilled - 1000 " + resourceType + " for " + buyOrder.price * 1000 + " credits");
                         }
                     }
                 }
@@ -145,13 +145,13 @@ function extendSellOrders(terminal, myOrders) {
                 if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL) {
                     if (terminal.store[resourceType] > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === false && resourceType !== RESOURCE_ENERGY) {
                         if (Game.market.extendOrder(myOrders[key].id, terminal.store[resourceType]) === OK) {
-                            log.i(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType);
+                            log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType);
                         }
                         continue resource;
                     }
                     if ((terminal.store[resourceType] - reactionAmount) > myOrders[key].remainingAmount && _.includes(reactionNeeds, resourceType) === true && resourceType !== RESOURCE_ENERGY) {
                         if (Game.market.extendOrder(myOrders[key].id, (terminal.store[resourceType] - reactionAmount)) === OK) {
-                            log.i(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] - reactionAmount + " " + resourceType);
+                            log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] - reactionAmount + " " + resourceType);
                         }
                         continue resource;
                     }
@@ -175,13 +175,13 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                     order.type === ORDER_SELL && order.remainingAmount >= 7500 && order.roomName !== terminal.pos.roomName), 'price');
                 if (sellOrder.id && _.includes(reactionNeeds, resourceType) === false) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.001), 3), terminal.store[resourceType], terminal.pos.roomName) === OK) {
-                        log.i(" MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.001));
+                        log.w(" MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.001));
                     }
                     continue;
                 }
                 if (sellOrder.id && _.includes(reactionNeeds, resourceType) === true && terminal.store[resourceType] - reactionAmount > 0) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, _.round((sellOrder.price - 0.001), 3), terminal.store[resourceType] - reactionAmount, terminal.pos.roomName) === OK) {
-                        log.i(" MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.001));
+                        log.w(" MARKET: New Sell Order: " + resourceType + " at/per " + (sellOrder.price - 0.001));
                     }
                 }
             }
@@ -213,7 +213,7 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
                 if (currentSupply + myOrders[key].remainingAmount < tradeAmount && _.round(((sellOrder.price - 0.001) - buyOrder.price), 3) > 0.04 && Game.market.credits - (_.round(((sellOrder.price - 0.001) - buyOrder.price), 3) * 0.05) > 200) {
                     if (Game.market.credits > (tradeAmount - (currentSupply + myOrders[key].remainingAmount)) * buyOrder.price) {
                         if (Game.market.extendOrder(myOrders[key].id, tradeAmount - (currentSupply + currentOrder)) === OK) {
-                            log.i(" MARKET: Extended Buy order " + myOrders[key].id + " an additional " + tradeAmount - (currentSupply + currentOrder) + " " + tradeTargets[i]);
+                            log.w(" MARKET: Extended Buy order " + myOrders[key].id + " an additional " + tradeAmount - (currentSupply + currentOrder) + " " + tradeTargets[i]);
                         }
                     }
                 }
@@ -240,7 +240,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
                 if (buyOrder.id && _.round(((sellOrder.price - 0.001) - buyOrder.price), 2) > 0.04 && Game.market.credits - (_.round(((sellOrder.price - 0.001) - buyOrder.price), 3) * 0.05) > 100) {
                     if (Game.market.credits > tradeAmount * buyOrder.price) {
                         if (Game.market.createOrder(ORDER_BUY, tradeTargets[i], buyOrder.price + 0.001, tradeAmount, terminal.pos.roomName) === OK) {
-                            log.i(" MARKET: New Buy Order: " + tradeTargets[i] + " at/per " + (buyOrder.price + 0.001) + " credits");
+                            log.w(" MARKET: New Buy Order: " + tradeTargets[i] + " at/per " + (buyOrder.price + 0.001) + " credits");
                             break;
                         }
                     }
@@ -259,7 +259,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
                 if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
                     if (Game.market.credits * 0.1 > (energyAmount - (currentSupply + myOrders[key].remainingAmount)) * myOrders[key].price) {
                         if (Game.market.extendOrder(myOrders[key].id, energyAmount - currentSupply) === OK) {
-                            log.i(" MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - currentSupply);
+                            log.w(" MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - currentSupply);
                         }
                     }
                 }
@@ -271,7 +271,7 @@ function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
         if (buyOrder.id) {
             if (Game.market.credits * 0.1 > energyAmount * buyOrder.price) {
                 if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price + 0.001, energyAmount, terminal.pos.roomName) === OK) {
-                    log.i(" MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price + 0.001));
+                    log.w(" MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price + 0.001));
                 }
             }
         }
@@ -300,7 +300,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
                         }
                         if (Game.market.credits * 0.1 > (reactionAmount - currentSupply) * buyOrder.price) {
                             if (Game.market.extendOrder(myOrders[key].id, reactionAmount - currentSupply) === OK) {
-                                log.i(" MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + reactionAmount - currentSupply);
+                                log.w(" MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + reactionAmount - currentSupply);
                             }
                         }
                         continue resource;
@@ -308,7 +308,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
                 }
                 if (Game.market.credits * 0.1 > reactionAmount * buyOrder.price) {
                     if (Game.market.createOrder(ORDER_BUY, reactionNeeds[i], buyOrder.price + 0.001, reactionAmount, terminal.pos.roomName) === OK) {
-                        log.i(" MARKET: Reaction Needs Buy Order: " + reactionNeeds[i] + " at/per " + (buyOrder.price) + " credits");
+                        log.w(" MARKET: Reaction Needs Buy Order: " + reactionNeeds[i] + " at/per " + (buyOrder.price) + " credits");
                     }
                 }
             }
@@ -329,7 +329,7 @@ function placeBoostOrders(terminal, storage, globalOrders, myOrders) {
                         let currentSupply = storedBoost + myOrders[key].remainingAmount;
                         if (Game.market.credits * 0.1 > (boostAmount - currentSupply) * buyOrder.price) {
                             if (Game.market.extendOrder(myOrders[key].id, boostAmount - currentSupply) === OK) {
-                                log.i("MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + boostAmount - currentSupply);
+                                log.w("MARKET: Extended Reaction buy order " + myOrders[key].id + " an additional " + boostAmount - currentSupply);
                             }
                         }
                         continue resource;
@@ -337,7 +337,7 @@ function placeBoostOrders(terminal, storage, globalOrders, myOrders) {
                 }
                 if (Game.market.credits * 0.1 > boostAmount * buyOrder.price) {
                     if (Game.market.createOrder(ORDER_BUY, boostNeeds[i], buyOrder.price + 0.001, boostAmount, terminal.pos.roomName) === OK) {
-                        log.i("MARKET: Reaction Needs Buy Order: " + boostNeeds[i] + " at/per " + (buyOrder.price) + " credits");
+                        log.w("MARKET: Reaction Needs Buy Order: " + boostNeeds[i] + " at/per " + (buyOrder.price) + " credits");
                     }
                 }
             }
@@ -358,20 +358,20 @@ function pricingUpdateSell(terminal, globalOrders, myOrders) {
                     if (resourceType === RESOURCE_ENERGY) {
                         if (sellOrder.id && _.round(sellOrder.price, 3) !== _.round(myOrders[key].price, 3)) {
                             if (Game.market.changeOrderPrice(myOrders[key].id, _.round(sellOrder.price, 3)) === OK) {
-                                log.i(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price), 3) + "/" + myOrders[key].price + " Resource - " + resourceType);
+                                log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price), 3) + "/" + myOrders[key].price + " Resource - " + resourceType);
                             }
                             continue resource;
                         }
                     }
                     if (sellOrder.id && _.round(sellOrder.price - 0.001, 3) !== _.round(myOrders[key].price, 3) && _.round(sellOrder.price - 0.001, 3) > _.round(buyOrder.price, 3) && sellOrder.price - 0.001 !== 0) {
                         if (Game.market.changeOrderPrice(myOrders[key].id, _.round((sellOrder.price - 0.001), 3)) === OK) {
-                            log.i(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType);
+                            log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType);
                         }
                         continue resource;
                     }
                     if (sellOrder.id && _.round(sellOrder.price - 0.01, 2) !== _.round(myOrders[key].price, 2) && _.round(sellOrder.price - 0.01, 2) < _.round(buyOrder.price, 2) && sellOrder.price - 0.01 !== 0) {
                         if (Game.market.changeOrderPrice(myOrders[key].id, _.round((buyOrder.price), 3)) === OK) {
-                            log.i(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType);
+                            log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + _.round((sellOrder.price - 0.001), 3) + "/" + myOrders[key].price + " Resource - " + resourceType);
                         }
                         continue resource;
                     }
@@ -392,7 +392,7 @@ function pricingUpdateBuy(terminal, globalOrders, myOrders) {
                     order.type === ORDER_SELL && order.remainingAmount >= 2500 && order.roomName !== terminal.pos.roomName), 'price');
                 if (buyOrder.id && (_.round(buyOrder.price + 0.001, 2)) !== _.round(myOrders[key].price, 2) && ((sellOrder.price - 0.001) - buyOrder.price) > 0.02) {
                     if (Game.market.changeOrderPrice(myOrders[key].id, (buyOrder.price + 0.001)) === OK) {
-                        log.i(" MARKET: Buy order price change " + myOrders[key].id + " new/old " + (buyOrder.price + 0.001) + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType);
+                        log.w(" MARKET: Buy order price change " + myOrders[key].id + " new/old " + (buyOrder.price + 0.001) + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType);
                     }
                 }
             } else {
@@ -400,7 +400,7 @@ function pricingUpdateBuy(terminal, globalOrders, myOrders) {
                     order.type === ORDER_BUY && order.remainingAmount >= 20000 && order.roomName !== terminal.pos.roomName), 'price');
                 if (buyOrder.id) {
                     if (Game.market.changeOrderPrice(myOrders[key].id, (buyOrder.price + 0.001)) === OK) {
-                        log.i(" MARKET: Buy order price change " + myOrders[key].id + " new/old " + (buyOrder.price + 0.001) + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType);
+                        log.w(" MARKET: Buy order price change " + myOrders[key].id + " new/old " + (buyOrder.price + 0.001) + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType);
 
                     }
                 }
