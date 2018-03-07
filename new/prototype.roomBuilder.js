@@ -7,7 +7,8 @@ let protectedStructures = [
     STRUCTURE_CONTAINER,
     STRUCTURE_NUKER,
     STRUCTURE_OBSERVER,
-    STRUCTURE_LINK
+    STRUCTURE_LINK,
+    STRUCTURE_LAB
 ];
 
 Room.prototype.buildRoom = function () {
