@@ -28,6 +28,8 @@ function role(creep) {
             }
         }
     }
+    // Harass
+    if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
 }
 
 module.exports.role = profiler.registerFN(role, 'longbow');

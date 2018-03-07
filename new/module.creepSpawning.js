@@ -483,6 +483,20 @@ module.exports.militaryCreepQueue = function (room) {
             }
         }
     }
+    // Custom Flags
+    for (let key in Memory.targetRooms) {
+        // Harass
+        if (level >= 5 && Memory.targetRooms[key].type === 'harass' && !_.includes(queue, 'longbow')) {
+            let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
+            if (longbow.length < Memory.targetRooms[key].level) {
+                queueCreep(room, PRIORITIES.attacker, {
+                    role: 'longbow',
+                    targetRoom: key,
+                    operation: 'harass'
+                })
+            }
+        }
+    }
 };
 
 function checkIfSK(roomName) {

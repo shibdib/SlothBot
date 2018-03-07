@@ -11,11 +11,9 @@ function mind() {
 
     let cpu;
     // High Command
-    if (Game.time % 150 === 0) {
         cpu = Game.cpu.getUsed();
         highCommand.highCommand();
         shib.shibBench('highCommand', cpu);
-    }
 
     // Handle Labs
     if (Game.time % 15 === 0) {
