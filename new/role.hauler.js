@@ -42,7 +42,7 @@ function role(creep) {
                             break;
                     }
                 } else if (!creep.findEssentials()) {
-                    if (!creep.findStorage()) creep.idleFor(10);
+                    if (!creep.findStorage()) creep.idleFor(3);
                 }
             }
         }
