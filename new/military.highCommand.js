@@ -27,6 +27,10 @@ function highCommand() {
 
 function manualAttacks() {
     for (let name in Game.flags) {
+        if (_.startsWith(name, 'cancel')) {
+            delete Memory.targetRooms[Game.flags[name].pos.roomName];
+            Game.flags[name].remove();
+        }
         if (_.startsWith(name, 'siege')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;

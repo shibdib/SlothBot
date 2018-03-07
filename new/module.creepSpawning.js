@@ -488,11 +488,12 @@ module.exports.militaryCreepQueue = function (room) {
         // Harass
         if (level >= 5 && Memory.targetRooms[key].type === 'harass' && !_.includes(queue, 'longbow')) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
-            if (longbow.length < Memory.targetRooms[key].level) {
+            if (longbow.length < Memory.targetRooms[key].level || longbow[0].ticksToLive <= 500) {
                 queueCreep(room, PRIORITIES.attacker, {
                     role: 'longbow',
                     targetRoom: key,
-                    operation: 'harass'
+                    operation: 'harass',
+                    waitFor: Memory.targetRooms[key].level
                 })
             }
         }

@@ -201,6 +201,33 @@ Creep.prototype.fightRanged = function (target) {
     }
 };
 
+Creep.prototype.moveToStaging = function () {
+    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1) return false;
+    if (this.memory.stagingRoom === this.room.name) {
+        let inPlace = _.filter(this.room.creeps, (creep) => creep.memory.targetRoom === this.memory.targetRoom);
+        if (inPlace.length >= this.memory.waitFor) {
+            this.memory.stagingComplete = true;
+            return false;
+        } else {
+            return true;
+        }
+    } else if (this.memory.stagingRoom) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
+        return true;
+    }
+    let alreadyStaged = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === this.memory.targetRoom && creep.memory.stagingRoom)[0];
+    if (alreadyStaged) {
+        this.shibMove(alreadyStaged, {repathChance: 0.5});
+        return true;
+    } else {
+        let route = Game.map.findRoute(this.room.name, this.memory.targetRoom);
+        let routeLength = route.length;
+        this.memory.stagingRoom = route[routeLength - 2].room;
+        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
+        return true;
+    }
+};
+
 Creep.prototype.siege = function () {
     this.memory.hitsLast = this.hits;
     let healPower = this.getActiveBodyparts(HEAL) * HEAL_POWER;
