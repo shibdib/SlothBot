@@ -443,7 +443,7 @@ Room.prototype.findAttackCreeps = function (object) {
     // TODO defender stop in rooms with (non attacking) enemies
     //    return false;
 };
-Creep.prototype.kite = function (fleeRange = 3) {
+Creep.prototype.kite = function (fleeRange = 4) {
     let avoid = this.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0});
 
     let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1),
@@ -453,12 +453,13 @@ Creep.prototype.kite = function (fleeRange = 3) {
     let creep = this;
     let ret = PathFinder.search(this.pos, avoidance, {
         flee: true,
-        swampCost: 50,
+        swampCost: 75,
         maxRooms: 1,
 
         roomCallback: function (roomName) {
             let costs = new PathFinder.CostMatrix;
             addBorderToMatrix(creep.room, costs);
+            addCreepsToMatrix(creep.room, costs);
             return costs;
         }
 
