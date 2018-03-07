@@ -521,6 +521,26 @@ module.exports.militaryCreepQueue = function (room) {
                 })
             }
         }
+        // Drain
+        if (level >= 4 && Memory.targetRooms[key].type === 'drain' && Game.map.findRoute(room.name, key).length <= 20) {
+            let opLevel = Memory.targetRooms[key].level;
+            let drainers = 0;
+            if (opLevel === '1') {
+                drainers = 1;
+            } else if (opLevel === '2') {
+                drainers = 2;
+            } else if (opLevel === '3') {
+                drainers = 3;
+            }
+            let drainer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'drainer');
+            if ((drainer.length < drainers || (drainer[0] && drainer[0].ticksToLive <= 500)) && !_.includes(queue, 'drainer')) {
+                queueCreep(room, PRIORITIES.attacker, {
+                    role: 'drainer',
+                    targetRoom: key,
+                    operation: 'drain'
+                })
+            }
+        }
     }
 };
 

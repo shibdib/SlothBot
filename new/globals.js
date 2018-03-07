@@ -99,7 +99,6 @@ let globals = function () {
             healer: [MOVE, MOVE, HEAL, HEAL],
             hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             deconstructor: [TOUGH, MOVE, MOVE, MOVE, MOVE, WORK, WORK, HEAL],
-            drainer: [WORK, MOVE, MOVE, MOVE, HEAL, HEAL],
             stationaryHarvester: [MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
             basicHarvester: [WORK, WORK, CARRY, MOVE],
             remoteHarvester: [MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY],

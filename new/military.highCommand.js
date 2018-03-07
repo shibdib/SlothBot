@@ -67,6 +67,18 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'drain')) {
+            let cache = Memory.targetRooms || {};
+            let level = name.match(/\d+$/)[0] || 1;
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'drain',
+                level: level
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
     }
 }
 

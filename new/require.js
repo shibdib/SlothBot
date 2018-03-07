@@ -11,3 +11,4 @@ require('module.pathFinder');
 // Operations
 require("operation.clean");
 require("operation.harass");
+require("operation.drain");
