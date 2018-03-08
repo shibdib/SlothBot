@@ -20,6 +20,7 @@ Creep.prototype.findClosestEnemy = function () {
         if (enemy) {
             return enemy;
         } else {
+            if ((this.room.controller && this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || (this.room.controller && this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username))) return null;
             enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER});
             if (enemy) {
                 return enemy;
