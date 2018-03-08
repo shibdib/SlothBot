@@ -255,8 +255,11 @@ Creep.prototype.moveToStaging = function () {
 
 Creep.prototype.siege = function () {
     let healer = this.pos.findClosestByRange(Game.creeps, {filter: (c) => c.memory.role === 'healer' && c.memory.targetRoom === this.memory.targetRoom});
-    if (this.pos.getRangeTo(healer) > 2) return this.shibMove(healer, {forceRepath: true, ignoreCreeps: false});
-    this.say(this.pos.getRangeTo(healer))
+    if (this.pos.findInRange(healer, 2).length < 1) return this.shibMove(healer, {
+        forceRepath: true,
+        ignoreCreeps: false
+    });
+    this.say(this.pos.findInRange(healer, 2).length)
     return;
     this.memory.hitsLast = this.hits;
     if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 300 || (!this.memory.hitsLost && this.hitsMax - this.hits >= 100)) {
@@ -431,7 +434,7 @@ Creep.prototype.squadHeal = function () {
 Creep.prototype.siegeHeal = function () {
     let range;
     let deconstructor = this.pos.findClosestByRange(Game.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'deconstructor' && c.memory.targetRoom === this.memory.targetRoom});
-    let creepToHeal = _.sortBy(this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.hits < c.hitsMax}), 'hits')[0];
+    let creepToHeal = _.min(this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.hits < c.hitsMax}), 'hits')[0];
     if (creepToHeal) {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1) {
