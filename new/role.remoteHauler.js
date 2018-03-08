@@ -53,6 +53,7 @@ function role(creep) {
             }
         } else {
             if (creep.pos.roomName === creep.memory.overlord) {
+                creep.memory.stuckCounter = undefined;
                 creep.memory.destinationReached = false;
                 let dropOffLink = Game.getObjectById(creep.memory.dropOffLink);
                 if (creep.memory.storageDestination) {
@@ -139,7 +140,14 @@ function role(creep) {
                     }
                 }
             } else {
-                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
+                let stuckCounter = creep.memory.stuckCounter || 0;
+                stuckCounter++;
+                if (stuckCounter >= 70) {
+                    creep.moveTo(new RoomPosition(25, 25, creep.memory.overlord));
+                } else {
+                    creep.memory.stuckCounter = stuckCounter;
+                    creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
+                }
             }
         }
     } else if (!creep.memory.destinationReached) {
