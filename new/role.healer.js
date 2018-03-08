@@ -12,6 +12,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
+    if (creep.memory.operation && creep.memory.operation === 'siege') creep.siegeRoom();
 }
 
 module.exports.role = profiler.registerFN(role, 'healerRole');

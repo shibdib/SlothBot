@@ -253,16 +253,21 @@ Creep.prototype.moveToStaging = function () {
 };
 
 Creep.prototype.siege = function () {
+    let healer = this.pos.findClosestByRange(Game.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'healer' && c.memory.targetRoom === this.memory.targetRoom});
+    if (this.pos.getRangeTo(healer) > 2) return this.shibMove(healer, {forceRepath: true, ignoreCreeps: false});
     this.memory.hitsLast = this.hits;
-    let healPower = this.getActiveBodyparts(HEAL) * HEAL_POWER;
-    if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 140 || this.memory.healing === true || (!this.memory.hitsLost && this.hitsMax - this.hits >= 100)) {
+    if (this.hits - this.memory.hitsLost < this.hits * 0.70 || this.hits < this.hitsMax * 0.70 || this.memory.hitsLost >= 300 || (!this.memory.hitsLost && this.hitsMax - this.hits >= 100)) {
         this.memory.siegeComplete = undefined;
         this.memory.healing = true;
         let healers = this.pos.findInRange(_.filter(Game.creeps, (h) => h.memory.role === 'healer'), 45);
         if (healers.length > 0) {
             this.shibMove(healers[0], {forceRepath: true, ignoreCreeps: false});
         } else {
-            this.shibMove(new RoomPosition(25, 25, this.memory.fallBackRoom), {range: 23, forceRepath: true, ignoreCreeps: false});
+            this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {
+                range: 23,
+                forceRepath: true,
+                ignoreCreeps: false
+            });
         }
         return true;
     }
@@ -410,8 +415,31 @@ Creep.prototype.squadHeal = function () {
         }
         return true;
     }
-    let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && (c.memory.role === 'attacker' || c.memory.role === 'longbow')});
-    this.shibMove(ally, {forceRepath: true, ignoreCreeps: false});
+    if (this.memory.operation === 'siege') {
+        let ally = this.pos.findClosestByRange(Game.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'deconstructor' && c.memory.targetRoom === this.memory.targetRoom});
+        this.shibMove(ally, {forceRepath: true, ignoreCreeps: false, range: 0});
+    } else {
+        let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && (c.memory.role === 'attacker' || c.memory.role === 'longbow')});
+        this.shibMove(ally, {forceRepath: true, ignoreCreeps: false, range: 0});
+    }
+};
+
+Creep.prototype.siegeHeal = function () {
+    let range;
+    let deconstructor = this.pos.findClosestByRange(Game.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'deconstructor' && c.memory.targetRoom === this.memory.targetRoom});
+    let creepToHeal = _.sort(this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.hits < c.hitsMax}), 'hits')[0];
+    if (creepToHeal) {
+        range = this.pos.getRangeTo(creepToHeal);
+        if (range <= 1) {
+            this.heal(creepToHeal);
+            this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: false, range: 0});
+        } else {
+            this.rangedHeal(creepToHeal);
+            this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: false, range: 0});
+        }
+        return true;
+    }
+    this.shibMove(deconstructor, {forceRepath: true, ignoreCreeps: false, range: 0});
 };
 
 Creep.prototype.moveRandom = function (onPath) {

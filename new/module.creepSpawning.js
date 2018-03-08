@@ -557,6 +557,46 @@ module.exports.militaryCreepQueue = function (room) {
                 }, true)
             }
         }
+        // Siege
+        if (level >= 6 && Memory.targetRooms[key].type === 'drain' && Game.map.findRoute(room.name, key).length <= 20) {
+            let opLevel = Memory.targetRooms[key].level;
+            let deconstructors = 1;
+            let healers = 1;
+            let waitFor = 2;
+            if (opLevel === '1') {
+                deconstructors = 1;
+                healers = 1;
+                waitFor = 2;
+            } else if (opLevel === '2') {
+                deconstructors = 1;
+                healers = 2;
+                waitFor = 3;
+            } else if (opLevel === '3') {
+                deconstructors = 2;
+                healers = 3;
+                waitFor = 5;
+            }
+            let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
+            let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer');
+            if ((deconstructor.length < deconstructors || (deconstructor[0] && deconstructor[0].ticksToLive <= 500)) && !_.includes(queue, 'deconstructor')) {
+                queueCreep(room, PRIORITIES.attacker, {
+                    role: 'deconstructor',
+                    targetRoom: key,
+                    operation: 'siege',
+                    military: true,
+                    waitFor: waitFor
+                }, true)
+            }
+            if ((healer.length < healers || (healer[0] && healer[0].ticksToLive <= 500)) && !_.includes(queue, 'healer')) {
+                queueCreep(room, PRIORITIES.attacker, {
+                    role: 'healer',
+                    targetRoom: key,
+                    operation: 'siege',
+                    military: true,
+                    waitFor: waitFor
+                }, true)
+            }
+        }
     }
 };
 

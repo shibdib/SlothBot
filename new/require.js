@@ -12,3 +12,4 @@ require('module.pathFinder');
 require("operation.clean");
 require("operation.harass");
 require("operation.drain");
+require("new/operation.siege");
