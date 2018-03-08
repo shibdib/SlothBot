@@ -284,12 +284,11 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
             let storage = _.filter(terminal.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-            let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]];
+            let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
             let minerals = terminal.room.mineral[0];
-            if ((minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) || stored >= reactionAmount) {
-                continue;
-            }
-            if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
+            if ((minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) || stored >= reactionAmount) continue;
+            let activeOrder = _.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === reactionNeeds[i] && o.type === ORDER_BUY)[0];
+            if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500 && !activeOrder) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
                     order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
                 for (let key in myOrders) {
@@ -323,7 +322,8 @@ function placeBoostOrders(terminal, storage, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < boostNeeds.length; i++) {
             let storedBoost = storage.store[boostNeeds[i]] + terminal.store[boostNeeds[i]] || 0;
-            if (storedBoost < boostAmount && Game.market.credits > 500) {
+            let activeOrder = _.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === boostNeeds[i] && o.type === ORDER_BUY)[0];
+            if (storedBoost < boostAmount && Game.market.credits > 500 && !activeOrder) {
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === boostNeeds[i] &&
                     order.type === ORDER_BUY && order.remainingAmount >= 2000 && order.roomName !== terminal.pos.roomName), 'price');
                 for (let key in myOrders) {
