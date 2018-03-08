@@ -92,7 +92,7 @@ function role(creep) {
                     let link = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 8), (s) => s.structureType === STRUCTURE_LINK);
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-                    let storage = Game.getObjectById(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0]);
+                    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
                     if (link.length > 0 && link[0].id !== creep.room.memory.storageLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                         creep.memory.dropOffLink = link[0].id;
                     } else if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70 && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
@@ -123,7 +123,7 @@ function role(creep) {
                                 creep.findStorage();
                                 break;
                         }
-                    } else if (storage && storage.store < controllerLink.storeCapacity * 0.70) {
+                    } else if (storage && storage.store < storage.storeCapacity * 0.70) {
                         creep.memory.storageDestination = storage.id;
                         switch (creep.transfer(storage, RESOURCE_ENERGY)) {
                             case OK:
