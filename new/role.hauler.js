@@ -127,12 +127,44 @@ function labTech(creep) {
             } else {
                 switch (creep.transfer(Game.getObjectById(creep.memory.storageDestination), RESOURCE_ENERGY)) {
                     case OK:
-                        creep.memory.terminalWorker = undefined;
+                        creep.memory.labTech = undefined;
                         return undefined;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(Game.getObjectById(creep.memory.storageDestination));
                 }
             }
+            break;
+        } else if (labs[key].memory.itemNeeded) {
+            if (creep.carry[labs[key].memory.itemNeeded] !== 0) {
+                let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+                let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+                if (storage.store[labs[key].memory.itemNeeded] > 0) {
+                    creep.memory.itemStorage = storage.id;
+                } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
+                    creep.memory.itemStorage = terminal.id;
+                } else {
+                    creep.memory.itemStorage = undefined;
+                }
+                if (creep.memory.itemStorage) {
+                    creep.memory.storageDestination = labs[key].id;
+                    switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), labs[key].memory.itemNeeded)) {
+                        case OK:
+                            creep.memory.itemStorage = undefined;
+                            return undefined;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
+                    }
+                }
+            } else {
+                switch (creep.transfer(labs[key], labs[key].memory.itemNeeded)) {
+                    case OK:
+                        creep.memory.labTech = undefined;
+                        return undefined;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(labs[key]);
+                }
+            }
         }
+
     }
 }
