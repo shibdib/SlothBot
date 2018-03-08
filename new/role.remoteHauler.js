@@ -55,7 +55,7 @@ function role(creep) {
             if (creep.pos.roomName === creep.memory.overlord) {
                 creep.memory.stuckCounter = undefined;
                 creep.memory.destinationReached = false;
-                let dropOffLink = Game.getObjectById(creep.memory.dropOffLink);
+                let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity * 0.9);
                 if (creep.memory.storageDestination) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);
                     for (const resourceType in creep.carry) {
@@ -74,14 +74,14 @@ function role(creep) {
                                 break;
                         }
                     }
-                } else if (dropOffLink && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
-                    creep.memory.storageDestination = dropOffLink.id;
-                    switch (creep.transfer(dropOffLink, RESOURCE_ENERGY)) {
+                } else if (labs[0] && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
+                    creep.memory.storageDestination = labs[0].id;
+                    switch (creep.transfer(labs[0], RESOURCE_ENERGY)) {
                         case OK:
                             creep.memory.storageDestination = undefined;
                             break;
                         case ERR_NOT_IN_RANGE:
-                            creep.shibMove(dropOffLink);
+                            creep.shibMove(labs[0]);
                             break;
                         case ERR_FULL:
                             creep.memory.storageDestination = undefined;
