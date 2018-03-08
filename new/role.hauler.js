@@ -20,7 +20,7 @@ function role(creep) {
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
-        if (!terminalWorker(creep) && !mineralHauler(creep)) {
+        if (!terminalWorker(creep) && !mineralHauler(creep) && !labTech(creep)) {
             if (creep.memory.hauling === false) {
                 creep.getEnergy();
                 creep.withdrawEnergy();
@@ -110,5 +110,29 @@ function terminalWorker(creep) {
             }
         }
         return true;
+    }
+}
+
+function labTech(creep) {
+    let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
+    let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
+    if (!creep.memory.terminalWorker && (!labs[0] || labTech)) return undefined;
+    for (let key in labs) {
+        if (labs[key].energy < labs[key].energyCapacity * 0.9) {
+            creep.memory.labTech = true;
+            if (creep.memory.hauling === false) {
+                creep.memory.storageDestination = labs[key].id;
+                creep.getEnergy();
+                creep.withdrawEnergy();
+            } else {
+                switch (creep.transfer(Game.getObjectById(creep.memory.storageDestination), RESOURCE_ENERGY)) {
+                    case OK:
+                        creep.memory.terminalWorker = undefined;
+                        return undefined;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(Game.getObjectById(creep.memory.storageDestination));
+                }
+            }
+        }
     }
 }
