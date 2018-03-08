@@ -16,7 +16,15 @@ Creep.prototype.findClosestEnemy = function () {
     if (enemy) {
         return enemy;
     } else {
-        return this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
+        enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
+        if (enemy) {
+            return enemy;
+        } else {
+            enemy = this.pos.findClosestByRange(this.room.structures, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.structureType !== STRUCTURE_CONTROLLER});
+            if (enemy) {
+                return enemy;
+            }
+        }
     }
 };
 
