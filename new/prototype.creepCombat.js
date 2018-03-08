@@ -254,7 +254,10 @@ Creep.prototype.moveToStaging = function () {
 };
 
 Creep.prototype.siege = function () {
-    if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 20});
+    if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
+        ignoreCreeps: true,
+        range: 20
+    });
     let target;
     if (Game.getObjectById(this.memory.siegeTarget)) {
         let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))}), 'hits');
@@ -341,17 +344,17 @@ Creep.prototype.siege = function () {
         target = Game.getObjectById(this.memory.siegeTarget);
     }
     if (!target) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {range: 23});
+        this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {ignoreCreeps: true, range: 23});
     } else {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
                 this.heal(this);
-                this.shibMove(target, {repathChance: 0.5});
+                this.shibMove(target, {ignoreCreeps: true});
                 this.memory.siegeTarget = undefined;
                 break;
             case ERR_NO_BODYPART:
                 if (this.getActiveBodyparts(ATTACK) > 0) this.attack(target);
-                this.shibMove(target, {repathChance: 0.5});
+                this.shibMove(target, {ignoreCreeps: true});
                 break;
             case OK:
                 return true;
@@ -374,7 +377,7 @@ Creep.prototype.squadHeal = function () {
                 this.kite();
             } else {
                 this.rangedHeal(creepToHeal);
-                this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: false});
+                this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: true});
             }
         }
         return true;
@@ -390,17 +393,17 @@ Creep.prototype.squadHeal = function () {
                 this.kite();
             } else {
                 this.rangedHeal(creepToHeal);
-                this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: false});
+                this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: true});
             }
         }
         return true;
     }
     if (this.memory.operation === 'siege') {
         let ally = this.pos.findClosestByRange(Game.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'deconstructor' && c.memory.targetRoom === this.memory.targetRoom});
-        this.shibMove(ally, {forceRepath: true, ignoreCreeps: false, range: 0});
+        this.shibMove(ally, {forceRepath: true, ignoreCreeps: true, range: 0});
     } else {
         let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && (c.memory.role === 'attacker' || c.memory.role === 'longbow')});
-        this.shibMove(ally, {forceRepath: true, ignoreCreeps: false, range: 0});
+        this.shibMove(ally, {forceRepath: true, ignoreCreeps: true, range: 0});
     }
 };
 
@@ -412,10 +415,10 @@ Creep.prototype.siegeHeal = function () {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1) {
             this.heal(creepToHeal);
-            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: false});
+            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: true});
         } else {
             this.rangedHeal(creepToHeal);
-            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: false});
+            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: true});
         }
         return true;
     }
@@ -423,10 +426,10 @@ Creep.prototype.siegeHeal = function () {
     range = this.pos.getRangeTo(deconstructor);
     if (range <= 1) {
         this.heal(deconstructor);
-        this.shibMove(deconstructor, {movingTarget: true, ignoreCreeps: false});
+        this.shibMove(deconstructor, {movingTarget: true, ignoreCreeps: true});
     } else {
         if (range <= 4) this.rangedHeal(deconstructor);
-        this.shibMove(deconstructor, {movingTarget: true, ignoreCreeps: false});
+        this.shibMove(deconstructor, {movingTarget: true, ignoreCreeps: true});
     }
 };
 
