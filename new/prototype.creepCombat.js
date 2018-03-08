@@ -227,7 +227,7 @@ Creep.prototype.fightRanged = function (target) {
 Creep.prototype.moveToStaging = function () {
     if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250) return false;
     if (this.memory.stagingRoom === this.room.name) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
+        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
         let inPlace = _.filter(this.room.creeps, (creep) => creep.memory.targetRoom === this.memory.targetRoom);
         if (inPlace.length >= this.memory.waitFor) {
             this.memory.stagingComplete = true;
@@ -236,7 +236,7 @@ Creep.prototype.moveToStaging = function () {
             return true;
         }
     } else if (this.memory.stagingRoom) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
+        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
         return true;
     }
     let alreadyStaged = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === this.memory.targetRoom && creep.memory.stagingRoom)[0];
@@ -248,7 +248,7 @@ Creep.prototype.moveToStaging = function () {
         let route = Game.map.findRoute(this.room.name, this.memory.targetRoom);
         let routeLength = route.length;
         this.memory.stagingRoom = route[routeLength - 2].room;
-        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
+        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
         return true;
     }
 };
