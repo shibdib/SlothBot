@@ -14,7 +14,6 @@ function role(creep) {
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 7) return creep.retreat();
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     creep.repairRoad();
-    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (_.sum(creep.carry) === 0) {
         delete creep.memory.storageDestination;
