@@ -371,6 +371,7 @@ Creep.prototype.squadHeal = function () {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1 && hostileRange >= 2) {
             this.heal(creepToHeal);
+            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: true});
         } else {
             if (hostileRange < 2) {
                 this.rangedHeal(creepToHeal);
@@ -387,6 +388,7 @@ Creep.prototype.squadHeal = function () {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1 && hostileRange >= 2) {
             this.heal(creepToHeal);
+            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: true});
         } else {
             if (hostileRange < 2) {
                 this.rangedHeal(creepToHeal);
