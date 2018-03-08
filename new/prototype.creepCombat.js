@@ -419,6 +419,7 @@ Creep.prototype.siegeHeal = function () {
         }
         return true;
     }
+    if (!deconstructor) return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
     range = this.pos.getRangeTo(deconstructor);
     if (range <= 1) {
         this.heal(deconstructor);
