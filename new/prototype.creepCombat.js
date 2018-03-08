@@ -12,15 +12,15 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestEnemy = function () {
-    let enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
+    let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
     if (enemy) {
         return enemy;
     } else {
-        enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
+        enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
         if (enemy) {
             return enemy;
         } else {
-            enemy = this.pos.findClosestByRange(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER});
+            enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER});
             if (enemy) {
                 return enemy;
             }
