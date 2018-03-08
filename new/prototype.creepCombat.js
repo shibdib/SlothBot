@@ -429,7 +429,7 @@ Creep.prototype.squadHeal = function () {
 Creep.prototype.siegeHeal = function () {
     let range;
     let deconstructor = this.pos.findClosestByRange(Game.creeps, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'deconstructor' && c.memory.targetRoom === this.memory.targetRoom});
-    let creepToHeal = _.sort(this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.hits < c.hitsMax}), 'hits')[0];
+    let creepToHeal = _.sortBy(this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(FRIENDLIES, c.owner['username']) && c.hits < c.hitsMax}), 'hits')[0];
     if (creepToHeal) {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1) {
