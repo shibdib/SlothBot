@@ -20,31 +20,30 @@ module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 function manageReactions(room) {
     let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
+    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && room.memory.reactions[s.id]);
     for (let key in MAKE_THESE_BOOSTS) {
         let boost = MAKE_THESE_BOOSTS[key];
-        let boostInProgress = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boost)[0];
+        let boostInProgress = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && room.memory.reactions[s.id].creating === boost)[0];
         if (boostInProgress) continue;
         let componentOne = BOOST_COMPONENTS[boost][0];
         let componentTwo = BOOST_COMPONENTS[boost][1];
         if ((storage.store[componentOne] + terminal.store[componentOne] > 100) && (storage.store[componentTwo] + terminal.store[componentTwo] > 100)) {
-            let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active}).length >= 2)[0];
+            let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !room.memory.reactions[s.id] && s.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !room.memory.reactions[s.id]}).length >= 2)[0];
             if (availableLabs) {
-                let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active})
-                for (let key in hub) {
+                let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !room.memory.reactions[s.id]});
+                for (let labID in hub) {
                     let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
                     let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
                     let out = _.filter(hub, (h) => h.memory.itemNeeded === boost)[0];
                     hub[key].active = true;
                     if (!one) {
-                        hub[key].memory.itemNeeded = componentOne;
-                        hub[key].memory.creating = boost;
+                        room.memory.reactions[labID].itemNeeded = componentOne;
+                        room.memory.reactions[labID].creating = boost;
                     } else if (!two) {
-                        hub[key].memory.itemNeeded = componentTwo;
-                        hub[key].memory.creating = boost;
+                        room.memory.reactions[labID].itemNeeded = componentOne;
+                        room.memory.reactions[labID].creating = boost;
                     } else if (!out) {
-                        hub[key].memory.itemNeeded = 'out';
-                        hub[key].memory.creating = boost;
+                        room.memory.reactions[labID].creating = boost;
                     }
                 }
             }
