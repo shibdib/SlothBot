@@ -558,7 +558,7 @@ module.exports.militaryCreepQueue = function (room) {
             }
         }
         // Siege
-        if (level >= 6 && Memory.targetRooms[key].type === 'drain' && Game.map.findRoute(room.name, key).length <= 20) {
+        if (level >= 6 && Memory.targetRooms[key].type === 'siege' && Game.map.findRoute(room.name, key).length <= 20) {
             let opLevel = Memory.targetRooms[key].level;
             let deconstructors = 1;
             let healers = 1;
