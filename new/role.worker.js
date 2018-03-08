@@ -52,14 +52,7 @@ function role(creep) {
             } else if (deliveryManagement(creep)) {
                 creep.say(ICONS.wait1, true);
             } else {
-                let storage = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] > 0});
-                if (storage) {
-                    if (creep.withdraw(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(storage);
-                    }
-                } else {
-                    creep.findEnergy();
-                }
+                creep.findEnergy();
                 if (!creep.memory.energyDestination) {
                     let source = creep.pos.getClosestSource();
                     if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)

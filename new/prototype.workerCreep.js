@@ -206,7 +206,7 @@ withdrawEnergy = function () {
 };
 Creep.prototype.withdrawEnergy = profiler.registerFN(withdrawEnergy, 'withdrawEnergyCreepFunctions');
 
-findEnergy = function (range = 250, hauler = false) {
+Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     let energy = [];
     //Container
     let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
@@ -241,7 +241,7 @@ findEnergy = function (range = 250, hauler = false) {
     //storages
     //Storage
     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    if (sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT && sStorage.pos.rangeToTarget(this) <= range) {
+    if (sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 0.75 && sStorage.pos.rangeToTarget(this) <= range) {
         let weight;
         weight = 0.3;
         if (sStorage.store[RESOURCE_ENERGY] < 1000) {
@@ -304,7 +304,6 @@ findEnergy = function (range = 250, hauler = false) {
         }
     }
 };
-Creep.prototype.findEnergy = profiler.registerFN(findEnergy, 'findEnergyCreepFunctions');
 
 Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     let energy = [];
