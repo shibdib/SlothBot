@@ -116,34 +116,25 @@ function terminalWorker(creep) {
 function labTech(creep) {
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
     let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
-    if (!creep.memory.terminalWorker && (!labs[0] || labTech)) return undefined;
+    if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
     for (let key in labs) {
-        if (labs[key].energy < labs[key].energyCapacity * 0.9) {
-            creep.memory.labTech = true;
-            if (creep.memory.hauling === false) {
-                creep.memory.storageDestination = labs[key].id;
-                creep.getEnergy();
-                creep.withdrawEnergy();
-            } else {
-                switch (creep.transfer(Game.getObjectById(creep.memory.storageDestination), RESOURCE_ENERGY)) {
-                    case OK:
-                        creep.memory.labTech = undefined;
-                        return undefined;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(Game.getObjectById(creep.memory.storageDestination));
-                }
-            }
-            break;
-        } else if (labs[key].memory.itemNeeded) {
+        if (labs[key].memory.itemNeeded) {
             if (creep.carry[labs[key].memory.itemNeeded] !== 0) {
-                let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-                let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-                if (storage.store[labs[key].memory.itemNeeded] > 0) {
-                    creep.memory.itemStorage = storage.id;
-                } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
-                    creep.memory.itemStorage = terminal.id;
-                } else {
-                    creep.memory.itemStorage = undefined;
+                if (!creep.memory.labHelper && !creep.memory.itemStorage) {
+                    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+                    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+                    if (storage.store[labs[key].memory.itemNeeded] > 0) {
+                        creep.memory.labTech = true;
+                        creep.memory.labHelper = labs[key].id;
+                        creep.memory.itemStorage = storage.id;
+                    } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
+                        creep.memory.labTech = true;
+                        creep.memory.labHelper = labs[key].id;
+                        creep.memory.itemStorage = terminal.id;
+                    } else {
+                        creep.memory.labTech = undefined;
+                        creep.memory.itemStorage = undefined;
+                    }
                 }
                 if (creep.memory.itemStorage) {
                     creep.memory.storageDestination = labs[key].id;
@@ -156,12 +147,13 @@ function labTech(creep) {
                     }
                 }
             } else {
-                switch (creep.transfer(labs[key], labs[key].memory.itemNeeded)) {
+                switch (creep.transfer(Game.getObjectById(creep.memory.labHelper), Game.getObjectById(creep.memory.labHelper).memory.itemNeeded)) {
                     case OK:
+                        creep.memory.labHelper = undefined;
                         creep.memory.labTech = undefined;
                         return undefined;
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(labs[key]);
+                        creep.shibMove(Game.getObjectById(creep.memory.labHelper));
                 }
             }
         }
