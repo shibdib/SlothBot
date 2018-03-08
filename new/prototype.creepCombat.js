@@ -227,6 +227,7 @@ Creep.prototype.fightRanged = function (target) {
 Creep.prototype.moveToStaging = function () {
     if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250) return false;
     if (this.memory.stagingRoom === this.room.name) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
         let inPlace = _.filter(this.room.creeps, (creep) => creep.memory.targetRoom === this.memory.targetRoom);
         if (inPlace.length >= this.memory.waitFor) {
             this.memory.stagingComplete = true;

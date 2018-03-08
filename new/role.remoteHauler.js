@@ -122,7 +122,7 @@ function role(creep) {
                                 creep.findStorage();
                                 break;
                         }
-                    } else if (storage && storage.store < storage.storeCapacity * 0.70) {
+                    } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.70) {
                         creep.memory.storageDestination = storage.id;
                         switch (creep.transfer(storage, RESOURCE_ENERGY)) {
                             case OK:
@@ -139,9 +139,7 @@ function role(creep) {
                     }
                 }
             } else {
-                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {
-                    range: 15
-                });
+                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
             }
         }
     } else if (!creep.memory.destinationReached) {
