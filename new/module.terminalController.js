@@ -50,7 +50,7 @@ function terminalControl(room) {
         //Extend/Place buy orders if we have enough buffer cash
         extendBuyOrders(terminal, globalOrders, myOrders);
         placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
-        placeReactionOrders(terminal, globalOrders, myOrders);
+        if (room.memory.reactionRoom) placeReactionOrders(terminal, globalOrders, myOrders);
         placeBoostOrders(terminal, storage, globalOrders, myOrders);
     }
 }
@@ -283,8 +283,10 @@ placeBuyOrders = profiler.registerFN(placeBuyOrders, 'placeBuyOrdersTerminal');
 function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
+            let storage = _.filter(terminal.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+            let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]];
             let minerals = terminal.room.mineral[0];
-            if (minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) {
+            if ((minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) || stored >= reactionAmount) {
                 continue;
             }
             if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500) {
