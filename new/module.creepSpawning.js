@@ -318,7 +318,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
             if (!_.includes(queue, 'remoteHarvester')) {
                 let sourceCount = 1;
-                if (Memory.roomCache[room.memory.remoteRooms[keys]] && level >= 7) sourceCount = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length;
+                if (Memory.roomCache[room.memory.remoteRooms[keys]] && level >= 6) sourceCount = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length;
                 if (remoteHarvester.length < sourceCount && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.noRemote)) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
@@ -328,7 +328,7 @@ module.exports.remoteCreepQueue = function (room) {
             }
             if (!_.includes(queue, 'remoteHauler')) {
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
-                if (remoteHarvester.length > 0 && remoteHauler.length < 1 && Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length < 2) {
+                if (remoteHauler.length < remoteHarvester.length) {
                     queueCreep(room, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler',
                         destination: room.memory.remoteRooms[keys]
