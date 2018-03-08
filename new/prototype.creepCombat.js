@@ -258,6 +258,8 @@ Creep.prototype.siege = function () {
         ignoreCreeps: true,
         range: 20
     });
+    let sharedTarget = _.filter(Game.creeps, (c) => c.memory.siegeTarget)[0];
+    if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
     let target;
     if (Game.getObjectById(this.memory.siegeTarget)) {
         let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))}), 'hits');
@@ -273,7 +275,7 @@ Creep.prototype.siege = function () {
         this.memory.siegeComplete = true;
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = true;
