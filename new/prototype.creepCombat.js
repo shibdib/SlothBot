@@ -24,6 +24,11 @@ Creep.prototype.findClosestEnemy = function () {
             enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART});
             if (enemy) {
                 return enemy;
+            } else {
+                enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD});
+                if (enemy) {
+                    return enemy;
+                }
             }
         }
     }
