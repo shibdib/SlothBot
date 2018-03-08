@@ -6,6 +6,7 @@ const STATE_STUCK = 3;
 
 const structureMatrixCache = {};
 const creepMatrixCache = {};
+const borderMatrixCache = {};
 
 function shibMove(creep, heading, options = {}) {
     _.defaults(options, {
@@ -188,6 +189,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     matrix = getCreepMatrix(room);
                     addSksToMatrix(room, matrix);
                 }
+                addBorderToMatrix(room, matrix);
             }
             return matrix;
         };
@@ -356,6 +358,14 @@ function getCreepMatrix(room) {
     return PathFinder.CostMatrix.deserialize(creepMatrixCache[room.name]);
 }
 
+function getBorderMatrix(room, matrix) {
+    if (!borderMatrixCache[room.name] || (!room.memory.borderMatrixTick || Game.time !== room.memory.borderMatrixTick)) {
+        room.memory.borderMatrixTick = Game.time;
+        borderMatrixCache[room.name] = addBorderToMatrix(room, matrix).serialize();
+    }
+    return PathFinder.CostMatrix.deserialize(borderMatrixCache[room.name]);
+}
+
 function addStructuresToMatrix(room, matrix, roadCost) {
     let impassibleStructures = [];
     for (let structure of room.structures) {
@@ -383,6 +393,25 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     }
     for (let structure of impassibleStructures) {
         matrix.set(structure.pos.x, structure.pos.y, 0xff);
+    }
+    return matrix;
+}
+
+function addBorderToMatrix(room, matrix) {
+    let exits = Game.map.describeExits(room.name);
+    if (exits === undefined) {
+        return matrix;
+    }
+    let top = ((_.get(exits, TOP, undefined) === undefined) ? 1 : 0);
+    let right = ((_.get(exits, RIGHT, undefined) === undefined) ? 48 : 49);
+    let bottom = ((_.get(exits, BOTTOM, undefined) === undefined) ? 48 : 49);
+    let left = ((_.get(exits, LEFT, undefined) === undefined) ? 1 : 0);
+    for (let y = top; y <= bottom; ++y) {
+        for (let x = left; x <= right; x += ((y % 49 === 0) ? 1 : 49)) {
+            if (matrix.get(x, y) < 0x03 && Game.map.getTerrainAt(x, y, room.name) !== "wall") {
+                matrix.set(x, y, 0x03);
+            }
+        }
     }
     return matrix;
 }
