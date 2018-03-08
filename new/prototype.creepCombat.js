@@ -272,6 +272,7 @@ Creep.prototype.siege = function () {
         return true;
     }
     this.memory.hitsLost = this.memory.hitsLast - this.hits;
+    if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
     let target;
     if (this.memory.attackType === 'clean') {
         target = this.pos.findClosestByPath(this.room.structures);
