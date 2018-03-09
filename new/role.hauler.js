@@ -120,17 +120,8 @@ function labTech(creep) {
     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
     for (let key in labs) {
-        if (Memory.structures[labs[key].id].itemNeeded && (labs[key].mineralType !== Memory.structures[labs[key].id].itemNeeded || labs[key].mineralAmount < 250)) {
-            if (creep.carry[Memory.structures[labs[key].id].itemNeeded] === 0) {
-                if (_.sum(creep.carry) > 0) {
-                    switch (creep.transfer(storage, Memory.structures[creep.memory.labHelper].itemNeeded)) {
-                        case OK:
-                            return undefined;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(storage);
-                            return undefined;
-                    }
-                }
+        if (Memory.structures[labs[key].id].itemNeeded && (labs[key].mineralType !== Memory.structures[labs[key].id].itemNeeded || (labs[key].mineralType === Memory.structures[labs[key].id].itemNeeded && labs[key].mineralAmount < 250))) {
+            if (creep.carry[Memory.structures[labs[key].id].itemNeeded] === 0 || !creep.carry[Memory.structures[labs[key].id].itemNeeded]) {
                 if (!creep.memory.labHelper && !creep.memory.itemStorage) {
                     if (storage.store[Memory.structures[labs[key].id].itemNeeded] > 0) {
                         creep.memory.labTech = true;
@@ -145,6 +136,15 @@ function labTech(creep) {
                         creep.memory.itemStorage = undefined;
                     }
                     return undefined;
+                }
+                if (_.sum(creep.carry) > 0) {
+                    switch (creep.transfer(storage, Memory.structures[creep.memory.labHelper].itemNeeded)) {
+                        case OK:
+                            return undefined;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(storage);
+                            return undefined;
+                    }
                 }
                 if (creep.memory.itemStorage) {
                     creep.say(ICONS.testPassed);
