@@ -138,12 +138,14 @@ function labTech(creep) {
                     return undefined;
                 }
                 if (_.sum(creep.carry) > 0) {
-                    switch (creep.transfer(storage, Memory.structures[creep.memory.labHelper].itemNeeded)) {
-                        case OK:
-                            return undefined;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(storage);
-                            return undefined;
+                    for (let resourceType in creep.carry) {
+                        switch (creep.transfer(storage, resourceType)) {
+                            case OK:
+                                return undefined;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(storage);
+                                return undefined;
+                        }
                     }
                 }
                 if (creep.memory.itemStorage) {
