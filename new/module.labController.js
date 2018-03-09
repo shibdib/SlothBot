@@ -37,11 +37,13 @@ function manageReactions(room) {
             }
         }
     }
-    if (Game.time % 15 === 0) {
+    if (Game.time % 25 === 0) {
         for (let key in MAKE_THESE_BOOSTS) {
             let boost = MAKE_THESE_BOOSTS[key];
             let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
-            if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + (outputLab.mineralAmount || 0) >= 1000) continue;
+            let fresh = 0;
+            if (outputLab[0]) fresh = outputLab[0].mineralAmount
+            if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + fresh >= 1000) continue;
             let componentOne = BOOST_COMPONENTS[boost][0];
             let componentTwo = BOOST_COMPONENTS[boost][1];
             if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
@@ -53,7 +55,6 @@ function manageReactions(room) {
                     for (let labID in hub) {
                         let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
                         let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
-                        let out = _.filter(hub, (h) => h.memory.itemNeeded === boost)[0];
                         if (!one) {
                             hub[labID].memory = {
                                 itemNeeded: componentOne,
@@ -70,7 +71,7 @@ function manageReactions(room) {
                                 id: hub[labID].id,
                                 active: true
                             };
-                        } else if (!out) {
+                        } else {
                             hub[labID].memory = {
                                 creating: boost,
                                 room: hub[labID].pos.roomName,
