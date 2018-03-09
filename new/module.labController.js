@@ -20,21 +20,27 @@ module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 function manageReactions(room) {
     let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let activeLabs = _.filter(Memory.structures, (s) => s.active);
+    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
     if (activeLabs[0]) {
         for (let key in activeLabs) {
-            let hub = _.filter(Memory.structures, (s) => s.creating === activeLabs[key].creating);
-            let creators = _.pluck(_.filter(hub, (l) => l.itemNeeded), 'id');
-            let output = _.pluck(_.filter(hub, (l) => !l.itemNeeded), 'id');
+            let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating);
+            let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
+            let output = _.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id');
             let creatorOne = Game.getObjectById(creators[0]);
             let creatorTwo = Game.getObjectById(creators[1]);
             let outputLab = Game.getObjectById(output[0]);
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
+            if (outputLab.mineralAmount >= 1000) {
+                creatorOne.memory.active = undefined;
+                creatorTwo.memory.active = undefined;
+                outputLab.memory.active = undefined;
+            }
         }
     }
     if (Game.time % 15 === 0) {
         for (let key in MAKE_THESE_BOOSTS) {
             let boost = MAKE_THESE_BOOSTS[key];
+            if ((storage.store[boost] || 0 + terminal.store[boost] || 0) >= 1000) continue;
             let componentOne = BOOST_COMPONENTS[boost][0];
             let componentTwo = BOOST_COMPONENTS[boost][1];
             if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
