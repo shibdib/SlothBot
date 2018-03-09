@@ -118,7 +118,7 @@ function labTech(creep) {
     let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
     if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
     for (let key in labs) {
-        if (Memory.structures[labs[key].id].itemNeeded && labs[key].store[Memory.structures[labs[key].id].itemNeeded] < 250) {
+        if (Memory.structures[labs[key].id].itemNeeded && (labs[key].mineralType !== Memory.structures[labs[key].id].itemNeeded || labs[key].mineralAmount < 250)) {
             if (creep.carry[Memory.structures[labs[key].id].itemNeeded] === 0) {
                 if (!creep.memory.labHelper && !creep.memory.itemStorage) {
                     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
