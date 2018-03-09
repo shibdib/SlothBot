@@ -149,16 +149,16 @@ Object.defineProperty(Room.prototype, 'level', {
  */
 Object.defineProperty(StructureLab.prototype, 'memory', {
     get: function () {
-        if (Memory.structures === undefined || !Memory.structures) {
-            Memory.structures = {};
+        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
+            Memory.structureMemory = {};
         }
-        if (Memory.structures[this.id] === undefined || !Memory.structures[this.id]) {
-            Memory.structures[this.id] = {};
+        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
+            Memory.structureMemory[this.id] = {};
         }
-        return Memory.structures[this.id];
+        return Memory.structureMemory[this.id];
     },
     set: function (v) {
-        return _.set(Memory, 'structures.' + this.id, v);
+        return _.set(Memory, 'structureMemory.' + this.id, v);
     },
     configurable: true,
     enumerable: false,
