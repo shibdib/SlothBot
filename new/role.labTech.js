@@ -28,7 +28,7 @@ function role(creep) {
         for (let key in labs) {
             if (creep.memory.emptying ||
                 (labs[key].mineralAmount > 0 && labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].mineralType !== labs[key].memory.creating) ||
-                (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.creating)))) {
+                (labs[key].mineralAmount >= 500 && labs[key].mineralType === labs[key].memory.creating)) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
                         switch (creep.transfer(storage, resourceType)) {
