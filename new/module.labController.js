@@ -30,7 +30,7 @@ function manageReactions(room) {
             let creatorTwo = Game.getObjectById(creators[1]);
             let outputLab = Game.getObjectById(output[0]);
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
-            if (outputLab.mineralAmount >= 1000) {
+            if (((storage.store[outputLab.mineralType] || 0) + (terminal.store[outputLab.mineralType] || 0) + outputLab.mineralAmount) >= 1000) {
                 creatorOne.memory.active = undefined;
                 creatorTwo.memory.active = undefined;
                 outputLab.memory.active = undefined;
