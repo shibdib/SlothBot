@@ -44,11 +44,11 @@ function terminalControl(room) {
         }
 
         //extend old orders first
-        extendSellOrders(terminal, myOrders);
+        //extendSellOrders(terminal, myOrders);
 
         //Try to put up a sell, otherwise fill buy
-        placeSellOrders(terminal, globalOrders, myOrders);
-        fillBuyOrders(terminal, globalOrders);
+        //placeSellOrders(terminal, globalOrders, myOrders);
+        //fillBuyOrders(terminal, globalOrders);
 
         //Extend/Place buy orders if we have enough buffer cash
         extendBuyOrders(terminal, globalOrders, myOrders);
