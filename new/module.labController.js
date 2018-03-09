@@ -31,16 +31,17 @@ function manageReactions(room) {
             let outputLab = Game.getObjectById(output[0]);
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
             if (((storage.store[outputLab.mineralType] || 0) + (terminal.store[outputLab.mineralType] || 0) + outputLab.mineralAmount) >= 1000) {
-                creatorOne.memory.active = undefined;
-                creatorTwo.memory.active = undefined;
-                outputLab.memory.active = undefined;
+                if (creatorOne) creatorOne.memory.active = undefined;
+                if (creatorTwo) creatorTwo.memory.active = undefined;
+                if (outputLab) outputLab.memory.active = undefined;
             }
         }
     }
     if (Game.time % 15 === 0) {
         for (let key in MAKE_THESE_BOOSTS) {
             let boost = MAKE_THESE_BOOSTS[key];
-            if ((storage.store[boost] || 0 + terminal.store[boost] || 0) >= 1000) continue;
+            let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
+            if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + (outputLab.mineralAmount || 0) >= 1000) continue;
             let componentOne = BOOST_COMPONENTS[boost][0];
             let componentTwo = BOOST_COMPONENTS[boost][1];
             if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
