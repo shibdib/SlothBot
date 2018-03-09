@@ -20,7 +20,18 @@ module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 function manageReactions(room) {
     let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && (room.memory.reactions && room.memory.reactions[s.id]));
+    let activeLabs = _.filter(Memory.structures, (s) => s.active);
+    if (activeLabs[0]) {
+        for (let key in activeLabs) {
+            let hub = _.filter(Memory.structures, (s) => s.creating === activeLabs[key].creating);
+            let creators = _.pluck(_.filter(hub, (l) => l.itemNeeded), 'id');
+            let output = _.pluck(_.filter(hub, (l) => !l.itemNeeded), 'id');
+            let creatorOne = Game.getObjectById(creators[0]);
+            let creatorTwo = Game.getObjectById(creators[1]);
+            let outputLab = Game.getObjectById(output[0]);
+            if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
+        }
+    }
     for (let key in MAKE_THESE_BOOSTS) {
         let boost = MAKE_THESE_BOOSTS[key];
         if (room.memory.activeReaction) break;
@@ -40,17 +51,20 @@ function manageReactions(room) {
                         Memory.structures[hub[labID].id] = {
                             itemNeeded: componentOne,
                             creating: boost,
+                            room: hub[labID].pos.roomName,
                             active: true
                         };
                     } else if (!two) {
                         Memory.structures[hub[labID].id] = {
                             itemNeeded: componentTwo,
                             creating: boost,
+                            room: hub[labID].pos.roomName,
                             active: true
                         };
                     } else if (!out) {
                         Memory.structures[hub[labID].id] = {
                             creating: boost,
+                            room: hub[labID].pos.roomName,
                             active: true
                         };
                     }
