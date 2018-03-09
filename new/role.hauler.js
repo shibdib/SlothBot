@@ -20,8 +20,8 @@ function role(creep) {
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
-        if (!terminalWorker(creep) && !mineralHauler(creep) && !labTech(creep)) {
-            if (creep.memory.hauling === false) {
+        if (!terminalWorker(creep) && !mineralHauler(creep)) {
+            if (creep.memory.hauling === false && !labTech(creep)) {
                 creep.getEnergy();
                 creep.withdrawEnergy();
             } else {
@@ -118,16 +118,16 @@ function labTech(creep) {
     let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
     if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
     for (let key in labs) {
-        if (labs[key].memory.itemNeeded) {
-            if (creep.carry[labs[key].memory.itemNeeded] !== 0) {
+        if (Memory.structures[labs[key].id].itemNeeded && labs[key].store[Memory.structures[labs[key].id].itemNeeded] < 250) {
+            if (creep.carry[Memory.structures[labs[key].id].itemNeeded] === 0) {
                 if (!creep.memory.labHelper && !creep.memory.itemStorage) {
                     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
                     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-                    if (storage.store[labs[key].memory.itemNeeded] > 0) {
+                    if (storage.store[Memory.structures[labs[key].id].itemNeeded] > 0) {
                         creep.memory.labTech = true;
                         creep.memory.labHelper = labs[key].id;
                         creep.memory.itemStorage = storage.id;
-                    } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
+                    } else if (terminal.store[Memory.structures[labs[key].id].itemNeeded] > 0) {
                         creep.memory.labTech = true;
                         creep.memory.labHelper = labs[key].id;
                         creep.memory.itemStorage = terminal.id;
@@ -137,8 +137,9 @@ function labTech(creep) {
                     }
                 }
                 if (creep.memory.itemStorage) {
+                    creep.say(ICONS.testPassed);
                     creep.memory.storageDestination = labs[key].id;
-                    switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), labs[key].memory.itemNeeded)) {
+                    switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), Memory.structures[labs[key].id].itemNeeded)) {
                         case OK:
                             creep.memory.itemStorage = undefined;
                             return undefined;
@@ -147,6 +148,7 @@ function labTech(creep) {
                     }
                 }
             } else {
+                creep.say(ICONS.testPassed);
                 switch (creep.transfer(Game.getObjectById(creep.memory.labHelper), Game.getObjectById(creep.memory.labHelper).memory.itemNeeded)) {
                     case OK:
                         creep.memory.labHelper = undefined;

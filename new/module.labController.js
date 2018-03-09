@@ -11,7 +11,7 @@ function labManager() {
         let room = Memory.ownedRooms[key];
         let reactionRoom = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom)[0];
         if (!reactionRoom) room.memory.reactionRoom = true;
-        //if (room.memory.reactionRoom) manageReactions(room);
+        if (room.memory.reactionRoom) manageReactions(room);
     }
 }
 
@@ -23,28 +23,36 @@ function manageReactions(room) {
     let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && (room.memory.reactions && room.memory.reactions[s.id]));
     for (let key in MAKE_THESE_BOOSTS) {
         let boost = MAKE_THESE_BOOSTS[key];
-        let boostInProgress = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && (room.memory.reactions && room.memory.reactions[s.id].creating === boost))[0];
-        if (boostInProgress) continue;
+        if (room.memory.activeReaction) break;
         let componentOne = BOOST_COMPONENTS[boost][0];
         let componentTwo = BOOST_COMPONENTS[boost][1];
         if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
-            let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && (!room.memory.reactions || !room.memory.reactions[s.id]) && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && (!room.memory.reactions || !room.memory.reactions[l.id])}).length >= 2)[0];
+            let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !Memory.structures[s.id].active && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && !Memory.structures[s.id].active}).length >= 2)[0];
             if (availableLabs) {
                 log.a(room.name + ' queued ' + boost + ' for creation.');
-                let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && (!room.memory.reactions || !room.memory.reactions[s.id])});
+                room.memory.activeReaction = boost;
+                let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !Memory.structures[s.id].active});
                 for (let labID in hub) {
-                    room.memory.reactions = room.memory.reactions || {};
-                    let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
-                    let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
-                    let out = _.filter(hub, (h) => h.memory.itemNeeded === boost)[0];
+                    let one = _.filter(hub, (h) => Memory.structures[h.id].itemNeeded === componentOne)[0];
+                    let two = _.filter(hub, (h) => Memory.structures[h.id].itemNeeded === componentTwo)[0];
+                    let out = _.filter(hub, (h) => Memory.structures[h.id].itemNeeded === boost)[0];
                     if (!one) {
-                        room.memory.reactions[labID].itemNeeded = componentOne;
-                        room.memory.reactions[labID].creating = boost;
+                        Memory.structures[hub[labID].id] = {
+                            itemNeeded: componentOne,
+                            creating: boost,
+                            active: true
+                        };
                     } else if (!two) {
-                        room.memory.reactions[labID].itemNeeded = componentOne;
-                        room.memory.reactions[labID].creating = boost;
+                        Memory.structures[hub[labID].id] = {
+                            itemNeeded: componentTwo,
+                            creating: boost,
+                            active: true
+                        };
                     } else if (!out) {
-                        room.memory.reactions[labID].creating = boost;
+                        Memory.structures[hub[labID].id] = {
+                            creating: boost,
+                            active: true
+                        };
                     }
                 }
             }
