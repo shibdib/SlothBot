@@ -26,7 +26,9 @@ function role(creep) {
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
-            if (creep.memory.emptying || (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].memory.itemNeeded) || (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.creating)))) {
+            if (creep.memory.emptying ||
+                (labs[key].mineralAmount > 0 && labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].mineralType !== labs[key].memory.creating) ||
+                (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.creating)))) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
                         switch (creep.transfer(storage, resourceType)) {
