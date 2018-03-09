@@ -186,8 +186,7 @@ harvesterContainerBuild = function () {
 };
 Creep.prototype.harvesterContainerBuild = profiler.registerFN(harvesterContainerBuild, 'harvesterContainerBuildCreepFunctions');
 
-withdrawEnergy = function () {
-    let start = Game.cpu.getUsed();
+Creep.prototype.withdrawEnergy = function () {
     if (!this.memory.energyDestination) {
         return null;
     } else {
@@ -202,9 +201,7 @@ withdrawEnergy = function () {
             this.memory.energyDestination = undefined;
         }
     }
-    shib.shibBench('withdrawEnergy', start, Game.cpu.getUsed());
 };
-Creep.prototype.withdrawEnergy = profiler.registerFN(withdrawEnergy, 'withdrawEnergyCreepFunctions');
 
 Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     let energy = [];
