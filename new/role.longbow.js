@@ -12,6 +12,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Responder Mode
     if (creep.memory.responseTarget) {
+        creep.say(ICONS.respond, true);
         if (creep.room.name !== creep.room.responseTarget) {
             let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
             if (hostile) {

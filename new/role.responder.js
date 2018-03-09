@@ -6,6 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    creep.say(ICONS.respond, true);
     creep.room.invaderCheck();
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack', 'ranged']);
     creep.borderCheck();
