@@ -20,8 +20,8 @@ function role(creep) {
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
-        if (!terminalWorker(creep) && !mineralHauler(creep)) {
-            if (creep.memory.hauling === false && !labTech(creep)) {
+        if (!terminalWorker(creep) && !mineralHauler(creep) && !labTech(creep)) {
+            if (creep.memory.hauling === false) {
                 creep.getEnergy();
                 creep.withdrawEnergy();
             } else {
@@ -116,13 +116,22 @@ function terminalWorker(creep) {
 function labTech(creep) {
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
     let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
+    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
     for (let key in labs) {
         if (Memory.structures[labs[key].id].itemNeeded && (labs[key].mineralType !== Memory.structures[labs[key].id].itemNeeded || labs[key].mineralAmount < 250)) {
             if (creep.carry[Memory.structures[labs[key].id].itemNeeded] === 0) {
+                if (_.sum(creep.carry) > 0) {
+                    switch (creep.transfer(storage, Memory.structures[creep.memory.labHelper].itemNeeded)) {
+                        case OK:
+                            return undefined;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(storage);
+                            return undefined;
+                    }
+                }
                 if (!creep.memory.labHelper && !creep.memory.itemStorage) {
-                    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-                    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
                     if (storage.store[Memory.structures[labs[key].id].itemNeeded] > 0) {
                         creep.memory.labTech = true;
                         creep.memory.labHelper = labs[key].id;
@@ -135,6 +144,7 @@ function labTech(creep) {
                         creep.memory.labTech = undefined;
                         creep.memory.itemStorage = undefined;
                     }
+                    return undefined;
                 }
                 if (creep.memory.itemStorage) {
                     creep.say(ICONS.testPassed);
@@ -145,17 +155,25 @@ function labTech(creep) {
                             return undefined;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
+                            return undefined;
                     }
                 }
             } else {
                 creep.say(ICONS.testPassed);
-                switch (creep.transfer(Game.getObjectById(creep.memory.labHelper), Memory.structures[creep.memory.labHelper].itemNeeded)) {
-                    case OK:
-                        creep.memory.labHelper = undefined;
-                        creep.memory.labTech = undefined;
-                        return undefined;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(Game.getObjectById(creep.memory.labHelper));
+                let lab = Game.getObjectById(creep.memory.labHelper);
+                if (lab) {
+                    switch (creep.transfer(lab, Memory.structures[creep.memory.labHelper].itemNeeded)) {
+                        case OK:
+                            creep.memory.labHelper = undefined;
+                            creep.memory.labTech = undefined;
+                            return undefined;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(lab);
+                            return undefined;
+                    }
+                } else {
+                    creep.memory.labHelper = undefined;
+                    creep.memory.labTech = undefined;
                 }
             }
         }
