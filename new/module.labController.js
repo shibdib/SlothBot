@@ -47,7 +47,7 @@ function manageReactions(room) {
                     let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
                     let out = _.filter(hub, (h) => h.memory.itemNeeded === boost)[0];
                     if (!one) {
-                        Memory.structures[hub[labID].id] = {
+                        hub[labID].memory = {
                             itemNeeded: componentOne,
                             creating: boost,
                             room: hub[labID].pos.roomName,
@@ -55,7 +55,7 @@ function manageReactions(room) {
                             active: true
                         };
                     } else if (!two) {
-                        Memory.structures[hub[labID].id] = {
+                        hub[labID].memory = {
                             itemNeeded: componentTwo,
                             creating: boost,
                             room: hub[labID].pos.roomName,
@@ -63,7 +63,7 @@ function manageReactions(room) {
                             active: true
                         };
                     } else if (!out) {
-                        Memory.structures[hub[labID].id] = {
+                        hub[labID].memory = {
                             creating: boost,
                             room: hub[labID].pos.roomName,
                             id: hub[labID].id,
