@@ -31,6 +31,9 @@ function terminalControl(room) {
         //Energy balancer
         balanceEnergy(terminal, energyInRoom);
 
+        //Send minerals to reaction room
+        if (!terminal.room.memory.reactionRoom) supplyReactionRoom(terminal);
+
         //Cleanup broken or old order
         orderCleanup(myOrders);
 
@@ -165,7 +168,7 @@ extendSellOrders = profiler.registerFN(extendSellOrders, 'extendSellOrdersTermin
 function placeSellOrders(terminal, globalOrders, myOrders) {
     resource:
         for (const resourceType in terminal.store) {
-            if (resourceType !== RESOURCE_ENERGY && _.includes(doNotSell, resourceType) === false) {
+            if (resourceType !== RESOURCE_ENERGY && _.includes(doNotSell, resourceType) === false && terminal.store[resourceType] >= 1500) {
                 for (let key in myOrders) {
                     if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL && myOrders[key].roomName === terminal.pos.roomName) {
                         continue resource;
@@ -451,5 +454,15 @@ function balanceEnergy(terminal, energyInRoom) {
     if (needingRooms[0]) cost = Game.market.calcTransactionCost(energyAmount * 0.10, needingRooms[0].name, terminal.room.name);
     if (needingRooms[0] && terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] >= (energyAmount * 0.10) + cost && !terminal.cooldown) {
         terminal.send(RESOURCE_ENERGY, energyAmount * 0.10, needingRooms[0].name, terminal.room.name + ' energy distributed to ' + needingRooms[0].name);
+    }
+}
+
+function supplyReactionRoom(terminal) {
+    for (let i = 0; i < reactionNeeds.length; i++) {
+        let stored = terminal.store[reactionNeeds[i]] || 0;
+        if (stored >= 500) {
+            let reactionRoom = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom).name;
+            terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]);
+        }
     }
 }
