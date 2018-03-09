@@ -21,6 +21,18 @@ function role(creep) {
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
         if (!terminalWorker(creep) && !labTech(creep)) {
+            if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
+                let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+                for (let resourceType in creep.carry) {
+                    switch (creep.transfer(storage, resourceType)) {
+                        case OK:
+                            return undefined;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(storage);
+                            return undefined;
+                    }
+                }
+            }
             if (creep.memory.hauling === false) {
                 creep.getEnergy();
                 creep.withdrawEnergy();
