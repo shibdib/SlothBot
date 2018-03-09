@@ -101,14 +101,18 @@ Creep.prototype.renewalCheck = function (level = 8) {
         }
         let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
         if (spawn) {
-            if (spawn.pos.getRangeTo(this) === 1) {
-                if (!spawn.spawning) spawn.renewCreep(this);
-                if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
-                return true;
+            if (!spawn.spawning) {
+                switch (spawn.renewCreep(this)) {
+                    case OK:
+                        if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
+                        this.say(ICONS.tired);
+                        this.memory.renewing = true;
+                        return true;
+                    case ERR_NOT_IN_RANGE:
+                        this.shibMove(spawn);
+                        return true;
+                }
             }
-            this.say(ICONS.tired);
-            this.memory.renewing = true;
-            return true;
         }
     }
     this.memory.renewing = undefined;

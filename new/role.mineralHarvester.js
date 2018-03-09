@@ -9,8 +9,7 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
-    //if (creep.renewalCheck(6)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
-
+    if (creep.renewalCheck(6)) return null;
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     if (_.sum(creep.carry) === 0) {
