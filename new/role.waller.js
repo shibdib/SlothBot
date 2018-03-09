@@ -7,6 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.getSafe()) {
+        if (creep.renewalCheck(5)) return null;
         if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
         //INITIAL CHECKS
         if (creep.borderCheck()) return null;
