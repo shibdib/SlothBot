@@ -339,8 +339,8 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 0) {
-        let weight = 0.45;
-        if (storageLink.energy > 500) weight = 1.2;
+        let weight = 0.55;
+        if (storageLink.energy > 500) weight = 5;
         const storageDistWeighted = _.round(storageLink.pos.rangeToTarget(this) * weight, 0) + 1;
         energy.push({
             id: storageLink.id,
