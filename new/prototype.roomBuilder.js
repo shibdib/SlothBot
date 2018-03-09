@@ -228,7 +228,8 @@ function buildExtractor(room, structures) {
     if (room.controller.level < 6) return;
     let extractor = _.filter(structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
     if (!extractor) {
-        room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+        let mineral = Game.getObjectById(room.memory.mineralId);
+        mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
     }
 }
 
