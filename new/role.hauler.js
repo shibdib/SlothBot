@@ -121,13 +121,13 @@ function labTech(creep) {
     if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
     for (let key in labs) {
         if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250))) {
-            if (creep.carry[Memory.structures[labs[key].id].itemNeeded] === 0 || !creep.carry[Memory.structures[labs[key].id].itemNeeded]) {
+            if (creep.carry[labs[key].memory.itemNeeded] === 0 || !creep.carry[labs[key].memory.itemNeeded]) {
                 if (!creep.memory.labHelper && !creep.memory.itemStorage) {
-                    if (storage.store[Memory.structures[labs[key].id].itemNeeded] > 0) {
+                    if (storage.store[labs[key].memory.itemNeeded] > 0) {
                         creep.memory.labTech = true;
                         creep.memory.labHelper = labs[key].id;
                         creep.memory.itemStorage = storage.id;
-                    } else if (terminal.store[Memory.structures[labs[key].id].itemNeeded] > 0) {
+                    } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
                         creep.memory.labTech = true;
                         creep.memory.labHelper = labs[key].id;
                         creep.memory.itemStorage = terminal.id;
@@ -151,7 +151,7 @@ function labTech(creep) {
                 if (creep.memory.itemStorage) {
                     creep.say(ICONS.testPassed);
                     creep.memory.storageDestination = labs[key].id;
-                    switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), Memory.structures[labs[key].id].itemNeeded)) {
+                    switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), labs[key].memory.itemNeeded)) {
                         case OK:
                             creep.memory.itemStorage = undefined;
                             return undefined;
@@ -164,7 +164,7 @@ function labTech(creep) {
                 creep.say(ICONS.testPassed);
                 let lab = Game.getObjectById(creep.memory.labHelper);
                 if (lab) {
-                    switch (creep.transfer(lab, Memory.structures[creep.memory.labHelper].itemNeeded)) {
+                    switch (creep.transfer(lab, labs[key].memory.itemNeeded)) {
                         case OK:
                             creep.memory.labHelper = undefined;
                             creep.memory.labTech = undefined;
