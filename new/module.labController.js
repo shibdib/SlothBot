@@ -32,43 +32,45 @@ function manageReactions(room) {
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
         }
     }
-    for (let key in MAKE_THESE_BOOSTS) {
-        let boost = MAKE_THESE_BOOSTS[key];
-        let componentOne = BOOST_COMPONENTS[boost][0];
-        let componentTwo = BOOST_COMPONENTS[boost][1];
-        if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
-            let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
-            if (availableLabs) {
-                log.a(room.name + ' queued ' + boost + ' for creation.');
-                room.memory.activeReaction = boost;
-                let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
-                for (let labID in hub) {
-                    let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
-                    let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
-                    let out = _.filter(hub, (h) => h.memory.itemNeeded === boost)[0];
-                    if (!one) {
-                        hub[labID].memory = {
-                            itemNeeded: componentOne,
-                            creating: boost,
-                            room: hub[labID].pos.roomName,
-                            id: hub[labID].id,
-                            active: true
-                        };
-                    } else if (!two) {
-                        hub[labID].memory = {
-                            itemNeeded: componentTwo,
-                            creating: boost,
-                            room: hub[labID].pos.roomName,
-                            id: hub[labID].id,
-                            active: true
-                        };
-                    } else if (!out) {
-                        hub[labID].memory = {
-                            creating: boost,
-                            room: hub[labID].pos.roomName,
-                            id: hub[labID].id,
-                            active: true
-                        };
+    if (Game.time % 15 === 0) {
+        for (let key in MAKE_THESE_BOOSTS) {
+            let boost = MAKE_THESE_BOOSTS[key];
+            let componentOne = BOOST_COMPONENTS[boost][0];
+            let componentTwo = BOOST_COMPONENTS[boost][1];
+            if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
+                let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
+                if (availableLabs) {
+                    log.a(room.name + ' queued ' + boost + ' for creation.');
+                    room.memory.activeReaction = boost;
+                    let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
+                    for (let labID in hub) {
+                        let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
+                        let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
+                        let out = _.filter(hub, (h) => h.memory.itemNeeded === boost)[0];
+                        if (!one) {
+                            hub[labID].memory = {
+                                itemNeeded: componentOne,
+                                creating: boost,
+                                room: hub[labID].pos.roomName,
+                                id: hub[labID].id,
+                                active: true
+                            };
+                        } else if (!two) {
+                            hub[labID].memory = {
+                                itemNeeded: componentTwo,
+                                creating: boost,
+                                room: hub[labID].pos.roomName,
+                                id: hub[labID].id,
+                                active: true
+                            };
+                        } else if (!out) {
+                            hub[labID].memory = {
+                                creating: boost,
+                                room: hub[labID].pos.roomName,
+                                id: hub[labID].id,
+                                active: true
+                            };
+                        }
                     }
                 }
             }

@@ -16,11 +16,9 @@ function mind() {
         shib.shibBench('highCommand', cpu);
 
     // Handle Labs
-    if (Game.time % 15 === 0) {
-        cpu = Game.cpu.getUsed();
-        labs.labManager();
-        shib.shibBench('labControl', cpu);
-    }
+    cpu = Game.cpu.getUsed();
+    labs.labManager();
+    shib.shibBench('labControl', cpu);
 
     // Process Overlords
     let processed = 0;
