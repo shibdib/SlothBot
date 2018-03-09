@@ -30,10 +30,10 @@ function manageReactions(room) {
             let creatorTwo = Game.getObjectById(creators[1]);
             let outputLab = Game.getObjectById(output[0]);
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
-            if (((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 2500) {
-                if (creatorOne) creatorOne.memory.active = undefined;
-                if (creatorTwo) creatorTwo.memory.active = undefined;
-                if (outputLab) outputLab.memory.active = undefined;
+            if ((((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 2500) || creators.length < 2) {
+                if (creatorOne) creatorOne.memory = undefined;
+                if (creatorTwo) creatorTwo.memory = undefined;
+                if (outputLab) outputLab.memory = undefined;
             }
         }
     }
