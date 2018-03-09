@@ -45,44 +45,12 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'mineralHarvesterRole');
 
 function depositMineral(creep) {
-    if (!creep.memory.containerID) {
-        creep.memory.containerID = mineralContainer(creep);
-    }
-    if (creep.memory.containerID) {
-        creep.room.memory.mineralContainer = creep.memory.containerID;
-        let container = Game.getObjectById(creep.memory.containerID);
-        if (container) {
-            if (_.sum(container.store) !== container.storeCapacity) {
-                for (const resourceType in creep.carry) {
-                    if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(container);
-                    }
-                }
-            }
+    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    for (let resourceType in creep.carry) {
+        switch (creep.transfer(storage, resourceType)) {
+            case OK:
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(storage);
         }
-    } else {
-        let buildSite = Game.getObjectById(creep.containerBuilding());
-        if (!buildSite && creep.memory.containerBuilding !== true) {
-            creep.harvesterContainerBuild();
-        } else {
-            creep.memory.containerBuilding = true;
-        }
-    }
-}
-depositMineral = profiler.registerFN(depositMineral, 'depositMineralWorkers');
-
-function mineralContainer(creep) {
-    let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0});
-    if (container) {
-        if (container.pos.getRangeTo(Game.getObjectById(creep.memory.assignedMineral)) < 3) {
-            if (creep.pos.getRangeTo(container) <= 1) {
-                return container.id;
-            } else {
-                creep.shibMove(container);
-                return container.id;
-            }
-        }
-    } else if (creep.pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0) {
-        creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
     }
 }
