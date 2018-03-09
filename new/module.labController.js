@@ -45,6 +45,12 @@ function manageReactions(room) {
                 if (creatorTwo) creatorTwo.memory = undefined;
                 if (outputLab) outputLab.memory = undefined;
             }
+            outputLab.room.visual.text(
+                '⚗ ' + outputLab.memory.creating,
+                outputLab.pos.x + 1,
+                outputLab.pos.y,
+                {align: 'left', opacity: 0.8}
+            );
         }
     }
     if (Game.time % 25 === 0) {
