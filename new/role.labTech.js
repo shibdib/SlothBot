@@ -10,6 +10,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
+    creep.say(":microscope:", true);
     if (creep.renewalCheck(6)) return null;
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
@@ -73,7 +74,7 @@ function role(creep) {
                         }
                     }
                     if (creep.memory.itemStorage) {
-                        creep.say(ICONS.testPassed);
+                        creep.say(":microscope:", true);
                         creep.memory.storageDestination = labs[key].id;
                         switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), labs[key].memory.itemNeeded)) {
                             case OK:
@@ -85,7 +86,7 @@ function role(creep) {
                         }
                     }
                 } else {
-                    creep.say(ICONS.testPassed);
+                    creep.say(":microscope:", true);
                     let lab = Game.getObjectById(creep.memory.labHelper);
                     if (lab) {
                         switch (creep.transfer(lab, labs[key].memory.itemNeeded)) {
