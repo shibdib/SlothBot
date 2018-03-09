@@ -264,7 +264,7 @@ module.exports.workerCreepQueue = function (room) {
     //Mineral Harvester
     if (level >= 6 && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !room.memory.responseNeeded && room.constructionSites.length === 0) {
         let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
-        let extractor = Game.getObjectById(_.pluck(_.filter(room.memory.structureCache, 'type', 'extractor'), 'id')[0]);
+        let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
         if (mineralHarvesters.length < 1 && extractor) {
             let minerals = room.mineral[0];
             queueCreep(room, PRIORITIES.mineralHarvester, {
