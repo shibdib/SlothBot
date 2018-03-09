@@ -149,7 +149,7 @@ function labTech(creep) {
                 }
             } else {
                 creep.say(ICONS.testPassed);
-                switch (creep.transfer(Game.getObjectById(creep.memory.labHelper), Game.getObjectById(creep.memory.labHelper).memory.itemNeeded)) {
+                switch (creep.transfer(Game.getObjectById(creep.memory.labHelper), Memory.structures[creep.memory.labHelper].itemNeeded)) {
                     case OK:
                         creep.memory.labHelper = undefined;
                         creep.memory.labTech = undefined;
