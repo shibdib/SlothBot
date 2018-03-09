@@ -245,11 +245,17 @@ module.exports.workerCreepQueue = function (room) {
     }
     if (!_.includes(queue, 'hauler')) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-        let amount = 2;
-        if (room.memory.reactionRoom) amount = 3;
-        if (hauler.length < amount || (hauler[0].ticksToLive < 250 && hauler.length < amount + 1)) {
+        if (hauler.length < 2 || (hauler[0].ticksToLive < 250 && hauler.length < 2 + 1)) {
             queueCreep(room, PRIORITIES.hauler, {
                 role: 'hauler'
+            })
+        }
+    }
+    if (!_.includes(queue, 'labTech') && room.memory.reactionRoom) {
+        let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
+        if (labTech.length < 1) {
+            queueCreep(room, PRIORITIES.hauler, {
+                role: 'labTech'
             })
         }
     }

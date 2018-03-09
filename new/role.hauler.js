@@ -20,7 +20,7 @@ function role(creep) {
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
-        if (!terminalWorker(creep) && !labTech(creep)) {
+        if (!terminalWorker(creep)) {
             if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
                 let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
                 for (let resourceType in creep.carry) {
