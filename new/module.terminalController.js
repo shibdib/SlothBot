@@ -34,6 +34,9 @@ function terminalControl(room) {
         //Send minerals to reaction room
         if (!terminal.room.memory.reactionRoom) supplyReactionRoom(terminal);
 
+        //Send boosts from reaction room
+        if (terminal.room.memory.reactionRoom) balanceBoosts(terminal);
+
         //Cleanup broken or old order
         orderCleanup(myOrders);
 
@@ -455,6 +458,20 @@ function balanceEnergy(terminal, energyInRoom) {
     if (needingRooms[0] && terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] >= 5000 + cost && !terminal.cooldown) {
         terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] - 5000, needingRooms[0].name, terminal.room.name + ' energy distributed to ' + needingRooms[0].name);
         log.a(' MARKET: Distributing ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].name + ' From ' + terminal.room.name);
+    }
+}
+
+function balanceBoosts(terminal) {
+    for (let key in END_GAME_BOOSTS) {
+        let otherTerminals = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.reactionRoom);
+        if (terminal.store[END_GAME_BOOSTS[key]] > 500) {
+            for (let id in otherTerminals) {
+                if (otherTerminals[id].store[END_GAME_BOOSTS[key]] < 500) {
+                    terminal.send(END_GAME_BOOSTS[key], terminal.store[END_GAME_BOOSTS[key]] - 500, otherTerminals[id].room.name);
+                    log.a(' MARKET: Distributing ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                }
+            }
+        }
     }
 }
 
