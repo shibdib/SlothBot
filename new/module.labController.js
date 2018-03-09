@@ -43,7 +43,7 @@ function manageReactions(room) {
             let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
             let fresh = 0;
             if (outputLab[0]) fresh = outputLab[0].mineralAmount;
-            if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + fresh >= 1000) continue;
+            if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + fresh >= 250) continue;
             let componentOne = BOOST_COMPONENTS[boost][0];
             let componentTwo = BOOST_COMPONENTS[boost][1];
             if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {

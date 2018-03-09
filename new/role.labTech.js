@@ -24,7 +24,7 @@ function role(creep) {
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
-            if ((labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].memory.itemNeeded) || (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || labs[key].mineralType !== labs[key].memory.creating))) {
+            if ((labs[key].mineralType && labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].memory.itemNeeded) || (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.creating)))) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
                         switch (creep.transfer(storage, resourceType)) {
@@ -49,22 +49,7 @@ function role(creep) {
             }
             if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250))) {
                 if (creep.carry[labs[key].memory.itemNeeded] === 0 || !creep.carry[labs[key].memory.itemNeeded]) {
-                    if (!creep.memory.labHelper && !creep.memory.itemStorage) {
-                        if (storage.store[labs[key].memory.itemNeeded] > 0) {
-                            creep.memory.labTech = true;
-                            creep.memory.labHelper = labs[key].id;
-                            creep.memory.itemStorage = storage.id;
-                        } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
-                            creep.memory.labTech = true;
-                            creep.memory.labHelper = labs[key].id;
-                            creep.memory.itemStorage = terminal.id;
-                        } else {
-                            creep.memory.labTech = undefined;
-                            creep.memory.itemStorage = undefined;
-                        }
-                        return undefined;
-                    }
-                    if (_.sum(creep.carry) > 0) {
+                    if (_.sum(creep.carry) > 0 && !creep.memory.itemStorage) {
                         for (let resourceType in creep.carry) {
                             switch (creep.transfer(storage, resourceType)) {
                                 case OK:
@@ -73,6 +58,17 @@ function role(creep) {
                                     creep.shibMove(storage);
                                     return undefined;
                             }
+                        }
+                    }
+                    if (!creep.memory.itemStorage) {
+                        if (storage.store[labs[key].memory.itemNeeded] > 0) {
+                            creep.memory.labHelper = labs[key].id;
+                            creep.memory.itemStorage = storage.id;
+                        } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
+                            creep.memory.labHelper = labs[key].id;
+                            creep.memory.itemStorage = terminal.id;
+                        } else {
+                            creep.memory.itemStorage = undefined;
                         }
                     }
                     if (creep.memory.itemStorage) {
@@ -94,7 +90,6 @@ function role(creep) {
                         switch (creep.transfer(lab, labs[key].memory.itemNeeded)) {
                             case OK:
                                 creep.memory.labHelper = undefined;
-                                creep.memory.labTech = undefined;
                                 return undefined;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(lab);
