@@ -35,6 +35,16 @@ function manageReactions(room) {
                 if (creatorTwo) creatorTwo.memory = undefined;
                 if (outputLab) outputLab.memory = undefined;
             }
+            if (((storage.store[creatorOne.memory.itemNeeded] || 0) + (terminal.store[creatorOne.memory.itemNeeded] || 0) + creatorOne.itemNeeded) < 100) {
+                if (creatorOne) creatorOne.memory = undefined;
+                if (creatorTwo) creatorTwo.memory = undefined;
+                if (outputLab) outputLab.memory = undefined;
+            }
+            if (((storage.store[creatorTwo.memory.itemNeeded] || 0) + (terminal.store[creatorTwo.memory.itemNeeded] || 0) + creatorTwo.itemNeeded) < 100) {
+                if (creatorOne) creatorOne.memory = undefined;
+                if (creatorTwo) creatorTwo.memory = undefined;
+                if (outputLab) outputLab.memory = undefined;
+            }
         }
     }
     if (Game.time % 25 === 0) {
