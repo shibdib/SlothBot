@@ -100,6 +100,8 @@ function role(creep) {
                         creep.memory.labTech = undefined;
                     }
                 }
+            } else {
+                creep.idleFor(10);
             }
         }
     }
