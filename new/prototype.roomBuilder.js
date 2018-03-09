@@ -34,6 +34,7 @@ Room.prototype.buildRoom = function () {
     buildNuker(this, structures);
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
+    buildExtractor(this, structures);
     if (_.size(Game.constructionSites) > 50) return;
     buildWalls(this, structures);
     buildRoads(this, structures);
@@ -220,6 +221,14 @@ function buildTerminal(room, structures) {
                 position.createConstructionSite(STRUCTURE_TERMINAL);
             }
         }
+    }
+}
+
+function buildExtractor(room, structures) {
+    if (room.controller.level < 6) return;
+    let extractor = _.filter(structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+    if (!extractor) {
+        room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
     }
 }
 
