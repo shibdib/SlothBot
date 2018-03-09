@@ -21,7 +21,6 @@ function role(creep) {
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
         let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
-        let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
