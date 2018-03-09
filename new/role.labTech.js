@@ -52,19 +52,10 @@ function role(creep) {
                     }
                 }
             }
+        }
+        for (let key in labs) {
             if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250))) {
                 if (creep.carry[labs[key].memory.itemNeeded] === 0 || !creep.carry[labs[key].memory.itemNeeded]) {
-                    if (_.sum(creep.carry) > 0 && !creep.memory.itemStorage) {
-                        for (let resourceType in creep.carry) {
-                            switch (creep.transfer(storage, resourceType)) {
-                                case OK:
-                                    return undefined;
-                                case ERR_NOT_IN_RANGE:
-                                    creep.shibMove(storage);
-                                    return undefined;
-                            }
-                        }
-                    }
                     if (!creep.memory.itemStorage) {
                         if (storage.store[labs[key].memory.itemNeeded] > 0) {
                             creep.memory.labHelper = labs[key].id;
