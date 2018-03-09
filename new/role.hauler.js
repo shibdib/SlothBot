@@ -88,7 +88,7 @@ function labTech(creep) {
     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
     for (let key in labs) {
-        if (labs[key].mineralType !== labs[key].memory.itemNeeded || (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || labs[key].mineralType !== labs[key].memory.creating))) {
+        if ((labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].memory.itemNeeded) || (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || labs[key].mineralType !== labs[key].memory.creating))) {
             if (_.sum(creep.carry) > 0) {
                 for (let resourceType in creep.carry) {
                     switch (creep.transfer(storage, resourceType)) {
