@@ -46,7 +46,7 @@ function manageReactions(room) {
                 if (outputLab) outputLab.memory = undefined;
             }
             outputLab.room.visual.text(
-                '⚗ ' + outputLab.memory.creating,
+                ICONS.reaction + ' ' + outputLab.memory.creating,
                 outputLab.pos.x + 1,
                 outputLab.pos.y,
                 {align: 'left', opacity: 0.8}
