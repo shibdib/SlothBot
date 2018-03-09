@@ -24,7 +24,6 @@ function role(creep) {
         let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-        if (!creep.memory.labTech && (!labs[0] || labTech)) return undefined;
         for (let key in labs) {
             if ((labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].memory.itemNeeded) || (!labs[key].memory.itemNeeded && (labs[key].mineralAmount >= 500 || labs[key].mineralType !== labs[key].memory.creating))) {
                 if (_.sum(creep.carry) > 0) {
