@@ -21,6 +21,7 @@ function manageReactions(room) {
     let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
+    // Manage active reactions
     if (activeLabs[0]) {
         for (let key in activeLabs) {
             let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating);
@@ -30,16 +31,19 @@ function manageReactions(room) {
             let creatorTwo = Game.getObjectById(creators[1]);
             let outputLab = Game.getObjectById(output[0]);
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
+            // Enough created
             if ((((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 2500) || creators.length < 2) {
                 if (creatorOne) creatorOne.memory = undefined;
                 if (creatorTwo) creatorTwo.memory = undefined;
                 if (outputLab) outputLab.memory = undefined;
             }
+            // Missing Materials
             if (((storage.store[creatorOne.memory.itemNeeded] || 0) + (terminal.store[creatorOne.memory.itemNeeded] || 0) + creatorOne.mineralAmount) < 100) {
                 if (creatorOne) creatorOne.memory = undefined;
                 if (creatorTwo) creatorTwo.memory = undefined;
                 if (outputLab) outputLab.memory = undefined;
             }
+            // Missing Materials
             if (((storage.store[creatorTwo.memory.itemNeeded] || 0) + (terminal.store[creatorTwo.memory.itemNeeded] || 0) + creatorTwo.mineralAmount) < 100) {
                 if (creatorOne) creatorOne.memory = undefined;
                 if (creatorTwo) creatorTwo.memory = undefined;
