@@ -452,8 +452,9 @@ function balanceEnergy(terminal, energyInRoom) {
     let needingRooms = _.filter(Game.rooms, (r) => r.memory && r.memory.energyNeeded);
     let cost;
     if (needingRooms[0]) cost = Game.market.calcTransactionCost(energyAmount * 0.10, needingRooms[0].name, terminal.room.name);
-    if (needingRooms[0] && terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] >= (energyAmount * 0.10) + cost && !terminal.cooldown) {
-        terminal.send(RESOURCE_ENERGY, energyAmount * 0.10, needingRooms[0].name, terminal.room.name + ' energy distributed to ' + needingRooms[0].name);
+    if (needingRooms[0] && terminal.room.memory.energySurplus && terminal.store[RESOURCE_ENERGY] >= 5000 + cost && !terminal.cooldown) {
+        terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] - 5000, needingRooms[0].name, terminal.room.name + ' energy distributed to ' + needingRooms[0].name);
+        log.w(" MARKET: Distributing Energy To " + needingRooms[0].name);
     }
 }
 
@@ -463,6 +464,7 @@ function supplyReactionRoom(terminal) {
         if (stored >= 500) {
             let reactionRoom = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom).name;
             terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]);
+            log.w(" MARKET: Distributing Minerals To " + reactionRoom);
         }
     }
 }

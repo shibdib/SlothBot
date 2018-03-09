@@ -92,6 +92,7 @@ function role(creep) {
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
                     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+                    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
                     if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70 && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && !_.filter(creep.room.creeps, (c) => c.memory.storageDestination === controllerContainer.id)[0]) {
                         creep.memory.storageDestination = controllerContainer.id;
                         switch (creep.transfer(controllerContainer, RESOURCE_ENERGY)) {
@@ -114,6 +115,20 @@ function role(creep) {
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(controllerLink);
+                                break;
+                            case ERR_FULL:
+                                creep.memory.storageDestination = undefined;
+                                creep.findStorage();
+                                break;
+                        }
+                    } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70 && storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 && terminal.store[RESOURCE_ENERGY] <= 20000) {
+                        creep.memory.storageDestination = storage.id;
+                        switch (creep.transfer(terminal, RESOURCE_ENERGY)) {
+                            case OK:
+                                creep.memory.storageDestination = undefined;
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(terminal);
                                 break;
                             case ERR_FULL:
                                 creep.memory.storageDestination = undefined;
