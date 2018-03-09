@@ -34,7 +34,6 @@ function manageReactions(room) {
     }
     for (let key in MAKE_THESE_BOOSTS) {
         let boost = MAKE_THESE_BOOSTS[key];
-        if (room.memory.activeReaction) break;
         let componentOne = BOOST_COMPONENTS[boost][0];
         let componentTwo = BOOST_COMPONENTS[boost][1];
         if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
@@ -52,6 +51,7 @@ function manageReactions(room) {
                             itemNeeded: componentOne,
                             creating: boost,
                             room: hub[labID].pos.roomName,
+                            id: hub[labID].id,
                             active: true
                         };
                     } else if (!two) {
@@ -59,12 +59,14 @@ function manageReactions(room) {
                             itemNeeded: componentTwo,
                             creating: boost,
                             room: hub[labID].pos.roomName,
+                            id: hub[labID].id,
                             active: true
                         };
                     } else if (!out) {
                         Memory.structures[hub[labID].id] = {
                             creating: boost,
                             room: hub[labID].pos.roomName,
+                            id: hub[labID].id,
                             active: true
                         };
                     }
