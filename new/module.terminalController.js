@@ -462,7 +462,7 @@ function supplyReactionRoom(terminal) {
     for (let i = 0; i < reactionNeeds.length; i++) {
         let stored = terminal.store[reactionNeeds[i]] || 0;
         if (stored >= 500) {
-            let reactionRoom = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom).name;
+            let reactionRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.reactionRoom).name;
             terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]);
             log.w(" MARKET: Distributing Minerals To " + reactionRoom);
         }
