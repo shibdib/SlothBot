@@ -20,7 +20,7 @@ function role(creep) {
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
-        if (!terminalWorker(creep) && !mineralHauler(creep) && !labTech(creep)) {
+        if (!terminalWorker(creep) && !labTech(creep)) {
             if (creep.memory.hauling === false) {
                 creep.getEnergy();
                 creep.withdrawEnergy();
@@ -50,38 +50,6 @@ function role(creep) {
 }
 
 module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
-
-function mineralHauler(creep) {
-    let mineralHauler = _.filter(Game.creeps, (creep) => creep.memory.mineralHauling && creep.memory.overlord === creep.room.name)[0];
-    if (!creep.memory.mineralHauling || !Game.getObjectById(creep.room.memory.mineralContainer) || !mineralHauler) return undefined;
-    if (creep.memory.hauling === false) {
-        if (_.sum(Game.getObjectById(creep.room.memory.mineralContainer).store) > 1000) {
-            creep.memory.mineralHauling = true;
-            let mineralContainer = Game.getObjectById(creep.room.memory.mineralContainer);
-            for (const resourceType in mineralContainer.store) {
-                switch (creep.withdraw(mineralContainer, resourceType)) {
-                    case OK:
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(mineralContainer);
-                }
-            }
-            return true;
-        }
-    } else {
-        let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-        for (let resourceType in creep.carry) {
-            switch (creep.transfer(terminal, resourceType)) {
-                case OK:
-                    creep.memory.mineralHauling = undefined;
-                    return undefined;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(terminal);
-            }
-        }
-        return true;
-    }
-}
 
 function terminalWorker(creep) {
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
