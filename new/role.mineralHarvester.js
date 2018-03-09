@@ -46,7 +46,6 @@ module.exports.role = profiler.registerFN(role, 'mineralHarvesterRole');
 
 function depositMineral(creep) {
     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (creep.room.memory.reactionRoom) storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     for (let resourceType in creep.carry) {
         switch (creep.transfer(storage, resourceType)) {
             case OK:
