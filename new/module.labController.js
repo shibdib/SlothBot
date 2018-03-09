@@ -30,7 +30,7 @@ function manageReactions(room) {
             let creatorTwo = Game.getObjectById(creators[1]);
             let outputLab = Game.getObjectById(output[0]);
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
-            if (((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 1000) {
+            if (((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 2500) {
                 if (creatorOne) creatorOne.memory.active = undefined;
                 if (creatorTwo) creatorTwo.memory.active = undefined;
                 if (outputLab) outputLab.memory.active = undefined;
@@ -42,7 +42,7 @@ function manageReactions(room) {
             let boost = MAKE_THESE_BOOSTS[key];
             let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
             let fresh = 0;
-            if (outputLab[0]) fresh = outputLab[0].mineralAmount
+            if (outputLab[0]) fresh = outputLab[0].mineralAmount;
             if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + fresh >= 1000) continue;
             let componentOne = BOOST_COMPONENTS[boost][0];
             let componentTwo = BOOST_COMPONENTS[boost][1];
