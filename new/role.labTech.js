@@ -20,7 +20,7 @@ function role(creep) {
         if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
     }
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
-    if (creep.isFull) creep.memory.hauling = true;
+    if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
         let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
