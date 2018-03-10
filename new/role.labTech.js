@@ -104,14 +104,38 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'labTechRole');
 
 function droppedResources(creep) {
+    let tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY]})[0];
     let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
-    if (resources) {
+    if (tombstone) {
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         if (_.sum(creep.carry) > 0) {
             for (let resourceType in creep.carry) {
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
-                        return undefined;
+                        return false;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(storage);
+                        return true;
+                }
+            }
+        } else {
+            for (let resourceType in tombstone.store) {
+                switch (creep.withdraw(tombstone, resourceType)) {
+                    case OK:
+                        return true;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(tombstone);
+                        return true;
+                }
+            }
+        }
+    } else if (resources) {
+        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        if (_.sum(creep.carry) > 0) {
+            for (let resourceType in creep.carry) {
+                switch (creep.transfer(storage, resourceType)) {
+                    case OK:
+                        return false;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(storage);
                         return true;
@@ -120,11 +144,13 @@ function droppedResources(creep) {
         } else {
             switch (creep.pickup(resources)) {
                 case OK:
-                    return undefined;
+                    return true;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(resources);
                     return true;
             }
         }
+    } else {
+        return false;
     }
 }
