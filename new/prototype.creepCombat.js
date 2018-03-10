@@ -254,10 +254,13 @@ Creep.prototype.moveToStaging = function () {
 };
 
 Creep.prototype.siege = function () {
-    if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
-        ignoreCreeps: true,
-        range: 20
-    });
+    if (this.room.name !== this.memory.targetRoom) {
+        if (this.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory && (c.memory.role === 'healer' || c.memory.role === 'siegeHealer')}).length < 1) return null;
+        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
+            ignoreCreeps: true,
+            range: 20
+        });
+    }
     let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget)[0];
     if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
     let target;
