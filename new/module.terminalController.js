@@ -466,7 +466,7 @@ function balanceBoosts(terminal) {
         let otherTerminals = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.reactionRoom);
         if (terminal.store[END_GAME_BOOSTS[key]] > 500) {
             for (let id in otherTerminals) {
-                if (otherTerminals[id].store[END_GAME_BOOSTS[key]] < 500) {
+                if (otherTerminals[id].store[END_GAME_BOOSTS[key]] < 500 && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     terminal.send(END_GAME_BOOSTS[key], terminal.store[END_GAME_BOOSTS[key]] - 500, otherTerminals[id].room.name);
                     log.a(' MARKET: Distributing ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                 }
@@ -478,7 +478,8 @@ function balanceBoosts(terminal) {
 function supplyReactionRoom(terminal) {
     for (let i = 0; i < reactionNeeds.length; i++) {
         let stored = terminal.store[reactionNeeds[i]] || 0;
-        if (stored >= 500) {
+        let reactionTerminal = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom)[0];
+        if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.9) {
             let reactionRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.reactionRoom)[0].name;
             terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]);
             log.a(' MARKET: Distributing ' + reactionNeeds[i] + ' To ' + reactionRoom + ' From ' + terminal.room.name);

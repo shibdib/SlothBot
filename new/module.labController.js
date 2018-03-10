@@ -42,7 +42,7 @@ function manageReactions(room) {
                 let techAmount;
                 if (labTech) techAmount = labTech.carry[outputLab.memory.creating] || 0;
                 let total = activeAmount + storageAmount + terminalAmount + techAmount;
-                if (total >= BOOST_AMOUNT) {
+                if (total >= BOOST_AMOUNT * 1.5) {
                     log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                     for (let id in creators) {
                         creators[id].memory = undefined;
@@ -83,43 +83,50 @@ function manageReactions(room) {
                 let alreadyCreating = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === boost)[0];
                 let fresh = 0;
                 if (outputLab[0]) fresh = outputLab[0].mineralAmount;
-                if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + fresh >= 250 || alreadyCreating) continue;
+                let terminalAmount = terminal.store[boost] || 0;
+                let storageAmount = storage.store[boost] || 0;
+                if (terminalAmount + storageAmount + fresh >= BOOST_AMOUNT || alreadyCreating) continue;
+                for (let key in BOOST_COMPONENTS[boost]) {
+                    let storageAmount = storage.store[BOOST_COMPONENTS[boost][key]] || 0;
+                    let terminalAmount = terminal.store[BOOST_COMPONENTS[boost][key]] || 0;
+                    let techAmount;
+                    if (labTech) techAmount = labTech.carry[BOOST_COMPONENTS[boost][key]] || 0;
+                    if (storageAmount + terminalAmount + techAmount < 500) continue boost;
+                }
                 let componentOne = BOOST_COMPONENTS[boost][0];
                 let componentTwo = BOOST_COMPONENTS[boost][1];
-                if (((storage.store[componentOne] || 0) + (terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0) + (terminal.store[componentTwo] || 0) > 500)) {
-                    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
-                    if (availableLabs) {
-                        log.a(room.name + ' queued ' + boost + ' for creation.');
-                        room.memory.activeReaction = boost;
-                        let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
-                        for (let labID in hub) {
-                            let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
-                            let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
-                            if (!one) {
-                                hub[labID].memory = {
-                                    itemNeeded: componentOne,
-                                    creating: boost,
-                                    room: hub[labID].pos.roomName,
-                                    id: hub[labID].id,
-                                    active: true
-                                };
-                            } else if (!two) {
-                                hub[labID].memory = {
-                                    itemNeeded: componentTwo,
-                                    creating: boost,
-                                    room: hub[labID].pos.roomName,
-                                    id: hub[labID].id,
-                                    active: true
-                                };
-                            } else {
-                                hub[labID].memory = {
-                                    creating: boost,
-                                    room: hub[labID].pos.roomName,
-                                    id: hub[labID].id,
-                                    active: true
-                                };
-                                break boost;
-                            }
+                let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
+                if (availableLabs) {
+                    log.a(room.name + ' queued ' + boost + ' for creation.');
+                    room.memory.activeReaction = boost;
+                    let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
+                    for (let labID in hub) {
+                        let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
+                        let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
+                        if (!one) {
+                            hub[labID].memory = {
+                                itemNeeded: componentOne,
+                                creating: boost,
+                                room: hub[labID].pos.roomName,
+                                id: hub[labID].id,
+                                active: true
+                            };
+                        } else if (!two) {
+                            hub[labID].memory = {
+                                itemNeeded: componentTwo,
+                                creating: boost,
+                                room: hub[labID].pos.roomName,
+                                id: hub[labID].id,
+                                active: true
+                            };
+                        } else {
+                            hub[labID].memory = {
+                                creating: boost,
+                                room: hub[labID].pos.roomName,
+                                id: hub[labID].id,
+                                active: true
+                            };
+                            break boost;
                         }
                     }
                 }
