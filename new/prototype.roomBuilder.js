@@ -376,9 +376,9 @@ function buildRoads(room, structures) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
     }
-    for (let key in extensions) {
+    /**for (let key in extensions) {
         buildRoadFromTo(room, spawner, extensions[key]);
-    }
+    }**/
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);
         let target = room.controller.pos.findClosestByRange(room.sources);
