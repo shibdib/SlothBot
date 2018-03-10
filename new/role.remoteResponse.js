@@ -49,7 +49,7 @@ function role(creep) {
     } else {
         if (!creep.handleDefender()) {
             let structuresInRoom = creep.room.find(FIND_STRUCTURES,  {filter: (s) => s.owner && !_.includes(FRIENDLIES, s.owner['username'])});
-            let vulnerableStructure = creep.pos.findClosestByPath(_.filter(structuresInRoom, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTROLLER && !s.pos.checkForRampart()));
+            let vulnerableStructure = creep.pos.findClosestByPath(_.filter(structuresInRoom, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_CONTROLLER && !s.pos.checkForRampart()));
             if (vulnerableStructure) {
                 creep.memory.inCombat = undefined;
                 if (creep.pos.getRangeTo(vulnerableStructure) <= 3) creep.rangedAttack(vulnerableStructure);
