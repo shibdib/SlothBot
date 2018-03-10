@@ -414,8 +414,8 @@ Creep.prototype.squadHeal = function () {
 
 Creep.prototype.siegeHeal = function () {
     let range;
-    let deconstructor = shuffle(_.filter(Game.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'deconstructor' && c.memory.targetRoom === this.memory.targetRoom))[0];
-    let creepToHeal = _.min(_.filter(Game.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.role === 'deconstructor' && c.memory.targetRoom === this.memory.targetRoom && c.hits < c.hitsMax), 'hits')[0];
+    let deconstructor = shuffle(_.filter(Game.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) && (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom))[0];
+    let creepToHeal = _.min(_.filter(Game.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.targetRoom === this.memory.targetRoom && c.hits < c.hitsMax), 'hits')[0];
     if (creepToHeal) {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1) {
