@@ -13,8 +13,8 @@ let protectedStructures = [
 
 Room.prototype.buildRoom = function () {
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
+    let structures = this.structures;
     if (_.size(Game.constructionSites) > 75) return;
-    let structures = this.find(FIND_STRUCTURES);
     if (!this.memory.extensionHub) {
         for (let key in Game.spawns) {
             if (Game.spawns[key].pos.roomName === this.name) {
@@ -376,9 +376,9 @@ function buildRoads(room, structures) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
     }
-    /**for (let key in extensions) {
+    for (let key in extensions) {
         buildRoadFromTo(room, spawner, extensions[key]);
-    }**/
+    }
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);
         let target = room.controller.pos.findClosestByRange(room.sources);
@@ -417,7 +417,9 @@ function buildRoadFromTo(room, start, end) {
         maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
     });
     for (let point of path) {
-        buildRoad(new RoomPosition(point.x, point.y, room.name));
+        let pos = new RoomPosition(point.x, point.y, room.name);
+        if (pos.checkForImpassible()) continue;
+        buildRoad(pos);
     }
 }
 
@@ -425,7 +427,9 @@ function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
-                buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name));
+                let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
+                if (pos.checkForImpassible()) continue;
+                buildRoad(pos);
             }
         }
     }
