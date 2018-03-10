@@ -4,13 +4,13 @@ Creep.prototype.siegeRoom = function () {
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
         let hostile = this.findClosestEnemy();
-        if (this.memory.role === 'deconstructor') {
-            return this.siege(hostile);
+        if (this.memory.role === 'deconstructor' || this.memory.role === 'siegeEngine') {
+            return this.siege();
         } else if (this.memory.role === 'longbow') {
             return this.fightRanged(hostile);
         } else if (this.memory.role === 'attacker') {
             this.handleDefender();
-        } else if (this.memory.role === 'healer') {
+        } else if (this.memory.role === 'healer' || this.memory.role === 'siegeHealer') {
             this.siegeHeal();
         }
     }

@@ -216,7 +216,7 @@ Creep.prototype.fightRanged = function (target) {
     } else {
         let opportunity = _.min(_.filter(this.pos.findInRange(FIND_CREEPS, 3), (c) => _.includes(FRIENDLIES, c.owner['username']) === false), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
-        if (this.pos.findInRange(FIND_CREEPS, 1) > 0) {
+        if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
             this.shibMove(target, {forceRepath: true, ignoreCreeps: false, range: 3, ignoreRoads: true});
         } else {
             this.shibMove(target, {forceRepath: true, range: 3, ignoreRoads: true});
@@ -258,7 +258,7 @@ Creep.prototype.siege = function () {
         ignoreCreeps: true,
         range: 20
     });
-    let sharedTarget = _.filter(Game.creeps, (c) => c.memory.siegeTarget)[0];
+    let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget)[0];
     if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
     let target;
     if (Game.getObjectById(this.memory.siegeTarget)) {
@@ -351,6 +351,7 @@ Creep.prototype.siege = function () {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
                 this.heal(this);
+                if (this.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory && (c.memory.role === 'healer' || c.memory.role === 'siegeHealer')}).length < 1) return null;
                 this.shibMove(target, {ignoreCreeps: true});
                 this.memory.siegeTarget = undefined;
                 break;
@@ -419,10 +420,10 @@ Creep.prototype.siegeHeal = function () {
         range = this.pos.getRangeTo(creepToHeal);
         if (range <= 1) {
             this.heal(creepToHeal);
-            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: true});
+            this.shibMove(creepToHeal, {range: 0, ignoreCreeps: true});
         } else {
             this.rangedHeal(creepToHeal);
-            this.shibMove(creepToHeal, {movingTarget: true, ignoreCreeps: true});
+            this.shibMove(creepToHeal, {range: 0, ignoreCreeps: true});
         }
         return true;
     }
@@ -430,10 +431,10 @@ Creep.prototype.siegeHeal = function () {
     range = this.pos.getRangeTo(deconstructor);
     if (range <= 1) {
         this.heal(deconstructor);
-        this.shibMove(deconstructor, {movingTarget: true, ignoreCreeps: true});
+        this.shibMove(deconstructor, {range: 0, ignoreCreeps: true});
     } else {
         if (range <= 4) this.rangedHeal(deconstructor);
-        this.shibMove(deconstructor, {movingTarget: true, ignoreCreeps: true});
+        this.shibMove(deconstructor, {range: 0, ignoreCreeps: true});
     }
 };
 

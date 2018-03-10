@@ -32,19 +32,19 @@ function manageReactions(room) {
             let outputLab = Game.getObjectById(output[0]);
             if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
             // Enough created
-            if ((((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 2500) || creators.length < 2) {
+            if (!outputLab || (((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 2500) || creators.length < 2) {
                 if (creatorOne) creatorOne.memory = undefined;
                 if (creatorTwo) creatorTwo.memory = undefined;
                 if (outputLab) outputLab.memory = undefined;
             }
             // Missing Materials
-            if (((storage.store[creatorOne.memory.itemNeeded] || 0) + (terminal.store[creatorOne.memory.itemNeeded] || 0) + creatorOne.mineralAmount) < 100) {
+            if (!creatorOne || ((storage.store[creatorOne.memory.itemNeeded] || 0) + (terminal.store[creatorOne.memory.itemNeeded] || 0) + creatorOne.mineralAmount) < 100) {
                 if (creatorOne) creatorOne.memory = undefined;
                 if (creatorTwo) creatorTwo.memory = undefined;
                 if (outputLab) outputLab.memory = undefined;
             }
             // Missing Materials
-            if (((storage.store[creatorTwo.memory.itemNeeded] || 0) + (terminal.store[creatorTwo.memory.itemNeeded] || 0) + creatorTwo.mineralAmount) < 100) {
+            if (!creatorTwo || ((storage.store[creatorTwo.memory.itemNeeded] || 0) + (terminal.store[creatorTwo.memory.itemNeeded] || 0) + creatorTwo.mineralAmount) < 100) {
                 if (creatorOne) creatorOne.memory = undefined;
                 if (creatorTwo) creatorTwo.memory = undefined;
                 if (outputLab) outputLab.memory = undefined;
