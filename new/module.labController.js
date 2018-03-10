@@ -20,42 +20,51 @@ module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 function manageReactions(room) {
     let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    let labTech = _.filter(room.creeps, (c) => c.memory && c.memory.role === 'labTech')[0];
     let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
     // Manage active reactions
     if (activeLabs[0]) {
-        for (let key in activeLabs) {
-            let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating);
-            let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
-            let output = _.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id');
-            let creatorOne = Game.getObjectById(creators[0]);
-            let creatorTwo = Game.getObjectById(creators[1]);
-            let outputLab = Game.getObjectById(output[0]);
-            if (!outputLab.cooldown) outputLab.runReaction(creatorOne, creatorTwo);
-            // Enough created
-            if (!outputLab || (((storage.store[outputLab.memory.creating] || 0) + (terminal.store[outputLab.memory.creating] || 0) + outputLab.mineralAmount) >= 2500) || creators.length < 2) {
-                if (creatorOne) creatorOne.memory = undefined;
-                if (creatorTwo) creatorTwo.memory = undefined;
-                if (outputLab) outputLab.memory = undefined;
+        active:
+            for (let key in activeLabs) {
+                let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating);
+                let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
+                let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
+                if (!outputLab.cooldown) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
+                // Enough created
+                let activeAmount = outputLab.mineralAmount || 0;
+                let storageAmount = storage.store[outputLab.memory.creating] || 0;
+                let terminalAmount = terminal.store[outputLab.memory.creating] || 0;
+                let techAmount = labTech.carry[outputLab.memory.creating] || 0;
+                let total = activeAmount + storageAmount + terminalAmount + techAmount;
+                if (total >= BOOST_AMOUNT) {
+                    for (let id in creators) {
+                        creators[id].memory = undefined;
+                    }
+                    outputLab.memory = undefined;
+                    continue;
+                }
+                for (let id in creators) {
+                    let lab = Game.getObjectById(creators[id]);
+                    let activeAmount = lab.mineralAmount || 0;
+                    let storageAmount = storage.store[lab.memory.itemNeeded] || 0;
+                    let terminalAmount = terminal.store[lab.memory.itemNeeded] || 0;
+                    let techAmount = labTech.carry[lab.memory.itemNeeded] || 0;
+                    let total = activeAmount + storageAmount + terminalAmount + techAmount;
+                    if (total < 100) {
+                        for (let id in creators) {
+                            creators[id].memory = undefined;
+                        }
+                        outputLab.memory = undefined;
+                        continue active;
+                    }
+                }
+                outputLab.room.visual.text(
+                    ICONS.reaction + ' ' + outputLab.memory.creating,
+                    outputLab.pos.x,
+                    outputLab.pos.y,
+                    {align: 'left', opacity: 0.8}
+                );
             }
-            // Missing Materials
-            if (!creatorOne || ((storage.store[creatorOne.memory.itemNeeded] || 0) + (terminal.store[creatorOne.memory.itemNeeded] || 0) + creatorOne.mineralAmount) < 100) {
-                if (creatorOne) creatorOne.memory = undefined;
-                if (creatorTwo) creatorTwo.memory = undefined;
-                if (outputLab) outputLab.memory = undefined;
-            }
-            // Missing Materials
-            if (!creatorTwo || ((storage.store[creatorTwo.memory.itemNeeded] || 0) + (terminal.store[creatorTwo.memory.itemNeeded] || 0) + creatorTwo.mineralAmount) < 100) {
-                if (creatorOne) creatorOne.memory = undefined;
-                if (creatorTwo) creatorTwo.memory = undefined;
-                if (outputLab) outputLab.memory = undefined;
-            }
-            outputLab.room.visual.text(
-                ICONS.reaction + ' ' + outputLab.memory.creating,
-                outputLab.pos.x,
-                outputLab.pos.y,
-                {align: 'left', opacity: 0.8}
-            );
-        }
     }
     if (Game.time % 25 === 0) {
         boost:

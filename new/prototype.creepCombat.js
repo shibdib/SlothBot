@@ -255,15 +255,15 @@ Creep.prototype.moveToStaging = function () {
 
 Creep.prototype.siege = function () {
     if (this.room.name !== this.memory.targetRoom) {
-        if (this.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory && (c.memory.role === 'healer' || c.memory.role === 'siegeHealer')}).length < 1) return null;
+        if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1) return null;
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
             ignoreCreeps: true,
             range: 20
         });
     }
+    let target;
     let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget)[0];
     if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
-    let target;
     if (Game.getObjectById(this.memory.siegeTarget)) {
         let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))}), 'hits');
         if (lowHit) {
@@ -354,15 +354,17 @@ Creep.prototype.siege = function () {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
                 this.heal(this);
-                if (this.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory && (c.memory.role === 'healer' || c.memory.role === 'siegeHealer')}).length < 1) return null;
+                if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1) return null;
                 this.shibMove(target, {ignoreCreeps: true});
                 this.memory.siegeTarget = undefined;
                 break;
             case ERR_NO_BODYPART:
+                this.heal(this);
                 if (this.getActiveBodyparts(ATTACK) > 0) this.attack(target);
                 this.shibMove(target, {ignoreCreeps: true});
                 break;
             case OK:
+                this.heal(this);
                 return true;
 
         }
@@ -416,28 +418,22 @@ Creep.prototype.squadHeal = function () {
 };
 
 Creep.prototype.siegeHeal = function () {
-    let range;
-    let deconstructor = shuffle(_.filter(Game.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) && (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom))[0];
-    let creepToHeal = _.min(_.filter(Game.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) && c.memory.targetRoom === this.memory.targetRoom && c.hits < c.hitsMax), 'hits')[0];
-    if (creepToHeal) {
-        range = this.pos.getRangeTo(creepToHeal);
-        if (range <= 1) {
-            this.heal(creepToHeal);
-            this.shibMove(creepToHeal, {range: 0, ignoreCreeps: true});
-        } else {
-            this.rangedHeal(creepToHeal);
-            this.shibMove(creepToHeal, {range: 0, ignoreCreeps: true});
-        }
-        return true;
-    }
-    if (!deconstructor) return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
-    range = this.pos.getRangeTo(deconstructor);
-    if (range <= 1) {
-        this.heal(deconstructor);
-        this.shibMove(deconstructor, {range: 0, ignoreCreeps: true});
+    if (!this.memory.healTarget) {
+        let deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
+        this.memory.healTarget = deconstructor.id;
+        deconstructor.memory.healer = this.id;
     } else {
-        if (range <= 4) this.rangedHeal(deconstructor);
+        if (!Game.getObjectById(this.memory.healTarget)) return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
+        let deconstructor = Game.getObjectById(this.memory.healTarget);
         this.shibMove(deconstructor, {range: 0, ignoreCreeps: true});
+        let range = this.pos.getRangeTo(deconstructor);
+        if (this.hits === this.hitsMax) {
+            if (range <= 1) {
+                this.heal(deconstructor);
+            } else if (1 < range <= 4) this.rangedHeal(deconstructor);
+        } else {
+            this.heal(this);
+        }
     }
 };
 

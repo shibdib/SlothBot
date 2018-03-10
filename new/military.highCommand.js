@@ -8,7 +8,7 @@ function highCommand() {
     manualAttacks();
     if (Game.time % 150 === 0) {
         for (let key in Memory.ownedRooms) {
-            let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 1000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
+            let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
             if (cleaningTargets.length > 0) {
                 Memory.ownedRooms[key].memory.cleaningTargets = cleaningTargets;
             }
