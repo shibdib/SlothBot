@@ -26,15 +26,21 @@ function manageReactions(room) {
     if (activeLabs[0]) {
         active:
             for (let key in activeLabs) {
-                let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating);
+                let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating && s.memory.active);
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
+                if (!outputLab) {
+                    for (let id in hub) {
+                        hub[id].memory = undefined;
+                    }
+                }
                 if (!outputLab.cooldown) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
                 let activeAmount = outputLab.mineralAmount || 0;
                 let storageAmount = storage.store[outputLab.memory.creating] || 0;
                 let terminalAmount = terminal.store[outputLab.memory.creating] || 0;
-                let techAmount = labTech.carry[outputLab.memory.creating] || 0;
+                let techAmount;
+                if (labTech) techAmount = labTech.carry[outputLab.memory.creating] || 0;
                 let total = activeAmount + storageAmount + terminalAmount + techAmount;
                 if (total >= BOOST_AMOUNT) {
                     for (let id in creators) {
@@ -48,7 +54,8 @@ function manageReactions(room) {
                     let activeAmount = lab.mineralAmount || 0;
                     let storageAmount = storage.store[lab.memory.itemNeeded] || 0;
                     let terminalAmount = terminal.store[lab.memory.itemNeeded] || 0;
-                    let techAmount = labTech.carry[lab.memory.itemNeeded] || 0;
+                    let techAmount;
+                    if (labTech) techAmount = labTech.carry[lab.memory.itemNeeded] || 0;
                     let total = activeAmount + storageAmount + terminalAmount + techAmount;
                     if (total < 100) {
                         for (let id in creators) {
