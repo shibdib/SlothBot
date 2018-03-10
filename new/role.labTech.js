@@ -69,6 +69,18 @@ function role(creep) {
                         }
                     }
                     if (creep.memory.itemStorage) {
+                        if (_.sum(creep.carry) > creep.carry[labs[key].memory.itemNeeded] || (_.sum(creep.carry) > 0 && !creep.carry[labs[key].memory.itemNeeded])) {
+                            for (let resourceType in creep.carry) {
+                                switch (creep.transfer(storage, resourceType)) {
+                                    case OK:
+                                        creep.memory.emptying = undefined;
+                                        return undefined;
+                                    case ERR_NOT_IN_RANGE:
+                                        creep.shibMove(storage);
+                                        return undefined;
+                                }
+                            }
+                        }
                         creep.memory.storageDestination = labs[key].id;
                         switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), labs[key].memory.itemNeeded)) {
                             case OK:
