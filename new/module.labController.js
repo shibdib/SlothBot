@@ -68,7 +68,7 @@ function manageReactions(room) {
                 if ((storage.store[boost] || 0) + (terminal.store[boost] || 0) + fresh >= 250 || alreadyCreating) continue;
                 let componentOne = BOOST_COMPONENTS[boost][0];
                 let componentTwo = BOOST_COMPONENTS[boost][1];
-                if (((storage.store[componentOne] || 0 + terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0 + terminal.store[componentTwo] || 0) > 500)) {
+                if (((storage.store[componentOne] || 0) + (terminal.store[componentOne] || 0) > 500) && ((storage.store[componentTwo] || 0) + (terminal.store[componentTwo] || 0) > 500)) {
                     let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
                     if (availableLabs) {
                         log.a(room.name + ' queued ' + boost + ' for creation.');
