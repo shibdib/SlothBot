@@ -104,7 +104,7 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'labTechRole');
 
 function droppedResources(creep) {
-    let resources = creep.room.find(FIND_DROPPED_RESOURCES)[0];
+    let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
     if (resources) {
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         if (_.sum(creep.carry) > 0) {
