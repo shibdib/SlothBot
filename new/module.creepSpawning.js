@@ -5,19 +5,19 @@ module.exports.processBuildQueue = function () {
         let level = getLevel(spawn.room);
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
-                let queue;
-                if (level >= 6) {
-                    queue = Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue);
-                } else {
-                    queue = spawn.room.memory.creepBuildQueue;
-                }
-                let topPriority = _.min(queue, 'importance');
-                let role = topPriority.role;
+                let queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
+                let topPriority;
                 let body;
-                if (topPriority.reboot) {
-                    body = _.get(SPAWN[1], role);
-                } else {
-                    body = _.get(SPAWN[level], role);
+                let role;
+                for (let key in queue) {
+                    topPriority = queue[key];
+                    role = topPriority.role;
+                    if (topPriority.reboot) {
+                        body = _.get(SPAWN[1], role);
+                    } else {
+                        body = _.get(SPAWN[level], role);
+                    }
+                    if (body) break;
                 }
                 if (topPriority && typeof topPriority === 'object') {
                     _.defaults(topPriority, {
