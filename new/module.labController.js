@@ -43,6 +43,7 @@ function manageReactions(room) {
                 if (labTech) techAmount = labTech.carry[outputLab.memory.creating] || 0;
                 let total = activeAmount + storageAmount + terminalAmount + techAmount;
                 if (total >= BOOST_AMOUNT) {
+                    log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                     for (let id in creators) {
                         creators[id].memory = undefined;
                     }
@@ -58,6 +59,7 @@ function manageReactions(room) {
                     if (labTech) techAmount = labTech.carry[lab.memory.itemNeeded] || 0;
                     let total = activeAmount + storageAmount + terminalAmount + techAmount;
                     if (total < 100) {
+                        log.a(room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                         for (let id in creators) {
                             creators[id].memory = undefined;
                         }
