@@ -371,9 +371,13 @@ function buildRoads(room, structures) {
     if (room.controller.level < 3 || _.size(Game.constructionSites) >= 45) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.mineral[0];
+    let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     for (let source of room.sources) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
+    }
+    for (let key in extensions) {
+        buildRoadFromTo(room, spawner, extensions[key]);
     }
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);
