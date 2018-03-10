@@ -32,7 +32,7 @@ function role(creep) {
                 (labs[key].mineralAmount >= 500 && labs[key].mineralType === labs[key].memory.creating)) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
-                        if (!_.includes(END_GAME_BOOSTS, resourceType)) {
+                        if (!_.includes(END_GAME_BOOSTS, resourceType) || _.sum(terminal.store) >= terminal.storeCapacity * 0.99) {
                             switch (creep.transfer(storage, resourceType)) {
                                 case OK:
                                     creep.memory.emptying = undefined;
