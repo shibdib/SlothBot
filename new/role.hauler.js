@@ -80,7 +80,7 @@ function terminalWorker(creep) {
             }
             return true;
         }
-    } else {
+    } else if (creep.memory.terminalWorker) {
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
