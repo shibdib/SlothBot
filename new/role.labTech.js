@@ -97,16 +97,27 @@ function role(creep) {
                 }
             }
         }
-        creep.idleFor(10);
+        if (_.sum(creep.carry) > 0) {
+            for (let resourceType in creep.carry) {
+                switch (creep.transfer(storage, resourceType)) {
+                    case OK:
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(storage);
+                }
+            }
+        } else {
+            creep.idleFor(10);
+        }
     }
 }
 
 module.exports.role = profiler.registerFN(role, 'labTechRole');
 
 function droppedResources(creep) {
-    let tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY]})[0];
+    let tombstone;
+    if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name)) tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY]})[0];
     let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
-    if (tombstone) {
+    if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name) && tombstone) {
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         if (_.sum(creep.carry) > 0) {
             for (let resourceType in creep.carry) {
