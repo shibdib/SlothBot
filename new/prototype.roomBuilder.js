@@ -14,6 +14,11 @@ let protectedStructures = [
 Room.prototype.buildRoom = function () {
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     let structures = this.structures;
+    for (let key in this.structures) {
+        if (this.structures[key].structureType === STRUCTURE_ROAD) {
+            if (this.structures[key].pos.checkForImpassible()) this.structures[key].destroy();
+        }
+    }
     if (_.size(Game.constructionSites) > 75) return;
     if (!this.memory.extensionHub) {
         for (let key in Game.spawns) {
