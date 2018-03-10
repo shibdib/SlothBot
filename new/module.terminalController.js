@@ -69,7 +69,7 @@ module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalC
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (const resourceType in terminal.store) {
-            if (!_.includes(END_GAME_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT) {
+            if (!_.includes(END_GAME_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT && resourceType !== RESOURCE_ENERGY) {
                 let sellableAmount = terminal.store[resourceType] - SELL_OFF_AMOUNT;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
