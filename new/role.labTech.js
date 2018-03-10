@@ -22,6 +22,7 @@ function role(creep) {
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
+        if (droppedResources(creep)) return null;
         let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
@@ -101,3 +102,29 @@ function role(creep) {
 }
 
 module.exports.role = profiler.registerFN(role, 'labTechRole');
+
+function droppedResources(creep) {
+    let resources = creep.room.droppedResources[0];
+    if (resources) {
+        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        if (_.sum(creep.carry) > 0) {
+            for (let resourceType in creep.carry) {
+                switch (creep.transfer(storage, resourceType)) {
+                    case OK:
+                        return undefined;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(storage);
+                        return true;
+                }
+            }
+        } else {
+            switch (creep.pickup(resources)) {
+                case OK:
+                    return undefined;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(resources);
+                    return true;
+            }
+        }
+    }
+}

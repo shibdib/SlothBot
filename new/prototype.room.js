@@ -111,6 +111,28 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'droppedResources', {
+    get: function () {
+        if (!this.droppedResources) {
+            this.droppedResources = this.find(FIND_DROPPED_RESOURCES);
+        }
+        return this.droppedResources;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'droppedEnergy', {
+    get: function () {
+        if (!this.droppedEnergy) {
+            this.droppedEnergy = this.find(FIND_DROPPED_ENERGY);
+        }
+        return this.droppedEnergy;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'creeps', {
     get: function () {
         if (!this._creeps) {
