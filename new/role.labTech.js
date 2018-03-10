@@ -32,13 +32,24 @@ function role(creep) {
                 (labs[key].mineralAmount >= 500 && labs[key].mineralType === labs[key].memory.creating)) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
-                        switch (creep.transfer(storage, resourceType)) {
-                            case OK:
-                                creep.memory.emptying = undefined;
-                                return undefined;
-                            case ERR_NOT_IN_RANGE:
-                                creep.shibMove(storage);
-                                return undefined;
+                        if (!_.includes(END_GAME_BOOSTS, resourceType)) {
+                            switch (creep.transfer(storage, resourceType)) {
+                                case OK:
+                                    creep.memory.emptying = undefined;
+                                    return undefined;
+                                case ERR_NOT_IN_RANGE:
+                                    creep.shibMove(storage);
+                                    return undefined;
+                            }
+                        } else {
+                            switch (creep.transfer(terminal, resourceType)) {
+                                case OK:
+                                    creep.memory.emptying = undefined;
+                                    return undefined;
+                                case ERR_NOT_IN_RANGE:
+                                    creep.shibMove(terminal);
+                                    return undefined;
+                            }
                         }
                     }
                 } else {
