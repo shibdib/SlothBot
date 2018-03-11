@@ -257,8 +257,10 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     if (!_.includes(queue, 'labTech') && room.memory.reactionRoom) {
+        let amount = 1;
+        if (level > 6) amount = 2;
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
-        if (labTech.length < 1) {
+        if (labTech.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {
                 role: 'labTech'
             })
