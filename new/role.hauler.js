@@ -153,7 +153,7 @@ function boostDelivery(creep) {
             switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), lab.memory.neededBoost)) {
                 case OK:
                     creep.memory.itemStorage = undefined;
-                    return undefined;
+                    return true;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
                     creep.memory.labTech = true;
