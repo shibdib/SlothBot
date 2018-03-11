@@ -23,7 +23,7 @@ function role(creep) {
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
         if (droppedResources(creep)) return null;
-        let labs = shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB));
+        let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
