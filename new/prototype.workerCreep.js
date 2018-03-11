@@ -276,7 +276,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     }
     //Terminal
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= 2000 && terminal.pos.rangeToTarget(this) <= range) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 5020 && terminal.pos.rangeToTarget(this) <= range) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5) weight = 0.2;
@@ -347,7 +347,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Terminal
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= 2000 && terminal.pos.rangeToTarget(this) <= range) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 5020 && terminal.pos.rangeToTarget(this) <= range) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
@@ -596,7 +596,7 @@ Creep.prototype.findEssentials = function () {
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     if (terminal) {
         if (terminal.pos.getRangeTo(this) > 1) {
-            if (terminal.store[RESOURCE_ENERGY] < 1500) {
+            if (terminal.store[RESOURCE_ENERGY] < 5000) {
                 const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
                 storage.push({
                     id: terminal.id,
