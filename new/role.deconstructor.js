@@ -10,7 +10,7 @@ function role(creep) {
     creep.borderCheck();
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     if (creep.memory.operation === 'clean') return creep.cleanRoom();
-    if (creep.memory.operation && creep.memory.operation === 'siege') creep.siegeRoom();
+    if (creep.memory.operation === 'siege') creep.siegeRoom();
 }
 
 module.exports.role = profiler.registerFN(role, 'deconstructorRole');

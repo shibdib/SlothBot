@@ -9,7 +9,7 @@ Creep.prototype.cleanRoom = function () {
     if (this.room.controller.reservation || creeps) {
         Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
     }
-    let target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER});
+    let target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL});
     if (!target) {
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
             case OK:

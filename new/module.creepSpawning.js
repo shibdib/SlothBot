@@ -499,6 +499,26 @@ module.exports.militaryCreepQueue = function (room) {
     }
     // Custom Flags
     for (let key in Memory.targetRooms) {
+        // Clean
+        if (level >= 5 && Memory.targetRooms[key].type === 'clean' && Game.map.findRoute(room.name, key).length <= 20) {
+            let opLevel = Memory.targetRooms[key].level;
+            let deconstructors = 1;
+            if (opLevel === '1') {
+                deconstructors = 1;
+            } else if (opLevel === '2') {
+                deconstructors = 2;
+            } else if (opLevel === '3') {
+                deconstructors = 3;
+            }
+            let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
+            if ((deconstructor.length < deconstructors || (deconstructor[0] && deconstructor[0].ticksToLive <= 500)) && !_.includes(queue, 'deconstructor')) {
+                queueCreep(room, PRIORITIES.attacker, {
+                    role: 'deconstructor',
+                    targetRoom: key,
+                    operation: 'clean'
+                }, true)
+            }
+        }
         // Harass
         if (level >= 5 && Memory.targetRooms[key].type === 'harass' && Game.map.findRoute(room.name, key).length <= 20) {
             let opLevel = Memory.targetRooms[key].level;
