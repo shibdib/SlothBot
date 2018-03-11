@@ -284,7 +284,7 @@ function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
     if (!room.memory.reactionRoom) {
         let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-        let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
+        let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB)[0];
         let terminal = _.filter(structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         if (!lab && !sites && terminal) {
             let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, terminal.pos.y - 2, terminal.pos.x - 2, terminal.pos.y + 2, terminal.pos.x + 2, true));
@@ -293,6 +293,7 @@ function buildLabs(room, structures) {
                 if (position.getRangeTo(terminal.pos) === 2) {
                     if (position.checkForAllStructure().length > 0) continue;
                     position.createConstructionSite(STRUCTURE_LAB);
+                    break;
                 }
             }
         }
