@@ -364,7 +364,6 @@ Creep.prototype.siege = function () {
                 this.shibMove(target, {ignoreCreeps: true});
                 break;
             case OK:
-                this.heal(this);
                 return true;
 
         }
