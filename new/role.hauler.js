@@ -102,6 +102,7 @@ function boostDelivery(creep) {
     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (creep.memory.terminalWorker || (!creep.memory.labTech && (!lab || labTech))) return undefined;
     if (!lab) return creep.memory.labTech = undefined;
+    creep.say(ICONS.boost, true);
     if (_.sum(creep.carry) > creep.carry[lab.memory.neededBoost]) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
