@@ -409,9 +409,10 @@ function balanceEnergy(terminal, energyInRoom) {
 function balanceBoosts(terminal) {
     for (let key in END_GAME_BOOSTS) {
         let otherTerminals = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.reactionRoom);
-        if (terminal.store[END_GAME_BOOSTS[key]] > 500) {
+        if (terminal.store[END_GAME_BOOSTS[key]] >= 500) {
             for (let id in otherTerminals) {
-                if (otherTerminals[id].store[END_GAME_BOOSTS[key]] < terminal.store[END_GAME_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
+                let stored = otherTerminals[id].store[END_GAME_BOOSTS[key]] || 0;
+                if (stored < terminal.store[END_GAME_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(END_GAME_BOOSTS[key], terminal.store[END_GAME_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
                         log.a(' MARKET: Distributing ' + terminal.store[END_GAME_BOOSTS[key]] * 0.5 + ' ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                     }
