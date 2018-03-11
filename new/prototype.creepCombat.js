@@ -12,20 +12,20 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestEnemy = function () {
-    let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
+    let enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
     if (enemy) {
         return enemy;
     } else {
-        enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
+        enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
         if (enemy) {
             return enemy;
         } else {
             if ((this.room.controller && this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || (this.room.controller && this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username))) return null;
-            enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_STORAGE});
+            enemy = this.pos.findClosestByRange(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_STORAGE});
             if (enemy) {
                 return enemy;
             } else {
-                enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_STORAGE});
+                enemy = this.pos.findClosestByRange(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_STORAGE});
                 if (enemy) {
                     return enemy;
                 }
@@ -61,11 +61,13 @@ Creep.prototype.attackHostile = function (hostile) {
         let alliesHostile = Game.getObjectById(ally.memory.target);
         if (alliesHostile) this.memory.target = hostile.id;
     }
-    if (_.filter(this.room.find(this.room.creeps), (c) => c.memory.target && c.my))
-        if (this.attack(hostile) === ERR_NOT_IN_RANGE) {
+    switch (this.attack(hostile)) {
+        case OK:
+            return this.shibMove(hostile, {range: 0, ignoreRoads: true});
+        case ERR_NOT_IN_RANGE:
             if (this.hits < this.hitsMax) this.heal(this);
-            this.shibMove(hostile, {forceRepath: true, ignoreCreeps: false, ignoreRoads: true});
-        }
+            return this.shibMove(hostile, {forceRepath: true, ignoreCreeps: false, ignoreRoads: true});
+    }
 };
 
 Creep.prototype.healMyCreeps = function () {
@@ -125,7 +127,8 @@ Creep.prototype.handleDefender = function () {
         return true;
     }
     if (hostile) {
-        return this.attackHostile(hostile);
+        this.attackHostile(hostile);
+        return true;
     }
     if (this.healMyCreeps()) {
         return true;
@@ -160,7 +163,7 @@ Creep.prototype.fightRampart = function (target) {
     if (!target) {
         return false;
     }
-    let position = target.pos.findClosestByPath(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
+    let position = target.pos.findClosestByPath(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) && r.owner === 'Shibdib'});
     if (position === null) {
         return false;
     }
