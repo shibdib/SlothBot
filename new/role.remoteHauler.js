@@ -107,7 +107,7 @@ function role(creep) {
                                 creep.findStorage();
                                 break;
                         }
-                    } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70 && storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 && terminal.store[RESOURCE_ENERGY] <= 20000) {
+                    } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70 && storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 && terminal.store[RESOURCE_ENERGY] <= 25000) {
                         creep.memory.storageDestination = terminal.id;
                         switch (creep.transfer(terminal, RESOURCE_ENERGY)) {
                             case OK:
