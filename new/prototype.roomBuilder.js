@@ -283,10 +283,10 @@ function buildPowerSpawn(room, structures) {
 function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
     if (!room.memory.reactionRoom) {
-        let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-        let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB)[0];
+        let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
+        let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
         let terminal = _.filter(structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-        if (!lab && !sites && terminal) {
+        if (lab.length + sites.length < 2 && terminal) {
             let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, terminal.pos.y - 2, terminal.pos.x - 2, terminal.pos.y + 2, terminal.pos.x + 2, true));
             for (let key in safeZone) {
                 let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
