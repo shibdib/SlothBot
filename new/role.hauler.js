@@ -107,10 +107,12 @@ function boostDelivery(creep) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
-                    return creep.memory.labTech = true;
+                    creep.memory.labTech = true;
+                    return true;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(storage);
-                    return creep.memory.labTech = true;
+                    creep.memory.labTech = true;
+                    return true;
             }
         }
     } else if (creep.carry[lab.memory.neededBoost] > 0) {
@@ -120,7 +122,8 @@ function boostDelivery(creep) {
                     return creep.memory.labTech = undefined;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(lab);
-                    return creep.memory.labTech = true;
+                    creep.memory.labTech = true;
+                    return true;
             }
         }
     }
@@ -128,11 +131,11 @@ function boostDelivery(creep) {
         switch (creep.withdraw(lab, lab.mineralType)) {
             case OK:
                 creep.memory.labTech = true;
-                return undefined;
+                return true;
             case ERR_NOT_IN_RANGE:
-                creep.memory.labTech = true;
                 creep.shibMove(lab);
-                return undefined;
+                creep.memory.labTech = true;
+                return true;
         }
     } else {
         if (!creep.memory.itemStorage) {
@@ -153,7 +156,8 @@ function boostDelivery(creep) {
                     return undefined;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
-                    return undefined;
+                    creep.memory.labTech = true;
+                    return true;
             }
         }
     }
