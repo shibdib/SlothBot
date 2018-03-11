@@ -320,13 +320,13 @@ Creep.prototype.siege = function () {
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (!s.room.controller || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (!s.room.controller || (s.room.controller && (!s.room.controller.owner || _.includes(FRIENDLIES, s.room.controller.owner['username'])) === false))});
         if (target) {
             return this.shibMove(target, {range: 0});
         }
     }
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && _.includes(FRIENDLIES, s.room.controller.owner['username']) === false))});
+        target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || (s.room.controller && (!s.room.controller.owner || _.includes(FRIENDLIES, s.room.controller.owner['username'])) === false))});
         if (target) {
             this.memory.siegeTarget = target.id;
             this.memory.siegeComplete = undefined;
