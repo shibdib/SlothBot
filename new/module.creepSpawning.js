@@ -515,7 +515,8 @@ module.exports.militaryCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.attacker, {
                     role: 'deconstructor',
                     targetRoom: key,
-                    operation: 'clean'
+                    operation: 'clean',
+                    military: true
                 }, true)
             }
         }
