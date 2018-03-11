@@ -183,18 +183,11 @@ Creep.prototype.tryToBoost = function (boosts) {
     } else {
         if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length) {
             this.memory.requestedBoosts = undefined;
+            this.memory.boostLab = undefined;
             return this.memory.boostAttempt = true;
         }
         for (let key in this.memory.requestedBoosts) {
-            let boostInRoom = _.sum(this.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-                if (s['structure'] && s['structure'].store) {
-                    return s['structure'].store[this.memory.requestedBoosts[key]] || 0;
-                } else if (s['structure'] && s['structure'].mineralType === this.memory.requestedBoosts[key]) {
-                    return s['structure'].mineralAmount || 0;
-                } else {
-                    return 0;
-                }
-            });
+            let boostInRoom = getBoostAmount(this.room, this.memory.requestedBoosts[key]);
             if (boostInRoom < 250) {
                 this.memory.requestedBoosts.shift();
                 let lab = Game.getObjectById(this.memory.boostLab);
@@ -202,6 +195,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                     lab.memory.neededBoost = undefined;
                     lab.memory.active = undefined;
                 }
+                this.memory.boostLab = undefined;
                 continue;
             }
             if (!this.memory.boostLab) {
@@ -218,6 +212,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                         availableLab.memory.active = true;
                     } else {
                         this.memory.requestedBoosts = undefined;
+                        this.memory.boostLab = undefined;
                         return this.memory.boostAttempt = true;
                     }
                 }
@@ -229,6 +224,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                         this.memory.requestedBoosts.shift();
                         lab.memory.neededBoost = undefined;
                         lab.memory.active = undefined;
+                        this.memory.boostLab = undefined;
                         this.say(ICONS.boost);
                         break;
                     case ERR_NOT_IN_RANGE:
@@ -244,7 +240,7 @@ Creep.prototype.tryToBoost = function (boosts) {
 };
 
 function getBoostAmount(room, boost) {
-    return _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+    let boostInRoomStructures = _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
         if (s['structure'] && s['structure'].store) {
             return s['structure'].store[boost] || 0;
         } else if (s['structure'] && s['structure'].mineralType === boost) {
@@ -253,6 +249,14 @@ function getBoostAmount(room, boost) {
             return 0;
         }
     });
+    let boostInRoomCreeps = _.sum(room.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
+        if (s['creep'] && s['creep'].carry) {
+            return s['creep'].carry[boost] || 0;
+        } else {
+            return 0;
+        }
+    });
+    return boostInRoomCreeps + boostInRoomStructures;
 }
 
 Creep.prototype.repairRoad = function () {

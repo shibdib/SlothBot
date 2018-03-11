@@ -36,12 +36,7 @@ function manageReactions(room) {
                 }
                 if (!outputLab.cooldown) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
-                let activeAmount = outputLab.mineralAmount || 0;
-                let storageAmount = storage.store[outputLab.memory.creating] || 0;
-                let terminalAmount = terminal.store[outputLab.memory.creating] || 0;
-                let techAmount;
-                if (labTech) techAmount = labTech.carry[outputLab.memory.creating] || 0;
-                let total = activeAmount + storageAmount + terminalAmount + techAmount;
+                let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
                 if (total >= BOOST_AMOUNT * 1.5) {
                     log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                     for (let id in creators) {
@@ -52,12 +47,7 @@ function manageReactions(room) {
                 }
                 for (let id in creators) {
                     let lab = Game.getObjectById(creators[id]);
-                    let activeAmount = lab.mineralAmount || 0;
-                    let storageAmount = storage.store[lab.memory.itemNeeded] || 0;
-                    let terminalAmount = terminal.store[lab.memory.itemNeeded] || 0;
-                    let techAmount;
-                    if (labTech) techAmount = labTech.carry[lab.memory.itemNeeded] || 0;
-                    let total = activeAmount + storageAmount + terminalAmount + techAmount;
+                    let total = getBoostAmount(lab.room, lab.memory.itemNeeded);
                     if (total < 100) {
                         log.a(room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                         for (let id in creators) {
@@ -67,12 +57,26 @@ function manageReactions(room) {
                         continue active;
                     }
                 }
-                outputLab.room.visual.text(
-                    ICONS.reaction + ' ' + outputLab.memory.creating,
-                    outputLab.pos.x,
-                    outputLab.pos.y,
-                    {align: 'left', opacity: 0.8}
-                );
+                if (outputLab.memory.creating) {
+                    outputLab.room.visual.text(
+                        ICONS.reaction + ' ' + outputLab.memory.creating,
+                        outputLab.pos.x,
+                        outputLab.pos.y,
+                        {align: 'left', opacity: 0.8}
+                    );
+                } else if (outputLab.memory.neededBoost) {
+                    let boostTarget = _.filter(outputLab.room.creeps, (c) => c.memory && c.memory.boostLab === outputLab.id)[0];
+                    if (!boostTarget) {
+                        outputLab.memory = undefined;
+                        continue;
+                    }
+                    outputLab.room.visual.text(
+                        ICONS.boost + ' ' + outputLab.memory.neededBoost,
+                        outputLab.pos.x,
+                        outputLab.pos.y,
+                        {align: 'left', opacity: 0.8}
+                    );
+                }
             }
     }
     if (Game.time % 25 === 0) {
@@ -132,4 +136,24 @@ function manageReactions(room) {
                 }
             }
     }
+}
+
+function getBoostAmount(room, boost) {
+    let boostInRoomStructures = _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+        if (s['structure'] && s['structure'].store) {
+            return s['structure'].store[boost] || 0;
+        } else if (s['structure'] && s['structure'].mineralType === boost) {
+            return s['structure'].mineralAmount || 0;
+        } else {
+            return 0;
+        }
+    });
+    let boostInRoomCreeps = _.sum(room.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
+        if (s['creep'] && s['creep'].carry) {
+            return s['creep'].carry[boost] || 0;
+        } else {
+            return 0;
+        }
+    });
+    return boostInRoomCreeps + boostInRoomStructures;
 }
