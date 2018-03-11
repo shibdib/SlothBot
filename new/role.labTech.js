@@ -23,21 +23,19 @@ function role(creep) {
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
         if (droppedResources(creep)) return null;
-        let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
+        let labs = shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB));
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
             if (creep.memory.emptying ||
                 (labs[key].mineralAmount > 0 && labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].mineralType !== labs[key].memory.creating) ||
-                (labs[key].mineralAmount >= 500 && labs[key].mineralType === labs[key].memory.creating) && !_.filter(creep.room.creeps, (c) => c.memory && c.memory.task === 'empty-' + labs[key].id && c.id !== creep.id)[0]) {
-                creep.memory.task = 'empty-' + labs[key].id;
+                (labs[key].mineralAmount >= 500 && labs[key].mineralType === labs[key].memory.creating)) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
                         if (!_.includes(END_GAME_BOOSTS, resourceType) || _.sum(terminal.store) >= terminal.storeCapacity * 0.99) {
                             switch (creep.transfer(storage, resourceType)) {
                                 case OK:
                                     creep.memory.emptying = undefined;
-                                    creep.memory.task = undefined;
                                     return undefined;
                                 case ERR_NOT_IN_RANGE:
                                     creep.shibMove(storage);
@@ -47,7 +45,6 @@ function role(creep) {
                             switch (creep.transfer(terminal, resourceType)) {
                                 case OK:
                                     creep.memory.emptying = undefined;
-                                    creep.memory.task = undefined;
                                     return undefined;
                                 case ERR_NOT_IN_RANGE:
                                     creep.shibMove(terminal);
@@ -69,8 +66,7 @@ function role(creep) {
             }
         }
         for (let key in labs) {
-            if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250)) && !_.filter(creep.room.creeps, (c) => c.memory && c.memory.task === 'manage-' + labs[key].id && c.id !== creep.id)[0]) {
-                creep.memory.task = 'manage-' + labs[key].id;
+            if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250))) {
                 if (creep.carry[labs[key].memory.itemNeeded] === 0 || !creep.carry[labs[key].memory.itemNeeded]) {
                     if (!creep.memory.itemStorage) {
                         if (storage.store[labs[key].memory.itemNeeded] > 0) {
@@ -112,7 +108,6 @@ function role(creep) {
                         switch (creep.transfer(lab, labs[key].memory.itemNeeded)) {
                             case OK:
                                 creep.memory.labHelper = undefined;
-                                creep.memory.task = undefined;
                                 return undefined;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(lab);
@@ -120,7 +115,7 @@ function role(creep) {
                         }
                     } else {
                         creep.memory.labHelper = undefined;
-                        creep.memory.task = undefined;
+                        creep.memory.labTech = undefined;
                     }
                 }
             }
