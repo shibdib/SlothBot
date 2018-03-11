@@ -135,63 +135,125 @@ Creep.prototype.getSafe = function (hauler = false) {
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
-    if (!_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) return this.memory.boostAttempt = true;
+    let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
+    if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
-        this.memory.requestedBoosts = {};
-        let boostObject = {
-            'attack': [RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_UTRIUM_ACID, RESOURCE_UTRIUM_HYDRIDE],
-            'upgrade': [RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM_ACID],
-            'tough': [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_GHODIUM_ALKALIDE, RESOURCE_GHODIUM_OXIDE],
-            'ranged': [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_KEANIUM_ALKALIDE, RESOURCE_KEANIUM_OXIDE],
-            'heal': [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_LEMERGIUM_OXIDE],
-            'dismantle': [RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_ACID, RESOURCE_ZYNTHIUM_HYDRIDE]
-        };
-        boostType:
+        let available = [];
             for (let key in boosts) {
-                let boostType = boostObject[key];
-                for (let key2 in boostType) {
-                    let boostInRoom = _.sum(this.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-                        if (s['structure'] && s['structure'].store) {
-                            return s['structure'].store[boostType[key2]] || 0;
-                        } else {
-                            return 0;
+                let boostInRoom;
+                switch (boosts[key]) {
+                    case 'attack':
+                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
+                        if (boostInRoom >= 250) {
+                            available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
                         }
-                    });
-                    if (boostInRoom > 500) {
-                        this.memory.requestedBoosts.boostType = boostType[key2];
-                        continue boostType;
-                    }
+                        continue;
+                    case 'upgrade':
+                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
+                        if (boostInRoom >= 250) {
+                            available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
+                        }
+                        continue;
+                    case 'tough':
+                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
+                        if (boostInRoom >= 250) {
+                            available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
+                        }
+                        continue;
+                    case 'ranged':
+                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
+                        if (boostInRoom >= 250) {
+                            available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
+                        }
+                        continue;
+                    case 'heal':
+                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
+                        if (boostInRoom >= 250) {
+                            available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
+                        }
+                        continue;
+                    case 'dismantle':
+                        boostInRoom = getBoostAmount(this, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
+                        if (boostInRoom >= 250) {
+                            available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
+                        }
                 }
             }
-    } else if (!this.memory.boostAttempt) {
+        this.memory.requestedBoosts = available;
+    } else {
         if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length) {
             this.memory.requestedBoosts = undefined;
             return this.memory.boostAttempt = true;
         }
         for (let key in this.memory.requestedBoosts) {
-            let lab = this.room.find(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.store[this.memory.requestedBoosts[key]] >= 500})[0];
-            if (lab) {
-                switch (lab.boostCreep(this)) {
-                    case OK:
-                        delete this.memory.requestedBoosts[key];
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        this.shibMove(lab);
-                }
-            }
             let boostInRoom = _.sum(this.room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
                 if (s['structure'] && s['structure'].store) {
                     return s['structure'].store[this.memory.requestedBoosts[key]] || 0;
+                } else if (s['structure'] && s['structure'].mineralType === this.memory.requestedBoosts[key]) {
+                    return s['structure'].mineralAmount || 0;
                 } else {
                     return 0;
                 }
             });
-            if (boostInRoom > 500) {
-                delete this.memory.requestedBoosts[key];
+            if (boostInRoom < 250) {
+                this.memory.requestedBoosts.shift();
+                let lab = Game.getObjectById(this.memory.boostLab);
+                if (lab) {
+                    lab.memory.neededBoost = undefined;
+                    lab.memory.active = undefined;
+                }
+                continue;
+            }
+            if (!this.memory.boostLab) {
+                let filledLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === this.memory.requestedBoosts[key])[0];
+                if (filledLab) {
+                    this.memory.boostLab = filledLab.id;
+                    filledLab.memory.neededBoost = this.memory.requestedBoosts[key];
+                    filledLab.memory.active = true;
+                } else {
+                    let availableLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active)[0];
+                    if (availableLab) {
+                        this.memory.boostLab = availableLab.id;
+                        availableLab.memory.neededBoost = this.memory.requestedBoosts[key];
+                        availableLab.memory.active = true;
+                    } else {
+                        this.memory.requestedBoosts = undefined;
+                        return this.memory.boostAttempt = true;
+                    }
+                }
+            }
+            let lab = Game.getObjectById(this.memory.boostLab);
+            if (lab) {
+                switch (lab.boostCreep(this)) {
+                    case OK:
+                        this.memory.requestedBoosts.shift();
+                        lab.memory.neededBoost = undefined;
+                        lab.memory.active = undefined;
+                        this.say(ICONS.boost);
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        this.say(ICONS.boost);
+                        return this.shibMove(lab);
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        this.say(ICONS.boost);
+                        return this.shibMove(lab);
+                }
             }
         }
     }
 };
+
+function getBoostAmount(room, boost) {
+    return _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+        if (s['structure'] && s['structure'].store) {
+            return s['structure'].store[boost] || 0;
+        } else if (s['structure'] && s['structure'].mineralType === boost) {
+            return s['structure'].mineralAmount || 0;
+        } else {
+            return 0;
+        }
+    });
+}
 
 Creep.prototype.repairRoad = function () {
     if (this.carry[RESOURCE_ENERGY] < 10 || this.getActiveBodyparts(WORK) === 0) return;

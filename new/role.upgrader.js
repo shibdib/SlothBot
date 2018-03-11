@@ -10,7 +10,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     if (!creep.getSafe()) {
-        if (creep.memory.boostAttempt !== true) creep.tryToBoost(['upgrade']);
+        if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['upgrade']);
         if (_.filter(Game.creeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.role = 'stationaryHarvester';
         //ANNOUNCE
         if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
