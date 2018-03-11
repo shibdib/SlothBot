@@ -401,7 +401,7 @@ function balanceEnergy(terminal, energyInRoom) {
     if (needingRooms[0]) cost = Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].name, terminal.room.name);
     if (needingRooms[0] && terminal.room.memory.energySurplus && cost < terminal.store[RESOURCE_ENERGY] * 0.25 && !terminal.cooldown) {
         if (terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].name) === OK) {
-            log.a(' MARKET: Distributing ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].name + ' From ' + terminal.room.name);
+            log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_ENERGY] * 0.10 + ' ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].name + ' From ' + terminal.room.name);
         }
     }
 }
@@ -413,7 +413,7 @@ function balanceBoosts(terminal) {
             for (let id in otherTerminals) {
                 if (otherTerminals[id].store[END_GAME_BOOSTS[key]] < 500 && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(END_GAME_BOOSTS[key], terminal.store[END_GAME_BOOSTS[key]] - 500, otherTerminals[id].room.name) === OK) {
-                        log.a(' MARKET: Distributing ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                        log.a(' MARKET: Distributing ' + terminal.store[END_GAME_BOOSTS[key]] - 500 + ' ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                     }
                 }
             }
@@ -428,7 +428,7 @@ function supplyReactionRoom(terminal) {
         if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.9) {
             let reactionRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.reactionRoom)[0].name;
             if (terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
-                log.a(' MARKET: Distributing ' + reactionNeeds[i] + ' To ' + reactionRoom + ' From ' + terminal.room.name);
+                log.a(' MARKET: Distributing ' + stored + ' ' + reactionNeeds[i] + ' To ' + reactionRoom + ' From ' + terminal.room.name);
             }
         }
     }
