@@ -321,7 +321,6 @@ Room.prototype.invaderCheck = function () {
     } else if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
-        this.memory.tickDetected = undefined;
         this.memory.alertEmail = undefined;
         this.memory.requestingSupport = undefined;
     }
