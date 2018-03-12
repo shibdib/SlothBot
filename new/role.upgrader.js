@@ -15,14 +15,13 @@ function role(creep) {
         //ANNOUNCE
         if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
         if (creep.memory.announcer) {
-            let sentence = ['~', 'CURRENT', 'HOSTILES:'];
-            sentence = sentence.concat(HOSTILES);
+            let sentence = ['-'];
             if (creep.room.memory.responseNeeded) {
-                if (creep.room.memory.threatLevel === 1) sentence = sentence.concat(['~', 'FPCON', 'BRAVO']);
-                if (creep.room.memory.threatLevel === 2) sentence = sentence.concat(['~', 'FPCON', 'CHARLIE']);
-                if (creep.room.memory.threatLevel >= 3) sentence = sentence.concat(['~', 'FPCON', 'DELTA']);
+                if (creep.room.memory.threatLevel === 1) sentence = sentence.concat(['FPCON', 'BRAVO']);
+                if (creep.room.memory.threatLevel === 2) sentence = sentence.concat(['FPCON', 'CHARLIE']);
+                if (creep.room.memory.threatLevel >= 3) sentence = sentence.concat(['FPCON', 'DELTA']);
             } else {
-                sentence = sentence.concat(['~', 'FPCON', 'ALPHA'])
+                sentence = sentence.concat(['FPCON', 'ALPHA'])
             }
             let word = Game.time % sentence.length;
             creep.say(sentence[word], true);
