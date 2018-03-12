@@ -28,17 +28,6 @@ function terminalControl(room) {
             }
         });
         let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-        //Energy balancer
-        balanceEnergy(terminal, energyInRoom);
-
-        //Send minerals to reaction room
-        if (!terminal.room.memory.reactionRoom) supplyReactionRoom(terminal);
-
-        //Send boosts from reaction room
-        if (terminal.room.memory.reactionRoom) balanceBoosts(terminal);
-
-        //Sell off excess
-        if (terminal.room.memory.reactionRoom) fillBuyOrders(terminal, globalOrders);
 
         //Cleanup broken or old order
         orderCleanup(myOrders);
@@ -61,6 +50,18 @@ function terminalControl(room) {
         placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
         if (room.memory.reactionRoom) placeReactionOrders(terminal, globalOrders, myOrders);
         placeBoostOrders(terminal, storage, globalOrders, myOrders);
+
+        //Energy balancer
+        balanceEnergy(terminal, energyInRoom);
+
+        //Send minerals to reaction room
+        if (!terminal.room.memory.reactionRoom) supplyReactionRoom(terminal);
+
+        //Send boosts from reaction room
+        if (terminal.room.memory.reactionRoom) balanceBoosts(terminal);
+
+        //Sell off excess
+        if (terminal.room.memory.reactionRoom) fillBuyOrders(terminal, globalOrders);
     }
 }
 
