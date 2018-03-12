@@ -34,6 +34,8 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
                 switch (creep.harvest(source)) {
+                    case OK:
+                        break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(source);
                         break;
