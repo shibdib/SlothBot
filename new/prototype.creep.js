@@ -145,37 +145,37 @@ Creep.prototype.tryToBoost = function (boosts) {
             switch (boosts[key]) {
                 case 'attack':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
-                    if (boostInRoom >= 250) {
+                    if (boostInRoom >= 90) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
                     }
                     continue;
                 case 'upgrade':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
-                    if (boostInRoom >= 250) {
+                    if (boostInRoom >= 90) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
                     }
                     continue;
                 case 'tough':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
-                    if (boostInRoom >= 250) {
+                    if (boostInRoom >= 90) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
                     }
                     continue;
                 case 'ranged':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
-                    if (boostInRoom >= 250) {
+                    if (boostInRoom >= 90) {
                         available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
                     }
                     continue;
                 case 'heal':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
-                    if (boostInRoom >= 250) {
+                    if (boostInRoom >= 90) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
                     }
                     continue;
                 case 'dismantle':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
-                    if (boostInRoom >= 250) {
+                    if (boostInRoom >= 90) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     }
             }
