@@ -428,11 +428,11 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!_.includes(queue, 'SKHauler') && Game.map.findRoute(room.name, SKRoom.name).length < 2) {
-                let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.skRooms[key] && creep.memory.role === 'SKHauler' && creep.memory.overlord === room.name);
+            if (!_.includes(queue, 'SKhauler') && Game.map.findRoute(room.name, SKRoom.name).length < 2) {
+                let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.skRooms[key] && creep.memory.role === 'SKhauler' && creep.memory.overlord === room.name);
                 if (SKhauler.length < _.round(SKworker.length / 2) && (SKAttacker.length > 0)) {
                     queueCreep(room, PRIORITIES.SKworker, {
-                        role: 'SKHauler',
+                        role: 'SKhauler',
                         destination: room.memory.skRooms[key]
                     })
                 }
