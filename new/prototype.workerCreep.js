@@ -1,5 +1,4 @@
 const profiler = require('screeps-profiler');
-let shib = require("shibBench");
 
 wrongRoom = function () {
     if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {

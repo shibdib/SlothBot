@@ -311,12 +311,13 @@ Room.prototype.invaderCheck = function () {
     this.memory.lastInvaderCheck = Game.time;
     let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner['username']));
     if (invader.length > 0) {
-        if (Game.time % 25 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
+        if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
         this.memory.responseNeeded = true;
         this.memory.tickDetected = Game.time;
         if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
             this.memory.numberOfHostiles = invader.length;
         }
+        return true;
     } else if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;

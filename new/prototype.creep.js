@@ -92,26 +92,27 @@ Creep.prototype.borderCheck = function () {
 };
 
 Creep.prototype.renewalCheck = function (level = 8) {
-    let renewers = _.filter(Game.creeps, (c) => c.memory.renewing && c.memory.overlord === this.memory.overlord);
-    if (Game.rooms[this.memory.overlord].controller && ((this.memory.renewing && Game.rooms[this.memory.overlord].energyAvailable >= 300) || (Game.rooms[this.memory.overlord].controller.level >= level && Game.rooms[this.memory.overlord].energyAvailable >= 300 && this.ticksToLive < 100 && renewers.length < 2))) {
+    if (Game.rooms[this.memory.overlord].controller && Game.rooms[this.memory.overlord].controller.level >= level && (this.ticksToLive < 100 || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable >= 300) {
         if (this.ticksToLive >= 1000) {
             this.memory.boostAttempt = undefined;
             this.memory.boosted = undefined;
+            this.memory.renewingTarget = undefined;
             return this.memory.renewing = undefined;
         }
-        let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
+        let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && !s.spawning && !_.filter(this.room.creeps, (c) => c.memory && c.memory.renewingTarget === s.id)[0])[0];
         if (spawn) {
-            if (!spawn.spawning) {
-                switch (spawn.renewCreep(this)) {
-                    case OK:
-                        if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
-                        this.say(ICONS.tired);
-                        this.memory.renewing = true;
-                        return true;
-                    case ERR_NOT_IN_RANGE:
-                        this.shibMove(spawn);
-                        return true;
-                }
+            switch (spawn.renewCreep(this)) {
+                case OK:
+                    if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
+                    this.say(ICONS.tired);
+                    this.memory.renewingTarget = spawn.id;
+                    this.memory.renewing = true;
+                    return true;
+                case ERR_NOT_IN_RANGE:
+                    this.memory.renewingTarget = spawn.id;
+                    this.memory.renewing = true;
+                    this.shibMove(spawn);
+                    return true;
             }
         }
     }
@@ -139,46 +140,46 @@ Creep.prototype.tryToBoost = function (boosts) {
     if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
         let available = [];
-            for (let key in boosts) {
-                let boostInRoom;
-                switch (boosts[key]) {
-                    case 'attack':
-                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
-                        if (boostInRoom >= 250) {
-                            available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
-                        }
-                        continue;
-                    case 'upgrade':
-                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
-                        if (boostInRoom >= 250) {
-                            available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
-                        }
-                        continue;
-                    case 'tough':
-                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
-                        if (boostInRoom >= 250) {
-                            available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
-                        }
-                        continue;
-                    case 'ranged':
-                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
-                        if (boostInRoom >= 250) {
-                            available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
-                        }
-                        continue;
-                    case 'heal':
-                        boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
-                        if (boostInRoom >= 250) {
-                            available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
-                        }
-                        continue;
-                    case 'dismantle':
-                        boostInRoom = getBoostAmount(this, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
-                        if (boostInRoom >= 250) {
-                            available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
-                        }
-                }
+        for (let key in boosts) {
+            let boostInRoom;
+            switch (boosts[key]) {
+                case 'attack':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
+                    if (boostInRoom >= 250) {
+                        available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
+                    }
+                    continue;
+                case 'upgrade':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
+                    if (boostInRoom >= 250) {
+                        available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
+                    }
+                    continue;
+                case 'tough':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
+                    if (boostInRoom >= 250) {
+                        available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
+                    }
+                    continue;
+                case 'ranged':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
+                    if (boostInRoom >= 250) {
+                        available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
+                    }
+                    continue;
+                case 'heal':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
+                    if (boostInRoom >= 250) {
+                        available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
+                    }
+                    continue;
+                case 'dismantle':
+                    boostInRoom = getBoostAmount(this, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
+                    if (boostInRoom >= 250) {
+                        available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
+                    }
             }
+        }
         this.memory.requestedBoosts = available;
     } else {
         if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length) {

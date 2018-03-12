@@ -9,27 +9,20 @@ function role(creep) {
     let source;
     creep.borderCheck();
     //Invader detection
-    creep.room.invaderCheck();
-    creep.repairRoad();
-    let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 7) return creep.retreat();
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.room.invaderCheck()) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) {
         creep.memory.destinationReached = true;
         if (creep.room.constructionSites.length > 0) {
             creep.room.memory.requestingPioneer = true;
         } else {
-            creep.room.memory.requestingPioneer = undefined;
+            delete creep.room.memory.requestingPioneer;
         }
     }
-
     //Mark room as no go if reserved or owned by someone else
-    if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== 'Shibdib') || creep.room.owner)) {
-        creep.room.memory.noRemote = true;
-        creep.suicide();
+    if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== 'Shibdib' && creep.room.controller.reservation.username !== 'shibdib') || creep.room.owner)) {
+        creep.memory.role = 'upgrader';
     }
-
     //Initial move
     if (creep.carry.energy === 0) {
         creep.memory.harvesting = true;
@@ -93,7 +86,6 @@ function depositEnergy(creep) {
         }
     }
 }
-
 function remoteRoads(creep) {
     creep.memory.buildAttempt = true;
     if (creep.room.name !== creep.memory.destination) return;
@@ -121,8 +113,6 @@ function remoteRoads(creep) {
         }
     }
 }
-
-
 function buildRoadFromTo(room, start, end) {
     let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
     for (let point of path) {
@@ -130,8 +120,6 @@ function buildRoadFromTo(room, start, end) {
         buildRoad(new RoomPosition(point.x, point.y, room.name));
     }
 }
-
-buildRoadFromTo = profiler.registerFN(buildRoadFromTo, 'buildRoadFromToFunctionRemote');
 function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
@@ -143,12 +131,7 @@ function buildRoadAround(room, position) {
         }
     }
 }
-
-buildRoadAround = profiler.registerFN(buildRoadAround, 'buildRoadAroundFunctionRemote');
-
 function buildRoad(position) {
     //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
-
-buildRoad = profiler.registerFN(buildRoad, 'buildRoadFunctionRemote');

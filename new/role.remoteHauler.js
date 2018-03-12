@@ -10,10 +10,7 @@ function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.overlord].find(FIND_MY_SPAWNS)[0]);
     creep.borderCheck();
     //Invader detection
-    creep.room.invaderCheck();
-    let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 7) return creep.retreat();
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.room.invaderCheck()) return creep.goHomeAndHeal();
     creep.repairRoad();
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (_.sum(creep.carry) === 0) {
@@ -24,7 +21,6 @@ function role(creep) {
         creep.memory.hauling = true;
         creep.memory.containerID = undefined;
     }
-
     if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
         if (creep.memory.hauling === false) {
             if (!creep.memory.containerID) {
