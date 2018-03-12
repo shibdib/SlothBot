@@ -6,6 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['attack']);
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
     if (creep.pos.roomName !== creep.memory.destination) {
