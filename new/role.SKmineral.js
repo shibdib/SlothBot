@@ -86,33 +86,37 @@ function SKdeposit(creep) {
             let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
             if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70 && storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 && terminal.store[RESOURCE_ENERGY] <= 25000) {
                 creep.memory.storageDestination = terminal.id;
-                switch (creep.transfer(terminal, RESOURCE_ENERGY)) {
-                    case OK:
-                        creep.memory.storageDestination = undefined;
-                        creep.memory.destinationReached = false;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(terminal);
-                        break;
-                    case ERR_FULL:
-                        creep.memory.storageDestination = undefined;
-                        creep.findStorage();
-                        break;
+                for (const resourceType in this.carry) {
+                    switch (this.transfer(terminal, resourceType)) {
+                        case OK:
+                            this.memory.storageDestination = undefined;
+                            this.memory.destinationReached = false;
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            this.shibMove(terminal);
+                            break;
+                        case ERR_FULL:
+                            this.memory.storageDestination = undefined;
+                            this.findStorage();
+                            break;
+                    }
                 }
             } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.70) {
                 creep.memory.storageDestination = storage.id;
-                switch (creep.transfer(storage, RESOURCE_ENERGY)) {
-                    case OK:
-                        creep.memory.storageDestination = undefined;
-                        creep.memory.destinationReached = false;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(storage);
-                        break;
-                    case ERR_FULL:
-                        creep.memory.storageDestination = undefined;
-                        creep.findStorage();
-                        break;
+                for (const resourceType in this.carry) {
+                    switch (this.transfer(storage, resourceType)) {
+                        case OK:
+                            this.memory.storageDestination = undefined;
+                            this.memory.destinationReached = false;
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            this.shibMove(storage);
+                            break;
+                        case ERR_FULL:
+                            this.memory.storageDestination = undefined;
+                            this.findStorage();
+                            break;
+                    }
                 }
             }
         }
