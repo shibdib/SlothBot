@@ -22,7 +22,7 @@ Room.prototype.claimNewRoom = function () {
                 }
                 possibles[key] = worthyRooms[key];
             }
-        this.memory.claimTarget = _.pluck(_.sortBy(possibles, 'claimValue'), 'name')[0];
+        this.memory.claimTarget = _.max(possibles, 'claimValue').name;
         if (this.memory.claimTarget) {
             Memory.roomCache[this.memory.claimTarget].claimWorthy = undefined;
             Memory.lastExpansion = Game.time;

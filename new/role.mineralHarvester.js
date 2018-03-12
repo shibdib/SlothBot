@@ -23,10 +23,7 @@ function role(creep) {
             if (Game.getObjectById(creep.memory.extractor).cooldown) {
                 creep.idleFor(Game.getObjectById(creep.memory.extractor).cooldown + 1)
             } else {
-                let mineral;
-                if (creep.memory.assignedMineral) {
-                    mineral = Game.getObjectById(creep.memory.assignedMineral);
-                }
+                let mineral = Game.getObjectById(creep.memory.assignedMineral);
                 switch (creep.harvest(mineral)) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(mineral);

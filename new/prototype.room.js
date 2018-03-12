@@ -231,8 +231,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                     }
                 }
                 if (wall < 600 && plains > 200) {
-                    let sourceDist = sources[0].pos.getRangeTo(sources[1]);
-                    claimValue = plains / sourceDist;
+                    let sourceDist = 0;
+                    for (let source in sources) {
+                        let range = sources[source].pos.getRangeTo(room.controller);
+                        sourceDist = sourceDist + range;
+                    }
+                    claimValue = plains - sourceDist;
+                    let minerals = Memory.ownedMineral;
+                    if (!_.includes(minerals, room.mineral[0].mineralType)) claimValue = claimValue / 2;
                     claimWorthy = true;
                 } else {
                     claimWorthy = false;

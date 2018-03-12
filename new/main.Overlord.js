@@ -74,6 +74,13 @@ function mind(room, roomLimit) {
         terminals.terminalControl(room);
         shib.shibBench('terminalControl', cpu);
     }
+
+    // Store Data
+    let minerals = Memory.ownedMineral || [];
+    if (!_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
+    Memory.ownedMineral = minerals;
+
+    // Room Visual
     writeDetails(room);
     shib.shibBench('overlordMind', mindStart);
 }
