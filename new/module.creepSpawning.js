@@ -525,7 +525,7 @@ module.exports.militaryCreepQueue = function (room) {
                 deconstructors = 3;
             }
             let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
-            if ((deconstructor.length < deconstructors || (deconstructor[0] && deconstructor[0].ticksToLive <= 500)) && !_.includes(queue, 'deconstructor')) {
+            if (deconstructor.length < deconstructors && !_.includes(queue, 'deconstructor')) {
                 queueCreep(room, PRIORITIES.attacker, {
                     role: 'deconstructor',
                     targetRoom: key,
