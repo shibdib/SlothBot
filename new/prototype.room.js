@@ -317,12 +317,18 @@ Room.prototype.invaderCheck = function () {
         if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
             this.memory.numberOfHostiles = invader.length;
         }
+        // Determine threat
+        if (invader.length === 1 && invader.owner === 'Invader') this.memory.threatLevel = 1;
+        if (invader.length > 1 && invader.owner === 'Invader') this.memory.threatLevel = 2;
+        if (invader.length === 1 && invader.owner !== 'Invader') this.memory.threatLevel = 3;
+        if (invader.length > 1 && invader.owner !== 'Invader') this.memory.threatLevel = 4;
         return true;
     } else if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;
         this.memory.requestingSupport = undefined;
+        this.memory.threatLevel = undefined;
     }
 };
 

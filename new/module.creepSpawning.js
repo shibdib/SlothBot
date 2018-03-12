@@ -291,8 +291,10 @@ module.exports.workerCreepQueue = function (room) {
     // Local Responder
     if (room.memory.responseNeeded === true) {
         if (!_.includes(queue, 'responder')) {
+            let count = room.memory.numberOfHostiles;
+            if (room.memory.threatLevel < 3) count = 1;
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
-            if (responder.length < room.memory.numberOfHostiles) {
+            if (responder.length < count) {
                 queueCreep(room, PRIORITIES.responder, {
                     role: 'responder',
                     responseTarget: room.name,
@@ -300,7 +302,7 @@ module.exports.workerCreepQueue = function (room) {
                 })
             }
         }
-        if (level >= 4 && !_.includes(queue, 'longbow')) {
+        if (level >= 4 && !_.includes(queue, 'longbow') && room.memory.threatLevel > 2) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
             if (longbow.length < _.round(room.memory.numberOfHostiles / 2)) {
                 queueCreep(room, PRIORITIES.responder - 1, {

@@ -19,11 +19,10 @@ function role(creep) {
             if (creep.room.memory.claimTarget) {
                 sentence = sentence.concat(['~', 'Planned', 'Expansion:', creep.room.memory.claimTarget]);
             }
-            if (creep.room.memory.assistingRoom) {
-                sentence = sentence.concat(['~', 'Sending', 'Builders', 'To', creep.room.memory.assistingRoom]);
-            }
             if (creep.room.memory.responseNeeded) {
-                sentence = sentence.concat(['~', 'ROOM', 'SECURITY', 'ACTIVATED']);
+                if (creep.room.memory.threatLevel === 1) sentence = sentence.concat(['~', 'FPCON', 'BRAVO']);
+                if (creep.room.memory.threatLevel === 2) sentence = sentence.concat(['~', 'FPCON', 'CHARLIE']);
+                if (creep.room.memory.threatLevel >= 3) sentence = sentence.concat(['~', 'FPCON', 'DELTA']);
             }
             let word = Game.time % sentence.length;
             creep.say(sentence[word], true);
