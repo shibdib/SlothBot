@@ -17,10 +17,24 @@ Creep.prototype.cleanRoom = function () {
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
             case OK:
                 Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
+                Memory.targetRooms = _.filter(Memory.targetRooms, (t) => t !== this.memory.targetRoom);
                 break;
             case ERR_NOT_IN_RANGE:
                 this.shibMove(this.room.controller);
         }
+        let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+        let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        if (_.sum(terminal.store) > 0 || _.sum(storage.store) > 0) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[this.pos.roomName] = {
+                tick: tick,
+                type: 'robbery',
+                level: 1
+            };
+            Memory.targetRooms = cache;
+        }
+        this.memory.role = 'worker';
     } else {
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
