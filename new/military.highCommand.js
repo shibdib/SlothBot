@@ -8,16 +8,16 @@ function highCommand() {
     manualAttacks();
     if (Game.time % 150 === 0) {
         for (let key in Memory.ownedRooms) {
-            let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
+            let cleaningTargets = _.pluck(_.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5), 'name');
             if (cleaningTargets.length > 0) {
                 Memory.ownedRooms[key].memory.cleaningTargets = cleaningTargets;
             }
-            let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 1000 && r.owner && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 3);
+            let localTargets = _.pluck(_.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 3), 'name');
             if (localTargets.length > 0) {
                 Memory.ownedRooms[key].memory.localTargets = localTargets;
             }
-            let enemyTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 1000 && r.owner && _.includes(HOSTILES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
-            if (localTargets.length > 0) {
+            let enemyTargets = _.pluck(_.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && _.includes(HOSTILES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8), 'name');
+            if (enemyTargets.length > 0) {
                 Memory.ownedRooms[key].memory.enemyTargets = enemyTargets;
             }
         }

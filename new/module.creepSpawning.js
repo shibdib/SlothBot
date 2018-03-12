@@ -487,7 +487,7 @@ module.exports.militaryCreepQueue = function (room) {
     // Cleaning
     if (room.memory.cleaningTargets && room.memory.cleaningTargets.length > 0 && !_.includes(queue, 'deconstructor') && level >= 4) {
         for (let key in room.memory.cleaningTargets) {
-            let target = room.memory.cleaningTargets[key].name;
+            let target = room.memory.cleaningTargets[key];
             let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === target && creep.memory.role === 'deconstructor');
             if (deconstructor.length < 1) {
                 queueCreep(room, PRIORITIES.deconstructor, {
