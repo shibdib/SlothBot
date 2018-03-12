@@ -174,7 +174,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                     }
                     continue;
                 case 'dismantle':
-                    boostInRoom = getBoostAmount(this, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     if (boostInRoom >= 250) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     }
