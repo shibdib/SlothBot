@@ -22,7 +22,7 @@ function role(creep) {
         let remotes = shuffle(Game.rooms[creep.memory.overlord].memory.remoteRooms);
         for (let key in remotes) {
             let remote = remotes[key];
-            let hauler = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === creep.memory.overlord && c.memory.role === creep.memory.role && c.memory.destination === remotes[key])[0]
+            let hauler = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === creep.memory.overlord && c.memory.role === creep.memory.role && c.memory.destination === remotes[key])[0];
             if (!hauler && Game.rooms[remote].memory.needsPickup) {
                 creep.memory.destination = remotes[key];
                 break;
