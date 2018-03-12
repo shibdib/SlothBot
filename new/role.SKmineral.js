@@ -11,7 +11,7 @@ function role(creep) {
     let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     let lair = Game.getObjectById(creep.memory.lair);
-    if (lair && creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 10) return creep.flee(lair);
+    if (lair && creep.pos.getRangeTo(lair) <= 5 && lair.ticksToSpawn <= 10) return creep.flee(lair);
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
