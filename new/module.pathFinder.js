@@ -127,7 +127,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 allowedRooms = route;
                 cacheRoute(origin, target, route);
             } else {
-                if (creep.memory.destination && creep.memory.destination !== creep.pos.roomName && target.roomName !== creep.memory.destination) target.roomName = creep.memory.destination;
                 let exitDir = Game.map.findExit(origin.roomName, target.roomName);
                 if (exitDir === ERR_NO_PATH) {
                     let nextRoom = Game.map.findRoute(origin.roomName, target.roomName)[0];

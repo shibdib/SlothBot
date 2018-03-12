@@ -23,7 +23,7 @@ function role(creep) {
     creep.borderCheck();
     if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.harvesting === false) {
         creep.memory.harvesting = false;
-        SKdeposit(creep);
+        return SKdeposit(creep);
     } else {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
