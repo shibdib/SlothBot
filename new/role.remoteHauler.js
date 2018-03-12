@@ -153,12 +153,14 @@ function role(creep) {
                 }
             }
         }
-    } else if (!creep.memory.destinationReached) {
+    } else if (creep.memory.destination && !creep.memory.destinationReached) {
         creep.memory.containerID = undefined;
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20, offRoad: true});
+    } else {
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18, offRoad: true});
     }
 }
 
