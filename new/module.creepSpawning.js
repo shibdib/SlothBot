@@ -404,7 +404,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }**/
             if (!_.includes(queue, 'SKattacker')) {
-                if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 250)) && Game.map.findRoute(room.name, SKRoom.name).length < 2 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
+                if ((SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 250)) && Game.map.findRoute(room.name, SKRoom.name).length < 3 && (!SKRoom.memory || !SKRoom.memory.noMine)) {
                     queueCreep(room, PRIORITIES.SKattacker, {
                         role: 'SKattacker',
                         destination: room.memory.skRooms[key]
@@ -412,24 +412,24 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             if (!_.includes(queue, 'SKworker')) {
-                if (SKworker.length < Memory.roomCache[room.memory.skRooms[key]].sources.length + 1 && (SKAttacker.length > 0)) {
+                if (SKworker.length < Memory.roomCache[room.memory.skRooms[key]].sources.length + 1 && (SKAttacker.length > 0) && Game.map.findRoute(room.name, SKRoom.name).length < 2) {
                     queueCreep(room, PRIORITIES.SKworker, {
                         role: 'SKworker',
                         destination: room.memory.skRooms[key]
                     })
                 }
             }
-            if (!_.includes(queue, 'remoteHauler')) {
-                let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.skRooms[key] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
-                if (SKhauler.length < 2 && (SKAttacker.length > 0)) {
-                    queueCreep(room, PRIORITIES.remoteHauler, {
-                        role: 'remoteHauler',
+            if (!_.includes(queue, 'SKHauler')) {
+                let SKhauler = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.skRooms[key] && creep.memory.role === 'SKHauler' && creep.memory.overlord === room.name && Game.map.findRoute(room.name, SKRoom.name).length < 2);
+                if (SKhauler.length < _.round(SKworker.length / 2) && (SKAttacker.length > 0)) {
+                    queueCreep(room, PRIORITIES.SKworker, {
+                        role: 'SKHauler',
                         destination: room.memory.skRooms[key]
                     })
                 }
             }
             if (!_.includes(queue, 'pioneer')) {
-                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.skRooms[key] && creep.memory.role === 'pioneer');
+                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.skRooms[key] && creep.memory.role === 'pioneer' && Game.map.findRoute(room.name, SKRoom.name).length < 2);
                 if (pioneers.length < 1 && (SKAttacker.length > 0)) {
                     queueCreep(room, PRIORITIES.pioneer, {
                         role: 'pioneer',

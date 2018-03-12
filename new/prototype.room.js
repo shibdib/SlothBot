@@ -315,7 +315,7 @@ Room.prototype.invaderCheck = function () {
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
     if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) return;
     this.memory.lastInvaderCheck = Game.time;
-    let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner['username']));
+    let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner['username']) && c.owner['username'] !== 'Source Keeper');
     if (invader.length > 0) {
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
         this.memory.responseNeeded = true;
