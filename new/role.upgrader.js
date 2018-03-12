@@ -15,7 +15,7 @@ function role(creep) {
         //ANNOUNCE
         if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
         if (creep.memory.announcer) {
-            let sentence = ['-'];
+            let sentence = ['-', '#overlords', '-'];
             if (creep.room.memory.responseNeeded) {
                 if (creep.room.memory.threatLevel === 1) sentence = sentence.concat(['FPCON', 'BRAVO']);
                 if (creep.room.memory.threatLevel === 2) sentence = sentence.concat(['FPCON', 'CHARLIE']);
