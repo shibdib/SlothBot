@@ -21,12 +21,12 @@ function manageReactions(room) {
     let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let labTech = _.filter(room.creeps, (c) => c.memory && c.memory.role === 'labTech')[0];
-    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
+    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
     // Manage active reactions
     if (activeLabs[0]) {
         active:
             for (let key in activeLabs) {
-                let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating && s.memory.active);
+                let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.roomName === activeLabs[key].pos.roomName);
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
                 if (!outputLab) {
@@ -34,7 +34,7 @@ function manageReactions(room) {
                         hub[id].memory = undefined;
                     }
                 }
-                if (!outputLab.cooldown) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
+                if (!outputLab.cooldown && outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
                 let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
                 if (total >= BOOST_AMOUNT * 1.5) {
