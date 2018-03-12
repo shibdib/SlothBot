@@ -12,10 +12,6 @@ Creep.prototype.cleanRoom = function () {
     let target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART});
     if (!target || target === null) {
         target = this.findClosestBarrier();
-        if (target) {
-            this.memory.siegeTarget = target.id;
-            this.memory.siegeComplete = undefined;
-        }
     }
     if (!target) {
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
