@@ -41,6 +41,7 @@ function role(creep) {
             if (creep.pos.roomName === creep.memory.overlord) {
                 creep.memory.stuckCounter = undefined;
                 creep.memory.destinationReached = false;
+                if (creep.renewalCheck(8)) return null;
                 let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity * 0.9);
                 if (creep.memory.storageDestination) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);
