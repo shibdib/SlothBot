@@ -37,7 +37,8 @@ module.exports.processBuildQueue = function () {
                         initialBuilder: undefined
                     });
                     if (!topPriority.role) return;
-                    if (spawn.spawnCreep(body, role + Game.time, {
+                    let count = _.filter(Game.creeps, (c) => c.memory.role === topPriority.role && c.memory.overlord === topPriority.overlord).length + 1;
+                    if (spawn.spawnCreep(body, role + '_' + spawn.room.name + '_' + count, {
                             memory: {
                                 born: Game.time,
                                 role: role,

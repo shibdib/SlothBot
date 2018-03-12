@@ -28,7 +28,7 @@ function segmentManager() {
     if (!!~['shard0','shard1','shard2'].indexOf(Game.shard.name)) {
         doNotAggressArray = global.LOANlist;
     } else {
-        doNotAggressArray = ['Shibdib'];
+        doNotAggressArray = ['Shibdib', 'shibdib'];
     }
     let mainRaw = {
         "api": {
