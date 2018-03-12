@@ -7,20 +7,21 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.say(ICONS.haul, true);
-    //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.overlord].find(FIND_MY_SPAWNS)[0]);
-    creep.borderCheck();
-    //Invader detection
     if (creep.room.invaderCheck()) return creep.goHomeAndHeal();
     creep.repairRoad();
-    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (_.sum(creep.carry) === 0) {
         delete creep.memory.storageDestination;
         creep.memory.hauling = false;
     }
     if (_.sum(creep.carry) === creep.carryCapacity) {
         creep.memory.hauling = true;
+        creep.memory.destination = undefined;
         creep.memory.containerID = undefined;
     }
+    if (!creep.memory.destination) {
+        creep.memory.destination = shuffle(_.filter(Game.rooms[creep.memory.overlord].memory.remoteRooms, (r) => Game.rooms[r].memory.needsPickup && !_.filter(Game.creeps, (c) => c.memory && c.memory.overlord === creep.memory.overlord && c.memory.role === creep.memory.role && c.memory.destination === r)[0]))[0]
+    }
+    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
         if (creep.memory.hauling === false) {
             if (!creep.memory.containerID) {

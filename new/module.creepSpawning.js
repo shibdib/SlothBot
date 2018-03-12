@@ -34,7 +34,8 @@ module.exports.processBuildQueue = function () {
                         staging: undefined,
                         waitFor: undefined,
                         reservationTarget: undefined,
-                        initialBuilder: undefined
+                        initialBuilder: undefined,
+                        misc: undefined
                     });
                     if (!topPriority.role) return;
                     if (spawn.spawnCreep(body, role + '_' + spawn.room.name + '_T' + spawn.room.controller.level + '_' + _.random(1, 50), {
@@ -53,7 +54,8 @@ module.exports.processBuildQueue = function () {
                                 staging: topPriority.staging,
                                 waitFor: topPriority.waitFor,
                                 reservationTarget: topPriority.reservationTarget,
-                                initialBuilder: topPriority.initialBuilder
+                                initialBuilder: topPriority.initialBuilder,
+                                misc: topPriority.misc
                             }
                         }) === OK) {
                         log.i(spawn.room.name + ' Spawning a ' + role);
@@ -104,7 +106,8 @@ function queueCreep(room, importance, options = {}, military = false) {
         waitFor: undefined,
         reservationTarget: undefined,
         initialBuilder: undefined,
-        reboot: undefined
+        reboot: undefined,
+        misc: undefined
     });
     if (room) {
         let key = options.role;
@@ -125,7 +128,8 @@ function queueCreep(room, importance, options = {}, military = false) {
             waitFor: options.waitFor,
             reservationTarget: options.reservationTarget,
             initialBuilder: options.initialBuilder,
-            reboot: options.reboot
+            reboot: options.reboot,
+            misc: options.misc
         };
         if (!military) {
             if (!room.memory.creepBuildQueue[key]) room.memory.creepBuildQueue = cache;
@@ -342,15 +346,6 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!_.includes(queue, 'remoteHauler')) {
-                let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
-                if (remoteHauler.length < remoteHarvester.length) {
-                    queueCreep(room, PRIORITIES.remoteHauler, {
-                        role: 'remoteHauler',
-                        destination: room.memory.remoteRooms[keys]
-                    })
-                }
-            }
             if (!_.includes(queue, 'pioneer') && Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.requestingPioneer) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
                 if (pioneers.length < 1) {
@@ -381,6 +376,14 @@ module.exports.remoteCreepQueue = function (room) {
                         })
                     }
                 }
+            }
+        }
+        if (!_.includes(queue, 'remoteHauler')) {
+            let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
+            if (remoteHauler.length < _.round(room.memory.remoteRooms.length / 2)) {
+                queueCreep(room, PRIORITIES.remoteHauler, {
+                    role: 'remoteHauler'
+                })
             }
         }
     }
