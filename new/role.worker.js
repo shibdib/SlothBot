@@ -11,11 +11,10 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
+    if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
-    if (creep.carry.energy === 0) {
-        creep.memory.working = null;
-    }
+    if (creep.carry.energy === 0) creep.memory.working = null;
     if (creep.isFull) {
         creep.memory.working = true;
         creep.memory.deliveryRequestTime = undefined;

@@ -189,6 +189,15 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_LEMERGIUM_ALKALIDE);
                     }
                     continue;
+                case 'build':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ACID);
+                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (boostInRoom >= boostNeeded) {
+                        available.push(RESOURCE_CATALYZED_LEMERGIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ACID) >= boostNeeded) {
+                        available.push(RESOURCE_LEMERGIUM_ACID);
+                    }
+                    continue;
                 case 'dismantle':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;

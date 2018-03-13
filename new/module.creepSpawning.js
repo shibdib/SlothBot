@@ -413,7 +413,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             if (!_.includes(queue, 'SKmineral')) {
-                if (SKmineral.length < 2 && (SKAttacker.length > 0) && Game.map.findRoute(room.name, SKRoom.name).length === 2) {
+                if (SKmineral.length < 1 && (SKAttacker.length > 0) && Game.map.findRoute(room.name, SKRoom.name).length < 2) {
                     queueCreep(room, PRIORITIES.SKworker, {
                         role: 'SKmineral',
                         destination: room.memory.skRooms[key]
@@ -421,7 +421,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             if (!_.includes(queue, 'SKworker') && Game.map.findRoute(room.name, SKRoom.name).length < 2) {
-                if (SKworker.length < Memory.roomCache[room.memory.skRooms[key]].sources.length + 1 && (SKAttacker.length > 0)) {
+                if (SKworker.length < Memory.roomCache[room.memory.skRooms[key]].sources.length && (SKAttacker.length > 0)) {
                     queueCreep(room, PRIORITIES.SKworker, {
                         role: 'SKworker',
                         destination: room.memory.skRooms[key]

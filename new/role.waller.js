@@ -8,16 +8,12 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     if (!creep.getSafe()) {
         if (creep.renewalCheck(5)) return null;
-        if (creep.getActiveBodyparts(WORK) > 0 && creep.pos.checkForRoad()[0] && creep.pos.checkForRoad()[0].hits < creep.pos.checkForRoad()[0].hitsMax * 0.50) creep.repair(creep.pos.checkForRoad()[0]);
-        //INITIAL CHECKS
+        if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
+        creep.repairRoad();
         if (creep.borderCheck()) return null;
         if (creep.wrongRoom()) return null;
-        if (creep.carry.energy === 0) {
-            creep.memory.working = null;
-        }
-        if (creep.isFull) {
-            creep.memory.working = true;
-        }
+        if (creep.carry.energy === 0) creep.memory.working = null;
+        if (creep.isFull) creep.memory.working = true;
         if (creep.memory.working === true) {
             if (!creep.memory.currentTarget) {
                 let barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART), 'hits');
