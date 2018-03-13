@@ -74,7 +74,7 @@ function terminalWorker(creep) {
             creep.memory.terminalWorker = true;
             switch (creep.withdraw(terminal, _.max(Object.keys(terminal.store), key => terminal.store[key]))) {
                 case OK:
-                    break;
+                    return true;
                 case ERR_NOT_IN_RANGE:
                     return creep.shibMove(terminal);
             }
@@ -105,30 +105,31 @@ function terminalWorker(creep) {
                     return true;
             }
         }
-    }
-    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    for (let resourceType in storage.store) {
-        if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) && _.sum(terminal.store) < 0.9 * terminal.storeCapacity) {
-            if (_.sum(creep.carry) > 0) {
-                for (let resourceType in creep.carry) {
-                    switch (creep.transfer(storage, resourceType)) {
+    } else {
+        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        for (let resourceType in storage.store) {
+            if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) && _.sum(terminal.store) < 0.9 * terminal.storeCapacity) {
+                if (_.sum(creep.carry) > 0) {
+                    for (let resourceType in creep.carry) {
+                        switch (creep.transfer(storage, resourceType)) {
+                            case OK:
+                                creep.memory.terminalWorker = true;
+                                return true;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(storage);
+                                creep.memory.terminalWorker = true;
+                                return true;
+                        }
+                    }
+                } else {
+                    creep.memory.terminalWorker = true;
+                    switch (creep.withdraw(storage, resourceType)) {
                         case OK:
-                            creep.memory.terminalWorker = true;
+                            creep.memory.terminalDelivery = resourceType;
                             return true;
                         case ERR_NOT_IN_RANGE:
-                            creep.shibMove(storage);
-                            creep.memory.terminalWorker = true;
-                            return true;
+                            return creep.shibMove(storage);
                     }
-                }
-            } else {
-                creep.memory.terminalWorker = true;
-                switch (creep.withdraw(storage, resourceType)) {
-                    case OK:
-                        creep.memory.terminalDelivery = resourceType;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        return creep.shibMove(storage);
                 }
             }
         }
