@@ -23,7 +23,7 @@ function role(creep) {
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
         if (droppedResources(creep)) return null;
-        let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
+        let labs = shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB));
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
@@ -32,7 +32,7 @@ function role(creep) {
             if (creep.memory.emptying ||
                 (labs[key].memory.itemNeeded && (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.itemNeeded)) ||
                 (!labs[key].memory.itemNeeded && labs[key].mineralAmount >= 500)) {
-                creep.memory.labHelper = labs[key].id;
+                if (!creep.memory.labHelper) creep.memory.labHelper = labs[key].id;
                 let lab = Game.getObjectById(creep.memory.labHelper);
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
@@ -62,22 +62,31 @@ function role(creep) {
                     switch (creep.withdraw(lab, lab.mineralType)) {
                         case OK:
                             creep.memory.emptying = true;
+                            delete creep.memory.itemStorage;
+                            delete creep.memory.componentNeeded;
                             return undefined;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(labs[key]);
                             creep.memory.emptying = true;
+                            delete creep.memory.itemStorage;
+                            delete creep.memory.componentNeeded;
+                            return undefined;
+                        case ERR_NOT_ENOUGH_RESOURCES:
+                            delete creep.memory.emptying;
+                            delete creep.memory.itemStorage;
+                            delete creep.memory.componentNeeded;
                             return undefined;
                     }
                 }
-            } else if (labs[key].memory.itemNeeded && (labs[key].mineralAmount < 250 || !labs[key].mineralAmount)) {
-                creep.memory.componentNeeded = labs[key].memory.itemNeeded;
+            } else if (labs[key].memory.itemNeeded && (labs[key].mineralAmount < 250 || !labs[key].mineralAmount) && (!labs[key].mineralType || labs[key].mineralType === labs[key].memory.itemNeeded)) {
+                if (!creep.memory.labHelper) creep.memory.labHelper = labs[key].id;
+                let lab = Game.getObjectById(creep.memory.labHelper);
+                creep.memory.componentNeeded = lab.memory.itemNeeded;
                 if (creep.carry[creep.memory.componentNeeded] === 0 || !creep.carry[creep.memory.componentNeeded]) {
                     if (!creep.memory.itemStorage) {
-                        if (storage.store[labs[key].memory.itemNeeded] > 0) {
-                            creep.memory.labHelper = labs[key].id;
+                        if (storage.store[lab.memory.itemNeeded] > 0) {
                             creep.memory.itemStorage = storage.id;
-                        } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
-                            creep.memory.labHelper = labs[key].id;
+                        } else if (terminal.store[lab.memory.itemNeeded] > 0) {
                             creep.memory.itemStorage = terminal.id;
                         } else {
                             delete creep.memory.itemStorage;
@@ -104,11 +113,15 @@ function role(creep) {
                                 case ERR_NOT_IN_RANGE:
                                     creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
                                     return undefined;
+                                case ERR_NOT_ENOUGH_RESOURCES:
+                                    delete creep.memory.emptying;
+                                    delete creep.memory.itemStorage;
+                                    delete creep.memory.componentNeeded;
+                                    return undefined;
                             }
                         }
                     }
                 } else if (creep.carry[creep.memory.componentNeeded] > 0) {
-                    let lab = Game.getObjectById(creep.memory.labHelper);
                     if (lab) {
                         switch (creep.transfer(lab, creep.memory.componentNeeded)) {
                             case OK:
