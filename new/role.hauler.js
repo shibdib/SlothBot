@@ -205,6 +205,9 @@ function boostDelivery(creep) {
                     creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
                     creep.memory.labTech = true;
                     return true;
+                case ERR_NOT_ENOUGH_RESOURCES:
+                    creep.memory.itemStorage = undefined;
+                    return true;
             }
         }
     }
