@@ -1,6 +1,6 @@
 "use strict";
 
-// Callback is a class (use with new) that stores functions to call
+// Callback is a class (use with src) that stores functions to call
 // back later, and they're called with a specified object.
 
 function Callback() {
@@ -29,7 +29,7 @@ Callback.prototype = {
             try {
                 item.call(thisObj, o);
             } catch (err) {
-                console.log('Ignored error calling back ', item.name, 'with', o, '-', err);
+                log.e('Ignored error calling back ', item.name, 'with', o, '-', err);
             }
         });
     }

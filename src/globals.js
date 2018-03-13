@@ -493,12 +493,12 @@ let globals = function () {
     global.parseRoomName = function (roomName) {
         let room = /^([WE])([0-9]+)([NS])([0-9]+)$/.exec(roomName);
         if (!room) {
-            return; //throw new Error("Invalid room name " + roomName);
+            return; //throw src Error("Invalid room name " + roomName);
         }
         let rx = (WORLD_WIDTH >> 1) + ((room[1] === "W") ? (-Number(room[2])) : (Number(room[2]) + 1));
         let ry = (WORLD_HEIGHT >> 1) + ((room[3] === "N") ? (-Number(room[4])) : (Number(room[4]) + 1));
         if (((rx > 0) && (rx <= WORLD_WIDTH) && (ry > 0) && (ry <= WORLD_HEIGHT)) === false) {
-            return; //throw new Error("Invalid room name " + roomName);
+            return; //throw src Error("Invalid room name " + roomName);
         }
         return {xx: rx, yy: ry};
     };
@@ -513,7 +513,7 @@ let globals = function () {
     global.toWorldPosition = function (rp) {
         let xx = (rp.x | 0), yy = (rp.y | 0);
         if (((xx >= 0) && (xx < 50) && (yy >= 0) && (yy < 50)) === false) {
-            return; //throw new Error("Invalid room position");
+            return; //throw src Error("Invalid room position");
         }
         let offset = parseRoomName(rp.roomName);
         return {

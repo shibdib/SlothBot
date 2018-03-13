@@ -59,7 +59,7 @@ class Log {
      * set to INFO or DEBUG. Use this to print console output that is
      * informational but might be too detailed for regular viewing or output
      * unless explicitly asked for. For example, you might use this to print out
-     * the task a creep is doing when it first starts its new task.
+     * the task a creep is doing when it first starts its src task.
      **/
     i(message) {
         this.cprint('INFO: ' + message, this.LOGGING_LEVEL.INFO);

@@ -28,7 +28,7 @@
 // Determines the number of containers that are adjacent to sources.
 // NOTE: THIS MUST MATCH CALCULATIONS IN role.harvester2.determine_destination()!!!
 function count_source_containers(room) {
-    let room_sources = room.find(FIND_SOURCES);
+    let room_sources = room.sources;
 
     // Go through all sources and all nearby containers, and pick one that is not
     // claimed by another harvester2 for now.
@@ -87,16 +87,16 @@ function summarize_room_internal(room) {
     const links = room.find(FIND_STRUCTURES, {filter: s => s.structureType === STRUCTURE_LINK && s.my});
     const num_links = links === null ? 0 : links.length;
     const link_energy = _.sum(links, l => l.energy);
-    const minerals = room.find(FIND_MINERALS);
+    const minerals = room.mineral;
     const mineral = minerals && minerals.length > 0 ? minerals[0] : null;
     const mineral_type = mineral ? mineral.mineralType : "";
     const mineral_amount = mineral ? mineral.mineralAmount : 0;
     const extractors = room.find(FIND_STRUCTURES, {filter: s => s.structureType === STRUCTURE_EXTRACTOR});
     const num_extractors = extractors.length;
-    const creeps = _.filter(Game.creeps, c => c.memory.assignedRoom === room.name && c.my);
+    const creeps = _.filter(Game.creeps, c => c.memory.overlord === room.name && c.my);
     const num_creeps = creeps ? creeps.length : 0;
     const enemy_creeps = room.find(FIND_HOSTILE_CREEPS);
-    const creep_energy = _.sum(Game.creeps, c => c.memory.assignedRoom === room.name ? c.carry.energy : 0);
+    const creep_energy = _.sum(Game.creeps, c => c.memory.overlord === room.name ? c.carry.energy : 0);
     const num_enemies = enemy_creeps ? enemy_creeps.length : 0;
     const spawns = room.find(FIND_MY_SPAWNS);
     const num_spawns = spawns ? spawns.length : 0;
@@ -139,7 +139,7 @@ function summarize_room_internal(room) {
     // console.log(JSON.stringify(reduced_resources));
 
     // Number of each kind of creeps
-    // const creep_types = new Set(creeps.map(c => c.memory.role));
+    // const creep_types = src Set(creeps.map(c => c.memory.role));
     const creep_counts = _.countBy(creeps, c => c.memory.role);
 
     // Other things we can count:
