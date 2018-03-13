@@ -27,7 +27,7 @@ function role(creep) {
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
-            let helper = _.filter(creep.room.creeps, (c) => c.memory && c.memory.labHelper === labs[key].id)[0];
+            let helper = _.filter(creep.room.creeps, (c) => c.memory && c.memory.labHelper === labs[key].id && c.id !== creep.id)[0];
             if (helper) continue;
             if (creep.memory.emptying ||
                 (labs[key].mineralAmount > 0 && labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].mineralType !== labs[key].memory.creating) ||
