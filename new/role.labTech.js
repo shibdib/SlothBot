@@ -69,24 +69,22 @@ function role(creep) {
                             return undefined;
                     }
                 }
-            } else if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250))) {
-                if (creep.carry[labs[key].memory.itemNeeded] === 0 || !creep.carry[labs[key].memory.itemNeeded]) {
+            } else if (labs[key].memory.itemNeeded && labs[key].mineralAmount < 250) {
+                creep.memory.componentNeeded = labs[key].memory.itemNeeded;
+                if (creep.carry[creep.memory.componentNeeded] === 0 || !creep.carry[creep.memory.componentNeeded]) {
                     if (!creep.memory.itemStorage) {
                         if (storage.store[labs[key].memory.itemNeeded] > 0) {
                             creep.memory.labHelper = labs[key].id;
                             creep.memory.itemStorage = storage.id;
-                            creep.memory.componentNeeded = labs[key].memory.itemNeeded;
                         } else if (terminal.store[labs[key].memory.itemNeeded] > 0) {
                             creep.memory.labHelper = labs[key].id;
                             creep.memory.itemStorage = terminal.id;
-                            creep.memory.componentNeeded = labs[key].memory.itemNeeded;
                         } else {
                             delete creep.memory.itemStorage;
                             delete creep.memory.labHelper;
                             delete creep.memory.componentNeeded;
                         }
-                    }
-                    if (creep.memory.itemStorage) {
+                    } else {
                         if (_.sum(creep.carry) > creep.carry[creep.memory.componentNeeded] || (_.sum(creep.carry) > 0 && !creep.carry[creep.memory.componentNeeded])) {
                             for (let resourceType in creep.carry) {
                                 switch (creep.transfer(storage, resourceType)) {
