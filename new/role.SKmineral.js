@@ -16,15 +16,17 @@ function role(creep) {
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = undefined;
-    if (creep.pos.roomName !== creep.memory.destination) {
+    if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     }
     creep.memory.destinationReached = true;
     creep.borderCheck();
     if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.harvesting === false) {
         creep.memory.harvesting = false;
+        creep.memory.hauling = true;
         return SKdeposit(creep);
     } else {
+        delete creep.memory.hauling;
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (!source || source.pos.roomName !== creep.pos.roomName) return creep.memory.source = undefined;

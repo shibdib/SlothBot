@@ -35,6 +35,7 @@ function shibMove(creep, heading, options = {}) {
     updateRoomStatus(creep.room);
     if (!creep.memory._shibMove || options.forceRepath || Math.random() > options.repathChance) creep.memory._shibMove = {};
     let pathInfo = creep.memory._shibMove;
+    pathInfo.targetRoom = targetRoom(heading);
     let rangeToDestination = creep.pos.getRangeTo(heading);
     if (rangeToDestination <= options.range) {
         shib.shibBench('pathfinding', pathingStart);
@@ -115,7 +116,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = options.route;
-        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
+        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 1))) {
             let route;
             if (options.useCache) {
                 route = getRoute(origin, target);
@@ -127,9 +128,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 allowedRooms = route;
                 cacheRoute(origin, target, route);
             } else {
-                let exitDir = Game.map.findExit(origin.roomName, target.roomName);
+                let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
                 if (exitDir === ERR_NO_PATH) {
-                    let nextRoom = Game.map.findRoute(origin.roomName, target.roomName)[0];
+                    let nextRoom = Game.map.findRoute(origin.roomName, pathInfo.targetRoom)[0];
                     exitDir = Game.map.findExit(target.roomName, nextRoom);
                     if (exitDir === ERR_NO_PATH) {
                         return creep.moveTo(target);
@@ -304,6 +305,17 @@ function normalizePos(destination) {
         }
     }
     return destination;
+}
+
+function targetRoom(destination) {
+    if (!(destination instanceof RoomPosition)) {
+        if (destination) {
+            return destination.pos.roomName;
+        } else {
+            return null;
+        }
+    }
+    return destination.roomName;
 }
 
 function checkAvoid(roomName) {
