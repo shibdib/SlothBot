@@ -114,6 +114,7 @@ function terminalWorker(creep) {
                         switch (creep.transfer(storage, resourceType)) {
                             case OK:
                                 creep.memory.terminalWorker = true;
+                                creep.memory.terminalDelivery = resourceType;
                                 return true;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(storage);
