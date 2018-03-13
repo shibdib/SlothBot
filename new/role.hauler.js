@@ -67,7 +67,7 @@ module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
 
 function terminalWorker(creep) {
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let terminalWorker = _.filter(Game.creeps, (creep) => creep.memory.terminalWorker && creep.memory.overlord === creep.room.name)[0];
+    let terminalWorker = _.filter(Game.creeps, (c) => c.memory.terminalWorker && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker))) return undefined;
     if (creep.memory.hauling === false) {
         if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) {
@@ -142,7 +142,7 @@ function terminalWorker(creep) {
 
 function boostDelivery(creep) {
     let lab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0];
-    let labTech = _.filter(Game.creeps, (creep) => creep.memory.labTech && creep.memory.overlord === creep.room.name)[0];
+    let labTech = _.filter(Game.creeps, (c) => c.memory.labTech && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.terminalWorker || creep.memory.nuclearEngineer || (!creep.memory.labTech && (!lab || labTech))) return undefined;
     if (!lab) return creep.memory.labTech = undefined;
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
@@ -210,7 +210,7 @@ function boostDelivery(creep) {
 
 function nuclearEngineer(creep) {
     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.ghodium < s.ghodiumCapacity)[0];
-    let nuclearEngineer = _.filter(Game.creeps, (creep) => creep.memory.nuclearEngineer && creep.memory.overlord === creep.room.name)[0];
+    let nuclearEngineer = _.filter(Game.creeps, (c) => c.memory.nuclearEngineer && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.terminalWorker || creep.memory.labTech || (!creep.memory.nuclearEngineer && (!nuker || nuclearEngineer))) return undefined;
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
