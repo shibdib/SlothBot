@@ -33,6 +33,7 @@ function manageReactions(room) {
                     for (let id in hub) {
                         hub[id].memory = undefined;
                     }
+                    continue;
                 }
                 if (outputLab.memory.creating) {
                     outputLab.room.visual.text(
