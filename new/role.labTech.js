@@ -69,7 +69,7 @@ function role(creep) {
                             return undefined;
                     }
                 }
-            } else if (labs[key].memory.itemNeeded && labs[key].mineralAmount < 250) {
+            } else if (labs[key].memory.itemNeeded && (labs[key].mineralAmount < 250 || !labs[key].mineralAmount)) {
                 creep.memory.componentNeeded = labs[key].memory.itemNeeded;
                 if (creep.carry[creep.memory.componentNeeded] === 0 || !creep.carry[creep.memory.componentNeeded]) {
                     if (!creep.memory.itemStorage) {
