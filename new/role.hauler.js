@@ -108,7 +108,8 @@ function terminalWorker(creep) {
     } else {
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let resourceType in storage.store) {
-            if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) && _.sum(terminal.store) < 0.9 * terminal.storeCapacity) {
+            if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) break;
+            if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType)) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
                         switch (creep.transfer(storage, resourceType)) {
