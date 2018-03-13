@@ -34,7 +34,29 @@ function manageReactions(room) {
                         hub[id].memory = undefined;
                     }
                 }
-                if (!outputLab.cooldown && outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
+                if (outputLab.memory.creating) {
+                    outputLab.room.visual.text(
+                        ICONS.reaction + ' ' + outputLab.memory.creating,
+                        outputLab.pos.x,
+                        outputLab.pos.y,
+                        {align: 'left', opacity: 0.8}
+                    );
+                } else if (outputLab.memory.neededBoost) {
+                    let boostTarget = _.filter(outputLab.room.creeps, (c) => c.memory && c.memory.boostLab === outputLab.id)[0];
+                    if (!boostTarget) {
+                        outputLab.memory = undefined;
+                        continue;
+                    }
+                    outputLab.room.visual.text(
+                        ICONS.boost + ' ' + outputLab.memory.neededBoost,
+                        outputLab.pos.x,
+                        outputLab.pos.y,
+                        {align: 'left', opacity: 0.8}
+                    );
+                    continue;
+                }
+                if (outputLab.cooldown) continue;
+                if (outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
                 let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
                 if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
@@ -56,26 +78,6 @@ function manageReactions(room) {
                         outputLab.memory = undefined;
                         continue active;
                     }
-                }
-                if (outputLab.memory.creating) {
-                    outputLab.room.visual.text(
-                        ICONS.reaction + ' ' + outputLab.memory.creating,
-                        outputLab.pos.x,
-                        outputLab.pos.y,
-                        {align: 'left', opacity: 0.8}
-                    );
-                } else if (outputLab.memory.neededBoost) {
-                    let boostTarget = _.filter(outputLab.room.creeps, (c) => c.memory && c.memory.boostLab === outputLab.id)[0];
-                    if (!boostTarget) {
-                        outputLab.memory = undefined;
-                        continue;
-                    }
-                    outputLab.room.visual.text(
-                        ICONS.boost + ' ' + outputLab.memory.neededBoost,
-                        outputLab.pos.x,
-                        outputLab.pos.y,
-                        {align: 'left', opacity: 0.8}
-                    );
                 }
             }
     }

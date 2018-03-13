@@ -449,7 +449,7 @@ function supplyReactionRoom(terminal) {
     for (let i = 0; i < reactionNeeds.length; i++) {
         let stored = terminal.store[reactionNeeds[i]] || 0;
         let reactionTerminal = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom)[0];
-        if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.9) {
+        if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.7) {
             let reactionRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.reactionRoom)[0].name;
             if (terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
                 return log.a(' MARKET: Distributing ' + stored + ' ' + reactionNeeds[i] + ' To ' + reactionRoom + ' From ' + terminal.room.name);
