@@ -37,7 +37,7 @@ function manageReactions(room) {
                 if (!outputLab.cooldown && outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
                 let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
-                if (total >= BOOST_AMOUNT * 1.5) {
+                if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
                     log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                     for (let id in creators) {
                         creators[id].memory = undefined;

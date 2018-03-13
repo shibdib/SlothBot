@@ -140,43 +140,62 @@ Creep.prototype.tryToBoost = function (boosts) {
     if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
         let available = [];
+        let boostNeeded;
         for (let key in boosts) {
             let boostInRoom;
             switch (boosts[key]) {
                 case 'attack':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
-                    if (boostInRoom >= 90) {
+                    boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
+                    if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_ACID) >= boostNeeded) {
+                        available.push(RESOURCE_UTRIUM_ACID);
                     }
                     continue;
                 case 'upgrade':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
-                    if (boostInRoom >= 90) {
+                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ACID) >= boostNeeded) {
+                        available.push(RESOURCE_GHODIUM_ACID);
                     }
                     continue;
                 case 'tough':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
-                    if (boostInRoom >= 90) {
+                    boostNeeded = this.getActiveBodyparts(TOUGH) * 30;
+                    if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ALKALIDE) >= boostNeeded) {
+                        available.push(RESOURCE_GHODIUM_ALKALIDE);
                     }
                     continue;
                 case 'ranged':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
-                    if (boostInRoom >= 90) {
+                    boostNeeded = this.getActiveBodyparts(RANGED_ATTACK) * 30;
+                    if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_KEANIUM_ALKALIDE) >= boostNeeded) {
+                        available.push(RESOURCE_KEANIUM_ALKALIDE);
                     }
                     continue;
                 case 'heal':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
-                    if (boostInRoom >= 90) {
+                    boostNeeded = this.getActiveBodyparts(HEAL) * 30;
+                    if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ALKALIDE) >= boostNeeded) {
+                        available.push(RESOURCE_LEMERGIUM_ALKALIDE);
                     }
                     continue;
                 case 'dismantle':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
-                    if (boostInRoom >= 90) {
+                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_ACID) >= boostNeeded) {
+                        available.push(RESOURCE_ZYNTHIUM_ACID);
                     }
             }
         }
