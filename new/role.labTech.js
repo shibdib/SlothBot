@@ -165,6 +165,9 @@ function role(creep) {
                 }
             }
         }
+        if (!creep.memory.labHelper) {
+            creep.idleFor(10);
+        }
     }
 }
 
