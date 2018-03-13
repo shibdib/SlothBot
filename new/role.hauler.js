@@ -69,30 +69,6 @@ function terminalWorker(creep) {
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let terminalWorker = _.filter(Game.creeps, (c) => c.memory.terminalWorker && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker))) return undefined;
-    if (creep.memory.hauling === false) {
-        if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) {
-            creep.memory.terminalWorker = true;
-            switch (creep.withdraw(terminal, _.max(Object.keys(terminal.store), key => terminal.store[key]))) {
-                case OK:
-                    return true;
-                case ERR_NOT_IN_RANGE:
-                    return creep.shibMove(terminal);
-            }
-            return true;
-        }
-    } else if (creep.memory.terminalWorker) {
-        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-        for (let resourceType in creep.carry) {
-            switch (creep.transfer(storage, resourceType)) {
-                case OK:
-                    creep.memory.terminalWorker = undefined;
-                    return undefined;
-                case ERR_NOT_IN_RANGE:
-                    return creep.shibMove(storage);
-            }
-        }
-        return true;
-    }
     if (creep.memory.terminalDelivery) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(terminal, resourceType)) {
@@ -135,6 +111,32 @@ function terminalWorker(creep) {
                 }
             }
         }
+    }
+    if (creep.memory.hauling === false) {
+        if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) {
+            creep.memory.terminalWorker = true;
+            creep.memory.terminalCleaning = true;
+            switch (creep.withdraw(terminal, _.max(Object.keys(terminal.store), key => terminal.store[key]))) {
+                case OK:
+                    return true;
+                case ERR_NOT_IN_RANGE:
+                    return creep.shibMove(terminal);
+            }
+            return true;
+        }
+    } else if (creep.memory.terminalCleaning) {
+        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        for (let resourceType in creep.carry) {
+            switch (creep.transfer(storage, resourceType)) {
+                case OK:
+                    creep.memory.terminalWorker = undefined;
+                    creep.memory.terminalCleaning = undefined;
+                    return undefined;
+                case ERR_NOT_IN_RANGE:
+                    return creep.shibMove(storage);
+            }
+        }
+        return true;
     }
     creep.memory.terminalDelivery = undefined;
     return creep.memory.terminalWorker = undefined;
