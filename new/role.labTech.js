@@ -27,6 +27,8 @@ function role(creep) {
         let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
         for (let key in labs) {
+            let helper = _.filter(creep.room.creeps, (c) => c.memory && c.memory.labHelper === labs[key].id)[0];
+            if (helper) continue;
             if (creep.memory.emptying ||
                 (labs[key].mineralAmount > 0 && labs[key].mineralType !== labs[key].memory.itemNeeded && labs[key].mineralType !== labs[key].memory.creating) ||
                 (labs[key].mineralAmount >= 500 && labs[key].mineralType === labs[key].memory.creating)) {
@@ -35,7 +37,7 @@ function role(creep) {
                         if (resourceType > 0 && ((_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM) && _.sum(terminal.store) < terminal.storeCapacity * 0.95)) {
                             switch (creep.transfer(terminal, resourceType)) {
                                 case OK:
-                                    creep.memory.emptying = undefined;
+                                    delete creep.memory.emptying;
                                     return undefined;
                                 case ERR_NOT_IN_RANGE:
                                     creep.shibMove(terminal);
@@ -44,7 +46,7 @@ function role(creep) {
                         } else {
                             switch (creep.transfer(storage, resourceType)) {
                                 case OK:
-                                    creep.memory.emptying = undefined;
+                                    delete creep.memory.emptying;
                                     return undefined;
                                 case ERR_NOT_IN_RANGE:
                                     creep.shibMove(storage);
@@ -56,17 +58,16 @@ function role(creep) {
                     switch (creep.withdraw(labs[key], labs[key].mineralType)) {
                         case OK:
                             creep.memory.emptying = true;
+                            delete creep.memory.labHelper;
                             return undefined;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(labs[key]);
+                            creep.memory.labHelper = labs[key].id;
                             creep.memory.emptying = true;
                             return undefined;
                     }
                 }
-            }
-        }
-        for (let key in labs) {
-            if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250))) {
+            } else if (labs[key].memory.itemNeeded && (labs[key].mineralType !== labs[key].memory.itemNeeded || (labs[key].mineralType === labs[key].memory.itemNeeded && labs[key].mineralAmount < 250))) {
                 if (creep.carry[labs[key].memory.itemNeeded] === 0 || !creep.carry[labs[key].memory.itemNeeded]) {
                     if (!creep.memory.itemStorage) {
                         if (storage.store[labs[key].memory.itemNeeded] > 0) {
@@ -76,7 +77,7 @@ function role(creep) {
                             creep.memory.labHelper = labs[key].id;
                             creep.memory.itemStorage = terminal.id;
                         } else {
-                            creep.memory.itemStorage = undefined;
+                            delete creep.memory.itemStorage;
                         }
                     }
                     if (creep.memory.itemStorage) {
@@ -84,7 +85,7 @@ function role(creep) {
                             for (let resourceType in creep.carry) {
                                 switch (creep.transfer(storage, resourceType)) {
                                     case OK:
-                                        creep.memory.emptying = undefined;
+                                        delete creep.memory.emptying;
                                         return undefined;
                                     case ERR_NOT_IN_RANGE:
                                         creep.shibMove(storage);
@@ -95,7 +96,7 @@ function role(creep) {
                         creep.memory.storageDestination = labs[key].id;
                         switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), labs[key].memory.itemNeeded)) {
                             case OK:
-                                creep.memory.itemStorage = undefined;
+                                delete creep.memory.itemStorage;
                                 return undefined;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
@@ -107,15 +108,14 @@ function role(creep) {
                     if (lab) {
                         switch (creep.transfer(lab, labs[key].memory.itemNeeded)) {
                             case OK:
-                                creep.memory.labHelper = undefined;
+                                delete creep.memory.labHelper;
                                 return undefined;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(lab);
                                 return undefined;
                         }
                     } else {
-                        creep.memory.labHelper = undefined;
-                        creep.memory.labTech = undefined;
+                        delete creep.memory.labHelper;
                     }
                 }
             }
@@ -129,6 +129,9 @@ function role(creep) {
                 }
             }
         } else {
+            delete creep.memory.labHelper;
+            delete creep.memory.emptying;
+            delete creep.memory.itemStorage;
             creep.idleFor(10);
         }
     }

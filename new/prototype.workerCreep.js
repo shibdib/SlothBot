@@ -257,7 +257,8 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     }
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    if (storageLink && storageLink.energy > 0) {
+    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+    if (storageLink && storageLink.energy > 0 && (!controllerLink || controllerLink.energy > 100)) {
         let linkDistWeighted;
         const object = storageLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -334,7 +335,8 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    if (storageLink && storageLink.energy > 50) {
+    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+    if (storageLink && storageLink.energy > 0 && (!controllerLink || controllerLink.energy > 100)) {
         let weight = 0.3;
         if (storageLink.energy > 500) weight = 0.01;
         const storageLinkDistWeighted = _.round(storageLink.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -618,6 +620,23 @@ Creep.prototype.findEssentials = function () {
         storage.push({
             id: controllerContainer.id,
             distWeighted: containerDistWeighted,
+            harvest: false
+        });
+    }
+    //Storage Link
+    let storageLink = Game.getObjectById(this.room.memory.storageLink);
+    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+    if (storageLink && controllerLink && !this.room.memory.responseNeeded && controllerLink.energy < 250) {
+        let storageLinkDistWeighted;
+        const object = storageLink;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+        if (object && numberOfUsers === 0) {
+            let weight = 0.5;
+            storageLinkDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
+        }
+        storage.push({
+            id: storageLink.id,
+            distWeighted: storageLinkDistWeighted,
             harvest: false
         });
     }

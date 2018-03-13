@@ -62,7 +62,7 @@ function mind(room, roomLimit) {
     shib.shibBench('observerControl', observerCpu);
 
     // Handle Links
-    if (Game.time % 10 === 0) {
+    if (Game.time % 5 === 0) {
         cpu = Game.cpu.getUsed();
         links.linkControl(room);
         shib.shibBench('linkControl', cpu);
