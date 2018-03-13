@@ -47,21 +47,21 @@ function terminalControl(room) {
 
         //Extend/Place buy orders if we have enough buffer cash
         extendBuyOrders(terminal, globalOrders, myOrders);
-        placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
-        if (room.memory.reactionRoom) placeReactionOrders(terminal, globalOrders, myOrders);
-        placeBoostOrders(terminal, storage, globalOrders, myOrders);
+        if (!terminal.cooldown) placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom);
+        if (!terminal.cooldown && room.memory.reactionRoom) placeReactionOrders(terminal, globalOrders, myOrders);
+        if (!terminal.cooldown) placeBoostOrders(terminal, storage, globalOrders, myOrders);
 
         //Energy balancer
-        balanceEnergy(terminal, energyInRoom);
+        if (!terminal.cooldown) balanceEnergy(terminal, energyInRoom);
 
         //Send minerals to reaction room
-        if (!terminal.room.memory.reactionRoom) supplyReactionRoom(terminal);
+        if (!terminal.cooldown && !terminal.room.memory.reactionRoom) supplyReactionRoom(terminal);
 
         //Send boosts from reaction room
-        if (terminal.room.memory.reactionRoom) balanceBoosts(terminal);
+        if (!terminal.cooldown && terminal.room.memory.reactionRoom) balanceBoosts(terminal);
 
         //Sell off excess
-        if (terminal.room.memory.reactionRoom) fillBuyOrders(terminal, globalOrders);
+        if (!terminal.cooldown && terminal.room.memory.reactionRoom) fillBuyOrders(terminal, globalOrders);
     }
 }
 
@@ -402,7 +402,7 @@ function balanceEnergy(terminal, energyInRoom) {
     if (needingRooms[0]) cost = Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].name, terminal.room.name);
     if (needingRooms[0] && terminal.room.memory.energySurplus && cost < terminal.store[RESOURCE_ENERGY] * 0.25 && !terminal.cooldown) {
         if (terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].name) === OK) {
-            log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_ENERGY] * 0.10 + ' ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].name + ' From ' + terminal.room.name);
+            return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_ENERGY] * 0.10 + ' ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].name + ' From ' + terminal.room.name);
         }
     }
 }
@@ -415,7 +415,7 @@ function balanceBoosts(terminal) {
                 let stored = otherTerminals[id].store[END_GAME_BOOSTS[key]] || 0;
                 if (stored < terminal.store[END_GAME_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(END_GAME_BOOSTS[key], terminal.store[END_GAME_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
-                        log.a(' MARKET: Distributing ' + terminal.store[END_GAME_BOOSTS[key]] * 0.5 + ' ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                        return log.a(' MARKET: Distributing ' + terminal.store[END_GAME_BOOSTS[key]] * 0.5 + ' ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                     }
                 }
             }
@@ -427,7 +427,7 @@ function balanceBoosts(terminal) {
                 let stored = otherTerminals[id].store[TIER_2_BOOSTS[key]] || 0;
                 if (stored < terminal.store[TIER_2_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(TIER_2_BOOSTS[key], terminal.store[TIER_2_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
-                        log.a(' MARKET: Distributing ' + terminal.store[TIER_2_BOOSTS[key]] * 0.5 + ' ' + TIER_2_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                        return log.a(' MARKET: Distributing ' + terminal.store[TIER_2_BOOSTS[key]] * 0.5 + ' ' + TIER_2_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                     }
                 }
             }
@@ -438,7 +438,7 @@ function balanceBoosts(terminal) {
             let stored = otherTerminals[id].store[RESOURCE_GHODIUM] || 0;
             if (stored < terminal.store[RESOURCE_GHODIUM] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                 if (terminal.send(RESOURCE_GHODIUM, terminal.store[RESOURCE_GHODIUM] * 0.5, otherTerminals[id].room.name) === OK) {
-                    log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_GHODIUM] * 0.5 + ' ' + RESOURCE_GHODIUM + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                    return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_GHODIUM] * 0.5 + ' ' + RESOURCE_GHODIUM + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                 }
             }
         }
@@ -452,7 +452,7 @@ function supplyReactionRoom(terminal) {
         if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.9) {
             let reactionRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.reactionRoom)[0].name;
             if (terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
-                log.a(' MARKET: Distributing ' + stored + ' ' + reactionNeeds[i] + ' To ' + reactionRoom + ' From ' + terminal.room.name);
+                return log.a(' MARKET: Distributing ' + stored + ' ' + reactionNeeds[i] + ' To ' + reactionRoom + ' From ' + terminal.room.name);
             }
         }
     }
