@@ -13,14 +13,14 @@ function role(creep) {
     // Responder Mode
     if (creep.memory.responseTarget) {
         creep.say(ICONS.respond, true);
-        if (creep.room.name !== creep.room.responseTarget) {
+        if (creep.room.name !== creep.memory.responseTarget) {
             let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
             if (hostile) {
                 return creep.fightRanged(hostile);
             } else {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room}
             }
-        } else if (creep.room.name === creep.room.responseTarget) {
+        } else if (creep.room.name === creep.memory.responseTarget) {
             let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
             let hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
             if (hostile && hub.getRangeTo(hostile) >= 12) return creep.fightRanged(hostile);
