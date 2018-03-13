@@ -103,7 +103,7 @@ function role(creep) {
                                 return undefined;
                         }
                     }
-                } else {
+                } else if (creep.carry[labs[key].memory.itemNeeded] > 0) {
                     let lab = Game.getObjectById(creep.memory.labHelper);
                     if (lab) {
                         switch (creep.transfer(lab, labs[key].memory.itemNeeded)) {
@@ -116,6 +116,30 @@ function role(creep) {
                         }
                     } else {
                         delete creep.memory.labHelper;
+                    }
+                } else {
+                    if (_.sum(creep.carry) > 0) {
+                        for (let resourceType in creep.carry) {
+                            if (resourceType > 0 && ((_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM) && _.sum(terminal.store) < terminal.storeCapacity * 0.95)) {
+                                switch (creep.transfer(terminal, resourceType)) {
+                                    case OK:
+                                        delete creep.memory.emptying;
+                                        return undefined;
+                                    case ERR_NOT_IN_RANGE:
+                                        creep.shibMove(terminal);
+                                        return undefined;
+                                }
+                            } else {
+                                switch (creep.transfer(storage, resourceType)) {
+                                    case OK:
+                                        delete creep.memory.emptying;
+                                        return undefined;
+                                    case ERR_NOT_IN_RANGE:
+                                        creep.shibMove(storage);
+                                        return undefined;
+                                }
+                            }
+                        }
                     }
                 }
             }
