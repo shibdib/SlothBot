@@ -93,6 +93,48 @@ function terminalWorker(creep) {
         }
         return true;
     }
+    if (creep.memory.terminalDelivery) {
+        for (let resourceType in creep.carry) {
+            switch (creep.transfer(terminal, resourceType)) {
+                case OK:
+                    creep.memory.terminalDelivery = undefined;
+                    return creep.memory.terminalWorker = undefined;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(terminal);
+                    creep.memory.terminalWorker = true;
+                    return true;
+            }
+        }
+    }
+    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    for (let resourceType in storage.store) {
+        if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) && _.sum(terminal.store) < 0.9 * terminal.storeCapacity) {
+            if (_.sum(creep.carry) > 0) {
+                for (let resourceType in creep.carry) {
+                    switch (creep.transfer(storage, resourceType)) {
+                        case OK:
+                            creep.memory.terminalWorker = true;
+                            return true;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(storage);
+                            creep.memory.terminalWorker = true;
+                            return true;
+                    }
+                }
+            } else {
+                creep.memory.terminalWorker = true;
+                switch (creep.withdraw(storage, resourceType)) {
+                    case OK:
+                        creep.memory.terminalDelivery = resourceType;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        return creep.shibMove(storage);
+                }
+            }
+        }
+    }
+    creep.memory.terminalDelivery = undefined;
+    return creep.memory.terminalWorker = undefined;
 }
 
 function boostDelivery(creep) {
