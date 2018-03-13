@@ -20,8 +20,7 @@ function role(creep) {
             } else {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room}
             }
-        }
-        if (creep.room.name === creep.room.responseTarget) {
+        } else if (creep.room.name === creep.room.responseTarget) {
             let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
             let hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
             if (hostile && hub.getRangeTo(hostile) >= 12) return creep.fightRanged(hostile);

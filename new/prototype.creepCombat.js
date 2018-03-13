@@ -116,6 +116,7 @@ Creep.prototype.healAllyCreeps = function () {
         }
         return true;
     }
+    return false;
 };
 
 Creep.prototype.moveToHostileConstructionSites = function () {
