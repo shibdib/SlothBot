@@ -152,21 +152,6 @@ function role(creep) {
                 }
             }
         }
-        if (_.sum(creep.carry) > 0) {
-            for (let resourceType in creep.carry) {
-                switch (creep.transfer(storage, resourceType)) {
-                    case OK:
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(storage);
-                }
-            }
-        } else {
-            delete creep.memory.labHelper;
-            delete creep.memory.emptying;
-            delete creep.memory.itemStorage;
-            delete creep.memory.componentNeeded;
-            creep.idleFor(10);
-        }
     }
 }
 
