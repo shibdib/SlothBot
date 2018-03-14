@@ -37,6 +37,12 @@ Creep.prototype.cleanRoom = function () {
         }
         this.memory.role = 'worker';
     } else {
+        this.room.visual.text(
+            ICONS.attack,
+            target.x,
+            target.y,
+            {align: 'left', opacity: 0.8}
+        );
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
                 this.shibMove(target);
@@ -45,11 +51,5 @@ Creep.prototype.cleanRoom = function () {
                 return true;
 
         }
-        this.room.visual.text(
-            ICONS.attack,
-            target.x,
-            target.y,
-            {align: 'left', opacity: 0.8}
-        );
     }
 };
