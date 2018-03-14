@@ -39,8 +39,8 @@ Creep.prototype.cleanRoom = function () {
     } else {
         this.room.visual.text(
             ICONS.attack,
-            target.x,
-            target.y,
+            target.pos.x,
+            target.pos.y,
             {align: 'left', opacity: 0.8}
         );
         switch (this.dismantle(target)) {
