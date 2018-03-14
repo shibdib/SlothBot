@@ -42,7 +42,6 @@ Creep.prototype.findClosestBarrier = function (walls = true) {
         barriers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART);
     }
     let lowestInArea = _.sortBy(this.pos.findInRange(barriers, 6), 'hits')[0];
-    if (!walls && !lowestInArea) lowestInArea = _.sortBy(this.pos.findInRange(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART), 6), 'hits')[0];
     if (lowestInArea && !PathFinder.search(this.pos, lowestInArea.pos).incomplete) return lowestInArea;
     return this.pos.findClosestByRange(barriers);
 };
