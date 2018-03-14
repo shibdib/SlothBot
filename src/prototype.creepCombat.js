@@ -271,7 +271,7 @@ Creep.prototype.moveToStaging = function () {
 
 Creep.prototype.siege = function () {
     if (this.room.name !== this.memory.targetRoom) {
-        if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1) return null;
+        if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1 && 1 < this.pos.x < 48 && 1 < this.pos.y < 48) return null;
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
             ignoreCreeps: true,
             range: 20
@@ -295,28 +295,76 @@ Creep.prototype.siege = function () {
             this.memory.siegeComplete = true;
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
+            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
+            if (target && PathFinder.search(this.pos, target.pos,
+                    {
+                        roomCallback: function (roomName) {
+                            let room = Game.rooms[roomName];
+                            if (!room) return;
+                            let costs = new PathFinder.CostMatrix;
+                            room.find(FIND_CREEPS).forEach(function (creep) {
+                                costs.set(creep.pos.x, creep.pos.y, 0);
+                            });
+                            return costs;
+                        },
+                    }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
                 this.memory.siegeComplete = true;
             }
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_SPAWN)});
+            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_SPAWN)});
+            if (target && PathFinder.search(this.pos, target.pos,
+                    {
+                        roomCallback: function (roomName) {
+                            let room = Game.rooms[roomName];
+                            if (!room) return;
+                            let costs = new PathFinder.CostMatrix;
+                            room.find(FIND_CREEPS).forEach(function (creep) {
+                                costs.set(creep.pos.x, creep.pos.y, 0);
+                            });
+                            return costs;
+                        },
+                    }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
                 this.memory.siegeComplete = true;
             }
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION)});
+            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION)});
+            if (target && PathFinder.search(this.pos, target.pos,
+                    {
+                        roomCallback: function (roomName) {
+                            let room = Game.rooms[roomName];
+                            if (!room) return;
+                            let costs = new PathFinder.CostMatrix;
+                            room.find(FIND_CREEPS).forEach(function (creep) {
+                                costs.set(creep.pos.x, creep.pos.y, 0);
+                            });
+                            return costs;
+                        },
+                    }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
                 this.memory.siegeComplete = true;
             }
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD && s.structureType.owner !== STRUCTURE_STORAGE && s.structureType.owner !== STRUCTURE_TERMINAL)});
+            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD && s.structureType.owner !== STRUCTURE_STORAGE && s.structureType.owner !== STRUCTURE_TERMINAL)});
+            if (target && PathFinder.search(this.pos, target.pos,
+                    {
+                        roomCallback: function (roomName) {
+                            let room = Game.rooms[roomName];
+                            if (!room) return;
+                            let costs = new PathFinder.CostMatrix;
+                            room.find(FIND_CREEPS).forEach(function (creep) {
+                                costs.set(creep.pos.x, creep.pos.y, 0);
+                            });
+                            return costs;
+                        },
+                    }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
                 this.memory.siegeComplete = true;
