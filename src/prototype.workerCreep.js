@@ -563,7 +563,7 @@ Creep.prototype.findEssentials = function () {
      **/
         //Tower
     let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-    if (tower.length > 0 && !_.includes(roomSpawnQueue, 'responder')) {
+    if (tower.length > 0 && !_.includes(roomSpawnQueue, 'responder') && !_.includes(roomSpawnQueue, 'longbow')) {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = tower[i];
