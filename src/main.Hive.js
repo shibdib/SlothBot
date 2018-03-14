@@ -6,7 +6,13 @@ let spawning = require('module.creepSpawning');
 let shib = require("shibBench");
 
 function mind() {
-    Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner['username'] === 'Shibdib'));
+    // Set Name
+    if (!global.USERNAME) {
+        for (let key in Game.spawns) {
+            global.USERNAME = Game.spawns[key].owner.username;
+        }
+    }
+    Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner['username'] === USERNAME));
     let cpuBucket = Game.cpu.bucket;
 
     let cpu;

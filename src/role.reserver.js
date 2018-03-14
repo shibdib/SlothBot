@@ -21,7 +21,7 @@ function role(creep) {
             creep.memory.destinationReached = true;
         }
         creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget));
-    } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation['username'] === 'Shibdib')) {
+    } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation['username'] === USERNAME)) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:
                 if (!creep.memory.signed) {
