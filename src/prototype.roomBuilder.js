@@ -131,7 +131,7 @@ function findExtensionHub(room) {
 
 function controllerSupplier(room, structures) {
     let controllerContainer = _.filter(room.controller.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-    if (room.controller.level < 5) {
+    if (room.controller.level < 6) {
         if (!controllerContainer) {
             let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
             if (!controllerBuild) {
@@ -151,10 +151,10 @@ function controllerSupplier(room, structures) {
         }
     } else {
         let controllerLink = _.filter(room.controller.pos.findInRange(structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
-        let inBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
-        if (!controllerLink && !inBuild && room.memory.storageLink) {
+        if (!controllerLink && room.memory.storageLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 2, room.controller.pos.x - 2, room.controller.pos.y + 2, room.controller.pos.x + 2, true);
             for (let key in zoneTerrain) {
+                if (_.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
                 position.createConstructionSite(STRUCTURE_LINK);
@@ -338,11 +338,11 @@ function buildLinks(room, structures) {
     if (room.controller.level < 5) return;
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (storage) {
-        let inBuild = _.filter(storage.pos.findInRange(storage.room.constructionSites, 2), (s) => s.structureType === STRUCTURE_LINK);
         let built = _.filter(storage.pos.findInRange(storage.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
-        if (storage && built.length === 0 && inBuild.length === 0) {
+        if (storage && built.length === 0) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 1, storage.pos.x - 1, storage.pos.y + 1, storage.pos.x + 1, true);
             for (let key in zoneTerrain) {
+                if (_.filter(storage.pos.findInRange(storage.room.constructionSites, 2), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure().length > 0) continue;
                 position.createConstructionSite(STRUCTURE_LINK);
@@ -377,13 +377,10 @@ function buildRoads(room, structures) {
     if (room.controller.level < 3 || _.size(Game.constructionSites) >= 45) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.mineral[0];
-    let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
+    //let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     for (let source of room.sources) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
-    }
-    for (let key in extensions) {
-        buildRoadFromTo(room, spawner, extensions[key]);
     }
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);

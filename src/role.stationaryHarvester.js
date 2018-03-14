@@ -100,7 +100,8 @@ function harvestDepositLink(creep) {
     } else {
         let container = Game.getObjectById(creep.memory.containerID);
         let inBuild = _.filter(container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0];
-        if (!inBuild) {
+        let level = creep.room.controller.level;
+        if (!inBuild && container && (level === 5 || level >= 7)) {
             let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
