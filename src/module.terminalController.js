@@ -436,10 +436,10 @@ function balanceBoosts(terminal) {
     for (let key in TIER_1_BOOSTS) {
         if (terminal.store[TIER_1_BOOSTS[key]] >= 1000) {
             for (let id in otherTerminals) {
-                let stored = otherTerminals[id].store[TIER_2_BOOSTS[key]] || 0;
-                if (stored < terminal.store[TIER_2_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
-                    if (terminal.send(TIER_2_BOOSTS[key], terminal.store[TIER_2_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
-                        return log.a(' MARKET: Distributing ' + terminal.store[TIER_2_BOOSTS[key]] * 0.5 + ' ' + TIER_2_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                let stored = otherTerminals[id].store[TIER_1_BOOSTS[key]] || 0;
+                if (stored < terminal.store[TIER_1_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
+                    if (terminal.send(TIER_1_BOOSTS[key], terminal.store[TIER_1_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
+                        return log.a(' MARKET: Distributing ' + terminal.store[TIER_1_BOOSTS[key]] * 0.5 + ' ' + TIER_1_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                     }
                 }
             }
