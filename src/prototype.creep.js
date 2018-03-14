@@ -104,7 +104,7 @@ Creep.prototype.renewalCheck = function (level = 8) {
             switch (spawn.renewCreep(this)) {
                 case OK:
                     if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
-                    this.say(ICONS.tired);
+                    this.say(ICONS.renew);
                     this.memory.renewingTarget = spawn.id;
                     this.memory.renewing = true;
                     return true;

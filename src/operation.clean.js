@@ -38,10 +38,10 @@ Creep.prototype.cleanRoom = function () {
         this.memory.role = 'worker';
     } else {
         this.room.visual.text(
-            ICONS.attack,
+            ICONS.noEntry,
             target.pos.x,
             target.pos.y,
-            {align: 'left', opacity: 0.8}
+            {align: 'left', opacity: 1}
         );
         switch (this.dismantle(target)) {
             case ERR_NOT_IN_RANGE:
