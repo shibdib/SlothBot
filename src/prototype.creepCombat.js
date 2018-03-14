@@ -281,19 +281,6 @@ Creep.prototype.siege = function () {
         let target;
         let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
-        if (Game.getObjectById(this.memory.siegeTarget)) {
-            let lowHit = _.min(this.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)}), 'hits');
-            if (lowHit) {
-                target = lowHit;
-                this.memory.siegeTarget = target.id;
-                this.memory.siegeComplete = undefined;
-            } else {
-                target = Game.getObjectById(this.memory.siegeTarget);
-            }
-        }
-        if (!target || target === null) {
-            this.memory.siegeComplete = true;
-        }
         if (!target || target === null) {
             target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
             if (target && PathFinder.search(this.pos, target.pos,
@@ -310,7 +297,6 @@ Creep.prototype.siege = function () {
                     }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
-                this.memory.siegeComplete = true;
             }
         }
         if (!target || target === null) {
@@ -329,7 +315,6 @@ Creep.prototype.siege = function () {
                     }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
-                this.memory.siegeComplete = true;
             }
         }
         if (!target || target === null) {
@@ -348,7 +333,6 @@ Creep.prototype.siege = function () {
                     }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
-                this.memory.siegeComplete = true;
             }
         }
         if (!target || target === null) {
@@ -367,14 +351,12 @@ Creep.prototype.siege = function () {
                     }).incomplete) target = undefined;
             if (target) {
                 this.memory.siegeTarget = target.id;
-                this.memory.siegeComplete = true;
             }
         }
         if (!target || target === null) {
             target = this.findClosestBarrier();
             if (target) {
                 this.memory.siegeTarget = target.id;
-                this.memory.siegeComplete = undefined;
             }
         }
         /**if (!target || target.pos.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})) {
