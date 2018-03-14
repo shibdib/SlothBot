@@ -98,6 +98,8 @@ function harvestDepositLink(creep) {
             return link.id;
         }
     } else {
+        let storageLink = Game.getObjectById(creep.memory.storageLink);
+        if (creep.getRangeTo(storageLink) <= 8) return;
         let container = Game.getObjectById(creep.memory.containerID);
         let inBuild = _.filter(container.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0];
         let level = creep.room.controller.level;
