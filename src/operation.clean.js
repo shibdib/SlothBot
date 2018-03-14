@@ -45,5 +45,11 @@ Creep.prototype.cleanRoom = function () {
                 return true;
 
         }
+        this.room.visual.text(
+            ICONS.attack,
+            target.x,
+            target.y,
+            {align: 'left', opacity: 0.8}
+        );
     }
 };
