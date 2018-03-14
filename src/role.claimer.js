@@ -9,10 +9,11 @@ function role(creep) {
     //Initial move
     creep.borderCheck();
     if (!creep.memory.destinationReached) {
-        let destination = new RoomPosition(25, 25, creep.memory.destination);
+        let destination = new RoomPosition(25, 25, creep.memory.destination, {range: 17});
         creep.shibMove(destination, {range: 17});
         if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     } else {
+        if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
         if (creep.room.controller) {
             if (!creep.memory.signed) {
                 let signs = ["Territory of Overlords - #overlords on Slack", "Overlords - Visit at your own risk.", "Join Overlords! #overlords"];
