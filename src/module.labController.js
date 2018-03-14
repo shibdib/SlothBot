@@ -11,7 +11,9 @@ function labManager() {
         let room = Memory.ownedRooms[key];
         let reactionRoom = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom)[0];
         if (!reactionRoom) room.memory.reactionRoom = true;
-        if (room.memory.reactionRoom) manageReactions(room);
+        let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+        let lab = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
+        if (lab && terminal && room.memory.reactionRoom) manageReactions(room);
     }
 }
 

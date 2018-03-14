@@ -301,7 +301,8 @@ function buildLabs(room, structures) {
         let labs = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
-            for (let i = 1; i < 249; i++) {
+            let goodSpots = [];
+            for (let i = 1; i < 2400; i++) {
                 let labPos;
                 let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
                 let labHub = room.lookForAtArea(LOOK_TERRAIN, pos.y - 5, pos.x - 5, pos.y + 5, pos.x + 5, true);
@@ -310,12 +311,15 @@ function buildLabs(room, structures) {
                     labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
                     good = false;
                     if (labPos.checkForAllStructure().length > 0) break;
+                    if (labPos.checkForWall()) break;
                     good = true;
                 }
-                if (good) {
-                    labPos.createConstructionSite(STRUCTURE_LAB);
-                    break;
-                }
+                if (good) goodSpots.push(pos);
+            }
+            if (goodSpots.length > 0) {
+                let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+                let site = hub.findClosestByPath(goodSpots);
+                site.createConstructionSite(STRUCTURE_LAB);
             }
         } else if (labs[0]) {
             let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 2, labs[0].pos.x - 2, labs[0].pos.y + 2, labs[0].pos.x + 2, true);

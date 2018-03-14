@@ -261,7 +261,7 @@ module.exports.workerCreepQueue = function (room) {
             })
         }
     }
-    if (!_.includes(queue, 'labTech') && room.memory.reactionRoom) {
+    if (level >= 6 && !_.includes(queue, 'labTech') && room.memory.reactionRoom && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) {
         let amount = 1;
         if (level > 6) amount = 2;
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
