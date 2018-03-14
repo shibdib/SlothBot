@@ -3,6 +3,7 @@ module.exports.processBuildQueue = function () {
     for (let key in spawns) {
         let spawn = spawns[key];
         let level = getLevel(spawn.room);
+        if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
