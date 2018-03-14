@@ -56,7 +56,19 @@ function manageReactions(room) {
                     );
                     continue;
                 }
+                //If on cooldown continue
                 if (outputLab.cooldown) continue;
+                //Check for range issues
+                let rangeOne = Game.getObjectById(creators[0]).pos.getRangeTo(outputLab);
+                let rangeTwo = Game.getObjectById(creators[1]).pos.getRangeTo(outputLab);
+                if (rangeOne > 3 || rangeTwo > 3) {
+                    log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
+                    for (let id in creators) {
+                        creators[id].memory = undefined;
+                    }
+                    outputLab.memory = undefined;
+                    continue;
+                }
                 if (outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
                 let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
@@ -102,7 +114,7 @@ function manageReactions(room) {
                 }
                 let componentOne = BOOST_COMPONENTS[boost][0];
                 let componentTwo = BOOST_COMPONENTS[boost][1];
-                let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 3, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
+                let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
                 if (availableLabs) {
                     log.a(room.name + ' queued ' + boost + ' for creation.');
                     room.memory.activeReaction = boost;

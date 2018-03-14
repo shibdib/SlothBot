@@ -31,7 +31,7 @@ function role(creep) {
             if (helper) continue;
             if (creep.memory.emptying ||
                 (labs[key].memory.itemNeeded && (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.itemNeeded)) ||
-                (!labs[key].memory.itemNeeded && labs[key].mineralAmount >= 500)) {
+                (!labs[key].memory.itemNeeded && labs[key].mineralAmount >= 500) || (!labs[key].memory.itemNeeded && labs[key].mineralType && labs[key].mineralType !== labs[key].memory.creating)) {
                 if (!creep.memory.labHelper) creep.memory.labHelper = labs[key].id;
                 let lab = Game.getObjectById(creep.memory.labHelper);
                 if (_.sum(creep.carry) > 0) {
