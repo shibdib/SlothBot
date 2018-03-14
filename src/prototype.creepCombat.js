@@ -418,6 +418,7 @@ Creep.prototype.siegeHeal = function () {
     if (!Game.getObjectById(this.memory.healTarget) || !this.memory.healTarget) {
         if (!Game.getObjectById(this.memory.healTarget)) this.memory.healTarget = undefined;
         let deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
+        if (!deconstructor) deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom)[0];
         this.memory.healTarget = deconstructor.id;
         deconstructor.memory.healer = this.id;
         return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});

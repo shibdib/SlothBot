@@ -13,7 +13,6 @@ Creep.prototype.cleanRoom = function () {
     if (!target || target === null) {
         target = this.findClosestBarrier(false);
         if (!target) target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_WALL});
-
     }
     if (!target) {
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
