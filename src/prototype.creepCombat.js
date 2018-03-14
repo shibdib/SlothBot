@@ -348,6 +348,12 @@ Creep.prototype.siege = function () {
         if (!target) {
             this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {ignoreCreeps: true, range: 23});
         } else {
+            this.room.visual.text(
+                ICONS.noEntry,
+                target.pos.x,
+                target.pos.y,
+                {align: 'left', opacity: 1}
+            );
             switch (this.dismantle(target)) {
                 case ERR_NOT_IN_RANGE:
                     this.heal(this);
