@@ -11,8 +11,8 @@ Creep.prototype.robbery = function () {
         Memory.targetRooms = _.filter(Memory.targetRooms, (t) => t !== this.memory.targetRoom);
     }
     if (!this.memory.hauling) {
-        if ((_.sum(terminal.store) === 0 && _.sum(storage.store) === 0) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
-        if (_.sum(storage.store) > 0) {
+        if ((!terminal || (_.sum(terminal.store) === 0) && (!storage || _.sum(storage.store) === 0)) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
+        if (storage && _.sum(storage.store) > 0) {
             for (let resourceType in storage.store) {
                 switch (this.withdraw(storage, resourceType)) {
                     case OK:
@@ -21,7 +21,7 @@ Creep.prototype.robbery = function () {
                         return this.shibMove(storage);
                 }
             }
-        } else if (_.sum(terminal.store) > 0) {
+        } else if (terminal && _.sum(terminal.store) > 0) {
             for (let resourceType in terminal.store) {
                 switch (this.withdraw(terminal, resourceType)) {
                     case OK:
