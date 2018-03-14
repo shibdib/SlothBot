@@ -34,8 +34,13 @@ Creep.prototype.findClosestEnemy = function () {
     }
 };
 
-Creep.prototype.findClosestBarrier = function () {
-    let barriers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+Creep.prototype.findClosestBarrier = function (walls = true) {
+    let barriers;
+    if (walls) {
+        barriers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+    } else {
+        barriers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART);
+    }
     let lowestInArea = _.sortBy(this.pos.findInRange(barriers, 6), 'hits')[0];
     if (lowestInArea && !PathFinder.search(this.pos, lowestInArea.pos).incomplete) return lowestInArea;
     return this.pos.findClosestByRange(barriers);
