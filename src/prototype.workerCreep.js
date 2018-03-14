@@ -34,7 +34,7 @@ Creep.prototype.findMineral = function () {
     return null;
 };
 
-findConstruction = function () {
+Creep.prototype.findConstruction = function () {
     let construction = this.room.constructionSites;
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_SPAWN);
     if (site.length > 0) {
@@ -88,7 +88,6 @@ findConstruction = function () {
     this.memory.task = undefined;
     return null;
 };
-Creep.prototype.findConstruction = profiler.registerFN(findConstruction, 'findConstructionCreepFunctions');
 
 findRepair = function (level) {
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);

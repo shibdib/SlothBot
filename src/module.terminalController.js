@@ -410,8 +410,8 @@ function balanceEnergy(terminal, energyInRoom) {
 function balanceBoosts(terminal) {
     let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.reactionRoom));
     for (let key in END_GAME_BOOSTS) {
-        for (let id in otherTerminals) {
-            if (terminal.store[END_GAME_BOOSTS[key]] >= 250) {
+        if (terminal.store[END_GAME_BOOSTS[key]] >= 150) {
+            for (let id in otherTerminals) {
                 let stored = otherTerminals[id].store[END_GAME_BOOSTS[key]] || 0;
                 if (stored < terminal.store[END_GAME_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(END_GAME_BOOSTS[key], terminal.store[END_GAME_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
@@ -422,8 +422,8 @@ function balanceBoosts(terminal) {
         }
     }
     for (let key in TIER_2_BOOSTS) {
-        for (let id in otherTerminals) {
-            if (terminal.store[TIER_2_BOOSTS[key]] >= 1000) {
+        if (terminal.store[TIER_2_BOOSTS[key]] >= 1000) {
+            for (let id in otherTerminals) {
                 let stored = otherTerminals[id].store[TIER_2_BOOSTS[key]] || 0;
                 if (stored < terminal.store[TIER_2_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(TIER_2_BOOSTS[key], terminal.store[TIER_2_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
@@ -434,8 +434,8 @@ function balanceBoosts(terminal) {
         }
     }
     for (let key in TIER_1_BOOSTS) {
-        for (let id in otherTerminals) {
-            if (terminal.store[TIER_1_BOOSTS[key]] >= 1000) {
+        if (terminal.store[TIER_1_BOOSTS[key]] >= 1000) {
+            for (let id in otherTerminals) {
                 let stored = otherTerminals[id].store[TIER_2_BOOSTS[key]] || 0;
                 if (stored < terminal.store[TIER_2_BOOSTS[key]] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(TIER_2_BOOSTS[key], terminal.store[TIER_2_BOOSTS[key]] * 0.5, otherTerminals[id].room.name) === OK) {
