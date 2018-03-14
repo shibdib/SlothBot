@@ -324,10 +324,10 @@ Room.prototype.invaderCheck = function () {
             this.memory.numberOfHostiles = invader.length;
         }
         // Determine threat
-        if (invader.length === 1 && invader.owner === 'Invader') this.memory.threatLevel = 1;
-        if (invader.length > 1 && invader.owner === 'Invader') this.memory.threatLevel = 2;
-        if (invader.length === 1 && invader.owner !== 'Invader') this.memory.threatLevel = 3;
-        if (invader.length > 1 && invader.owner !== 'Invader') this.memory.threatLevel = 4;
+        if (invader.length === 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 1;
+        if (invader.length > 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 2;
+        if (invader.length === 1 && invader[0].owner.username !== 'Invader') this.memory.threatLevel = 3;
+        if (invader.length > 1 && invader[0].owner.username !== 'Invader') this.memory.threatLevel = 4;
         return true;
     } else if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
         this.memory.numberOfHostiles = undefined;
