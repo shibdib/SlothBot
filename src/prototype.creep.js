@@ -151,6 +151,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_UTRIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_HYDRIDE) >= boostNeeded) {
+                        available.push(RESOURCE_UTRIUM_HYDRIDE);
                     }
                     continue;
                 case 'upgrade':
@@ -160,6 +162,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_GHODIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_HYDRIDE) >= boostNeeded) {
+                        available.push(RESOURCE_GHODIUM_HYDRIDE);
                     }
                     continue;
                 case 'tough':
@@ -169,6 +173,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
                     } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_GHODIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_OXIDE) >= boostNeeded) {
+                        available.push(RESOURCE_GHODIUM_OXIDE);
                     }
                     continue;
                 case 'ranged':
@@ -178,6 +184,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
                     } else if (getBoostAmount(this.room, RESOURCE_KEANIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_KEANIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_KEANIUM_OXIDE) >= boostNeeded) {
+                        available.push(RESOURCE_KEANIUM_OXIDE);
                     }
                     continue;
                 case 'heal':
@@ -187,6 +195,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
                     } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ALKALIDE) >= boostNeeded) {
                         available.push(RESOURCE_LEMERGIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_OXIDE) >= boostNeeded) {
+                        available.push(RESOURCE_LEMERGIUM_OXIDE);
                     }
                     continue;
                 case 'build':
@@ -196,6 +206,19 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_LEMERGIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_HYDRIDE) >= boostNeeded) {
+                        available.push(RESOURCE_LEMERGIUM_HYDRIDE);
+                    }
+                    continue;
+                case 'move':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
+                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (boostInRoom >= boostNeeded) {
+                        available.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_ALKALIDE) >= boostNeeded) {
+                        available.push(RESOURCE_ZYNTHIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_OXIDE) >= boostNeeded) {
+                        available.push(RESOURCE_ZYNTHIUM_OXIDE);
                     }
                     continue;
                 case 'dismantle':
@@ -205,6 +228,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_ACID) >= boostNeeded) {
                         available.push(RESOURCE_ZYNTHIUM_ACID);
+                    } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_HYDRIDE) >= boostNeeded) {
+                        available.push(RESOURCE_ZYNTHIUM_HYDRIDE);
                     }
             }
         }
