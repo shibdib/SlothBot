@@ -8,6 +8,14 @@ Creep.prototype.robbery = function () {
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     }
     if (this.room.name === this.memory.targetRoom && (_.sum(terminal.store) === 0 && _.sum(storage.store) === 0)) {
+        switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #overlords')) {
+            case OK:
+                Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
+                Memory.targetRooms = _.filter(Memory.targetRooms, (t) => t !== this.memory.targetRoom);
+                break;
+            case ERR_NOT_IN_RANGE:
+                return this.shibMove(this.room.controller);
+        }
         Memory.targetRooms = _.filter(Memory.targetRooms, (t) => t !== this.memory.targetRoom);
     }
     if (!this.memory.hauling) {
