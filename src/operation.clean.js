@@ -24,7 +24,7 @@ Creep.prototype.cleanRoom = function () {
                 Memory.targetRooms = _.filter(Memory.targetRooms, (t) => t !== this.memory.targetRoom);
                 break;
             case ERR_NOT_IN_RANGE:
-                this.shibMove(this.room.controller);
+                return this.shibMove(this.room.controller);
         }
         let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
