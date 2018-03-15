@@ -271,12 +271,13 @@ Creep.prototype.moveToStaging = function () {
 
 Creep.prototype.siege = function () {
     if (this.room.name !== this.memory.targetRoom) {
-        if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1 && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
+        if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 2) return null;
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
             ignoreCreeps: true,
             range: 20
         });
     }
+    if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1 && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
     if (!this.room.controller.owner || (this.room.controller && (!this.room.controller.owner || _.includes(FRIENDLIES, this.room.controller.owner['username'])) === false)) {
         let target;
         let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget && c.memory.targetRoom === this.memory.targetRoom)[0];
@@ -454,9 +455,10 @@ Creep.prototype.siegeHeal = function () {
     if (!Game.getObjectById(this.memory.healTarget) || !this.memory.healTarget) {
         if (!Game.getObjectById(this.memory.healTarget)) this.memory.healTarget = undefined;
         let deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
+        if (!deconstructor) deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (!deconstructor) return false;
         this.memory.healTarget = deconstructor.id;
-        deconstructor.memory.healer = this.id;
+        if (!deconstructor.memory.healer || !Game.getObjectById(deconstructor.memory.healer)) deconstructor.memory.healer = this.id;
         return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
     } else {
         let deconstructor = Game.getObjectById(this.memory.healTarget);
