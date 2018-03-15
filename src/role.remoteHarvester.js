@@ -20,7 +20,7 @@ function role(creep) {
         }
     }
     //Mark room as no go if reserved or owned by someone else
-    if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== 'Shibdib' && creep.room.controller.reservation.username !== 'shibdib') || creep.room.owner)) {
+    if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME && creep.room.controller.reservation.username !== USERNAME) || creep.room.owner)) {
         creep.memory.role = 'upgrader';
     }
     //Initial move
