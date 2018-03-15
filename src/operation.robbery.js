@@ -8,8 +8,7 @@ Creep.prototype.robbery = function () {
     if (this.room.name === this.memory.targetRoom && (_.sum(terminal.store) === 0 && _.sum(storage.store) === 0)) {
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #overlords')) {
             case OK:
-                Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
-                Memory.targetRooms = _.filter(Memory.targetRooms, (t) => t !== this.memory.targetRoom);
+                delete Memory.targetRooms[this.room.name];
                 break;
             case ERR_NOT_IN_RANGE:
                 return this.shibMove(this.room.controller);
