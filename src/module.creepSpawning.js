@@ -536,14 +536,14 @@ module.exports.militaryCreepQueue = function (room) {
             }
         }
         // Robbery
-        if (level >= 5 && Memory.targetRooms[key].type === 'Robbery' && Game.map.findRoute(room.name, key).length <= 20) {
+        if (level >= 5 && Memory.targetRooms[key].type === 'robbery' && Game.map.findRoute(room.name, key).length <= 20) {
             let raiders = 1;
             let raider = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'raider');
             if (raider.length < raiders && !_.includes(queue, 'raider')) {
                 queueCreep(room, PRIORITIES.attacker, {
                     role: 'raider',
                     targetRoom: key,
-                    operation: 'Robbery',
+                    operation: 'robbery',
                     military: true
                 }, true)
             }
