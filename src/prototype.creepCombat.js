@@ -377,7 +377,20 @@ Creep.prototype.siege = function () {
             target = Game.getObjectById(this.memory.siegeTarget);
         }
         if (!target) {
-            this.shibMove(new RoomPosition(25, 25, this.memory.siegePoint), {ignoreCreeps: true, range: 23});
+            delete Memory.targetRooms[this.room.name];
+            let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+            let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+            if ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0)) {
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[this.pos.roomName] = {
+                    tick: tick,
+                    type: 'robbery',
+                    level: 1
+                };
+                Memory.targetRooms = cache;
+            }
+            return this.memory.role = 'worker';
         } else {
             this.room.visual.text(
                 ICONS.noEntry,
