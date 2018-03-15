@@ -5,18 +5,18 @@ Creep.prototype.robbery = function () {
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
-    if (this.room.name === this.memory.targetRoom && (_.sum(terminal.store) === 0 && _.sum(storage.store) === 0)) {
+    if (this.room.name === this.memory.targetRoom && ((!terminal || (_.sum(terminal.store) === 0)) && (!storage || _.sum(storage.store) === 0))) {
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #overlords')) {
             case OK:
-                delete Memory.targetRooms[this.room.name];
                 break;
             case ERR_NOT_IN_RANGE:
                 return this.shibMove(this.room.controller);
         }
-        Memory.targetRooms = _.filter(Memory.targetRooms, (t) => t !== this.memory.targetRoom);
+        delete Memory.targetRooms[this.room.name];
+        return;
     }
     if (!this.memory.hauling) {
-        if ((!terminal || (_.sum(terminal.store) === 0) && (!storage || _.sum(storage.store) === 0)) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
+        if (((!terminal || (_.sum(terminal.store) === 0)) && (!storage || _.sum(storage.store) === 0)) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
         if (storage && _.sum(storage.store) > 0) {
             for (let resourceType in storage.store) {
                 switch (this.withdraw(storage, resourceType)) {
