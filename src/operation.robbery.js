@@ -1,5 +1,5 @@
 Creep.prototype.robbery = function () {
-    let sentence = ['#overlords', 'Thank', 'You', 'For', 'The', 'Stuff', this.memory.targetRoom];
+    let sentence = ['#overlords', 'Thanks', 'For', 'The', 'Stuff', this.memory.targetRoom];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
