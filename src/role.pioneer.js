@@ -26,11 +26,12 @@ function role(creep) {
     if (creep.memory.destinationReached && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0]) {
         if (creep.memory.initialBuilder) {
             if (!creep.room.memory.extensionHub) findExtensionHub(creep.room);
-            let supportRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.assistingRoom === creep.room.name);
+            let supportRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.assistingRoom === creep.room.name || r.memory.claimTarget === creep.room.name);
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
             for (let key in supportRoom) {
                 supportRoom[key].memory.activeClaim = undefined;
                 supportRoom[key].memory.assistingRoom = undefined;
+                supportRoom[key].memory.claimTarget = undefined;
             }
         }
         creep.memory.role = 'worker';
