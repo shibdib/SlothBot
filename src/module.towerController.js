@@ -19,7 +19,7 @@ function towerControl(room) {
                 if (armedHostile.length > 0) {
                     for (let i = 0; i < armedHostile.length; i++) {
                         let range = armedHostile[i].pos.getRangeTo(tower);
-                        let towerDamage = towerDamage(range);
+                        let towerDamage = determineDamage(range);
                         if (!healers[0] || (healPower < (towerDamage * towers.length) * 0.9)) {
                             tower.attack(armedHostile[i]);
                             continue towers;
@@ -87,10 +87,8 @@ function findRepair(tower, structures) {
     }
 }
 
-findRepair = profiler.registerFN(findRepair, 'findRepairTower');
-
 // Computes damage of a tower
-function towerDamage(range) {
+function determineDamage(range) {
     if (range <= 5) {
         return 600;
     } else if (range < 20) {
