@@ -280,6 +280,9 @@ Creep.prototype.siege = function () {
     if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1 && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
     if (!this.room.controller.owner || (this.room.controller && (!this.room.controller.owner || _.includes(FRIENDLIES, this.room.controller.owner['username'])) === false)) {
         let target;
+        if (this.memory.siegeTarget && Game.getObjectById(this.memory.siegeTarget)) {
+            target = Game.getObjectById(this.memory.siegeTarget);
+        }
         let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
         if (!target || target === null) {
@@ -360,22 +363,6 @@ Creep.prototype.siege = function () {
                 this.memory.siegeTarget = target.id;
             }
         }
-        /**if (!target || target.pos.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})) {
-        if (!this.memory.siegeTarget || !Game.getObjectById(this.memory.siegeTarget)) {
-            target = _.min(this.pos.findInRange(FIND_STRUCTURES, 4, {filter: (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && (!s.room.controller.owner || _.includes(FRIENDLIES, s.room.controller.owner['username']) === false)}), 'hits');
-        } else if (this.memory.siegeTarget) {
-            target = Game.getObjectById(this.memory.siegeTarget);
-        } else {
-            target = this.pos.findClosestByPath(hostileStructures, {filter: (s) => (s.structureType === STRUCTURE_RAMPART && s.structureType === STRUCTURE_WALL)});
-        }
-        if (target) {
-            this.memory.siegeTarget = target.id;
-            this.memory.siegeComplete = undefined;
-        }
-    }**/
-        if (Game.getObjectById(this.memory.siegeTarget)) {
-            target = Game.getObjectById(this.memory.siegeTarget);
-        }
         if (!target) {
             delete Memory.targetRooms[this.room.name];
             let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
@@ -392,18 +379,18 @@ Creep.prototype.siege = function () {
             }
             return this.memory.role = 'worker';
         } else {
-            this.room.visual.text(
-                ICONS.noEntry,
-                target.pos.x,
-                target.pos.y,
-                {align: 'left', opacity: 1}
-            );
             switch (this.dismantle(target)) {
                 case ERR_NOT_IN_RANGE:
                     this.heal(this);
                     if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1) return null;
                     this.shibMove(target, {ignoreCreeps: true});
                     this.memory.siegeTarget = undefined;
+                    this.room.visual.text(
+                        ICONS.noEntry,
+                        target.pos.x,
+                        target.pos.y,
+                        {align: 'left', opacity: 1}
+                    );
                     break;
                 case ERR_NO_BODYPART:
                     this.heal(this);
@@ -411,6 +398,13 @@ Creep.prototype.siege = function () {
                     this.shibMove(target, {ignoreCreeps: true});
                     break;
                 case OK:
+                    this.room.visual.text(
+                        ICONS.greenCheck,
+                        target.pos.x,
+                        target.pos.y,
+                        {align: 'left', opacity: 1}
+                    );
+                    this.say(ICONS.crossedSword);
                     return true;
 
             }

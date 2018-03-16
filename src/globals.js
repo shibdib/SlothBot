@@ -340,6 +340,8 @@ let globals = function () {
         , nuke: "\u2622"
         , noEntry: "\u26d4"
         , renew: "\u26fd"
+        , greenCheck: "\u2705"
+        , crossedSword: "\u2694"
     };
 
     global.CUMULATIVE_CONTROLLER_DOWNGRADE = _.map(CONTROLLER_DOWNGRADE, (v1, k1, c1) => (_.reduce(c1, (a, v2, k2, c2) => (a + ((k2 <= k1) ? v2 : 0)), 0)));
