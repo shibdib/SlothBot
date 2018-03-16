@@ -77,7 +77,7 @@ function roomHud() {
                 let roomDistance = Game.map.findRoute(creeps[creep].room.name, key).length;
                 let pathLength = 49;
                 if (creeps[creep].memory._shibMove && creeps[creep].memory._shibMove.path) pathLength = creeps[creep].memory._shibMove.path.length;
-                let secondsToArrive = _.round((((roomDistance - 1) * 49) + pathLength) * Memory.tickLength);
+                let secondsToArrive = (roomDistance * 49) * Memory.tickLength;
                 let displayTime;
                 if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
                 if (secondsToArrive >= 86400) displayTime = _.round(secondsToArrive / 86400, 2) + ' Days';
