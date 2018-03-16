@@ -23,7 +23,7 @@ function towerControl(room) {
                         if (!healers[0] || (healPower < (towerDamage * towers.length) * 0.9)) {
                             tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(tower.room.creeps, {filter: (c) => c.memory.role === 'responder' || c.memory.role === 'remoteResponse' || c.memory.role === 'longbow'})) <= 3) {
+                        } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(tower.room.creeps, {filter: (c) => c.memory && (c.memory.role === 'responder' || c.memory.role === 'remoteResponse' || c.memory.role === 'longbow')})) <= 3) {
                             tower.attack(armedHostile[i]);
                             continue towers;
                         }
