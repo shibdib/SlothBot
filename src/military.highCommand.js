@@ -5,6 +5,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function highCommand() {
+    roomHud();
     manualAttacks();
     if (Game.time % 150 === 0) {
         for (let key in Memory.ownedRooms) {
@@ -39,6 +40,36 @@ function manualAttacks() {
                 tick: tick,
                 type: 'siege',
                 level: level
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
+        if (_.startsWith(name, 'attack')) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'attack'
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
+        if (_.startsWith(name, 'defend')) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'defend'
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
+        if (_.startsWith(name, 'scout')) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'scout'
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -79,6 +110,54 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
+    }
+}
+
+function roomHud() {
+    let opCount = 0;
+    for (let key in Memory.targetRooms) {
+        let level = Memory.targetRooms[key].level || 1;
+        let type = Memory.targetRooms[key].type;
+        if (Memory.targetRooms[key].type === 'attack') type = 'Scout';
+        new RoomVisual(key).text(
+            ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level,
+            1,
+            3,
+            {align: 'left', opacity: 0.8}
+        );
+        let creeps = _.filter(Game.creeps, (c) => c.memory.targetRoom === key);
+        let y = 0;
+        for (let creep in creeps) {
+            if (creeps[creep].room.name !== key) {
+                new RoomVisual(key).text(
+                    creeps[creep].name + ' Is ' + Game.map.findRoute(creeps[creep].room.name, key).length + ' rooms away. Currently in ' + creeps[creep].room.name + '.',
+                    1,
+                    4 + y,
+                    {align: 'left', opacity: 0.8}
+                );
+            } else {
+                new RoomVisual(key).text(
+                    creeps[creep].name + ' Is On Scene.',
+                    1,
+                    4 + y,
+                    {align: 'left', opacity: 0.8}
+                );
+            }
+            y++;
+        }
+        new RoomVisual().text(
+            ICONS.crossedSword + ' ACTIVE OPERATIONS ' + ICONS.crossedSword,
+            1,
+            34,
+            {align: 'left', opacity: 0.5}
+        );
+        new RoomVisual().text(
+            ' Operation Type: ' + _.capitalize(type) + ' Level ' + level + ' in Room ' + key,
+            1,
+            35 + opCount,
+            {align: 'left', opacity: 0.5}
+        );
+        opCount++;
     }
 }
 
