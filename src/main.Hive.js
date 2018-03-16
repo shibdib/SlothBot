@@ -74,8 +74,16 @@ function roomHud() {
         let y = 0;
         for (let creep in creeps) {
             if (creeps[creep].room.name !== key) {
+                let roomDistance = Game.map.findRoute(creeps[creep].room.name, key).length;
+                let pathLength = creeps[creep].memory._shibMove.path.length;
+                let secondsToArrive = _.round((((roomDistance - 1) * 49) + pathLength) * Memory.tickLength);
+                let displayTime;
+                if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
+                if (secondsToArrive >= 86400) displayTime = secondsToArrive / 86400 + ' Days';
+                if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = secondsToArrive / 3600 + ' Hours';
+                if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = secondsToArrive / 60 + ' Minutes';
                 new RoomVisual(key).text(
-                    creeps[creep].name + ' Is ' + Game.map.findRoute(creeps[creep].room.name, key).length + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live.',
+                    creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + displayTime,
                     1,
                     4 + y,
                     {align: 'left', opacity: 0.8}
