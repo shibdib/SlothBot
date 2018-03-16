@@ -57,9 +57,11 @@ function manualAttacks() {
         if (_.startsWith(name, 'defend')) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
+            let level = name.match(/\d+$/)[0] || 1;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
-                type: 'defend'
+                type: 'defend',
+                level: level
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
