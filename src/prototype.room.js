@@ -248,7 +248,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 claimWorthy = false;
             }
             // Handle abandoned rooms
-            if (!owner && !reservation && structures.length > 2 && nonCombats + hostiles === 0) {
+            if (!owner && !reservation && structures.length > 2) {
                 needsCleaning = true;
             }
         }

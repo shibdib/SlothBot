@@ -125,7 +125,7 @@ Creep.prototype.healAllyCreeps = function () {
 };
 
 Creep.prototype.moveToHostileConstructionSites = function () {
-    if ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username))) return false;
+    if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)))) return false;
     let constructionSite = this.pos.findClosestByRange(this.room.constructionSites);
     if (constructionSite && !_.includes(FRIENDLIES, constructionSite.owner['username'])) {
         this.say('TRAMPLE!!', true);
