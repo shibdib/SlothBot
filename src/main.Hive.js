@@ -80,11 +80,11 @@ function roomHud() {
                 let secondsToArrive = _.round((((roomDistance - 1) * 49) + pathLength) * Memory.tickLength);
                 let displayTime;
                 if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
-                if (secondsToArrive >= 86400) displayTime = secondsToArrive / 86400 + ' Days';
-                if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = secondsToArrive / 3600 + ' Hours';
-                if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = secondsToArrive / 60 + ' Minutes';
+                if (secondsToArrive >= 86400) displayTime = _.round(secondsToArrive / 86400, 2) + ' Days';
+                if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = _.round(secondsToArrive / 3600, 2) + ' Hours';
+                if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = _.round(secondsToArrive / 60, 2) + ' Minutes';
                 new RoomVisual(key).text(
-                    creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + _.round(displayTime, 2),
+                    creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + displayTime,
                     1,
                     4 + y,
                     {align: 'left', opacity: 0.8}
@@ -125,9 +125,9 @@ function roomHud() {
             let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickLength);
             let displayTime;
             if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
-            if (secondsToUpgrade >= 86400) displayTime = secondsToUpgrade / 86400 + ' Days';
-            if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = secondsToUpgrade / 3600 + ' Hours';
-            if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = secondsToUpgrade / 60 + ' Minutes';
+            if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
+            if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
+            if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
             new RoomVisual(name).text(
                 ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' - ' + room.controller.progress + '/' + room.controller.progressTotal + ' - Next Level In Apx. ' + displayTime,
                 1,
