@@ -134,7 +134,7 @@ function roomHud() {
             );
         }
         if (room.memory.responseNeeded) {
-            RoomVisual(name).text(
+            new RoomVisual(name).text(
                 ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + room.memory.threatLevel,
                 1,
                 2,
@@ -142,7 +142,7 @@ function roomHud() {
             );
         }
         if (room.memory.claimTarget) {
-            RoomVisual(name).text(
+            new RoomVisual(name).text(
                 ICONS.claimController + ' Claim Target: ' + room.memory.claimTarget,
                 1,
                 4,
@@ -150,7 +150,7 @@ function roomHud() {
             );
         }
         if (room.memory.assistingRoom) {
-            RoomVisual(name).text(
+            new RoomVisual(name).text(
                 ICONS.repair + ' Sending Builders To Room: ' + room.memory.assistingRoom,
                 1,
                 5,
@@ -158,7 +158,7 @@ function roomHud() {
             );
         }
         if (room.memory.sendingResponse) {
-            RoomVisual(name).text(
+            new RoomVisual(name).text(
                 ICONS.attack + ' Sending Military Support To: ' + room.memory.sendingResponse,
                 1,
                 6,
