@@ -107,6 +107,7 @@ function roomHud() {
     for (let key in Memory.ownedRooms) {
         let name = Memory.ownedRooms[key].name;
         let room = Game.rooms[name];
+        if (!room) continue;
         //Controller
         if (room.controller.progressTotal) {
             let lastTickProgress = room.memory.lastTickProgress || room.controller.progress;
