@@ -80,39 +80,10 @@ function mind(room, roomLimit) {
     if (!_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
     Memory.ownedMineral = minerals;
 
-    // Room Visual
-    writeDetails(room);
     shib.shibBench('overlordMind', mindStart);
 }
 
 module.exports.overlordMind = profiler.registerFN(mind, 'overlordMind');
-
-function writeDetails(room) {
-    if (room.memory.claimTarget) {
-        room.visual.text(
-            ICONS.claimController + ' Claim Target: ' + room.memory.claimTarget,
-            5,
-            3,
-            {align: 'left', opacity: 0.8}
-        );
-    }
-    if (room.memory.assistingRoom) {
-        room.visual.text(
-            ICONS.repair + ' Sending Builders To Room: ' + room.memory.assistingRoom,
-            5,
-            5,
-            {align: 'left', opacity: 0.8}
-        );
-    }
-    if (room.memory.sendingResponse) {
-        room.visual.text(
-            ICONS.attack + ' Sending Military Support To: ' + room.memory.sendingResponse,
-            5,
-            7,
-            {align: 'left', opacity: 0.8}
-        );
-    }
-}
 
 function minionController(minion) {
     if (minion.spawning) return;
