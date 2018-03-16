@@ -50,8 +50,15 @@ Creep.prototype.cleanRoom = function () {
         }
         this.memory.role = 'worker';
     } else {
+        let dismantlePower = DISMANTLE_POWER * this.getActiveBodyparts(WORK);
+        let secondsToDismantle = (target.hits / dismantlePower) * Memory.tickLength;
+        let displayTime;
+        if (secondsToDismantle < 60) displayTime = _.round(secondsToDismantle) + ' Seconds';
+        if (secondsToDismantle >= 86400) displayTime = _.round(secondsToDismantle / 86400, 2) + ' Days';
+        if (secondsToDismantle < 86400 && secondsToDismantle >= 3600) displayTime = _.round(secondsToDismantle / 3600, 2) + ' Hours';
+        if (secondsToDismantle > 60 && secondsToDismantle < 3600) displayTime = _.round(secondsToDismantle / 60, 2) + ' Minutes';
         this.room.visual.text(
-            ICONS.noEntry,
+            ICONS.noEntry + ' Destroyed in appx. ' + displayTime,
             target.pos.x,
             target.pos.y,
             {align: 'left', opacity: 1}
