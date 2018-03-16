@@ -18,16 +18,6 @@ Creep.prototype.cleanRoom = function () {
         }
     }
     if (!target) {
-        if (this.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]) {
-            switch (this.dismantle(this.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0])) {
-                case ERR_NOT_IN_RANGE:
-                    this.shibMove(this.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]);
-                    return true;
-                case OK:
-                    return true;
-
-            }
-        }
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
             case OK:
                 Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
