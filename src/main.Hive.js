@@ -15,7 +15,7 @@ function mind() {
 
     // Get Tick Length
     let d = new Date();
-    let seconds = Math.round(d.getTime() / 1000);
+    let seconds = _.round(d.getTime() / 1000, 2);
     let lastTick = Memory.lastTick || seconds;
     Memory.lastTick = seconds;
     Memory.tickLength = seconds - lastTick;
@@ -75,7 +75,8 @@ function roomHud() {
         for (let creep in creeps) {
             if (creeps[creep].room.name !== key) {
                 let roomDistance = Game.map.findRoute(creeps[creep].room.name, key).length;
-                let pathLength = creeps[creep].memory._shibMove.path.length || 49;
+                let pathLength = 49;
+                if (creeps[creep].memory._shibMove && creeps[creep].memory._shibMove.path) pathLength = creeps[creep].memory._shibMove.path.length;
                 let secondsToArrive = _.round((((roomDistance - 1) * 49) + pathLength) * Memory.tickLength);
                 let displayTime;
                 if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
@@ -83,7 +84,7 @@ function roomHud() {
                 if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = secondsToArrive / 3600 + ' Hours';
                 if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = secondsToArrive / 60 + ' Minutes';
                 new RoomVisual(key).text(
-                    creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + displayTime,
+                    creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + _.round(displayTime, 2),
                     1,
                     4 + y,
                     {align: 'left', opacity: 0.8}
