@@ -253,13 +253,13 @@ Creep.prototype.tryToBoost = function (boosts) {
                 continue;
             }
             if (!this.memory.boostLab) {
-                let filledLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === this.memory.requestedBoosts[key])[0];
+                let filledLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === this.memory.requestedBoosts[key] && s.energy > 0)[0];
                 if (filledLab) {
                     this.memory.boostLab = filledLab.id;
                     filledLab.memory.neededBoost = this.memory.requestedBoosts[key];
                     filledLab.memory.active = true;
                 } else {
-                    let availableLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active)[0];
+                    let availableLab = shuffle(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.energy > 0))[0];
                     if (availableLab) {
                         this.memory.boostLab = availableLab.id;
                         availableLab.memory.neededBoost = this.memory.requestedBoosts[key];
@@ -272,7 +272,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 }
             }
             let lab = Game.getObjectById(this.memory.boostLab);
-            if (lab) {
+            if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0) {
                 switch (lab.boostCreep(this)) {
                     case OK:
                         this.memory.requestedBoosts.shift();
