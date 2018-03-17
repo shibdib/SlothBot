@@ -61,9 +61,13 @@ function manageReactions(room) {
                 //If on cooldown continue
                 if (outputLab.cooldown) continue;
                 //Check for range issues
-                let rangeOne = Game.getObjectById(creators[0]).pos.getRangeTo(outputLab);
-                let rangeTwo = Game.getObjectById(creators[1]).pos.getRangeTo(outputLab);
-                if (rangeOne > 3 || rangeTwo > 3) {
+                let rangeOne;
+                let rangeTwo;
+                let creatorOne = Game.getObjectById(creators[0]);
+                let creatorTwo = Game.getObjectById(creators[1]);
+                if (creatorOne) rangeOne = creatorOne.pos.getRangeTo(outputLab);
+                if (creatorTwo) rangeTwo = creatorTwo.pos.getRangeTo(outputLab);
+                if (rangeOne > 3 || rangeTwo > 3 || !rangeOne || !rangeTwo) {
                     log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
                     for (let id in creators) {
                         creators[id].memory = undefined;
