@@ -377,7 +377,7 @@ function buildTowers(room, structures) {
 }
 
 function buildRoads(room, structures) {
-    if (Game.time % 100 !== 0 && (room.controller.level < 3 || _.size(Game.constructionSites) >= 45)) return;
+    if (Game.time % 100 !== 0 || (room.controller.level < 4 || _.size(Game.constructionSites) >= 45)) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.mineral[0];
     //let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
