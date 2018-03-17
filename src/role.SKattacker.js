@@ -8,28 +8,25 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['attack']);
     if (creep.hits < creep.hitsMax) creep.heal(creep);
-    let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1)});
-    if (creep.pos.roomName !== creep.memory.destination) {
-        creep.memory.destinationReached = undefined;
-    }
-    if (!creep.memory.destinationReached) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
-        }
-    } else if (hostiles) {
-        switch (creep.attack(hostiles)) {
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(hostiles, {movingTarget: true, ignoreCreeps: false});
-                break;
-            case ERR_NO_BODYPART:
-                break;
-            default:
+    if (!creep.memory.destination) creep.memory.destination = shuffle(creep.memory.misc)[0];
+    if (creep.room.name === creep.memory.destination) {
+        if (!creep.memory.misc) creep.memory.misc = Game.rooms[creep.memory.overlord].memory.skRooms;
+        let mineral = creep.room.mineral[0];
+        let mineralKeeper = mineral.pos.findInRange(creep.room.creeps, 6, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+        if (mineralKeeper) {
+            switch (creep.attack(mineralKeeper)) {
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(mineralKeeper, {movingTarget: true, ignoreCreeps: false});
+                    break;
+                case ERR_NO_BODYPART:
+                    break;
+                default:
+            }
+        } else {
+            creep.memory.destination = shuffle(creep.memory.misc)[0];
         }
     } else {
-        if (creep.hits < creep.hitsMax) creep.heal(creep);
-        let lair = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
-        creep.shibMove(lair);
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     }
 }
 

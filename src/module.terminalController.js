@@ -112,7 +112,7 @@ function extendSellOrders(terminal, myOrders) {
                     let sellableAmount = terminal.store[resourceType] - SELL_OFF_AMOUNT;
                     if (sellableAmount > myOrders[key].remainingAmount && sellableAmount - myOrders[key].remainingAmount > 1000) {
                         if (Game.market.extendOrder(myOrders[key].id, sellableAmount - myOrders[key].remainingAmount) === OK) {
-                            log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType);
+                            log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + sellableAmount - myOrders[key].remainingAmount + " " + resourceType);
                         }
                         continue resource;
                     }
@@ -120,7 +120,7 @@ function extendSellOrders(terminal, myOrders) {
                     let sellableAmount = terminal.store[resourceType] - ENERGY_AMOUNT * 3;
                     if (sellableAmount > myOrders[key].remainingAmount && sellableAmount - myOrders[key].remainingAmount > 1000) {
                         if (Game.market.extendOrder(myOrders[key].id, sellableAmount - myOrders[key].remainingAmount) === OK) {
-                            log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType);
+                            log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + sellableAmount - myOrders[key].remainingAmount + " " + resourceType);
                         }
                         continue resource;
                     }
