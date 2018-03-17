@@ -71,22 +71,32 @@ module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalC
 
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
-        for (const resourceType in terminal.store) {
-            if (!_.includes(END_GAME_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT * 1.5 && resourceType !== RESOURCE_ENERGY) {
-                let sellableAmount = terminal.store[resourceType] - ((SELL_OFF_AMOUNT * 1.5) - SELL_OFF_AMOUNT);
-                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
-                    order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
-                if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
-                    if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
-                        log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+        resource:
+            for (const resourceType in terminal.store) {
+                if (!_.includes(END_GAME_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT * 1.5 && resourceType !== RESOURCE_ENERGY) {
+                    let reactionTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom));
+                    let sellableAmount = terminal.store[resourceType] - ((SELL_OFF_AMOUNT * 1.5) - SELL_OFF_AMOUNT);
+                    for (let key in reactionTerminals) {
+                        if (!reactionTerminals[key].store[resourceType] || reactionTerminals[key].store[resourceType] < sellableAmount) {
+                            if (terminal.send(resourceType, sellableAmount, reactionTerminals[key].room.name) === OK) {
+                                log.a(' MARKET: Distributing ' + sellableAmount + ' ' + resourceType + ' To ' + reactionTerminals[key].room.name + ' From ' + terminal.room.name);
+                                continue resource;
+                            }
+                        }
                     }
-                } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
-                    if (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName) === OK) {
-                        log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
+                    let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
+                        order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
+                    if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
+                        if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
+                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+                        }
+                    } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
+                        if (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName) === OK) {
+                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
+                        }
                     }
                 }
             }
-        }
         if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 5) {
             let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
                 order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
@@ -427,7 +437,7 @@ function balanceEnergy(terminal, energyInRoom) {
 }
 
 function balanceBoosts(terminal) {
-    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && !s.room.memory.reactionRoom));
+    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name));
     for (let key in END_GAME_BOOSTS) {
         if (terminal.store[END_GAME_BOOSTS[key]] >= 150) {
             for (let id in otherTerminals) {
@@ -479,7 +489,7 @@ function balanceBoosts(terminal) {
 function supplyReactionRoom(terminal) {
     for (let i = 0; i < reactionNeeds.length; i++) {
         let stored = terminal.store[reactionNeeds[i]] || 0;
-        let reactionTerminal = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom)[0];
+        let reactionTerminal = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom))[0];
         if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.7) {
             let reactionRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.reactionRoom)[0].name;
             if (terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {

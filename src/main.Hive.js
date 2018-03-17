@@ -117,6 +117,15 @@ function roomHud() {
         let name = Memory.ownedRooms[key].name;
         let room = Game.rooms[name];
         if (!room) continue;
+        //Reaction Room
+        if (room.memory.reactionRoom) {
+            new RoomVisual(name).text(
+                ICONS.reaction + ' REACTION ROOM',
+                1,
+                2,
+                {align: 'left', opacity: 0.5}
+            );
+        }
         //Controller
         if (room.controller.progressTotal) {
             let lastTickProgress = room.memory.lastTickProgress || room.controller.progress;

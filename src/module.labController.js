@@ -6,11 +6,16 @@ const profiler = require('screeps-profiler');
 let _ = require('lodash');
 
 function labManager() {
-    for (let key in Memory.ownedRooms) {
+    for (let key in shuffle(Memory.ownedRooms)) {
         if (Memory.ownedRooms[key].controller.level < 6) continue;
         let room = Memory.ownedRooms[key];
-        let reactionRoom = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom)[0];
-        if (!reactionRoom) room.memory.reactionRoom = true;
+        let reactionRooms = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom);
+        if (!reactionRooms[0]) room.memory.reactionRoom = true;
+        let targetAmount = _.round(Memory.ownedRooms.length / 4);
+        if (!room.memory.reactionRoom && reactionRooms.length < targetAmount) {
+            room.memory.reactionRoom = true;
+            log.a(room.name + ' is now a reaction room.');
+        }
         let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let lab = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && terminal && room.memory.reactionRoom) manageReactions(room);
