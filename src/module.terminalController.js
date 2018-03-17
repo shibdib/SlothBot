@@ -61,9 +61,9 @@ function terminalControl(room) {
         if (!terminal.cooldown && terminal.room.memory.reactionRoom) balanceBoosts(terminal);
 
         //Sell off excess
-        if (!terminal.cooldown && terminal.room.memory.reactionRoom) extendSellOrders(terminal, globalOrders, myOrders);
-        if (!terminal.cooldown && terminal.room.memory.reactionRoom) placeSellOrders(terminal, globalOrders, myOrders);
-        if (!terminal.cooldown && terminal.room.memory.reactionRoom) fillBuyOrders(terminal, globalOrders);
+        if (!terminal.cooldown) fillBuyOrders(terminal, globalOrders);
+        if (!terminal.cooldown) extendSellOrders(terminal, globalOrders, myOrders);
+        if (!terminal.cooldown) placeSellOrders(terminal, globalOrders, myOrders);
     }
 }
 
@@ -87,6 +87,20 @@ function fillBuyOrders(terminal, globalOrders) {
                 }
             }
         }
+        if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 5) {
+            let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+                order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
+            let sellableAmount = terminal.store[RESOURCE_ENERGY] - ((ENERGY_AMOUNT * 5) - ENERGY_AMOUNT * 3);
+            if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
+                if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
+                    log.w(" MARKET: Sell Off Completed - " + RESOURCE_ENERGY + " for " + buyOrder.price * sellableAmount + " credits");
+                }
+            } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
+                if (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName) === OK) {
+                    log.w(" MARKET: Sell Off Completed - " + RESOURCE_ENERGY + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
+                }
+            }
+        }
     }
 }
 
@@ -96,6 +110,14 @@ function extendSellOrders(terminal, myOrders) {
             for (let key in myOrders) {
                 if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL && resourceType !== RESOURCE_ENERGY) {
                     let sellableAmount = terminal.store[resourceType] - SELL_OFF_AMOUNT;
+                    if (sellableAmount > myOrders[key].remainingAmount && sellableAmount - myOrders[key].remainingAmount > 1000) {
+                        if (Game.market.extendOrder(myOrders[key].id, sellableAmount - myOrders[key].remainingAmount) === OK) {
+                            log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType);
+                        }
+                        continue resource;
+                    }
+                } else if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_SELL) {
+                    let sellableAmount = terminal.store[resourceType] - ENERGY_AMOUNT * 3;
                     if (sellableAmount > myOrders[key].remainingAmount && sellableAmount - myOrders[key].remainingAmount > 1000) {
                         if (Game.market.extendOrder(myOrders[key].id, sellableAmount - myOrders[key].remainingAmount) === OK) {
                             log.w(" MARKET: Extended sell order " + myOrders[key].id + " an additional " + terminal.store[resourceType] + " " + resourceType);
@@ -126,6 +148,16 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                 }
             }
         }
+    if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 3) {
+        let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+            order.type === ORDER_SELL && order.remainingAmount >= 4500 && order.roomName !== terminal.pos.roomName), 'price');
+        let sellableAmount = terminal.store[RESOURCE_ENERGY] - ENERGY_AMOUNT * 3;
+        if (sellOrder.id && sellableAmount >= 2500) {
+            if (Game.market.createOrder(ORDER_SELL, RESOURCE_ENERGY, _.round((sellOrder.price - 0.001), 3), sellableAmount, terminal.pos.roomName) === OK) {
+                log.w(" MARKET: New Sell Order: " + RESOURCE_ENERGY + " at/per " + (sellOrder.price - 0.001));
+            }
+        }
+    }
 }
 
 function extendBuyOrders(terminal, globalOrders, myOrders) {
