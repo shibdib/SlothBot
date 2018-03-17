@@ -359,6 +359,13 @@ function orderCleanup(myOrders) {
                     }
                 }
             }
+            if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
+                if (myOrders[key].amount < 250) {
+                    if (Game.market.cancelOrder(myOrders[key].id) === OK) {
+                        log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " - Order Fulfilled.");
+                    }
+                }
+            }
         } else {
             if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
                 if (myOrders[key].amount < 250) {
