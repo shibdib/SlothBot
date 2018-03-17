@@ -10,34 +10,40 @@ function highCommand() {
         for (let key in Memory.ownedRooms) {
             let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
             for (let key in cleaningTargets) {
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[cleaningTargets[key].name] = {
-                    tick: tick,
-                    type: 'clean',
-                    level: 1
-                };
-                Memory.targetRooms = cache;
+                if (!Memory.targetRooms[cleaningTargets[key].name]) {
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[cleaningTargets[key].name] = {
+                        tick: tick,
+                        type: 'clean',
+                        level: 1
+                    };
+                    Memory.targetRooms = cache;
+                }
             }
             let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 3);
             for (let key in localTargets) {
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[localTargets[key].name] = {
-                    tick: tick,
-                    type: 'attack'
-                };
-                Memory.targetRooms = cache;
+                if (!Memory.targetRooms[localTargets[key].name]) {
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[localTargets[key].name] = {
+                        tick: tick,
+                        type: 'attack'
+                    };
+                    Memory.targetRooms = cache;
+                }
             }
             let enemyTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && _.includes(HOSTILES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
             for (let key in enemyTargets) {
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[enemyTargets[key].name] = {
-                    tick: tick,
-                    type: 'attack'
-                };
-                Memory.targetRooms = cache;
+                if (!Memory.targetRooms[enemyTargets[key].name]) {
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[enemyTargets[key].name] = {
+                        tick: tick,
+                        type: 'attack'
+                    };
+                    Memory.targetRooms = cache;
+                }
             }
         }
     }
