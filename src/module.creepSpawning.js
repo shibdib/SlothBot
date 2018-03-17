@@ -500,6 +500,7 @@ module.exports.remoteCreepQueue = function (room) {
 module.exports.militaryCreepQueue = function (room) {
     let queue = Memory.militaryBuildQueue;
     let level = getLevel(room);
+    if (level !== room.controller.level) return;
     // Custom Flags
     for (let key in Memory.targetRooms) {
         // Clean

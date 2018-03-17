@@ -31,16 +31,22 @@ function mind(room, roomLimit) {
     }
 
     // Manage creep spawning
-    let creepSpawn = Game.cpu.getUsed();
     if (Game.time % 10 === 0) {
+        let creepSpawn = Game.cpu.getUsed();
         if (room.controller.level >= 4) {
-            spawning.militaryCreepQueue(room);
+            let remoteSpawn = Game.cpu.getUsed();
             spawning.remoteCreepQueue(room);
+            shib.shibBench('remoteSpawn', remoteSpawn);
+        }
+        if (room.controller.level >= 5) {
+            let militarySpawn = Game.cpu.getUsed();
+            spawning.militaryCreepQueue(room);
+            shib.shibBench('militarySpawn', militarySpawn);
         }
         spawning.workerCreepQueue(room);
+        cleanQueue(room);
+        shib.shibBench('creepSpawn', creepSpawn);
     }
-    cleanQueue(room);
-    shib.shibBench('creepSpawn', creepSpawn);
 
     // Manage creeps
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name));
