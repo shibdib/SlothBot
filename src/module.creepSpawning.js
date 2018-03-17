@@ -579,8 +579,8 @@ module.exports.militaryCreepQueue = function (room) {
             let opLevel = Memory.targetRooms[key].level;
             let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine');
             let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeHealer');
-            if ((siegeEngine.length < opLevel || (siegeEngine[0] && siegeEngine[0].ticksToLive <= 500 && siegeEngine.length < opLevel + 1)) && !_.includes(queue, 'siegeEngine')) {
-                queueCreep(room, PRIORITIES.attacker, {
+            if ((siegeEngine.length < siegeHealer.length || (siegeEngine[0] && siegeEngine[0].ticksToLive <= 500 && siegeEngine.length < opLevel + 1)) && !_.includes(queue, 'siegeEngine')) {
+                queueCreep(room, PRIORITIES.healer, {
                     role: 'siegeEngine',
                     targetRoom: key,
                     operation: 'siege',
@@ -589,7 +589,7 @@ module.exports.militaryCreepQueue = function (room) {
                 }, true)
             }
             if ((siegeHealer.length < opLevel || (siegeHealer[0] && siegeHealer[0].ticksToLive <= 500 && siegeHealer.length < opLevel + 1)) && !_.includes(queue, 'siegeHealer')) {
-                queueCreep(room, PRIORITIES.healer, {
+                queueCreep(room, PRIORITIES.attacker, {
                     role: 'siegeHealer',
                     targetRoom: key,
                     operation: 'siege',
