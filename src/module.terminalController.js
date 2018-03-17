@@ -359,6 +359,14 @@ function orderCleanup(myOrders) {
                     }
                 }
             }
+        } else {
+            if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
+                if (myOrders[key].remainingAmount < 250 || myOrders[key].amount < SELL_OFF_AMOUNT + 250) {
+                    if (Game.market.cancelOrder(myOrders[key].id) === OK) {
+                        log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " - Not enough resources remaining in terminal.");
+                    }
+                }
+            }
         }
         if (!Game.rooms[myOrders[key].roomName]) {
             if (Game.market.cancelOrder(myOrders[key].id) === OK) {
