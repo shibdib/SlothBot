@@ -361,7 +361,7 @@ function orderCleanup(myOrders) {
             }
         } else {
             if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
-                if (myOrders[key].remainingAmount < 250) {
+                if (myOrders[key].amount < 250) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                         log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " - Not enough resources remaining in terminal.");
                     }
