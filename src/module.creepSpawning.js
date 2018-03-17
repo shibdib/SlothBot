@@ -517,7 +517,7 @@ module.exports.militaryCreepQueue = function (room) {
             }
             let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
             if (deconstructor.length < deconstructors && !_.includes(queue, 'deconstructor')) {
-                queueCreep(room, PRIORITIES.attacker, {
+                queueCreep(room, PRIORITIES.attacker + 1, {
                     role: 'deconstructor',
                     targetRoom: key,
                     operation: 'clean',
@@ -530,7 +530,7 @@ module.exports.militaryCreepQueue = function (room) {
             let raiders = 3;
             let raider = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'raider');
             if (raider.length < raiders && !_.includes(queue, 'raider')) {
-                queueCreep(room, PRIORITIES.attacker, {
+                queueCreep(room, PRIORITIES.attacker + 1, {
                     role: 'raider',
                     targetRoom: key,
                     operation: 'robbery',
