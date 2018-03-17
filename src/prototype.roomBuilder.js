@@ -298,17 +298,16 @@ function buildLabs(room, structures) {
             for (let key in labs) {
                 labs[key].destroy();
             }
-            return;
         }
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
             let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 13, hub.x - 13, hub.y + 13, hub.x + 13, true);
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
             let good;
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                if (position.getRangeTo(hub) > 6) {
-                    if (position.x > 41 || position.x < 8 || position.y > 41 || position.y < 8 || position.checkForWall() || position.checkForAllStructure().length > 0) break;
+                if (position.getRangeTo(hub) > 8) {
+                    if (position.x > 44 || position.x < 6 || position.y > 44 || position.y < 6 || position.checkForWall() || position.checkForAllStructure().length > 0) continue;
                     let surrounding = room.lookForAtArea(LOOK_TERRAIN, position.y - 3, position.x - 3, position.y + 3, position.x + 3, true);
                     for (let key in surrounding) {
                         let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
