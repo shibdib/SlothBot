@@ -14,21 +14,15 @@ let protectedStructures = [
 Room.prototype.buildRoom = function () {
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     let structures = this.structures;
-    for (let key in this.structures) {
-        if (this.structures[key].structureType === STRUCTURE_ROAD) {
-            if (this.structures[key].pos.checkForImpassible()) this.structures[key].destroy();
-        }
-    }
-    if (_.size(Game.constructionSites) > 75) return;
-    if (!this.memory.extensionHub) {
-        for (let key in Game.spawns) {
-            if (Game.spawns[key].pos.roomName === this.name) {
-                this.memory.extensionHub = {};
-                this.memory.extensionHub.x = Game.spawns[key].pos.x;
-                this.memory.extensionHub.y = Game.spawns[key].pos.y;
+    // Clean bad roads
+    if (Game.time % 500 === 0) {
+        for (let key in this.structures) {
+            if (this.structures[key].structureType === STRUCTURE_ROAD) {
+                if (this.structures[key].pos.checkForImpassible()) this.structures[key].destroy();
             }
         }
     }
+    if (_.size(Game.constructionSites) > 75) return;
     controllerSupplier(this, structures);
     buildExtensions(this);
     buildLinks(this, structures);
@@ -171,8 +165,8 @@ function controllerSupplier(room, structures) {
 }
 
 function buildWalls(room, structures) {
-    let extensionCount = room.getExtensionCount();
     if (room.controller.level < 3) return;
+    let extensionCount = room.getExtensionCount();
     for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
     }
@@ -343,7 +337,7 @@ function buildLinks(room, structures) {
     let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (storage) {
         let built = _.filter(storage.pos.findInRange(storage.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
-        if (storage && built.length === 0) {
+        if (storage && !built[0]) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 1, storage.pos.x - 1, storage.pos.y + 1, storage.pos.x + 1, true);
             for (let key in zoneTerrain) {
                 if (_.filter(storage.pos.findInRange(storage.room.constructionSites, 2), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
@@ -378,7 +372,7 @@ function buildTowers(room, structures) {
 }
 
 function buildRoads(room, structures) {
-    if (room.controller.level < 3 || _.size(Game.constructionSites) >= 45) return;
+    if (Game.time % 100 !== 0 && (room.controller.level < 3 || _.size(Game.constructionSites) >= 45)) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.mineral[0];
     //let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
