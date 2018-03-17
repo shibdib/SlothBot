@@ -66,8 +66,9 @@ module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
 
 function terminalWorker(creep) {
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    let haulers = _.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'hauler');
     let terminalWorker = _.filter(Game.creeps, (c) => c.memory.terminalWorker && c.memory.overlord === creep.memory.overlord)[0];
-    if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker))) return undefined;
+    if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker)) || haulers.length < 2) return undefined;
     if (creep.memory.terminalDelivery) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(terminal, resourceType)) {
