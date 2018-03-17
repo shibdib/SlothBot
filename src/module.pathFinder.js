@@ -136,7 +136,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                         return creep.moveTo(target);
                     }
                 }
-                let exit = creep.pos.findClosestByRange(exitDir);
+                let exit = creep.pos.findClosestByPath(exitDir);
                 target = normalizePos(exit);
                 delete pathInfo.path;
                 options.useFindRoute = false;
