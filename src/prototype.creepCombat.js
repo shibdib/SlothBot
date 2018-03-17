@@ -365,7 +365,7 @@ Creep.prototype.siege = function () {
             }
         }
         if (!target) {
-            delete Memory.targetRooms[this.room.name];
+            if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
             let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
             if ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0)) {

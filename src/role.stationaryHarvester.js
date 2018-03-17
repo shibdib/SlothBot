@@ -24,6 +24,17 @@ function role(creep) {
     }
     if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
+        if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
+            creep.memory.upgrade = true;
+            if (creep.room.controller.ticksToDowngrade >= 2000) {
+                creep.memory.upgrade = undefined;
+                creep.memory.hauling = undefined;
+            }
+            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                creep.shibMove(creep.room.controller);
+            }
+            return null;
+        }
         depositEnergy(creep);
     } else if (creep.memory.assignedSource) {
         source = Game.getObjectById(creep.memory.assignedSource);
@@ -74,7 +85,12 @@ function depositEnergy(creep) {
                 }
             }
             else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
-                creep.transfer(container, RESOURCE_ENERGY);
+                switch (creep.transfer(container, RESOURCE_ENERGY)) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        return creep.shibMove(container);
+                }
             }
         }
     } else {

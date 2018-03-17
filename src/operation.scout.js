@@ -43,7 +43,7 @@ Creep.prototype.scoutRoom = function () {
             level: 1
         };
         Memory.targetRooms = cache;
-    } else if (!controller.owner && ramparts[0]) {
+    } else if (!controller.owner && this.room.structures.length > 2) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.pos.roomName] = {
