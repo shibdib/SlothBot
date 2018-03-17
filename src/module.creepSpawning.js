@@ -396,7 +396,7 @@ module.exports.remoteCreepQueue = function (room) {
     if (level >= 7 && room.memory.skRooms && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
         if (!_.includes(queue, 'SKattacker')) {
-            if (SKAttacker.length < 1 || (SKAttacker.length === 1 && SKAttacker[0].ticksToLive < 250)) {
+            if (SKAttacker.length < 1) {
                 queueCreep(room, PRIORITIES.SKattacker, {
                     role: 'SKattacker',
                     misc: room.memory.skRooms
