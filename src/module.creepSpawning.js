@@ -498,21 +498,6 @@ module.exports.remoteCreepQueue = function (room) {
 module.exports.militaryCreepQueue = function (room) {
     let queue = Memory.militaryBuildQueue;
     let level = getLevel(room);
-    // Cleaning
-    if (room.memory.cleaningTargets && room.memory.cleaningTargets.length > 0 && !_.includes(queue, 'deconstructor') && level >= 4) {
-        for (let key in room.memory.cleaningTargets) {
-            let target = room.memory.cleaningTargets[key];
-            let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === target && creep.memory.role === 'deconstructor');
-            if (deconstructor.length < 1) {
-                queueCreep(room, PRIORITIES.deconstructor, {
-                    role: 'deconstructor',
-                    targetRoom: target,
-                    operation: 'clean',
-                    military: true
-                }, true)
-            }
-        }
-    }
     // Custom Flags
     for (let key in Memory.targetRooms) {
         // Clean
