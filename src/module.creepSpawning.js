@@ -472,7 +472,7 @@ module.exports.remoteCreepQueue = function (room) {
     // Assist room
     if (!_.includes(queue, 'pioneer') && room.memory.assistingRoom && !room.memory.responseNeeded && room.constructionSites.length === 0) {
         let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.assistingRoom && creep.memory.role === 'pioneer');
-        if (pioneers.length < -2 + level) {
+        if (pioneers.length < level) {
             queueCreep(room, 2, {
                 role: 'pioneer',
                 destination: room.memory.assistingRoom,
