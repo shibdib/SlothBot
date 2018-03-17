@@ -7,6 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.borderCheck();
+    if (creep.renewalCheck(1, 800, 1400)) return null;
     if (creep.memory.operation === 'robbery') return creep.robbery();
 }
 

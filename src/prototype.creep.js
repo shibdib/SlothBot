@@ -91,9 +91,9 @@ Creep.prototype.borderCheck = function () {
     }
 };
 
-Creep.prototype.renewalCheck = function (level = 8) {
-    if (Game.rooms[this.memory.overlord].controller.level >= level && (this.ticksToLive < 100 || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable >= 300) {
-        if (this.ticksToLive >= 1000) {
+Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000) {
+    if (Game.rooms[this.memory.overlord].controller.level >= level && (this.ticksToLive < cutoff || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable >= 300) {
+        if (this.ticksToLive >= target) {
             this.memory.boostAttempt = undefined;
             this.memory.boosted = undefined;
             this.memory.renewingTarget = undefined;
