@@ -20,6 +20,7 @@ module.exports.processBuildQueue = function () {
                     }
                     if (body) break;
                 }
+                if (!body) continue;
                 if (topPriority && typeof topPriority === 'object') {
                     _.defaults(topPriority, {
                         role: undefined,
@@ -624,7 +625,7 @@ module.exports.militaryCreepQueue = function (room) {
                 }, true)
             }
             if ((siegeHealer.length < opLevel || (siegeHealer[0] && siegeHealer[0].ticksToLive <= 500 && siegeHealer.length < opLevel + 1)) && !_.includes(queue, 'siegeHealer')) {
-                queueCreep(room, PRIORITIES.attacker, {
+                queueCreep(room, PRIORITIES.healer, {
                     role: 'siegeHealer',
                     targetRoom: key,
                     operation: 'siege',

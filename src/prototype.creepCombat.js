@@ -380,8 +380,10 @@ Creep.prototype.siege = function () {
             }
             return this.memory.role = 'worker';
         } else {
+            let alliedCreep = _.filter(this.room.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner));
             switch (this.dismantle(target)) {
                 case ERR_NOT_IN_RANGE:
+                    if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
                     this.heal(this);
                     if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1) return null;
                     this.shibMove(target, {ignoreCreeps: true});
@@ -394,11 +396,13 @@ Creep.prototype.siege = function () {
                     );
                     break;
                 case ERR_NO_BODYPART:
+                    if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
                     this.heal(this);
                     if (this.getActiveBodyparts(ATTACK) > 0) this.attack(target);
                     this.shibMove(target, {ignoreCreeps: true});
                     break;
                 case OK:
+                    if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
                     this.room.visual.text(
                         ICONS.greenCheck,
                         target.pos.x,
