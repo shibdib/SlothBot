@@ -91,7 +91,7 @@ Creep.prototype.borderCheck = function () {
     }
 };
 
-Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000) {
+Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000, force = false) {
     if (Game.rooms[this.memory.overlord].controller.level >= level && (this.ticksToLive < cutoff || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable >= 300) {
         if (this.ticksToLive >= target) {
             this.memory.boostAttempt = undefined;
@@ -99,7 +99,7 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000)
             this.memory.renewingTarget = undefined;
             return this.memory.renewing = undefined;
         }
-        let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && !s.spawning && !_.filter(this.room.creeps, (c) => c.memory && c.memory.renewingTarget === s.id && c.id !== this.id)[0])[0];
+        let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && (!s.spawning || force) && !_.filter(this.room.creeps, (c) => c.memory && c.memory.renewingTarget === s.id && c.id !== this.id)[0])[0];
         if (spawn) {
             switch (spawn.renewCreep(this)) {
                 case OK:
