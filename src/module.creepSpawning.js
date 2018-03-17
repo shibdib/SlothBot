@@ -228,7 +228,9 @@ module.exports.workerCreepQueue = function (room) {
     //Upgrader
     if (!_.includes(queue, 'upgrader') && level === room.controller.level && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
-        if (upgraders.length < _.round((9 - level) / 2)) {
+        let number = _.round((10 - level) / 2);
+        if (level >= 6) number = 1;
+        if (upgraders.length < number) {
             queueCreep(room, PRIORITIES.upgrader, {
                 role: 'upgrader'
             })
