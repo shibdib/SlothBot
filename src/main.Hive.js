@@ -164,7 +164,7 @@ function roomHud() {
         if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
         if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
         new RoomVisual(name).text(
-            ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + Game.gcl.progress + '/' + Game.gcl.progressTotal + ' - Next Level In Apx. ' + displayTime,
+            ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - Next Level In Apx. ' + displayTime,
             1,
             1,
             {align: 'left', opacity: 0.5}
