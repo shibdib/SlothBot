@@ -369,12 +369,24 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             // Remote Response
-            if (!_.includes(queue, 'remoteResponse')) {
+            /**if (!_.includes(queue, 'remoteResponse')) {
                 if (Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded === true && !room.memory.responseNeeded) {
                     let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteResponse');
                     if (responder.length < Game.rooms[room.memory.remoteRooms[keys]].memory.numberOfHostiles) {
                         queueCreep(room, PRIORITIES.remoteResponse, {
                             role: 'remoteResponse',
+                            responseTarget: room.memory.remoteRooms[keys],
+                            military: true
+                        })
+                    }
+                }
+            }**/
+            if (!_.includes(queue, 'longbow')) {
+                if (Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded === true && !room.memory.responseNeeded) {
+                    let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.remoteRooms[keys] && creep.memory.role === 'longbow');
+                    if (longbow.length < _.round(Game.rooms[room.memory.remoteRooms[keys]].memory.numberOfHostiles / 2)) {
+                        queueCreep(room, PRIORITIES.remoteResponse, {
+                            role: 'longbow',
                             responseTarget: room.memory.remoteRooms[keys],
                             military: true
                         })
@@ -468,6 +480,12 @@ module.exports.militaryCreepQueue = function (room) {
     if (level !== room.controller.level) return;
     // Custom Flags
     for (let key in Memory.targetRooms) {
+        let stagingRoom;
+        for (let staging in Memory.stagingRooms) {
+            if (Game.map.getRoomLinearDistance(staging, key) === 1) {
+                stagingRoom = staging;
+            }
+        }
         // Clean
         if (level >= 5 && Memory.targetRooms[key].type === 'clean' && Game.map.findRoute(room.name, key).length <= 20) {
             let opLevel = Memory.targetRooms[key].level;
@@ -485,7 +503,8 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'deconstructor',
                     targetRoom: key,
                     operation: 'clean',
-                    military: true
+                    military: true,
+                    staging: stagingRoom
                 }, true)
             }
         }
@@ -498,7 +517,8 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'raider',
                     targetRoom: key,
                     operation: 'robbery',
-                    military: true
+                    military: true,
+                    staging: stagingRoom
                 }, true)
             }
         }
@@ -570,7 +590,8 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'drainer',
                     targetRoom: key,
                     operation: 'drain',
-                    military: true
+                    military: true,
+                    staging: stagingRoom
                 }, true)
             }
         }
@@ -585,7 +606,8 @@ module.exports.militaryCreepQueue = function (room) {
                     targetRoom: key,
                     operation: 'siege',
                     military: true,
-                    waitFor: opLevel * 2
+                    waitFor: opLevel * 2,
+                    staging: stagingRoom
                 }, true)
             }
             if ((siegeHealer.length < opLevel || (siegeHealer[0] && siegeHealer[0].ticksToLive <= 500 && siegeHealer.length < opLevel + 1)) && !_.includes(queue, 'siegeHealer')) {
@@ -594,7 +616,8 @@ module.exports.militaryCreepQueue = function (room) {
                     targetRoom: key,
                     operation: 'siege',
                     military: true,
-                    waitFor: opLevel * 2
+                    waitFor: opLevel * 2,
+                    staging: stagingRoom
                 }, true)
             }
         }

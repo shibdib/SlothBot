@@ -56,6 +56,15 @@ function manualAttacks() {
             delete Memory.targetRooms[Game.flags[name].pos.roomName];
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'stage')) {
+            let cache = Memory.stagingRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick
+            };
+            Memory.stagingRooms = cache;
+            Game.flags[name].remove();
+        }
         if (_.startsWith(name, 'siege')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;

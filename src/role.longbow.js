@@ -22,8 +22,9 @@ function role(creep) {
             }
         } else if (creep.room.name === creep.memory.responseTarget) {
             let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
-            let hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
-            if (hostile && hub.getRangeTo(hostile) >= 12) return creep.fightRanged(hostile);
+            let hub;
+            if (creep.room.memory.extensionHub) hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
+            if (hub && hostile && hub.getRangeTo(hostile) >= 12) return creep.fightRanged(hostile);
             if (!creep.handleDefender()) {
                 return findDefensivePosition(creep, creep);
             }
