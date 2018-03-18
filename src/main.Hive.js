@@ -64,12 +64,27 @@ function roomHud() {
         let level = Memory.targetRooms[key].level || 1;
         let type = Memory.targetRooms[key].type;
         if (Memory.targetRooms[key].type === 'attack') type = 'Scout';
-        new RoomVisual(key).text(
-            ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level,
-            1,
-            3,
-            {align: 'left', opacity: 0.8}
-        );
+        let stagingRoom;
+        for (let staging in Memory.stagingRooms) {
+            if (Game.map.getRoomLinearDistance(staging, key) === 1) {
+                stagingRoom = staging;
+            }
+        }
+        if (!stagingRoom) {
+            new RoomVisual(key).text(
+                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level,
+                1,
+                3,
+                {align: 'left', opacity: 0.8}
+            );
+        } else {
+            new RoomVisual(key).text(
+                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level + ' - Staging From ' + stagingRoom,
+                1,
+                3,
+                {align: 'left', opacity: 0.8}
+            );
+        }
         let creeps = _.filter(Game.creeps, (c) => c.memory.targetRoom === key);
         let y = 0;
         for (let creep in creeps) {
