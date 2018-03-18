@@ -98,6 +98,7 @@ function shibMove(creep, heading, options = {}) {
 function shibPath(creep, heading, pathInfo, origin, target, options) {
     //check for cached
     let cached;
+    if (!target) return creep.moveRandom();
     let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
     if (options.useCache && !options.checkPath) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps && options.useCache) {
