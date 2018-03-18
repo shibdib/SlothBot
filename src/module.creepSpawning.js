@@ -489,6 +489,7 @@ module.exports.militaryCreepQueue = function (room) {
         // Clean
         if (level >= 5 && Memory.targetRooms[key].type === 'clean' && Game.map.findRoute(room.name, key).length <= 20) {
             let opLevel = Memory.targetRooms[key].level;
+            let escort = Memory.targetRooms[key].escort;
             let deconstructors = 1;
             if (opLevel === '1') {
                 deconstructors = 1;
@@ -503,6 +504,16 @@ module.exports.militaryCreepQueue = function (room) {
                     role: 'deconstructor',
                     targetRoom: key,
                     operation: 'clean',
+                    military: true,
+                    staging: stagingRoom
+                }, true)
+            }
+            let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
+            if (escort && longbow.length < deconstructors && !_.includes(queue, 'longbow')) {
+                queueCreep(room, PRIORITIES.attacker + 1, {
+                    role: 'longbow',
+                    targetRoom: key,
+                    operation: 'guard',
                     military: true,
                     staging: stagingRoom
                 }, true)

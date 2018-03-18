@@ -15,3 +15,4 @@ require("operation.harass");
 require("operation.drain");
 require("operation.siege");
 require("operation.robbery");
+require("operation.guard");
