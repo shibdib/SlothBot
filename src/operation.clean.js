@@ -22,6 +22,7 @@ Creep.prototype.cleanRoom = function () {
             case OK:
                 Game.rooms[this.memory.overlord].memory.cleaningTargets = _.filter(Game.rooms[this.memory.overlord].memory.cleaningTargets, (t) => t.name !== this.memory.targetRoom);
                 if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
+                if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
                 break;
             case ERR_NOT_IN_RANGE:
                 return this.shibMove(this.room.controller);
