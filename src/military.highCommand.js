@@ -21,18 +21,20 @@ function highCommand() {
                     Memory.targetRooms = cache;
                 }
             }
-            /**let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 3);
-            for (let key in localTargets) {
-                if (!Memory.targetRooms[localTargets[key].name]) {
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[localTargets[key].name] = {
-                        tick: tick,
-                        type: 'attack'
-                    };
-                    Memory.targetRooms = cache;
+            if (ATTACK_LOCALS) {
+                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 3);
+                for (let key in localTargets) {
+                    if (!Memory.targetRooms[localTargets[key].name]) {
+                        let cache = Memory.targetRooms || {};
+                        let tick = Game.time;
+                        cache[localTargets[key].name] = {
+                            tick: tick,
+                            type: 'attack'
+                        };
+                        Memory.targetRooms = cache;
+                    }
                 }
-            }**/
+            }
             let enemyTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && _.includes(HOSTILES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
             for (let key in enemyTargets) {
                 if (!Memory.targetRooms[enemyTargets[key].name]) {

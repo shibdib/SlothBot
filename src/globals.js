@@ -8,6 +8,8 @@ let globals = function () {
         'Shylo132',
     ];
 
+    global.ATTACK_LOCALS = false;
+
     global.FRIENDLIES = RawMemory.segments[2];
 
     //Terminal
