@@ -16,7 +16,9 @@ function controller(room) {
     room.handleNukeAttack();
     if (room.memory.responseNeeded && !room.memory.alertEmail) {
         room.memory.alertEmail = true;
-        Game.notify(room.name + ' - Enemy detected, initiating defense mode.')
+        if (room.memory.threatLevel === 1) Game.notify(room.name + ' - Enemy detected, room is now in FPCON BRAVO.');
+        if (room.memory.threatLevel === 2) Game.notify(room.name + ' - Enemy detected, room is now in FPCON CHARLIE.');
+        if (room.memory.threatLevel >= 3) Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
     }
     if (room.memory.responseNeeded) {
         rampartManager(room, structures, true);
@@ -34,7 +36,7 @@ function controller(room) {
             if (needyRoom) {
                 if (room.memory.sendingResponse !== needyRoom.name) {
                     room.memory.sendingResponse = needyRoom.name;
-                    log.a(room.name + ' is responders to ' + needyRoom.name);
+                    log.a(room.name + ' is sending remote responders to ' + needyRoom.name);
                 }
             } else {
                 room.memory.sendingResponse = undefined;

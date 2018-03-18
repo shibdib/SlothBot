@@ -29,18 +29,18 @@ function role(creep) {
         //INITIAL CHECKS
         if (creep.borderCheck()) return null;
         if (creep.wrongRoom()) return null;
-        creep.repairRoad();
+        let link = Game.getObjectById(creep.room.memory.controllerLink);
+        let container = Game.getObjectById(creep.room.memory.controllerContainer);
+        let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         if (creep.carry.energy === 0) {
             creep.memory.working = null;
         } else if (creep.isFull) creep.memory.working = true;
         if (creep.memory.working === true) {
             if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
-            if (creep.room.memory.controllerContainer && creep.pos.getRangeTo(Game.getObjectById(creep.room.memory.controllerContainer)) <= 1 && Game.getObjectById(creep.room.memory.controllerContainer).store[RESOURCE_ENERGY] > 0) creep.withdraw(Game.getObjectById(creep.room.memory.controllerContainer), RESOURCE_ENERGY);
-            if (creep.memory.terminal && creep.pos.getRangeTo(Game.getObjectById(creep.memory.terminal)) <= 1 && Game.getObjectById(creep.memory.terminal).store[RESOURCE_ENERGY] > 0) creep.withdraw(Game.getObjectById(creep.memory.terminal), RESOURCE_ENERGY);
-            if (creep.memory.controllerLink && creep.pos.getRangeTo(Game.getObjectById(creep.memory.controllerLink)) <= 1 && Game.getObjectById(creep.memory.controllerLink).energy > 0) creep.withdraw(Game.getObjectById(creep.memory.controllerLink), RESOURCE_ENERGY);
+            if (container && creep.pos.getRangeTo(container) <= 1 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
+            if (terminal && creep.pos.getRangeTo(terminal) <= 1 && terminal.store[RESOURCE_ENERGY] > 0) creep.withdraw(terminal, RESOURCE_ENERGY);
+            if (link && creep.pos.getRangeTo(link) <= 1 && link.energy > 0) creep.withdraw(link, RESOURCE_ENERGY);
         } else {
-            let link = Game.getObjectById(creep.room.memory.controllerLink);
-            let container = Game.getObjectById(creep.room.memory.controllerContainer);
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
             } else if (container && container.store[RESOURCE_ENERGY] > 0) {
@@ -62,11 +62,6 @@ function role(creep) {
                     let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
                     if (container) creep.room.memory.controllerContainer = container.id;
                 }
-                if (!creep.memory.terminal) {
-                    let terminal = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_TERMINAL && s.store[RESOURCE_ENERGY] > 0});
-                    if (terminal) creep.memory.terminal = terminal.id;
-                }
-                let terminal = Game.getObjectById(creep.memory.terminal);
                 if (terminal && creep.pos.getRangeTo(terminal) < 5 && terminal.store[RESOURCE_ENERGY] > 2000) {
                     if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(terminal);
