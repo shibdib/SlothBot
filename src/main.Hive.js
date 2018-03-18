@@ -70,6 +70,14 @@ function roomHud() {
                 stagingRoom = staging;
             }
         }
+        if (Memory.targetRooms[key].escort) {
+            new RoomVisual(key).text(
+                'ESCORT REQUESTED',
+                1,
+                2,
+                {align: 'left', opacity: 0.8, color: '#ff0000'}
+            );
+        }
         if (!stagingRoom) {
             new RoomVisual(key).text(
                 ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level,
