@@ -13,7 +13,11 @@ Creep.prototype.cleanRoom = function () {
     }
     let target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
     if (!target || target === null) {
-        target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
+        if (!Memory.targetRooms[this.room.name].complete) {
+            target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
+        } else {
+            target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
+        }
         if (!target || target === null) {
             target = this.findClosestBarrier(false);
             if (!target) {
@@ -33,7 +37,7 @@ Creep.prototype.cleanRoom = function () {
         }
         let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-        if ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0)) {
+        if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0))) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.pos.roomName] = {
@@ -43,7 +47,7 @@ Creep.prototype.cleanRoom = function () {
             };
             Memory.targetRooms = cache;
         }
-        this.memory.role = 'worker';
+        this.suicide();
     } else {
         let dismantlePower = DISMANTLE_POWER * this.getActiveBodyparts(WORK);
         let secondsToDismantle = (target.hits / dismantlePower) * Memory.tickLength;

@@ -12,7 +12,15 @@ Creep.prototype.robbery = function () {
             case ERR_NOT_IN_RANGE:
                 return this.shibMove(this.room.controller);
         }
-        delete Memory.targetRooms[this.room.name];
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[this.pos.roomName] = {
+            tick: tick,
+            type: 'clean',
+            level: 1,
+            complete: true
+        };
+        Memory.targetRooms = cache;
         return;
     }
     if (!this.memory.hauling) {
