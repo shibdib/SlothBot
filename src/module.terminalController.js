@@ -437,7 +437,7 @@ function balanceEnergy(terminal, energyInRoom) {
 }
 
 function balanceBoosts(terminal) {
-    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name));
+    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && !s.room.memory.reactionRoom));
     for (let key in END_GAME_BOOSTS) {
         if (terminal.store[END_GAME_BOOSTS[key]] >= 150) {
             for (let id in otherTerminals) {
