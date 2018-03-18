@@ -147,6 +147,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 case 'attack':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_ACID) >= boostNeeded) {
@@ -158,6 +159,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 case 'upgrade':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ACID) >= boostNeeded) {
@@ -169,6 +171,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 case 'tough':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(TOUGH) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
                     } else if (getBoostAmount(this.room, RESOURCE_GHODIUM_ALKALIDE) >= boostNeeded) {
@@ -180,6 +183,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 case 'ranged':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(RANGED_ATTACK) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
                     } else if (getBoostAmount(this.room, RESOURCE_KEANIUM_ALKALIDE) >= boostNeeded) {
@@ -191,6 +195,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 case 'heal':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(HEAL) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
                     } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ALKALIDE) >= boostNeeded) {
@@ -202,6 +207,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 case 'build':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_LEMERGIUM_ACID) >= boostNeeded) {
@@ -212,7 +218,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                     continue;
                 case 'move':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
-                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    boostNeeded = this.getActiveBodyparts(MOVE) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
                     } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_ALKALIDE) >= boostNeeded) {
@@ -224,6 +231,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 case 'dismantle':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     } else if (getBoostAmount(this.room, RESOURCE_ZYNTHIUM_ACID) >= boostNeeded) {
@@ -238,11 +246,12 @@ Creep.prototype.tryToBoost = function (boosts) {
         if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length) {
             this.memory.requestedBoosts = undefined;
             this.memory.boostLab = undefined;
+            this.memory.boostNeeded = undefined;
             return this.memory.boostAttempt = true;
         }
         for (let key in this.memory.requestedBoosts) {
             let boostInRoom = getBoostAmount(this.room, this.memory.requestedBoosts[key]);
-            if (boostInRoom < 250) {
+            if (boostInRoom < 100) {
                 this.memory.requestedBoosts.shift();
                 let lab = Game.getObjectById(this.memory.boostLab);
                 if (lab) {
@@ -250,6 +259,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                     lab.memory.active = undefined;
                 }
                 this.memory.boostLab = undefined;
+                this.memory.boostNeeded = undefined;
                 continue;
             }
             if (!this.memory.boostLab) {
@@ -267,18 +277,20 @@ Creep.prototype.tryToBoost = function (boosts) {
                     } else {
                         this.memory.requestedBoosts = undefined;
                         this.memory.boostLab = undefined;
+                        this.memory.boostNeeded = undefined;
                         return this.memory.boostAttempt = true;
                     }
                 }
             }
             let lab = Game.getObjectById(this.memory.boostLab);
-            if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0) {
+            if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && lab.mineralAmount >= this.memory.boostNeeded) {
                 switch (lab.boostCreep(this)) {
                     case OK:
                         this.memory.requestedBoosts.shift();
                         lab.memory.neededBoost = undefined;
                         lab.memory.active = undefined;
                         this.memory.boostLab = undefined;
+                        this.memory.boostNeeded = undefined;
                         this.say(ICONS.boost);
                         break;
                     case ERR_NOT_IN_RANGE:

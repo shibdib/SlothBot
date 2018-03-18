@@ -276,9 +276,9 @@ module.exports.workerCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (level >= 3 && !_.includes(queue, 'waller') && level === room.controller.level && !room.memory.responseNeeded && room.constructionSites.length === 0) {
+    if (level >= 3 && !_.includes(queue, 'waller') && level === room.controller.level && room.constructionSites.length === 0) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        if (wallers.length < 1) {
+        if (wallers.length < 3) {
             queueCreep(room, PRIORITIES.waller, {
                 role: 'waller'
             })
