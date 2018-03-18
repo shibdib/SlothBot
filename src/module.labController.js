@@ -127,7 +127,6 @@ function manageReactions(room) {
                 if (terminalAmount + storageAmount + fresh >= BOOST_AMOUNT || alreadyCreating) continue;
                 let componentOne = BOOST_COMPONENTS[boost][0];
                 let componentTwo = BOOST_COMPONENTS[boost][1];
-                log.a(room.name + ' queued ' + boost + ' for creation.');
                 room.memory.activeReaction = boost;
                 let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
                 for (let labID in hub) {
@@ -156,6 +155,7 @@ function manageReactions(room) {
                             id: hub[labID].id,
                             active: true
                         };
+                        log.a(room.name + ' queued ' + boost + ' for creation.');
                         break boost;
                     }
                 }
