@@ -153,6 +153,22 @@ function roomHud() {
                 {align: 'left', opacity: 0.5}
             );
         }
+        //GCL
+        let lastTickProgress = Memory.lastTickProgress || 0;
+        Memory.lastTickProgress = Game.gcl.progress;
+        let progressPerTick = Game.gcl.progress - lastTickProgress;
+        let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
+        let displayTime;
+        if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
+        if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
+        if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
+        if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
+        new RoomVisual(name).text(
+            ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + Game.gcl.progress + '/' + Game.gcl.progressTotal + ' - Next Level In Apx. ' + displayTime,
+            1,
+            1,
+            {align: 'left', opacity: 0.5}
+        );
         //Controller
         if (room.controller.progressTotal) {
             let lastTickProgress = room.memory.lastTickProgress || room.controller.progress;
