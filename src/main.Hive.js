@@ -53,8 +53,12 @@ function mind() {
         }
         processed++;
     }
+    cpu = Game.cpu.getUsed();
     roomHud();
+    shib.shibBench('roomHud', cpu);
+    cpu = Game.cpu.getUsed();
     spawning.processBuildQueue();
+    shib.shibBench('processBuildQueue', cpu);
 }
 module.exports.hiveMind = profiler.registerFN(mind, 'hiveMind');
 
