@@ -5,7 +5,7 @@ Creep.prototype.robbery = function () {
     let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
-    if (this.room.name === this.memory.targetRoom && ((!terminal || (_.sum(terminal.store) === 0)) && (!storage || _.sum(storage.store) === 0))) {
+    if (this.room.name === this.memory.targetRoom && ((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0))) {
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #overlords')) {
             case OK:
                 break;
@@ -24,9 +24,10 @@ Creep.prototype.robbery = function () {
         return;
     }
     if (!this.memory.hauling) {
-        if (((!terminal || (_.sum(terminal.store) === 0)) && (!storage || _.sum(storage.store) === 0)) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
-        if (storage && _.sum(storage.store) > 0) {
+        if (((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0)) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
+        if (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0) {
             for (let resourceType in storage.store) {
+                if (resourceType === RESOURCE_ENERGY) continue;
                 switch (this.withdraw(storage, resourceType)) {
                     case OK:
                         break;
@@ -34,8 +35,9 @@ Creep.prototype.robbery = function () {
                         return this.shibMove(storage);
                 }
             }
-        } else if (terminal && _.sum(terminal.store) > 0) {
+        } else if (terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) {
             for (let resourceType in terminal.store) {
+                if (resourceType === RESOURCE_ENERGY) continue;
                 switch (this.withdraw(terminal, resourceType)) {
                     case OK:
                         break;

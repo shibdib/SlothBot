@@ -37,7 +37,7 @@ Creep.prototype.cleanRoom = function () {
         }
         let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-        if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0))) {
+        if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) || (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0))) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.pos.roomName] = {
@@ -46,6 +46,8 @@ Creep.prototype.cleanRoom = function () {
                 level: 1
             };
             Memory.targetRooms = cache;
+        } else if (terminal || storage) {
+            return Memory.targetRooms[this.room.name].complete = true;
         }
         this.suicide();
     } else {
