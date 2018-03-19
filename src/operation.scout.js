@@ -15,7 +15,7 @@ Creep.prototype.scoutRoom = function () {
             level: 2
         };
         Memory.targetRooms = cache;
-    } else if (controller.owner && (towers.length === 0 || _.max(towers, 'energy').energy === 0) && !ramparts[0] && ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0))) {
+    } else if (controller.owner && (towers.length === 0 || _.max(towers, 'energy').energy === 0) && !ramparts[0] && ((terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) || (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0))) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.pos.roomName] = {
@@ -52,7 +52,7 @@ Creep.prototype.scoutRoom = function () {
             level: 2
         };
         Memory.targetRooms = cache;
-    } else if (!controller.owner && !ramparts[0] && (terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0)) {
+    } else if (!controller.owner && !ramparts[0] && ((terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) || (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0))) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.pos.roomName] = {
