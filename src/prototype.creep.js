@@ -123,14 +123,17 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 Creep.prototype.getSafe = function (hauler = false) {
     if (this.room.memory.responseNeeded) {
         let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
-        if (this.pos.getRangeTo(hub) > 5) {
-            this.say(ICONS.withdraw);
-            this.shibMove(hub, {range: 4, forceRepath: true});
-            return true;
-        } else if (!hauler) {
-            this.idleFor(10);
+        let hostile = hub.findClosestByRange(_.filter(this.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner)));
+        if (hostile && hub.getRangeTo(hostile) <= 9) {
+            if (this.pos.getRangeTo(hub) > 5) {
+                this.say(ICONS.withdraw);
+                this.shibMove(hub, {range: 4, forceRepath: true});
+                return true;
+            } else if (!hauler) {
+                this.idleFor(10);
+            }
+            return undefined;
         }
-        return undefined;
     }
     return undefined;
 };
