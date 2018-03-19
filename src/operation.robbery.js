@@ -21,7 +21,7 @@ Creep.prototype.robbery = function () {
             complete: true
         };
         Memory.targetRooms = cache;
-        return;
+        return this.memory.role = 'remoteHauler';
     }
     if (!this.memory.hauling) {
         if (((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0)) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
