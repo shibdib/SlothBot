@@ -6,6 +6,13 @@ const profiler = require('screeps-profiler');
 
 function linkControl(room) {
     if (room.level < 5) return;
+    let energyInRoom = _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+        if (s['structure'] && s['structure'].store) {
+            return s['structure'].store[RESOURCE_ENERGY] || 0;
+        } else {
+            return 0;
+        }
+    });
     let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK);
     let storageLink = Game.getObjectById(room.memory.storageLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
@@ -23,10 +30,10 @@ function linkControl(room) {
                     continue;
                 }
             }
-            if (controllerLink && controllerLink.energy < 250) {
-                link.transferEnergy(controllerLink);
-            } else if (storageLink && storageLink.energy < 700) {
+            if (storageLink && storageLink.energy < 250) {
                 link.transferEnergy(storageLink);
+            } else if (controllerLink && controllerLink.energy < 700) {
+                link.transferEnergy(controllerLink);
             }
         }
     }
