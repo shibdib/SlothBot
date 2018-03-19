@@ -21,6 +21,21 @@ module.exports.loop = function() {
         //Logging level
         Memory.loggingLevel = 5; //Set level 1-5 (5 being most info)
 
+        // Get Tick Length
+        let d = new Date();
+        let seconds = _.round(d.getTime() / 1000, 2);
+        let lastTick = Memory.lastTick || seconds;
+        Memory.lastTick = seconds;
+        Memory.tickLengthArray = Memory.tickLengthArray || [];
+        let tickLength = seconds - lastTick;
+        if (Memory.tickLengthArray.length < 50) {
+            Memory.tickLengthArray.push(tickLength)
+        } else {
+            Memory.tickLengthArray.shift();
+            Memory.tickLengthArray.push(tickLength)
+        }
+        Memory.tickLength = average(Memory.tickLengthArray);
+
         //GC
         let gcMem = Game.cpu.getUsed();
         if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name) && Game.cpu.getHeapStatistics() && Game.cpu.getHeapStatistics().total_heap_size + Game.cpu.getHeapStatistics().externally_allocated_size > 0.85 * Game.cpu.getHeapStatistics().heap_size_limit) gc();

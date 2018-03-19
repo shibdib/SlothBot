@@ -71,32 +71,43 @@ module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalC
 
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
-        resource:
-            for (const resourceType in terminal.store) {
-                if (!_.includes(END_GAME_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT * 1.5 && resourceType !== RESOURCE_ENERGY) {
-                    let reactionTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom));
-                    let sellableAmount = terminal.store[resourceType] - ((SELL_OFF_AMOUNT * 1.5) - SELL_OFF_AMOUNT);
-                    for (let key in reactionTerminals) {
-                        if (!reactionTerminals[key].store[resourceType] || reactionTerminals[key].store[resourceType] < sellableAmount) {
-                            if (terminal.send(resourceType, sellableAmount, reactionTerminals[key].room.name) === OK) {
-                                log.a(' MARKET: Distributing ' + sellableAmount + ' ' + resourceType + ' To ' + reactionTerminals[key].room.name + ' From ' + terminal.room.name);
-                                continue resource;
-                            }
-                        }
+        for (const resourceType in terminal.store) {
+            if (Game.market.credits < 25000 && !_.includes(END_GAME_BOOSTS, resourceType)) {
+                let sellableAmount = terminal.store[resourceType];
+                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
+                if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
+                    if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
+                        return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
                     }
-                    let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
-                        order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
-                    if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
-                        if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
-                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
-                        }
-                    } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
-                        if (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName) === OK) {
-                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
+                } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
+                    if (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName) === OK) {
+                        return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
+                    }
+                }
+            } else if (!_.includes(END_GAME_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT * 1.5 && resourceType !== RESOURCE_ENERGY) {
+                let reactionTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom));
+                let sellableAmount = terminal.store[resourceType] - ((SELL_OFF_AMOUNT * 1.5) - SELL_OFF_AMOUNT);
+                for (let key in reactionTerminals) {
+                    if (!reactionTerminals[key].store[resourceType] || reactionTerminals[key].store[resourceType] < sellableAmount) {
+                        if (terminal.send(resourceType, sellableAmount, reactionTerminals[key].room.name) === OK) {
+                            return log.a(' MARKET: Distributing ' + sellableAmount + ' ' + resourceType + ' To ' + reactionTerminals[key].room.name + ' From ' + terminal.room.name);
                         }
                     }
                 }
+                let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
+                    order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
+                if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
+                    if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
+                        return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+                    }
+                } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
+                    if (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName) === OK) {
+                        return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
+                    }
+                }
             }
+        }
         if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 5) {
             let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
                 order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');

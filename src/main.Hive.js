@@ -13,13 +13,6 @@ function mind() {
         }
     }
 
-    // Get Tick Length
-    let d = new Date();
-    let seconds = _.round(d.getTime() / 1000, 2);
-    let lastTick = Memory.lastTick || seconds;
-    Memory.lastTick = seconds;
-    Memory.tickLength = seconds - lastTick;
-
     Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner['username'] === USERNAME));
     let cpuBucket = Game.cpu.bucket;
 
@@ -162,7 +155,15 @@ function roomHud() {
         //GCL
         let lastTickProgress = Memory.lastTickProgress || 0;
         Memory.lastTickProgress = Game.gcl.progress;
+        Memory.gclProgressArray = Memory.gclProgressArray || [];
         let progressPerTick = Game.gcl.progress - lastTickProgress;
+        if (Memory.gclProgressArray.length < 50) {
+            Memory.gclProgressArray.push(progressPerTick)
+        } else {
+            Memory.gclProgressArray.shift();
+            Memory.gclProgressArray.push(progressPerTick)
+        }
+        progressPerTick = average(Memory.gclProgressArray);
         let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
         let displayTime;
         if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
@@ -180,6 +181,14 @@ function roomHud() {
             let lastTickProgress = room.memory.lastTickProgress || room.controller.progress;
             room.memory.lastTickProgress = room.controller.progress;
             let progressPerTick = room.controller.progress - lastTickProgress;
+            room.memory.rclProgressArray = room.memory.rclProgressArray || [];
+            if (room.memory.rclProgressArray.length < 50) {
+                room.memory.rclProgressArray.push(progressPerTick)
+            } else {
+                room.memory.rclProgressArray.shift();
+                room.memory.rclProgressArray.push(progressPerTick)
+            }
+            progressPerTick = average(room.memory.rclProgressArray);
             let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickLength);
             let displayTime;
             if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
@@ -193,6 +202,8 @@ function roomHud() {
                 {align: 'left', opacity: 0.5}
             );
         } else {
+            room.memory.lastTickProgress = undefined;
+            room.memory.rclProgressArray = undefined;
             new RoomVisual(name).text(
                 ICONS.upgradeController + ' Controller Level: ' + room.controller.level,
                 1,
