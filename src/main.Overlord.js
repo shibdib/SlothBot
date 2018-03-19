@@ -19,7 +19,7 @@ function mind(room, roomLimit) {
     //Build Room
     if (Game.time % 50 === 0) {
         for (let structures of room.structures) {
-            if ((structures.owner && structures.owner['username'] !== USERNAME && structures.owner['username'] !== USERNAME) || structures.structureType === STRUCTURE_WALL) {
+            if ((structures.owner && structures.owner['username'] !== USERNAME) || structures.structureType === STRUCTURE_WALL) {
                 structures.destroy();
             }
         }
@@ -32,20 +32,15 @@ function mind(room, roomLimit) {
 
     // Manage creep spawning
     if (Game.time % 10 === 0) {
-        let creepSpawn = Game.cpu.getUsed();
         if (room.controller.level >= 4 && Game.time % 20 === 0) {
             let remoteSpawn = Game.cpu.getUsed();
             spawning.remoteCreepQueue(room);
             shib.shibBench('remoteSpawn', remoteSpawn);
         }
-        if (room.controller.level >= 5 && Game.time % 30 === 0) {
-            let militarySpawn = Game.cpu.getUsed();
-            spawning.militaryCreepQueue(room);
-            shib.shibBench('militarySpawn', militarySpawn);
-        }
+        let creepSpawn = Game.cpu.getUsed();
         spawning.workerCreepQueue(room);
+        shib.shibBench('workerCreepQueue', creepSpawn);
         cleanQueue(room);
-        shib.shibBench('creepSpawn', creepSpawn);
     }
 
     // Manage creeps

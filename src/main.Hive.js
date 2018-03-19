@@ -40,7 +40,6 @@ function mind() {
     let overlordCount = Memory.ownedRooms.length;
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
-        if (!activeRoom.memory._caches) activeRoom.memory._caches = {};
         let cpuUsed = Game.cpu.getUsed();
         let cpuLimit = Game.cpu.limit - cpuUsed;
         let cpuTickLimit = Game.cpu.tickLimit - cpuUsed;
@@ -53,9 +52,14 @@ function mind() {
         }
         processed++;
     }
+    //Room HUD
     cpu = Game.cpu.getUsed();
     roomHud();
     shib.shibBench('roomHud', cpu);
+    //Non room specific creep spawning
+    cpu = Game.cpu.getUsed();
+    spawning.militaryCreepQueue();
+    shib.shibBench('militarySpawn', cpu);
     cpu = Game.cpu.getUsed();
     spawning.processBuildQueue();
     shib.shibBench('processBuildQueue', cpu);
