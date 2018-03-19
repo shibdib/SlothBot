@@ -59,6 +59,7 @@ function shibMove(creep, heading, options = {}) {
         options.freshMatrix = true;
         options.useCache = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+        if (Math.random() > .7) return creep.moveRandom();
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path && !options.checkPath) {
