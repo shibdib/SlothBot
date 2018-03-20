@@ -2,14 +2,15 @@ Creep.prototype.cleanRoom = function () {
     let sentence = ['Cleaning', 'Room', this.memory.targetRoom];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
+    if (!Memory.targetRooms[this.memory.targetRoom]) this.suicide();
     if (this.memory.staging && this.room.name === this.memory.staging) this.memory.staged = true;
     if (this.memory.staging && !this.memory.staged && this.room.name !== this.memory.staging) return this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     let creeps = this.pos.findClosestByRange(this.room.creeps, {filter: (e) => _.includes(FRIENDLIES, e.owner['username']) === false});
-    if (creeps) {
+    if (creeps && Memory.targetRooms[this.room.name]) {
         Memory.targetRooms[this.room.name].escort = true;
-    } else {
-        Memory.targetRooms[this.room.name].escort = undefined;
+    } else if (Memory.targetRooms[this.room.name]) {
+        delete Memory.targetRooms[this.room.name].escort;
     }
     let target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
     if (!target || target === null) {
