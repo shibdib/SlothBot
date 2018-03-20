@@ -256,7 +256,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (storageLink && storageLink.energy > 0 && (!controllerLink || controllerLink.energy > 100)) {
+    if (storageLink && storageLink.energy > 0) {
         let linkDistWeighted;
         const object = storageLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
