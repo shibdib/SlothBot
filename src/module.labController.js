@@ -6,7 +6,6 @@ const profiler = require('screeps-profiler');
 let _ = require('lodash');
 
 function labManager() {
-    manageActiveLabs();
     for (let key in shuffle(Memory.ownedRooms)) {
         if (Memory.ownedRooms[key].controller.level < 6) continue;
         let room = Memory.ownedRooms[key];
@@ -20,6 +19,7 @@ function labManager() {
         let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && terminal && room.memory.reactionRoom && Game.time % 25 === 0) manageBoostProduction(room);
+        if (lab && terminal && room.memory.reactionRoom && Game.time % 3 === 0) manageActiveLabs(room);
     }
 }
 
@@ -85,12 +85,12 @@ function manageBoostProduction(room) {
         }
 }
 
-function manageActiveLabs() {
-    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.room.memory.reactionRoom);
+function manageActiveLabs(room) {
+    let activeLabs = _.filter(room.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && !s.memory.itemNeeded && s.memory.creating);
     if (activeLabs[0]) {
         active:
             for (let key in activeLabs) {
-                let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.roomName === activeLabs[key].pos.roomName);
+                let hub = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.roomName === activeLabs[key].pos.roomName);
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
                 if (!outputLab) {
