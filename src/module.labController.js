@@ -86,13 +86,13 @@ function manageBoostProduction(room) {
 }
 
 function manageActiveLabs() {
-    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.room.memory.reactionRoom);
-    if (activeLabs[0]) {
+    let activeLabs = _.filter(Game.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && !s.memory.itemNeeded && !s.memory.boostNeeded);
+    if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
-                let hub = _.filter(activeLabs, (s) => s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.roomName === activeLabs[key].pos.roomName);
+                let hub = _.filter(activeLabs[key].room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === activeLabs[key].memory.creating);
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
-                let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
+                let outputLab = activeLabs[key];
                 if (!outputLab) {
                     for (let id in hub) {
                         hub[id].memory = undefined;
@@ -124,7 +124,6 @@ function manageActiveLabs() {
                     outputLab.memory = undefined;
                     continue;
                 }
-                if (outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
                 let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
                 if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
@@ -148,6 +147,7 @@ function manageActiveLabs() {
                         continue active;
                     }
                 }
+                if (outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
             }
     }
 }

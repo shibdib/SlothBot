@@ -246,7 +246,7 @@ Creep.prototype.tryToBoost = function (boosts) {
         }
         this.memory.requestedBoosts = available;
     } else {
-        if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length) {
+        if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length || this.ticksToLive < 750) {
             this.memory.requestedBoosts = undefined;
             this.memory.boostLab = undefined;
             this.memory.boostNeeded = undefined;
