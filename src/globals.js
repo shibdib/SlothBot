@@ -467,6 +467,11 @@ let globals = function () {
         [RESOURCE_UTRIUM_LEMERGITE]: [RESOURCE_UTRIUM, RESOURCE_LEMERGIUM]
     };
 
+    global.MY_USERNAME = _.get(
+        _.find(Game.spawns) || _.find(Game.creeps) || _.get(_.find(Game.rooms, room => room.controller && room.controller.my), 'controller'),
+        ['owner', 'username'],
+    );
+
     /*
      Cached dynamic properties: Declaration
      By warinternal, from the Screeps Slack
@@ -547,14 +552,6 @@ let globals = function () {
 // Usage: After you require this file, just add this to anywhere in your main loop to run every tick: global.populateLOANlist();
 // global.LOANlist will contain an array of usernames after global.populateLOANlist() runs twice in a row (two consecutive ticks).
     global.populateLOANlist = function (LOANuser = "LeagueOfAutomatedNations", LOANsegment = 99) {
-        let allMyRooms = _.filter(Game.rooms, (aRoom) => (typeof aRoom.controller != "undefined") && aRoom.controller.my);
-        if (allMyRooms.length == 0) {
-            global.LOANlist = [];
-            return false;
-        }
-        let myUsername = allMyRooms[0].controller.owner.username;
-
-        global.MY_USERNAME = myUsername;
         if ((typeof RawMemory.setActiveForeignSegment == "function") && !!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name)) { // For running in sim or private servers without errors
             if ((typeof Memory.lastLOANtime == "undefined") || (typeof global.LOANlist == "undefined")) {
                 Memory.lastLOANtime = Game.time - 1001;
@@ -567,6 +564,12 @@ let globals = function () {
 
             if ((Game.time >= (Memory.lastLOANtime + 1001)) && (typeof RawMemory.foreignSegment != "undefined") && (RawMemory.foreignSegment.username == LOANuser) && (RawMemory.foreignSegment.id == LOANsegment)) {
                 Memory.lastLOANtime = Game.time;
+                let allMyRooms = _.filter(Game.rooms, (aRoom) => (typeof aRoom.controller != "undefined") && aRoom.controller.my);
+                if (allMyRooms.length == 0) {
+                    global.LOANlist = [];
+                    return false;
+                }
+                let myUsername = allMyRooms[0].controller.owner.username;
                 if (RawMemory.foreignSegment.data == null) return false;
                 else {
                     let LOANdata = JSON.parse(RawMemory.foreignSegment.data);
