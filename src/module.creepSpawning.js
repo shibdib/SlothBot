@@ -245,14 +245,9 @@ function roomStartup(room, roomCreeps) {
     }
 }
 
-function neighborCheck(spawnRoom, remoteRoom) {
-    return Game.map.getRoomLinearDistance(spawnRoom, remoteRoom) <= 1;
-}
-
 module.exports.workerCreepQueue = function (room) {
     let queue = room.memory.creepBuildQueue;
     let level = getLevel(room);
-    let energy = room.energyAvailable;
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     // Level 1 room management
     if (level === 1) {
@@ -327,7 +322,9 @@ module.exports.workerCreepQueue = function (room) {
     //Waller
     if (level >= 3 && !_.includes(queue, 'waller') && level === room.controller.level && room.constructionSites.length === 0) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        if (wallers.length < 3) {
+        let amount = 3;
+        if (TEN_CPU) amount = 1;
+        if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller, {
                 role: 'waller'
             })

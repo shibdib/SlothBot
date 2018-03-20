@@ -7,9 +7,6 @@ let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
 let shib = require("shibBench");
-console.log('--------------------------------------------------------');
-console.log('#Overlord-Bot By: Shibdib of the alliance #overlords');
-console.log('--------------------------------------------------------');
 //profiler.enable();
 //global.lastMemoryTick = undefined;
 
@@ -106,6 +103,26 @@ resetBench = function () {
     delete Memory.reportBenchNotify;
     log.a('Benchmarks Reset');
 };
+
+abandonRoom = function (room) {
+    if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
+    for (let key in Game.rooms[room].creeps) {
+        Game.rooms[room].creeps[key].suicide();
+    }
+    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
+    for (let key in overlordFor) {
+        overlordFor[key].suicide();
+    }
+    for (let key in Game.rooms[room].structures) {
+        Game.rooms[room].structures[key].destroy();
+    }
+    for (let key in Game.rooms[room].constructionSites) {
+        Game.rooms[room].constructionSites[key].remove();
+    }
+    delete Game.rooms[room].memory;
+    Game.rooms[room].controller.unclaim();
+};
+
 
 
 function tryInitSameMemory() {

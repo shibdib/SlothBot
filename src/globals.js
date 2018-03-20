@@ -12,7 +12,9 @@ let globals = function () {
 
     global.FRIENDLIES = RawMemory.segments[2];
 
-    global.MY_USERNAME = 'Shibdib';
+    if (Game.cpu.limit === 10) {
+        global.TEN_CPU = true;
+    }
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
@@ -552,6 +554,14 @@ let globals = function () {
                 Memory.lastLOANtime = Game.time - 1001;
                 global.LOANlist = [];
             }
+            let allMyRooms = _.filter(Game.rooms, (aRoom) => (typeof aRoom.controller != "undefined") && aRoom.controller.my);
+            if (allMyRooms.length == 0) {
+                global.LOANlist = [];
+                return false;
+            }
+            let myUsername = allMyRooms[0].controller.owner.username;
+
+            global.MY_USERNAME = myUsername;
 
             if (Game.time >= (Memory.lastLOANtime + 1000)) {
                 RawMemory.setActiveForeignSegment(LOANuser, LOANsegment);
@@ -563,12 +573,6 @@ let globals = function () {
                 else {
                     let LOANdata = JSON.parse(RawMemory.foreignSegment.data);
                     let LOANdataKeys = Object.keys(LOANdata);
-                    let allMyRooms = _.filter(Game.rooms, (aRoom) => (typeof aRoom.controller != "undefined") && aRoom.controller.my);
-                    if (allMyRooms.length == 0) {
-                        global.LOANlist = [];
-                        return false;
-                    }
-                    let myUsername = allMyRooms[0].controller.owner.username;
                     for (let iL = (LOANdataKeys.length - 1); iL >= 0; iL--) {
                         if (LOANdata[LOANdataKeys[iL]].indexOf(myUsername) >= 0) {
                             global.LOANlist = LOANdata[LOANdataKeys[iL]];
