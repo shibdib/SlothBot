@@ -289,8 +289,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 switch (lab.boostCreep(this)) {
                     case OK:
                         this.memory.requestedBoosts.shift();
-                        delete lab.memory.neededBoost;
-                        if (!lab.memory.creating) delete lab.memory.active;
+                        delete lab.memory;
                         delete this.memory.boostLab;
                         delete this.memory.boostNeeded;
                         this.say(ICONS.boost);
