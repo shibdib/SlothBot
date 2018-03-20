@@ -2,7 +2,6 @@ Creep.prototype.cleanRoom = function () {
     let sentence = ['Cleaning', 'Room', this.memory.targetRoom];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    if (!Memory.targetRooms[this.room.targetRoom] || Memory.targetRooms[this.room.targetRoom].type !== 'clean') return this.suicide();
     if (this.memory.staging && this.room.name === this.memory.staging) this.memory.staged = true;
     if (this.memory.staging && !this.memory.staged && this.room.name !== this.memory.staging) return this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
