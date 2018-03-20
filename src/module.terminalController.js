@@ -19,7 +19,7 @@ function terminalControl(room) {
     let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal) {
+    if (terminal && terminal.isActive()) {
         let energyInRoom = _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
             if (s['structure'] && s['structure'].store) {
                 return s['structure'].store[RESOURCE_ENERGY] || 0;
@@ -437,18 +437,18 @@ function orderCleanup(myOrders) {
 function balanceEnergy(terminal, energyInRoom) {
     terminal.room.memory.energySurplus = energyInRoom >= energyAmount + (energyAmount * 0.19);
     terminal.room.memory.energyNeeded = energyInRoom < energyAmount;
-    let needingRooms = shuffle(_.filter(Game.rooms, (r) => r.memory && r.memory.energyNeeded));
+    let needingRooms = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.room.memory.energyNeeded && s.isActive()));
     let cost;
-    if (needingRooms[0]) cost = Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].name, terminal.room.name);
+    if (needingRooms[0]) cost = Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].room.name, terminal.room.name);
     if (needingRooms[0] && terminal.room.memory.energySurplus && cost < terminal.store[RESOURCE_ENERGY] * 0.25 && !terminal.cooldown) {
-        if (terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].name) === OK) {
-            return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_ENERGY] * 0.10 + ' ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].name + ' From ' + terminal.room.name);
+        if (terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].room.name) === OK) {
+            return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_ENERGY] * 0.10 + ' ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].room.name + ' From ' + terminal.room.name);
         }
     }
 }
 
 function balanceBoosts(terminal) {
-    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && !s.room.memory.reactionRoom));
+    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && !s.room.memory.reactionRoom && s.isActive()));
     for (let key in END_GAME_BOOSTS) {
         if (terminal.store[END_GAME_BOOSTS[key]] >= 150) {
             for (let id in otherTerminals) {

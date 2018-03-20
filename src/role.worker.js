@@ -30,15 +30,27 @@ function role(creep) {
                 creep.findConstruction();
                 if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
                     let construction = Game.getObjectById(creep.memory.constructionSite);
-                    if (creep.build(construction) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(construction, {range: 3});
+                    switch (creep.build(construction)) {
+                        case OK:
+                            return null;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(construction, {range: 3});
+                            break;
+                        case ERR_RCL_NOT_ENOUGH:
+                            delete creep.memory.constructionSite;
                     }
                 } else {
                     creep.findRepair(creep.room.controller.level);
                     if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
                         let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
-                        if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(repairNeeded, {range: 3});
+                        switch (creep.repair(repairNeeded)) {
+                            case OK:
+                                return null;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(repairNeeded, {range: 3});
+                                break;
+                            case ERR_RCL_NOT_ENOUGH:
+                                delete creep.memory.constructionSite;
                         }
                     } else if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(Game.rooms[creep.memory.overlord].controller);

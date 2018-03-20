@@ -6,7 +6,12 @@ module.exports.processBuildQueue = function () {
         if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
-                let queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
+                let queue;
+                if (spawn.room.constructionSites.length === 0 && spawn.room.energyAvailable > spawn.room.energyCapacityAvailable * 0.50) {
+                    queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
+                } else {
+                    queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
+                }
                 let topPriority;
                 let body;
                 let role;

@@ -19,14 +19,7 @@ function role(creep) {
             delete creep.room.memory.requestingPioneer;
         }
     }
-    //Mark room as no go if reserved or owned by someone else
-    if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME && creep.room.controller.reservation.username !== USERNAME) || creep.room.owner)) {
-        creep.memory.role = 'upgrader';
-    }
     //Initial move
-    if (creep.carry.energy === 0) {
-        creep.memory.harvesting = true;
-    }
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
         if (creep.pos.roomName === creep.memory.destination) {
@@ -34,8 +27,7 @@ function role(creep) {
             creep.memory.destinationReached = true;
         }
         return null;
-    } else if (creep.carry.energy === creep.carryCapacity || creep.memory.harvesting === false) {
-        creep.memory.harvesting = false;
+    } else if (creep.carry.energy === creep.carryCapacity) {
         depositEnergy(creep);
     } else {
         if (creep.memory.source) {
@@ -61,12 +53,10 @@ function depositEnergy(creep) {
     if (!creep.memory.buildAttempt) remoteRoads(creep);
     if (!creep.memory.containerID) {
         creep.memory.containerID = creep.harvestDepositContainer();
-    }
-    if (creep.memory.containerID) {
+    } else if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             creep.room.memory.needsPickup = _.sum(container.store) > 750;
-            if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) return creep.memory.containerID = undefined;
             if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
             if (container.hits < container.hitsMax * 0.5) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
@@ -100,16 +90,16 @@ function remoteRoads(creep) {
         buildRoadAround(creep.room, sources[key].pos);
         if (neighboring) {
             if (neighboring['1']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_TOP));
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_TOP));
             }
             if (neighboring['3']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_RIGHT));
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_RIGHT));
             }
             if (neighboring['5']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_BOTTOM));
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_BOTTOM));
             }
             if (neighboring['7']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByRange(FIND_EXIT_LEFT));
+                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_LEFT));
             }
         }
     }
