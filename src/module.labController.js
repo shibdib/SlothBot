@@ -6,6 +6,7 @@ const profiler = require('screeps-profiler');
 let _ = require('lodash');
 
 function labManager() {
+    manageActiveLabs();
     for (let key in shuffle(Memory.ownedRooms)) {
         if (Memory.ownedRooms[key].controller.level < 6) continue;
         let room = Memory.ownedRooms[key];
@@ -17,19 +18,75 @@ function labManager() {
             log.a(room.name + ' is now a reaction room.');
         }
         let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-        let lab = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-        if (lab && terminal && room.memory.reactionRoom) manageReactions(room);
+        let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
+        if (lab && terminal && room.memory.reactionRoom && Game.time % 25 === 0) manageBoostProduction(room);
     }
 }
 
 module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 
-function manageReactions(room) {
+function manageBoostProduction(room) {
     let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let labTech = _.filter(room.creeps, (c) => c.memory && c.memory.role === 'labTech')[0];
-    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
-    // Manage active reactions
+    boost:
+        for (let key in MAKE_THESE_BOOSTS) {
+            let boost = MAKE_THESE_BOOSTS[key];
+            let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
+            if (!availableLabs) return;
+            for (let key in BOOST_COMPONENTS[boost]) {
+                let storageAmount = storage.store[BOOST_COMPONENTS[boost][key]] || 0;
+                let terminalAmount = terminal.store[BOOST_COMPONENTS[boost][key]] || 0;
+                let techAmount;
+                if (labTech) techAmount = labTech.carry[BOOST_COMPONENTS[boost][key]] || 0;
+                if (storageAmount + terminalAmount + techAmount < 500) continue boost;
+            }
+            let alreadyCreating = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === boost)[0];
+            let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
+            let fresh = 0;
+            if (outputLab[0]) fresh = outputLab[0].mineralAmount;
+            let terminalAmount = terminal.store[boost] || 0;
+            let storageAmount = storage.store[boost] || 0;
+            if (terminalAmount + storageAmount + fresh >= BOOST_AMOUNT || alreadyCreating) continue;
+            let componentOne = BOOST_COMPONENTS[boost][0];
+            let componentTwo = BOOST_COMPONENTS[boost][1];
+            room.memory.activeReaction = boost;
+            let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
+            for (let labID in hub) {
+                let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
+                let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
+                if (!one) {
+                    hub[labID].memory = {
+                        itemNeeded: componentOne,
+                        creating: boost,
+                        room: hub[labID].pos.roomName,
+                        id: hub[labID].id,
+                        active: true
+                    };
+                } else if (!two) {
+                    hub[labID].memory = {
+                        itemNeeded: componentTwo,
+                        creating: boost,
+                        room: hub[labID].pos.roomName,
+                        id: hub[labID].id,
+                        active: true
+                    };
+                } else {
+                    hub[labID].memory = {
+                        creating: boost,
+                        room: hub[labID].pos.roomName,
+                        id: hub[labID].id,
+                        active: true
+                    };
+                    log.a(room.name + ' queued ' + boost + ' for creation.');
+                    break boost;
+                }
+            }
+        }
+}
+
+function manageActiveLabs() {
+    let activeLabs = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.room.memory.reactionRoom);
     if (activeLabs[0]) {
         active:
             for (let key in activeLabs) {
@@ -49,19 +106,6 @@ function manageReactions(room) {
                         outputLab.pos.y,
                         {align: 'left', opacity: 0.8}
                     );
-                } else if (outputLab.memory.neededBoost) {
-                    let boostTarget = _.filter(outputLab.room.creeps, (c) => c.memory && c.memory.boostLab === outputLab.id)[0];
-                    if (!boostTarget) {
-                        outputLab.memory = undefined;
-                        continue;
-                    }
-                    outputLab.room.visual.text(
-                        ICONS.boost + ' ' + outputLab.memory.neededBoost,
-                        outputLab.pos.x,
-                        outputLab.pos.y,
-                        {align: 'left', opacity: 0.8}
-                    );
-                    continue;
                 }
                 //If on cooldown continue
                 if (outputLab.cooldown) continue;
@@ -91,6 +135,7 @@ function manageReactions(room) {
                     outputLab.memory = undefined;
                     continue;
                 }
+                // Input shortage
                 for (let id in creators) {
                     let lab = Game.getObjectById(creators[id]);
                     let total = getBoostAmount(lab.room, lab.memory.itemNeeded);
@@ -101,62 +146,6 @@ function manageReactions(room) {
                         }
                         outputLab.memory = undefined;
                         continue active;
-                    }
-                }
-            }
-    }
-    if (Game.time % 25 === 0) {
-        boost:
-            for (let key in MAKE_THESE_BOOSTS) {
-                let boost = MAKE_THESE_BOOSTS[key];
-                let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2)[0];
-                if (!availableLabs) return;
-                for (let key in BOOST_COMPONENTS[boost]) {
-                    let storageAmount = storage.store[BOOST_COMPONENTS[boost][key]] || 0;
-                    let terminalAmount = terminal.store[BOOST_COMPONENTS[boost][key]] || 0;
-                    let techAmount;
-                    if (labTech) techAmount = labTech.carry[BOOST_COMPONENTS[boost][key]] || 0;
-                    if (storageAmount + terminalAmount + techAmount < 500) continue boost;
-                }
-                let alreadyCreating = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === boost)[0];
-                let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
-                let fresh = 0;
-                if (outputLab[0]) fresh = outputLab[0].mineralAmount;
-                let terminalAmount = terminal.store[boost] || 0;
-                let storageAmount = storage.store[boost] || 0;
-                if (terminalAmount + storageAmount + fresh >= BOOST_AMOUNT || alreadyCreating) continue;
-                let componentOne = BOOST_COMPONENTS[boost][0];
-                let componentTwo = BOOST_COMPONENTS[boost][1];
-                room.memory.activeReaction = boost;
-                let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
-                for (let labID in hub) {
-                    let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
-                    let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
-                    if (!one) {
-                        hub[labID].memory = {
-                            itemNeeded: componentOne,
-                            creating: boost,
-                            room: hub[labID].pos.roomName,
-                            id: hub[labID].id,
-                            active: true
-                        };
-                    } else if (!two) {
-                        hub[labID].memory = {
-                            itemNeeded: componentTwo,
-                            creating: boost,
-                            room: hub[labID].pos.roomName,
-                            id: hub[labID].id,
-                            active: true
-                        };
-                    } else {
-                        hub[labID].memory = {
-                            creating: boost,
-                            room: hub[labID].pos.roomName,
-                            id: hub[labID].id,
-                            active: true
-                        };
-                        log.a(room.name + ' queued ' + boost + ' for creation.');
-                        break boost;
                     }
                 }
             }
