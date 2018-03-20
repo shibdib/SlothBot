@@ -35,9 +35,9 @@ function role(creep) {
             }
         }
     } else {
-        creep.memory.destination = undefined;
-        creep.memory.targetRooms = undefined;
-        creep.memory.destinationReached = undefined;
+        delete creep.memory.destination;
+        delete creep.memory.targetRooms;
+        delete creep.memory.destinationReached;
     }
 }
 

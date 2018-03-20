@@ -14,7 +14,7 @@ function role(creep) {
     if (Game.rooms[creep.memory.responseTarget] && creep.pos.roomName === Game.rooms[creep.memory.responseTarget].name) {
         creep.memory.destinationReached = true;
     } else {
-        creep.memory.destinationReached = undefined;
+        delete creep.memory.destinationReached;
     }
     if (!creep.memory.destinationReached) {
         let hostiles = _.filter(creep.room.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
@@ -32,7 +32,7 @@ function role(creep) {
             let structuresInRoom = creep.room.find(FIND_STRUCTURES,  {filter: (s) => s.owner && !_.includes(FRIENDLIES, s.owner['username'])});
             let vulnerableStructure = creep.pos.findClosestByPath(_.filter(structuresInRoom, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TERMINAL && !s.pos.checkForRampart()));
             if (vulnerableStructure) {
-                creep.memory.inCombat = undefined;
+                delete creep.memory.inCombat;
                 if (creep.pos.getRangeTo(vulnerableStructure) <= 3) creep.rangedAttack(vulnerableStructure);
                 if (creep.attack(vulnerableStructure) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(vulnerableStructure);
@@ -40,7 +40,7 @@ function role(creep) {
             } else {
                 let ramparts = creep.pos.findClosestByPath(_.filter(structuresInRoom, (s) => s.structureType === STRUCTURE_RAMPART));
                 if (ramparts) {
-                    creep.memory.inCombat = undefined;
+                    delete creep.memory.inCombat;
                     if (creep.pos.getRangeTo(vulnerableStructure) <= 3) creep.rangedAttack(vulnerableStructure);
                     if (creep.attack(ramparts) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(ramparts);

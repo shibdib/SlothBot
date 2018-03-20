@@ -41,17 +41,20 @@ function role(creep) {
         } else {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                if (!storageItem) return creep.memory.storageDestination = undefined;
+                if (!storageItem) {
+                    delete creep.memory.storageDestination;
+                    return null;
+                }
                 switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
                     case OK:
-                        creep.memory.storageDestination = undefined;
+                        delete creep.memory.storageDestination;
                         break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(storageItem);
                         break;
                     case ERR_FULL:
-                        creep.memory.storageDestination = undefined;
-                        if (storageItem.memory) storageItem.memory.deliveryIncoming = undefined;
+                        delete creep.memory.storageDestination;
+                        if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
                         creep.findEssentials();
                         break;
                 }
@@ -73,8 +76,8 @@ function terminalWorker(creep) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(terminal, resourceType)) {
                 case OK:
-                    creep.memory.terminalDelivery = undefined;
-                    return creep.memory.terminalWorker = undefined;
+                    delete creep.memory.terminalDelivery;
+                    return delete creep.memory.terminalWorker;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(terminal);
                     creep.memory.terminalWorker = true;
@@ -129,8 +132,8 @@ function terminalWorker(creep) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
-                    creep.memory.terminalWorker = undefined;
-                    creep.memory.terminalCleaning = undefined;
+                    delete creep.memory.terminalWorker;
+                    delete creep.memory.terminalCleaning;
                     return undefined;
                 case ERR_NOT_IN_RANGE:
                     return creep.shibMove(storage);
@@ -138,15 +141,15 @@ function terminalWorker(creep) {
         }
         return true;
     }
-    creep.memory.terminalDelivery = undefined;
-    return creep.memory.terminalWorker = undefined;
+    delete creep.memory.terminalDelivery;
+    return delete creep.memory.terminalWorker;
 }
 
 function boostDelivery(creep) {
     let lab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0];
     let labTech = _.filter(Game.creeps, (c) => c.memory.labTech && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.terminalWorker || creep.memory.nuclearEngineer || (!creep.memory.labTech && (!lab || labTech))) return undefined;
-    if (!lab) return creep.memory.labTech = undefined;
+    if (!lab) return delete creep.memory.labTech;
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     creep.say(ICONS.boost, true);
@@ -166,7 +169,7 @@ function boostDelivery(creep) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(lab, resourceType)) {
                 case OK:
-                    return creep.memory.labTech = undefined;
+                    return delete creep.memory.labTech;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(lab);
                     creep.memory.labTech = true;
@@ -193,20 +196,20 @@ function boostDelivery(creep) {
                 creep.memory.labTech = true;
                 creep.memory.itemStorage = terminal.id;
             } else {
-                creep.memory.labTech = undefined;
-                creep.memory.itemStorage = undefined;
+                delete creep.memory.labTech;
+                delete creep.memory.itemStorage;
             }
         } else {
             switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), lab.memory.neededBoost)) {
                 case OK:
-                    creep.memory.itemStorage = undefined;
+                    delete creep.memory.itemStorage;
                     return true;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
                     creep.memory.labTech = true;
                     return true;
                 case ERR_NOT_ENOUGH_RESOURCES:
-                    creep.memory.itemStorage = undefined;
+                    delete creep.memory.itemStorage;
                     return true;
             }
         }
@@ -238,7 +241,7 @@ function nuclearEngineer(creep) {
             creep.say(ICONS.nuke, true);
             switch (creep.transfer(nuker, RESOURCE_GHODIUM)) {
                 case OK:
-                    creep.memory.nuclearEngineer = undefined;
+                    delete creep.memory.nuclearEngineer;
                     return true;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(nuker);
@@ -254,8 +257,8 @@ function nuclearEngineer(creep) {
                 creep.memory.nuclearEngineer = true;
                 creep.memory.itemStorage = terminal.id;
             } else {
-                creep.memory.nuclearEngineer = undefined;
-                creep.memory.itemStorage = undefined;
+                delete creep.memory.nuclearEngineer;
+                delete creep.memory.itemStorage;
             }
         } else if (creep.memory.itemStorage && creep.memory.nuclearEngineer) {
             creep.say(ICONS.nuke, true);

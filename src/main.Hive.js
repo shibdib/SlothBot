@@ -202,8 +202,8 @@ function roomHud() {
                 {align: 'left', opacity: 0.5}
             );
         } else {
-            room.memory.lastTickProgress = undefined;
-            room.memory.rclProgressArray = undefined;
+            delete room.memory.lastTickProgress;
+            delete room.memory.rclProgressArray;
             new RoomVisual(name).text(
                 ICONS.upgradeController + ' Controller Level: ' + room.controller.level,
                 1,

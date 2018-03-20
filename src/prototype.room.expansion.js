@@ -5,7 +5,7 @@ Room.prototype.claimNewRoom = function () {
     let avoidRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && _.includes(FRIENDLIES, r.controller.owner['username']));
     let worthyRooms = _.filter(Memory.roomCache, (room) => room.claimWorthy && room.name !== this.name && room.sources.length === 2);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
-    this.memory.claimTarget = undefined;
+    delete this.memory.claimTarget;
     if (avoidRooms.length === 0) return;
     if (worthyRooms.length > 0) {
         let possibles = {};
@@ -24,7 +24,7 @@ Room.prototype.claimNewRoom = function () {
             }
         this.memory.claimTarget = _.max(possibles, 'claimValue').name;
         if (this.memory.claimTarget) {
-            Memory.roomCache[this.memory.claimTarget].claimWorthy = undefined;
+            delete Memory.roomCache[this.memory.claimTarget].claimWorthy;
             Memory.lastExpansion = Game.time;
             Game.notify(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name);
             log.i(this.memory.claimTarget + ' - Has been marked for claiming by ' + this.name);

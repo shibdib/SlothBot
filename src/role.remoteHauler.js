@@ -15,8 +15,8 @@ function role(creep) {
     }
     if (_.sum(creep.carry) === creep.carryCapacity) {
         creep.memory.hauling = true;
-        creep.memory.destination = undefined;
-        creep.memory.containerID = undefined;
+        delete creep.memory.destination;
+        delete creep.memory.containerID;
     }
     if (!creep.memory.destination && !creep.memory.hauling) {
         let remotes = shuffle(Game.rooms[creep.memory.overlord].memory.remoteRooms);
@@ -48,7 +48,7 @@ function role(creep) {
                 }
             } else {
                 if (!Game.getObjectById(creep.memory.containerID) || _.sum(Game.getObjectById(creep.memory.containerID).store) === 0) {
-                    return creep.memory.containerID = undefined;
+                    return delete creep.memory.containerID;
                 }
                 let container = Game.getObjectById(creep.memory.containerID);
                 for (const resourceType in container.store) {
@@ -59,7 +59,6 @@ function role(creep) {
             }
         } else {
             if (creep.pos.roomName === creep.memory.overlord) {
-                creep.memory.stuckCounter = undefined;
                 creep.memory.destinationReached = false;
                 let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity * 0.75);
                 if (creep.memory.storageDestination) {
@@ -72,7 +71,7 @@ function role(creep) {
                                 creep.shibMove(storageItem);
                                 break;
                             case ERR_FULL:
-                                creep.memory.storageDestination = undefined;
+                                delete creep.memory.storageDestination;
                                 creep.findStorage();
                                 break;
                         }
@@ -81,13 +80,13 @@ function role(creep) {
                     creep.memory.storageDestination = labs[0].id;
                     switch (creep.transfer(labs[0], RESOURCE_ENERGY)) {
                         case OK:
-                            creep.memory.storageDestination = undefined;
+                            delete creep.memory.storageDestination;
                             break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(labs[0]);
                             break;
                         case ERR_FULL:
-                            creep.memory.storageDestination = undefined;
+                            delete creep.memory.storageDestination;
                             creep.findStorage();
                             break;
                     }
@@ -99,13 +98,13 @@ function role(creep) {
                         creep.memory.storageDestination = controllerContainer.id;
                         switch (creep.transfer(controllerContainer, RESOURCE_ENERGY)) {
                             case OK:
-                                creep.memory.storageDestination = undefined;
+                                delete creep.memory.storageDestination;
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(controllerContainer);
                                 break;
                             case ERR_FULL:
-                                creep.memory.storageDestination = undefined;
+                                delete creep.memory.storageDestination;
                                 creep.findStorage();
                                 break;
                         }
@@ -113,13 +112,13 @@ function role(creep) {
                         creep.memory.storageDestination = terminal.id;
                         switch (creep.transfer(terminal, RESOURCE_ENERGY)) {
                             case OK:
-                                creep.memory.storageDestination = undefined;
+                                delete creep.memory.storageDestination;
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(terminal);
                                 break;
                             case ERR_FULL:
-                                creep.memory.storageDestination = undefined;
+                                delete creep.memory.storageDestination;
                                 creep.findStorage();
                                 break;
                         }
@@ -127,31 +126,24 @@ function role(creep) {
                         creep.memory.storageDestination = storage.id;
                         switch (creep.transfer(storage, RESOURCE_ENERGY)) {
                             case OK:
-                                creep.memory.storageDestination = undefined;
+                                delete creep.memory.storageDestination;
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(storage);
                                 break;
                             case ERR_FULL:
-                                creep.memory.storageDestination = undefined;
+                                delete creep.memory.storageDestination;
                                 creep.findStorage();
                                 break;
                         }
                     }
                 }
             } else {
-                let stuckCounter = creep.memory.stuckCounter || 0;
-                stuckCounter++;
-                if (stuckCounter >= 70) {
-                    creep.moveTo(new RoomPosition(25, 25, creep.memory.overlord));
-                } else {
-                    creep.memory.stuckCounter = stuckCounter;
-                    creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
-                }
+                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
             }
         }
     } else if (creep.memory.destination && !creep.memory.destinationReached) {
-        creep.memory.containerID = undefined;
+        delete creep.memory.containerID;
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }

@@ -115,7 +115,7 @@ function requestBuilders(room) {
     if (spawns.length === 0) {
         room.memory.buildersNeeded = true;
     } else {
-        room.memory.buildersNeeded = undefined;
+        delete room.memory.buildersNeeded;
         let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded && Game.map.findRoute(room.name, r.name).length < 9)[0];
         if (needyRoom) {
             if (room.memory.assistingRoom !== needyRoom.name) {
@@ -123,7 +123,7 @@ function requestBuilders(room) {
                 log.a(room.name + ' is sending builders to support ' + needyRoom.name);
             }
         } else {
-            room.memory.assistingRoom = undefined;
+            delete room.memory.assistingRoom;
         }
     }
 }

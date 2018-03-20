@@ -15,7 +15,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
-    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = undefined;
+    if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
     if (creep.pos.roomName !== creep.memory.destination) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     }
@@ -27,7 +27,7 @@ function role(creep) {
     } else {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
-            if (!source || source.pos.roomName !== creep.pos.roomName) return creep.memory.source = undefined;
+            if (!source || source.pos.roomName !== creep.pos.roomName) return delete creep.memory.source;
             if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
             if (source.energy === 0) {
                 if (lair && creep.pos.getRangeTo(lair) <= 6) return creep.flee(lair);
@@ -68,8 +68,11 @@ function SKdeposit(creep) {
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) return creep.memory.containerID = undefined;
-            creep.memory.containerBuilding = undefined;
+            if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) {
+                delete creep.memory.containerID;
+                return;
+            }
+            delete creep.memory.containerBuilding;
             let otherContainers = creep.room.find(FIND_MY_CONSTRUCTION_SITES, {filter: (c) => c.structureType === STRUCTURE_CONTAINER});
             if (container.hits < container.hitsMax * 0.75 && creep.carry[RESOURCE_ENERGY] > 0) {
                 switch (creep.repair(container)) {

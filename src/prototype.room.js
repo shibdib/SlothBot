@@ -190,17 +190,17 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (this.memory.lastIntelCache > Game.time - 250 && !force) return;
     this.memory.lastIntelCache = Game.time;
     let room = Game.rooms[this.name];
-    let owner = undefined;
-    let reservation = undefined;
-    let reservationTick = undefined;
-    let level = undefined;
-    let hostiles = undefined;
-    let nonCombats = undefined;
-    let sk = undefined;
-    let towers = undefined;
-    let claimValue = undefined;
-    let claimWorthy = undefined;
-    let needsCleaning = undefined;
+    let owner;
+    let reservation;
+    let reservationTick;
+    let level;
+    let hostiles;
+    let nonCombats;
+    let sk;
+    let towers;
+    let claimValue;
+    let claimWorthy;
+    let needsCleaning;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
@@ -330,11 +330,11 @@ Room.prototype.invaderCheck = function () {
         if (invader.length > 1 && invader[0].owner.username !== 'Invader') this.memory.threatLevel = 4;
         return true;
     } else if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
-        this.memory.numberOfHostiles = undefined;
-        this.memory.responseNeeded = undefined;
-        this.memory.alertEmail = undefined;
-        this.memory.requestingSupport = undefined;
-        this.memory.threatLevel = undefined;
+        delete this.memory.numberOfHostiles;
+        delete this.memory.responseNeeded;
+        delete this.memory.alertEmail;
+        delete this.memory.requestingSupport;
+        delete this.memory.threatLevel;
     }
 };
 

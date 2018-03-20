@@ -66,7 +66,7 @@ Creep.prototype.fleeFromHostile = function (hostile) {
 };
 
 Creep.prototype.attackHostile = function (hostile) {
-    this.memory.target = undefined;
+    delete this.memory.target;
     if (this.pos.getRangeTo(hostile) <= 3) this.rangedAttack(hostile);
     let ally = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => c.my || _.includes(FRIENDLIES, c.owner.username)});
     if (this.pos.getRangeTo(ally) <= 3) {
@@ -388,7 +388,7 @@ Creep.prototype.siege = function () {
                     this.heal(this);
                     if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1) return null;
                     this.shibMove(target, {ignoreCreeps: true});
-                    this.memory.siegeTarget = undefined;
+                    delete this.memory.siegeTarget;
                     this.room.visual.text(
                         ICONS.noEntry,
                         target.pos.x,
@@ -466,7 +466,7 @@ Creep.prototype.squadHeal = function () {
 
 Creep.prototype.siegeHeal = function () {
     if (!Game.getObjectById(this.memory.healTarget) || !this.memory.healTarget) {
-        if (!Game.getObjectById(this.memory.healTarget)) this.memory.healTarget = undefined;
+        if (!Game.getObjectById(this.memory.healTarget)) delete this.memory.healTarget;
         let deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
         if (!deconstructor) deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (!deconstructor) return false;

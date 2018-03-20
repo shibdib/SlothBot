@@ -63,7 +63,7 @@ module.exports.loop = function() {
 };
 
 requestBench = function (ticks, notify = false) {
-    Memory._benchmark = undefined;
+    delete Memory._benchmark;
     Memory.reportBench = Game.time + ticks;
     Memory.reportBenchNotify = notify;
     log.a('Benchmark Queued');
@@ -100,9 +100,9 @@ currentStats = function (notify = false) {
 };
 
 resetBench = function () {
-    Memory._benchmark = undefined;
-    Memory.reportBench = undefined;
-    Memory.reportBenchNotify = undefined;
+    delete Memory._benchmark;
+    delete Memory.reportBench;
+    delete Memory.reportBenchNotify;
     log.a('Benchmarks Reset');
 };
 

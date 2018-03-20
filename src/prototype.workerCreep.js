@@ -84,7 +84,7 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
-    this.memory.task = undefined;
+    delete this.memory.task;
     return null;
 };
 
@@ -146,7 +146,7 @@ findRepair = function (level) {
         this.memory.task = 'repair';
         return;
     }
-    this.memory.task = undefined;
+    delete this.memory.task;
 };
 Creep.prototype.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
 
@@ -195,7 +195,7 @@ Creep.prototype.withdrawEnergy = function () {
                 this.memory.energyDestination = null;
             }
         } else {
-            this.memory.energyDestination = undefined;
+            delete this.memory.energyDestination;
         }
     }
 };

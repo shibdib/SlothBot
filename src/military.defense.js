@@ -39,7 +39,7 @@ function controller(room) {
                     log.a(room.name + ' is sending remote responders to ' + needyRoom.name);
                 }
             } else {
-                room.memory.sendingResponse = undefined;
+                delete room.memory.sendingResponse;
             }
         }
     }
@@ -69,7 +69,7 @@ function rampartManager(room, structures, attack = undefined) {
                             }
                         }
                     }
-                    room.memory.rampartState = undefined;
+                    delete room.memory.rampartState;
                 } else {
                     for (let i = 0; i < rampart.length; i++) {
                         if (rampart[i]) {

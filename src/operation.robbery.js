@@ -47,7 +47,7 @@ Creep.prototype.robbery = function () {
             }
         }
     } else {
-        if (_.sum(this.carry) === 0) return this.memory.hauling = undefined;
+        if (_.sum(this.carry) === 0) return delete this.memory.hauling;
         if (this.pos.roomName === this.memory.overlord) {
             if (this.renewalCheck(6)) return;
             if (this.memory.storageDestination) {
@@ -60,7 +60,7 @@ Creep.prototype.robbery = function () {
                             this.shibMove(storageItem);
                             break;
                         case ERR_FULL:
-                            this.memory.storageDestination = undefined;
+                            delete this.memory.storageDestination;
                             break;
                     }
                 }
@@ -72,14 +72,14 @@ Creep.prototype.robbery = function () {
                     for (const resourceType in this.carry) {
                         switch (this.transfer(storage, resourceType)) {
                             case OK:
-                                this.memory.storageDestination = undefined;
-                                this.memory.destinationReached = false;
+                                delete this.memory.storageDestination;
+                                delete this.memory.destinationReached;
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 this.shibMove(storage);
                                 break;
                             case ERR_FULL:
-                                this.memory.storageDestination = undefined;
+                                delete this.memory.storageDestination;
                                 this.findStorage();
                                 break;
                         }
@@ -89,14 +89,14 @@ Creep.prototype.robbery = function () {
                     for (const resourceType in this.carry) {
                         switch (this.transfer(terminal, resourceType)) {
                             case OK:
-                                this.memory.storageDestination = undefined;
-                                this.memory.destinationReached = false;
+                                delete this.memory.storageDestination;
+                                delete this.memory.destinationReached;
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 this.shibMove(terminal);
                                 break;
                             case ERR_FULL:
-                                this.memory.storageDestination = undefined;
+                                delete this.memory.storageDestination;
                                 this.findStorage();
                                 break;
                         }

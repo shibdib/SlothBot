@@ -39,7 +39,7 @@ function role(creep) {
                     creep.shibMove(source);
                 }
             } else {
-                creep.memory.source = undefined;
+                delete creep.memory.source;
             }
         } else {
             creep.findSource();

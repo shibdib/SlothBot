@@ -10,7 +10,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
-        creep.memory.destinationReached = undefined;
+        delete creep.memory.destinationReached;
     } else if (creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) {
         creep.memory.destinationReached = true;
     }

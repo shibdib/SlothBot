@@ -261,7 +261,7 @@ module.exports.workerCreepQueue = function (room) {
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
-        room.memory.creepBuildQueue = undefined;
+        delete room.memory.creepBuildQueue;
         queueCreep(room, -1, {
             role: 'stationaryHarvester',
             reboot: true
@@ -298,7 +298,7 @@ module.exports.workerCreepQueue = function (room) {
     //Haulers
     let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
     if (hauler.length === 0) {
-        room.memory.creepBuildQueue = undefined;
+        delete room.memory.creepBuildQueue;
         queueCreep(room, -1, {
             role: 'hauler',
             reboot: true

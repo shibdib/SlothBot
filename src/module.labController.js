@@ -95,7 +95,7 @@ function manageActiveLabs() {
                 let outputLab = activeLabs[key];
                 if (!outputLab) {
                     for (let id in hub) {
-                        hub[id].memory = undefined;
+                        delete hub[id].memory;
                     }
                     continue;
                 }
@@ -119,9 +119,9 @@ function manageActiveLabs() {
                 if (rangeOne > 3 || rangeTwo > 3 || !rangeOne || !rangeTwo) {
                     log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
                     for (let id in creators) {
-                        creators[id].memory = undefined;
+                        delete creators[id].memory;
                     }
-                    outputLab.memory = undefined;
+                    delete outputLab.memory;
                     continue;
                 }
                 // Enough created
@@ -129,9 +129,9 @@ function manageActiveLabs() {
                 if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
                     log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                     for (let id in creators) {
-                        creators[id].memory = undefined;
+                        delete creators[id].memory;
                     }
-                    outputLab.memory = undefined;
+                    delete outputLab.memory;
                     continue;
                 }
                 // Input shortage
@@ -141,9 +141,9 @@ function manageActiveLabs() {
                     if (total < 100) {
                         log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                         for (let id in creators) {
-                            creators[id].memory = undefined;
+                            delete creators[id].memory;
                         }
-                        outputLab.memory = undefined;
+                        delete outputLab.memory;
                         continue active;
                     }
                 }

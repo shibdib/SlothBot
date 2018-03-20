@@ -29,9 +29,9 @@ function role(creep) {
             let supportRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.assistingRoom === creep.room.name || r.memory.claimTarget === creep.room.name);
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
             for (let key in supportRoom) {
-                supportRoom[key].memory.activeClaim = undefined;
-                supportRoom[key].memory.assistingRoom = undefined;
-                supportRoom[key].memory.claimTarget = undefined;
+                delete supportRoom[key].memory.activeClaim;
+                delete supportRoom[key].memory.assistingRoom;
+                delete supportRoom[key].memory.claimTarget;
             }
         }
         creep.memory.role = 'worker';
@@ -69,7 +69,7 @@ function role(creep) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
             } else if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
                 creep.memory.upgrade = true;
-                if (creep.room.controller.ticksToDowngrade >= 2000) creep.memory.upgrade = undefined;
+                if (creep.room.controller.ticksToDowngrade >= 2000) delete creep.memory.upgrade;
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(creep.room.controller);
                 }

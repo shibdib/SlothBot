@@ -74,7 +74,7 @@ RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator
 
 RoomObject.prototype.clearTarget = function (prop = 'tid') {
     // delete this.memory[prop];
-    this.memory[prop] = undefined;
+    delete this.memory[prop];
 };
 
 Creep.prototype.getRepairTarget = function () {

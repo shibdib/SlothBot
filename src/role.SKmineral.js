@@ -15,7 +15,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
-    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = undefined;
+    if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
     if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     }
@@ -29,7 +29,7 @@ function role(creep) {
         delete creep.memory.hauling;
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
-            if (!source || source.pos.roomName !== creep.pos.roomName) return creep.memory.source = undefined;
+            if (!source || source.pos.roomName !== creep.pos.roomName) return delete creep.memory.source;
             if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
             if (source.energy === 0) {
                 if (lair && creep.pos.getRangeTo(lair) <= 6) return creep.flee(lair);
@@ -78,7 +78,7 @@ function SKdeposit(creep) {
                         creep.shibMove(storageItem);
                         break;
                     case ERR_FULL:
-                        creep.memory.storageDestination = undefined;
+                        delete creep.memory.storageDestination;
                         creep.findStorage();
                         break;
                 }
@@ -91,14 +91,14 @@ function SKdeposit(creep) {
                 for (const resourceType in this.carry) {
                     switch (this.transfer(terminal, resourceType)) {
                         case OK:
-                            this.memory.storageDestination = undefined;
-                            this.memory.destinationReached = false;
+                            delete this.memory.storageDestination;
+                            delete this.memory.destinationReached;
                             break;
                         case ERR_NOT_IN_RANGE:
                             this.shibMove(terminal);
                             break;
                         case ERR_FULL:
-                            this.memory.storageDestination = undefined;
+                            delete this.memory.storageDestination;
                             this.findStorage();
                             break;
                     }
@@ -108,14 +108,14 @@ function SKdeposit(creep) {
                 for (const resourceType in this.carry) {
                     switch (this.transfer(storage, resourceType)) {
                         case OK:
-                            this.memory.storageDestination = undefined;
-                            this.memory.destinationReached = false;
+                            delete this.memory.storageDestination;
+                            delete this.memory.destinationReached;
                             break;
                         case ERR_NOT_IN_RANGE:
                             this.shibMove(storage);
                             break;
                         case ERR_FULL:
-                            this.memory.storageDestination = undefined;
+                            delete this.memory.storageDestination;
                             this.findStorage();
                             break;
                     }

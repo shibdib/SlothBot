@@ -62,6 +62,6 @@ Creep.prototype.scoutRoom = function () {
         };
         Memory.targetRooms = cache;
     }
-    this.memory.targetRoom = undefined;
+    delete this.memory.targetRoom;
     this.memory.role = 'explorer';
 };

@@ -8,7 +8,7 @@ Object.defineProperty(Creep.prototype, "idle", {
     get: function () {
         if (this.memory.idle === undefined) return 0;
         if (this.memory.idle <= Game.time) {
-            this.idle = undefined;
+            delete this.idle;
             return 0;
         }
         return this.memory.idle;
@@ -33,7 +33,7 @@ Creep.prototype.idleFor = function (ticks = 0) {
         this.idle = Game.time + ticks;
     }
     else {
-        this.idle = undefined;
+        delete this.idle;
     }
 };
 
@@ -94,10 +94,9 @@ Creep.prototype.borderCheck = function () {
 Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000, force = false) {
     if (Game.rooms[this.memory.overlord].controller.level >= level && (this.ticksToLive < cutoff || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable >= 300) {
         if (this.ticksToLive >= target) {
-            this.memory.boostAttempt = undefined;
-            this.memory.boosted = undefined;
-            this.memory.renewingTarget = undefined;
-            return this.memory.renewing = undefined;
+            delete this.memory.boostAttempt;
+            delete this.memory.renewingTarget;
+            return delete this.memory.renewing;
         }
         let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && (!s.spawning || force) && (!_.filter(this.room.creeps, (c) => c.memory && c.memory.renewingTarget === s.id && c.id !== this.id)[0] || force))[0];
         if (spawn) {
@@ -116,7 +115,7 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
             }
         }
     }
-    this.memory.renewing = undefined;
+    delete this.memory.renewing;
     return false;
 };
 
@@ -247,9 +246,9 @@ Creep.prototype.tryToBoost = function (boosts) {
         this.memory.requestedBoosts = available;
     } else {
         if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length || this.ticksToLive < 750) {
-            this.memory.requestedBoosts = undefined;
-            this.memory.boostLab = undefined;
-            this.memory.boostNeeded = undefined;
+            delete this.memory.requestedBoosts;
+            delete this.memory.boostLab;
+            delete this.memory.boostNeeded;
             return this.memory.boostAttempt = true;
         }
         for (let key in this.memory.requestedBoosts) {
@@ -258,11 +257,11 @@ Creep.prototype.tryToBoost = function (boosts) {
                 this.memory.requestedBoosts.shift();
                 let lab = Game.getObjectById(this.memory.boostLab);
                 if (lab) {
-                    lab.memory.neededBoost = undefined;
-                    lab.memory.active = undefined;
+                    delete lab.memory.neededBoost;
+                    delete lab.memory.active;
                 }
-                this.memory.boostLab = undefined;
-                this.memory.boostNeeded = undefined;
+                delete this.memory.boostLab;
+                delete this.memory.boostNeeded;
                 continue;
             }
             if (!this.memory.boostLab) {
@@ -278,9 +277,9 @@ Creep.prototype.tryToBoost = function (boosts) {
                         availableLab.memory.neededBoost = this.memory.requestedBoosts[key];
                         availableLab.memory.active = true;
                     } else {
-                        this.memory.requestedBoosts = undefined;
-                        this.memory.boostLab = undefined;
-                        this.memory.boostNeeded = undefined;
+                        delete this.memory.requestedBoosts;
+                        delete this.memory.boostLab;
+                        delete this.memory.boostNeeded;
                         return this.memory.boostAttempt = true;
                     }
                 }
@@ -290,10 +289,10 @@ Creep.prototype.tryToBoost = function (boosts) {
                 switch (lab.boostCreep(this)) {
                     case OK:
                         this.memory.requestedBoosts.shift();
-                        lab.memory.neededBoost = undefined;
-                        lab.memory.active = undefined;
-                        this.memory.boostLab = undefined;
-                        this.memory.boostNeeded = undefined;
+                        delete lab.memory.neededBoost;
+                        delete lab.memory.active;
+                        delete this.memory.boostLab;
+                        delete this.memory.boostNeeded;
                         this.say(ICONS.boost);
                         break;
                     case ERR_NOT_IN_RANGE:

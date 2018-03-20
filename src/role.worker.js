@@ -17,8 +17,8 @@ function role(creep) {
     if (creep.carry.energy === 0) creep.memory.working = null;
     if (creep.isFull) {
         creep.memory.working = true;
-        creep.memory.deliveryRequestTime = undefined;
-        creep.memory.deliveryIncoming = undefined;
+        delete creep.memory.deliveryRequestTime;
+        delete creep.memory.deliveryIncoming;
     }
     if (!creep.getSafe()) {
         if (creep.memory.working === true) {
@@ -72,7 +72,7 @@ function deliveryManagement(creep) {
     if (!creep.findEnergy(6)) {
         if (creep.memory.deliveryRequestTime) {
             if (creep.memory.deliveryRequestTime < Game.time - 100) {
-                creep.memory.deliveryRequestTime = undefined;
+                delete creep.memory.deliveryRequestTime;
                 return true;
             }
             if (creep.memory.deliveryRequestTime < Game.time - 15) {
