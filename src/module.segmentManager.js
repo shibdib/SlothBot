@@ -39,7 +39,6 @@ function segmentManager() {
     };
     if (JSON.stringify(mainRaw) !== RawMemory.segments[10]) RawMemory.segments[10] = JSON.stringify(mainRaw);
     if (JSON.stringify(roomNeeds) !== RawMemory.segments[50]) RawMemory.segments[50] = JSON.stringify(roomNeeds);
-    RawMemory.segments[1] = JSON.stringify(doNotAggress);
     RawMemory.segments[2] = JSON.stringify(doNotAggressArray);
     RawMemory.setPublicSegments([1, 2, 10, 50]);
     RawMemory.setDefaultPublicSegment(1);
