@@ -21,6 +21,7 @@ function role(creep) {
     }
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
+        if (creep.memory.linkID && creep.memory.containerID) pickupDropped(creep);
     }
     if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
         creep.memory.hauling = true;
@@ -132,3 +133,11 @@ function harvestDepositLink(creep) {
         }
     }
 };
+
+function pickupDropped(creep) {
+    let link = Game.getObjectById(creep.memory.linkID);
+    let container = Game.getObjectById(creep.memory.containerID);
+    if (link.energy < 700 && container.energy >= 50) {
+        creep.withdraw(container, RESOURCE_ENERGY);
+    }
+}
