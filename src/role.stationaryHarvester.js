@@ -137,7 +137,7 @@ function harvestDepositLink(creep) {
 function pickupDropped(creep) {
     let link = Game.getObjectById(creep.memory.linkID);
     let container = Game.getObjectById(creep.memory.containerID);
-    if (link.energy < 700 && container.energy >= 50) {
+    if (link.energy < 700 && container.store[RESOURCE_ENERGY] >= 50) {
         return creep.withdraw(container, RESOURCE_ENERGY);
     }
 }
