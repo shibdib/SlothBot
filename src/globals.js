@@ -12,6 +12,8 @@ let globals = function () {
 
     global.FRIENDLIES = RawMemory.segments[2];
 
+    global.MY_USERNAME = Game.spawns[0].owner.username;
+
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
         RESOURCE_KEANIUM, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_OXYGEN, RESOURCE_HYDROGEN, RESOURCE_CATALYST];

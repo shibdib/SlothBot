@@ -28,7 +28,7 @@ Creep.prototype.cleanRoom = function () {
         }
     }
     if (!target) {
-        switch (this.signController(this.room.controller, 'Room cleaned courtesy of #overlords.')) {
+        switch (this.signController(this.room.controller, 'Room cleaned courtesy of #Overlord-Bot.')) {
             case OK:
                 if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
                 if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];

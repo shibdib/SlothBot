@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.overlord].find(FIND_MY_SPAWNS)[0]);
     creep.borderCheck();
-    let signs = ["Reserved Territory of Overlords - #overlords on Slack", "Overlords Frontier - Visit at your own risk.", "Join Overlords! #overlords", "Overlords Reserved Room"];
+    let signs = ["Reserved Territory of an #Overlord-Bot", "#Overlord-Bot Frontier - Visit at your own risk.", "#Overlord-Bot Exclusion Zone", "#Overlord-Bot Reserved Room"];
     //Invader detection
     creep.room.invaderCheck();
     let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});

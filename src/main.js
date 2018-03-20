@@ -3,12 +3,13 @@
 require("require");
 let profiler = require('screeps-profiler');
 let _ = require('lodash');
-let screepsPlus = require('screepsplus');
 let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
 let shib = require("shibBench");
-
+console.log('--------------------------------------------------------');
+console.log('Overlord Bot By: Shibdib of the alliance #overlords');
+console.log('--------------------------------------------------------');
 //profiler.enable();
 //global.lastMemoryTick = undefined;
 

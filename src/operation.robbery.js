@@ -6,7 +6,7 @@ Creep.prototype.robbery = function () {
     let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     if (this.room.name === this.memory.targetRoom && ((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0))) {
-        switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #overlords')) {
+        switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #Overlord-Bot')) {
             case OK:
                 break;
             case ERR_NOT_IN_RANGE:

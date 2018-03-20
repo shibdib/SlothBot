@@ -16,8 +16,7 @@ function role(creep) {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
         if (creep.room.controller) {
             if (!creep.memory.signed) {
-                let signs = ["Territory of Overlords - #overlords on Slack", "Overlords - Visit at your own risk.", "Join Overlords! #overlords"];
-                switch (creep.signController(creep.room.controller, _.sample(signs))) {
+                switch (creep.signController(creep.room.controller, "#Overlord-Bot Hive")) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(creep.room.controller);
                         break;

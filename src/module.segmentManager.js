@@ -2,33 +2,11 @@ const profiler = require('screeps-profiler');
 
 function segmentManager() {
 //Alliance List Management
-    let doNotAggress = [
-        {"username": "Shibdib", "status": "alliance"},
-        {"username": "PostCrafter", "status": "alliance"},
-        {"username": "Rising", "status": "alliance"},
-        {"username": "wages123", "status": "alliance"},
-        {"username": "SpaceRedleg", "status": "alliance"},
-        {"username": "Donat", "status": "alliance"},
-        {"username": "KageJ", "status": "alliance"},
-        {"username": "BrinkDaDrink", "status": "alliance"},
-        {"username": "Tyac", "status": "alliance"},
-        {"username": "herghost", "status": "alliance"},
-        {"username": "kirk", "status": "alliance"},
-        {"username": "arcath", "status": "alliance"},
-        {"username": "Smokeman", "status": "alliance"},
-        {"username": "Pav234", "status": "alliance"},
-        {"username": "Picoplankton", "status": "alliance"},
-        {"username": "Troedfach", "status": "alliance"},
-        {"username": "KOR_Solidarity", "status": "alliance"},
-        {"username": "starking1", "status": "alliance"},
-        {"username": "droben", "status": "nap"},
-        {"username": "Mashee", "status": "nap"}
-    ];
     let doNotAggressArray;
     if (!!~['shard0','shard1','shard2'].indexOf(Game.shard.name)) {
         doNotAggressArray = global.LOANlist;
     } else {
-        doNotAggressArray = ['Shibdib', 'shibdib'];
+        doNotAggressArray = [MY_USERNAME];
     }
     let mainRaw = {
         "api": {
