@@ -30,7 +30,7 @@ function linkControl(room) {
                     continue;
                 }
             }
-            if (storageLink && storageLink.energy < 250 && energyInRoom < ENERGY_AMOUNT * 1.5) {
+            if (storageLink && storageLink.energy < 700 && energyInRoom < ENERGY_AMOUNT) {
                 link.transferEnergy(storageLink);
             } else if (controllerLink && controllerLink.energy < 700) {
                 link.transferEnergy(controllerLink);
