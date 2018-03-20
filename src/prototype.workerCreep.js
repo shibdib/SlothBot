@@ -255,7 +255,6 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     }
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
     if (storageLink && storageLink.energy > 0) {
         let linkDistWeighted;
         const object = storageLink;
