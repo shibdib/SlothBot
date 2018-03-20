@@ -86,19 +86,11 @@ function manageBoostProduction(room) {
 }
 
 function manageActiveLabs() {
-    let activeLabs = _.filter(Game.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && !s.memory.itemNeeded && !s.memory.neededBoost && !s.cooldown);
+    let activeLabs = _.filter(Game.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && !s.memory.itemNeeded && !s.memory.neededBoost);
     if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
                 let outputLab = activeLabs[key];
-                let hub = _.filter(outputLab.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === outputLab.memory.creating);
-                let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
-                if (!outputLab) {
-                    for (let id in hub) {
-                        hub[id].memory = undefined;
-                    }
-                    continue;
-                }
                 if (outputLab.memory.creating) {
                     outputLab.room.visual.text(
                         ICONS.reaction + ' ' + outputLab.memory.creating,
@@ -106,6 +98,15 @@ function manageActiveLabs() {
                         outputLab.pos.y,
                         {align: 'left', opacity: 0.8}
                     );
+                }
+                if (outputLab.cooldown) continue;
+                let hub = _.filter(outputLab.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === outputLab.memory.creating);
+                let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
+                if (!outputLab) {
+                    for (let id in hub) {
+                        hub[id].memory = undefined;
+                    }
+                    continue;
                 }
                 //Check for range issues
                 let rangeOne;
