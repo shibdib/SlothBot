@@ -117,7 +117,7 @@ function manageActiveLabs() {
                 if (creatorOne) rangeOne = creatorOne.pos.getRangeTo(outputLab);
                 if (creatorTwo) rangeTwo = creatorTwo.pos.getRangeTo(outputLab);
                 if (rangeOne > 3 || rangeTwo > 3 || !rangeOne || !rangeTwo) {
-                    log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
+                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
                     for (let id in creators) {
                         creators[id].memory = undefined;
                     }
@@ -128,7 +128,7 @@ function manageActiveLabs() {
                 // Enough created
                 let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
                 if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
-                    log.a(room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
+                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                     for (let id in creators) {
                         creators[id].memory = undefined;
                     }
@@ -140,7 +140,7 @@ function manageActiveLabs() {
                     let lab = Game.getObjectById(creators[id]);
                     let total = getBoostAmount(lab.room, lab.memory.itemNeeded);
                     if (total < 100) {
-                        log.a(room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
+                        log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                         for (let id in creators) {
                             creators[id].memory = undefined;
                         }
