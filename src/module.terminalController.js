@@ -396,39 +396,39 @@ function orderCleanup(myOrders) {
         if (myOrders[key].type === ORDER_BUY) {
             if (Game.market.credits < 50) {
                 if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                    log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " due to low credits");
+                    return log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " due to low credits");
                 }
             }
             if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
                 if (myOrders[key].remainingAmount > tradeAmount) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                        log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + tradeAmount);
+                        return log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + tradeAmount);
                     }
                 }
             } else {
                 if (myOrders[key].remainingAmount > energyAmount) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                        log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + energyAmount);
+                        return log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + energyAmount);
                     }
                 }
             }
             if (myOrders[key].amount === 0) {
                 if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                    log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " - Order Fulfilled.");
+                    return log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " - Order Fulfilled.");
                 }
             }
         } else {
             if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
                 if (myOrders[key].amount < 250) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                        log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " - Not enough resources remaining in terminal.");
+                        return log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " - Not enough resources remaining in terminal.");
                     }
                 }
             }
         }
         if (!Game.rooms[myOrders[key].roomName]) {
             if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we no longer own this room");
+                return log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we no longer own this room");
             }
         }
     }
