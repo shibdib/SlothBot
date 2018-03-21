@@ -22,7 +22,7 @@ function role(creep) {
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
-        if (Game.time % 15 === 0 || creep.memory.labTech || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (terminalWorker(creep) || boostDelivery(creep) || nuclearEngineer(creep)) return null;
+        if (Game.time % 15 === 0 || creep.memory.labTech || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (boostDelivery(creep) || nuclearEngineer(creep) || terminalWorker(creep)) return null;
         if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
             let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
             for (let resourceType in creep.carry) {

@@ -301,8 +301,10 @@ module.exports.workerCreepQueue = function (room) {
         return;
     }
     if (!_.includes(queue, 'hauler')) {
+        let amount = 2;
+        if (level >= 7) amount = 3;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-        if (hauler.length < 2) {
+        if (hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {
                 role: 'hauler'
             })

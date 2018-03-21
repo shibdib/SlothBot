@@ -64,6 +64,7 @@ function utilityDeposit(creep) {
             for (const resourceType in creep.carry) {
                 switch (creep.transfer(storageItem, resourceType)) {
                     case OK:
+                        delete creep.memory.storageDestination;
                         break;
                     case ERR_NOT_IN_RANGE:
                         let adjacentStructure = creep.pos.findInRange(FIND_STRUCTURES, 1);
@@ -78,21 +79,39 @@ function utilityDeposit(creep) {
                 }
             }
         } else {
+            let emptyLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity)[0];
             let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
             let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-            if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70 && storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 && terminal.store[RESOURCE_ENERGY] <= 25000) {
+            if (emptyLab) {
+                creep.memory.storageDestination = emptyLab.id;
+                for (const resourceType in this.carry) {
+                    switch (this.transfer(emptyLab, resourceType)) {
+                        case OK:
+                            delete creep.memory.storageDestination;
+                            delete creep.memory.destinationReached;
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            this.shibMove(emptyLab);
+                            break;
+                        case ERR_FULL:
+                            delete creep.memory.storageDestination;
+                            this.findStorage();
+                            break;
+                    }
+                }
+            } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70 && storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 && terminal.store[RESOURCE_ENERGY] <= 25000) {
                 creep.memory.storageDestination = terminal.id;
                 for (const resourceType in this.carry) {
                     switch (this.transfer(terminal, resourceType)) {
                         case OK:
-                            delete this.memory.storageDestination;
-                            delete this.memory.destinationReached;
+                            delete creep.memory.storageDestination;
+                            delete creep.memory.destinationReached;
                             break;
                         case ERR_NOT_IN_RANGE:
                             this.shibMove(terminal);
                             break;
                         case ERR_FULL:
-                            delete this.memory.storageDestination;
+                            delete creep.memory.storageDestination;
                             this.findStorage();
                             break;
                     }
@@ -102,14 +121,14 @@ function utilityDeposit(creep) {
                 for (const resourceType in this.carry) {
                     switch (this.transfer(storage, resourceType)) {
                         case OK:
-                            delete this.memory.storageDestination;
-                            delete this.memory.destinationReached;
+                            delete creep.memory.storageDestination;
+                            delete creep.memory.destinationReached;
                             break;
                         case ERR_NOT_IN_RANGE:
                             this.shibMove(storage);
                             break;
                         case ERR_FULL:
-                            delete this.memory.storageDestination;
+                            delete creep.memory.storageDestination;
                             this.findStorage();
                             break;
                     }
