@@ -124,6 +124,10 @@ function manageActiveLabs(room) {
                     outputLab.memory = undefined;
                     continue;
                 }
+                //Clean bad boosting
+                if (outputLab.memory.neededBoost && outputLab.memory.neededBoost !== outputLab.memory.creating) delete outputLab.memory.neededBoost;
+                if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) delete creatorOne.memory.neededBoost;
+                if (creatorTwo.memory.neededBoost && creatorTwo.memory.neededBoost !== creatorTwo.memory.itemNeeded) delete creatorTwo.memory.neededBoost;
                 if (outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
                 // Enough created
                 let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
