@@ -54,8 +54,6 @@ function role(creep) {
         } else {
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
-            } else if (deliveryManagement(creep)) {
-                creep.say(ICONS.wait1, true);
             } else {
                 creep.findEnergy();
                 if (!creep.memory.energyDestination) {

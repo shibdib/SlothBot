@@ -86,7 +86,7 @@ function manageBoostProduction(room) {
 }
 
 function manageActiveLabs(room) {
-    let activeLabs = _.filter(room.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && !s.memory.itemNeeded && s.memory.creating);
+    let activeLabs = _.filter(room.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);
     if (activeLabs[0]) {
         active:
             for (let key in activeLabs) {
