@@ -150,6 +150,12 @@ function boostDelivery(creep) {
     let labTech = _.filter(Game.creeps, (c) => c.memory.labTech && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.terminalWorker || creep.memory.nuclearEngineer || (!creep.memory.labTech && (!lab || labTech))) return undefined;
     if (!lab) return delete creep.memory.labTech;
+    //Make sure creep needing boost exists
+    let boostCreep = _.filter(creep.room.creeps, (c) => c.memory && c.memory.boostLab === lab.id)[0];
+    if (!boostCreep) {
+        delete lab.memory;
+        return delete creep.memory.labTech
+    }
     let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
     let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
     creep.say(ICONS.boost, true);
