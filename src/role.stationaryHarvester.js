@@ -37,8 +37,8 @@ function role(creep) {
             return null;
         }
         depositEnergy(creep);
-    } else if (creep.memory.assignedSource) {
-        source = Game.getObjectById(creep.memory.assignedSource);
+    } else if (creep.memory.source) {
+        source = Game.getObjectById(creep.memory.source);
         if (source.energy === 0) {
             creep.idleFor(source.ticksToRegeneration + 1)
         } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
@@ -54,7 +54,6 @@ function role(creep) {
         }
     } else {
         creep.findSource();
-        creep.memory.assignedSource = creep.memory.source;
     }
 }
 module.exports.role = profiler.registerFN(role, 'harvesterRole');
