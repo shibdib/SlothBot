@@ -249,6 +249,10 @@ Creep.prototype.tryToBoost = function (boosts) {
             delete this.memory.requestedBoosts;
             delete this.memory.boostLab;
             delete this.memory.boostNeeded;
+            let lab = Game.getObjectById(this.memory.boostLab);
+            if (lab) {
+                delete lab.memory;
+            }
             return this.memory.boostAttempt = true;
         }
         for (let key in this.memory.requestedBoosts) {
@@ -257,8 +261,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 this.memory.requestedBoosts.shift();
                 let lab = Game.getObjectById(this.memory.boostLab);
                 if (lab) {
-                    delete lab.memory.neededBoost;
-                    delete lab.memory.active;
+                    delete lab.memory;
                 }
                 delete this.memory.boostLab;
                 delete this.memory.boostNeeded;
@@ -280,6 +283,10 @@ Creep.prototype.tryToBoost = function (boosts) {
                         delete this.memory.requestedBoosts;
                         delete this.memory.boostLab;
                         delete this.memory.boostNeeded;
+                        let lab = Game.getObjectById(this.memory.boostLab);
+                        if (lab) {
+                            delete lab.memory;
+                        }
                         return this.memory.boostAttempt = true;
                     }
                 }
@@ -289,7 +296,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 switch (lab.boostCreep(this)) {
                     case OK:
                         this.memory.requestedBoosts.shift();
-                        delete lab.memory.neededBoost;
+                        delete lab.memory;
                         delete this.memory.boostLab;
                         delete this.memory.boostNeeded;
                         this.say(ICONS.boost);
