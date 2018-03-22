@@ -386,6 +386,9 @@ module.exports.remoteCreepQueue = function (room) {
     //Remotes
     if (room.memory.remoteRooms && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         for (let keys in room.memory.remoteRooms) {
+            let range = 2;
+            if (level === 8) range = 3;
+            if (Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length >= range || checkIfSK(room.memory.remoteRooms[keys])) continue;
             if (!_.includes(queue, 'reserver') && level >= 7) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if ((reserver.length < 1 || (reserver[0].ticksToLive < 100 && reserver.length < 2)) && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires || Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires <= Game.time + 250) && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.noRemote)) {
@@ -395,7 +398,6 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length >= 2 || checkIfSK(room.memory.remoteRooms[keys])) continue;
             if (!_.includes(queue, 'remoteUtility')) {
                 let sourceCount = 1;
                 let remoteUtility = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteUtility');
