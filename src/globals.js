@@ -4,9 +4,7 @@ let globals = function () {
 
     global.log = new Log();
 
-    global.HOSTILES = [
-        'Shylo132',
-    ];
+    global.HOSTILES = [];
 
     global.ATTACK_LOCALS = false;
 
