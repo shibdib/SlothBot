@@ -20,6 +20,7 @@ function labManager() {
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && terminal && room.memory.reactionRoom && Game.time % 25 === 0) manageBoostProduction(room);
         if (lab && terminal && room.memory.reactionRoom && Game.time % 3 === 0) manageActiveLabs(room);
+        if (lab && terminal && Game.time % 15 === 0) cleanBoostLabs(room);
     }
 }
 
@@ -174,4 +175,14 @@ function getBoostAmount(room, boost) {
         }
     });
     return boostInRoomCreeps + boostInRoomStructures;
+}
+
+function cleanBoostLabs(room) {
+    let boostLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.neededBoost);
+    for (let key in boostLabs) {
+        let boostLab = boostLabs[key];
+        if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 100 < Game.time)) {
+            boostLab.memory = undefined;
+        }
+    }
 }

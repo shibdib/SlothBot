@@ -246,12 +246,12 @@ Creep.prototype.tryToBoost = function (boosts) {
         this.memory.requestedBoosts = available;
     } else {
         if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length || this.ticksToLive < 750) {
-            delete this.memory.requestedBoosts;
-            delete this.memory.boostLab;
-            delete this.memory.boostNeeded;
+            this.memory.requestedBoosts = undefined;
+            this.memory.boostLab = undefined;
+            this.memory.boostNeeded = undefined;
             let lab = Game.getObjectById(this.memory.boostLab);
             if (lab) {
-                delete lab.memory;
+                lab.memory = undefined;
             }
             return this.memory.boostAttempt = true;
         }
@@ -261,10 +261,10 @@ Creep.prototype.tryToBoost = function (boosts) {
                 this.memory.requestedBoosts.shift();
                 let lab = Game.getObjectById(this.memory.boostLab);
                 if (lab) {
-                    delete lab.memory;
+                    lab.memory = undefined;
                 }
-                delete this.memory.boostLab;
-                delete this.memory.boostNeeded;
+                this.memory.boostLab = undefined;
+                this.memory.boostNeeded = undefined;
                 continue;
             }
             if (!this.memory.boostLab) {
@@ -273,32 +273,41 @@ Creep.prototype.tryToBoost = function (boosts) {
                     this.memory.boostLab = filledLab.id;
                     filledLab.memory.neededBoost = this.memory.requestedBoosts[key];
                     filledLab.memory.active = true;
+                    filledLab.memory.requested = Game.time;
                 } else {
                     let availableLab = shuffle(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.energy > 0))[0];
                     if (availableLab) {
                         this.memory.boostLab = availableLab.id;
                         availableLab.memory.neededBoost = this.memory.requestedBoosts[key];
                         availableLab.memory.active = true;
+                        availableLab.memory.requested = Game.time;
                     } else {
-                        delete this.memory.requestedBoosts;
-                        delete this.memory.boostLab;
-                        delete this.memory.boostNeeded;
+                        this.memory.requestedBoosts = undefined;
+                        this.memory.boostLab = undefined;
+                        this.memory.boostNeeded = undefined;
                         let lab = Game.getObjectById(this.memory.boostLab);
                         if (lab) {
-                            delete lab.memory;
+                            lab.memory = undefined;
                         }
                         return this.memory.boostAttempt = true;
                     }
                 }
             }
             let lab = Game.getObjectById(this.memory.boostLab);
+            if (!lab.memory || !lab.memory.neededBoost) {
+                this.memory.requestedBoosts.shift();
+                lab.memory = undefined;
+                this.memory.boostLab = undefined;
+                this.memory.boostNeeded = undefined;
+                return;
+            }
             if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && lab.mineralAmount >= this.memory.boostNeeded) {
                 switch (lab.boostCreep(this)) {
                     case OK:
                         this.memory.requestedBoosts.shift();
-                        delete lab.memory;
-                        delete this.memory.boostLab;
-                        delete this.memory.boostNeeded;
+                        lab.memory = undefined;
+                        this.memory.boostLab = undefined;
+                        this.memory.boostNeeded = undefined;
                         this.say(ICONS.boost);
                         break;
                     case ERR_NOT_IN_RANGE:

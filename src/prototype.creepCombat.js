@@ -288,73 +288,25 @@ Creep.prototype.siege = function () {
         let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
         if (!target || target === null) {
-            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
-            if (target && PathFinder.search(this.pos, target.pos,
-                    {
-                        roomCallback: function (roomName) {
-                            let room = Game.rooms[roomName];
-                            if (!room) return;
-                            let costs = new PathFinder.CostMatrix;
-                            room.find(FIND_CREEPS).forEach(function (creep) {
-                                costs.set(creep.pos.x, creep.pos.y, 0);
-                            });
-                            return costs;
-                        },
-                    }).incomplete) target = undefined;
+            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
             if (target) {
                 this.memory.siegeTarget = target.id;
             }
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_SPAWN)});
-            if (target && PathFinder.search(this.pos, target.pos,
-                    {
-                        roomCallback: function (roomName) {
-                            let room = Game.rooms[roomName];
-                            if (!room) return;
-                            let costs = new PathFinder.CostMatrix;
-                            room.find(FIND_CREEPS).forEach(function (creep) {
-                                costs.set(creep.pos.x, creep.pos.y, 0);
-                            });
-                            return costs;
-                        },
-                    }).incomplete) target = undefined;
+            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_SPAWN)});
             if (target) {
                 this.memory.siegeTarget = target.id;
             }
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION)});
-            if (target && PathFinder.search(this.pos, target.pos,
-                    {
-                        roomCallback: function (roomName) {
-                            let room = Game.rooms[roomName];
-                            if (!room) return;
-                            let costs = new PathFinder.CostMatrix;
-                            room.find(FIND_CREEPS).forEach(function (creep) {
-                                costs.set(creep.pos.x, creep.pos.y, 0);
-                            });
-                            return costs;
-                        },
-                    }).incomplete) target = undefined;
+            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION)});
             if (target) {
                 this.memory.siegeTarget = target.id;
             }
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD && s.structureType.owner !== STRUCTURE_STORAGE && s.structureType.owner !== STRUCTURE_TERMINAL)});
-            if (target && PathFinder.search(this.pos, target.pos,
-                    {
-                        roomCallback: function (roomName) {
-                            let room = Game.rooms[roomName];
-                            if (!room) return;
-                            let costs = new PathFinder.CostMatrix;
-                            room.find(FIND_CREEPS).forEach(function (creep) {
-                                costs.set(creep.pos.x, creep.pos.y, 0);
-                            });
-                            return costs;
-                        },
-                    }).incomplete) target = undefined;
+            target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD && s.structureType.owner !== STRUCTURE_STORAGE && s.structureType.owner !== STRUCTURE_TERMINAL)});
             if (target) {
                 this.memory.siegeTarget = target.id;
             }
