@@ -126,25 +126,24 @@ function findExtensionHub(room) {
 
 function controllerSupplier(room, structures) {
     let controllerContainer = _.filter(room.controller.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-    if (room.controller.level < 6) {
-        if (!controllerContainer) {
-            let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-            if (!controllerBuild) {
-                let containerSpots = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 1, room.controller.pos.x - 1, room.controller.pos.y + 1, room.controller.pos.x + 1, true);
-                for (let key in containerSpots) {
-                    let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
-                    if (position && position.getRangeTo(room.controller) === 1) {
-                        if (!position.checkForImpassible()) {
-                            position.createConstructionSite(STRUCTURE_CONTAINER);
-                            break;
-                        }
+    if (!controllerContainer) {
+        let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+        if (!controllerBuild) {
+            let containerSpots = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 1, room.controller.pos.x - 1, room.controller.pos.y + 1, room.controller.pos.x + 1, true);
+            for (let key in containerSpots) {
+                let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
+                if (position && position.getRangeTo(room.controller) === 1) {
+                    if (!position.checkForImpassible()) {
+                        position.createConstructionSite(STRUCTURE_CONTAINER);
+                        break;
                     }
                 }
             }
-        } else {
-            room.memory.controllerContainer = controllerContainer.id;
         }
     } else {
+        room.memory.controllerContainer = controllerContainer.id;
+    }
+    if (room.level >= 6) {
         let controllerLink = _.filter(room.controller.pos.findInRange(structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink && room.memory.storageLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 2, room.controller.pos.x - 2, room.controller.pos.y + 2, room.controller.pos.x + 2, true);

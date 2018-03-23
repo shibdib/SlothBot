@@ -334,8 +334,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (storageLink && storageLink.energy > 0 && (!controllerLink || controllerLink.energy > 100)) {
+    if (storageLink && storageLink.energy > 0) {
         let weight = 0.3;
         if (storageLink.energy > 500) weight = 0.01;
         const storageLinkDistWeighted = _.round(storageLink.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -622,10 +621,11 @@ Creep.prototype.findEssentials = function () {
             harvest: false
         });
     }
-    //Storage Link
-    let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (storageLink && controllerLink && !this.room.memory.responseNeeded && controllerLink.energy < 250) {
+    /**
+     //Storage Link
+     let storageLink = Game.getObjectById(this.room.memory.storageLink);
+     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+     if (storageLink && controllerLink && !this.room.memory.responseNeeded && controllerLink.energy < 250) {
         let storageLinkDistWeighted;
         const object = storageLink;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
@@ -638,8 +638,8 @@ Creep.prototype.findEssentials = function () {
             distWeighted: storageLinkDistWeighted,
             harvest: false
         });
-    }
-    //Nuker
+    }**/
+        //Nuker
     let nuker = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (nuker) {
         if (nuker.pos.getRangeTo(this) > 1) {
