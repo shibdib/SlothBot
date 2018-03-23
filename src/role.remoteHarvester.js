@@ -52,7 +52,12 @@ module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 function depositEnergy(creep) {
     if (!creep.memory.buildAttempt) remoteRoads(creep);
     if (!creep.memory.containerID) {
-        creep.memory.containerID = creep.harvestDepositContainer();
+        let buildSite = Game.getObjectById(creep.containerBuilding());
+        if (buildSite) {
+            creep.build(buildSite);
+        } else {
+            creep.memory.containerID = creep.harvestDepositContainer();
+        }
     } else if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
@@ -67,13 +72,6 @@ function depositEnergy(creep) {
             } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
                 creep.transfer(container, RESOURCE_ENERGY);
             }
-        }
-    } else {
-        let buildSite = Game.getObjectById(creep.containerBuilding());
-        if (buildSite) {
-            creep.build(buildSite);
-        } else {
-            creep.harvesterContainerBuild();
         }
     }
 }

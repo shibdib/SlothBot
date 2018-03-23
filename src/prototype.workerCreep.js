@@ -169,8 +169,9 @@ harvestDepositContainer = function () {
             this.shibMove(container);
             return container.id;
         }
+    } else {
+        this.harvesterContainerBuild();
     }
-    return null;
 };
 Creep.prototype.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
 
