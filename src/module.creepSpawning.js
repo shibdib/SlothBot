@@ -691,6 +691,20 @@ module.exports.militaryCreepQueue = function () {
                 })
             }
         }
+        // Hold
+        if (Memory.targetRooms[key].type === 'hold') {
+            let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
+            if ((longbow.length < 2 || (longbow[0] && longbow[0].ticksToLive <= 500 && longbow.length < 3)) && !_.includes(queue, 'longbow')) {
+                queueMilitaryCreep(PRIORITIES.attacker, {
+                    role: 'longbow',
+                    targetRoom: key,
+                    operation: 'hold',
+                    waitFor: 1,
+                    military: true
+                })
+            }
+        }
+
         //Room Scouting
         if (Memory.targetRooms[key].type === 'attack') {
             let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');

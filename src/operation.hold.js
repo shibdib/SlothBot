@@ -1,4 +1,4 @@
-Creep.prototype.harassRoom = function () {
+Creep.prototype.holdRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
@@ -15,6 +15,9 @@ Creep.prototype.harassRoom = function () {
             this.handleDefender();
         } else if (this.memory.role === 'healer') {
             this.squadHeal();
+        }
+        if (!this.room.controller.owner) {
+            delete Memory.targetRooms[this.room.name];
         }
     }
 };

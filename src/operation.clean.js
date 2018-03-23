@@ -30,15 +30,13 @@ Creep.prototype.cleanRoom = function () {
     if (!target) {
         switch (this.signController(this.room.controller, 'Room cleaned courtesy of #Overlord-Bot.')) {
             case OK:
-                if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
-                if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
                 break;
             case ERR_NOT_IN_RANGE:
                 return this.shibMove(this.room.controller);
         }
         let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
         let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-        if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) || (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0))) {
+        if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) > terminal.store[RESOURCE_ENERGY]) || (storage && _.sum(storage.store) > storage.store[RESOURCE_ENERGY]))) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.pos.roomName] = {
@@ -50,6 +48,8 @@ Creep.prototype.cleanRoom = function () {
         } else if (terminal || storage) {
             return Memory.targetRooms[this.room.name].complete = true;
         }
+        if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
+        if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
         this.suicide();
     } else {
         let dismantlePower = DISMANTLE_POWER * this.getActiveBodyparts(WORK);
