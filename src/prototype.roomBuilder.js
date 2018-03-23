@@ -156,10 +156,6 @@ function controllerSupplier(room, structures) {
             }
         } else if (controllerLink) {
             room.memory.controllerLink = controllerLink.id;
-            if (controllerContainer) {
-                delete room.memory.controllerContainer;
-                controllerContainer.destroy();
-            }
         }
     }
 }
