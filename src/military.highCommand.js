@@ -159,6 +159,17 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'robbery')) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'robbery',
+                level: 1
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
     }
 }
 
