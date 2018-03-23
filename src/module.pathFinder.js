@@ -176,7 +176,13 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             let matrix;
             let room = creep.room;
             if (room) {
-                if (options.ignoreStructures) {
+                if (options.siegeMove) {
+                    matrix = getStructureMatrix(room, options.freshMatrix);
+                    if (!options.ignoreCreeps) {
+                        addCreepsToMatrix(room, matrix);
+                        addSksToMatrix(room, matrix);
+                    }
+                } else if (options.ignoreStructures) {
                     matrix = new PathFinder.CostMatrix();
                     if (!options.ignoreCreeps) {
                         addCreepsToMatrix(room, matrix);
@@ -354,8 +360,11 @@ function addSksToMatrix(room, matrix) {
     return matrix;
 }
 
-function getStructureMatrix(room, freshMatrix) {
-    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
+function getStructureMatrix(room, freshMatrix, siege = false) {
+    if (siege) {
+        let matrix = new PathFinder.CostMatrix();
+        return PathFinder.CostMatrix.deserialize(addStructuresToMatrixSiege(room, matrix, 1).serialize());
+    } else if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
         room.memory.structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
         structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1).serialize();
@@ -406,6 +415,37 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     }
     for (let structure of impassibleStructures) {
         matrix.set(structure.pos.x, structure.pos.y, 0xff);
+    }
+    return matrix;
+}
+
+function addStructuresToMatrixSiege(room, matrix, roadCost) {
+    let impassibleStructures = [];
+    for (let structure of room.structures) {
+        if (structure instanceof StructureRampart) {
+            if (!structure.my && !structure.isPublic) {
+                impassibleStructures.push(structure);
+            }
+        }
+        else if (structure instanceof StructureRoad) {
+            matrix.set(structure.pos.x, structure.pos.y, roadCost);
+        }
+        else if (structure instanceof StructureContainer) {
+            matrix.set(structure.pos.x, structure.pos.y, 5);
+        }
+        else {
+            impassibleStructures.push(structure);
+        }
+    }
+    for (let site of room.find(FIND_MY_CONSTRUCTION_SITES)) {
+        if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_ROAD
+            || site.structureType === STRUCTURE_RAMPART) {
+            continue;
+        }
+        matrix.set(site.pos.x, site.pos.y, 0xff);
+    }
+    for (let structure of impassibleStructures) {
+        matrix.set(structure.pos.x, structure.pos.y, 254);
     }
     return matrix;
 }

@@ -56,8 +56,8 @@ function buildExtensions(room) {
             x = getRandomInt(1, 5);
             y = getRandomInt(1, 5);
             if (extensionCount >= 50) {
-                x = getRandomInt(7, 8);
-                y = getRandomInt(7, 8);
+                x = getRandomInt(1, 8);
+                y = getRandomInt(1, 8);
             }
             x = _.sample([x, -x]);
             y = _.sample([y, -y]);

@@ -279,6 +279,7 @@ Creep.prototype.siege = function () {
             range: 20
         });
     }
+    let alliedCreep = _.filter(this.room.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner));
     if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1 && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
     if (!this.room.controller.owner || (this.room.controller && (!this.room.controller.owner || _.includes(FRIENDLIES, this.room.controller.owner['username'])) === false)) {
         let target;
@@ -312,9 +313,16 @@ Creep.prototype.siege = function () {
             }
         }
         if (!target || target === null) {
-            target = this.findClosestBarrier();
-            if (target) {
-                this.memory.siegeTarget = target.id;
+            let potential = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType.owner !== STRUCTURE_ROAD && s.structureType.owner !== STRUCTURE_STORAGE && s.structureType.owner !== STRUCTURE_TERMINAL)});
+            if (potential) {
+                if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
+                this.heal(this);
+                return this.shibMove(potential, {siegeMove: true});
+            } else {
+                target = this.findClosestBarrier();
+                if (target) {
+                    this.memory.siegeTarget = target.id;
+                }
             }
         }
         if (!target) {
@@ -333,7 +341,6 @@ Creep.prototype.siege = function () {
             }
             return this.memory.role = 'worker';
         } else {
-            let alliedCreep = _.filter(this.room.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner));
             switch (this.dismantle(target)) {
                 case ERR_NOT_IN_RANGE:
                     if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
