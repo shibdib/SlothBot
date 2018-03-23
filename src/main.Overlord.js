@@ -58,19 +58,21 @@ function mind(room, roomLimit) {
     }
 
     // Observer Control
-    let observerCpu = Game.cpu.getUsed();
-    observers.observerControl(room);
-    shib.shibBench('observerControl', observerCpu);
+    if (room.level === 8) {
+        let observerCpu = Game.cpu.getUsed();
+        observers.observerControl(room);
+        shib.shibBench('observerControl', observerCpu);
+    }
 
     // Handle Links
-    if (Game.time % 10 === 0) {
+    if (Game.time % 10 === 0 && room.level >= 5) {
         cpu = Game.cpu.getUsed();
         links.linkControl(room);
         shib.shibBench('linkControl', cpu);
     }
 
     // Handle Terminals
-    if (Game.time % 15 === 0) {
+    if (Game.time % 15 === 0 && room.level >= 6) {
         cpu = Game.cpu.getUsed();
         terminals.terminalControl(room);
         shib.shibBench('terminalControl', cpu);

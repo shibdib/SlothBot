@@ -7,7 +7,6 @@ let profiler = require('screeps-profiler');
 let reactionNeeds = REACTION_NEEDS;
 let boostNeeds = BOOST_NEEDS;
 let tradeTargets = TRADE_TARGETS;
-let doNotSell = DO_NOT_SELL_LIST;
 let tradeAmount = TRADE_AMOUNT;
 let energyAmount = ENERGY_AMOUNT;
 let reactionAmount = REACTION_AMOUNT;
@@ -15,7 +14,6 @@ let boostAmount = BOOST_AMOUNT;
 
 
 function terminalControl(room) {
-    if (room.level < 6) return;
     let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
     let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];

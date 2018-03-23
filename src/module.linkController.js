@@ -5,7 +5,6 @@
 const profiler = require('screeps-profiler');
 
 function linkControl(room) {
-    if (room.level < 5) return;
     let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.storageLink && s.id !== s.room.memory.controllerLink && s.energy > 250 && s.cooldown === 0);
     let storageLink = Game.getObjectById(room.memory.storageLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);

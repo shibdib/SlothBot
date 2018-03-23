@@ -5,7 +5,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function observerControl(room) {
-    if (room.level < 8) return;
     let observer = _.filter(room.structures, (s) => s.structureType === STRUCTURE_OBSERVER)[0];
     if (observer) {
         if (Game.time % 2 === 0) {
