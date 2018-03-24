@@ -205,7 +205,7 @@ function buildStorage(room) {
 
 function buildTerminal(room) {
     if (room.controller.level < 6) return;
-    let terminal = this.room.terminal;
+    let terminal = room.terminal;
     let storage = room.storage;
     if (!terminal && storage) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 2, storage.pos.x - 2, storage.pos.y + 2, storage.pos.x + 2, true));
@@ -286,7 +286,7 @@ function buildSpawn(room, structures) {
 
 function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
-    let terminal = this.room.terminal;
+    let terminal = room.terminal;
     if (!room.memory.reactionRoom) {
         let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
         let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
