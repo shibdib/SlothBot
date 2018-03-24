@@ -170,8 +170,31 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'nuke')) {
+            let cache = Memory.targetRooms || {};
+            let level = name.match(/\d+$/)[0] || 1;
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                dDay: tick + 50000,
+                type: 'nuke',
+                level: level
+            };
+            nukeFlag(Game.flags[name])
+        }
     }
 }
 
 module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
 
+function nukeFlag(flag) {
+    let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];
+    if (!nuker) {
+        log.e('Nuke request for room ' + flag.pos.roomName + ' denied, no nukes found in-range.');
+        flag.remove();
+    } else {
+        nuker.launchNuke(flag.pos);
+        log.a('NUCLEAR LAUNCH DETECTED - ' + flag.pos.roomName + ' ' + flag.pos.x + '.' + flag.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+        flag.remove();
+    }
+}
