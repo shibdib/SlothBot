@@ -2,8 +2,8 @@ Creep.prototype.robbery = function () {
     let sentence = ['#overlords', 'Thanks', 'For', 'The', 'Stuff', this.memory.targetRoom];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let terminal = this.room.terminal;
+    let storage = this.room.storage;
     if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     if (this.room.name === this.memory.targetRoom && ((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0))) {
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #Overlord-Bot')) {
@@ -65,8 +65,8 @@ Creep.prototype.robbery = function () {
                     }
                 }
             } else {
-                let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-                let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+                let storage = this.room.storage;
+                let terminal = this.room.terminal;
                 if (storage && _.sum(storage.store) < storage.storeCapacity * 0.70) {
                     this.memory.storageDestination = storage.id;
                     for (const resourceType in this.carry) {

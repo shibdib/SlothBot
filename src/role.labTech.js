@@ -24,8 +24,8 @@ function role(creep) {
     if (!creep.getSafe(true)) {
         if (droppedResources(creep)) return null;
         let labs = shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB));
-        let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        let terminal = creep.room.terminal;
+        let storage = creep.room.storage;
         for (let key in labs) {
             let helper = _.filter(creep.room.creeps, (c) => c.memory && c.memory.labHelper === labs[key].id && c.id !== creep.id)[0];
             if (helper) continue;
@@ -166,7 +166,12 @@ function role(creep) {
             }
         }
         if (!creep.memory.labHelper) {
-            creep.idleFor(10);
+            let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
+            if (creep.pos.getRangeTo(closeLab) > 3) {
+                creep.shibMove(closeLab, {range: 2})
+            } else {
+                creep.idleFor(15);
+            }
         }
     }
 }
@@ -178,7 +183,7 @@ function droppedResources(creep) {
     if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name)) tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY] || (!r.store[RESOURCE_ENERGY] && _.sum(r.store) > 0)})[0];
     let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
     if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name) && tombstone) {
-        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        let storage = creep.room.storage;
         if (_.sum(creep.carry) > 0) {
             for (let resourceType in creep.carry) {
                 switch (creep.transfer(storage, resourceType)) {
@@ -201,7 +206,7 @@ function droppedResources(creep) {
             }
         }
     } else if (resources) {
-        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        let storage = creep.room.storage;
         if (_.sum(creep.carry) > 0) {
             for (let resourceType in creep.carry) {
                 switch (creep.transfer(storage, resourceType)) {

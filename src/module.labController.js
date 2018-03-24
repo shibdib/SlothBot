@@ -16,7 +16,7 @@ function labManager() {
             room.memory.reactionRoom = true;
             log.a(room.name + ' is now a reaction room.');
         }
-        let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+        let terminal = room.terminal;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && terminal && room.memory.reactionRoom && Game.time % 25 === 0) manageBoostProduction(room);
         if (lab && terminal && room.memory.reactionRoom && Game.time % 3 === 0) manageActiveLabs(room);
@@ -27,8 +27,8 @@ function labManager() {
 module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 
 function manageBoostProduction(room) {
-    let storage = _.filter(room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-    let terminal = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    let storage = room.storage;
+    let terminal = room.terminal;
     let labTech = _.filter(room.creeps, (c) => c.memory && c.memory.role === 'labTech')[0];
     boost:
         for (let key in MAKE_THESE_BOOSTS) {

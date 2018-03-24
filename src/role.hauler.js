@@ -24,7 +24,7 @@ function role(creep) {
     if (!creep.getSafe(true)) {
         if (Game.time % 15 === 0 || creep.memory.labTech || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (boostDelivery(creep) || nuclearEngineer(creep) || terminalWorker(creep)) return null;
         if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
-            let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+            let storage = creep.room.storage;
             for (let resourceType in creep.carry) {
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
@@ -68,7 +68,7 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
 
 function terminalWorker(creep) {
-    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    let terminal = creep.room.terminal;
     let haulers = _.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'hauler');
     let terminalWorker = _.filter(Game.creeps, (c) => c.memory.terminalWorker && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker)) || haulers.length < 2) return undefined;
@@ -85,7 +85,7 @@ function terminalWorker(creep) {
             }
         }
     } else {
-        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        let storage = creep.room.storage;
         for (let resourceType in storage.store) {
             if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) break;
             if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY)) {
@@ -128,7 +128,7 @@ function terminalWorker(creep) {
             return true;
         }
     } else if (creep.memory.terminalCleaning) {
-        let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        let storage = creep.room.storage;
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
@@ -156,8 +156,8 @@ function boostDelivery(creep) {
         delete lab.memory;
         return delete creep.memory.labTech
     }
-    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let terminal = creep.room.terminal;
+    let storage = creep.room.storage;
     creep.say(ICONS.boost, true);
     if (_.sum(creep.carry) > creep.carry[lab.memory.neededBoost]) {
         for (let resourceType in creep.carry) {
@@ -226,8 +226,8 @@ function nuclearEngineer(creep) {
     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.ghodium < s.ghodiumCapacity)[0];
     let nuclearEngineer = _.filter(Game.creeps, (c) => c.memory.nuclearEngineer && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.terminalWorker || creep.memory.labTech || (!creep.memory.nuclearEngineer && (!nuker || nuclearEngineer))) return undefined;
-    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let terminal = creep.room.terminal;
+    let storage = creep.room.storage;
     let ghodium = getResourceAmount(creep.room, RESOURCE_GHODIUM);
     if (nuker.ghodium < nuker.ghodiumCapacity && ghodium > 0) {
         if (_.sum(creep.carry) > creep.carry[RESOURCE_GHODIUM]) {

@@ -31,7 +31,7 @@ function role(creep) {
         if (creep.wrongRoom()) return null;
         let link = Game.getObjectById(creep.room.memory.controllerLink);
         let container = Game.getObjectById(creep.room.memory.controllerContainer);
-        let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+        let terminal = creep.room.terminal;
         if (creep.carry.energy === 0) {
             creep.memory.working = null;
         } else if (creep.isFull) creep.memory.working = true;

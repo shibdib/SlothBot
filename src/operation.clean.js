@@ -34,8 +34,8 @@ Creep.prototype.cleanRoom = function () {
             case ERR_NOT_IN_RANGE:
                 return this.shibMove(this.room.controller);
         }
-        let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-        let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+        let terminal = this.room.terminal;
+        let storage = this.room.storage;
         if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) > terminal.store[RESOURCE_ENERGY]) || (storage && _.sum(storage.store) > storage.store[RESOURCE_ENERGY]))) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;

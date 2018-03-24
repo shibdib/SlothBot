@@ -3,8 +3,8 @@ Creep.prototype.scoutRoom = function () {
     this.room.cacheRoomIntel(true);
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART);
-    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let storage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let terminal = this.room.terminal;
+    let storage = this.room.storage;
     let controller = this.room.controller;
     if (controller.owner && (towers.length === 0 || _.max(towers, 'energy').energy === 0) && ramparts[0]) {
         let cache = Memory.targetRooms || {};

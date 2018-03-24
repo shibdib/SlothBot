@@ -92,8 +92,8 @@ function role(creep) {
                     }
                 } else {
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-                    let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-                    let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+                    let storage = creep.room.storage;
+                    let terminal = creep.room.terminal;
                     if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70 && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.filter(creep.room.creeps, (c) => c.memory && c.memory.storageDestination === controllerContainer.id).length < 2) {
                         creep.memory.storageDestination = controllerContainer.id;
                         switch (creep.transfer(controllerContainer, RESOURCE_ENERGY)) {

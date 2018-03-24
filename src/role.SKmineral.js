@@ -80,8 +80,8 @@ function SKdeposit(creep) {
                 }
             }
         } else {
-            let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-            let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+            let storage = creep.room.storage;
+            let terminal = creep.room.terminal;
             if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70) {
                 creep.memory.storageDestination = terminal.id;
                 for (const resourceType in this.carry) {

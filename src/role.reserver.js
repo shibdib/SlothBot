@@ -34,7 +34,8 @@ function role(creep) {
                 } else {
                     ticks = 0;
                 }
-                creep.room.memory.reservationExpires = Game.time + ticks;
+                let needReserver = Game.time + ticks - 250
+                creep.room.memory.reservationExpires = needReserver;
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(creep.room.controller);

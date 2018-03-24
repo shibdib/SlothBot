@@ -25,9 +25,9 @@ Room.prototype.buildRoom = function () {
     if (_.size(Game.constructionSites) > 75) return;
     controllerSupplier(this, structures);
     buildExtensions(this);
-    buildLinks(this, structures);
-    buildStorage(this, structures);
-    buildTerminal(this, structures);
+    buildLinks(this);
+    buildStorage(this);
+    buildTerminal(this);
     buildTowers(this, structures);
     buildLabs(this, structures);
     buildNuker(this, structures);
@@ -35,7 +35,7 @@ Room.prototype.buildRoom = function () {
     buildPowerSpawn(this, structures);
     buildExtractor(this, structures);
     buildWalls(this, structures);
-    buildSpawn(this, structures)
+    buildSpawn(this, structures);
     if (_.size(Game.constructionSites) > 50) return;
     buildRoads(this, structures);
 };
@@ -187,9 +187,9 @@ function buildWalls(room, structures) {
     }
 }
 
-function buildStorage(room, structures) {
+function buildStorage(room) {
     if (room.controller.level < 4) return;
-    let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let storage = room.storage;
     if (!storage) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 2, hub.x - 2, hub.y + 2, hub.x + 2, true);
@@ -203,10 +203,10 @@ function buildStorage(room, structures) {
     }
 }
 
-function buildTerminal(room, structures) {
+function buildTerminal(room) {
     if (room.controller.level < 6) return;
-    let terminal = _.filter(structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let terminal = this.room.terminal;
+    let storage = room.storage;
     if (!terminal && storage) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 2, storage.pos.x - 2, storage.pos.y + 2, storage.pos.x + 2, true));
         for (let key in safeZone) {
@@ -286,7 +286,7 @@ function buildSpawn(room, structures) {
 
 function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
-    let terminal = _.filter(structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    let terminal = this.room.terminal;
     if (!room.memory.reactionRoom) {
         let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
         let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
@@ -347,9 +347,9 @@ function buildLabs(room, structures) {
     }
 }
 
-function buildLinks(room, structures) {
+function buildLinks(room) {
     if (room.controller.level < 5) return;
-    let storage = _.filter(structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let storage = room.storage;
     if (storage) {
         let built = _.filter(storage.pos.findInRange(storage.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
         if (storage && !built[0]) {

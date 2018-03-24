@@ -80,8 +80,8 @@ function utilityDeposit(creep) {
             }
         } else {
             let emptyLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity)[0];
-            let storage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-            let terminal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+            let storage = creep.room.storage;
+            let terminal = creep.room.terminal;
             if (emptyLab) {
                 creep.memory.storageDestination = emptyLab.id;
                 for (const resourceType in this.carry) {

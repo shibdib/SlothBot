@@ -235,7 +235,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     }
     //storages
     //Storage
-    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let sStorage = this.room.storage;
     if (sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 0.75 && sStorage.pos.rangeToTarget(this) <= range) {
         let weight;
         weight = 0.3;
@@ -273,8 +273,8 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         }
     }
     //Terminal
-    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= 6500 && terminal.pos.rangeToTarget(this) <= range) {
+    let terminal = this.room.terminal;
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 7500 && terminal.pos.rangeToTarget(this) <= range) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5) weight = 0.2;
@@ -345,8 +345,8 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         });
     }
     //Terminal
-    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= 6500 && terminal.pos.rangeToTarget(this) <= range) {
+    let terminal = this.room.terminal;
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 7500 && terminal.pos.rangeToTarget(this) <= range) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
@@ -357,7 +357,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         });
     }
     //Storage
-    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let sStorage = this.room.storage;
     if ((sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 1.25 && sStorage.pos.rangeToTarget(this) <= range && (!storageLink || storageLink.energy < 500)) || (sStorage && this.room.memory.responseNeeded)) {
         let weight = 0.3;
         if (this.room.memory.responseNeeded) weight = 1.2;
@@ -389,7 +389,7 @@ Creep.prototype.findStorage = function () {
     let haulingEnergy;
     if (this.carry[RESOURCE_ENERGY] === _.sum(this.carry)) haulingEnergy = true;
     //Storage
-    let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
+    let sStorage = this.room.storage;
     if (sStorage) {
         let weight;
         weight = 0.05;
@@ -450,7 +450,7 @@ Creep.prototype.findStorage = function () {
         });
     }
     //Terminal
-    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
+    let terminal = this.room.terminal;
     if (terminal && !this.room.memory.responseNeeded) {
         if (terminal.pos.getRangeTo(this) > 1) {
             const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
@@ -592,18 +592,14 @@ Creep.prototype.findEssentials = function () {
         });
     }
     //Terminal
-    let terminal = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TERMINAL)[0];
-    if (terminal) {
-        if (terminal.pos.getRangeTo(this) > 1) {
-            if (terminal.store[RESOURCE_ENERGY] < 5000) {
-                const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
-                storage.push({
-                    id: terminal.id,
-                    distWeighted: terminalDistWeighted,
-                    harvest: false
-                });
-            }
-        }
+    let terminal = this.room.terminal;
+    if (terminal && terminal.store[RESOURCE_ENERGY] < 5000) {
+        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.5, 0) + 1;
+        storage.push({
+            id: terminal.id,
+            distWeighted: terminalDistWeighted,
+            harvest: false
+        });
     }
     //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
