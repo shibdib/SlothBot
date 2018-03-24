@@ -34,7 +34,7 @@ function role(creep) {
                 } else {
                     ticks = 0;
                 }
-                let needReserver = Game.time + ticks - 250
+                let needReserver = Game.time + ticks - 250;
                 creep.room.memory.reservationExpires = needReserver;
                 break;
             case ERR_NOT_IN_RANGE:
