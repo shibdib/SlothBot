@@ -335,14 +335,17 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 0) {
-        let weight = 0.3;
-        if (storageLink.energy > 500) weight = 0.01;
-        const storageLinkDistWeighted = _.round(storageLink.pos.rangeToTarget(this) * weight, 0) + 1;
-        energy.push({
-            id: storageLink.id,
-            distWeighted: storageLinkDistWeighted,
-            harvest: false
-        });
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === storageLink.id).length;
+        if (numberOfUsers < 1) {
+            let weight = 0.3;
+            if (storageLink.energy > 500) weight = 0.01;
+            const storageLinkDistWeighted = _.round(storageLink.pos.rangeToTarget(this) * weight, 0) + 1;
+            energy.push({
+                id: storageLink.id,
+                distWeighted: storageLinkDistWeighted,
+                harvest: false
+            });
+        }
     }
     //Terminal
     let terminal = this.room.terminal;
