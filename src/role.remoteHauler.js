@@ -69,7 +69,7 @@ function role(creep) {
                             case OK:
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                creep.shibMove(storageItem);
+                                creep.shibMove(storageItem, {ignoreRoads: true});
                                 break;
                             case ERR_FULL:
                                 delete creep.memory.storageDestination;
@@ -84,7 +84,7 @@ function role(creep) {
                             delete creep.memory.storageDestination;
                             break;
                         case ERR_NOT_IN_RANGE:
-                            creep.shibMove(labs[0]);
+                            creep.shibMove(labs[0], {ignoreRoads: true});
                             break;
                         case ERR_FULL:
                             delete creep.memory.storageDestination;
@@ -95,14 +95,16 @@ function role(creep) {
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     let storage = creep.room.storage;
                     let terminal = creep.room.terminal;
-                    if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70 && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.filter(creep.room.creeps, (c) => c.memory && c.memory.storageDestination === controllerContainer.id).length < 2) {
+                    if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70
+                        && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.filter(creep.room.creeps, (c) => c.memory && c.memory.storageDestination === controllerContainer.id).length < 2
+                        && (!storage || storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 1.5)) {
                         creep.memory.storageDestination = controllerContainer.id;
                         switch (creep.transfer(controllerContainer, RESOURCE_ENERGY)) {
                             case OK:
                                 delete creep.memory.storageDestination;
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                creep.shibMove(controllerContainer);
+                                creep.shibMove(controllerContainer, {ignoreRoads: true});
                                 break;
                             case ERR_FULL:
                                 delete creep.memory.storageDestination;
@@ -116,7 +118,7 @@ function role(creep) {
                                 delete creep.memory.storageDestination;
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                creep.shibMove(terminal);
+                                creep.shibMove(terminal, {ignoreRoads: true});
                                 break;
                             case ERR_FULL:
                                 delete creep.memory.storageDestination;
@@ -130,7 +132,7 @@ function role(creep) {
                                 delete creep.memory.storageDestination;
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                creep.shibMove(storage);
+                                creep.shibMove(storage, {ignoreRoads: true});
                                 break;
                             case ERR_FULL:
                                 delete creep.memory.storageDestination;
@@ -140,7 +142,7 @@ function role(creep) {
                     }
                 }
             } else {
-                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23, offRoad: true});
+                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23, ignoreRoads: true});
             }
         }
     } else if (creep.memory.destination && !creep.memory.destinationReached) {

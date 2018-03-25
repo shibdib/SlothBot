@@ -4,7 +4,10 @@ Creep.prototype.robbery = function () {
     this.say(sentence[word], true);
     let terminal = this.room.terminal;
     let storage = this.room.storage;
-    if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+    if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
+        range: 23,
+        preferHighway: true
+    });
     if (this.room.name === this.memory.targetRoom && ((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0))) {
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #Overlord-Bot')) {
             case OK:
@@ -104,7 +107,7 @@ Creep.prototype.robbery = function () {
                 }
             }
         } else {
-            return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
+            return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19, preferHighway: true});
         }
     }
 };
