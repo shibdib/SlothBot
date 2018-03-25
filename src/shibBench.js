@@ -3,11 +3,13 @@ module.exports.shibBench = function (name, start, end = Game.cpu.getUsed()) {
         let cache = Memory._benchmark || {};
         let tick = Game.time;
         let raw;
+    let max;
         let avg;
         let tickCount;
         let useCount;
         if (cache[key]) {
             raw = ((end - start) + cache[key]['raw']) / 2;
+            max = cache[key]['max'];
             avg = cache[key]['avg'];
             tickCount = cache[key]['tickCount'];
             useCount = cache[key]['useCount'] + 1;
@@ -18,6 +20,7 @@ module.exports.shibBench = function (name, start, end = Game.cpu.getUsed()) {
         cache[key] = {
             title: name,
             tick: tick,
+            max: max,
             raw: raw,
             avg: avg,
             useCount: useCount,
@@ -30,9 +33,11 @@ module.exports.shibBench = function (name, start, end = Game.cpu.getUsed()) {
 module.exports.processBench = function () {
     for (let key in Memory._benchmark) {
         let mem = Memory._benchmark[key];
+        let max = mem['max'] || 0;
         let avg = mem['avg'] || 0;
         let raw = mem['raw'] || 0;
         let count = mem['tickCount'] || 0;
+        if (raw > max) mem['max'] = raw;
         mem['avg'] = (avg + raw) / 2;
         mem['tickCount'] = count + 1;
         Memory._benchmark[key] = mem;
@@ -63,8 +68,8 @@ module.exports.processBench = function () {
                     bucketTotal = sorted[key]['used'];
                     continue;
                 }
-                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3));
-                if (Memory.reportBenchNotify) Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3));
+                log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3) + '. ||| Peak CPU Used: ' + _.round(sorted[key]['max'], 3));
+                if (Memory.reportBenchNotify) Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3) + '. ||| Peak CPU Used: ' + _.round(sorted[key]['max'], 3));
             }
             log.e('Ticks Covered: ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
             log.e('Total Bucket Used: ' + bucketTotal + '. Current Bucket: ' + Game.cpu.bucket);

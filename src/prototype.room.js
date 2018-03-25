@@ -187,7 +187,7 @@ Object.defineProperty(StructureLab.prototype, 'memory', {
 });
 
 Room.prototype.cacheRoomIntel = function (force = false) {
-    if (this.memory.lastIntelCache > Game.time - 250 && !force) return;
+    if (this.memory.lastIntelCache > Game.time - 500 && !force) return;
     this.memory.lastIntelCache = Game.time;
     let room = Game.rooms[this.name];
     let owner;

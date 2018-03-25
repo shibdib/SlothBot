@@ -19,7 +19,13 @@ function role(creep) {
         let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
         if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
     }
-    if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
+    if (_.sum(creep.carry) === 0) {
+        creep.memory.hauling = false;
+        if (creep.memory.storageDestination && creep.memory._shibMove) {
+            creep.memory.storageDestination = undefined;
+            creep.memory._shibMove = undefined;
+        }
+    }
     if (creep.isFull) creep.memory.hauling = true;
     if (!creep.getSafe(true)) {
         if (Game.time % 15 === 0 || creep.memory.labTech || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (boostDelivery(creep) || nuclearEngineer(creep) || terminalWorker(creep)) return null;

@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.borderCheck();
-    if (!Memory.roomCache[creep.room.roomName]) creep.room.cacheRoomIntel(true);
+    creep.room.cacheRoomIntel();
     if (!creep.memory.targetRooms || !creep.memory.destination) {
         creep.memory.targetRooms = Game.map.describeExits(creep.pos.roomName);
         let target = _.sample(creep.memory.targetRooms);

@@ -55,7 +55,7 @@ let globals = function () {
         remoteHauler: 3,
         pioneer: 5,
         remoteResponse: 3,
-        reserver: 4,
+        reserver: 5,
         // SK
         SKworker: 6,
         SKattacker: 7,
@@ -72,7 +72,6 @@ let globals = function () {
         // Misc
         claimer: 2,
         explorer: 2,
-        scout: 2,
     };
 
     global.SPAWN = {
