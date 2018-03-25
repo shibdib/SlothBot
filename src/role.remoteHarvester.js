@@ -50,7 +50,7 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
-    if (!creep.memory.buildAttempt) remoteRoads(creep);
+    //if (!creep.memory.buildAttempt) remoteRoads(creep);
     if (!creep.memory.containerID) {
         let buildSite = Game.getObjectById(creep.containerBuilding());
         if (buildSite) {
