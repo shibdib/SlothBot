@@ -16,9 +16,10 @@ function controller(room) {
     room.handleNukeAttack();
     if (room.memory.responseNeeded && !room.memory.alertEmail) {
         room.memory.alertEmail = true;
-        if (room.memory.threatLevel === 1) Game.notify(room.name + ' - Enemy detected, room is now in FPCON BRAVO.');
-        if (room.memory.threatLevel === 2) Game.notify(room.name + ' - Enemy detected, room is now in FPCON CHARLIE.');
-        if (room.memory.threatLevel >= 3) Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
+        if (room.memory.threatLevel >= 3) {
+            Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
+            Game.notify(room.memory.numberOfHostiles + ' - Foreign Hostiles Reported');
+        }
     }
     if (room.memory.responseNeeded) {
         rampartManager(room, structures, true);
