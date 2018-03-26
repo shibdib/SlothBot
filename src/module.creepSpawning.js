@@ -857,7 +857,10 @@ function bodyGenerator(level, role) {
     for (let i = 0; i < move; i++) body.push(MOVE)
     for (let i = 0; i < claim; i++) body.push(CLAIM)
     for (let i = 0; i < attack; i++) body.push(ATTACK)
-    for (let i = 0; i < heal; i++) body.push(HEAL)
+    let healArray = [];
+    for (let i = 0; i < heal; i++) healArray.push(HEAL)
     for (let i = 0; i < rangedAttack; i++) body.push(RANGED_ATTACK)
-    return shuffle(body)
+    let toughArray = [];
+    for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
+    return toughArray.concat(shuffle(body), healArray);
 }
