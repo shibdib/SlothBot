@@ -70,6 +70,10 @@ function role(creep) {
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(storageItem, {ignoreRoads: true});
+                                if (creep.carry[RESOURCE_ENERGY] > 0) {
+                                    let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
+                                    if (adjacentStructure.length) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
+                                }
                                 break;
                             case ERR_FULL:
                                 delete creep.memory.storageDestination;
