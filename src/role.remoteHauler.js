@@ -19,6 +19,10 @@ function role(creep) {
         delete creep.memory.destination;
         delete creep.memory.containerID;
     }
+    if (creep.carry[RESOURCE_ENERGY] > 0) {
+        let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
+        if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
+    }
     if (!creep.memory.destination && !creep.memory.hauling) {
         let remotes = shuffle(Game.rooms[creep.memory.overlord].memory.remoteRooms);
         for (let key in remotes) {
