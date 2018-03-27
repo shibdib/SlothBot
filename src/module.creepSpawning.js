@@ -458,6 +458,13 @@ module.exports.militaryCreepQueue = function () {
                 stagingRoom = staging;
             }
         }
+        //Room Scouting
+        if (Memory.targetRooms[key].type === 'attack') {
+            let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
+            if (!scout.length && !_.includes(queue, 'scout')) {
+                queueMilitaryCreep(PRIORITIES.scout, {role: 'scout', targetRoom: key, military: true})
+            }
+        }
         // Clean
         if (Memory.targetRooms[key].type === 'clean') {
             let opLevel = Memory.targetRooms[key].level;
@@ -654,14 +661,6 @@ module.exports.militaryCreepQueue = function () {
                         staging: stagingRoom
                     })
                 }
-            }
-        }
-
-        //Room Scouting
-        if (Memory.targetRooms[key].type === 'attack') {
-            let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
-            if (!scout[0] && !_.includes(queue, 'scout')) {
-                queueMilitaryCreep(PRIORITIES.scout, {role: 'scout', targetRoom: key, military: true})
             }
         }
     }
