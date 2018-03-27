@@ -65,7 +65,7 @@ let globals = function () {
         hold: 6,
         raid: 8,
         clean: 8,
-        scout: 6,
+        scout: 2,
         responder: 2,
         // Misc
         claimer: 2,
