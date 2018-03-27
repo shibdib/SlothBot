@@ -342,6 +342,7 @@ Room.prototype.invaderCheck = function () {
                 Memory._badBoyList = cache;
                 log.a(key + ' now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
             } else {
+                if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
                 let multiple = 0.5;
                 if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
                 else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 1;
@@ -388,6 +389,7 @@ Room.prototype.invaderCheck = function () {
                 Memory._badBoyList = cache;
                 log.a(key + ' now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
             } else {
+                if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
                 let multiple = 0.5;
                 if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
                 else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 1;
