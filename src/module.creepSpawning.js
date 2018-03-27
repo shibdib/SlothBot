@@ -329,7 +329,20 @@ module.exports.remoteCreepQueue = function (room) {
         for (let keys in room.memory.remoteRooms) {
             let range = 1;
             if (level === 8) range = 2;
-            if (Game.map.getRoomLinearDistance(room.name, room.memory.remoteRooms[keys]) > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
+            if (Game.map.getRoomLinearDistance(room.name, room.memory.remoteRooms[keys]) > 1 || checkIfSK(room.memory.remoteRooms[keys])) continue;
+            // Remote Response
+            if (!_.includes(queue, 'longbow')) {
+                if (Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded === true && !room.memory.responseNeeded) {
+                    let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.remoteRooms[keys] && creep.memory.role === 'longbow');
+                    if (longbow.length < _.round(Game.rooms[room.memory.remoteRooms[keys]].memory.numberOfHostiles / 2)) {
+                        queueCreep(room, PRIORITIES.remoteResponse, {
+                            role: 'longbow',
+                            responseTarget: room.memory.remoteRooms[keys],
+                            military: true
+                        })
+                    }
+                }
+            }
             if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1 && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires || Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires <= Game.time) && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.noRemote)) {
@@ -365,19 +378,6 @@ module.exports.remoteCreepQueue = function (room) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
                 if (pioneers.length < 1) {
                     queueCreep(room, PRIORITIES.pioneer, {role: 'pioneer', destination: room.memory.remoteRooms[keys]})
-                }
-            }
-            // Remote Response
-            if (!_.includes(queue, 'longbow')) {
-                if (Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded === true && !room.memory.responseNeeded) {
-                    let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.remoteRooms[keys] && creep.memory.role === 'longbow');
-                    if (longbow.length < _.round(Game.rooms[room.memory.remoteRooms[keys]].memory.numberOfHostiles / 2)) {
-                        queueCreep(room, PRIORITIES.remoteResponse, {
-                            role: 'longbow',
-                            responseTarget: room.memory.remoteRooms[keys],
-                            military: true
-                        })
-                    }
                 }
             }
         }
@@ -770,6 +770,13 @@ function bodyGenerator(level, role) {
             }
             move = (tough + attack) / 2;
             break;
+        case 'remoteResponse':
+            tough = _.round(0.5 * level);
+            rangedAttack = _.round((0.5 * level) + 1);
+            attack = _.round((0.5 * level) + 1);
+            heal = 1;
+            move = tough + rangedAttack + heal + attack;
+            break;
         case 'attacker':
             tough = _.round(0.5 * level);
             attack = _.round(0.5 * level);
@@ -844,7 +851,7 @@ function bodyGenerator(level, role) {
         case 'SKattacker':
             attack = 20;
             heal = 5;
-            move = attack + move;
+            move = attack + heal;
             break;
         case 'SKmineral':
             work = 15;

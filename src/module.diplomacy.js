@@ -1,6 +1,6 @@
 module.exports.diplomacyOverlord = function () {
     //Manage threats
-    if (Game.time % 50 === 0 && Memory._badBoyList) threatManager();
+    if (Game.time % 25 === 0 && Memory._badBoyList) threatManager();
 };
 
 function threatManager() {
@@ -20,7 +20,7 @@ function threatManager() {
                 Memory._badBoyList[key].threatRating = newRating;
             }
         }
-        if (Memory._badBoyList[key].threatRating > 100) {
+        if (Memory._badBoyList[key].threatRating > 250) {
             Memory._enemies.push(key);
         }
         if (Memory._badBoyList[key].threatRating > 25) {

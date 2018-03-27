@@ -47,10 +47,20 @@ Creep.prototype.cleanRoom = function () {
             Memory.targetRooms = cache;
         } else if (terminal || storage) {
             return Memory.targetRooms[this.room.name].complete = true;
+        } else if (this.room.controller.owner) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[this.pos.roomName] = {
+                tick: tick,
+                type: 'hold',
+                level: 1
+            };
+            Memory.targetRooms = cache;
+        } else {
+            if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
+            if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
+            this.suicide();
         }
-        if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
-        if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
-        this.suicide();
     } else {
         let dismantlePower = DISMANTLE_POWER * this.getActiveBodyparts(WORK);
         let secondsToDismantle = (target.hits / dismantlePower) * Memory.tickLength;
