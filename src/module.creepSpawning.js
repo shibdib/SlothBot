@@ -18,7 +18,7 @@ module.exports.processBuildQueue = function () {
                 for (let key in queue) {
                     topPriority = queue[key];
                     role = topPriority.role;
-                    if (topPriority.reboot) {
+                    if (topPriority.reboot || level === 1) {
                         body = _.get(SPAWN[0], role);
                     } else {
                         body = bodyGenerator(level, role);
@@ -784,7 +784,7 @@ function bodyGenerator(level, role) {
             tough = _.round(0.5 * level);
             rangedAttack = (1 * level) + 1;
             heal = 1;
-            move = tough + rangedAttack;
+            move = tough + rangedAttack + heal;
             break;
         case 'raider':
             carry = _.round(1.5 * level);

@@ -123,7 +123,14 @@ abandonRoom = function (room) {
     Game.rooms[room].controller.unclaim();
 };
 
-
+test = function () {
+    let cache = Memory._badBoyList || {};
+    cache['TESTING'] = {
+        threatRating: 5,
+        lastAction: Game.time,
+    };
+    Memory._badBoyList = cache;
+};
 
 function tryInitSameMemory() {
     if (lastMemoryTick && global.LastMemory && Game.time === (lastMemoryTick + 1)) {

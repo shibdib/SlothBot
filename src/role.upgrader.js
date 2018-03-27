@@ -23,6 +23,10 @@ function role(creep) {
             } else {
                 sentence = sentence.concat(['FPCON', 'ALPHA'])
             }
+            if (Memory._badBoyArray && Memory._badBoyArray.length) {
+                sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
+                sentence = sentence.concat(Memory._badBoyArray);
+            }
             let word = Game.time % sentence.length;
             creep.say(sentence[word], true);
         }

@@ -35,7 +35,10 @@ function highCommand() {
                     }
                 }
             }
-            let enemyTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && _.includes(HOSTILES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
+            let enemyTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
+                ((r.owner && (_.includes(HOSTILES, r.owner['username']) || _.includes(Memory._enemies, r.owner['username']))) ||
+                    (r.reservation && (_.includes(HOSTILES, r.reservation['username']) || _.includes(Memory._enemies, r.reservation['username'])))) &&
+                Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
             for (let key in enemyTargets) {
                 if (!Memory.targetRooms[enemyTargets[key].name]) {
                     let cache = Memory.targetRooms || {};

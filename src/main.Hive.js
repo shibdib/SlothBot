@@ -3,6 +3,7 @@ let overlord = require('main.Overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
 let spawning = require('module.creepSpawning');
+let diplomacy = require('module.diplomacy');
 let hud = require('module.hud');
 let shib = require("shibBench");
 
@@ -27,6 +28,9 @@ function mind() {
     cpu = Game.cpu.getUsed();
     labs.labManager();
     shib.shibBench('labControl', cpu);
+
+    // Handle Diplomacy
+    diplomacy.diplomacyOverlord();
 
     // Process Overlords
     let processed = 0;
