@@ -35,15 +35,28 @@ function highCommand() {
                     }
                 }
             }
-            let enemyTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
-                ((r.owner && (_.includes(HOSTILES, r.owner['username']) || _.includes(Memory._enemies, r.owner['username']))) ||
-                    (r.reservation && (_.includes(HOSTILES, r.reservation['username']) || _.includes(Memory._enemies, r.reservation['username'])))) &&
+            let enemySiege = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
+                (r.owner && (_.includes(HOSTILES, r.owner['username']) || _.includes(Memory._enemies, r.owner['username']))) &&
                 Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
-            for (let key in enemyTargets) {
-                if (!Memory.targetRooms[enemyTargets[key].name]) {
+            for (let key in enemySiege) {
+                if (!Memory.targetRooms[enemySiege[key].name]) {
                     let cache = Memory.targetRooms || {};
                     let tick = Game.time;
-                    cache[enemyTargets[key].name] = {
+                    cache[enemySiege[key].name] = {
+                        tick: tick,
+                        type: 'attack'
+                    };
+                    Memory.targetRooms = cache;
+                }
+            }
+            let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
+                (r.reservation && (_.includes(HOSTILES, r.reservation['username']) || _.includes(Memory._nuisance, r.reservation['username']))) &&
+                Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
+            for (let key in enemyHarass) {
+                if (!Memory.targetRooms[enemyHarass[key].name]) {
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[enemyHarass[key].name] = {
                         tick: tick,
                         type: 'attack'
                     };
