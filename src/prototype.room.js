@@ -324,8 +324,8 @@ Room.prototype.invaderCheck = function () {
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let multiple = 2;
-                if (this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
-                if (this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 5;
+                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
+                if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 5;
                 let threatRating;
                 if (cache[key]) {
                     threatRating = cache[key]['threatRating'] + (armed.length * multiple);
@@ -339,8 +339,8 @@ Room.prototype.invaderCheck = function () {
                 Memory._badBoyList = cache;
             } else {
                 let multiple = 0.5;
-                if (this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
-                if (this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 1;
+                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
+                if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 1;
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let threatRating;
@@ -362,8 +362,8 @@ Room.prototype.invaderCheck = function () {
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let multiple = 2;
-                if (this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
-                if (this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 5;
+                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
+                if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 5;
                 let threatRating;
                 if (cache[key]) {
                     threatRating = cache[key]['threatRating'] + (armed.length * multiple);
@@ -377,8 +377,8 @@ Room.prototype.invaderCheck = function () {
                 Memory._badBoyList = cache;
             } else {
                 let multiple = 0.5;
-                if (this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
-                if (this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 1;
+                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
+                if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 1;
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let threatRating;
