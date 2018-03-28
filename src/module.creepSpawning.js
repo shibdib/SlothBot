@@ -758,6 +758,7 @@ function bodyGenerator(level, role) {
             if (level < 4) break;
             tough = _.round(0.5 * level);
             rangedAttack = (1 * level) + 1;
+            heal = 0;
             if (level >= 6) heal = 1;
             move = tough + rangedAttack + heal;
             break;
