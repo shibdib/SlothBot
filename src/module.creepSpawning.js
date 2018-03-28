@@ -399,7 +399,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
     }
     //SK Rooms
-    if (level >= 7 && room.memory.skRooms && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+    if (level >= 7 && room.memory.skRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
         if (!_.includes(queue, 'SKattacker') && !TEN_CPU && SKAttacker.length < 1) {
             queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', misc: room.memory.skRooms})
@@ -629,45 +629,6 @@ module.exports.militaryCreepQueue = function () {
                     waitFor: 1,
                     military: true
                 })
-            }
-        }
-        // Nuke
-        if (Memory.targetRooms[key].type === 'nuke' && Memory.targetRooms[key].dDay <= Game.time - 50) {
-            let level = Memory.targetRooms[key].level;
-            if (level === 1) {
-                let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
-                if (deconstructor.length < 2 && !_.includes(queue, 'deconstructor')) {
-                    queueMilitaryCreep(PRIORITIES.clean + 1, {
-                        role: 'deconstructor',
-                        targetRoom: key,
-                        operation: 'clean',
-                        military: true,
-                        staging: stagingRoom
-                    })
-                }
-            } else if (level === 2) {
-                let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine');
-                let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeHealer');
-                if ((siegeEngine.length < siegeHealer.length || (siegeEngine[0] && siegeEngine[0].ticksToLive <= 500 && siegeEngine.length < 2)) && !_.includes(queue, 'siegeEngine')) {
-                    queueMilitaryCreep(PRIORITIES.siege, {
-                        role: 'siegeEngine',
-                        targetRoom: key,
-                        operation: 'siege',
-                        military: true,
-                        waitFor: 2,
-                        staging: stagingRoom
-                    })
-                }
-                if ((siegeHealer.length < 1 || (siegeHealer[0] && siegeHealer[0].ticksToLive <= 500 && siegeHealer.length < 2)) && !_.includes(queue, 'siegeHealer')) {
-                    queueMilitaryCreep(PRIORITIES.siege, {
-                        role: 'siegeHealer',
-                        targetRoom: key,
-                        operation: 'siege',
-                        military: true,
-                        waitFor: 2,
-                        staging: stagingRoom
-                    })
-                }
             }
         }
     }

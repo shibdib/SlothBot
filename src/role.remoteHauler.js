@@ -99,7 +99,22 @@ function role(creep) {
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     let storage = creep.room.storage;
                     let terminal = creep.room.terminal;
-                    if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70
+                    let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity)[0];
+                    if (nuker) {
+                        creep.memory.storageDestination = nuker.id;
+                        switch (creep.transfer(nuker, RESOURCE_ENERGY)) {
+                            case OK:
+                                delete creep.memory.storageDestination;
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(nuker, {ignoreRoads: true});
+                                break;
+                            case ERR_FULL:
+                                delete creep.memory.storageDestination;
+                                creep.findStorage();
+                                break;
+                        }
+                    } else if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70
                         && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.filter(creep.room.creeps, (c) => c.memory && c.memory.storageDestination === controllerContainer.id).length < 2
                         && (!storage || storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 1.5)) {
                         creep.memory.storageDestination = controllerContainer.id;

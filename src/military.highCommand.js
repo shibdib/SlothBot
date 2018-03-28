@@ -6,6 +6,7 @@ const profiler = require('screeps-profiler');
 
 function highCommand() {
     manualAttacks();
+    if (Game.time % 10 === 0) futureAttacks();
     if (Game.time % 150 === 0) {
         for (let key in Memory.ownedRooms) {
             let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
@@ -212,5 +213,30 @@ function nukeFlag(flag) {
         nuker.launchNuke(flag.pos);
         log.a('NUCLEAR LAUNCH DETECTED - ' + flag.pos.roomName + ' ' + flag.pos.x + '.' + flag.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
         flag.remove();
+    }
+}
+
+function futureAttacks() {
+    for (let key in Memory.targetRooms) {
+        if (!Memory.targetRooms[key].dDay) continue;
+        if (Memory.targetRooms[key].dDay <= Game.time) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            if (Memory.targetRooms[key].type === 'nuke') {
+                if (Memory.targetRooms[key].level === 1) {
+                    cache[key] = {
+                        tick: tick,
+                        type: 'clean',
+                        level: 2
+                    };
+                } else {
+                    cache[key] = {
+                        tick: tick,
+                        type: 'attack',
+                        level: 1
+                    };
+                }
+            }
+        }
     }
 }
