@@ -28,12 +28,6 @@ Creep.prototype.cleanRoom = function () {
         }
     }
     if (!target) {
-        switch (this.signController(this.room.controller, 'Room cleaned courtesy of #Overlord-Bot.')) {
-            case OK:
-                break;
-            case ERR_NOT_IN_RANGE:
-                return this.shibMove(this.room.controller);
-        }
         let terminal = this.room.terminal;
         let storage = this.room.storage;
         if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) > terminal.store[RESOURCE_ENERGY]) || (storage && _.sum(storage.store) > storage.store[RESOURCE_ENERGY]))) {
@@ -57,6 +51,12 @@ Creep.prototype.cleanRoom = function () {
             };
             Memory.targetRooms = cache;
         } else {
+            switch (this.signController(this.room.controller, 'Room cleaned courtesy of #Overlord-Bot.')) {
+                case OK:
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    return this.shibMove(this.room.controller);
+            }
             if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
             this.suicide();
