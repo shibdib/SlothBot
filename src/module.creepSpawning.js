@@ -14,7 +14,7 @@ module.exports.processBuildQueue = function () {
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
-                if (spawn.room.constructionSites.length === 0) {
+                if (spawn.room.constructionSites.length === 0 && spawn.room.memory.energySurplus) {
                     queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
@@ -350,7 +350,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
             }
-            if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU) {
+            if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU && room.memory.energySurplus) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1 && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires || Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires <= Game.time) && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.noRemote)) {
                     queueCreep(room, PRIORITIES.reserver, {
