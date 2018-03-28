@@ -687,8 +687,8 @@ function bodyGenerator(level, role) {
             break;
         case 'upgrader':
             if (level < 3) {
-                work = 2 * level;
-                carry = _.round((1 * level) / 3) || 1;
+                work = 2;
+                carry = 1;
                 move = work + carry;
                 break;
             } else {
