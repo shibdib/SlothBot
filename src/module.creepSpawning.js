@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2018.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.processBuildQueue = function () {
     let spawns = Game.spawns;
     for (let key in spawns) {
@@ -46,25 +53,25 @@ module.exports.processBuildQueue = function () {
                     });
                     if (!topPriority.role) return;
                     if (spawn.spawnCreep(body, role + '_' + spawn.room.name + '_T' + spawn.room.controller.level + '_' + _.random(1, 50), {
-                            memory: {
-                                born: Game.time,
-                                role: role,
-                                overlord: spawn.room.name,
-                                assignedSource: topPriority.assignedSource,
-                                destination: topPriority.destination,
-                                assignedMineral: topPriority.assignedMineral,
-                                military: topPriority.military,
-                                responseTarget: topPriority.responseTarget,
-                                targetRoom: topPriority.targetRoom,
-                                operation: topPriority.operation,
-                                siegePoint: topPriority.siegePoint,
-                                staging: topPriority.staging,
-                                waitFor: topPriority.waitFor,
-                                reservationTarget: topPriority.reservationTarget,
-                                initialBuilder: topPriority.initialBuilder,
-                                misc: topPriority.misc
-                            }
-                        }) === OK) {
+                        memory: {
+                            born: Game.time,
+                            role: role,
+                            overlord: spawn.room.name,
+                            assignedSource: topPriority.assignedSource,
+                            destination: topPriority.destination,
+                            assignedMineral: topPriority.assignedMineral,
+                            military: topPriority.military,
+                            responseTarget: topPriority.responseTarget,
+                            targetRoom: topPriority.targetRoom,
+                            operation: topPriority.operation,
+                            siegePoint: topPriority.siegePoint,
+                            staging: topPriority.staging,
+                            waitFor: topPriority.waitFor,
+                            reservationTarget: topPriority.reservationTarget,
+                            initialBuilder: topPriority.initialBuilder,
+                            misc: topPriority.misc
+                        }
+                    }) === OK) {
                         log.i(spawn.room.name + ' Spawning a ' + role);
                         if (topPriority.military) delete Memory.militaryBuildQueue;
                         return delete spawn.room.memory.creepBuildQueue;
@@ -812,17 +819,11 @@ function bodyGenerator(level, role) {
             move = tough + work + rangedAttack + heal;
             break;
         case 'siegeHealer':
-            if (level === 7) {
-                tough = 5;
-                heal = 15;
-                move = tough + heal;
-                break;
-            } else {
-                tough = 5;
-                heal = 20;
-                move = tough + heal;
-                break;
-            }
+            if (level < 8) break;
+            tough = 5;
+            heal = 20;
+            move = tough + heal;
+            break;
         // Remote
         case 'claimer':
             claim = 1;
