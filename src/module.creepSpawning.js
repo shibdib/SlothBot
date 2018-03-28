@@ -7,7 +7,7 @@ module.exports.processBuildQueue = function () {
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
-                if (spawn.room.constructionSites.length === 0 && spawn.room.energyAvailable > spawn.room.energyCapacityAvailable * 0.50) {
+                if (spawn.room.constructionSites.length === 0) {
                     queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
@@ -787,20 +787,24 @@ function bodyGenerator(level, role) {
             move = tough + heal + attack;
             break;
         case 'longbow':
+            if (level < 6) break;
             tough = _.round(0.5 * level);
             rangedAttack = (1 * level) + 1;
             heal = 1;
             move = tough + rangedAttack + heal;
             break;
         case 'raider':
+            if (level < 6) break;
             carry = _.round(1.5 * level);
             move = carry;
             break;
         case 'deconstructor':
+            if (level < 6) break;
             work = 1 * level;
             move = work;
             break;
         case 'siegeEngine':
+            if (level < 7) break;
             tough = 10;
             work = 10;
             rangedAttack = 2;
@@ -808,7 +812,7 @@ function bodyGenerator(level, role) {
             move = tough + work + rangedAttack + heal;
             break;
         case 'siegeHealer':
-            if (level < 8) {
+            if (level === 7) {
                 tough = 5;
                 heal = 15;
                 move = tough + heal;
