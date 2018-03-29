@@ -14,7 +14,7 @@ module.exports.processBuildQueue = function () {
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
-                if (spawn.room.constructionSites.length === 0 && spawn.room.memory.energySurplus) {
+                if (spawn.room.constructionSites.length === 0 && (spawn.room.memory.energySurplus || level === 8)) {
                     queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
@@ -332,7 +332,7 @@ module.exports.remoteCreepQueue = function (room) {
     if (level !== room.controller.level) return;
     let queue = room.memory.creepBuildQueue;
     //Remotes
-    if (room.memory.remoteRooms && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+    if (room.memory.remoteRooms && !room.memory.responseNeeded) {
         for (let keys in room.memory.remoteRooms) {
             let range = 1;
             if (level === 8) range = 2;
@@ -350,7 +350,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
             }
-            if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU && room.memory.energySurplus) {
+            if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU && room.memory.energySurplus && room.constructionSites.length <= 3) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1 && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires || Game.rooms[room.memory.remoteRooms[keys]].memory.reservationExpires <= Game.time) && (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.noRemote)) {
                     queueCreep(room, PRIORITIES.reserver, {
@@ -676,12 +676,12 @@ function bodyGenerator(level, role) {
             break;
         // General Creeps
         case 'worker':
-            work = _.round((1 * level) / 2);
+            work = level;
             carry = _.round((1 * level) / 3) || 1;
             move = work + carry;
             break;
         case 'waller':
-            work = _.round((1 * level) / 2);
+            work = level;
             carry = _.round((1 * level) / 3) || 1;
             move = work + carry;
             break;
