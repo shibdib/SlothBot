@@ -64,9 +64,7 @@ function role(creep) {
                         creep.findEssentials();
                         break;
                 }
-            } else if (!creep.findEssentials()) {
-                if (!creep.findStorage()) creep.idleFor(3);
-            }
+            } else if (!creep.findEssentials()) if (!creep.findStorage()) creep.idleFor(3);
         }
     }
 }
@@ -75,6 +73,7 @@ module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
 
 function terminalWorker(creep) {
     let terminal = creep.room.terminal;
+    let storage = creep.room.storage;
     let haulers = _.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'hauler');
     let terminalWorker = _.filter(Game.creeps, (c) => c.memory.terminalWorker && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker)) || haulers.length < 2) return undefined;
@@ -91,7 +90,6 @@ function terminalWorker(creep) {
             }
         }
     } else {
-        let storage = creep.room.storage;
         for (let resourceType in storage.store) {
             if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) break;
             if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY)) {
@@ -146,6 +144,15 @@ function terminalWorker(creep) {
             }
         }
         return true;
+    } else if (_.sum(storage.store) >= storage.storeCapacity * 0.90 && storage.store[RESOURCE_ENERGY] > 150000) {
+        creep.memory.terminalWorker = true;
+        switch (creep.withdraw(storage, RESOURCE_ENERGY)) {
+            case OK:
+                creep.memory.terminalDelivery = RESOURCE_ENERGY;
+                return true;
+            case ERR_NOT_IN_RANGE:
+                return creep.shibMove(storage);
+        }
     }
     delete creep.memory.terminalDelivery;
     return delete creep.memory.terminalWorker;

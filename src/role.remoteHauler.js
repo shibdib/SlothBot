@@ -96,7 +96,6 @@ function role(creep) {
                             break;
                     }
                 } else {
-                    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     let storage = creep.room.storage;
                     let terminal = creep.room.terminal;
                     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity)[0];
@@ -114,23 +113,7 @@ function role(creep) {
                                 creep.findStorage();
                                 break;
                         }
-                    } else if (controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.70
-                        && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.filter(creep.room.creeps, (c) => c.memory && c.memory.storageDestination === controllerContainer.id).length < 2
-                        && (!storage || storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 1.5)) {
-                        creep.memory.storageDestination = controllerContainer.id;
-                        switch (creep.transfer(controllerContainer, RESOURCE_ENERGY)) {
-                            case OK:
-                                delete creep.memory.storageDestination;
-                                break;
-                            case ERR_NOT_IN_RANGE:
-                                creep.shibMove(controllerContainer, {ignoreRoads: true});
-                                break;
-                            case ERR_FULL:
-                                delete creep.memory.storageDestination;
-                                creep.findStorage();
-                                break;
-                        }
-                    } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.8 && (storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 || terminal.store[RESOURCE_ENERGY] <= 5000) && terminal.store[RESOURCE_ENERGY] < 50000) {
+                    } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.90 && (storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 || terminal.store[RESOURCE_ENERGY] <= 5000 || _.sum(storage.store) >= storage.storeCapacity * 0.90)) {
                         creep.memory.storageDestination = terminal.id;
                         switch (creep.transfer(terminal, RESOURCE_ENERGY)) {
                             case OK:
@@ -144,7 +127,25 @@ function role(creep) {
                                 creep.findStorage();
                                 break;
                         }
-                    } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.95) {
+                    } else if (creep.findEssentials()) {
+                        let storageItem = Game.getObjectById(creep.memory.storageDestination);
+                        if (!storageItem) {
+                            delete creep.memory.storageDestination;
+                            return null;
+                        }
+                        switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
+                            case OK:
+                                delete creep.memory.storageDestination;
+                                break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.shibMove(storageItem);
+                                break;
+                            case ERR_FULL:
+                                delete creep.memory.storageDestination;
+                                if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
+                                break;
+                        }
+                    } else if (storage) {
                         creep.memory.storageDestination = storage.id;
                         switch (creep.transfer(storage, RESOURCE_ENERGY)) {
                             case OK:

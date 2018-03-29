@@ -463,10 +463,11 @@ function orderCleanup(myOrders) {
 function balanceEnergy(terminal, energyInRoom) {
     terminal.room.memory.energySurplus = energyInRoom >= energyAmount + (energyAmount * 0.19);
     terminal.room.memory.energyNeeded = energyInRoom < energyAmount;
+    if (terminal.room.memory.energyNeeded) return;
     let needingRooms = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.room.memory.energyNeeded && s.isActive()));
     let cost;
-    if (needingRooms[0]) cost = Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].room.name, terminal.room.name);
-    if (needingRooms[0] && terminal.room.memory.energySurplus && cost < terminal.store[RESOURCE_ENERGY] * 0.25 && !terminal.cooldown) {
+    if (needingRooms.length) cost = Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].room.name, terminal.room.name);
+    if (needingRooms.length && terminal.room.memory.energySurplus && cost < terminal.store[RESOURCE_ENERGY] * 0.25 && !terminal.cooldown) {
         if (terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].room.name) === OK) {
             return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_ENERGY] * 0.10 + ' ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].room.name + ' From ' + terminal.room.name);
         }

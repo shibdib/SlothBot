@@ -274,7 +274,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     }
     //Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= 7500 && terminal.pos.rangeToTarget(this) <= range) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 20000 && terminal.pos.rangeToTarget(this) <= range) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5) weight = 0.2;
@@ -349,7 +349,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= 7500 && terminal.pos.rangeToTarget(this) <= range) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= 100000 && terminal.pos.rangeToTarget(this) <= range) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
@@ -455,14 +455,12 @@ Creep.prototype.findStorage = function () {
     //Terminal
     let terminal = this.room.terminal;
     if (terminal && !this.room.memory.responseNeeded) {
-        if (terminal.pos.getRangeTo(this) > 1) {
-            const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.3, 0) + 1;
-            storage.push({
-                id: terminal.id,
-                distWeighted: terminalDistWeighted,
-                harvest: false
-            });
-        }
+        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.9, 0) + 1;
+        storage.push({
+            id: terminal.id,
+            distWeighted: terminalDistWeighted,
+            harvest: false
+        });
     }
     //Worker Deliveries
     let workers = _.filter(this.room.creeps, (h) => h.my && h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
@@ -488,11 +486,13 @@ Creep.prototype.findStorage = function () {
                     storageItem.memory.deliveryIncoming = true;
                 }
                 this.memory.storageDestination = storageItem.id;
-                return this.shibMove(storageItem);
+                this.shibMove(storageItem);
+                return true;
             }
         }
         return false;
     }
+    return false;
 };
 
 Creep.prototype.findEssentials = function () {
@@ -664,7 +664,7 @@ Creep.prototype.findEssentials = function () {
             }
             return true;
         } else {
-            return undefined;
+            return false;
         }
     } else {
         return false;

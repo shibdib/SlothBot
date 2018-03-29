@@ -257,7 +257,7 @@ Creep.prototype.tryToBoost = function (boosts) {
         }
         for (let key in this.memory.requestedBoosts) {
             let boostInRoom = getBoostAmount(this.room, this.memory.requestedBoosts[key]);
-            if (boostInRoom < 100) {
+            if (boostInRoom < this.memory.boostNeeded) {
                 this.memory.requestedBoosts.shift();
                 let lab = Game.getObjectById(this.memory.boostLab);
                 if (lab) {
@@ -308,6 +308,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                         lab.memory = undefined;
                         this.memory.boostLab = undefined;
                         this.memory.boostNeeded = undefined;
+                        this.memory.boosted = true;
                         this.say(ICONS.boost);
                         break;
                     case ERR_NOT_IN_RANGE:
@@ -317,6 +318,8 @@ Creep.prototype.tryToBoost = function (boosts) {
                         this.say(ICONS.boost);
                         return this.shibMove(lab);
                 }
+            } else {
+                return this.shibMove(lab);
             }
         }
     }
