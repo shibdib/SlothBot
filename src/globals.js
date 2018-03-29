@@ -60,9 +60,9 @@ let globals = function () {
         SKsupport: 6,
         SKhauler: 6,
         // Military
-        siege: 6,
-        harass: 7,
-        hold: 6,
+        siege: 5,
+        harass: 5,
+        hold: 5,
         raid: 8,
         clean: 8,
         scout: 2,
