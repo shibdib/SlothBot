@@ -1,8 +1,5 @@
 Creep.prototype.siegeRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
-        let sentence = ['Overlords', 'Wants', 'Your', 'Room'];
-        let word = Game.time % sentence.length;
-        this.say(sentence[word], true);
         let hostile = this.findClosestEnemy();
         if (this.memory.role === 'deconstructor' || this.memory.role === 'siegeEngine') {
             return this.siege();

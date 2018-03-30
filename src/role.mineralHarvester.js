@@ -12,6 +12,16 @@ function role(creep) {
     if (creep.renewalCheck(6)) return null;
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
+    // Check if mineral depleted
+    if (creep.memory.assignedMineral && Game.getObjectById(creep.memory.assignedMineral).mineralAmount === 0) {
+        if (_.sum(creep.carry) > 0) {
+            depositMineral(creep);
+            return null;
+        } else {
+            log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.assignedMineral).mineralType + ' has been depleted.');
+            creep.memory.role = 'waller'
+        }
+    }
     if (_.sum(creep.carry) === 0) {
         creep.memory.hauling = false;
     } else if (_.sum(creep.carry) === creep.carryCapacity || creep.memory.hauling === true) {
@@ -46,7 +56,7 @@ function depositMineral(creep) {
         switch (creep.transfer(storage, resourceType)) {
             case OK:
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(storage);
+                return creep.shibMove(storage);
         }
     }
 }

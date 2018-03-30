@@ -312,12 +312,21 @@ Creep.prototype.siege = function () {
                 this.memory.siegeTarget = target.id;
             }
         }
+        if (this.memory.wallCheck && this.memory.wallCheck === this.pos.x + this.pos.y + this.pos.roomName) target = this.findClosestBarrier();
+        if (!target || target === null) {
+            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
+            if (target) {
+                this.memory.siegeTarget = target.id;
+                this.memory.wallCheck = undefined;
+            }
+        }
         if (!target || target === null) {
             target = this.findClosestBarrier();
             if (target) {
                 this.memory.siegeTarget = target.id;
             }
         }
+        this.memory.wallCheck = this.pos.x + this.pos.y + this.pos.roomName;
         if (!target) {
             if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             if (Memory.activeSiege) delete Memory.activeSiege;
@@ -349,7 +358,7 @@ Creep.prototype.siege = function () {
                     if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
                     this.heal(this);
                     if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 1) return null;
-                    this.shibMove(target, {ignoreCreeps: true});
+                    this.shibMove(target, {ignoreCreeps: true, ignoreStructures: true});
                     delete this.memory.siegeTarget;
                     this.room.visual.text(
                         ICONS.noEntry,
@@ -437,7 +446,13 @@ Creep.prototype.siegeHeal = function () {
         return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
     } else {
         let deconstructor = Game.getObjectById(this.memory.healTarget);
-        this.shibMove(deconstructor, {range: 0, ignoreCreeps: true});
+        let moveRange = 0;
+        let ignore = true;
+        if (this.pos.x === 0 || this.pos.x === 49 || this.pos.y === 0 || this.pos.y === 49) {
+            moveRange = 1;
+            ignore = false;
+        }
+        this.shibMove(deconstructor, {range: moveRange, ignoreCreeps: ignore});
         let range = this.pos.getRangeTo(deconstructor);
         if (this.hits === this.hitsMax) {
             if (range <= 1) {

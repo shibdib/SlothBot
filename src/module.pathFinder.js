@@ -24,7 +24,8 @@ function shibMove(creep, heading, options = {}) {
         highwayBias: 2.5,
         maxRooms: 1,
         checkPath: false,
-        badRoom: undefined
+        badRoom: undefined,
+        returnIncomplete: false
     });
     if (creep.fatigue > 0) return creep.room.visual.circle(creep.pos, {
         fill: 'transparent',
@@ -208,9 +209,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             swampCost: options.offRoad ? 1 : options.ignoreRoads ? 10 : 20,
             roomCallback: callback,
         });
-        if (ret.incomplete || options.ensurePath) {
+        if ((ret.incomplete || options.ensurePath) && !options.returnIncomplete) {
             if (options.checkPath) return false;
-            if (roomDistance === 0) return creep.idleFor(2);
+            if (roomDistance === 0) return creep.idleFor(1);
             if (!pathInfo.findAttempt) {
                 options.useFindRoute = true;
                 options.allowSK = true;
@@ -292,7 +293,7 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].owner && Memory.roomCache[roomName].owner.username && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
-                    return 125;
+                    return 255;
                 }
             }
             // Ban rooms flagged as bad
