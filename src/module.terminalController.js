@@ -22,6 +22,8 @@ function terminalControl(room) {
         let terminalEnergy = terminal.store[RESOURCE_ENERGY] || 0;
         let storageEnergy = storage.store[RESOURCE_ENERGY] || 0;
         let energyInRoom = terminalEnergy + storageEnergy;
+        terminal.room.memory.energySurplus = energyInRoom >= energyAmount + (energyAmount * 0.19);
+        terminal.room.memory.energyNeeded = energyInRoom < energyAmount;
 
         //Cleanup broken or old order
         orderCleanup(myOrders);
@@ -116,7 +118,7 @@ function fillBuyOrders(terminal, globalOrders) {
         if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 5) {
             let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
                 order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName), 'price');
-            let sellableAmount = terminal.store[RESOURCE_ENERGY] - ((ENERGY_AMOUNT * 5) - ENERGY_AMOUNT * 3);
+            let sellableAmount = terminal.store[RESOURCE_ENERGY] - ((ENERGY_AMOUNT * 5) - (ENERGY_AMOUNT * 3));
             if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
                 if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
                     log.w(" MARKET: Sell Off Completed - " + RESOURCE_ENERGY + " for " + buyOrder.price * sellableAmount + " credits");
@@ -461,15 +463,14 @@ function orderCleanup(myOrders) {
 }
 
 function balanceEnergy(terminal, energyInRoom) {
-    terminal.room.memory.energySurplus = energyInRoom >= energyAmount + (energyAmount * 0.19);
-    terminal.room.memory.energyNeeded = energyInRoom < energyAmount;
     if (terminal.room.memory.energyNeeded) return;
-    let needingRooms = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.room.memory.energyNeeded && s.isActive()));
+    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.responseNeeded && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] < terminal.store[RESOURCE_ENERGY]));
+    if (!otherTerminals.length) otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && (s.store[RESOURCE_ENERGY] + 1000) < terminal.store[RESOURCE_ENERGY]));
     let cost;
-    if (needingRooms.length) cost = Game.market.calcTransactionCost(terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].room.name, terminal.room.name);
-    if (needingRooms.length && terminal.room.memory.energySurplus && cost < terminal.store[RESOURCE_ENERGY] * 0.25 && !terminal.cooldown) {
-        if (terminal.send(RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] * 0.10, needingRooms[0].room.name) === OK) {
-            return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_ENERGY] * 0.10 + ' ' + RESOURCE_ENERGY + ' To ' + needingRooms[0].room.name + ' From ' + terminal.room.name);
+    if (otherTerminals.length) cost = Game.market.calcTransactionCost((terminal.store[RESOURCE_ENERGY] - otherTerminals[0].store[RESOURCE_ENERGY]) / 2, otherTerminals[0].room.name, terminal.room.name);
+    if (otherTerminals.length && cost < terminal.store[RESOURCE_ENERGY] - otherTerminals[0].store[RESOURCE_ENERGY] && !terminal.cooldown) {
+        if (terminal.send(RESOURCE_ENERGY, (terminal.store[RESOURCE_ENERGY] - otherTerminals[0].store[RESOURCE_ENERGY]) / 2, otherTerminals[0].room.name) === OK) {
+            return log.a(' MARKET: Distributing ' + (terminal.store[RESOURCE_ENERGY] - otherTerminals[0].store[RESOURCE_ENERGY]) / 2 + ' ' + RESOURCE_ENERGY + ' To ' + otherTerminals[0].room.name + ' From ' + terminal.room.name);
         }
     }
 }

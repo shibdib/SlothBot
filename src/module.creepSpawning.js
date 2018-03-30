@@ -241,7 +241,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Upgrader
-    if (!_.includes(queue, 'upgrader') && level === room.controller.level && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+    if (!_.includes(queue, 'upgrader') && level === room.controller.level && !room.memory.responseNeeded) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let number = _.round((10 - level) / 2);
         if (level >= 6) number = 1;
@@ -597,7 +597,7 @@ module.exports.militaryCreepQueue = function () {
             let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine');
             let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeHealer');
             if (siegeEngine.length < siegeHealer.length && !_.includes(queue, 'siegeEngine')) {
-                queueMilitaryCreep(PRIORITIES.siege, {
+                queueMilitaryCreep(PRIORITIES.siege - 2, {
                     role: 'siegeEngine',
                     targetRoom: key,
                     operation: 'siege',
