@@ -274,6 +274,7 @@ Creep.prototype.moveToStaging = function () {
 Creep.prototype.siege = function () {
     if (this.room.name !== this.memory.targetRoom) {
         if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 2) return null;
+        this.rangedMassAttack();
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
             ignoreCreeps: true,
             range: 20
