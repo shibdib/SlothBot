@@ -185,7 +185,7 @@ Creep.prototype.fightRampart = function (target) {
     let returnCode;
     if (this.pos.getRangeTo(position) > 0) {
         this.say(ICONS.attack, true);
-        returnCode = this.shibMove(position, {forceRepath: true, range: 0});
+        returnCode = this.shibMove(position, {forceRepath: true, range: 0, ignoreCreeps: false});
         if (returnCode === OK) {
             return true;
         }

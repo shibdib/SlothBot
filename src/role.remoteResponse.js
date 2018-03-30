@@ -61,7 +61,7 @@ function findDefensivePosition(creep, target) {
         if (bestRampart) {
             creep.memory.assignedRampart = bestRampart.id;
             if (bestRampart.pos !== creep.pos) {
-                creep.shibMove(bestRampart, {forceRepath: true, range: 0});
+                creep.shibMove(bestRampart, {range: 0});
             }
         }
     }

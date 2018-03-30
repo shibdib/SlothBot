@@ -10,7 +10,7 @@ function role(creep) {
     //Invader detection
     creep.room.invaderCheck();
     creep.repairRoad();
-    let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
+    let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && c.owner.username !== 'Source Keeper'});
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 7) return creep.retreat();
     if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
