@@ -18,6 +18,22 @@ module.exports.hud = function () {
                 {align: 'left', opacity: 0.8, color: '#ff0000'}
             );
         }
+        if (Memory.activeSiege && Memory.activeSiege === key) {
+            new RoomVisual(key).text(
+                'ACTIVE SIEGE',
+                1,
+                2,
+                {align: 'left', opacity: 0.8, color: '#ff0000'}
+            );
+        }
+        if (type === 'siege' && Memory.activeSiege && Memory.activeSiege !== key) {
+            new RoomVisual(key).text(
+                'QUEUED SIEGE',
+                1,
+                2,
+                {align: 'left', opacity: 0.8, color: '#0b18ff'}
+            );
+        }
         if (!stagingRoom) {
             new RoomVisual(key).text(
                 ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level,

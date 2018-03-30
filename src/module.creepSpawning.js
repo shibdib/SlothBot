@@ -527,16 +527,14 @@ module.exports.militaryCreepQueue = function () {
             let healers = 0;
             let waitFor = 1;
             if (opLevel === '1') {
-                longbows = 2;
+                longbows = 1;
                 waitFor = 1;
             } else if (opLevel === '2') {
                 longbows = 2;
-                attackers = 1;
                 waitFor = 3;
             } else if (opLevel === '3') {
                 longbows = 2;
                 attackers = 1;
-                healers = 1;
                 waitFor = 4;
             }
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
@@ -593,11 +591,12 @@ module.exports.militaryCreepQueue = function () {
             }
         }
         // Siege
-        if (Memory.targetRooms[key].type === 'siege') {
+        if ((!Memory.activeSiege && Memory.targetRooms[key].type === 'siege') || Memory.activeSiege === key) {
+            Memory.activeSiege = key;
             let opLevel = Memory.targetRooms[key].level;
             let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine');
             let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeHealer');
-            if ((siegeEngine.length < siegeHealer.length || (siegeEngine[0] && siegeEngine[0].ticksToLive <= 500 && siegeEngine.length < opLevel + 1)) && !_.includes(queue, 'siegeEngine')) {
+            if (siegeEngine.length < siegeHealer.length && !_.includes(queue, 'siegeEngine')) {
                 queueMilitaryCreep(PRIORITIES.siege, {
                     role: 'siegeEngine',
                     targetRoom: key,
@@ -607,7 +606,7 @@ module.exports.militaryCreepQueue = function () {
                     staging: stagingRoom
                 })
             }
-            if ((siegeHealer.length < opLevel || (siegeHealer[0] && siegeHealer[0].ticksToLive <= 500 && siegeHealer.length < opLevel + 1)) && !_.includes(queue, 'siegeHealer')) {
+            if (siegeHealer.length < opLevel && !_.includes(queue, 'siegeHealer')) {
                 queueMilitaryCreep(PRIORITIES.siege, {
                     role: 'siegeHealer',
                     targetRoom: key,

@@ -289,7 +289,7 @@ function findRoute(origin, destination, options = {}) {
                 }
             }
             // Avoid rooms owned by others
-            if (Memory.roomCache[roomName]) {
+            if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].owner && Memory.roomCache[roomName].owner.username && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
                     return 125;
