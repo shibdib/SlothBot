@@ -47,11 +47,8 @@ RoomPosition.prototype.countOpenTerrainAround = function () {
     const plainArray = _.filter(terrainArray, 'terrain', 'plain');
     const swampArray = _.filter(terrainArray, 'terrain', 'swamp');
     const structures = Game.rooms[this.roomName].lookForAtArea(LOOK_STRUCTURES, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
-    const creeps = Game.rooms[this.roomName].lookForAtArea(LOOK_CREEPS, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
     const wall = _.filter(structures, 'structure', 'constructedWall');
-    if (plainArray.length + swampArray.length - wall.length - creeps.length > 0) {
-        return plainArray.length + swampArray.length - wall.length;
-    }
+    return plainArray.length + swampArray.length - wall.length;
 };
 
 RoomPosition.prototype.checkForWall = function () {
