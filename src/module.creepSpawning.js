@@ -333,11 +333,11 @@ module.exports.remoteCreepQueue = function (room) {
     let queue = room.memory.creepBuildQueue;
     let range = room.memory.remoteRange || 1;
     let sources = 0;
-    if (level >= 6 && !room.memory.remoteRange) {
+    if (level >= 6 && (!room.memory.remoteRange || Game.time % 1000 === 0)) {
         range:
             for (range = 1; range < 3; range++) {
                 for (let keys in room.memory.remoteRooms) {
-                    if (Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
+                    if (!Memory.roomCache[room.memory.remoteRooms[keys]] || Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
                     let roomSources = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length || 0;
                     sources = sources + roomSources;
                     if (sources >= 6) break range;
