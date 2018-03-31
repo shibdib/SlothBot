@@ -810,8 +810,9 @@ function bodyGenerator(level, role) {
             move = _.round(work / 2);
             break;
         case 'remoteHauler':
-            carry = _.round(2.5 * level);
-            move = carry;
+            carry = 3 * level;
+            work = 1;
+            move = _.round((carry / 2)) + work;
             break;
         case 'SKattacker':
             attack = 20;

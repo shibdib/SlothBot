@@ -13,6 +13,7 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) {
         creep.memory.destinationReached = true;
+        if (!creep.memory.buildAttempt) remoteRoads(creep);
         if (creep.room.constructionSites.length > 0) {
             creep.room.memory.requestingPioneer = true;
         } else {
