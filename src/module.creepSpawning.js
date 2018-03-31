@@ -337,7 +337,8 @@ module.exports.remoteCreepQueue = function (room) {
         range:
             for (range = 1; range < 3; range++) {
                 for (let keys in room.memory.remoteRooms) {
-                    if (!Memory.roomCache[room.memory.remoteRooms[keys]] || Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
+                    if (!Memory.roomCache[room.memory.remoteRooms[keys]] || Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length > range ||
+                        checkIfSK(room.memory.remoteRooms[keys]) || Memory.roomCache[room.memory.remoteRooms[keys]].owner) continue;
                     let roomSources = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length || 0;
                     sources = sources + roomSources;
                     if (sources >= 6) break range;

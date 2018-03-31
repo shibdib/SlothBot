@@ -123,6 +123,17 @@ abandonRoom = function (room) {
     Game.rooms[room].controller.unclaim();
 };
 
+nukes = function (target) {
+    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown);
+    if (target) nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, target) <= 10);
+    if (!nukes.length && !target) return log.a('No nukes available');
+    if (!nukes.length && target) return log.a('No nukes available in range of ' + target);
+    for (let key in nukes) {
+        if (target) log.a(nukes[key].room.name + ' has a nuclear missile available that is in range of ' + target);
+        if (!target) log.a(nukes[key].room.name + ' has a nuclear missile available.')
+    }
+};
+
 test = function () {
     let cache = Memory._badBoyList || {};
     cache['TESTING'] = {

@@ -235,7 +235,7 @@ function manualAttacks() {
 module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
 
 function nukeFlag(flag) {
-    let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];
+    let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];
     if (!nuker) {
         log.e('Nuke request for room ' + flag.pos.roomName + ' denied, no nukes found in-range.');
         flag.remove();
