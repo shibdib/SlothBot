@@ -304,13 +304,16 @@ Creep.prototype.tryToBoost = function (boosts) {
             if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && lab.mineralAmount >= this.memory.boostNeeded) {
                 switch (lab.boostCreep(this)) {
                     case OK:
-                        this.memory.requestedBoosts.shift();
                         lab.memory = undefined;
-                        this.memory.boostLab = undefined;
-                        this.memory.boostNeeded = undefined;
-                        this.memory.boosted = true;
-                        this.say(ICONS.boost);
-                        break;
+                        this.memory.requestedBoosts.shift();
+                        if (this.memory.requestedBoosts.length) {
+                            this.memory.boostNeeded = this.memory.requestedBoosts[0];
+                            lab.memory.neededBoost = this.memory.requestedBoosts[0];
+                            lab.memory.active = true;
+                            lab.memory.requested = Game.time;
+                        }
+                        this.say(ICONS.greenCheck);
+                        return this.shibMove(lab);
                     case ERR_NOT_IN_RANGE:
                         this.say(ICONS.boost);
                         return this.shibMove(lab);

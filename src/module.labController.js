@@ -181,7 +181,7 @@ function cleanBoostLabs(room) {
     let boostLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.neededBoost);
     for (let key in boostLabs) {
         let boostLab = boostLabs[key];
-        if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 100 < Game.time)) {
+        if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 150 < Game.time)) {
             boostLab.memory = undefined;
         }
     }

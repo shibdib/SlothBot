@@ -7,6 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.getSafe()) {
+        if (creep.room.constructionSites.length > 5) return creep.memory.role = 'worker';
         if (creep.renewalCheck(5)) return null;
         if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
         creep.repairRoad();

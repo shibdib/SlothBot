@@ -211,7 +211,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
             const object = container[i];
             if (object) {
                 if (this.room.memory.controllerContainer === object.id) continue;
-                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
+                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
                 if (object.store[RESOURCE_ENERGY] < 75 || (numberOfUsers >= 2 && this.pos.getRangeTo(object) > 1) || (object.room.controller.level >= 4 && object.store[RESOURCE_ENERGY] < 1200)) {
                     continue;
                 }
@@ -233,7 +233,6 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
             harvest: false
         });
     }
-    //storages
     //Storage
     let sStorage = this.room.storage;
     if (sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 0.75 && sStorage.pos.rangeToTarget(this) <= range) {
@@ -254,29 +253,11 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
             });
         }
     }
-    //Links
-    let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    if (storageLink && storageLink.energy > 0) {
-        let linkDistWeighted;
-        const object = storageLink;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        let itemRange = object.pos.rangeToTarget(this);
-        if (itemRange < range) {
-            if (object && object.energy > 0 && numberOfUsers.length === 0) {
-                linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0) + 1;
-            }
-            energy.push({
-                id: storageLink.id,
-                distWeighted: linkDistWeighted,
-                harvest: false
-            });
-        }
-    }
     //Terminal
     let terminal = this.room.terminal;
     if (terminal && terminal.store[RESOURCE_ENERGY] >= 20000 && terminal.pos.rangeToTarget(this) <= range) {
         let weight = 0.3;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id && c.id !== this.id).length;
         if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5) weight = 0.2;
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
         energy.push({
@@ -305,16 +286,13 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     //Container
     let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (container.length > 0) {
-        let hub;
-        if (this.room.memory.responseNeeded) hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
         let containers = [];
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
-            if (object) {
-                if (hub && object.pos.getRangeTo(hub) > 5) continue;
+            if (object && !this.room.memory.responseNeeded && object.pos.rangeToTarget(this) <= range) {
                 if (object.id === this.room.memory.controllerContainer) continue;
-                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-                if (object.store[RESOURCE_ENERGY] < 100 || object.pos.rangeToTarget(this) > range || (numberOfUsers >= 1 && this.pos.getRangeTo(object) > 1)) continue;
+                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
+                if (object.store[RESOURCE_ENERGY] < 100 || numberOfUsers > 0) continue;
                 let weight = 0.3;
                 if (object.store[RESOURCE_ENERGY] > 1500) weight = 0.1;
                 const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -335,7 +313,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     //Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 0) {
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === storageLink.id).length;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === storageLink.id && c.id !== this.id).length;
         if (numberOfUsers < 1) {
             let weight = 0.3;
             if (storageLink.energy > 500) weight = 0.01;
@@ -351,7 +329,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     let terminal = this.room.terminal;
     if (terminal && (terminal.store[RESOURCE_ENERGY] >= 100000 || this.room.memory.responseNeeded)) {
         let weight = 0.3;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id).length;
+        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id && c.id !== this.id).length;
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
         energy.push({
             id: terminal.id,
@@ -606,7 +584,7 @@ Creep.prototype.findEssentials = function () {
     }
     //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
+    if (controllerContainer && !this.room.memory.responseNeeded && this.room.energyAvailable > this.room.energyCapacityAvailable * 0.5 && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;

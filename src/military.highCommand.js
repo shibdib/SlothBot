@@ -219,7 +219,7 @@ function nukeFlag(flag) {
 function futureAttacks() {
     for (let key in Memory.targetRooms) {
         if (!Memory.targetRooms[key].dDay) continue;
-        if (Memory.targetRooms[key].dDay <= Game.time) {
+        if (Memory.targetRooms[key].dDay - 50 <= Game.time) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             if (Memory.targetRooms[key].type === 'nuke') {

@@ -80,6 +80,14 @@ RoomPosition.prototype.checkForAllStructure = function () {
     }
 };
 
+RoomPosition.prototype.checkForRampart = function () {
+    if (Game.rooms[this.roomName]) {
+        return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART});
+    } else {
+        return undefined;
+    }
+};
+
 RoomPosition.prototype.checkForImpassible = function () {
     if (this.checkForObstacleStructure() || this.checkForWall()) return true;
 };

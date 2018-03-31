@@ -44,7 +44,7 @@ function role(creep) {
                             creep.shibMove(dropped);
                         }
                     }
-                } else {
+                } else if (creep.memory.destination) {
                     creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20, offRoad: true});
                 }
             } else {
