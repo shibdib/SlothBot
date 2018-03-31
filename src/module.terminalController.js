@@ -464,8 +464,8 @@ function orderCleanup(myOrders) {
 
 function balanceEnergy(terminal, energyInRoom) {
     if (terminal.room.memory.energyNeeded) return;
-    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.responseNeeded && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] < terminal.store[RESOURCE_ENERGY]));
-    if (!otherTerminals.length) otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && (s.store[RESOURCE_ENERGY] + 1000) < terminal.store[RESOURCE_ENERGY]));
+    let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.responseNeeded && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] + (s.room.storage.store[RESOURCE_ENERGY] || 0) < energyInRoom));
+    if (!otherTerminals.length) otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] + (s.room.storage.store[RESOURCE_ENERGY] || 0) < energyInRoom));
     let cost;
     if (otherTerminals.length) cost = Game.market.calcTransactionCost((terminal.store[RESOURCE_ENERGY] - otherTerminals[0].store[RESOURCE_ENERGY]) / 2, otherTerminals[0].room.name, terminal.room.name);
     if (otherTerminals.length && cost < terminal.store[RESOURCE_ENERGY] - otherTerminals[0].store[RESOURCE_ENERGY] && !terminal.cooldown) {
