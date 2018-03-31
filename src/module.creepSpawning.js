@@ -331,12 +331,24 @@ module.exports.remoteCreepQueue = function (room) {
     let level = getLevel(room);
     if (level !== room.controller.level) return;
     let queue = room.memory.creepBuildQueue;
+    let range = room.memory.remoteRange || 1;
+    let sources = 0;
+    if (level >= 6 && !room.memory.remoteRange) {
+        range:
+            for (range = 1; range < 3; range++) {
+                for (let keys in room.memory.remoteRooms) {
+                    if (Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
+                    let roomSources = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length || 0;
+                    sources = sources + roomSources;
+                    if (sources >= 6) break range;
+                }
+            }
+        room.memory.remoteRange = range;
+    }
     //Remotes
     if (room.memory.remoteRooms && !room.memory.responseNeeded) {
         let harvesterCount = 0;
         for (let keys in room.memory.remoteRooms) {
-            let range = 1;
-            if (level >= 7) range = 2;
             if (Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
             // Remote Response
             if (!_.includes(queue, 'longbow')) {
