@@ -117,7 +117,7 @@ function manageActiveLabs(room) {
                 let creatorTwo = Game.getObjectById(creators[1]);
                 if (creatorOne) rangeOne = creatorOne.pos.getRangeTo(outputLab);
                 if (creatorTwo) rangeTwo = creatorTwo.pos.getRangeTo(outputLab);
-                if (rangeOne > 3 || rangeTwo > 3 || !rangeOne || !rangeTwo) {
+                if ((rangeOne > 3 || rangeTwo > 3 || !rangeOne || !rangeTwo) && !outputLab.memory.neededBoost) {
                     log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
                     for (let id in creators) {
                         creators[id].memory = undefined;

@@ -775,10 +775,9 @@ function bodyGenerator(level, role) {
         case 'siegeEngine':
             if (level < 7) break;
             tough = 10;
-            work = 10;
-            rangedAttack = 2;
-            heal = 3;
-            move = tough + work + rangedAttack + heal;
+            attack = 10;
+            rangedAttack = 5;
+            move = tough + work + rangedAttack;
             break;
         case 'siegeHealer':
             if (level < 8) break;
