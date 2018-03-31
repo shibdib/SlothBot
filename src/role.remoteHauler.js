@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.say(ICONS.haul, true);
-    if (creep.renewalCheck(7)) return null;
+    if (creep.getActiveBodyparts(WORK) > 0) if (creep.renewalCheck(7)) return null;
     if (creep.room.invaderCheck()) return creep.goHomeAndHeal();
     creep.repairRoad();
     if (_.sum(creep.carry) === 0) {
@@ -61,7 +61,6 @@ function role(creep) {
         } else {
             if (creep.pos.roomName === creep.memory.overlord) {
                 creep.memory.destinationReached = false;
-                let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity * 0.75);
                 if (creep.memory.storageDestination) {
                     let storageItem = Game.getObjectById(creep.memory.storageDestination);
                     for (const resourceType in creep.carry) {
@@ -69,96 +68,33 @@ function role(creep) {
                             case OK:
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                creep.shibMove(storageItem, {ignoreRoads: true});
+                                creep.shibMove(storageItem);
                                 if (creep.carry[RESOURCE_ENERGY] > 0) {
-                                    let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
+                                    let adjacentStructure = shuffle(_.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity));
                                     if (adjacentStructure.length) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
                                 }
                                 break;
                             case ERR_FULL:
                                 delete creep.memory.storageDestination;
-                                creep.findStorage();
                                 break;
                         }
                     }
-                } else if (labs[0] && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
-                    creep.memory.storageDestination = labs[0].id;
-                    switch (creep.transfer(labs[0], RESOURCE_ENERGY)) {
-                        case OK:
-                            delete creep.memory.storageDestination;
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(labs[0], {ignoreRoads: true});
-                            break;
-                        case ERR_FULL:
-                            delete creep.memory.storageDestination;
-                            creep.findStorage();
-                            break;
-                    }
                 } else {
+                    let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity * 0.75);
                     let storage = creep.room.storage;
                     let terminal = creep.room.terminal;
                     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity)[0];
-                    if (nuker) {
+                    if (labs[0] && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
+                        creep.memory.storageDestination = labs[0].id;
+                    } else if (nuker) {
                         creep.memory.storageDestination = nuker.id;
-                        switch (creep.transfer(nuker, RESOURCE_ENERGY)) {
-                            case OK:
-                                delete creep.memory.storageDestination;
-                                break;
-                            case ERR_NOT_IN_RANGE:
-                                creep.shibMove(nuker, {ignoreRoads: true});
-                                break;
-                            case ERR_FULL:
-                                delete creep.memory.storageDestination;
-                                creep.findStorage();
-                                break;
-                        }
-                    } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.90 && (storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 || terminal.store[RESOURCE_ENERGY] <= 5000 || _.sum(storage.store) >= storage.storeCapacity * 0.90)) {
+                    } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.90 && (storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 ||
+                            terminal.store[RESOURCE_ENERGY] <= 5000 || _.sum(storage.store) >= storage.storeCapacity * 0.90)) {
                         creep.memory.storageDestination = terminal.id;
-                        switch (creep.transfer(terminal, RESOURCE_ENERGY)) {
-                            case OK:
-                                delete creep.memory.storageDestination;
-                                break;
-                            case ERR_NOT_IN_RANGE:
-                                creep.shibMove(terminal, {ignoreRoads: true});
-                                break;
-                            case ERR_FULL:
-                                delete creep.memory.storageDestination;
-                                creep.findStorage();
-                                break;
-                        }
-                    } else if (creep.findEssentials()) {
-                        let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                        if (!storageItem) {
-                            delete creep.memory.storageDestination;
-                            return null;
-                        }
-                        switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
-                            case OK:
-                                delete creep.memory.storageDestination;
-                                break;
-                            case ERR_NOT_IN_RANGE:
-                                creep.shibMove(storageItem);
-                                break;
-                            case ERR_FULL:
-                                delete creep.memory.storageDestination;
-                                if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
-                                break;
-                        }
                     } else if (storage) {
                         creep.memory.storageDestination = storage.id;
-                        switch (creep.transfer(storage, RESOURCE_ENERGY)) {
-                            case OK:
-                                delete creep.memory.storageDestination;
-                                break;
-                            case ERR_NOT_IN_RANGE:
-                                creep.shibMove(storage, {ignoreRoads: true});
-                                break;
-                            case ERR_FULL:
-                                delete creep.memory.storageDestination;
-                                creep.findStorage();
-                                break;
-                        }
+                    } else {
+                        creep.findEssentials()
                     }
                 }
             } else {
