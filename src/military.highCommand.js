@@ -23,7 +23,7 @@ function highCommand() {
                 }
             }
             if (ATTACK_LOCALS) {
-                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 3);
+                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && r.controller.level < 4 && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
                 for (let key in localTargets) {
                     if (!Memory.targetRooms[localTargets[key].name]) {
                         let cache = Memory.targetRooms || {};
@@ -71,15 +71,45 @@ function highCommand() {
 
 function manualAttacks() {
     for (let name in Game.flags) {
+        //Cancel attacks
         if (_.startsWith(name, 'cancel')) {
             delete Memory.targetRooms[Game.flags[name].pos.roomName];
             Game.flags[name].remove();
         }
+        //Bad room flag
+        if (_.startsWith(name, 'avoid')) {
+            let cache = Memory.avoidRooms || [];
+            cache.push(Game.flags[name].pos.roomName);
+            Memory.avoidRooms = cache;
+            Game.flags[name].remove();
+        }
+        //Remove bad room flag
+        if (_.startsWith(name, 'remove')) {
+            if (Memory.avoidRooms) {
+                let cache = Memory.avoidRooms;
+                cache = _.filter(cache, (r) => r !== Game.flags[name].pos.roomName);
+                Memory.avoidRooms = cache;
+            }
+            Game.flags[name].remove();
+        }
+        //Set staging room
         if (_.startsWith(name, 'stage')) {
             let cache = Memory.stagingRooms || {};
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick
+            };
+            Memory.stagingRooms = cache;
+            Game.flags[name].remove();
+        }
+        //Set future
+        if (_.startsWith(name, 'future')) {
+            let cache = Memory.stagingRooms || {};
+            let ticks = name.match(/\d+$/)[0];
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                dDay: tick + ticks,
             };
             Memory.stagingRooms = cache;
             Game.flags[name].remove();
@@ -219,24 +249,14 @@ function nukeFlag(flag) {
 function futureAttacks() {
     for (let key in Memory.targetRooms) {
         if (!Memory.targetRooms[key].dDay) continue;
-        if (Memory.targetRooms[key].dDay - 50 <= Game.time) {
+        if (Memory.targetRooms[key].dDay - 100 <= Game.time) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
-            if (Memory.targetRooms[key].type === 'nuke') {
-                if (Memory.targetRooms[key].level === 1) {
-                    cache[key] = {
-                        tick: tick,
-                        type: 'clean',
-                        level: 2
-                    };
-                } else {
-                    cache[key] = {
-                        tick: tick,
-                        type: 'attack',
-                        level: 1
-                    };
-                }
-            }
+            cache[key] = {
+                tick: tick,
+                type: 'attack',
+                level: 1
+            };
         }
     }
 }

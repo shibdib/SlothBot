@@ -296,6 +296,10 @@ function findRoute(origin, destination, options = {}) {
                     return 255;
                 }
             }
+            // Check for manual flagged rooms
+            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
+                return 255;
+            }
             // Ban rooms flagged as bad
             if (roomName === options.badRoom) return Infinity;
             return 2.5;

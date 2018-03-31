@@ -129,6 +129,7 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     let constructionSite = this.pos.findClosestByRange(this.room.constructionSites);
     if (constructionSite && !_.includes(FRIENDLIES, constructionSite.owner['username'])) {
         this.say('TRAMPLE!!', true);
+        if (constructionSite.pos === this.pos) return this.moveRandom();
         let returnCode = this.shibMove(constructionSite, {range:0});
         return true;
     }
@@ -348,6 +349,8 @@ Creep.prototype.siege = function () {
                 };
                 Memory.targetRooms = cache;
             }
+            if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
+            this.moveToHostileConstructionSites();
         } else {
             if (this.memory.wallCheck) delete this.memory.wallCheck;
             if (this.getActiveBodyparts(ATTACK) === 0) {
