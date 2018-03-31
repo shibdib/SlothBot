@@ -391,7 +391,7 @@ module.exports.remoteCreepQueue = function (room) {
             harvesterCount = remoteHarvester.length + harvesterCount;
         }
         if (!_.includes(queue, 'remoteHauler') && !TEN_CPU) {
-            let amount = _.round(harvesterCount / 1.45);
+            let amount = _.round(harvesterCount / 1.75);
             if (amount === 0) amount = 1;
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
             if (remoteHauler.length < amount) {
