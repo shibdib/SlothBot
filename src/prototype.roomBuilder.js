@@ -406,21 +406,20 @@ function buildRoads(room, structures) {
         buildRoadAround(room, mineral.pos);
         buildRoadFromTo(room, spawner, mineral);
     }
-    try {
-        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_TOP));
-    } catch (e) {
-    }
-    try {
-        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_RIGHT));
-    } catch (e) {
-    }
-    try {
-        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_BOTTOM));
-    } catch (e) {
-    }
-    try {
-        buildRoadFromTo(room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_LEFT));
-    } catch (e) {
+    let neighboring = Game.map.describeExits(spawner.pos.roomName);
+    if (neighboring) {
+        if (neighboring['1']) {
+            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_TOP));
+        }
+        if (neighboring['3']) {
+            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_RIGHT));
+        }
+        if (neighboring['5']) {
+            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_BOTTOM));
+        }
+        if (neighboring['7']) {
+            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_LEFT));
+        }
     }
 }
 
