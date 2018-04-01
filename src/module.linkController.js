@@ -5,7 +5,7 @@
 const profiler = require('screeps-profiler');
 
 function linkControl(room) {
-    let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.storageLink && s.id !== s.room.memory.controllerLink && s.energy > 250 && s.cooldown === 0);
+    let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.storageLink && s.id !== s.room.memory.controllerLink && s.cooldown === 0);
     let storageLink = Game.getObjectById(room.memory.storageLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!storageLink) delete room.memory.storageLink;
@@ -21,6 +21,7 @@ function linkControl(room) {
                 continue;
             }
         }
+        if (link.energy < 250) continue;
         let upgrader = _.filter(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader')[0];
         if (upgrader && controllerLink && controllerLink.energy + upgrader.carry[RESOURCE_ENERGY] < 150 && link.room.energyAvailable > link.room.energyCapacityAvailable * 0.70) {
             link.transferEnergy(controllerLink);
