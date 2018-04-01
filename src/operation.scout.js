@@ -3,38 +3,28 @@ Creep.prototype.scoutRoom = function () {
     this.room.cacheRoomIntel(true);
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART);
-    let terminal = this.room.terminal;
-    let storage = this.room.storage;
     let controller = this.room.controller;
-    if (controller.owner && (towers.length === 0 || _.max(towers, 'energy').energy === 0) && ramparts[0]) {
+    if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && ramparts[0]) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.pos.roomName] = {
             tick: tick,
             type: 'clean',
-            level: 2
+            level: 2,
+            escort: true
         };
         Memory.targetRooms = cache;
-    } else if (controller.owner && (towers.length === 0 || _.max(towers, 'energy').energy === 0) && !ramparts[0] && ((terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) || (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0))) {
+    } else if (controller.owner && towers.length) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
-        cache[this.pos.roomName] = {
-            tick: tick,
-            type: 'robbery',
-            level: 1
-        };
-        Memory.targetRooms = cache;
-    } else if (controller.owner && towers.length >= 1) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        let level = _.round((towers.length / 2) + 0.5);
+        let level = _.round((towers.length / 3) + 0.5);
         cache[this.pos.roomName] = {
             tick: tick,
             type: 'siege',
             level: level
         };
         Memory.targetRooms = cache;
-    } else if (!controller.owner && !ramparts[0]) {
+    } else if (!controller.owner && (!this.room.structures.length || this.room.structures.length < 3)) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.pos.roomName] = {
@@ -49,15 +39,6 @@ Creep.prototype.scoutRoom = function () {
         cache[this.pos.roomName] = {
             tick: tick,
             type: 'clean',
-            level: 2
-        };
-        Memory.targetRooms = cache;
-    } else if (!controller.owner && !ramparts[0] && ((terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) || (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0))) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[this.pos.roomName] = {
-            tick: tick,
-            type: 'robbery',
             level: 1
         };
         Memory.targetRooms = cache;

@@ -93,7 +93,7 @@ function terminalWorker(creep) {
     } else {
         for (let resourceType in storage.store) {
             if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) break;
-            if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY)) {
+            if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY)) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
                         switch (creep.transfer(storage, resourceType)) {
@@ -111,9 +111,11 @@ function terminalWorker(creep) {
                     creep.memory.terminalWorker = true;
                     switch (creep.withdraw(storage, resourceType)) {
                         case OK:
+                            creep.memory.terminalWorker = true;
                             creep.memory.terminalDelivery = resourceType;
                             return true;
                         case ERR_NOT_IN_RANGE:
+                            creep.memory.terminalWorker = true;
                             return creep.shibMove(storage);
                     }
                 }

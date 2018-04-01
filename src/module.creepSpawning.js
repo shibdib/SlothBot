@@ -500,7 +500,7 @@ module.exports.militaryCreepQueue = function () {
             }
             let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
             if (deconstructor.length < deconstructors && !_.includes(queue, 'deconstructor')) {
-                queueMilitaryCreep(PRIORITIES.clean + 1, {
+                queueMilitaryCreep(PRIORITIES.clean, {
                     role: 'deconstructor',
                     targetRoom: key,
                     operation: 'clean',
@@ -510,7 +510,7 @@ module.exports.militaryCreepQueue = function () {
             }
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
             if (escort && longbow.length < deconstructors && !_.includes(queue, 'longbow')) {
-                queueMilitaryCreep(PRIORITIES.clean + 1, {
+                queueMilitaryCreep(PRIORITIES.clean, {
                     role: 'longbow',
                     targetRoom: key,
                     operation: 'guard',
@@ -524,7 +524,7 @@ module.exports.militaryCreepQueue = function () {
             let raiders = 3;
             let raider = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'raider');
             if (raider.length < raiders && !_.includes(queue, 'raider')) {
-                queueMilitaryCreep(PRIORITIES.raid + 1, {
+                queueMilitaryCreep(PRIORITIES.hold, {
                     role: 'raider',
                     targetRoom: key,
                     operation: 'robbery',

@@ -516,9 +516,9 @@ function balanceBoosts(terminal) {
     if (terminal.store[RESOURCE_GHODIUM] >= 1000) {
         for (let id in otherTerminals) {
             let stored = otherTerminals[id].store[RESOURCE_GHODIUM] || 0;
-            if (stored < terminal.store[RESOURCE_GHODIUM] && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
+            if (stored < 5000 && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                 if (terminal.send(RESOURCE_GHODIUM, terminal.store[RESOURCE_GHODIUM] * 0.5, otherTerminals[id].room.name) === OK) {
-                    return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_GHODIUM] * 0.5 + ' ' + RESOURCE_GHODIUM + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                    return log.a(' MARKET: Distributing ' + terminal.store[RESOURCE_GHODIUM] + ' ' + RESOURCE_GHODIUM + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
                 }
             }
         }
