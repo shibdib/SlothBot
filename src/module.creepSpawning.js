@@ -716,13 +716,13 @@ function bodyGenerator(level, role) {
                 move = carry;
                 break;
             } else {
-                carry = 1 * level;
-                move = carry / 2;
+                carry = _.round(1.7 * level);
+                move = _.round(carry / 2);
                 break;
             }
         case 'labTech':
-            carry = 1 * level;
-            move = carry / 2;
+            carry = _.round(1.7 * level);
+            move = _.round(carry / 2);
             break;
         case 'stationaryHarvester':
             if (level < 3) {
