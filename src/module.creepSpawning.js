@@ -284,7 +284,7 @@ module.exports.workerCreepQueue = function (room) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let lowestRamp = _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
         let amount = 2;
-        if (lowestRamp.hits >= level * 500000) amount = 1;
+        if (lowestRamp.hits >= level * 250000) amount = 1;
         if (TEN_CPU) amount = 1;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller'})

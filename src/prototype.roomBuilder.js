@@ -409,16 +409,24 @@ function buildRoads(room, structures) {
     let neighboring = Game.map.describeExits(spawner.pos.roomName);
     if (neighboring) {
         if (neighboring['1']) {
-            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_TOP));
+            let exits = spawner.room.find(FIND_EXIT_TOP);
+            let middle = _.round(exits.length / 2);
+            buildRoadFromTo(spawner.room, spawner, exits[middle]);
         }
         if (neighboring['3']) {
-            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_RIGHT));
+            let exits = spawner.room.find(FIND_EXIT_RIGHT);
+            let middle = _.round(exits.length / 2);
+            buildRoadFromTo(spawner.room, spawner, exits[middle]);
         }
         if (neighboring['5']) {
-            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_BOTTOM));
+            let exits = spawner.room.find(FIND_EXIT_BOTTOM);
+            let middle = _.round(exits.length / 2);
+            buildRoadFromTo(spawner.room, spawner, exits[middle]);
         }
         if (neighboring['7']) {
-            buildRoadFromTo(spawner.room, spawner, spawner.pos.findClosestByPath(FIND_EXIT_LEFT));
+            let exits = spawner.room.find(FIND_EXIT_LEFT);
+            let middle = _.round(exits.length / 2);
+            buildRoadFromTo(spawner.room, spawner, exits[middle]);
         }
     }
 }

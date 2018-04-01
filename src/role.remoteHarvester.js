@@ -85,20 +85,28 @@ function remoteRoads(creep) {
         buildRoadFromTo(creep.room, sources[0], sources[1]);
     }
     for (let key in sources){
-        if (_.size(Game.constructionSites) >= 50) return;
+        if (_.size(Game.constructionSites) >= 80) return;
         buildRoadAround(creep.room, sources[key].pos);
         if (neighboring) {
             if (neighboring['1']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_TOP));
+                let exits = sources[key].room.find(FIND_EXIT_TOP);
+                let middle = _.round(exits.length / 2);
+                buildRoadFromTo(creep.room, sources[key], exits[middle]);
             }
             if (neighboring['3']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_RIGHT));
+                let exits = sources[key].room.find(FIND_EXIT_RIGHT);
+                let middle = _.round(exits.length / 2);
+                buildRoadFromTo(creep.room, sources[key], exits[middle]);
             }
             if (neighboring['5']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_BOTTOM));
+                let exits = sources[key].room.find(FIND_EXIT_BOTTOM);
+                let middle = _.round(exits.length / 2);
+                buildRoadFromTo(creep.room, sources[key], exits[middle]);
             }
             if (neighboring['7']) {
-                buildRoadFromTo(creep.room, sources[key], sources[key].pos.findClosestByPath(FIND_EXIT_LEFT));
+                let exits = sources[key].room.find(FIND_EXIT_LEFT);
+                let middle = _.round(exits.length / 2);
+                buildRoadFromTo(creep.room, sources[key], exits[middle]);
             }
         }
     }
