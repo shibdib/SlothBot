@@ -244,14 +244,12 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         if (this.room.memory.responseNeeded) {
             weight = 0.8;
         }
-        if (sStorage.pos.getRangeTo(this) > 1) {
-            const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
-            energy.push({
-                id: sStorage.id,
-                distWeighted: storageDistWeighted,
-                harvest: false
-            });
-        }
+        const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
+        energy.push({
+            id: sStorage.id,
+            distWeighted: storageDistWeighted,
+            harvest: false
+        });
     }
     //Terminal
     let terminal = this.room.terminal;
