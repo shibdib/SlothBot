@@ -180,7 +180,7 @@ function boostDelivery(creep) {
             case OK:
                 return delete creep.memory.labTech;
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(lab);
+                creep.shibMove(lab, {ignoreCreeps: false});
                 creep.memory.labTech = true;
                 return true;
         }

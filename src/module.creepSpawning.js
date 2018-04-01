@@ -413,7 +413,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
     }
     //SK Rooms
-    if (level >= 7 && room.memory.skRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+    if (level >= 7 && room.memory.skRooms && !room.memory.noSK && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
         if (!_.includes(queue, 'SKattacker') && !TEN_CPU && SKAttacker.length < 1) {
             queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', misc: room.memory.skRooms})
