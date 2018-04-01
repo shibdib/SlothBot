@@ -313,21 +313,11 @@ Creep.prototype.siege = function () {
             }
         }
         if (!target || target === null) {
-            target = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_LINK && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER)});
-            if (target) {
-                if (this.memory.wallCheck && !this.fatigue && this.memory.wallCheck === this.pos.x + this.pos.y + this.pos.roomName) {
-                    target = this.findClosestBarrier();
-                }
-                this.memory.wallCheck = this.pos.x + this.pos.y + this.pos.roomName;
-                if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
-                this.heal(this);
-                return this.shibMove(target, {ignoreCreeps: true, returnIncomplete: true});
-            }
+            target = this.findClosestBarrier();
         }
         if (!target) {
             if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             if (Memory.activeSiege) delete Memory.activeSiege;
-            if (this.memory.wallCheck) delete this.memory.wallCheck;
             let terminal = this.room.terminal;
             let storage = this.room.storage;
             if ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0)) {
@@ -352,52 +342,26 @@ Creep.prototype.siege = function () {
             if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
             this.moveToHostileConstructionSites();
         } else {
-            if (this.memory.wallCheck) delete this.memory.wallCheck;
-            if (this.getActiveBodyparts(ATTACK) === 0) {
-                switch (this.dismantle(target)) {
-                    case ERR_NOT_IN_RANGE:
-                        if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
-                        this.heal(this);
-                        this.shibMove(target, {ignoreCreeps: true, ignoreStructures: true});
-                        this.room.visual.text(ICONS.noEntry, target.pos.x, target.pos.y, {align: 'left', opacity: 1});
-                        break;
-                    case ERR_NO_BODYPART:
-                        if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
-                        this.heal(this);
-                        if (this.getActiveBodyparts(ATTACK) > 0) this.attack(target);
-                        this.shibMove(target, {ignoreCreeps: true});
-                        break;
-                    case OK:
-                        if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
-                        this.room.visual.text(ICONS.greenCheck, target.pos.x, target.pos.y, {
-                            align: 'left',
-                            opacity: 1
-                        });
-                        return true;
+            switch (this.attack(target)) {
+                case ERR_NOT_IN_RANGE:
+                    if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
+                    this.heal(this);
+                    this.shibMove(target, {ignoreCreeps: true, ignoreStructures: true});
+                    this.room.visual.text(ICONS.noEntry, target.pos.x, target.pos.y, {align: 'left', opacity: 1});
+                    break;
+                case ERR_NO_BODYPART:
+                    if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
+                    this.heal(this);
+                    this.shibMove(target, {ignoreCreeps: true});
+                    break;
+                case OK:
+                    if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
+                    this.room.visual.text(ICONS.greenCheck, target.pos.x, target.pos.y, {
+                        align: 'left',
+                        opacity: 1
+                    });
+                    return true;
 
-                }
-            } else {
-                switch (this.attack(target)) {
-                    case ERR_NOT_IN_RANGE:
-                        if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
-                        this.heal(this);
-                        this.shibMove(target, {ignoreCreeps: true, ignoreStructures: true});
-                        this.room.visual.text(ICONS.noEntry, target.pos.x, target.pos.y, {align: 'left', opacity: 1});
-                        break;
-                    case ERR_NO_BODYPART:
-                        if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
-                        this.heal(this);
-                        this.shibMove(target, {ignoreCreeps: true});
-                        break;
-                    case OK:
-                        if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
-                        this.room.visual.text(ICONS.greenCheck, target.pos.x, target.pos.y, {
-                            align: 'left',
-                            opacity: 1
-                        });
-                        return true;
-
-                }
             }
         }
     }

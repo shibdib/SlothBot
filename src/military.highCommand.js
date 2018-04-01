@@ -74,6 +74,7 @@ function manualAttacks() {
         //Cancel attacks
         if (_.startsWith(name, 'cancel')) {
             delete Memory.targetRooms[Game.flags[name].pos.roomName];
+            if (Memory.activeSiege && Memory.activeSiege === Game.flags[name].pos.roomName) delete Memory.activeSiege;
             Game.flags[name].remove();
         }
         //Bad room flag
@@ -104,14 +105,14 @@ function manualAttacks() {
         }
         //Set future
         if (_.startsWith(name, 'future')) {
-            let cache = Memory.stagingRooms || {};
+            let cache = Memory.targetRooms || {};
             let ticks = name.match(/\d+$/)[0];
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 dDay: tick + ticks,
             };
-            Memory.stagingRooms = cache;
+            Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
         if (_.startsWith(name, 'siege')) {
