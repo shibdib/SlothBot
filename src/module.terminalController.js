@@ -463,7 +463,7 @@ function orderCleanup(myOrders) {
 }
 
 function balanceEnergy(terminal, energyInRoom) {
-    if (terminal.room.memory.energyNeeded) return;
+    if (terminal.room.memory.energyNeeded || terminal.store[RESOURCE_ENERGY] < 10000) return;
     let otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.responseNeeded && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] + (s.room.storage.store[RESOURCE_ENERGY] || 0) < energyInRoom));
     if (!otherTerminals.length) otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] + (s.room.storage.store[RESOURCE_ENERGY] || 0) < energyInRoom));
     let cost;
