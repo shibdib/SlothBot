@@ -175,7 +175,7 @@ function boostDelivery(creep) {
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;
     creep.say(ICONS.boost, true);
-    if (creep.carry[lab.memory.neededBoost] > 0) {
+    if (creep.carry[lab.memory.neededBoost] === _.sum(creep.carry)) {
         switch (creep.transfer(lab, lab.memory.neededBoost)) {
             case OK:
                 return delete creep.memory.labTech;
@@ -187,12 +187,12 @@ function boostDelivery(creep) {
     } else if (_.sum(creep.carry) > creep.carry[lab.memory.neededBoost]) {
         for (let resourceType in creep.carry) {
             if (resourceType === lab.memory.neededBoost) continue;
-            switch (creep.transfer(storage, resourceType)) {
+            switch (creep.transfer(terminal, resourceType)) {
                 case OK:
                     creep.memory.labTech = true;
                     return true;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(storage);
+                    creep.shibMove(terminal);
                     creep.memory.labTech = true;
                     return true;
             }

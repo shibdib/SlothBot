@@ -266,7 +266,8 @@ Creep.prototype.moveToStaging = function () {
     } else {
         let route = Game.map.findRoute(this.room.name, this.memory.targetRoom);
         let routeLength = route.length;
-        this.memory.stagingRoom = route[routeLength - 2].room;
+        let stageHere = _.round(routeLength / 2);
+        this.memory.stagingRoom = route[stageHere].room;
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
         return true;
     }
