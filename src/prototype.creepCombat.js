@@ -291,6 +291,14 @@ Creep.prototype.siege = function () {
     let healer = Game.getObjectById(this.memory.healer);
     if (healer && (healer.fatigue > 0 || this.pos.getRangeTo(healer) > 1) && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
     if (!this.room.controller.owner || (this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner['username']))) {
+        let targetFlags = _.filter(Game.flags, (f) => f.pos.roomName === this.pos.roomName && _.startsWith(f.name, 't') && f.pos.checkForAllStructure(true).length);
+        if (targetFlags.length) {
+            let flag = this.pos.findClosestByPath(targetFlags);
+            if (flag) {
+                target = flag.pos.checkForAllStructure()[0];
+                this.memory.siegeTarget = target.id;
+            }
+        }
         let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
         if (!target || target === null) {
