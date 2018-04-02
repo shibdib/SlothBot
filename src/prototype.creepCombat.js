@@ -282,11 +282,15 @@ Creep.prototype.siege = function () {
             range: 20
         });
     }
+    let target;
     let alliedCreep = _.filter(this.room.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner));
+    let neighborEnemyCreep = this.pos.findInRange(_.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner)), 1);
+    if (neighborEnemyCreep.length && !neighborEnemyCreep[0].pos.checkForRampart()) {
+        target = neighborEnemyCreep[0];
+    }
     let healer = Game.getObjectById(this.memory.healer);
     if (healer && (healer.fatigue > 0 || this.pos.getRangeTo(healer) > 1) && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
     if (!this.room.controller.owner || (this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner['username']))) {
-        let target;
         let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
         if (!target || target === null) {
@@ -347,7 +351,7 @@ Creep.prototype.siege = function () {
                 case ERR_NOT_IN_RANGE:
                     if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
                     this.heal(this);
-                    this.shibMove(target, {ignoreCreeps: true, ignoreStructures: true});
+                    this.shibMove(target, {ignoreCreeps: true, ignoreStructures: false});
                     this.room.visual.text(ICONS.noEntry, target.pos.x, target.pos.y, {align: 'left', opacity: 1});
                     break;
                 case ERR_NO_BODYPART:
