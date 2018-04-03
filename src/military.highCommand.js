@@ -35,19 +35,19 @@ function highCommand() {
                         Memory.targetRooms = cache;
                     }
                 }
-            }
-            let enemySiege = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
-                (r.owner && (_.includes(HOSTILES, r.owner['username']) || _.includes(Memory._enemies, r.owner['username']))) &&
-                Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
-            for (let key in enemySiege) {
-                if (!Memory.targetRooms[enemySiege[key].name]) {
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[enemySiege[key].name] = {
-                        tick: tick,
-                        type: 'attack'
-                    };
-                    Memory.targetRooms = cache;
+                let enemySiege = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
+                    (r.owner && (_.includes(HOSTILES, r.owner['username']) || _.includes(Memory._enemies, r.owner['username']))) &&
+                    Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
+                for (let key in enemySiege) {
+                    if (!Memory.targetRooms[enemySiege[key].name]) {
+                        let cache = Memory.targetRooms || {};
+                        let tick = Game.time;
+                        cache[enemySiege[key].name] = {
+                            tick: tick,
+                            type: 'attack'
+                        };
+                        Memory.targetRooms = cache;
+                    }
                 }
             }
             let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
