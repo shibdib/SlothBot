@@ -53,6 +53,8 @@ function role(creep) {
                     }
                 } else if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(Game.rooms[creep.memory.overlord].controller);
+                    this.memory.constructionSite = undefined;
+                    this.memory.task = undefined;
                 }
             }
         } else {

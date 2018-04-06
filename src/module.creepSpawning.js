@@ -252,7 +252,7 @@ module.exports.workerCreepQueue = function (room) {
     //Worker
     if (!_.includes(queue, 'worker') && room.constructionSites.length > 0 && !room.memory.responseNeeded) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
-        if (workers.length < 2) {
+        if (workers.length < 4) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
         }
     }

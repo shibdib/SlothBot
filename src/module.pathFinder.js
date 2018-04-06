@@ -109,12 +109,10 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.usingCached = true;
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
-        creep.say(ICONS.recycle);
         delete pathInfo.findAttempt;
         delete creep.memory.badPathing;
         return creep.move(nextDirection);
     } else {
-        creep.say(ICONS.moveTo);
         pathInfo.usingCached = false;
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
