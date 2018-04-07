@@ -404,7 +404,8 @@ function buildLinks(room) {
     let storage = room.storage;
     if (storage) {
         let built = _.filter(storage.pos.findInRange(storage.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
-        if (storage && !built[0]) {
+        let inBuild = _.filter(storage.pos.findInRange(storage.room.constructionSites, 2), (s) => s.structureType === STRUCTURE_LINK);
+        if (storage && !built.length && !inBuild.length) {
             if (_.filter(storage.room.constructionSites, (s) => s.structureType === STRUCTURE_LINK).length) return;
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 1, storage.pos.x - 1, storage.pos.y + 1, storage.pos.x + 1, true);
             for (let key in zoneTerrain) {

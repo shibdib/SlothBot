@@ -7,11 +7,19 @@ Creep.prototype.harassRoom = function () {
         let hostile = this.findClosestEnemy();
         if (this.memory.role === 'longbow') {
             if (hostile) {
-                Memory.targetRooms[this.memory.targetRoom].level = 2;
+                if (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK)) {
+                    Memory.targetRooms[this.memory.targetRoom].level = 3;
+                } else {
+                    Memory.targetRooms[this.memory.targetRoom].level = 2;
+                }
                 return this.fightRanged(hostile);
             } else {
                 Memory.targetRooms[this.memory.targetRoom].level = 1;
-                this.moveToHostileConstructionSites();
+                if (!this.moveToHostileConstructionSites()) {
+                    if (!this.healMyCreeps() && !this.healAllyCreeps()) {
+                        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 17});
+                    }
+                }
             }
         } else if (this.memory.role === 'attacker') {
             this.handleDefender();

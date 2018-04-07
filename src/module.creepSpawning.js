@@ -522,11 +522,11 @@ module.exports.militaryCreepQueue = function () {
             let opLevel = Memory.targetRooms[key].level;
             let escort = Memory.targetRooms[key].escort;
             let deconstructors = 1;
-            if (opLevel === '1') {
+            if (opLevel === 1) {
                 deconstructors = 1;
-            } else if (opLevel === '2') {
+            } else if (opLevel === 2) {
                 deconstructors = 2;
-            } else if (opLevel === '3') {
+            } else if (opLevel === 3) {
                 deconstructors = 3;
             }
             let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
@@ -571,16 +571,16 @@ module.exports.militaryCreepQueue = function () {
             let attackers = 0;
             let healers = 0;
             let waitFor = 1;
-            if (opLevel === '1') {
+            if (opLevel === 1) {
                 longbows = 1;
                 waitFor = 1;
-            } else if (opLevel === '2') {
+            } else if (opLevel === 2) {
                 longbows = 2;
-                waitFor = 3;
-            } else if (opLevel === '3') {
+                waitFor = 2;
+            } else if (opLevel === 3) {
                 longbows = 2;
                 attackers = 1;
-                waitFor = 4;
+                waitFor = 3;
             }
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
             if ((longbow.length < longbows || (longbow[0] && longbow[0].ticksToLive <= 500 && longbow.length < longbows + 1)) && !_.includes(queue, 'longbow')) {
@@ -617,11 +617,11 @@ module.exports.militaryCreepQueue = function () {
         if (Memory.targetRooms[key].type === 'drain') {
             let opLevel = Memory.targetRooms[key].level;
             let drainers = 0;
-            if (opLevel === '1') {
+            if (opLevel === 1) {
                 drainers = 1;
-            } else if (opLevel === '2') {
+            } else if (opLevel === 2) {
                 drainers = 2;
-            } else if (opLevel === '3') {
+            } else if (opLevel === 3) {
                 drainers = 3;
             }
             let drainer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'drainer');
@@ -798,7 +798,7 @@ function bodyGenerator(level, role) {
             attack = _.round(0.5 * level);
             heal = 0;
             if (level > 3) {
-                attack = 1 * level;
+                attack = level + 1;
                 heal = _.round((1 * level) / 2);
             }
             move = tough + heal + attack;
@@ -810,9 +810,9 @@ function bodyGenerator(level, role) {
             }
             if (level < 4) break;
             tough = _.round(0.5 * level);
-            rangedAttack = (1 * level) + 1;
-            heal = 0;
-            if (level >= 6) heal = 1;
+            rangedAttack = level;
+            heal = 1;
+            if (level >= 5) rangedAttack = level + 2;
             move = tough + rangedAttack + heal;
             break;
         case 'raider':

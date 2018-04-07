@@ -125,7 +125,7 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'siege',
-                level: level
+                level: Number(level)
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -147,7 +147,7 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'defend',
-                level: level
+                level: Number(level)
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -169,7 +169,7 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'clean',
-                level: level
+                level: Number(level)
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -181,7 +181,7 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'harass',
-                level: level
+                level: Number(level)
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -193,7 +193,7 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'hold',
-                level: level
+                level: Number(level)
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -205,7 +205,7 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'drain',
-                level: level
+                level: Number(level)
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -229,7 +229,7 @@ function manualAttacks() {
                 tick: tick,
                 dDay: tick + 50000,
                 type: 'nuke',
-                level: level
+                level: Number(level)
             };
             nukeFlag(Game.flags[name])
         }

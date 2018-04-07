@@ -43,7 +43,7 @@ let globals = function () {
         // Workers
         worker: 5,
         waller: 7,
-        upgrader: 6,
+        upgrader: 5,
         mineralHarvester: 5,
         // Haulers
         hauler: 2,
@@ -62,8 +62,8 @@ let globals = function () {
         SKsupport: 6,
         SKhauler: 6,
         // Military
-        siege: 5,
-        harass: 5,
+        siege: 6,
+        harass: 6,
         hold: 5,
         raid: 8,
         clean: 8,
