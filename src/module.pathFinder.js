@@ -149,7 +149,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let roomsSearched = 0;
         let callback = (roomName) => {
             if (allowedRooms) {
-                if (!allowedRooms[roomName]) {
+                if (!_.includes(allowedRooms, roomName)) {
                     return false;
                 }
             }
@@ -157,31 +157,11 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 && roomName !== destRoomName && roomName !== originRoomName) {
                 return false;
             }
-            let parsed;
-            if (!options.allowSK && roomName !== destRoomName && roomName !== originRoomName) {
-                if (!parsed) {
-                    parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-                }
-                let fMod = parsed[1] % 10;
-                let sMod = parsed[2] % 10;
-                let isSK = !(fMod === 5 && sMod === 5) &&
-                    ((fMod >= 4) && (fMod <= 6)) &&
-                    ((sMod >= 4) && (sMod <= 6));
-                if (isSK) {
-                    return false;
-                }
-            }
             roomsSearched++;
             let matrix;
             let room = creep.room;
             if (room) {
-                if (options.siegeMove) {
-                    matrix = getStructureMatrix(room, options.freshMatrix);
-                    if (!options.ignoreCreeps) {
-                        addCreepsToMatrix(room, matrix);
-                        addSksToMatrix(room, matrix);
-                    }
-                } else if (options.ignoreStructures) {
+                if (options.ignoreStructures) {
                     matrix = new PathFinder.CostMatrix();
                     if (!options.ignoreCreeps) {
                         addCreepsToMatrix(room, matrix);
@@ -252,7 +232,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
-    let allowedRooms = {[origin]: true, [destination]: true};
     let highwayBias = 1;
     if (options.preferHighway) {
         highwayBias = 2.5;
@@ -260,12 +239,12 @@ function findRoute(origin, destination, options = {}) {
             highwayBias = options.highwayBias;
         }
     }
-    return Game.map.findRoute(origin, destination, {
-        routeCallback(roomName) {
+    let route = Game.map.findRoute(origin, destination, {
+        routeCallback: function (roomName) {
             let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
             if (rangeToRoom > restrictDistance) {
                 // room is too far out of the way
-                return Number.POSITIVE_INFINITY;
+                return 256;
             }
             let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
             let isHighway = (parsed[1] % 10 === 0) ||
@@ -291,20 +270,25 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
-                    return 256;
+                    return 255;
                 }
             }
             // Check for manual flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
-                return 256;
+                return 255;
             }
-            // Ban rooms flagged as bad
-            if (roomName === options.badRoom) return Infinity;
             return 2.5;
         }
-    }).forEach(function (info) {
-        allowedRooms[info.room] = true;
     });
+    let path = undefined;
+    if (route.length) {
+        path = [];
+        path.push(origin, destination);
+        for (let key in route) {
+            path.push(route[key].room)
+        }
+    }
+    return path;
 }
 
 //FUNCTIONS
