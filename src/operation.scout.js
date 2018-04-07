@@ -2,7 +2,6 @@ Creep.prototype.scoutRoom = function () {
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     this.room.cacheRoomIntel(true);
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART);
     let controller = this.room.controller;
     if (controller.owner && controller.safeMode) {
         let cache = Memory.targetRooms || {};
@@ -14,7 +13,7 @@ Creep.prototype.scoutRoom = function () {
         };
         Memory.targetRooms = cache;
         return this.suicide();
-    } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && ramparts[0]) {
+    } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0)) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.pos.roomName] = {
