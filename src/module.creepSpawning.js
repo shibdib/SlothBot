@@ -437,7 +437,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     //Power Mining
-    if (level === 8 && !TEN_CPU && room.memory.powerRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+    if (level >= 7 && !TEN_CPU && room.memory.powerRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         for (let key in room.memory.powerRooms) {
             let powerRoom = room.memory.powerRooms[key];
             if ((powerRoom.decayOn <= Game.time + 2000 && powerRoom.hits === 2000000) || powerRoom.decayOn < Game.time) {
