@@ -289,14 +289,14 @@ function findRoute(origin, destination, options = {}) {
             }
             // Avoid rooms owned by others
             if (Memory.roomCache && Memory.roomCache[roomName]) {
-                if ((Memory.roomCache[roomName].owner && Memory.roomCache[roomName].owner.username && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
+                if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
-                    return 255;
+                    return Number.POSITIVE_INFINITY;
                 }
             }
             // Check for manual flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
-                return 255;
+                return 256;
             }
             // Ban rooms flagged as bad
             if (roomName === options.badRoom) return Infinity;

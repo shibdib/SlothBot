@@ -20,7 +20,7 @@ function towerControl(room) {
                     for (let i = 0; i < armedHostile.length; i++) {
                         let range = armedHostile[i].pos.getRangeTo(tower);
                         let towerDamage = determineDamage(range);
-                        if ((!healers[0] || (healPower < (towerDamage * towers.length) * 0.9)) && (armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1)) {
+                        if ((!healers[0] || (healPower < (towerDamage * towers.length) * 0.9)) && (armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1) && tower.pos.getRangeTo(armedHostile[i]) < 10) {
                             tower.attack(armedHostile[i]);
                             continue towers;
                         } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(tower.room.creeps, {filter: (c) => c.memory && c.memory.role === 'longbow'})) <= 3) {
