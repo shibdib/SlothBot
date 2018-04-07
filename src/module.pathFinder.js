@@ -291,7 +291,7 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
-                    return Number.POSITIVE_INFINITY;
+                    return 256;
                 }
             }
             // Check for manual flagged rooms
@@ -404,7 +404,7 @@ function addStructuresToMatrix(room, matrix, roadCost) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
         }
         else if (structure instanceof StructureContainer) {
-            matrix.set(structure.pos.x, structure.pos.y, 5);
+            matrix.set(structure.pos.x, structure.pos.y, 25);
         }
         else {
             impassibleStructures.push(structure);
