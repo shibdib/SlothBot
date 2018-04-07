@@ -23,8 +23,8 @@ function highCommand() {
                 }
             }
             if (ATTACK_LOCALS) {
-                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && ((r.owner && (!r.controller || r.controller.level < 4) && !_.includes(FRIENDLIES, r.owner['username']))
-                    || (r.controller && r.controller.reservation && !_.includes(FRIENDLIES, r.controller.reservation))) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length < 5);
+                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && ((r.owner && r.level <= 4 && !_.includes(FRIENDLIES, r.owner['username']))
+                    || (r.reservation && !_.includes(FRIENDLIES, r.reservation))) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length < 5);
                 for (let key in localTargets) {
                     if (!Memory.targetRooms || !Memory.targetRooms[localTargets[key].name]) {
                         let cache = Memory.targetRooms || {};
