@@ -6,7 +6,7 @@ const profiler = require('screeps-profiler');
 
 function highCommand() {
     manualAttacks();
-    if (Game.time % 10 === 0) futureAttacks();
+    if (Game.time % 10 === 0) manageAttacks();
     if (Game.time % 150 === 0) {
         for (let key in Memory.ownedRooms) {
             let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
@@ -23,19 +23,21 @@ function highCommand() {
                 }
             }
             if (ATTACK_LOCALS) {
-                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && (!r.controller || r.controller.level < 4) && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
+                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && ((r.owner && (!r.controller || r.controller.level < 4) && !_.includes(FRIENDLIES, r.owner['username']))
+                    || (r.controller && r.controller.reservation && !_.includes(FRIENDLIES, r.controller.reservation))) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length < 5);
                 for (let key in localTargets) {
                     if (!Memory.targetRooms || !Memory.targetRooms[localTargets[key].name]) {
                         let cache = Memory.targetRooms || {};
                         let tick = Game.time;
                         cache[localTargets[key].name] = {
                             tick: tick,
-                            type: 'attack'
+                            type: 'attack',
+                            local: true
                         };
                         Memory.targetRooms = cache;
                     }
                 }
-                let enemySiege = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
+                let enemySiege = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 &&
                     (r.owner && (_.includes(HOSTILES, r.owner['username']) || _.includes(Memory._enemies, r.owner['username']))) &&
                     Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
                 for (let key in enemySiege) {
@@ -50,7 +52,7 @@ function highCommand() {
                     }
                 }
             }
-            let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 &&
+            let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 &&
                 (r.reservation && (_.includes(HOSTILES, r.reservation['username']) || _.includes(Memory._nuisance, r.reservation['username']))) &&
                 Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
             for (let key in enemyHarass) {
@@ -111,6 +113,7 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 dDay: tick + ticks,
+                type: 'pending',
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -247,16 +250,18 @@ function nukeFlag(flag) {
     }
 }
 
-function futureAttacks() {
+function manageAttacks() {
     for (let key in Memory.targetRooms) {
-        if (!Memory.targetRooms[key].dDay) continue;
-        if (Memory.targetRooms[key].dDay - 50 <= Game.time) {
+        if (!Memory.targetRooms[key].dDay) {
+            if (Memory.targetRooms[key].tick + 15000 < Game.time) delete Memory.targetRooms[key];
+        } else if (Memory.targetRooms[key].dDay - 150 <= Game.time) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[key] = {
                 tick: tick,
                 type: 'attack',
-                level: 1
+                level: 1,
+                dDay: undefined
             };
         }
     }

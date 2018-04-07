@@ -9,7 +9,7 @@ function role(creep) {
     let source;
     creep.borderCheck();
     //Invader detection
-    if (creep.room.invaderCheck()) return creep.goHomeAndHeal();
+    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) {
         creep.memory.destinationReached = true;

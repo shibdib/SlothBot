@@ -285,6 +285,17 @@ Creep.prototype.siege = function () {
             range: 20
         });
     }
+    if (this.room.controller && this.room.controller.safeMode) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[Game.flags[name].pos.roomName] = {
+            tick: tick,
+            dDay: tick + this.room.controller.safeMode,
+            type: 'pending',
+        };
+        Memory.targetRooms = cache;
+        return this.suicide();
+    }
     let target;
     let alliedCreep = _.filter(this.room.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner));
     let neighborEnemyCreep = this.pos.findInRange(_.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner)), 1);

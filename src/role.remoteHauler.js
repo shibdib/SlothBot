@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     creep.say(ICONS.haul, true);
     if (creep.getActiveBodyparts(WORK) > 0) if (creep.renewalCheck(7)) return null;
-    if (creep.room.invaderCheck()) return creep.goHomeAndHeal();
+    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     creep.repairRoad();
     if (_.sum(creep.carry) === 0) {
         delete creep.memory.storageDestination;

@@ -1,5 +1,6 @@
 let profiler = require('screeps-profiler');
 let observers = require('module.observerController');
+let power = require('module.powerManager');
 let shib = require("shibBench");
 let defense = require('military.defense');
 let links = require('module.linkController');
@@ -77,6 +78,9 @@ function mind(room, roomLimit) {
         terminals.terminalControl(room);
         shib.shibBench('terminalControl', cpu);
     }
+
+    // Power Processing
+    power.powerControl(room);
 
     // Store Data
     let minerals = Memory.ownedMineral || [];

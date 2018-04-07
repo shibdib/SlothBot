@@ -6,6 +6,17 @@ Creep.prototype.cleanRoom = function () {
     if (this.memory.staging && this.room.name === this.memory.staging) this.memory.staged = true;
     if (this.memory.staging && !this.memory.staged && this.room.name !== this.memory.staging) return this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+    if (this.room.controller && this.room.controller.safeMode) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[Game.flags[name].pos.roomName] = {
+            tick: tick,
+            dDay: tick + this.room.controller.safeMode,
+            type: 'pending',
+        };
+        Memory.targetRooms = cache;
+        return this.suicide();
+    }
     let creeps = this.pos.findClosestByRange(this.room.creeps, {filter: (e) => _.includes(FRIENDLIES, e.owner['username']) === false});
     if (creeps && Memory.targetRooms[this.room.name]) {
         Memory.targetRooms[this.room.name].escort = true;

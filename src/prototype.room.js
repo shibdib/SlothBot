@@ -191,7 +191,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     this.memory.lastIntelCache = Game.time;
     let room = Game.rooms[this.name];
     let owner, reservation, reservationTick, level, hostiles, nonCombats, sk, towers, claimValue, claimWorthy,
-        needsCleaning;
+        needsCleaning, power;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
@@ -199,6 +199,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
         nonCombats = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
         towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
+        power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         let minerals = room.mineral;
         if (room.controller) {
@@ -262,37 +263,54 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             needsCleaning: needsCleaning
         };
         Memory.roomCache = cache;
+        if (power.length && power[0].ticksToDecay >= 2500) {
+            for (let key in Memory.ownedRooms) {
+                if (Game.map.findRoute(Memory.ownedRooms[key].name, room.name).length <= 6) {
+                    let activeRoom = Memory.ownedRooms[key];
+                    cache = {} || activeRoom.memory.powerRooms;
+                    cache[room.name] = {
+                        cached: Game.time,
+                        decayOn: power[0].ticksToDecay + Game.time,
+                        hits: power[0].hits,
+                        powerAmount: power[0].power
+                    };
+                    log.a('Power found in ' + room.name + ' adding to power targets for ' + activeRoom.name);
+                    activeRoom.memory.powerRooms = cache;
+                    break;
+                }
+            }
+        }
         if ((sk || sources.length > 0) && !owner) {
-            for (let key in Game.spawns) {
-                if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 2) {
+            for (let key in Memory.ownedRooms) {
+                let activeRoom = Memory.ownedRooms[key];
+                if (Game.map.findRoute(activeRoom.name, room.name).length <= 2) {
                     if (sk) {
-                        if (Game.spawns[key].room.memory.skRooms) {
-                            if (_.includes(Game.spawns[key].room.memory.skRooms, room.name) === false) {
-                                Game.spawns[key].room.memory.skRooms.push(room.name);
+                        if (activeRoom.memory.skRooms) {
+                            if (_.includes(activeRoom.memory.skRooms, room.name) === false) {
+                                activeRoom.memory.skRooms.push(room.name);
                             }
                         } else {
                             Game.spawns[key].room.memory.skRooms = [];
                         }
                     }
-                    if (Game.map.findRoute(Game.spawns[key].pos.roomName, room.name).length <= 3 && !owner && !sk && !reservation) {
-                        if (Game.spawns[key].room.memory.remoteRooms) {
-                            if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === false) {
-                                Game.spawns[key].room.memory.remoteRooms.push(room.name);
+                    if (Game.map.findRoute(activeRoom.name, room.name).length <= 3 && !owner && !sk && !reservation) {
+                        if (activeRoom.memory.remoteRooms) {
+                            if (_.includes(activeRoom.memory.remoteRooms, room.name) === false) {
+                                activeRoom.memory.remoteRooms.push(room.name);
                             }
                         } else {
-                            Game.spawns[key].room.memory.remoteRooms = [];
+                            activeRoom.memory.remoteRooms = [];
                         }
-                    } else if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === true) {
-                        _.remove(Game.spawns[key].room.memory.remoteRooms, room.name);
+                    } else if (_.includes(activeRoom.memory.remoteRooms, room.name) === true) {
+                        _.remove(activeRoom.memory.remoteRooms, room.name);
                     }
                 }
             }
         } else if (owner) {
-            for (let key in Game.spawns) {
-                if (_.includes(Game.spawns[key].room.memory.remoteRooms, room.name) === true) {
-                    let newArray = _.filter(Game.spawns[key].room.memory.remoteRooms, (e) => e !== room.name);
-                    delete Game.spawns[key].room.memory.remoteRooms;
-                    Game.spawns[key].room.memory.remoteRooms = newArray;
+            for (let key in Memory.ownedRooms) {
+                let activeRoom = Memory.ownedRooms[key];
+                if (_.includes(activeRoom.memory.remoteRooms, room.name) === true) {
+                    activeRoom.memory.remoteRooms = _.filter(activeRoom.memory.remoteRooms, (e) => e !== room.name);
                 }
             }
         }

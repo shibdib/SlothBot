@@ -14,7 +14,7 @@ module.exports.processBuildQueue = function () {
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
-                if (spawn.room.memory.energySurplus || level === 8) {
+                if (level > 3) {
                     queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
@@ -33,7 +33,7 @@ module.exports.processBuildQueue = function () {
                     }
                     if (body) break;
                 }
-                if (!body) continue;
+                if (!body.length) continue;
                 if (topPriority && typeof topPriority === 'object') {
                     _.defaults(topPriority, {
                         role: undefined,
@@ -436,6 +436,29 @@ module.exports.remoteCreepQueue = function (room) {
         }
     }
 
+    //Power Mining
+    if (level === 8 && !TEN_CPU && room.memory.powerRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+        for (let key in room.memory.powerRooms) {
+            let powerRoom = room.memory.powerRooms[key];
+            if ((powerRoom.decayOn <= Game.time + 2000 && powerRoom.hits === 2000000) || powerRoom.decayOn < Game.time) {
+                delete room.memory.powerRooms[key];
+                continue;
+            }
+            let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
+            if (!_.includes(queue, 'powerAttacker') && powerAttacker.length < 2) {
+                queueCreep(room, PRIORITIES.Power, {role: 'powerAttacker', destination: key})
+            }
+            let powerHealer = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHealer' && creep.memory.destination === key);
+            if (!_.includes(queue, 'powerHealer') && powerHealer.length < 1 && powerAttacker.length > 0) {
+                queueCreep(room, PRIORITIES.Power, {role: 'powerHealer', destination: key})
+            }
+            let powerHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHauler' && creep.memory.destination === key);
+            if (!_.includes(queue, 'powerHauler') && powerHauler.length < 1 && powerAttacker.length > 0 && powerHealer.length > 0 && powerRoom.hits <= 100000) {
+                queueCreep(room, PRIORITIES.Power, {role: 'powerHauler', destination: key})
+            }
+        }
+    }
+
     //Claim Stuff
     if (!_.includes(queue, 'claimer') && room.memory.claimTarget && !room.memory.responseNeeded && room.constructionSites.length === 0) {
         let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'claimer');
@@ -753,10 +776,15 @@ function bodyGenerator(level, role) {
         case 'responder':
             tough = _.round(0.5 * level);
             attack = 1 * level;
-            if (level > 3) {
-                _.round(attack = 2.5 * level);
-            }
             move = (tough + attack) / 2;
+            if (3 < level < 7) {
+                _.round(attack = 3 * level);
+                move = (tough + attack) / 4;
+            }
+            if (level >= 7) {
+                attack = 35;
+                move = 10;
+            }
             break;
         case 'remoteResponse':
             tough = _.round(0.5 * level);
@@ -849,6 +877,17 @@ function bodyGenerator(level, role) {
             carry = 10;
             move = work + carry;
             break;
+        case 'powerAttacker':
+            attack = 25;
+            move = 25;
+            break;
+        case 'powerHealer':
+            heal = 25;
+            move = 25;
+            break;
+        case 'powerHauler':
+            carry = 25;
+            move = 25;
     }
     for (let i = 0; i < work; i++) body.push(WORK)
     for (let i = 0; i < carry; i++) body.push(CARRY)

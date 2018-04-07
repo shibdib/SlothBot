@@ -6,7 +6,7 @@ let globals = function () {
 
     global.HOSTILES = [];
 
-    global.ATTACK_LOCALS = false;
+    global.ATTACK_LOCALS = true;
 
     global.FRIENDLIES = RawMemory.segments[2];
 
@@ -54,6 +54,8 @@ let globals = function () {
         pioneer: 5,
         remoteResponse: 3,
         reserver: 5,
+        // Power
+        Power: 5,
         // SK
         SKworker: 6,
         SKattacker: 7,
