@@ -5,11 +5,9 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-/**
- * @return {null}
- */
 function role(creep) {
     if (!creep.getSafe()) {
+        if (_.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_TOWER).length > 0) return creep.memory.role = 'worker';
         if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['upgrade']);
         if (_.filter(Game.creeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.role = 'stationaryHarvester';
         //ANNOUNCE

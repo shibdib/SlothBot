@@ -142,14 +142,17 @@ Creep.prototype.handleDefender = function () {
         return true;
     }
     if (hostile) {
-        this.attackHostile(hostile);
+        if (this.getActiveBodyparts(ATTACK)) this.attackHostile(hostile);
+        if (this.getActiveBodyparts(RANGED_ATTACK)) this.fightRanged(hostile);
         return true;
     }
-    if (this.healMyCreeps()) {
-        return true;
-    }
-    if (this.healAllyCreeps()) {
-        return true;
+    if (this.getActiveBodyparts(HEAL)) {
+        if (this.healMyCreeps()) {
+            return true;
+        }
+        if (this.healAllyCreeps()) {
+            return true;
+        }
     }
     return this.moveToHostileConstructionSites();
 
@@ -178,7 +181,7 @@ Creep.prototype.fightRampart = function (target) {
     if (!target) {
         return false;
     }
-    let position = target.pos.findClosestByPath(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) && r.owner === USERNAME});
+    let position = target.pos.findClosestByRange(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
     if (position === null) {
         return false;
     }

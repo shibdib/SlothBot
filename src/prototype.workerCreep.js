@@ -36,7 +36,14 @@ Creep.prototype.findMineral = function () {
 
 Creep.prototype.findConstruction = function () {
     let construction = this.room.constructionSites;
-    let site = _.filter(construction, (s) => s.structureType === STRUCTURE_SPAWN);
+    let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_SPAWN);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -51,13 +58,6 @@ Creep.prototype.findConstruction = function () {
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        return true;
-    }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -222,15 +222,15 @@ Creep.prototype.withdrawEnergy = function () {
 Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     let energy = [];
     //Container
-    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
+    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= 100);
     if (container.length > 0) {
         let containers = [];
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
-            if (object && !this.room.memory.responseNeeded && object.pos.rangeToTarget(this) <= range) {
+            if (object && object.pos.rangeToTarget(this) <= range) {
                 if (object.id === this.room.memory.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
-                if (object.store[RESOURCE_ENERGY] < 100 || numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
+                if (numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
                 let weight = 0.3;
                 if (object.store[RESOURCE_ENERGY] > 1500) weight = 0.1;
                 const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -288,24 +288,27 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
             if (energyItem) {
                 this.memory.energyDestination = energyItem.id;
             } else {
+                this.memory.energyDestination = undefined;
                 return null;
             }
         }
+    } else {
+        this.memory.energyDestination = undefined;
     }
 };
 
 Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     let energy = [];
     //Container
-    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
+    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= 100);
     if (container.length > 0) {
         let containers = [];
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
-            if (object && !this.room.memory.responseNeeded && object.pos.rangeToTarget(this) <= range) {
+            if (object && object.pos.rangeToTarget(this) <= range) {
                 if (object.id === this.room.memory.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
-                if (object.store[RESOURCE_ENERGY] < 100 || numberOfUsers > 0) continue;
+                if (numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
                 let weight = 0.3;
                 if (object.store[RESOURCE_ENERGY] > 1500) weight = 0.1;
                 const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;

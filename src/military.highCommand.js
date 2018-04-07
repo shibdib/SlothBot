@@ -23,9 +23,9 @@ function highCommand() {
                 }
             }
             if (ATTACK_LOCALS) {
-                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && r.controller.level < 4 && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
+                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.owner && (!r.controller || r.controller.level < 4) && !_.includes(FRIENDLIES, r.owner['username']) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
                 for (let key in localTargets) {
-                    if (!Memory.targetRooms[localTargets[key].name]) {
+                    if (!Memory.targetRooms || !Memory.targetRooms[localTargets[key].name]) {
                         let cache = Memory.targetRooms || {};
                         let tick = Game.time;
                         cache[localTargets[key].name] = {
@@ -39,7 +39,7 @@ function highCommand() {
                     (r.owner && (_.includes(HOSTILES, r.owner['username']) || _.includes(Memory._enemies, r.owner['username']))) &&
                     Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
                 for (let key in enemySiege) {
-                    if (!Memory.targetRooms[enemySiege[key].name]) {
+                    if (!Memory.targetRooms || !Memory.targetRooms[enemySiege[key].name]) {
                         let cache = Memory.targetRooms || {};
                         let tick = Game.time;
                         cache[enemySiege[key].name] = {

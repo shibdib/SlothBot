@@ -14,7 +14,7 @@ function role(creep) {
     if (creep.memory.responseTarget) {
         creep.say(ICONS.respond, true);
         if (creep.room.name !== creep.memory.responseTarget) {
-            let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
+            let hostile = creep.findClosestEnemy();
             if (hostile) {
                 return creep.fightRanged(hostile);
             } else {
@@ -22,10 +22,6 @@ function role(creep) {
             }
         } else if (creep.room.name === creep.memory.responseTarget && creep.room.controller.owner && creep.room.controller.owner.username === MY_USERNAME) {
             creep.room.invaderCheck();
-            let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
-            let hub;
-            if (creep.room.memory.extensionHub) hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
-            if (hub && hostile && hub.getRangeTo(hostile) >= 12) return creep.fightRanged(hostile);
             if (!creep.handleDefender()) {
                 return findDefensivePosition(creep, creep);
             }

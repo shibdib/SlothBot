@@ -80,7 +80,8 @@ let globals = function () {
             hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             explorer: [MOVE],
             scout: [MOVE],
-            responder: [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK]
+            responder: [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK],
+            longbow: [RANGED_ATTACK, MOVE]
         }
     };
 

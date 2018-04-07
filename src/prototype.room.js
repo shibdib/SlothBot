@@ -313,7 +313,7 @@ Room.prototype.invaderCheck = function () {
         this.memory.responseNeeded = true;
         this.memory.tickDetected = Game.time;
         if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
-            this.memory.numberOfHostiles = invader.length;
+            this.memory.numberOfHostiles = armed.length || 1;
         }
         // Determine threat
         if (invader.length === 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 1;

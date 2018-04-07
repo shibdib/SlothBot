@@ -25,6 +25,7 @@ module.exports.processBuildQueue = function () {
                 for (let key in queue) {
                     topPriority = queue[key];
                     role = topPriority.role;
+                    if (spawn.room.memory.responseNeeded && spawn.room.energyAvailable <= 300) level = 1;
                     if (topPriority.reboot || level === 1) {
                         body = _.get(SPAWN[0], role);
                     } else {
@@ -241,16 +242,23 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Upgrader
-    if (!_.includes(queue, 'upgrader') && level === room.controller.level && !room.memory.responseNeeded) {
+    if (!_.includes(queue, 'upgrader') && level === room.controller.level) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
+        let count;
+        if (level < 3) {
+            let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
+            count = (upgraders.length || 0) + (workers.length || 0);
+        } else {
+            count = upgraders.length;
+        }
         let number = _.round((10 - level) / 2);
         if (level >= 6) number = 1;
-        if (upgraders.length < number) {
+        if (count < number) {
             queueCreep(room, PRIORITIES.upgrader, {role: 'upgrader'})
         }
     }
     //Worker
-    if (!_.includes(queue, 'worker') && room.constructionSites.length > 0 && !room.memory.responseNeeded) {
+    if (!_.includes(queue, 'worker') && room.constructionSites.length > 0) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < 4) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
@@ -280,7 +288,7 @@ module.exports.workerCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (level >= 3 && !_.includes(queue, 'waller') && level === room.controller.level && room.constructionSites.length === 0) {
+    if (room.controller.level >= 3 && !_.includes(queue, 'waller')) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let lowestRamp = _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
         let amount = 2;
@@ -311,9 +319,9 @@ module.exports.workerCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.responder, {role: 'responder', responseTarget: room.name, military: true})
             }
         }
-        if (level >= 4 && !_.includes(queue, 'longbow') && room.memory.threatLevel > 2) {
+        if (!_.includes(queue, 'longbow') && room.memory.threatLevel > 2) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
-            if (longbow.length < _.round(room.memory.numberOfHostiles / 2)) {
+            if (longbow.length < _.round(room.memory.numberOfHostiles / 2) + 1) {
                 queueCreep(room, PRIORITIES.responder - 1, {role: 'longbow', responseTarget: room.name, military: true})
             }
         }
@@ -768,6 +776,10 @@ function bodyGenerator(level, role) {
             move = tough + heal + attack;
             break;
         case 'longbow':
+            if (level < 4) {
+                rangedAttack = level;
+                move = level;
+            }
             if (level < 4) break;
             tough = _.round(0.5 * level);
             rangedAttack = (1 * level) + 1;

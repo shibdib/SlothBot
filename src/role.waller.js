@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.getSafe()) {
-        if (creep.room.constructionSites.length > 5) return creep.memory.role = 'worker';
+        if (_.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART).length > 5 && _.filter(creep.room.creeps, (creep) => creep.memory && creep.memory.role === 'worker').length < 4) return creep.memory.role = 'worker';
         if (creep.renewalCheck(5)) return null;
         if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
         creep.repairRoad();
@@ -19,7 +19,11 @@ function role(creep) {
             if (!creep.memory.currentTarget) {
                 let barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART), 'hits');
                 let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)[0];
-                if (site) {
+                if (barrier && barrier.hits < 2000) {
+                    creep.memory.currentTarget = barrier.id;
+                    creep.memory.targetHits = 10000;
+                    creep.shibMove(barrier, {range: 3})
+                } else if (site) {
                     switch (creep.build(site)) {
                         case OK:
                             break;

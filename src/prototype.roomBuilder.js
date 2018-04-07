@@ -50,15 +50,12 @@ function buildExtensions(room) {
         case ERR_RCL_NOT_ENOUGH:
     }
     if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION).length < extensionCount) {
-        for (let i = 1; i < 8; i++) {
+        for (let i = 2; i < 8; i + 0.1) {
             let x;
             let y;
-            x = getRandomInt(1, 5);
-            y = getRandomInt(1, 5);
-            if (extensionCount >= 50) {
-                x = getRandomInt(1, 8);
-                y = getRandomInt(1, 8);
-            }
+            i = _.round(i);
+            x = getRandomInt(1, i);
+            y = getRandomInt(1, i);
             x = _.sample([x, -x]);
             y = _.sample([y, -y]);
             let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
@@ -353,6 +350,7 @@ function buildLinks(room) {
     if (storage) {
         let built = _.filter(storage.pos.findInRange(storage.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);
         if (storage && !built[0]) {
+            if (_.filter(storage.room.constructionSites, (s) => s.structureType === STRUCTURE_LINK).length) return;
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, storage.pos.y - 1, storage.pos.x - 1, storage.pos.y + 1, storage.pos.x + 1, true);
             for (let key in zoneTerrain) {
                 if (_.filter(storage.pos.findInRange(storage.room.constructionSites, 2), (s) => s.structureType === STRUCTURE_LINK)[0]) break;

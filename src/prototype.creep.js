@@ -120,7 +120,7 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 };
 
 Creep.prototype.getSafe = function (hauler = false) {
-    if (this.room.memory.responseNeeded) {
+    if (this.room.memory.responseNeeded && this.room.controller.level >= 5) {
         let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
         let hostile = hub.findClosestByRange(_.filter(this.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username)));
         if (hostile && hub.getRangeTo(hostile) <= 9) {

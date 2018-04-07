@@ -11,7 +11,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
-    if (creep.room.constructionSites.length === 0) {
+    if (creep.room.constructionSites.length === 0 && creep.room.controller.level > 3) {
         creep.memory.role = 'waller';
         return null;
     }
@@ -26,8 +26,12 @@ function role(creep) {
     }
     if (!creep.getSafe()) {
         if (creep.memory.working === true) {
-            if (!creep.memory.constructionSite || !Game.getObjectById(creep.memory.constructionSite)) creep.findConstruction();
-            if (creep.memory.task === 'build' && creep.room.memory.responseNeeded !== true) {
+            if (!creep.memory.constructionSite || !Game.getObjectById(creep.memory.constructionSite)) {
+                creep.memory.constructionSite = undefined;
+                creep.memory.task = undefined;
+                creep.findConstruction();
+            }
+            if (creep.memory.task === 'build') {
                 let construction = Game.getObjectById(creep.memory.constructionSite);
                 switch (creep.build(construction)) {
                     case OK:
@@ -36,7 +40,13 @@ function role(creep) {
                         creep.shibMove(construction, {range: 3});
                         break;
                     case ERR_RCL_NOT_ENOUGH:
-                        delete creep.memory.constructionSite;
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
+                    case ERR_INVALID_TARGET:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
                 }
             } else {
                 creep.findRepair(creep.room.controller.level);
