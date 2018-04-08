@@ -8,7 +8,7 @@ Creep.prototype.scoutRoom = function () {
     if (controller.owner && controller.safeMode) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
-        cache[Game.flags[name].pos.roomName] = {
+        cache[this.room.name] = {
             tick: tick,
             type: 'pending',
             dDay: tick + this.room.controller.safeMode,
@@ -18,7 +18,7 @@ Creep.prototype.scoutRoom = function () {
     } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && countableStructures.length) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
-        cache[this.pos.roomName] = {
+        cache[this.room.name] = {
             tick: tick,
             type: 'clean',
             level: 2,
@@ -29,7 +29,7 @@ Creep.prototype.scoutRoom = function () {
     } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && !countableStructures.length) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
-        cache[this.pos.roomName] = {
+        cache[this.room.name] = {
             tick: tick,
             type: 'hold',
             level: 1,
@@ -45,7 +45,7 @@ Creep.prototype.scoutRoom = function () {
             delete Memory.targetRooms[this.pos.roomName];
             return this.suicide();
         }
-        cache[this.pos.roomName] = {
+        cache[this.room.name] = {
             tick: tick,
             type: 'siege',
             level: level
@@ -55,7 +55,7 @@ Creep.prototype.scoutRoom = function () {
     } else if (!controller.owner && countableStructures.length < 3) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
-        cache[this.pos.roomName] = {
+        cache[this.room.name] = {
             tick: tick,
             type: 'harass',
             level: 1
@@ -65,7 +65,7 @@ Creep.prototype.scoutRoom = function () {
     } else if (!controller.owner && countableStructures.length > 2) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
-        cache[this.pos.roomName] = {
+        cache[this.room.name] = {
             tick: tick,
             type: 'clean',
             level: 1

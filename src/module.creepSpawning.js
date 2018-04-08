@@ -458,17 +458,17 @@ module.exports.remoteCreepQueue = function (room) {
                 delete room.memory.powerRooms[key];
                 continue;
             }
-            let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
-            if (!_.includes(queue, 'powerAttacker') && powerAttacker.length < 2) {
-                queueCreep(room, PRIORITIES.Power, {role: 'powerAttacker', destination: key})
-            }
             let powerHealer = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHealer' && creep.memory.destination === key);
-            if (!_.includes(queue, 'powerHealer') && powerHealer.length < 1 && powerAttacker.length > 0) {
+            if (!_.includes(queue, 'powerHealer') && powerHealer.length < 1) {
                 queueCreep(room, PRIORITIES.Power, {role: 'powerHealer', destination: key})
+            }
+            let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
+            if (!_.includes(queue, 'powerAttacker') && powerAttacker.length < 2 && powerHealer.length > 0) {
+                queueCreep(room, PRIORITIES.Power - 1, {role: 'powerAttacker', destination: key})
             }
             let powerHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHauler' && creep.memory.destination === key);
             if (!_.includes(queue, 'powerHauler') && powerHauler.length < 1 && powerAttacker.length > 0 && powerHealer.length > 0 && powerRoom.hits <= 100000) {
-                queueCreep(room, PRIORITIES.Power, {role: 'powerHauler', destination: key})
+                queueCreep(room, PRIORITIES.scout, {role: 'powerHauler', destination: key})
             }
         }
     }
@@ -892,14 +892,15 @@ function bodyGenerator(level, role) {
             move = work + carry;
             break;
         case 'powerAttacker':
-            attack = 25;
-            move = 25;
+            attack = 20;
+            move = 20;
             break;
         case 'powerHealer':
             heal = 25;
             move = 25;
             break;
         case 'powerHauler':
+            if (level < 7) break;
             carry = 25;
             move = 25;
     }
