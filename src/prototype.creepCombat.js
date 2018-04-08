@@ -130,7 +130,7 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     if (constructionSite && !_.includes(FRIENDLIES, constructionSite.owner['username'])) {
         this.say('TRAMPLE!!', true);
         if (constructionSite.pos === this.pos) return this.moveRandom();
-        let returnCode = this.shibMove(constructionSite, {range:0});
+        let returnCode = this.shibMove(constructionSite, {range: 0});
         return true;
     }
     return false;

@@ -53,8 +53,7 @@ function role(creep) {
             }
         }
     }
-};
-
+}
 module.exports.role = profiler.registerFN(role, 'skWorker');
 
 /**

@@ -173,8 +173,7 @@ function findExtensionHub(room) {
             room.memory.extensionHub.y = pos.y;
         }
     }
-};
-
+}
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
-};
+}

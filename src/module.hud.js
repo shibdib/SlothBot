@@ -197,4 +197,4 @@ module.exports.hud = function () {
             );
         }
     }
-}
+};

@@ -203,7 +203,7 @@ function roomStartup(room, roomCreeps) {
         queueCreep(room, 1, {role: 'stationaryHarvester'})
     }
     let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'getter' || creep.memory.role === 'filler' || creep.memory.role === 'hauler' || creep.memory.role === 'pawn' || creep.memory.role === 'basicHauler'));
-    let containers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER)
+    let containers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (pawn.length < 2 && containers.length > 0) {
         queueCreep(room, 2, {role: 'hauler'})
     }
