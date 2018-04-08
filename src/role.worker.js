@@ -11,10 +11,6 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
-    if (creep.room.constructionSites.length === 0 && creep.room.controller.level > 3) {
-        creep.memory.role = 'waller';
-        return null;
-    }
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;

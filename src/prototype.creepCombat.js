@@ -178,7 +178,7 @@ Creep.prototype.waitRampart = function () {
 };
 
 Creep.prototype.fightRampart = function (target) {
-    if (!target) {
+    if (!target || !this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK)) {
         return false;
     }
     let position = target.pos.findClosestByRange(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
@@ -239,8 +239,10 @@ Creep.prototype.fightRanged = function (target) {
         if (opportunity) this.rangedAttack(opportunity);
         if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
             this.shibMove(target, {forceRepath: true, ignoreCreeps: false, range: 2, ignoreRoads: true});
+            this.rangedAttack(target);
         } else {
             this.shibMove(target, {forceRepath: true, range: 2, ignoreRoads: true});
+            this.rangedAttack(target);
         }
     }
 };
@@ -616,5 +618,5 @@ function addCreepsToMatrix(room, matrix) {
 
 Creep.prototype.goHomeAndHeal = function () {
     if (Game.map.getRoomLinearDistance(this.room.name, this.memory.overlord) > 1) return;
-    this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
+    this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20, forceRepath: true});
 };

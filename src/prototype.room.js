@@ -325,9 +325,16 @@ Room.prototype.invaderCheck = function () {
     if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) return;
     this.memory.lastInvaderCheck = Game.time;
     let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner['username']) && c.owner['username'] !== 'Source Keeper');
-    let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3)
+    let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
     if (invader.length > 0) {
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
+        let availableLongbows = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.getRoomLinearDistance(c.room.name, this.name) <= 5);
+        if (availableLongbows.length) {
+            for (let key in availableLongbows) {
+                availableLongbows[key].memory.awaitingOrders = undefined;
+                availableLongbows[key].memory.responseTarget = this.name;
+            }
+        }
         this.memory.responseNeeded = true;
         this.memory.tickDetected = Game.time;
         if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
@@ -337,8 +344,8 @@ Room.prototype.invaderCheck = function () {
         if (invader.length === 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 1;
         if (invader.length > 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 2;
         if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
-            this.memory.threatLevel = 3;
             if (armed.length) {
+                this.memory.threatLevel = 3;
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let multiple = 2;
@@ -360,6 +367,7 @@ Room.prototype.invaderCheck = function () {
                 Memory._badBoyList = cache;
                 log.a(key + ' now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
             } else {
+                this.memory.threatLevel = 1;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
                 let multiple = 0.5;
                 if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
@@ -384,8 +392,8 @@ Room.prototype.invaderCheck = function () {
             }
         }
         if (invader.length > 1 && invader[0].owner.username !== 'Invader') {
-            this.memory.threatLevel = 4;
             if (armed.length) {
+                this.memory.threatLevel = 4;
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let multiple = 2;
@@ -407,6 +415,7 @@ Room.prototype.invaderCheck = function () {
                 Memory._badBoyList = cache;
                 log.a(key + ' now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
             } else {
+                this.memory.threatLevel = 2;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
                 let multiple = 0.5;
                 if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 3;
@@ -430,14 +439,20 @@ Room.prototype.invaderCheck = function () {
                 log.a(key + ' now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
             }
         }
-        return true;
-    } else if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
-        delete this.memory.numberOfHostiles;
-        delete this.memory.responseNeeded;
-        delete this.memory.alertEmail;
-        delete this.memory.requestingSupport;
-        delete this.memory.threatLevel;
+        return !!armed.length;
     }
+    if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
+        this.memory.numberOfHostiles = undefined;
+        this.memory.responseNeeded = undefined;
+        this.memory.alertEmail = undefined;
+        this.memory.requestingSupport = undefined;
+        this.memory.threatLevel = undefined;
+        if (this.memory.creepBuildQueue) {
+            delete this.memory.creepBuildQueue['responder'];
+            if (this.memory.creepBuildQueue['longbow'] && this.memory.creepBuildQueue['longbow'].responseTarget === this.name) delete this.memory.creepBuildQueue['longbow'];
+        }
+    }
+    return false;
 };
 
 Room.prototype.handleNukeAttack = function () {

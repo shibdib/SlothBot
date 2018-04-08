@@ -171,8 +171,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 else if (options.ignoreCreeps || roomName !== originRoomName) {
                     matrix = getStructureMatrix(room, options.freshMatrix);
                     addSksToMatrix(room, matrix);
-                }
-                else {
+                } else {
                     matrix = getCreepMatrix(room);
                     addSksToMatrix(room, matrix);
                 }
@@ -319,7 +318,19 @@ function checkAvoid(roomName) {
 }
 
 function addCreepsToMatrix(room, matrix) {
-    room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
+    let creeps = room.creeps;
+    for (let key in creeps) {
+        matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
+        if (!_.includes(FRIENDLIES, creeps[key].owner.username) && (creeps[key].getActiveBodyparts(ATTACK) || creeps[key].getActiveBodyparts(RANGED_ATTACK))) {
+            let avoidZone = creeps[key].room.lookForAtArea(LOOK_TERRAIN, creeps[key].pos.y - 4, creeps[key].pos.x - 4, creeps[key].pos.y + 4, creeps[key].pos.x + 4, true);
+            for (let key in avoidZone) {
+                let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
+                if (!position.checkForWall()) {
+                    matrix.set(position.x, position.y, 100)
+                }
+            }
+        }
+    }
     return matrix;
 }
 

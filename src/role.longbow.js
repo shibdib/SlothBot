@@ -18,16 +18,13 @@ function role(creep) {
             if (hostile) {
                 return creep.fightRanged(hostile);
             } else {
-                return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room}
-            }
-        } else if (creep.room.name === creep.memory.responseTarget && creep.room.controller.owner && creep.room.controller.owner.username === MY_USERNAME) {
-            creep.room.invaderCheck();
-            if (!creep.handleDefender()) {
-                return findDefensivePosition(creep, creep);
+                return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 23}); //to move to any room}
             }
         } else {
-            let hostile = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
-            creep.fightRanged(hostile);
+            if (!creep.handleDefender()) {
+                creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
+                return findDefensivePosition(creep, creep);
+            }
         }
     }
     // Harass

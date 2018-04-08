@@ -5,6 +5,7 @@ function cleanup() {
     if (Game.time % 50 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         cleanDistanceCacheByUsage();
+        cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanRoomIntel();
     }
@@ -38,10 +39,19 @@ function cleanPathCacheByUsage() {
     }
 }
 
+function cleanRouteCacheByUsage() {
+    if (Memory.routeCache && _.size(Memory.routeCache) > 750) { //1500 entries ~= 100kB
+        let sorted = _.sortBy(Memory.routeCache, 'uses');
+        let overage = (_.size(Memory.routeCache) - 750) + 100;
+        log.i('Cleaning Route cache (Over max size by ' + overage + ')...');
+        Memory.routeCache = _.slice(sorted, overage, _.size(Memory.routeCache));
+    }
+}
+
 function cleanDistanceCacheByUsage() {
-    if(Memory.distanceCache && _.size(Memory.distanceCache) > 1500) { //1500 entries ~= 100kB
+    if (Memory.distanceCache && _.size(Memory.distanceCache) > 750) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory.distanceCache, 'uses');
-        let overage = (_.size(Memory.distanceCache) - 1500) + 100;
+        let overage = (_.size(Memory.distanceCache) - 750) + 100;
         log.i('Cleaning Distance cache (Over max size by '+overage+')...');
         Memory.distanceCache = _.slice(sorted, overage, _.size(Memory.distanceCache));
     }

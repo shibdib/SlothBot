@@ -173,10 +173,14 @@ function buildWalls(room, structures) {
     let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
     for (let key in safeZone) {
         let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-        if (position && position.getRangeTo(hub) === 6) {
+        if (position && position.getRangeTo(hub) === 6 && room.findPath(position, hub, {
+            range: 0,
+            ignoreDestructibleStructures: true,
+            ignoreCreeps: true
+        }).length < 8) {
             position.createConstructionSite(STRUCTURE_RAMPART);
             if (!position.checkForImpassible() && room.findPath(position, hub, {
-                range: 1,
+                range: 0,
                 ignoreDestructibleStructures: true,
                 ignoreCreeps: true
             }).length < 8) position.createConstructionSite(STRUCTURE_ROAD);
