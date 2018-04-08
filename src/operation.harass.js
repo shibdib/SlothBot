@@ -12,6 +12,7 @@ Creep.prototype.harassRoom = function () {
                 } else {
                     Memory.targetRooms[this.memory.targetRoom].level = 2;
                 }
+                if (this.hits < this.hitsMax * 0.50) return this.kite(8);
                 return this.fightRanged(hostile);
             } else {
                 Memory.targetRooms[this.memory.targetRoom].level = 1;
