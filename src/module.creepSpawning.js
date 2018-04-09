@@ -384,7 +384,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!_.includes(queue, 'observer')) {
+            /**if (!_.includes(queue, 'observer')) {
                 let observer = _.filter(Game.creeps, (creep) => creep.memory.role === 'observer' && creep.memory.destination === room.memory.remoteRooms[keys]);
                 if (observer.length < 1) {
                     queueCreep(room, PRIORITIES.scout, {
@@ -392,7 +392,7 @@ module.exports.remoteCreepQueue = function (room) {
                         destination: room.memory.remoteRooms[keys]
                     })
                 }
-            }
+            }**/
             if (!_.includes(queue, 'remoteUtility') && (TEN_CPU || (remoteRoom && remoteRoom.memory.threatLevel > 2 && remoteRoom.memory.tickDetected + 250 > Game.time))) {
                 let sourceCount = 1;
                 let remoteUtility = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteUtility');
@@ -404,7 +404,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!_.includes(queue, 'remoteUtility') && !_.includes(queue, 'remoteHarvester') && !TEN_CPU && (!remoteRoom || remoteRoom.memory.threatLevel < 3)) {
+            if (!_.includes(queue, 'remoteUtility') && !_.includes(queue, 'remoteHarvester') && !TEN_CPU && (!remoteRoom || !remoteRoom.memory.threatLevel || remoteRoom.memory.threatLevel < 3)) {
                 let sourceCount = 1;
                 if (Memory.roomCache[room.memory.remoteRooms[keys]] && level >= 7) sourceCount = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length;
                 if (remoteHarvester.length < sourceCount && (!remoteRoom || !remoteRoom.memory.noRemote)) {

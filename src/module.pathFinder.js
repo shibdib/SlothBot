@@ -200,9 +200,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
                 if (creep.memory.badPathing) creep.memory.badPathing++;
-                if (creep.memory.badPathing > 25) {
-                    log.e("Creep " + creep.name + " is stuck in " + creep.room.name + ", suiciding for the good of the CPU.");
-                    return creep.suicide();
+                if (creep.memory.badPathing > 150) {
+                    //log.e("Creep " + creep.name + " is stuck in " + creep.room.name + ", suiciding for the good of the CPU.");
+                    //return creep.suicide();
                 }
                 return creep.moveTo(target);
             }
