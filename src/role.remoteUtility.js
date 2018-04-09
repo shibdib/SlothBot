@@ -11,7 +11,6 @@ function role(creep) {
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     let lair = Game.getObjectById(creep.memory.lair);
     if (lair && creep.pos.getRangeTo(lair) <= 5 && lair.ticksToSpawn <= 10) return creep.flee(lair);
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;

@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.say(ICONS.respond, true);
-    creep.room.invaderCheck();
     if (creep.room.memory.threatLevel > 2) if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack']);
     creep.borderCheck();
     if (!creep.handleDefender()) {

@@ -12,11 +12,11 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestEnemy = function () {
-    let enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
+    let enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(Memory._threatList, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
     if (enemy) {
         return enemy;
     } else {
-        enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
+        enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(Memory._threatList, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
         if (enemy) {
             return enemy;
         } else {
@@ -617,6 +617,6 @@ function addCreepsToMatrix(room, matrix) {
 }
 
 Creep.prototype.goHomeAndHeal = function () {
-    if (Game.map.getRoomLinearDistance(this.room.name, this.memory.overlord) > 1) return;
+    if (Game.map.getRoomLinearDistance(this.room.name, this.memory.overlord) > 2) return;
     this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20, forceRepath: true});
 };

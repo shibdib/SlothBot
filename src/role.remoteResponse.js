@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.borderCheck();
-    creep.room.invaderCheck();
     if (creep.hits < creep.hitsMax / 2) {
         creep.heal(creep);
     }
@@ -17,12 +16,11 @@ function role(creep) {
         delete creep.memory.destinationReached;
     }
     if (!creep.memory.destinationReached) {
-        let hostiles = _.filter(creep.room.creeps, (c) => _.includes(FRIENDLIES, c.owner['username']) === false);
-        let armedHostile = _.filter(hostiles, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
+        let hostiles = creep.findClosestEnemy();
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
         }
-        if (armedHostile.length > 0) {
+        if (hostiles) {
             creep.handleDefender();
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room}

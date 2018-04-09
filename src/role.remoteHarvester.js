@@ -10,7 +10,7 @@ function role(creep) {
     creep.borderCheck();
     //Invader detection
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) {
-        creep.drop(RESOURCE_ENERGY);
+        if (creep.carry[RESOURCE_ENERGY]) creep.drop(RESOURCE_ENERGY);
         return creep.goHomeAndHeal();
     }
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;

@@ -22,20 +22,20 @@ Room.prototype.buildRoom = function () {
             }
         }
     }
-    if (_.size(Game.constructionSites) > 75) return;
-    controllerSupplier(this, structures);
     buildExtensions(this);
     buildLinks(this);
     buildStorage(this);
     buildTerminal(this);
+    buildSpawn(this, structures);
     buildTowers(this, structures);
+    if (_.size(Game.constructionSites) > 75) return;
+    controllerSupplier(this, structures);
     buildLabs(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
     buildExtractor(this, structures);
     buildWalls(this, structures);
-    buildSpawn(this, structures);
     if (_.size(Game.constructionSites) > 50) return;
     buildRoads(this, structures);
 };
@@ -313,7 +313,7 @@ function buildPowerSpawn(room, structures) {
 function buildSpawn(room, structures) {
     if (room.controller.level < 7) return;
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
-    if (spawn.length < 2) {
+    if (spawn.length < 3) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 7, hub.x - 7, hub.y + 7, hub.x + 7, true));
         for (let key in safeZone) {

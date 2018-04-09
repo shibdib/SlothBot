@@ -122,8 +122,8 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 Creep.prototype.getSafe = function (hauler = false) {
     if (this.room.memory.responseNeeded && this.room.controller.level >= 5) {
         let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
-        let hostile = hub.findClosestByRange(_.filter(this.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username)));
-        if (hostile && hub.getRangeTo(hostile) <= 9) {
+        let hostile = this.findClosestEnemy();
+        if (hostile && hub.getRangeTo(hostile) <= 12) {
             if (this.pos.getRangeTo(hub) > 5) {
                 this.say(ICONS.withdraw);
                 this.shibMove(hub, {range: 4, forceRepath: true});
@@ -364,3 +364,31 @@ Object.defineProperty(Creep.prototype, 'isFull', {
     enumerable: false,
     configurable: true
 });
+
+Creep.prototype.reportDamage = function () {
+    if (!this.memory._lastHits) {
+        return this.memory._lastHits = this.hits;
+    }
+    if (this.hits < this.memory._lastHits) {
+        if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== USERNAME))) return false;
+        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => c.pos.getRangeTo(this) <= 3 && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== USERNAME), 'owner.username'));
+        if (nearbyCreeps.length) {
+            for (let key in nearbyCreeps) {
+                let user = nearbyCreeps[key];
+                let cache = Memory._badBoyList || {};
+                let threatRating;
+                if (cache[user]) {
+                    if (cache[user].lastAction + 10 > Game.time) return true;
+                    threatRating = cache[user]['threatRating'] + 0.5;
+                } else {
+                    threatRating = 1;
+                }
+                cache[user] = {
+                    threatRating: threatRating,
+                    lastAction: Game.time,
+                };
+                Memory._badBoyList = cache;
+            }
+        }
+    }
+};
