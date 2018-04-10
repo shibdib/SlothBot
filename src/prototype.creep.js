@@ -379,7 +379,12 @@ Creep.prototype.reportDamage = function () {
                 let threatRating;
                 if (cache[user]) {
                     if (cache[user].lastAction + 10 > Game.time) return true;
-                    threatRating = cache[user]['threatRating'] + 0.5;
+                    log.e(this.name + ' has taken damage in ' + this.room.name + '. Adjusting threat rating for ' + user);
+                    if (_.includes(FRIENDLIES, user)) {
+                        threatRating = cache[user]['threatRating'] + 0.1;
+                    } else {
+                        threatRating = cache[user]['threatRating'] + 0.5;
+                    }
                 } else {
                     threatRating = 1;
                 }

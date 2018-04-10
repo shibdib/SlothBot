@@ -165,7 +165,6 @@ function controllerSupplier(room, structures) {
 
 function buildWalls(room, structures) {
     if (room.controller.level < 3) return;
-    let extensionCount = room.getExtensionCount();
     for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
     }
@@ -186,7 +185,7 @@ function buildWalls(room, structures) {
             }).length < 8) position.createConstructionSite(STRUCTURE_ROAD);
         }
     }
-    if (extensionCount > 90) {
+    if (room.controller.level >= 7) {
         let outerRing = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
         for (let key in outerRing) {
             let position = new RoomPosition(outerRing[key].x, outerRing[key].y, room.name);
@@ -527,4 +526,12 @@ function buildRoadAround(room, position) {
 function buildRoad(position) {
     //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
+}
+
+function isEven(n) {
+    return n % 2 === 0;
+}
+
+function isOdd(n) {
+    return Math.abs(n % 2) === 1;
 }

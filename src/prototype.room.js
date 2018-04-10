@@ -328,11 +328,15 @@ Room.prototype.invaderCheck = function () {
     let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
     if (invader.length > 0) {
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
-        let availableLongbows = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.getRoomLinearDistance(c.room.name, this.name) <= 5);
+        let availableLongbows = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, this.name) <= 5);
         if (availableLongbows.length) {
+            let retasked = 0;
             for (let key in availableLongbows) {
+                if (retasked + 1 >= invader.length) break;
                 availableLongbows[key].memory.awaitingOrders = undefined;
                 availableLongbows[key].memory.responseTarget = this.name;
+                log.a(availableLongbows[key].name + ' has been re-tasked to assist ' + this.name + ' they are en-route from ' + availableLongbows[key].room.name);
+                retasked++;
             }
         }
         this.memory.responseNeeded = true;
@@ -354,18 +358,19 @@ Room.prototype.invaderCheck = function () {
                 else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
                 else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
                 let threatRating;
+                let gained = armed.length * multiple;
                 if (cache[key]) {
                     if (cache[key].lastAction + 50 > Game.time) return true;
-                    threatRating = cache[key]['threatRating'] + (armed.length * multiple);
+                    threatRating = cache[key]['threatRating'] + gained;
                 } else {
-                    threatRating = armed.length * multiple;
+                    threatRating = gained;
                 }
                 cache[key] = {
                     threatRating: threatRating,
                     lastAction: Game.time,
                 };
                 Memory._badBoyList = cache;
-                log.a(key + ' now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
+                log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
             } else {
                 this.memory.threatLevel = 1;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
@@ -382,18 +387,19 @@ Room.prototype.invaderCheck = function () {
                 else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
                 else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
                 let threatRating;
+                let gained = armed.length * multiple;
                 if (cache[key]) {
                     if (cache[key].lastAction + 50 > Game.time) return true;
-                    threatRating = cache[key]['threatRating'] + (armed.length * multiple);
+                    threatRating = cache[key]['threatRating'] + gained;
                 } else {
-                    threatRating = armed.length * multiple;
+                    threatRating = gained;
                 }
                 cache[key] = {
                     threatRating: threatRating,
                     lastAction: Game.time,
                 };
                 Memory._badBoyList = cache;
-                log.a(key + ' now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
+                log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
             } else {
                 this.memory.threatLevel = 2;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;

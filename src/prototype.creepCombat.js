@@ -11,20 +11,20 @@ Creep.prototype.findClosestSourceKeeper = function () {
     });
 };
 
-Creep.prototype.findClosestEnemy = function () {
-    let enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(Memory._threatList, c.owner['username']) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
+Creep.prototype.findClosestEnemy = function (barriers = false) {
+    let enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner['username']) || c.owner['username'] === 'Invader') && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner['username'] !== 'Source Keeper'});
     if (enemy) {
         return enemy;
     } else {
-        enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => _.includes(Memory._threatList, c.owner.username) && c.owner['username'] !== 'Source Keeper'});
+        enemy = this.pos.findClosestByRange(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner['username']) || c.owner['username'] === 'Invader') && c.owner['username'] !== 'Source Keeper'});
         if (enemy) {
             return enemy;
         } else {
             if ((this.room.controller && this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || (this.room.controller && this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username))) return null;
-            enemy = this.pos.findClosestByRange(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_STORAGE && c.structureType !== STRUCTURE_TERMINAL && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR});
+            enemy = this.pos.findClosestByRange(this.room.structures, {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_STORAGE && c.structureType !== STRUCTURE_TERMINAL && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_EXTRACTOR});
             if (enemy) {
                 return enemy;
-            } else {
+            } else if (barriers) {
                 enemy = this.findClosestBarrier();
                 if (enemy) {
                     return enemy;
