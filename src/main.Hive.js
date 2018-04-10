@@ -49,7 +49,7 @@ function mind() {
         if (TEN_CPU) {
             maxRooms = 2;
         }
-        if (Game.time % 500 === 0 && !activeRoom.memory.activeClaim && activeRoom.controller.level >= 4 && Game.gcl.level - 1 > overlordCount && !activeClaim && overlordCount <= maxRooms) {
+        if (Game.time % 500 === 0 && !activeRoom.memory.activeClaim && activeRoom.controller.level >= 4 && Game.gcl.level > overlordCount && !activeClaim && overlordCount <= maxRooms) {
             activeRoom.claimNewRoom();
         }
         processed++;
