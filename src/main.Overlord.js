@@ -20,12 +20,17 @@ function mind(room, roomLimit) {
     //Build Room
     if (Game.time % 50 === 0) {
         for (let structures of room.structures) {
-            if ((structures.owner && structures.owner['username'] !== USERNAME) || structures.structureType === STRUCTURE_WALL) {
+            if ((structures.owner && structures.owner.username !== USERNAME) || structures.structureType === STRUCTURE_WALL) {
                 structures.destroy();
             }
         }
         let roomBuild = Game.cpu.getUsed();
-        room.buildRoom();
+        try {
+            room.buildRoom();
+        } catch (e) {
+            log.e('Room Building for room ' + room.name + ' experienced an error');
+            log.e(e);
+        }
         // Request builders
         requestBuilders(room);
         shib.shibBench('roomBuild', roomBuild);
@@ -33,15 +38,20 @@ function mind(room, roomLimit) {
 
     // Manage creep spawning
     if (Game.time % 10 === 0) {
-        if (room.controller.level >= 4 && Game.time % 20 === 0) {
-            let remoteSpawn = Game.cpu.getUsed();
-            spawning.remoteCreepQueue(room);
-            shib.shibBench('remoteSpawn', remoteSpawn);
+        try {
+            if (room.controller.level >= 4 && Game.time % 20 === 0) {
+                let remoteSpawn = Game.cpu.getUsed();
+                spawning.remoteCreepQueue(room);
+                shib.shibBench('remoteSpawn', remoteSpawn);
+            }
+            let creepSpawn = Game.cpu.getUsed();
+            spawning.workerCreepQueue(room);
+            shib.shibBench('workerCreepQueue', creepSpawn);
+            cleanQueue(room);
+        } catch (e) {
+            log.e('Creep Spawning for room ' + room.name + ' experienced an error');
+            log.e(e);
         }
-        let creepSpawn = Game.cpu.getUsed();
-        spawning.workerCreepQueue(room);
-        shib.shibBench('workerCreepQueue', creepSpawn);
-        cleanQueue(room);
     }
 
     // Manage creeps
@@ -61,26 +71,48 @@ function mind(room, roomLimit) {
     // Observer Control
     if (room.level === 8) {
         let observerCpu = Game.cpu.getUsed();
-        observers.observerControl(room);
+        try {
+            observers.observerControl(room);
+        } catch (e) {
+            log.e('Observer Control for room ' + room.name + ' experienced an error');
+            log.e(e);
+        }
         shib.shibBench('observerControl', observerCpu);
     }
 
     // Handle Links
     if (Game.time % 10 === 0 && room.level >= 5) {
         cpu = Game.cpu.getUsed();
-        links.linkControl(room);
+        try {
+            links.linkControl(room);
+        } catch (e) {
+            log.e('Link Control for room ' + room.name + ' experienced an error');
+            log.e(e);
+        }
         shib.shibBench('linkControl', cpu);
     }
 
     // Handle Terminals
     if (Game.time % 15 === 0 && room.level >= 6) {
         cpu = Game.cpu.getUsed();
-        terminals.terminalControl(room);
+        try {
+            terminals.terminalControl(room);
+        } catch (e) {
+            log.e('Terminal Control for room ' + room.name + ' experienced an error');
+            log.e(e);
+        }
         shib.shibBench('terminalControl', cpu);
     }
 
     // Power Processing
-    power.powerControl(room);
+    cpu = Game.cpu.getUsed();
+    try {
+        power.powerControl(room);
+    } catch (e) {
+        log.e('Power Control for room ' + room.name + ' experienced an error');
+        log.e(e);
+    }
+    shib.shibBench('powerControl', cpu);
 
     // Store Data
     let minerals = Memory.ownedMineral || [];
@@ -97,13 +129,20 @@ function minionController(minion) {
     if (minion.idle) return minion.say(ICONS.wait18);
     minion.notifyWhenAttacked(false);
     minion.reportDamage();
-    minion.room.cacheRoomIntel();
-    minion.room.invaderCheck();
+    if (minion.room.name !== minion.memory.overlord) {
+        minion.room.invaderCheck();
+        minion.room.cacheRoomIntel();
+    }
     if (Game.time % 25 === 0) minion.room.cacheRoomIntel();
     let memoryRole = minion.memory.role;
     let creepRole = require('role.' + memoryRole);
     let start = Game.cpu.getUsed();
-    creepRole.role(minion);
+    try {
+        creepRole.role(minion);
+    } catch (e) {
+        log.e(minion.name + ' experienced an error in room ' + minion.room.name);
+        log.e(e);
+    }
     shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
 

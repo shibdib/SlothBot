@@ -2,7 +2,7 @@ let shib = require("shibBench");
 
 Room.prototype.claimNewRoom = function () {
     let cpu = Game.cpu.getUsed();
-    let avoidRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && _.includes(FRIENDLIES, r.controller.owner['username']));
+    let avoidRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && _.includes(FRIENDLIES, r.controller.owner.username));
     let worthyRooms = _.filter(Memory.roomCache, (room) => room.claimWorthy && room.name !== this.name && room.sources.length === 2);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     delete this.memory.claimTarget;

@@ -18,7 +18,7 @@ module.exports.hud = function () {
                 {align: 'left', opacity: 0.8, color: '#ff0000'}
             );
         }
-        if (Memory.activeSiege && Memory.activeSiege === key) {
+        if (type === 'siege' && Memory.targetRooms[key].activeSiege) {
             new RoomVisual(key).text(
                 'ACTIVE SIEGE',
                 1,
@@ -26,7 +26,7 @@ module.exports.hud = function () {
                 {align: 'left', opacity: 0.8, color: '#ff0000'}
             );
         }
-        if (type === 'siege' && Memory.activeSiege && Memory.activeSiege !== key) {
+        if (type === 'siege' && !Memory.targetRooms[key].activeSiege) {
             new RoomVisual(key).text(
                 'QUEUED SIEGE',
                 1,
@@ -101,7 +101,7 @@ module.exports.hud = function () {
             new RoomVisual(name).text(
                 ICONS.reaction + ' REACTION ROOM',
                 1,
-                2,
+                4,
                 {align: 'left', opacity: 0.5}
             );
         }

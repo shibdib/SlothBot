@@ -43,8 +43,10 @@ function role(creep) {
             }
         }
         if (creep.memory.hauling === false) {
-            creep.getEnergy();
-            creep.withdrawEnergy();
+            if (!checkForLoot(creep)) {
+                creep.getEnergy();
+                creep.withdrawEnergy();
+            }
         } else {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
@@ -71,6 +73,21 @@ function role(creep) {
 }
 
 module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
+
+function checkForLoot(creep) {
+    let tombstones = _.filter(creep.room.tombstones, (s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
+    if (tombstones.length) {
+        for (let resourceType in tombstones[0].store) {
+            switch (creep.withdraw(tombstones[0], resourceType)) {
+                case OK:
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(tombstones[0]);
+                    break;
+            }
+        }
+    }
+}
 
 function terminalWorker(creep) {
     let terminal = creep.room.terminal;

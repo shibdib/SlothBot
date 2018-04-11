@@ -6,9 +6,9 @@ const STATE_STUCK = 3;
 
 const structureMatrixCache = {};
 const creepMatrixCache = {};
-const borderMatrixCache = {};
 
 function shibMove(creep, heading, options = {}) {
+    creep.borderCheck();
     _.defaults(options, {
         useCache: true,
         ignoreCreeps: true,
@@ -32,27 +32,30 @@ function shibMove(creep, heading, options = {}) {
         radius: 0.55,
         stroke: 'black'
     });
-    let pathingStart = Game.cpu.getUsed();
-    updateRoomStatus(creep.room);
-    if (!creep.memory._shibMove || options.forceRepath || Math.random() > options.repathChance) creep.memory._shibMove = {};
-    let pathInfo = creep.memory._shibMove;
-    pathInfo.targetRoom = targetRoom(heading);
-    let rangeToDestination = creep.pos.getRangeTo(heading);
-    if (rangeToDestination <= options.range) {
-        shib.shibBench('pathfinding', pathingStart);
-        return OK;
-    } else if (rangeToDestination <= 1) {
-        if (rangeToDestination === 1) {
-            let direction = creep.pos.getDirectionTo(heading);
-            return creep.move(direction);
-        }
-        shib.shibBench('pathfinding', pathingStart);
-        return OK;
-    }
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
+    // Make sure origin and target are good
     if (!origin || !target) return;
-    //clear path if stuck
+    let pathingStart = Game.cpu.getUsed();
+    updateRoomStatus(creep.room);
+    if (!creep.memory._shibMove || Math.random() > options.repathChance) creep.memory._shibMove = {};
+    // Check if target moved
+    if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) creep.memory._shibMove = {};
+    // Set var
+    let pathInfo = creep.memory._shibMove;
+    pathInfo.targetRoom = targetRoom(heading);
+    // Check if target reached or within 1
+    let rangeToDestination = creep.pos.getRangeTo(heading);
+    if (rangeToDestination <= options.range) {
+        creep.memory._shibMove = undefined;
+        shib.shibBench('pathfinding', pathingStart);
+        return OK;
+    } else if (rangeToDestination === 1) {
+        let direction = creep.pos.getDirectionTo(heading);
+        shib.shibBench('pathfinding', pathingStart);
+        return creep.move(direction);
+    }
+    //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
         pathInfo.pathPosTime = 0;
@@ -60,11 +63,10 @@ function shibMove(creep, heading, options = {}) {
         options.freshMatrix = true;
         options.useCache = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-        if (Math.random() > .7) return creep.moveRandom();
+        if (Math.random() > .8) return creep.moveRandom();
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path && !options.checkPath) {
-        creep.borderCheck();
         if (pathInfo.newPos && pathInfo.newPos.x === creep.pos.x && pathInfo.newPos.y === creep.pos.y && pathInfo.newPos.roomName === creep.pos.roomName) pathInfo.path = pathInfo.path.slice(1);
         if (pathInfo.pathPos === creep.pos.x + '.' + creep.pos.y + '.' + creep.pos.roomName) {
             pathInfo.pathPosTime++;
@@ -75,6 +77,7 @@ function shibMove(creep, heading, options = {}) {
         let nextDirection = parseInt(pathInfo.path[0], 10);
         if (nextDirection && pathInfo.newPos) {
             pathInfo.newPos = positionAtDirection(origin, nextDirection);
+            creep.memory._shibMove = pathInfo;
             switch (creep.move(nextDirection)) {
                 case OK:
                     break;
@@ -104,27 +107,23 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
     if (options.useCache && !options.checkPath) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps && options.useCache) {
+        pathInfo.findAttempt = undefined;
+        creep.memory.badPathing = undefined;
         pathInfo.target = target;
         pathInfo.path = cached;
         pathInfo.usingCached = true;
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
-        delete pathInfo.findAttempt;
-        delete creep.memory.badPathing;
         return creep.move(nextDirection);
     } else {
-        pathInfo.usingCached = false;
+        pathInfo.usingCached = undefined;
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = options.route;
         if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 1))) {
             let route;
-            if (options.useCache) {
-                route = getRoute(origin, target);
-            }
-            if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) {
-                route = findRoute(origin.roomName, target.roomName, options);
-            }
+            if (options.useCache) route = getRoute(origin, target);
+            if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
             if (route) {
                 allowedRooms = route;
                 cacheRoute(origin, target, route);
@@ -167,8 +166,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                         addCreepsToMatrix(room, matrix);
                         addSksToMatrix(room, matrix);
                     }
-                }
-                else if (options.ignoreCreeps || roomName !== originRoomName) {
+                } else if (options.ignoreCreeps || roomName !== originRoomName) {
                     matrix = getStructureMatrix(room, options.freshMatrix);
                     addSksToMatrix(room, matrix);
                 } else {
@@ -215,6 +213,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         cachePath(creep, origin, target, pathInfo.path);
         delete pathInfo.findAttempt;
         delete creep.memory.badPathing;
+        creep.memory._shibMove = pathInfo;
         switch (creep.move(nextDirection)) {
             case OK:
                 return;
@@ -359,11 +358,8 @@ function addSksToMatrix(room, matrix) {
     return matrix;
 }
 
-function getStructureMatrix(room, freshMatrix, siege = false) {
-    if (siege) {
-        let matrix = new PathFinder.CostMatrix();
-        return PathFinder.CostMatrix.deserialize(addStructuresToMatrixSiege(room, matrix, 1).serialize());
-    } else if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
+function getStructureMatrix(room, freshMatrix) {
+    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
         room.memory.structureMatrixTick = Game.time;
         let matrix = new PathFinder.CostMatrix();
         structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1).serialize();
@@ -379,72 +375,27 @@ function getCreepMatrix(room) {
     return PathFinder.CostMatrix.deserialize(creepMatrixCache[room.name]);
 }
 
-function getBorderMatrix(room, matrix) {
-    if (!borderMatrixCache[room.name] || (!room.memory.borderMatrixTick || Game.time !== room.memory.borderMatrixTick)) {
-        room.memory.borderMatrixTick = Game.time;
-        borderMatrixCache[room.name] = addBorderToMatrix(room, matrix).serialize();
-    }
-    return PathFinder.CostMatrix.deserialize(borderMatrixCache[room.name]);
-}
-
 function addStructuresToMatrix(room, matrix, roadCost) {
-    let impassibleStructures = [];
     for (let structure of room.structures) {
-        if (structure instanceof StructureRampart) {
-            if (!structure.my && !structure.isPublic) {
-                impassibleStructures.push(structure);
-            }
-        }
-        else if (structure instanceof StructureRoad) {
+        if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
+            matrix.set(structure.pos.x, structure.pos.y, 0xff);
+        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
+            matrix.set(structure.pos.x, structure.pos.y, roadCost + 1);
+        } else if (structure instanceof StructureRampart && room.memory.responseNeeded && (structure.my || structure.isPublic) && structure.pos.checkForRoad()) {
+            matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
+        } else if (structure instanceof StructureRoad && room.memory.responseNeeded && structure.pos.checkForRampart()) {
+            matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
+        } else if (structure instanceof StructureRoad) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
-        }
-        else if (structure instanceof StructureContainer) {
-            matrix.set(structure.pos.x, structure.pos.y, 25);
-        }
-        else {
-            impassibleStructures.push(structure);
+        } else if (structure instanceof StructureContainer) {
+            matrix.set(structure.pos.x, structure.pos.y, 45);
+        } else {
+            matrix.set(structure.pos.x, structure.pos.y, 0xff);
         }
     }
-    for (let site of room.find(FIND_MY_CONSTRUCTION_SITES)) {
-        if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_ROAD
-            || site.structureType === STRUCTURE_RAMPART) {
-            continue;
-        }
+    let blockingSites = _.filter(room.constructionSites, (s) => (s.my && (s.structureType !== STRUCTURE_CONTAINER || s.structureType !== STRUCTURE_ROAD || s.structureType !== STRUCTURE_RAMPART)) || _.includes(FRIENDLIES, s.owner));
+    for (let site of blockingSites) {
         matrix.set(site.pos.x, site.pos.y, 0xff);
-    }
-    for (let structure of impassibleStructures) {
-        matrix.set(structure.pos.x, structure.pos.y, 0xff);
-    }
-    return matrix;
-}
-
-function addStructuresToMatrixSiege(room, matrix, roadCost) {
-    let impassibleStructures = [];
-    for (let structure of room.structures) {
-        if (structure instanceof StructureRampart) {
-            if (!structure.my && !structure.isPublic) {
-                impassibleStructures.push(structure);
-            }
-        }
-        else if (structure instanceof StructureRoad) {
-            matrix.set(structure.pos.x, structure.pos.y, roadCost);
-        }
-        else if (structure instanceof StructureContainer) {
-            matrix.set(structure.pos.x, structure.pos.y, 5);
-        }
-        else {
-            impassibleStructures.push(structure);
-        }
-    }
-    for (let site of room.find(FIND_MY_CONSTRUCTION_SITES)) {
-        if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_ROAD
-            || site.structureType === STRUCTURE_RAMPART) {
-            continue;
-        }
-        matrix.set(site.pos.x, site.pos.y, 0xff);
-    }
-    for (let structure of impassibleStructures) {
-        matrix.set(structure.pos.x, structure.pos.y, 254);
     }
     return matrix;
 }
@@ -483,11 +434,9 @@ function serializePath(startPos, path, color = "orange") {
 }
 
 function updateRoomStatus(room) {
-    if (!room) {
-        return;
-    }
+    if (!room) return;
     if (room.controller) {
-        if (room.controller.owner && !room.controller.my && _.includes(FRIENDLIES, room.controller.owner['username']) === false) {
+        if (room.controller.owner && !room.controller.my && !_.includes(FRIENDLIES, room.controller.owner.username)) {
             room.memory.avoid = 1;
         }
         else {

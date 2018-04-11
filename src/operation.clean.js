@@ -17,7 +17,7 @@ Creep.prototype.cleanRoom = function () {
         Memory.targetRooms = cache;
         return this.suicide();
     }
-    let creeps = this.pos.findClosestByRange(this.room.creeps, {filter: (e) => _.includes(FRIENDLIES, e.owner['username']) === false});
+    let creeps = this.pos.findClosestByRange(this.room.creeps, {filter: (e) => _.includes(FRIENDLIES, e.owner.username) === false});
     if (creeps && Memory.targetRooms[this.room.name]) {
         Memory.targetRooms[this.room.name].escort = true;
     } else if (Memory.targetRooms[this.room.name]) {

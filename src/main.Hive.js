@@ -15,7 +15,7 @@ function mind() {
         }
     }
 
-    Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner['username'] === USERNAME));
+    Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === USERNAME));
     let cpuBucket = Game.cpu.bucket;
 
     let cpu;

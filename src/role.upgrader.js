@@ -7,9 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.getSafe()) {
-        if (_.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_TOWER).length > 0) return creep.memory.role = 'worker';
         if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['upgrade']);
-        if (_.filter(Game.creeps, (c) => (c.memory.role === 'stationaryHarvester') && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.role = 'stationaryHarvester';
         //ANNOUNCE
         if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
         if (creep.memory.announcer) {
@@ -35,9 +33,8 @@ function role(creep) {
         let link = Game.getObjectById(creep.room.memory.controllerLink);
         let container = Game.getObjectById(creep.room.memory.controllerContainer);
         let terminal = creep.room.terminal;
-        if (creep.carry.energy === 0) {
-            creep.memory.working = null;
-        } else if (creep.isFull) creep.memory.working = true;
+        if (creep.carry.energy === 0) creep.memory.working = undefined;
+        if (creep.isFull) creep.memory.working = true;
         if (creep.memory.working === true) {
             if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
             if (container && creep.pos.getRangeTo(container) <= 1 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
@@ -65,11 +62,7 @@ function role(creep) {
                     let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
                     if (container) creep.room.memory.controllerContainer = container.id;
                 }
-                if (terminal && creep.pos.getRangeTo(terminal) < 5 && terminal.store[RESOURCE_ENERGY] > 2000) {
-                    if (creep.withdraw(terminal, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(terminal);
-                    }
-                } else if (!creep.memory.energyDestination && creep.room.controller.level <= 4) {
+                if (!creep.memory.energyDestination && creep.room.controller.level <= 4) {
                     if (!creep.findEnergy(6)) {
                         let source = creep.pos.getClosestSource();
                         if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)

@@ -34,7 +34,7 @@ function role(creep) {
     let SKAttacker = _.filter(Game.creeps, (c) => c.memory.role && c.memory.role === 'SKattacker' && c.memory.destination === creep.memory.destination);
     if (SKAttacker.length === 0) {
         if (creep.hits < creep.hitsMax) creep.heal(creep);
-        let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner['username'])});
+        let hostiles = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => !_.includes(FRIENDLIES, c.owner.username)});
         let hostileHealer = creep.pos.findClosestByRange(hostiles, {filter: (c) => c.getActiveBodyparts(HEAL) > 2});
         if (!creep.memory.destinationReached) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});

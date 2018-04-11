@@ -37,13 +37,15 @@ function role(creep) {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (source) {
-                if (source.energy === 0) {
-                    creep.idleFor(source.ticksToRegeneration + 1)
-                } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(source);
+                switch (creep.harvest(source)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(source);
+                        break;
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        creep.idleFor(source.ticksToRegeneration + 1)
                 }
             } else {
-                delete creep.memory.source;
+                creep.memory.source = undefined;
             }
         } else {
             creep.findSource();
@@ -54,7 +56,7 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
-    //if (!creep.memory.buildAttempt) remoteRoads(creep);
+    if (!creep.memory.buildAttempt) remoteRoads(creep);
     if (!creep.memory.containerID) {
         let buildSite = Game.getObjectById(creep.containerBuilding());
         if (buildSite) {

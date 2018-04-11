@@ -196,8 +196,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER);
-        hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
-        nonCombats = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner['username']) === false);
+        hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner.username) === false);
+        nonCombats = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner.username) === false);
         towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
@@ -324,7 +324,7 @@ Room.prototype.invaderCheck = function () {
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
     if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) return;
     this.memory.lastInvaderCheck = Game.time;
-    let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner['username']) && c.owner['username'] !== 'Source Keeper');
+    let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Source Keeper');
     let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
     if (invader.length > 0) {
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
@@ -371,6 +371,8 @@ Room.prototype.invaderCheck = function () {
                 };
                 Memory._badBoyList = cache;
                 log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
+                let roomHeat = this.memory.roomHeat || 0;
+                this.memory.roomHeat = roomHeat + (armed.length * 5);
             } else {
                 this.memory.threatLevel = 1;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
@@ -400,6 +402,8 @@ Room.prototype.invaderCheck = function () {
                 };
                 Memory._badBoyList = cache;
                 log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
+                let roomHeat = this.memory.roomHeat || 0;
+                this.memory.roomHeat = roomHeat + (armed.length * 5);
             } else {
                 this.memory.threatLevel = 2;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
@@ -408,6 +412,7 @@ Room.prototype.invaderCheck = function () {
         return !!armed.length;
     }
     if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
+        this.memory.roomHeat = (this.memory.roomHeat - 0.5) || 0;
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;

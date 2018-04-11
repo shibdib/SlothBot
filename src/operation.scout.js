@@ -1,5 +1,4 @@
 Creep.prototype.scoutRoom = function () {
-    this.room.cacheRoomIntel();
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     this.room.cacheRoomIntel(true);
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
@@ -14,29 +13,24 @@ Creep.prototype.scoutRoom = function () {
             dDay: tick + this.room.controller.safeMode,
         };
         Memory.targetRooms = cache;
-        return this.suicide();
     } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && countableStructures.length) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.room.name] = {
             tick: tick,
-            type: 'clean',
-            level: 2,
-            escort: true
+            type: 'hold',
+            level: 2
         };
         Memory.targetRooms = cache;
-        return this.suicide();
     } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && !countableStructures.length) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.room.name] = {
             tick: tick,
             type: 'hold',
-            level: 1,
-            escort: true
+            level: 1
         };
         Memory.targetRooms = cache;
-        return this.suicide();
     } else if (controller.owner && towers.length) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
@@ -51,7 +45,6 @@ Creep.prototype.scoutRoom = function () {
             level: level
         };
         Memory.targetRooms = cache;
-        return this.suicide();
     } else if (!controller.owner && countableStructures.length < 3) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
@@ -61,7 +54,6 @@ Creep.prototype.scoutRoom = function () {
             level: 1
         };
         Memory.targetRooms = cache;
-        return this.suicide();
     } else if (!controller.owner && countableStructures.length > 2) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
@@ -71,8 +63,6 @@ Creep.prototype.scoutRoom = function () {
             level: 1
         };
         Memory.targetRooms = cache;
-        return this.suicide();
     }
-    delete this.memory.targetRoom;
-    this.memory.role = 'explorer';
+    return this.suicide();
 };

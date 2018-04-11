@@ -7,7 +7,7 @@ Creep.prototype.harassRoom = function () {
         let hostile = this.findClosestEnemy();
         if (this.memory.role === 'longbow') {
             if (hostile) {
-                if (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK)) {
+                if (hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
                     Memory.targetRooms[this.memory.targetRoom].level = 3;
                 } else {
                     Memory.targetRooms[this.memory.targetRoom].level = 2;

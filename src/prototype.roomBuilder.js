@@ -186,7 +186,7 @@ function buildWalls(room, structures) {
         }
     }
     let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
-    if (room.controller.level >= 7 && lowestRampart && lowestRampart.hits >= room.controller.level * 250000) {
+    if (room.controller.level >= 9 && lowestRampart && lowestRampart.hits >= room.controller.level * 250000) {
         let outerRing = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
         for (let key in outerRing) {
             let position = new RoomPosition(outerRing[key].x, outerRing[key].y, room.name);

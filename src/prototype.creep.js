@@ -124,7 +124,7 @@ Creep.prototype.getSafe = function (hauler = false) {
         let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
         let hostile = this.findClosestEnemy();
         if (hostile && hub.getRangeTo(hostile) <= 12) {
-            if (this.pos.getRangeTo(hub) > 5) {
+            if (this.pos.getRangeTo(hub) > 6) {
                 this.say(ICONS.withdraw);
                 this.shibMove(hub, {range: 4, forceRepath: true});
                 return true;
