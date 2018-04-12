@@ -364,7 +364,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteRoom = Game.rooms[room.memory.remoteRooms[keys]];
             // Determine threat
             let utility;
-            if (remoteRoom && remoteRoom.memory.roomHeat) {
+            if (remoteRoom && (remoteRoom.memory.roomHeat || level < 4)) {
                 utility = true;
             }
             if (Game.map.findRoute(room.name, room.memory.remoteRooms[keys]).length > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
