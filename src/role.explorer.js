@@ -18,7 +18,7 @@ function role(creep) {
         }
     }
     if (creep.memory.destinationReached !== true) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {allowHostile: true, offRoad: true});
         if (creep.pos.roomName === creep.memory.destination) {
             if (creep.room.controller && creep.room.controller.pos.findInRange(creep.room.structures, 1).length < 2 &&
                 (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) && (!creep.room.controller.owner ||
@@ -30,7 +30,7 @@ function role(creep) {
                         creep.memory.destinationReached = true;
                         break;
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(creep.room.controller);
+                        creep.shibMove(creep.room.controller, {offRoad: true});
                 }
             } else if (!creep.moveToHostileConstructionSites()) {
                 creep.memory.destinationReached = true;

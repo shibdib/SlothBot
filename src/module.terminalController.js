@@ -50,10 +50,8 @@ function terminalControl(room) {
         //Energy balancer
         if (!terminal.cooldown) balanceEnergy(terminal, energyInRoom);
 
-        //Send minerals to reaction room
-        if (!terminal.cooldown && !terminal.room.memory.reactionRoom) supplyReactionRoom(terminal);
-
-        //Send boosts from reaction room
+        //Disperse Minerals and Boosts
+        if (!terminal.cooldown) supplyReactionRoom(terminal);
         if (!terminal.cooldown && terminal.room.memory.reactionRoom) balanceBoosts(terminal);
 
         //Sell off excess
@@ -501,6 +499,7 @@ function balanceBoosts(terminal) {
             }
         }
     }
+    otherTerminals = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive()));
     for (let key in TIER_1_BOOSTS) {
         if (terminal.store[TIER_1_BOOSTS[key]] >= 1000) {
             for (let id in otherTerminals) {
@@ -528,11 +527,18 @@ function balanceBoosts(terminal) {
 function supplyReactionRoom(terminal) {
     for (let i = 0; i < reactionNeeds.length; i++) {
         let stored = terminal.store[reactionNeeds[i]] || 0;
-        let reactionTerminal = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom))[0];
-        if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.7) {
-            let reactionRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.reactionRoom)[0].name;
-            if (terminal.send(reactionNeeds[i], stored, reactionRoom, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
-                return log.a(' MARKET: Distributing ' + stored + ' ' + reactionNeeds[i] + ' To ' + reactionRoom + ' From ' + terminal.room.name);
+        let reactionTerminal = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom && s.store[reactionNeeds[i]] < REACTION_AMOUNT * 2))[0];
+        if (terminal.room.memory.reactionRoom) {
+            if (stored >= REACTION_AMOUNT * 2 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.7) {
+                if (terminal.send(reactionNeeds[i], stored - REACTION_AMOUNT, reactionTerminal.room.name, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
+                    return log.a(' MARKET: Distributing ' + stored - REACTION_AMOUNT + ' ' + reactionNeeds[i] + ' To ' + reactionTerminal.room.name + ' From ' + terminal.room.name);
+                }
+            }
+        } else {
+            if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.7) {
+                if (terminal.send(reactionNeeds[i], stored, reactionTerminal.room.name, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
+                    return log.a(' MARKET: Distributing ' + stored + ' ' + reactionNeeds[i] + ' To ' + reactionTerminal.room.name + ' From ' + terminal.room.name);
+                }
             }
         }
     }

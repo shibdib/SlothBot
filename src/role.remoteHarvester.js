@@ -16,7 +16,6 @@ function role(creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) {
         creep.memory.destinationReached = true;
-        if (!creep.memory.buildAttempt) remoteRoads(creep);
         if (creep.room.constructionSites.length > 0) {
             creep.room.memory.requestingPioneer = true;
         } else {
@@ -56,7 +55,6 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
-    if (!creep.memory.buildAttempt) remoteRoads(creep);
     if (!creep.memory.containerID) {
         let buildSite = Game.getObjectById(creep.containerBuilding());
         if (buildSite) {
@@ -65,6 +63,7 @@ function depositEnergy(creep) {
             creep.memory.containerID = creep.harvestDepositContainer();
         }
     } else if (creep.memory.containerID) {
+        if (!creep.memory.buildAttempt) remoteRoads(creep);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             creep.room.memory.needsPickup = _.sum(container.store) > 750;

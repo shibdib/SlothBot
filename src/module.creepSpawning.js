@@ -433,7 +433,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
         }
-        if (!_.includes(queue, 'remoteHauler') && !TEN_CPU) {
+        if (!_.includes(queue, 'remoteHauler') && !TEN_CPU && harvesterCount) {
             let amount = _.round(harvesterCount / 1.75);
             if (amount === 0) amount = 1;
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
@@ -774,8 +774,8 @@ function bodyGenerator(level, role) {
             break;
         case 'upgrader':
             if (level < 3) {
-                work = 2;
-                carry = 1;
+                work = level + 1;
+                carry = level;
                 move = work + carry;
                 break;
             } else {

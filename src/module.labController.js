@@ -12,7 +12,7 @@ function labManager() {
         let reactionRooms = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom);
         if (!reactionRooms[0]) room.memory.reactionRoom = true;
         let targetAmount = _.round(Memory.ownedRooms.length / 4);
-        if (!room.memory.reactionRoom && reactionRooms.length < targetAmount) {
+        if (!room.memory.reactionRoom && (reactionRooms.length < targetAmount || room.controller.level === 8)) {
             room.memory.reactionRoom = true;
             log.a(room.name + ' is now a reaction room.');
         }

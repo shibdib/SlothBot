@@ -51,7 +51,7 @@ function mind() {
         if (cpuBucket > 5000) roomLimit = cpuTickLimit / (overlordCount - processed);
         overlord.overlordMind(activeRoom, roomLimit);
         //Expansion Manager
-        let maxRooms = 99;
+        let maxRooms = _.round(Game.cpu.limit / 15);
         if (TEN_CPU) {
             maxRooms = 2;
         }
