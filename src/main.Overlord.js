@@ -56,12 +56,6 @@ function mind(room, roomLimit) {
 
     // Manage creeps
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name));
-    let militaryCreeps = shuffle(_.filter(roomCreeps, (r) => r.memory.military));
-    // Military first
-    for (let key in militaryCreeps) {
-        if (Game.cpu.getUsed() > cpuWindow) return;
-        minionController(militaryCreeps[key]);
-    }
     // Worker minions
     for (let key in roomCreeps) {
         if (Game.cpu.getUsed() > cpuWindow) return;

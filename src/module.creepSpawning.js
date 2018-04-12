@@ -263,6 +263,8 @@ module.exports.workerCreepQueue = function (room) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
+        } else if (workers.length < room.constructionSites.length) {
+            queueCreep(room, workers.length + 1, {role: 'worker'})
         }
     }
     //Haulers
@@ -272,8 +274,8 @@ module.exports.workerCreepQueue = function (room) {
         return queueCreep(room, -1, {role: 'hauler', reboot: true});
     }
     if (!_.includes(queue, 'hauler')) {
-        let amount = 2;
-        //if (level >= 7) amount = 3;
+        let amount = 1;
+        if (level >= 4) amount = 2;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
@@ -389,7 +391,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
             }
-            if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU && remoteRoom && !remoteRoom.memory.responseNeeded && room.memory.energySurplus && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)) {
+            if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU && remoteRoom && !remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
                     queueCreep(room, PRIORITIES.reserver, {

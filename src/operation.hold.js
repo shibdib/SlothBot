@@ -1,6 +1,10 @@
 Creep.prototype.holdRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+        // Clear target if room is no longer owned
+        if (!this.room.controller.owner || this.room.controller.safeMode) {
+            delete Memory.targetRooms[this.room.name];
+        }
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
@@ -45,11 +49,7 @@ Creep.prototype.holdRoom = function () {
             Memory.targetRooms = cache;
             return this.suicide();
         }
-        // Request unClaimer if room level is 2+
-        Memory.targetRooms[this.room.name].unClaimer = this.room.controller.level > 1;
-        // Clear target if room is no longer owned
-        if (!this.room.controller.owner) {
-            delete Memory.targetRooms[this.room.name];
-        }
+        // Request unClaimer if room level is too high
+        Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive;
     }
 };

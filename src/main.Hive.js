@@ -32,6 +32,12 @@ function mind() {
     // Handle Diplomacy
     diplomacy.diplomacyOverlord();
 
+    // Military first
+    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military));
+    for (let key in militaryCreeps) {
+        minionController(militaryCreeps[key]);
+    }
+
     // Process Overlords
     let processed = 0;
     let activeClaim;
@@ -72,6 +78,28 @@ function mind() {
         hud.hud();
         shib.shibBench('roomHud', cpu);
     }
+}
+
+function minionController(minion) {
+    if (minion.spawning) return;
+    if (minion.idle) return minion.say(ICONS.wait18);
+    minion.notifyWhenAttacked(false);
+    minion.reportDamage();
+    if (minion.room.name !== minion.memory.overlord) {
+        minion.room.invaderCheck();
+        minion.room.cacheRoomIntel();
+    }
+    if (Game.time % 25 === 0) minion.room.cacheRoomIntel();
+    let memoryRole = minion.memory.role;
+    let creepRole = require('role.' + memoryRole);
+    let start = Game.cpu.getUsed();
+    try {
+        creepRole.role(minion);
+    } catch (e) {
+        log.e(minion.name + ' experienced an error in room ' + minion.room.name);
+        log.e(e);
+    }
+    shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
 module.exports.hiveMind = profiler.registerFN(mind, 'hiveMind');
 
