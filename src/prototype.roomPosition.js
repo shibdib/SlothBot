@@ -60,11 +60,15 @@ RoomPosition.prototype.checkForPlain = function () {
 };
 
 RoomPosition.prototype.checkForRampart = function () {
-    return this.lookFor(LOOK_STRUCTURES)[0] === 'rampart';
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})[0];
 };
 
 RoomPosition.prototype.checkForObstacleStructure = function () {
     return this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+};
+
+RoomPosition.prototype.checkForConstructionSites = function () {
+    return this.lookFor(LOOK_CONSTRUCTION_SITES).length;
 };
 
 RoomPosition.prototype.checkForRoad = function () {

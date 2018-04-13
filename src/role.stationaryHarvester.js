@@ -23,34 +23,32 @@ function role(creep) {
         creep.memory.hauling = false;
         if (creep.memory.linkID && creep.memory.containerID && pickupDropped(creep)) return null;
     }
-    if (creep.carry.energy === creep.carryCapacity || creep.memory.hauling === true) {
-        creep.memory.hauling = true;
-        if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
-            creep.memory.upgrade = true;
-            if (creep.room.controller.ticksToDowngrade >= 2000) {
-                delete creep.memory.upgrade;
-                delete creep.memory.hauling;
-            }
-            if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(creep.room.controller);
-            }
-            return null;
-        }
-        depositEnergy(creep);
-    } else if (creep.memory.source) {
+    if (creep.memory.source) {
         source = Game.getObjectById(creep.memory.source);
-        if (source.energy === 0) {
-            creep.idleFor(source.ticksToRegeneration + 1)
-        } else if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-            creep.shibMove(source);
-        }
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(source);
                 break;
-            case OK:
-                //if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) <= 1 && Game.getObjectById(creep.memory.containerID).hits > Game.getObjectById(creep.memory.containerID).hitsMax * 0.25 && _.sum(Game.getObjectById(creep.memory.containerID).store) !== Game.getObjectById(creep.memory.containerID).storeCapacity) creep.transfer(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+            case ERR_NOT_ENOUGH_RESOURCES:
+                creep.idleFor(source.ticksToRegeneration + 1);
                 break;
+            case OK:
+                if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) > 0) creep.shibMove(Game.getObjectById(creep.memory.containerID), {range: 0});
+                break;
+        }
+        if (creep.carry.energy === creep.carryCapacity) {
+            if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
+                creep.memory.upgrade = true;
+                if (creep.room.controller.ticksToDowngrade >= 2000) {
+                    delete creep.memory.upgrade;
+                    delete creep.memory.hauling;
+                }
+                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(creep.room.controller);
+                }
+                return null;
+            }
+            depositEnergy(creep);
         }
     } else {
         creep.findSource();
@@ -84,14 +82,6 @@ function depositEnergy(creep) {
                     creep.transfer(link, RESOURCE_ENERGY);
                 }
             }
-            else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
-                switch (creep.transfer(container, RESOURCE_ENERGY)) {
-                    case OK:
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        return creep.shibMove(container);
-                }
-            }
         }
     } else {
         let buildSite = Game.getObjectById(creep.containerBuilding());
@@ -105,7 +95,8 @@ function depositEnergy(creep) {
 
 function harvestDepositLink(creep) {
     if ((!creep.room.memory.storageLink && !creep.room.memory.controllerLink) || !creep.memory.containerID) return;
-    let link = _.filter(creep.pos.findInRange(creep.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
+    let source = Game.getObjectById(creep.memory.source);
+    let link = _.filter(source.pos.findInRange(creep.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;

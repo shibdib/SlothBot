@@ -64,37 +64,13 @@ function towerControl(room) {
                     tower.repair(road[0]);
                     continue;
                 }
-                if (Game.getObjectById(findRepair(tower))) {
-                    tower.repair(Game.getObjectById(findRepair(tower, structures)));
-                }
+                let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
+                tower.repair(lowestRampart);
             }
         }
 }
 
 module.exports.towerControl = profiler.registerFN(towerControl, 'towerControl');
-
-function findRepair(tower, structures) {
-
-    let site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax});
-    if (site === null) {
-        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 2500});
-    }
-    if (site === null) {
-        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax});
-    }
-    if (site === null) {
-        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax});
-    }
-    if (site === null) {
-        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.75});
-    }
-    if (site === null) {
-        site = tower.pos.findClosestByRange(structures, {filter: (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2});
-    }
-    if (site !== null && site !== undefined) {
-        return site.id;
-    }
-}
 
 // Computes damage of a tower
 function determineDamage(range) {

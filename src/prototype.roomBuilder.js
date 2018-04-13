@@ -137,6 +137,7 @@ function findExtensionHub(room) {
 }
 
 function controllerSupplier(room, structures) {
+    if (room.level < 4) return;
     let controllerContainer = _.filter(room.controller.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
     if (!controllerContainer) {
         let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
@@ -425,7 +426,7 @@ function buildLinks(room) {
                 if (_.filter(storage.pos.findInRange(storage.room.constructionSites, 2), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure().length > 0) continue;
-                position.createConstructionSite(STRUCTURE_LINK);
+                return position.createConstructionSite(STRUCTURE_LINK);
             }
         }
     }

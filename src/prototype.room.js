@@ -155,6 +155,17 @@ Object.defineProperty(Room.prototype, 'constructionSites', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'tombstones', {
+    get: function () {
+        if (!this._tombstones) {
+            this._tombstones = this.find(FIND_TOMBSTONES);
+        }
+        return this._tombstones;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'level', {
     get: function () {
         if (!this._level) {

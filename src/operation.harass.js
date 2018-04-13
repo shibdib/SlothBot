@@ -1,6 +1,12 @@
 Creep.prototype.harassRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+        if (!Memory.targetRooms[this.memory.targetRoom]) {
+            let otherTargets = shuffle(_.filter(Memory.targetRooms, (t) => t.type === 'harass' || t.type === 'hold'));
+            for (let key in otherTargets) {
+                return this.memory.targetRoom = key
+            }
+        }
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);

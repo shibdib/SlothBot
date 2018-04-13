@@ -25,7 +25,8 @@ function shibMove(creep, heading, options = {}) {
         maxRooms: 1,
         checkPath: false,
         badRoom: undefined,
-        returnIncomplete: false
+        returnIncomplete: false,
+        stayInHub: false,
     });
     if (creep.fatigue > 0) return creep.room.visual.circle(creep.pos, {
         fill: 'transparent',
@@ -174,6 +175,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     addSksToMatrix(room, matrix);
                 }
                 addBorderToMatrix(room, matrix);
+                if (options.stayInHub) addOutsideHubToMatrix(room, matrix);
             }
             return matrix;
         };
@@ -395,7 +397,7 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     }
     let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner)));
     for (let site of blockingSites) {
-        matrix.set(site.pos.x, site.pos.y, 0xff);
+        matrix.set(site.pos.x, site.pos.y, 256);
     }
     return matrix;
 }
@@ -415,6 +417,16 @@ function addBorderToMatrix(room, matrix) {
                 matrix.set(x, y, 0x03);
             }
         }
+    }
+    return matrix;
+}
+
+function addOutsideHubToMatrix(room, matrix) {
+    if (!room.memory.extensionHub) return matrix;
+    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+    let dangerZone = _.filter(room.lookForAtArea(LOOK_TERRAIN, hub.y - 8, hub.x - 8, hub.y + 8, hub.x + 8, true), (p) => p.getRangeTo(hub) >= 7 && Game.map.getTerrainAt(p.x, p.y, room.name) !== "wall");
+    for (let p in dangerZone) {
+        matrix.set(p.x, p.y, 175)
     }
     return matrix;
 }

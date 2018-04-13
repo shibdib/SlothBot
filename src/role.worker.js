@@ -16,11 +16,7 @@ function role(creep) {
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     if (creep.carry.energy === 0) creep.memory.working = null;
-    if (creep.isFull) {
-        creep.memory.working = true;
-        delete creep.memory.deliveryRequestTime;
-        delete creep.memory.deliveryIncoming;
-    }
+    if (creep.isFull) creep.memory.working = true;
     if (!creep.getSafe()) {
         if (creep.memory.working === true) {
             if (!creep.memory.constructionSite || !Game.getObjectById(creep.memory.constructionSite)) {
@@ -68,8 +64,7 @@ function role(creep) {
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
             } else {
-                creep.findEnergy();
-                if (!creep.memory.energyDestination) {
+                if (!creep.findEnergy()) {
                     let source = creep.pos.getClosestSource();
                     if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
                 }
@@ -78,25 +73,3 @@ function role(creep) {
     }
 }
 module.exports.role = profiler.registerFN(role, 'workerRole');
-
-function deliveryManagement(creep) {
-    if (!creep.findEnergy(6)) {
-        if (creep.memory.deliveryRequestTime) {
-            if (creep.memory.deliveryRequestTime < Game.time - 100) {
-                delete creep.memory.deliveryRequestTime;
-                return true;
-            }
-            if (creep.memory.deliveryRequestTime < Game.time - 15) {
-                if (creep.memory.deliveryRequestTime < Game.time - 30) {
-                    creep.memory.deliveryIncoming = false;
-                }
-                return creep.memory.deliveryIncoming;
-            }
-            return true;
-        } else {
-            creep.memory.deliveryRequestTime = Game.time;
-            return true;
-        }
-    }
-    return false;
-}

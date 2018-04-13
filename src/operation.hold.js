@@ -4,6 +4,10 @@ Creep.prototype.holdRoom = function () {
         // Clear target if room is no longer owned
         if (!this.room.controller.owner || this.room.controller.safeMode) {
             delete Memory.targetRooms[this.room.name];
+            let otherTargets = shuffle(_.filter(Memory.targetRooms, (t) => t.type === 'harass' || t.type === 'hold'));
+            for (let key in otherTargets) {
+                return this.memory.targetRoom = key
+            }
         }
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;

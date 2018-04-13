@@ -9,6 +9,21 @@ let spawning = require('module.creepSpawning');
 
 function mind(room, roomLimit) {
     let mindStart = Game.cpu.getUsed();
+
+    // Abandon Bad Rooms
+    let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner));
+    let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.my);
+    if (room.controller.level <= 4 && hostiles.length && !worthyStructures.length) {
+        if (Game.time % 25 === 0) room.memory.badCount = room.memory.badCount++ || 1;
+        if (room.memory.badCount >= 4) {
+            abandonRoom(room);
+            Memory.roomCache[room.name].noClaim = true;
+            return;
+        }
+    } else {
+        room.memory.badCount = undefined;
+    }
+
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
 
@@ -167,3 +182,22 @@ function requestBuilders(room) {
         }
     }
 }
+
+abandonRoom = function (room) {
+    if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
+    for (let key in Game.rooms[room].creeps) {
+        Game.rooms[room].creeps[key].suicide();
+    }
+    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
+    for (let key in overlordFor) {
+        overlordFor[key].suicide();
+    }
+    for (let key in Game.rooms[room].structures) {
+        Game.rooms[room].structures[key].destroy();
+    }
+    for (let key in Game.rooms[room].constructionSites) {
+        Game.rooms[room].constructionSites[key].remove();
+    }
+    delete Game.rooms[room].memory;
+    Game.rooms[room].controller.unclaim();
+};

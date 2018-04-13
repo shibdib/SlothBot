@@ -177,12 +177,15 @@ Creep.prototype.fightRampart = function (target) {
     if (!target || (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK))) return false;
     let position;
     if (this.memory.assignedRampart) position = Game.getObjectById(this.memory.assignedRampart);
-    if (!this.memory.assignedRampart || Game.time % 3 === 0) position = target.pos.findClosestByPath(this.room.structures, {filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !_.filter(this.room.creeps, (c) => c.memory && c.memory.assignedRampart === r.id && c.id !== this.id).length && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
+    if (!this.memory.assignedRampart || Game.time % 3 === 0) {
+        this.memory.assignedRampart = undefined;
+        position = target.pos.findClosestByPath(this.room.structures,
+            {filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() && !_.filter(this.room.creeps, (c) => c.memory && c.memory.assignedRampart === r.id && c.id !== this.id).length && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
+    }
     if (!position) return false;
     this.memory.assignedRampart = position.id;
     if (this.pos.getRangeTo(position) > 0) {
-        this.say(ICONS.moveTo, true);
-        this.shibMove(position, {range: 0, ignoreCreeps: false, ignoreRoads: true, forceRepath: true});
+        this.shibMove(position, {range: 0, ignoreCreeps: false, ignoreRoads: true, forceRepath: true, stayInHub: true});
     } else if (this.pos.getRangeTo(target) <= 1 && this.getActiveBodyparts(ATTACK)) {
         this.attack(target)
     } else if (this.getActiveBodyparts(RANGED_ATTACK) && 1 < this.pos.getRangeTo(target) <= 3) {

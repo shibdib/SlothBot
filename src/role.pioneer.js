@@ -23,7 +23,7 @@ function role(creep) {
     }
 
     if (creep.memory.destinationReached && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0]) {
-        if (creep.memory.initialBuilder) {
+        if (creep.memory.initialBuilder && creep.room.controller.level >= 3) {
             if (!creep.room.memory.extensionHub) findExtensionHub(creep.room);
             let supportRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.assistingRoom === creep.room.name || r.memory.claimTarget === creep.room.name);
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
@@ -59,12 +59,12 @@ function role(creep) {
             }
         } else {
             if (creep.memory.task === 'build' && creep.memory.constructionSite) {
-                if (!Game.getObjectById(creep.memory.constructionSite)) {
+                let construction = Game.getObjectById(creep.memory.constructionSite);
+                if (!construction) {
                     creep.memory.constructionSite = undefined;
                     creep.memory.task = undefined;
                     return;
                 }
-                let construction = Game.getObjectById(creep.memory.constructionSite);
                 switch (creep.build(construction)) {
                     case OK:
                         break;
@@ -81,12 +81,12 @@ function role(creep) {
                         break;
                 }
             } else if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
-                if (!Game.getObjectById(creep.memory.constructionSite)) {
+                let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
+                if (!repairNeeded || repairNeeded.hits === repairNeeded.hitsMax) {
                     creep.memory.constructionSite = undefined;
                     creep.memory.task = undefined;
                     return;
                 }
-                let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 switch (creep.repair(repairNeeded)) {
                     case OK:
                         return null;

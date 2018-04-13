@@ -264,7 +264,7 @@ module.exports.workerCreepQueue = function (room) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
-        } else if (workers.length < room.constructionSites.length) {
+        } else if (level <= 4 && workers.length < room.constructionSites.length) {
             queueCreep(room, workers.length + 1, {role: 'worker'})
         }
     }
@@ -284,7 +284,6 @@ module.exports.workerCreepQueue = function (room) {
     }
     if (level >= 6 && !_.includes(queue, 'labTech') && room.memory.reactionRoom && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) {
         let amount = 1;
-        if (level > 6) amount = 2;
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (labTech.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech'})
