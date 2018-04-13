@@ -44,10 +44,19 @@ function buildExtensions(room) {
     let extensionCount = room.getExtensionCount();
     if (!room.memory.extensionHub || !room.memory.extensionHub.x) return findExtensionHub(room);
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
-        case OK:
-            break;
-        case ERR_RCL_NOT_ENOUGH:
+    if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART).length) {
+        switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
+            case OK:
+                break;
+            case ERR_RCL_NOT_ENOUGH:
+        }
+    } else {
+        switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
+            case OK:
+                break;
+            case ERR_RCL_NOT_ENOUGH:
+        }
+        return;
     }
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_EXTENSION).length || 0;
     if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION).length + inBuild < extensionCount) {
@@ -456,10 +465,13 @@ function buildRoads(room, structures) {
     if (Game.time % 100 !== 0 || (room.controller.level < 4 || _.size(Game.constructionSites) >= 45)) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     let mineral = room.mineral[0];
-    //let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
+    let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     for (let source of room.sources) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
+    }
+    for (let extension of extensions) {
+        buildRoadFromTo(room, extension, spawner);
     }
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);

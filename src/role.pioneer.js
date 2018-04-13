@@ -39,6 +39,8 @@ function role(creep) {
         return;
     }
     if (creep.carry.energy === 0) {
+        creep.memory.constructionSite = undefined;
+        creep.memory.task = undefined;
         creep.memory.hauling = false;
     }
     if (creep.carry.energy === creep.carryCapacity) {
@@ -56,86 +58,78 @@ function role(creep) {
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             }
         } else {
-            let container = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER), 'hits');
-            if (creep.memory.initialBuilder && creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]) {
-                switch (creep.dismantle(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0])) {
+            if (creep.memory.task === 'build' && creep.memory.constructionSite) {
+                if (!Game.getObjectById(creep.memory.constructionSite)) {
+                    creep.memory.constructionSite = undefined;
+                    creep.memory.task = undefined;
+                    return;
+                }
+                let construction = Game.getObjectById(creep.memory.constructionSite);
+                switch (creep.build(construction)) {
                     case OK:
                         break;
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]);
-                }
-            } else if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
-                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
-            } else if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
-                creep.memory.upgrade = true;
-                if (creep.room.controller.ticksToDowngrade >= 2000) delete creep.memory.upgrade;
-                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(creep.room.controller);
-                }
-            } else if (container && container.hits < 100000) {
-                if (creep.repair(container) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(container);
-                }
-            } else {
-                if (!creep.findConstruction()) {
-                    //Pioneer initial builder spawn creation
-                    if (creep.memory.initialBuilder) {
-                        if (creep.room.memory.extensionHub) {
-                            let hub = new RoomPosition(creep.room.memory.extensionHub.x, creep.room.memory.extensionHub.y, creep.room.name);
-                            if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART).length === 0) {
-                                switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
-                                    case OK:
-                                        for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key] && Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
-                                                Game.rooms[key].memory.activeClaim = true;
-                                            }
-                                        }
-                                }
-                            } else if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0].hits < 5000) {
-                                switch (creep.repair(_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0])) {
-                                    case OK:
-                                        for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key] && Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
-                                                Game.rooms[key].memory.activeClaim = true;
-                                            }
-                                        }
-                                        break;
-                                    case ERR_NOT_IN_RANGE:
-                                        creep.shibMove(hub);
-                                }
-                            } else {
-                                switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
-                                    case OK:
-                                        for (let key in Memory.ownedRooms) {
-                                            if (Game.rooms[key] && Game.rooms[key].memory && Game.rooms[key].memory.claimTarget === creep.pos.roomName) {
-                                                Game.rooms[key].memory.activeClaim = true;
-                                            }
-                                        }
-                                }
-                            }
-                        } else {
-                            findExtensionHub(creep.room);
-                        }
-                    }
-                }
-                if (creep.memory.task === 'build') {
-                    let construction = Game.getObjectById(creep.memory.constructionSite);
-                    if (creep.build(construction) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(construction, {range: 3});
-                    }
-                } else {
-                    creep.findRepair('1');
-                    if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
-                        let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
-                        if (creep.repair(repairNeeded) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(repairNeeded, {range: 3});
-                        }
-                    } else if (Game.room && Game.room.controller && creep.upgradeController(Game.room.controller) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(Game.room.controller);
-                    } else {
-                        creep.idleFor(10);
-                    }
+                        break;
+                    case ERR_RCL_NOT_ENOUGH:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
+                    case ERR_INVALID_TARGET:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
                 }
+            } else if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
+                if (!Game.getObjectById(creep.memory.constructionSite)) {
+                    creep.memory.constructionSite = undefined;
+                    creep.memory.task = undefined;
+                    return;
+                }
+                let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
+                switch (creep.repair(repairNeeded)) {
+                    case OK:
+                        return null;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(repairNeeded, {range: 3});
+                        break;
+                    case ERR_RCL_NOT_ENOUGH:
+                        delete creep.memory.constructionSite;
+                        break;
+                    case ERR_INVALID_TARGET:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
+                }
+            } else if (creep.memory.initialBuilder) {
+                if (creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]) {
+                    switch (creep.dismantle(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0])) {
+                        case OK:
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]);
+                    }
+                } else if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
+                    if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
+                } else if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
+                    creep.memory.upgrade = true;
+                    if (creep.room.controller.ticksToDowngrade >= 2000) delete creep.memory.upgrade;
+                    if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(creep.room.controller);
+                    }
+                } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000).length) {
+                    switch (creep.repair(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000)[0])) {
+                        case OK:
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000)[0], {range: 3});
+                            break;
+                    }
+                } else if (!creep.findConstruction()) {
+                    creep.findRepair(1);
+                }
+            } else if (!creep.findConstruction()) {
+                creep.findRepair(1);
             }
         }
     } else {
@@ -173,6 +167,7 @@ function findExtensionHub(room) {
         }
     }
 }
+
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }

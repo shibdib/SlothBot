@@ -528,13 +528,13 @@ function supplyReactionRoom(terminal) {
     for (let i = 0; i < reactionNeeds.length; i++) {
         let stored = terminal.store[reactionNeeds[i]] || 0;
         let reactionTerminal = shuffle(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.memory.reactionRoom && s.store[reactionNeeds[i]] < REACTION_AMOUNT * 2))[0];
-        if (terminal.room.memory.reactionRoom) {
+        if (reactionTerminal && terminal.room.memory.reactionRoom) {
             if (stored >= REACTION_AMOUNT * 2 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.7) {
                 if (terminal.send(reactionNeeds[i], stored - REACTION_AMOUNT, reactionTerminal.room.name, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
                     return log.a(' MARKET: Distributing ' + stored - REACTION_AMOUNT + ' ' + reactionNeeds[i] + ' To ' + reactionTerminal.room.name + ' From ' + terminal.room.name);
                 }
             }
-        } else {
+        } else if (reactionTerminal) {
             if (stored >= 500 && _.sum(reactionTerminal.store) <= reactionTerminal.storeCapacity * 0.7) {
                 if (terminal.send(reactionNeeds[i], stored, reactionTerminal.room.name, 'Supplying Reaction Room With ' + reactionNeeds[i]) === OK) {
                     return log.a(' MARKET: Distributing ' + stored + ' ' + reactionNeeds[i] + ' To ' + reactionTerminal.room.name + ' From ' + terminal.room.name);

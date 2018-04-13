@@ -315,7 +315,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
             if (object && object.pos.rangeToTarget(this) <= range) {
-                if (object.id === this.room.memory.controllerContainer || (object.room.memory.responseNeeded && object.pos.getRangeTo(hub) > 7)) continue;
+                if (object.id === this.room.memory.controllerContainer || (object.room.memory.responseNeeded && object.pos.getRangeTo(hub) > 9)) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
                 if (numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
                 let weight = 0.3;

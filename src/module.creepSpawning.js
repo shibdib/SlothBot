@@ -25,6 +25,7 @@ module.exports.processBuildQueue = function () {
                 for (let key in queue) {
                     topPriority = queue[key];
                     role = topPriority.role;
+                    if (topPriority.misc && topPriority.misc === 'vary') level = _.random(1, level);
                     if (topPriority.reboot || level === 1) {
                         body = _.get(SPAWN[0], role);
                     } else {
@@ -257,7 +258,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Worker
-    if (!_.includes(queue, 'worker')) {
+    if (!_.includes(queue, 'worker') && !room.memory.responseNeeded) {
         let amount = 1;
         if (room.constructionSites.length > 0) amount = 3;
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
@@ -386,7 +387,8 @@ module.exports.remoteCreepQueue = function (room) {
                         queueCreep(room, PRIORITIES.remoteResponse, {
                             role: 'longbow',
                             responseTarget: room.memory.remoteRooms[keys],
-                            military: true
+                            military: true,
+                            misc: 'vary'
                         })
                     }
                 }
@@ -489,7 +491,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
         let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'pioneer');
         if (!_.includes(queue, 'pioneer') && pioneers.length < -2 + level) {
-            queueCreep(room, PRIORITIES.pioneer, {
+            queueCreep(room, PRIORITIES.claimer, {
                 role: 'pioneer',
                 destination: room.memory.claimTarget,
                 initialBuilder: true
@@ -524,8 +526,8 @@ module.exports.remoteCreepQueue = function (room) {
 
 module.exports.militaryCreepQueue = function () {
     let queue = Memory.militaryBuildQueue;
-    // Custom Flags
-    for (let key in Memory.targetRooms) {
+    // Targets
+    for (let key in shuffle(Memory.targetRooms)) {
         let stagingRoom;
         for (let staging in Memory.stagingRooms) {
             if (Game.map.getRoomLinearDistance(staging, key) === 1) {
@@ -605,7 +607,8 @@ module.exports.militaryCreepQueue = function () {
                     targetRoom: key,
                     operation: 'harass',
                     waitFor: waitFor,
-                    military: true
+                    military: true,
+                    misc: 'vary'
                 })
             }
         }
@@ -681,7 +684,8 @@ module.exports.militaryCreepQueue = function () {
                     targetRoom: key,
                     operation: 'hold',
                     waitFor: waitFor,
-                    military: true
+                    military: true,
+                    misc: 'vary'
                 })
             }
             let attacker = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'attacker');
@@ -855,12 +859,12 @@ function bodyGenerator(level, role) {
             if (level < 4) {
                 rangedAttack = level;
                 move = level;
+                break;
             }
-            if (level < 4) break;
             tough = _.round(0.5 * level);
             rangedAttack = level;
             heal = 1;
-            if (level >= 5) rangedAttack = level + 2;
+            if (level >= 7) rangedAttack = level + 5;
             move = tough + rangedAttack + heal;
             break;
         case 'raider':

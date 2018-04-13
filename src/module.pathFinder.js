@@ -38,7 +38,7 @@ function shibMove(creep, heading, options = {}) {
     if (!origin || !target) return;
     let pathingStart = Game.cpu.getUsed();
     updateRoomStatus(creep.room);
-    if (!creep.memory._shibMove || Math.random() > options.repathChance) creep.memory._shibMove = {};
+    if (!creep.memory._shibMove || Math.random() > options.repathChance || options.forceRepath) creep.memory._shibMove = {};
     // Check if target moved
     if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) creep.memory._shibMove = {};
     // Set var
@@ -321,11 +321,11 @@ function addCreepsToMatrix(room, matrix) {
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
         if (!_.includes(FRIENDLIES, creeps[key].owner.username) && (creeps[key].getActiveBodyparts(ATTACK) || creeps[key].getActiveBodyparts(RANGED_ATTACK))) {
-            let avoidZone = creeps[key].room.lookForAtArea(LOOK_TERRAIN, creeps[key].pos.y - 4, creeps[key].pos.x - 4, creeps[key].pos.y + 4, creeps[key].pos.x + 4, true);
+            let avoidZone = creeps[key].room.lookForAtArea(LOOK_TERRAIN, creeps[key].pos.y - 6, creeps[key].pos.x - 6, creeps[key].pos.y + 6, creeps[key].pos.x + 6, true);
             for (let key in avoidZone) {
                 let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
                 if (!position.checkForWall()) {
-                    matrix.set(position.x, position.y, 100)
+                    matrix.set(position.x, position.y, 150)
                 }
             }
         }
@@ -382,7 +382,7 @@ function addStructuresToMatrix(room, matrix, roadCost) {
         } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost + 1);
         } else if (structure instanceof StructureRampart && room.memory.responseNeeded && (structure.my || structure.isPublic) && structure.pos.checkForRoad()) {
-            matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
+            matrix.set(structure.pos.x, structure.pos.y, 1);
         } else if (structure instanceof StructureRoad && room.memory.responseNeeded && structure.pos.checkForRampart()) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
         } else if (structure instanceof StructureRoad) {

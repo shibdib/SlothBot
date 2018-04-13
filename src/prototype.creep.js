@@ -128,7 +128,7 @@ Creep.prototype.getSafe = function (hauler = false) {
         let hostileRangeToCreep = 99;
         if (hostile) {
             hostileRangeToHub = hub.getRangeTo(hostile);
-            hostileRangeToCreep = this.getRangeTo(hostile);
+            hostileRangeToCreep = this.pos.getRangeTo(hostile);
         }
         if (hostile && hub.getRangeTo(hostile) <= 12) {
             if (this.pos.getRangeTo(hub) > 7) {

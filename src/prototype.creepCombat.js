@@ -81,7 +81,7 @@ Creep.prototype.attackHostile = function (hostile) {
             return this.shibMove(hostile, {range: 0, ignoreRoads: true});
         case ERR_NOT_IN_RANGE:
             if (this.hits < this.hitsMax) this.heal(this);
-            return this.shibMove(hostile, {forceRepath: true, ignoreCreeps: false, ignoreRoads: true});
+            return this.shibMove(hostile, {ignoreCreeps: false, ignoreRoads: true});
     }
 };
 
@@ -175,11 +175,14 @@ Creep.prototype.waitRampart = function () {
 
 Creep.prototype.fightRampart = function (target) {
     if (!target || (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK))) return false;
-    let position = target.pos.findClosestByPath(this.room.structures, {filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
+    let position;
+    if (this.memory.assignedRampart) position = Game.getObjectById(this.memory.assignedRampart);
+    if (!this.memory.assignedRampart || Game.time % 3 === 0) position = target.pos.findClosestByPath(this.room.structures, {filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !_.filter(this.room.creeps, (c) => c.memory && c.memory.assignedRampart === r.id && c.id !== this.id).length && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
     if (!position) return false;
+    this.memory.assignedRampart = position.id;
     if (this.pos.getRangeTo(position) > 0) {
         this.say(ICONS.moveTo, true);
-        this.shibMove(position, {range: 0, ignoreCreeps: false});
+        this.shibMove(position, {range: 0, ignoreCreeps: false, ignoreRoads: true, forceRepath: true});
     } else if (this.pos.getRangeTo(target) <= 1 && this.getActiveBodyparts(ATTACK)) {
         this.attack(target)
     } else if (this.getActiveBodyparts(RANGED_ATTACK) && 1 < this.pos.getRangeTo(target) <= 3) {
@@ -223,9 +226,9 @@ Creep.prototype.fightRanged = function (target) {
         if (opportunity) this.rangedAttack(opportunity);
         if (targets.length > 1) this.rangedMassAttack();
         if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
-            this.shibMove(target, {forceRepath: true, ignoreCreeps: false, range: 2, ignoreRoads: true});
+            this.shibMove(target, {ignoreCreeps: false, range: 2, ignoreRoads: true});
         } else {
-            this.shibMove(target, {forceRepath: true, range: 2, ignoreRoads: true});
+            this.shibMove(target, {range: 2, ignoreRoads: true});
         }
     }
 };
@@ -389,7 +392,7 @@ Creep.prototype.squadHeal = function () {
                 this.kite();
             } else {
                 this.rangedHeal(creepToHeal);
-                this.shibMove(creepToHeal, {forceRepath: true, ignoreCreeps: true});
+                this.shibMove(creepToHeal, {ignoreCreeps: true});
             }
         }
         return true;
@@ -574,5 +577,5 @@ function addCreepsToMatrix(room, matrix) {
 
 Creep.prototype.goHomeAndHeal = function () {
     if (Game.map.getRoomLinearDistance(this.room.name, this.memory.overlord) > 2) return;
-    this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20, forceRepath: true});
+    this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
 };

@@ -45,7 +45,7 @@ function role(creep) {
                     creep.shibMove(SKAttacker[0], {range: 0});
                     break;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(SKAttacker[0], {forceRepath: true, ignoreCreeps: false});
+                    creep.shibMove(SKAttacker[0], {ignoreCreeps: false});
                     if (creep.hits < creep.hitsMax) {
                         creep.heal(creep);
                     } else if (creep.pos.getRangeTo(SKAttacker[0]) <= 3) {
