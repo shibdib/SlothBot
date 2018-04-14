@@ -19,9 +19,11 @@ function role(creep) {
         creep.suicide();
         return null;
     }
-    if (creep.carry.energy === 0) {
+    if (creep.carry.energy < creep.carryCapacity) {
         creep.memory.hauling = false;
-        if (creep.memory.linkID && creep.memory.containerID && pickupDropped(creep)) return null;
+        if (creep.memory.linkID && creep.memory.containerID) {
+            if (pickupDropped(creep)) return null;
+        }
     }
     if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -36,8 +38,6 @@ function role(creep) {
             case OK:
                 if (container && creep.pos.getRangeTo(container) > 0) {
                     creep.shibMove(container, {range: 0});
-                } else if (creep.memory.link && container && container.store[RESOURCE_ENERGY] > 0) {
-                    return creep.withdraw(container, RESOURCE_ENERGY);
                 }
                 break;
         }
@@ -132,7 +132,7 @@ function harvestDepositLink(creep) {
 function pickupDropped(creep) {
     let link = Game.getObjectById(creep.memory.linkID);
     let container = Game.getObjectById(creep.memory.containerID);
-    if (creep.pos.getRangeTo(container) === 0 && link.energy < 700 && container.store[RESOURCE_ENERGY] >= 50) {
+    if (creep.pos.getRangeTo(container) === 0 && link.energy < 700 && container.store[RESOURCE_ENERGY]) {
         creep.withdraw(container, RESOURCE_ENERGY);
         return true;
     }
