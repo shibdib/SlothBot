@@ -774,7 +774,12 @@ function bodyGenerator(level, role) {
         case 'waller':
             work = level;
             carry = _.round((1 * level) / 3) || 1;
+            if (level === 8) {
+                work = 20;
+                carry = 10;
+            }
             move = work + carry;
+            if (level > 4) move = _.round((work + carry) / 2);
             break;
         case 'upgrader':
             if (level < 3) {
