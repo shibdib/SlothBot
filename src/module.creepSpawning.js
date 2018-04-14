@@ -276,7 +276,6 @@ module.exports.workerCreepQueue = function (room) {
     }
     if (!_.includes(queue, 'hauler')) {
         let amount = 1;
-        if (level >= 4) amount = 2;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
@@ -324,15 +323,15 @@ module.exports.workerCreepQueue = function (room) {
         }
         if (!_.includes(queue, 'longbow') && room.memory.threatLevel > 2) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
-            if (longbow.length < _.round(room.memory.numberOfHostiles / 2) + 1) {
-                queueCreep(room, PRIORITIES.responder - 1, {role: 'longbow', responseTarget: room.name, military: true})
+            if (longbow.length < _.round(room.memory.numberOfHostiles / 3) + 1) {
+                queueCreep(room, PRIORITIES.responder + 1, {role: 'longbow', responseTarget: room.name, military: true})
             }
         }
     }
     //Explorer
-    if (!_.includes(queue, 'explorer')) {
+    if (!_.includes(queue, 'explorer') && level < 8) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
-        if (explorers.length < 5) {
+        if (explorers.length < 2) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
@@ -392,7 +391,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
             }
-            if (!_.includes(queue, 'reserver') && level >= 7 && !TEN_CPU && remoteRoom && !remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)) {
+            if (!_.includes(queue, 'reserver') && level >= 5 && !TEN_CPU && remoteRoom && !remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
                     queueCreep(room, PRIORITIES.reserver, {
@@ -413,10 +412,11 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             if (!_.includes(queue, 'remoteHarvester') && !TEN_CPU && (remoteRoom && !remoteRoom.memory.responseNeeded && !utility)) {
+                let totalRemoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;
                 if (Memory.roomCache[room.memory.remoteRooms[keys]] && level >= 7) sourceCount = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length;
-                if (remoteHarvester.length < sourceCount) {
+                if (remoteHarvester.length < sourceCount && totalRemoteHarvester < 6) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
                         destination: room.memory.remoteRooms[keys]
@@ -535,8 +535,9 @@ module.exports.militaryCreepQueue = function () {
         }
         //Room Scouting
         if (Memory.targetRooms[key].type === 'attack') {
+            let totalScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');
             let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
-            if (!scout.length && !_.includes(queue, 'scout')) {
+            if (totalScout.length < 2 && !scout.length && !_.includes(queue, 'scout')) {
                 queueMilitaryCreep(PRIORITIES.scout, {role: 'scout', targetRoom: key, military: true})
             }
         }
@@ -793,7 +794,7 @@ function bodyGenerator(level, role) {
                 move = carry;
                 break;
             } else {
-                carry = _.round(1.7 * level);
+                carry = 3 * level;
                 move = _.round(carry / 2);
                 break;
             }
@@ -899,7 +900,7 @@ function bodyGenerator(level, role) {
             move = 1;
             break;
         case 'reserver':
-            claim = _.round(0.5 * level);
+            claim = _.round(0.3 * level);
             move = claim;
             break;
         case 'pioneer':

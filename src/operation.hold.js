@@ -2,28 +2,42 @@ Creep.prototype.holdRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
         // Clear target if room is no longer owned
-        if (!this.room.controller.owner || this.room.controller.safeMode) {
+        if (!this.room.controller.owner || this.room.controller.safeMode || !Memory.targetRooms[this.room.name]) {
             delete Memory.targetRooms[this.room.name];
-            let otherTargets = shuffle(_.filter(Memory.targetRooms, (t) => t.type === 'harass' || t.type === 'hold'));
-            for (let key in otherTargets) {
-                return this.memory.targetRoom = key
-            }
+            this.memory.awaitingOrders = true;
         }
+        // Convert to a scout if tower exists
+        let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+        if (towers.length && _.max(towers, 'energy').energy > 10) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[this.room.name] = {
+                tick: tick,
+                type: 'attack',
+                level: 1
+            };
+            Memory.targetRooms = cache;
+            return this.suicide();
+        }
+        // Request unClaimer if room level is too high
+        Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive;
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
         let hostile = this.findClosestEnemy();
+        if (Memory.targetRooms[this.memory.targetRoom]) {
+            if (hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
+                Memory.targetRooms[this.memory.targetRoom].level = 3;
+            } else {
+                Memory.targetRooms[this.memory.targetRoom].level = 2;
+            }
+        }
         if (this.memory.role === 'longbow') {
             if (hostile) {
-                if (hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
-                    Memory.targetRooms[this.memory.targetRoom].level = 3;
-                } else {
-                    Memory.targetRooms[this.memory.targetRoom].level = 2;
-                }
                 if (this.hits < this.hitsMax * 0.50) return this.kite(8);
                 return this.fightRanged(hostile);
             } else {
-                Memory.targetRooms[this.memory.targetRoom].level = 1;
+                if (Memory.targetRooms[this.memory.targetRoom]) Memory.targetRooms[this.memory.targetRoom].level = 1;
                 if (!this.moveToHostileConstructionSites()) {
                     if (!this.healMyCreeps() && !this.healAllyCreeps()) {
                         this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 17});
@@ -41,19 +55,5 @@ Creep.prototype.holdRoom = function () {
                     break;
             }
         }
-        // Convert to a scout if tower exists
-        let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-        if (towers.length && _.max(towers, 'energy').energy > 10) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[Game.flags[name].pos.roomName] = {
-                tick: tick,
-                type: 'attack'
-            };
-            Memory.targetRooms = cache;
-            return this.suicide();
-        }
-        // Request unClaimer if room level is too high
-        Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive;
     }
 };

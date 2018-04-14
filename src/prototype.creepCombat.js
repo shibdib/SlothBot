@@ -128,7 +128,7 @@ Creep.prototype.healAllyCreeps = function () {
 };
 
 Creep.prototype.moveToHostileConstructionSites = function () {
-    if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)))) return false;
+    if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || this.room.controller.safeMode)) return false;
     let constructionSite = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !s.pos.checkForRampart() && _.includes(Memory._threatList, s.owner.username)});
     if (constructionSite) {
         this.say('TRAMPLE!!', true);
@@ -185,7 +185,7 @@ Creep.prototype.fightRampart = function (target) {
     if (!position) return false;
     this.memory.assignedRampart = position.id;
     if (this.pos.getRangeTo(position) > 0) {
-        this.shibMove(position, {range: 0, ignoreCreeps: false, ignoreRoads: true, forceRepath: true, stayInHub: true});
+        this.shibMove(position, {range: 0, ignoreCreeps: false, forceRepath: true, stayInHub: true});
     } else if (this.pos.getRangeTo(target) <= 1 && this.getActiveBodyparts(ATTACK)) {
         this.attack(target)
     } else if (this.getActiveBodyparts(RANGED_ATTACK) && 1 < this.pos.getRangeTo(target) <= 3) {

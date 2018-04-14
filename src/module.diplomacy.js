@@ -11,7 +11,7 @@ function threatManager() {
     Memory._threatList = [];
     for (let key in Memory._badBoyList) {
         let threat = Memory._badBoyList[key];
-        if (threat.lastAction + 100 < Game.time) {
+        if (threat.lastAction + 25 < Game.time) {
             newRating = threat.threatRating - 2;
             if (newRating <= 0) {
                 delete Memory._badBoyList[key];
@@ -21,7 +21,7 @@ function threatManager() {
                 Memory._badBoyList[key].threatRating = newRating;
             }
         }
-        if (Memory._badBoyList[key].threatRating > 250) {
+        if (Memory._badBoyList[key].threatRating > 1000) {
             Memory._enemies.push(key);
         } else {
             Memory._enemies = _.filter(Memory._enemies, (e) => e !== key);

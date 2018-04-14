@@ -1,7 +1,7 @@
 let _ = require('lodash');
 let shib = require("shibBench");
 
-const DEFAULT_MAXOPS = 30000;
+const DEFAULT_MAXOPS = 5000;
 const STATE_STUCK = 3;
 
 const structureMatrixCache = {};
@@ -318,6 +318,23 @@ function checkAvoid(roomName) {
     return Memory.rooms && Memory.rooms[roomName] && Memory.rooms[roomName].avoid;
 }
 
+function getStructureMatrix(room, freshMatrix) {
+    if (!structureMatrixCache[room.name] || (freshMatrix || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 5))) {
+        room.memory.structureMatrixTick = Game.time;
+        let matrix = new PathFinder.CostMatrix();
+        structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1).serialize();
+    }
+    return PathFinder.CostMatrix.deserialize(structureMatrixCache[room.name]);
+}
+
+function getCreepMatrix(room) {
+    if (!creepMatrixCache[room.name] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
+        room.memory.creepMatrixTick = Game.time;
+        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone()).serialize();
+    }
+    return PathFinder.CostMatrix.deserialize(creepMatrixCache[room.name]);
+}
+
 function addCreepsToMatrix(room, matrix) {
     let creeps = room.creeps;
     for (let key in creeps) {
@@ -360,27 +377,10 @@ function addSksToMatrix(room, matrix) {
     return matrix;
 }
 
-function getStructureMatrix(room, freshMatrix) {
-    if (!structureMatrixCache[room.name] || (freshMatrix && (!room.memory.structureMatrixTick || Game.time !== room.memory.structureMatrixTick))) {
-        room.memory.structureMatrixTick = Game.time;
-        let matrix = new PathFinder.CostMatrix();
-        structureMatrixCache[room.name] = addStructuresToMatrix(room, matrix, 1).serialize();
-    }
-    return PathFinder.CostMatrix.deserialize(structureMatrixCache[room.name]);
-}
-
-function getCreepMatrix(room) {
-    if (!creepMatrixCache[room.name] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick)) {
-        room.memory.creepMatrixTick = Game.time;
-        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone()).serialize();
-    }
-    return PathFinder.CostMatrix.deserialize(creepMatrixCache[room.name]);
-}
-
 function addStructuresToMatrix(room, matrix, roadCost) {
     for (let structure of room.structures) {
         if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
-            matrix.set(structure.pos.x, structure.pos.y, 0xff);
+            matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost + 1);
         } else if (structure instanceof StructureRampart && room.memory.responseNeeded && (structure.my || structure.isPublic) && structure.pos.checkForRoad()) {
@@ -392,7 +392,7 @@ function addStructuresToMatrix(room, matrix, roadCost) {
         } else if (structure instanceof StructureContainer) {
             matrix.set(structure.pos.x, structure.pos.y, 45);
         } else {
-            matrix.set(structure.pos.x, structure.pos.y, 0xff);
+            matrix.set(structure.pos.x, structure.pos.y, 256);
         }
     }
     let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner)));
@@ -424,9 +424,11 @@ function addBorderToMatrix(room, matrix) {
 function addOutsideHubToMatrix(room, matrix) {
     if (!room.memory.extensionHub) return matrix;
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    let dangerZone = _.filter(room.lookForAtArea(LOOK_TERRAIN, hub.y - 8, hub.x - 8, hub.y + 8, hub.x + 8, true), (p) => p.getRangeTo(hub) >= 7 && Game.map.getTerrainAt(p.x, p.y, room.name) !== "wall");
+    let dangerZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 8, hub.x - 8, hub.y + 8, hub.x + 8, true);
     for (let p in dangerZone) {
-        matrix.set(p.x, p.y, 175)
+        let pos = new RoomPosition(dangerZone[p].x, dangerZone[p].y, room.name);
+        if (pos.getRangeTo(hub) <= 6 || Game.map.getTerrainAt(pos.x, pos.y, room.name) === "wall") continue;
+        matrix.set(pos.x, pos.y, 175)
     }
     return matrix;
 }

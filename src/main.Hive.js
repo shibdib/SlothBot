@@ -26,7 +26,7 @@ function mind() {
 
     // Handle Labs
     cpu = Game.cpu.getUsed();
-    labs.labManager();
+    if (Game.cpu.bucket > 7500) labs.labManager();
     shib.shibBench('labControl', cpu);
 
     // Handle Diplomacy

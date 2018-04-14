@@ -35,19 +35,8 @@ Creep.prototype.scoutRoom = function () {
         };
         Memory.targetRooms = cache;
     } else if (controller.owner && towers.length) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        let level = _.round((towers.length / 3) + 0.5);
-        if (level > 1 && Memory.targetRooms[this.pos.roomName].local) {
-            delete Memory.targetRooms[this.pos.roomName];
-            return this.suicide();
-        }
-        cache[this.room.name] = {
-            tick: tick,
-            type: 'siege',
-            level: level
-        };
-        Memory.targetRooms = cache;
+        this.room.cacheRoomIntel(true);
+        delete Memory.targetRooms[this.pos.roomName];
     } else if (!controller.owner && countableStructures.length < 3) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;

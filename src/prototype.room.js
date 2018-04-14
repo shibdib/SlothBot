@@ -339,14 +339,14 @@ Room.prototype.invaderCheck = function () {
     let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
     if (invader.length > 0) {
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
-        let availableLongbows = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, this.name) <= 5);
-        if (availableLongbows.length) {
+        let availableCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, this.name) <= 5);
+        if (availableCreeps.length) {
             let retasked = 0;
-            for (let key in availableLongbows) {
+            for (let key in availableCreeps) {
                 if (retasked + 1 >= invader.length) break;
-                availableLongbows[key].memory.awaitingOrders = undefined;
-                availableLongbows[key].memory.responseTarget = this.name;
-                log.a(availableLongbows[key].name + ' has been re-tasked to assist ' + this.name + ' they are en-route from ' + availableLongbows[key].room.name);
+                availableCreeps[key].memory.awaitingOrders = undefined;
+                availableCreeps[key].memory.responseTarget = this.name;
+                if (availableCreeps[key].room.name !== this.name) log.a(availableCreeps[key].name + ' has been re-tasked to assist ' + this.name + ' they are en-route from ' + availableCreeps[key].room.name);
                 retasked++;
             }
         }
