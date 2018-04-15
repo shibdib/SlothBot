@@ -24,6 +24,7 @@ module.exports.processBuildQueue = function () {
                 let role;
                 for (let key in queue) {
                     topPriority = queue[key];
+                    if (topPriority.targetRoom && Game.map.findRoute(topPriority.targetRoom, spawn.room.name).length > 6) continue;
                     role = topPriority.role;
                     if (topPriority.misc && topPriority.misc === 'vary') level = _.random(1, level);
                     if (topPriority.reboot || level === 1) {

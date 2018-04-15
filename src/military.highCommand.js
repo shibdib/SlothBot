@@ -43,13 +43,26 @@ function highCommand() {
                 Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
             for (let key in enemySiege) {
                 if (!Memory.targetRooms || !Memory.targetRooms[enemySiege[key].name]) {
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[enemySiege[key].name] = {
-                        tick: tick,
-                        type: 'attack'
-                    };
-                    Memory.targetRooms = cache;
+                    if (enemySiege[key].level >= 3) {
+                        let cache = Memory.targetRooms || {};
+                        let level = _.round(enemySiege[key].towers / 2);
+                        let tick = Game.time;
+                        cache[enemySiege[key].name] = {
+                            tick: tick,
+                            type: 'siege',
+                            level: level
+                        };
+                        Memory.targetRooms = cache;
+                    } else {
+                        let cache = Memory.targetRooms || {};
+                        let tick = Game.time;
+                        cache[enemySiege[key].name] = {
+                            tick: tick,
+                            type: 'hold',
+                            level: 2
+                        };
+                        Memory.targetRooms = cache;
+                    }
                 }
             }
             let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 &&
