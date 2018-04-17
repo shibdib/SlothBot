@@ -235,7 +235,7 @@ function buildWalls(room, structures) {
             }
         }
     }
-    if (room.controller.level >= 5) {
+    if (room.controller.level === 8) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
         for (let key in safeZone) {
