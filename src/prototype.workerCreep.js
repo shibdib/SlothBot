@@ -574,7 +574,7 @@ Creep.prototype.findEssentials = function () {
             const object = tower[i];
             if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
                 if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.5, 0);
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
                     towers.push({
                         id: tower[i].id,
                         distWeighted: towerDistWeighted,
@@ -609,12 +609,13 @@ Creep.prototype.findEssentials = function () {
     }
     //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !this.room.memory.responseNeeded && this.room.energyAvailable > this.room.energyCapacityAvailable * 0.5 && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
+    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && numberOfUsers === 0) {
-            let weight = 0.5;
+        if (object && !numberOfUsers) {
+            let weight = 0.75;
+            if (this.room.energyAvailable > this.room.energyCapacityAvailable * 0.75) weight = 0.1;
             containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
         }
         storage.push({

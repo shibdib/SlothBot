@@ -133,7 +133,7 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     if (constructionSite) {
         this.say('TRAMPLE!!', true);
         if (constructionSite.pos.x === this.pos.x && constructionSite.pos.y === this.pos.y) return this.moveRandom();
-        this.shibMove(constructionSite, {range: 0});
+        this.shibMove(constructionSite, {range: 0, ignoreCreeps: false});
         return true;
     }
     return false;

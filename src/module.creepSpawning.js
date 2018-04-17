@@ -252,7 +252,7 @@ module.exports.workerCreepQueue = function (room) {
             count = upgraders.length;
         }
         let number = _.round((10 - level) / 2);
-        if (level >= 6 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
+        if (level >= 5 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
         if (count < number) {
             queueCreep(room, PRIORITIES.upgrader, {role: 'upgrader'})
         }
@@ -275,7 +275,7 @@ module.exports.workerCreepQueue = function (room) {
         return queueCreep(room, -1, {role: 'hauler', reboot: true});
     }
     if (!_.includes(queue, 'hauler')) {
-        let amount = 1;
+        let amount = 2;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
@@ -925,7 +925,7 @@ function bodyGenerator(level, role) {
             break;
         case 'remoteHauler':
             carry = 3 * level;
-            work = 1;
+            work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
             break;
         case 'SKattacker':

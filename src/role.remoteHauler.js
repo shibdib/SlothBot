@@ -14,7 +14,7 @@ function role(creep) {
         delete creep.memory.storageDestination;
         creep.memory.hauling = false;
     }
-    if (_.sum(creep.carry) === creep.carryCapacity) {
+    if (_.sum(creep.carry) >= creep.carryCapacity / 0.5) {
         creep.memory.hauling = true;
         delete creep.memory.destination;
         delete creep.memory.containerID;
@@ -29,6 +29,7 @@ function role(creep) {
                 break;
             }
         }
+        if (!creep.memory.destination) creep.findEssentials();
     }
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     if (creep.memory.destinationReached === true || creep.memory.hauling === true) {
@@ -106,9 +107,7 @@ function role(creep) {
         }
     } else if (creep.memory.destination && !creep.memory.destinationReached) {
         delete creep.memory.containerID;
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
-        }
+        if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20, offRoad: true});
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18, offRoad: true});

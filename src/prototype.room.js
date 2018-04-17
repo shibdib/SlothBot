@@ -207,8 +207,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER);
-        hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && _.includes(FRIENDLIES, e.owner.username) === false);
-        nonCombats = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && _.includes(FRIENDLIES, e.owner.username) === false);
+        let barriers;
+        barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 5;
+        hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
+        nonCombats = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && !_.includes(FRIENDLIES, e.owner.username));
         towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
@@ -266,6 +268,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             reservationTick: reservationTick,
             level: level,
             towers: towers.length,
+            barriers: barriers,
             hostiles: hostiles.length,
             nonCombats: nonCombats.length,
             sk: sk,
