@@ -198,7 +198,8 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level >= 5) {
-        let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 11, hub.x - 11, hub.y + 11, hub.x + 11, true);
+        let closestExit = (hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) * 0.75);
+        let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - closestExit, hub.x - closestExit, hub.y + closestExit, hub.x + closestExit, true);
         let i = 1;
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
