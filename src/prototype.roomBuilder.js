@@ -203,7 +203,11 @@ function buildWalls(room, structures) {
         let i = 1;
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position && position.getRangeTo(hub) === closestExit && !position.checkForWall() && !position.checkForRampart()) {
+            if (position && position.getRangeTo(hub) === closestExit && !position.checkForWall() && !position.checkForRampart() && room.findPath(position, hub, {
+                range: 0,
+                ignoreDestructibleStructures: true,
+                ignoreCreeps: true
+            }).length < closestExit * 1.75) {
                 if (position.checkForRoad().length || position.checkForObstacleStructure()) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
                     i++;
