@@ -30,6 +30,7 @@ Room.prototype.buildRoom = function () {
     buildTerminal(this);
     buildSpawn(this, structures);
     buildTowers(this, structures);
+    buildWalls(this, structures);
     if (_.size(Game.constructionSites) > 75) return;
     controllerSupplier(this, structures);
     buildLabs(this, structures);
@@ -37,7 +38,6 @@ Room.prototype.buildRoom = function () {
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
     buildExtractor(this, structures);
-    buildWalls(this, structures);
     if (_.size(Game.constructionSites) > 50) return;
     buildRoads(this, structures);
 };
@@ -179,34 +179,78 @@ function buildWalls(room, structures) {
     for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
     }
-    if (room.controller.level < 3) return;
-    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
-    for (let key in safeZone) {
-        let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-        if (position && position.getRangeTo(hub) === 6 && room.findPath(position, hub, {
-            range: 0,
-            ignoreDestructibleStructures: true,
-            ignoreCreeps: true
-        }).length < 8) {
-            position.createConstructionSite(STRUCTURE_RAMPART);
-            if (!position.checkForImpassible() && room.findPath(position, hub, {
-                range: 0,
-                ignoreDestructibleStructures: true,
-                ignoreCreeps: true
-            }).length < 8) position.createConstructionSite(STRUCTURE_ROAD);
+    if (room.controller.level < 2) return;
+    let neighboring = Game.map.describeExits(room.name);
+    if (neighboring) {
+        if (neighboring['1']) {
+            let exits = room.find(FIND_EXIT_TOP);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 2, 2, 47, true);
+            for (let key in terrain) {
+                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                if (position.x % 2 || position.checkForRoad()) {
+                    position.createConstructionSite(STRUCTURE_RAMPART);
+                } else {
+                    position.createConstructionSite(STRUCTURE_WALL);
+                }
+            }
+        }
+        if (neighboring['3']) {
+            let exits = room.find(FIND_EXIT_RIGHT);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 2, 47, 49, 48, true);
+            for (let key in terrain) {
+                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                if (position.y % 2 || position.checkForRoad()) {
+                    position.createConstructionSite(STRUCTURE_RAMPART);
+                } else {
+                    position.createConstructionSite(STRUCTURE_WALL);
+                }
+            }
+        }
+        if (neighboring['5']) {
+            let exits = room.find(FIND_EXIT_BOTTOM);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 47, 2, 48, 48, true);
+            for (let key in terrain) {
+                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                if (position.x % 2 || position.checkForRoad()) {
+                    position.createConstructionSite(STRUCTURE_RAMPART);
+                } else {
+                    position.createConstructionSite(STRUCTURE_WALL);
+                }
+            }
+        }
+        if (neighboring['7']) {
+            let exits = room.find(FIND_EXIT_LEFT);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 1, 48, 2, true);
+            for (let key in terrain) {
+                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                if (position.y % 2 || position.checkForRoad()) {
+                    position.createConstructionSite(STRUCTURE_RAMPART);
+                } else {
+                    position.createConstructionSite(STRUCTURE_WALL);
+                }
+            }
         }
     }
     if (room.controller.level >= 5) {
-        let closestExit = _.round(hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) * 0.75);
-        let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - closestExit, hub.x - closestExit, hub.y + closestExit, hub.x + closestExit, true);
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position && position.getRangeTo(hub) === closestExit) {
-                let built = position.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART});
-                for (let key in built) {
-                    built[key].destroy();
-                }
+            if (position && position.getRangeTo(hub) === 10 && room.findPath(position, hub, {
+                range: 0,
+                ignoreDestructibleStructures: true,
+                ignoreCreeps: true
+            }).length < 12) {
+                position.createConstructionSite(STRUCTURE_RAMPART);
+                if (!position.checkForImpassible() && room.findPath(position, hub, {
+                    range: 0,
+                    ignoreDestructibleStructures: true,
+                    ignoreCreeps: true
+                }).length < 12) position.createConstructionSite(STRUCTURE_ROAD);
             }
         }
     }
