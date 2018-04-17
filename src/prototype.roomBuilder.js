@@ -198,16 +198,12 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level >= 5) {
-        let closestExit = (hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) * 0.75);
+        let closestExit = _.round(hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) * 0.75);
         let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - closestExit, hub.x - closestExit, hub.y + closestExit, hub.x + closestExit, true);
         let i = 1;
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position && position.getRangeTo(hub) === 11 && !position.checkForWall() && !position.checkForRampart() && room.findPath(position, hub, {
-                range: 0,
-                ignoreDestructibleStructures: true,
-                ignoreCreeps: true
-            }).length < 20) {
+            if (position && position.getRangeTo(hub) === closestExit && !position.checkForWall() && !position.checkForRampart()) {
                 if (position.checkForRoad().length || position.checkForObstacleStructure()) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
                     i++;
