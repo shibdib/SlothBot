@@ -393,7 +393,11 @@ Creep.prototype.reportDamage = function () {
                         threatRating = cache[user]['threatRating'] + 0.5;
                     }
                 } else {
-                    threatRating = 2.5;
+                    if (_.includes(FRIENDLIES, user)) {
+                        threatRating = 2.5;
+                    } else {
+                        threatRating = 50;
+                    }
                 }
                 cache[user] = {
                     threatRating: threatRating,

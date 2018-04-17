@@ -26,7 +26,7 @@ Creep.prototype.holdRoom = function () {
         this.say(sentence[word], true);
         let hostile = this.findClosestEnemy();
         if (Memory.targetRooms[this.memory.targetRoom]) {
-            if (hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
+            if (hostile && hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
                 Memory.targetRooms[this.memory.targetRoom].level = 3;
             } else {
                 Memory.targetRooms[this.memory.targetRoom].level = 2;

@@ -14,6 +14,8 @@ let protectedStructures = [
 Room.prototype.buildRoom = function () {
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     let structures = this.structures;
+    let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
+    if (!spawn.length) return buildSpawn(this, structures);
     // Clean bad roads
     if (Game.time % 500 === 0) {
         for (let key in this.structures) {
@@ -116,7 +118,7 @@ function findExtensionHub(room) {
             room.memory.extensionHub.y = spawn.pos.y;
             return;
         }
-        let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
+        let pos = new RoomPosition(getRandomInt(12, 38), getRandomInt(12, 38), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
         let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
         let wall = false;
@@ -174,10 +176,10 @@ function controllerSupplier(room, structures) {
 }
 
 function buildWalls(room, structures) {
-    if (room.controller.level < 3) return;
     for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
         room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
     }
+    if (room.controller.level < 3) return;
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 6, hub.x - 6, hub.y + 6, hub.x + 6, true);
     for (let key in safeZone) {
@@ -195,15 +197,26 @@ function buildWalls(room, structures) {
             }).length < 8) position.createConstructionSite(STRUCTURE_ROAD);
         }
     }
-    let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
-    if (room.controller.level >= 9 && lowestRampart && lowestRampart.hits >= room.controller.level * 250000) {
-        let outerRing = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
-        for (let key in outerRing) {
-            let position = new RoomPosition(outerRing[key].x, outerRing[key].y, room.name);
-            if (position && position.getRangeTo(hub) === 9) {
-                position.createConstructionSite(STRUCTURE_RAMPART);
-                if (!position.checkForImpassible()) position.createConstructionSite(STRUCTURE_ROAD);
+    if (room.controller.level >= 5) {
+        let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 11, hub.x - 11, hub.y + 11, hub.x + 11, true);
+        let i = 1;
+        for (let key in safeZone) {
+            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+            if (position && position.getRangeTo(hub) === 11 && !position.checkForWall() && !position.checkForRampart() && room.findPath(position, hub, {
+                range: 0,
+                ignoreDestructibleStructures: true,
+                ignoreCreeps: true
+            }).length < 20) {
+                if (position.checkForRoad().length || position.checkForObstacleStructure()) {
+                    position.createConstructionSite(STRUCTURE_RAMPART);
+                    i++;
+                } else if (i & 1) {
+                    position.createConstructionSite(STRUCTURE_RAMPART);
+                } else {
+                    position.createConstructionSite(STRUCTURE_WALL);
+                }
             }
+            i++;
         }
     }
 }
