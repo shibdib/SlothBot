@@ -336,7 +336,14 @@ Room.prototype.invaderCheck = function () {
     let sk;
     if (this.memory.lastInvaderCheck === Game.time) return;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
-    if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) return;
+    if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) {
+        this.memory.numberOfHostiles = undefined;
+        this.memory.responseNeeded = undefined;
+        this.memory.alertEmail = undefined;
+        this.memory.requestingSupport = undefined;
+        this.memory.threatLevel = undefined;
+        return;
+    }
     this.memory.lastInvaderCheck = Game.time;
     let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Source Keeper');
     let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);

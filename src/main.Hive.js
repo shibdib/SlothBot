@@ -26,7 +26,7 @@ function mind() {
 
     // Handle Labs
     cpu = Game.cpu.getUsed();
-    if (Game.cpu.bucket > 7500) labs.labManager();
+    if (Game.cpu.bucket > 5000) labs.labManager();
     shib.shibBench('labControl', cpu);
 
     // Handle Diplomacy
@@ -48,7 +48,8 @@ function mind() {
         let cpuLimit = Game.cpu.limit - cpuUsed;
         let cpuTickLimit = Game.cpu.tickLimit - cpuUsed;
         let roomLimit = cpuLimit / (overlordCount - processed);
-        if (cpuBucket > 5000) roomLimit = cpuTickLimit / (overlordCount - processed);
+        if (cpuBucket < 10000) roomLimit = (cpuLimit * 0.9) / (overlordCount - processed);
+        if (cpuBucket > 7500) roomLimit = cpuTickLimit / (overlordCount - processed);
         overlord.overlordMind(activeRoom, roomLimit);
         //Expansion Manager
         let maxRooms = _.round(Game.cpu.limit / 15);

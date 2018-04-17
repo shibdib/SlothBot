@@ -350,10 +350,11 @@ function buildLabs(room, structures) {
         let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
         if (lab.length + sites.length < 2 && terminal) {
             let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, terminal.pos.y - 2, terminal.pos.x - 2, terminal.pos.y + 2, terminal.pos.x + 2, true));
+            let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
             for (let key in safeZone) {
                 let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
                 if (position.getRangeTo(terminal.pos) === 2) {
-                    if (position.checkForAllStructure().length > 0 || !room.findPath(position, terminal, {
+                    if (position.checkForAllStructure().length > 0 || !room.findPath(position, terminal.pos, {
                             range: 1,
                             ignoreCreeps: true
                         }).length

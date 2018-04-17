@@ -19,11 +19,14 @@ function role(creep) {
         creep.suicide();
         return null;
     }
-    if (creep.carry.energy === 0) {
+    if (creep.carry.energy < creep.carryCapacity) {
         creep.memory.hauling = false;
-        if (creep.memory.linkID && creep.memory.containerID && pickupDropped(creep)) return null;
+        if (creep.memory.linkID && creep.memory.containerID) {
+            if (pickupDropped(creep)) return null;
+        }
     }
     if (creep.memory.source) {
+        let container = Game.getObjectById(creep.memory.containerID);
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -33,7 +36,9 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.containerID && creep.pos.getRangeTo(Game.getObjectById(creep.memory.containerID)) > 0) creep.shibMove(Game.getObjectById(creep.memory.containerID), {range: 0});
+                if (container && creep.pos.getRangeTo(container) > 0) {
+                    creep.shibMove(container, {range: 0});
+                }
                 break;
         }
         if (creep.carry.energy === creep.carryCapacity) {
@@ -127,7 +132,7 @@ function harvestDepositLink(creep) {
 function pickupDropped(creep) {
     let link = Game.getObjectById(creep.memory.linkID);
     let container = Game.getObjectById(creep.memory.containerID);
-    if (creep.pos.getRangeTo(container) === 0 && link.energy < 700 && container.store[RESOURCE_ENERGY] >= 50) {
+    if (creep.pos.getRangeTo(container) === 0 && link.energy < 700 && container.store[RESOURCE_ENERGY]) {
         creep.withdraw(container, RESOURCE_ENERGY);
         return true;
     }
