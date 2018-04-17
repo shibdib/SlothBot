@@ -72,8 +72,7 @@ RoomPosition.prototype.checkForConstructionSites = function () {
 };
 
 RoomPosition.prototype.checkForRoad = function () {
-    if (this.roomName)
-        return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD});
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length;
 };
 
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
