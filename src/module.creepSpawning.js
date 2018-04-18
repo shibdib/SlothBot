@@ -14,7 +14,7 @@ module.exports.processBuildQueue = function () {
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
-                if (level > 3) {
+                if (level > 3 && spawn.room.constructionSites.length < 3) {
                     queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
@@ -26,7 +26,7 @@ module.exports.processBuildQueue = function () {
                     topPriority = queue[key];
                     if (topPriority.targetRoom && Game.map.findRoute(topPriority.targetRoom, spawn.room.name).length > 6) continue;
                     role = topPriority.role;
-                    if (topPriority.misc && topPriority.misc === 'vary') level = _.random(1, level);
+                    if (topPriority.misc && topPriority.misc === 'vary') level = _.random(_.round(level / 2), level);
                     if (topPriority.reboot || level === 1) {
                         body = _.get(SPAWN[0], role);
                     } else {
@@ -253,7 +253,7 @@ module.exports.workerCreepQueue = function (room) {
             count = upgraders.length;
         }
         let number = _.round((10 - level) / 2);
-        if (level >= 5 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
+        if (level >= 4 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
         if (count < number) {
             queueCreep(room, PRIORITIES.upgrader, {role: 'upgrader'})
         }
@@ -509,7 +509,7 @@ module.exports.remoteCreepQueue = function (room) {
             })
         }
     }
-    if (!_.includes(queue, 'remoteResponse') && room.memory.sendingResponse) {
+    if (!_.includes(queue, 'remoteResponse') && room.memory.sendingResponse && room.constructionSites.length <= 3) {
         if (Game.rooms[room.memory.sendingResponse] && Game.rooms[room.memory.sendingResponse].memory.responseNeeded === true && !room.memory.responseNeeded) {
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.sendingResponse && creep.memory.role === 'remoteResponse');
             if (responder.length < Game.rooms[room.memory.sendingResponse].memory.numberOfHostiles) {
@@ -799,8 +799,9 @@ function bodyGenerator(level, role) {
                 move = carry;
                 break;
             } else {
-                carry = 3 * level;
-                move = _.round(carry / 2);
+                carry = 2 * level;
+                work = _.random(0, 1);
+                move = _.round((carry / 2)) + work;
                 break;
             }
         case 'labTech':

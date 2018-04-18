@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (!creep.getSafe()) {
         if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['upgrade']);
         //ANNOUNCE
         if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
@@ -37,6 +36,7 @@ function role(creep) {
         if (creep.isFull) creep.memory.working = true;
         if (creep.memory.working === true) {
             if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+            if (container && creep.pos.getRangeTo(container) > 0) creep.shibMove(container, {range: 0});
             if (container && creep.pos.getRangeTo(container) <= 1 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
             if (terminal && creep.pos.getRangeTo(terminal) <= 1 && terminal.store[RESOURCE_ENERGY] > 0) creep.withdraw(terminal, RESOURCE_ENERGY);
             if (link && creep.pos.getRangeTo(link) <= 1 && link.energy > 0) creep.withdraw(link, RESOURCE_ENERGY);
@@ -73,6 +73,5 @@ function role(creep) {
                 }
             }
         }
-    }
 }
 module.exports.role = profiler.registerFN(role, 'upgraderWorkers');

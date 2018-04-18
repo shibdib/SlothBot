@@ -13,6 +13,7 @@ function towerControl(room) {
             if (tower.room.memory.responseNeeded === true) {
                 let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
                 let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 1) && !_.includes(FRIENDLIES, s.owner.username));
+                let unArmedHostile = _.filter(creeps, (s) => (!s.getActiveBodyparts(ATTACK) || !s.getActiveBodyparts(RANGED_ATTACK) || !s.getActiveBodyparts(HEAL) || !s.getActiveBodyparts(WORK)) && !_.includes(FRIENDLIES, s.owner.username));
                 let healPower = 0;
                 if (armedHostile.length > 0) {
                     for (let i = 0; i < armedHostile.length; i++) {
@@ -34,6 +35,9 @@ function towerControl(room) {
                             continue towers;
                         } else if (armedHostile[i].hits <= 150 * towers.length) {
                             tower.attack(armedHostile[i]);
+                            continue towers;
+                        } else if (unArmedHostile[0]) {
+                            tower.attack(unArmedHostile[0]);
                             continue towers;
                         }
                     }

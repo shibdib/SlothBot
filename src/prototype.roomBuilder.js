@@ -161,9 +161,9 @@ function controllerSupplier(room, structures) {
     if (room.level >= 6) {
         let controllerLink = _.filter(room.controller.pos.findInRange(structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink && room.memory.storageLink) {
-            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 2, room.controller.pos.x - 2, room.controller.pos.y + 2, room.controller.pos.x + 2, true);
+            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
             for (let key in zoneTerrain) {
-                if (_.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
+                if (_.filter(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
                 if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
                 position.createConstructionSite(STRUCTURE_LINK);
@@ -188,10 +188,14 @@ function buildWalls(room, structures) {
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.x % 2 || position.checkForRoad()) {
+                if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
                 } else {
-                    position.createConstructionSite(STRUCTURE_WALL);
+                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                        position.createConstructionSite(STRUCTURE_RAMPART);
+                    } else {
+                        position.createConstructionSite(STRUCTURE_WALL);
+                    }
                 }
             }
         }
@@ -201,10 +205,14 @@ function buildWalls(room, structures) {
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.y % 2 || position.checkForRoad()) {
+                if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
                 } else {
-                    position.createConstructionSite(STRUCTURE_WALL);
+                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                        position.createConstructionSite(STRUCTURE_RAMPART);
+                    } else {
+                        position.createConstructionSite(STRUCTURE_WALL);
+                    }
                 }
             }
         }
@@ -214,10 +222,14 @@ function buildWalls(room, structures) {
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.x % 2 || position.checkForRoad()) {
+                if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
                 } else {
-                    position.createConstructionSite(STRUCTURE_WALL);
+                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                        position.createConstructionSite(STRUCTURE_RAMPART);
+                    } else {
+                        position.createConstructionSite(STRUCTURE_WALL);
+                    }
                 }
             }
         }
@@ -227,10 +239,14 @@ function buildWalls(room, structures) {
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.y % 2 || position.checkForRoad()) {
+                if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
                 } else {
-                    position.createConstructionSite(STRUCTURE_WALL);
+                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                        position.createConstructionSite(STRUCTURE_RAMPART);
+                    } else {
+                        position.createConstructionSite(STRUCTURE_WALL);
+                    }
                 }
             }
         }

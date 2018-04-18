@@ -59,8 +59,16 @@ RoomPosition.prototype.checkForPlain = function () {
     return this.lookFor(LOOK_TERRAIN)[0] === 'plain';
 };
 
+RoomPosition.prototype.checkForBuiltWall = function () {
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL}).length;
+};
+
 RoomPosition.prototype.checkForRampart = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})[0];
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART}).length;
+};
+
+RoomPosition.prototype.checkForBarrierStructure = function () {
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL}).length;
 };
 
 RoomPosition.prototype.checkForObstacleStructure = function () {

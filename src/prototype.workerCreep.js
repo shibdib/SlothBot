@@ -85,13 +85,6 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
-        return true;
-    }
     this.memory.constructionSite = undefined;
     this.memory.task = undefined;
     return null;
@@ -581,7 +574,7 @@ Creep.prototype.findEssentials = function () {
                         harvest: false
                     });
                 } else if (object.energy < object.energyCapacity / 2) {
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
+                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.25, 0);
                     towers.push({
                         id: tower[i].id,
                         distWeighted: towerDistWeighted,
