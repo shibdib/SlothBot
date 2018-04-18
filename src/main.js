@@ -13,12 +13,6 @@ let shib = require("shibBench");
 module.exports.loop = function() {
     profiler.wrap(function () {
         let mainCpu = Game.cpu.getUsed();
-        for (let key in Game.structures) {
-            if (Game.structures[key].structureType !== STRUCTURE_RAMPART) continue;
-            if (Game.structures[key].pos.checkForBuiltWall()) {
-                Game.structures[key].destroy();
-            }
-        }
         //Dissi hack
         //tryInitSameMemory();
 
