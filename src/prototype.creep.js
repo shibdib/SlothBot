@@ -119,31 +119,6 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
     return false;
 };
 
-Creep.prototype.getSafe = function (hauler = false) {
-    if (this.room.memory.responseNeeded && this.room.controller.level >= 5) {
-        let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
-        let hostile = this.findClosestEnemy();
-        let creepRangeToHub = hub.getRangeTo(this);
-        let hostileRangeToHub = 99;
-        let hostileRangeToCreep = 99;
-        if (hostile) {
-            hostileRangeToHub = hub.getRangeTo(hostile);
-            hostileRangeToCreep = this.pos.getRangeTo(hostile);
-        }
-        if (hostile && hub.getRangeTo(hostile) <= 12) {
-            if (this.pos.getRangeTo(hub) > 7) {
-                this.say(ICONS.withdraw);
-                this.shibMove(hub, {range: 4, forceRepath: true});
-                return true;
-            } else if (!hauler) {
-                this.idleFor(10);
-            }
-            return undefined;
-        }
-    }
-    return undefined;
-};
-
 Creep.prototype.tryToBoost = function (boosts) {
     let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
     if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;

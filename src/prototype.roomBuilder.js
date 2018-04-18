@@ -38,7 +38,6 @@ Room.prototype.buildRoom = function () {
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
     buildExtractor(this, structures);
-    if (_.size(Game.constructionSites) > 50) return;
     buildRoads(this, structures);
 };
 

@@ -17,7 +17,6 @@ function role(creep) {
     if (creep.wrongRoom()) return null;
     if (creep.carry.energy === 0) creep.memory.working = null;
     if (creep.isFull) creep.memory.working = true;
-    if (!creep.getSafe()) {
         if (creep.memory.working === true) {
             if (!creep.memory.constructionSite || !Game.getObjectById(creep.memory.constructionSite)) {
                 creep.memory.constructionSite = undefined;
@@ -71,5 +70,4 @@ function role(creep) {
             }
         }
     }
-}
 module.exports.role = profiler.registerFN(role, 'workerRole');

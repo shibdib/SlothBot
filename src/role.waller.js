@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (!creep.getSafe()) {
         if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
         creep.repairRoad();
         if (creep.borderCheck()) return null;
@@ -59,7 +58,6 @@ function role(creep) {
                 }
             }
         }
-    }
 }
 
 module.exports.role = profiler.registerFN(role, 'wallerRole');

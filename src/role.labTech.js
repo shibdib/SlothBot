@@ -21,7 +21,6 @@ function role(creep) {
     }
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
-    if (!creep.getSafe(true)) {
         if (droppedResources(creep)) return null;
         let labs = shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB));
         let terminal = creep.room.terminal;
@@ -174,7 +173,6 @@ function role(creep) {
                 creep.idleFor(15);
             }
         }
-    }
 }
 
 module.exports.role = profiler.registerFN(role, 'labTechRole');

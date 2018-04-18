@@ -89,7 +89,7 @@ function remoteRoads(creep) {
         buildRoadFromTo(creep.room, sources[0], sources[1]);
     }
     for (let key in sources){
-        if (_.size(Game.constructionSites) >= 80) return;
+        if (_.size(Game.constructionSites) >= 50) return;
         buildRoadAround(creep.room, sources[key].pos);
         if (neighboring) {
             if (neighboring['1']) {

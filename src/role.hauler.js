@@ -27,7 +27,6 @@ function role(creep) {
         }
     }
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.5) creep.memory.hauling = true;
-    if (!creep.getSafe(true)) {
         if (Game.time % 25 === 0 || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (nuclearEngineer(creep) || terminalWorker(creep)) return null;
         if (Game.time % 5 === 0 || creep.memory.labTech) if (boostDelivery(creep)) return null;
         if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
@@ -69,7 +68,6 @@ function role(creep) {
                 }
             } else if (!creep.findEssentials()) if (!creep.findStorage()) creep.idleFor(3);
         }
-    }
 }
 
 module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
