@@ -43,9 +43,7 @@ function role(creep) {
         creep.memory.task = undefined;
         creep.memory.hauling = false;
     }
-    if (creep.carry.energy === creep.carryCapacity) {
-        creep.memory.hauling = true;
-    }
+    if (creep.isFull) creep.memory.hauling = true;
     if (creep.memory.destinationReached) {
         if (creep.memory.hauling === false) {
             let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100);

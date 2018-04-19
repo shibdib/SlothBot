@@ -30,7 +30,7 @@ Room.prototype.buildRoom = function () {
     buildTerminal(this);
     buildSpawn(this, structures);
     buildTowers(this, structures);
-    buildWalls(this, structures);
+    if (Game.time % 250 === 0) buildWalls(this, structures);
     if (_.size(Game.constructionSites) > 75) return;
     controllerSupplier(this, structures);
     buildLabs(this, structures);
@@ -38,7 +38,7 @@ Room.prototype.buildRoom = function () {
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
     buildExtractor(this, structures);
-    buildRoads(this, structures);
+    if (Game.time % 500 === 0) buildRoads(this, structures);
 };
 
 function buildExtensions(room) {
@@ -183,7 +183,7 @@ function buildWalls(room, structures) {
     }
     if (room.controller.level < 2) return;
     let neighboring = Game.map.describeExits(room.name);
-    if (neighboring) {
+    if (neighboring && !TEN_CPU) {
         if (neighboring['1']) {
             let exits = room.find(FIND_EXIT_TOP);
             let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 0, 2, 49, true);
@@ -192,6 +192,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
+                    if (position.checkForRampart() && !position.checkForRoad()) {
+                        position.createConstructionSite(STRUCTURE_ROAD);
+                    } else if (position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
@@ -209,6 +212,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
+                    if (position.checkForRampart() && !position.checkForRoad()) {
+                        position.createConstructionSite(STRUCTURE_ROAD);
+                    } else if (position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
@@ -226,6 +232,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
+                    if (position.checkForRampart() && !position.checkForRoad()) {
+                        position.createConstructionSite(STRUCTURE_ROAD);
+                    } else if (position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
@@ -243,6 +252,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
+                    if (position.checkForRampart() && !position.checkForRoad()) {
+                        position.createConstructionSite(STRUCTURE_ROAD);
+                    } else if (position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);

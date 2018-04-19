@@ -68,7 +68,7 @@ function role(creep) {
                         if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
                     }
                 } else {
-                    if (creep.pos.getRangeTo(Game.rooms[creep.memory.overlord].controller) > 5) return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 4});
+                    if (container && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
                     creep.idleFor(5);
                 }
             }
