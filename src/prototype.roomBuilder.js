@@ -186,7 +186,7 @@ function buildWalls(room, structures) {
     if (neighboring) {
         if (neighboring['1']) {
             let exits = room.find(FIND_EXIT_TOP);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 2, 2, 47, true);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 0, 2, 49, true);
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
@@ -203,7 +203,7 @@ function buildWalls(room, structures) {
         }
         if (neighboring['3']) {
             let exits = room.find(FIND_EXIT_RIGHT);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 2, 47, 49, 48, true);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 47, 49, 48, true);
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
@@ -220,7 +220,7 @@ function buildWalls(room, structures) {
         }
         if (neighboring['5']) {
             let exits = room.find(FIND_EXIT_BOTTOM);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 47, 2, 48, 48, true);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 47, 0, 49, 48, true);
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
@@ -237,7 +237,7 @@ function buildWalls(room, structures) {
         }
         if (neighboring['7']) {
             let exits = room.find(FIND_EXIT_LEFT);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 1, 48, 2, true);
+            let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 1, 49, 2, true);
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
