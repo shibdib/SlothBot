@@ -252,10 +252,14 @@ module.exports.workerCreepQueue = function (room) {
         } else {
             count = upgraders.length;
         }
-        let number = _.round((10 - level) / 2);
+        let number = _.round((8 - level) / 2);
         if (level >= 4 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
         if (count < number) {
-            queueCreep(room, PRIORITIES.upgrader, {role: 'upgrader'})
+            if (level < 3) {
+                queueCreep(room, 2, {role: 'upgrader'})
+            } else {
+                queueCreep(room, PRIORITIES.upgrader, {role: 'upgrader'})
+            }
         }
     }
     //Worker
@@ -383,7 +387,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!_.includes(queue, 'remoteHarvester') && !TEN_CPU && (remoteRoom || !remoteRoom.memory.responseNeeded)) {
+            if (!_.includes(queue, 'remoteHarvester') && !TEN_CPU && (!remoteRoom || !remoteRoom.memory.responseNeeded)) {
                 let totalRemoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;

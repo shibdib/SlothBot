@@ -198,6 +198,36 @@ Creep.prototype.withdrawEnergy = function () {
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
                     break;
+                case ERR_INVALID_TARGET:
+                    switch (this.pickup(energyItem)) {
+                        case OK:
+                            this.memory.energyDestination = undefined;
+                            this.memory._shibMove = undefined;
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            this.shibMove(energyItem);
+                            break;
+                        case ERR_FULL:
+                            this.memory.energyDestination = undefined;
+                            this.memory._shibMove = undefined;
+                            break;
+                        case ERR_INVALID_TARGET:
+                            switch (energyItem.transfer(this, RESOURCE_ENERGY)) {
+                                case OK:
+                                    this.memory.energyDestination = undefined;
+                                    this.memory._shibMove = undefined;
+                                    break;
+                                case ERR_NOT_IN_RANGE:
+                                    this.shibMove(energyItem);
+                                    break;
+                                case ERR_FULL:
+                                    this.memory.energyDestination = undefined;
+                                    this.memory._shibMove = undefined;
+                                    break;
+                            }
+                            break;
+                    }
+                    break;
                 case ERR_NOT_IN_RANGE:
                     this.shibMove(energyItem);
                     break;
@@ -279,6 +309,33 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
             distWeighted: terminalDistWeighted,
             harvest: false
         });
+    }
+    //Take straight from harvesters at low level
+    if (this.room.controller.level < 3) {
+        let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
+        if (harvester) {
+            let weight = 0.3;
+            const harvesterDistWeighted = _.round(harvester.pos.rangeToTarget(this) * weight, 0) + 1;
+            energy.push({
+                id: harvester.id,
+                distWeighted: harvesterDistWeighted,
+                harvest: false
+            });
+        }
+    }
+    //Dropped at lower lvl
+    if (this.room.controller.level < 4) {
+        let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}))[0];
+        if (dropped) {
+            let weight = 0.3;
+            let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === dropped.id && c.id !== this.id).length;
+            let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
+            energy.push({
+                id: dropped.id,
+                distWeighted: droppedDistWeighted,
+                harvest: false
+            });
+        }
     }
 
     let sorted = _.min(energy, 'distWeighted');
@@ -366,6 +423,33 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
             distWeighted: storageDistWeighted,
             harvest: false
         });
+    }
+    //Take straight from harvesters at low level
+    if (this.room.controller.level < 3) {
+        let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
+        if (harvester) {
+            let weight = 0.3;
+            const harvesterDistWeighted = _.round(harvester.pos.rangeToTarget(this) * weight, 0) + 1;
+            energy.push({
+                id: harvester.id,
+                distWeighted: harvesterDistWeighted,
+                harvest: false
+            });
+        }
+    }
+    //Dropped at lower lvl
+    if (this.room.controller.level < 4) {
+        let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}))[0];
+        if (dropped) {
+            let weight = 0.3;
+            let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === dropped.id && c.id !== this.id).length;
+            let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
+            energy.push({
+                id: dropped.id,
+                distWeighted: droppedDistWeighted,
+                harvest: false
+            });
+        }
     }
 
     let sorted = _.min(energy, 'distWeighted');

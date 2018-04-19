@@ -30,7 +30,7 @@ Room.prototype.buildRoom = function () {
     buildTerminal(this);
     buildSpawn(this, structures);
     buildTowers(this, structures);
-    if (Game.time % 250 === 0) buildWalls(this, structures);
+    buildWalls(this, structures);
     if (_.size(Game.constructionSites) > 75) return;
     controllerSupplier(this, structures);
     buildLabs(this, structures);
@@ -192,9 +192,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
-                    } else if (position.checkForRampart()) buildRoadAround(room, position);
+                    } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
@@ -212,9 +212,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
-                    } else if (position.checkForRampart()) buildRoadAround(room, position);
+                    } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
@@ -232,9 +232,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
-                    } else if (position.checkForRampart()) buildRoadAround(room, position);
+                    } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
@@ -252,9 +252,9 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
-                    } else if (position.checkForRampart()) buildRoadAround(room, position);
+                    } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
