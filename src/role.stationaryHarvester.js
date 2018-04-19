@@ -132,9 +132,15 @@ function harvestDepositLink(creep) {
 function pickupDropped(creep) {
     let link = Game.getObjectById(creep.memory.linkID);
     let container = Game.getObjectById(creep.memory.containerID);
-    if (creep.pos.getRangeTo(container) === 0 && link.energy < 700 && container.store[RESOURCE_ENERGY]) {
-        creep.withdraw(container, RESOURCE_ENERGY);
-        return true;
+    if (container && link) {
+        if (creep.pos.getRangeTo(container) === 0 && link.energy < 700 && container.store[RESOURCE_ENERGY]) {
+            creep.withdraw(container, RESOURCE_ENERGY);
+            return true;
+        }
+        return false;
+    } else {
+        if (!container) creep.memory.containerID = undefined;
+        if (!link) creep.memory.linkID = undefined;
+        return false;
     }
-    return false;
 }

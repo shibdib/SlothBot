@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.borderCheck();
-    if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
+    creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
         range: 18,
         offRoad: true
     });

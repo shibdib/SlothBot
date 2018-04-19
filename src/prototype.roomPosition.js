@@ -4,9 +4,9 @@
 'use strict';
 
 RoomPosition.prototype.getClosestSource = function () {
-    let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() > 0});
+    let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() >= _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length});
     if (source === null) {
-        source = this.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() > 0});
+        source = this.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() >= _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length});
     }
     return source;
 };
@@ -43,11 +43,11 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
 };
 
 RoomPosition.prototype.countOpenTerrainAround = function () {
-    const terrainArray = Game.rooms[this.roomName].lookForAtArea(LOOK_TERRAIN, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
-    const plainArray = _.filter(terrainArray, 'terrain', 'plain');
-    const swampArray = _.filter(terrainArray, 'terrain', 'swamp');
-    const structures = Game.rooms[this.roomName].lookForAtArea(LOOK_STRUCTURES, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
-    const wall = _.filter(structures, 'structure', 'constructedWall');
+    let terrainArray = Game.rooms[this.roomName].lookForAtArea(LOOK_TERRAIN, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
+    let plainArray = _.filter(terrainArray, 'terrain', 'plain');
+    let swampArray = _.filter(terrainArray, 'terrain', 'swamp');
+    let structures = Game.rooms[this.roomName].lookForAtArea(LOOK_STRUCTURES, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
+    let wall = _.filter(structures, 'structure', 'constructedWall');
     return plainArray.length + swampArray.length - wall.length;
 };
 

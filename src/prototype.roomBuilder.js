@@ -175,8 +175,11 @@ function controllerSupplier(room, structures) {
 }
 
 function buildWalls(room, structures) {
-    for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
-        room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
+    let barrier = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && (s.pos.x === 2 || s.pos.y === 2 || s.pos.x === 1 || s.pos.y === 1)), 'hits');
+    if (barrier.hits > barrier.hits < 500000 * room.controller.level) {
+        for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
+            room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
+        }
     }
     if (room.controller.level < 2) return;
     let neighboring = Game.map.describeExits(room.name);

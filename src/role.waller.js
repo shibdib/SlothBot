@@ -10,15 +10,17 @@ function role(creep) {
         creep.repairRoad();
         if (creep.borderCheck()) return null;
         if (creep.wrongRoom()) return null;
-        if (creep.carry.energy === 0) creep.memory.working = null;
+    if (creep.carry.energy === 0) creep.memory.working = undefined;
         if (creep.isFull) creep.memory.working = true;
-        if (creep.memory.working === true) {
+    if (creep.memory.working) {
+        creep.memory.source = undefined;
             if (!creep.memory.currentTarget) {
-                let barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART), 'hits');
+                let barrier = _.min(_.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && (s.pos.x === 2 || s.pos.y === 2 || s.pos.x === 1 || s.pos.y === 1)), 'hits');
+                if (barrier.hits > barrier.hits < 500000 * creep.room.controller.level) barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART), 'hits');
                 let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)[0];
                 if (barrier && barrier.hits < 2000) {
                     creep.memory.currentTarget = barrier.id;
-                    creep.memory.targetHits = 10000;
+                    creep.memory.targetHits = 50000;
                     creep.shibMove(barrier, {range: 3})
                 } else if (site) {
                     switch (creep.build(site)) {
@@ -52,8 +54,11 @@ function role(creep) {
                 creep.withdrawEnergy();
             } else {
                 creep.findEnergy();
-                if (!creep.memory.energyDestination) {
+                if (!creep.memory.energyDestination && !creep.memory.source) {
                     let source = creep.pos.getClosestSource();
+                    if (source) creep.memory.source = source.id;
+                } else if (creep.memory.source) {
+                    let source = Game.getObjectById(creep.memory.source);
                     if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
                 }
             }

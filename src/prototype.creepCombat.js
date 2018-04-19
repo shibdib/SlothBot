@@ -174,7 +174,7 @@ Creep.prototype.waitRampart = function () {
 };
 
 Creep.prototype.fightRampart = function (target) {
-    if (!target || (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK))) return false;
+    if (!target || !target.pos || (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK))) return false;
     let position;
     if (this.memory.assignedRampart) position = Game.getObjectById(this.memory.assignedRampart);
     if (!this.memory.assignedRampart || Game.time % 3 === 0) {

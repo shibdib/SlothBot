@@ -291,11 +291,9 @@ module.exports.workerCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (room.controller.level >= 3 && !_.includes(queue, 'waller')) {
+    if (room.controller.level >= 2 && !_.includes(queue, 'waller')) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        let lowestRamp = _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
         let amount = 2;
-        if (lowestRamp.hits >= level * 250000) amount = 1;
         if (TEN_CPU) amount = 1;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller'})
@@ -775,11 +773,10 @@ function bodyGenerator(level, role) {
             work = level;
             carry = _.round((1 * level) / 3) || 1;
             if (level === 8) {
-                work = 20;
+                work = 15;
                 carry = 10;
             }
             move = work + carry;
-            if (level > 4) move = _.round((work + carry) / 2);
             break;
         case 'upgrader':
             if (level < 3) {
