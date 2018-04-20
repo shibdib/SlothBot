@@ -501,7 +501,7 @@ module.exports.remoteCreepQueue = function (room) {
 
 module.exports.militaryCreepQueue = function () {
     let queue = Memory.militaryBuildQueue;
-    if (!Memory.targetRooms || !Memory.targetRooms.length) return;
+    if (!Memory.targetRooms) return;
     // Targets
     for (let key in shuffle(Memory.targetRooms)) {
         let stagingRoom;

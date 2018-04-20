@@ -51,32 +51,41 @@ module.exports.hud = function () {
         }
         let creeps = _.filter(Game.creeps, (c) => c.memory.targetRoom === key);
         let y = 0;
-        for (let creep in creeps) {
-            if (creeps[creep].room.name !== key) {
-                let roomDistance = Game.map.findRoute(creeps[creep].room.name, key).length;
-                let pathLength = 49;
-                if (creeps[creep].memory._shibMove && creeps[creep].memory._shibMove.path) pathLength = creeps[creep].memory._shibMove.path.length;
-                let secondsToArrive = (roomDistance * 49) * Memory.tickLength;
-                let displayTime;
-                if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
-                if (secondsToArrive >= 86400) displayTime = _.round(secondsToArrive / 86400, 2) + ' Days';
-                if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = _.round(secondsToArrive / 3600, 2) + ' Hours';
-                if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = _.round(secondsToArrive / 60, 2) + ' Minutes';
-                new RoomVisual(key).text(
-                    creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + displayTime,
-                    1,
-                    4 + y,
-                    {align: 'left', opacity: 0.8}
-                );
-            } else {
-                new RoomVisual(key).text(
-                    creeps[creep].name + ' Is On Scene. ' + creeps[creep].hits + '/' + creeps[creep].hitsMax + ' hp',
-                    1,
-                    4 + y,
-                    {align: 'left', opacity: 0.8}
-                );
+        if (type !== 'swarm') {
+            for (let creep in creeps) {
+                if (creeps[creep].room.name !== key) {
+                    let roomDistance = Game.map.findRoute(creeps[creep].room.name, key).length;
+                    let pathLength = 49;
+                    if (creeps[creep].memory._shibMove && creeps[creep].memory._shibMove.path) pathLength = creeps[creep].memory._shibMove.path.length;
+                    let secondsToArrive = (roomDistance * 49) * Memory.tickLength;
+                    let displayTime;
+                    if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
+                    if (secondsToArrive >= 86400) displayTime = _.round(secondsToArrive / 86400, 2) + ' Days';
+                    if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = _.round(secondsToArrive / 3600, 2) + ' Hours';
+                    if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = _.round(secondsToArrive / 60, 2) + ' Minutes';
+                    new RoomVisual(key).text(
+                        creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + displayTime,
+                        1,
+                        4 + y,
+                        {align: 'left', opacity: 0.8}
+                    );
+                } else {
+                    new RoomVisual(key).text(
+                        creeps[creep].name + ' Is On Scene. ' + creeps[creep].hits + '/' + creeps[creep].hitsMax + ' hp',
+                        1,
+                        4 + y,
+                        {align: 'left', opacity: 0.8}
+                    );
+                }
+                y++;
             }
-            y++;
+        } else {
+            new RoomVisual(key).text(
+                creeps.length + ' Swarm creeps inbound.',
+                1,
+                4 + y,
+                {align: 'left', opacity: 0.8}
+            );
         }
         new RoomVisual().text(
             ICONS.crossedSword + ' ACTIVE OPERATIONS ' + ICONS.crossedSword,
