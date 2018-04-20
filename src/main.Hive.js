@@ -62,7 +62,7 @@ function mind() {
         processed++;
     }
     //Non room specific creep spawning
-    if (Game.time % 15 === 0) {
+    if (Game.time % 7 === 0) {
         cpu = Game.cpu.getUsed();
         spawning.militaryCreepQueue();
         shib.shibBench('militarySpawn', cpu);
