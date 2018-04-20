@@ -14,7 +14,7 @@ module.exports.processBuildQueue = function () {
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
-                if (level > 3 && spawn.room.constructionSites.length < 3) {
+                if (level >= 2 && _.filter(spawn.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length < 3) {
                     queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
@@ -297,10 +297,10 @@ module.exports.workerCreepQueue = function (room) {
     //Waller
     if (room.controller.level >= 2 && !_.includes(queue, 'waller')) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        let amount = 2;
+        let amount = 3;
         if (TEN_CPU) amount = 1;
         if (wallers.length < amount) {
-            queueCreep(room, PRIORITIES.waller, {role: 'waller'})
+            queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
         }
     }
     //Mineral Harvester

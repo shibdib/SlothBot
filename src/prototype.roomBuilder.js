@@ -57,7 +57,6 @@ function buildExtensions(room) {
                 break;
             case ERR_RCL_NOT_ENOUGH:
         }
-        return;
     }
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_EXTENSION).length || 0;
     if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION).length + inBuild < extensionCount) {

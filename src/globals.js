@@ -41,7 +41,7 @@ let globals = function () {
         stationaryHarvester: 1,
         // Workers
         worker: 3,
-        waller: 3,
+        waller: 2,
         upgrader: 4,
         mineralHarvester: 5,
         // Haulers
@@ -78,6 +78,7 @@ let globals = function () {
         0: {
             stationaryHarvester: [WORK, WORK, CARRY, MOVE],
             worker: [MOVE, MOVE, CARRY, WORK],
+            waller: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
             hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             explorer: [MOVE],

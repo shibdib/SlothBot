@@ -15,7 +15,11 @@ function role(creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
-    if (creep.carry.energy === 0) creep.memory.working = null;
+    if (creep.carry.energy === 0) {
+        creep.memory.working = null;
+        creep.memory.constructionSite = undefined;
+        creep.memory.task = undefined;
+    }
     if (creep.isFull) creep.memory.working = true;
         if (creep.memory.working === true) {
             creep.memory.source = undefined;
