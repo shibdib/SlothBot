@@ -698,7 +698,6 @@ module.exports.militaryCreepQueue = function () {
         }
         // Swarm
         if (Memory.targetRooms[key].type === 'swarm') {
-            let opLevel = Memory.targetRooms[key].level;
             let swarm = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'swarm');
             if (swarm.length < 50 && !_.includes(queue, 'swarm')) {
                 queueMilitaryCreep(PRIORITIES.swarm, {
