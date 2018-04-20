@@ -378,7 +378,7 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
             }
-            if (!_.includes(queue, 'reserver') && level >= 5 && !TEN_CPU && !remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)) {
+            if (!_.includes(queue, 'reserver') && level >= 5 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)))) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
                     queueCreep(room, PRIORITIES.reserver, {
@@ -696,6 +696,21 @@ module.exports.militaryCreepQueue = function () {
                 })
             }
         }
+        // Swarm
+        if (Memory.targetRooms[key].type === 'swarm') {
+            let opLevel = Memory.targetRooms[key].level;
+            let swarm = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'swarm');
+            if (swarm.length < 50 && !_.includes(queue, 'swarm')) {
+                queueMilitaryCreep(PRIORITIES.swarm, {
+                    role: 'swarm',
+                    targetRoom: key,
+                    operation: 'swarm',
+                    military: true,
+                    waitFor: 30,
+                    staging: stagingRoom
+                })
+            }
+        }
     }
 };
 
@@ -811,8 +826,8 @@ function bodyGenerator(level, role) {
                 move = (tough + attack) / 4;
             }
             if (level >= 7) {
-                attack = 35;
-                move = 10;
+                attack = 30;
+                move = 15;
             }
             break;
         case 'remoteResponse':
@@ -853,6 +868,14 @@ function bodyGenerator(level, role) {
             if (level < 6) break;
             carry = _.round(1.5 * level);
             move = carry;
+            break;
+        case 'swarm':
+            if (_.random(0, 1) === 1) {
+                rangedAttack = 1
+            } else {
+                attack = 1
+            }
+            move = 1;
             break;
         case 'deconstructor':
             if (level < 6) break;

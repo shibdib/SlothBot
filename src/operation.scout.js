@@ -38,6 +38,15 @@ Creep.prototype.scoutRoom = function () {
         Memory.targetRooms = cache;
     } else if (controller.owner && towers.length) {
         this.room.cacheRoomIntel(true);
+        if (controller.level <= 6 && _.random(0, 1) === 1) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[this.room.name] = {
+                tick: tick,
+                type: 'swarm',
+                level: 1
+            };
+        }
         delete Memory.targetRooms[this.pos.roomName];
     } else if (!controller.owner && countableStructures.length < 3) {
         if (controller.reservation && !_.includes(FRIENDLIES, controller.reservation.username)) addThreat(controller.reservation.username, 100);

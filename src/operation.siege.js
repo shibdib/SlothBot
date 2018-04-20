@@ -6,7 +6,7 @@ Creep.prototype.siegeRoom = function () {
         } else if (this.memory.role === 'longbow') {
             return this.fightRanged(hostile);
         } else if (this.memory.role === 'attacker') {
-            this.handleDefender();
+            this.handleMilitaryCreep();
         } else if (this.memory.role === 'healer' || this.memory.role === 'siegeHealer') {
             this.siegeHeal();
         }

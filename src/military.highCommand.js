@@ -8,6 +8,7 @@ function highCommand() {
     manualAttacks();
     if (Game.time % 10 === 0) manageAttacks();
     if (Game.time % 150 === 0) {
+        let maxLevel = _.max(_.filter(Game.spawns), '.room.controller.level').room.controller.level;
         for (let key in Memory.ownedRooms) {
             let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
             for (let key in cleaningTargets) {
@@ -45,13 +46,23 @@ function highCommand() {
                 if (!Memory.targetRooms || !Memory.targetRooms[enemySiege[key].name]) {
                     if (enemySiege[key].level >= 3) {
                         let cache = Memory.targetRooms || {};
-                        let level = _.round(enemySiege[key].towers / 2);
-                        let tick = Game.time;
-                        cache[enemySiege[key].name] = {
-                            tick: tick,
-                            type: 'siege',
-                            level: level
-                        };
+                        if (maxLevel >= 7 && _.random(0, 1) === 1) {
+                            let level = _.round(enemySiege[key].towers / 2);
+                            let tick = Game.time;
+                            cache[enemySiege[key].name] = {
+                                tick: tick,
+                                type: 'siege',
+                                level: level
+                            };
+                        } else if (enemySiege[key].level <= 6) {
+                            let level = 1;
+                            let tick = Game.time;
+                            cache[enemySiege[key].name] = {
+                                tick: tick,
+                                type: 'swarm',
+                                level: level
+                            };
+                        }
                         Memory.targetRooms = cache;
                     } else {
                         let cache = Memory.targetRooms || {};
@@ -234,6 +245,17 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'swarm')) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'swarm',
+                level: 1
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
         if (_.startsWith(name, 'nuke')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
@@ -270,6 +292,15 @@ function manageAttacks() {
         if (!activeSiege) {
             let newActive = shuffle(sieges)[0];
             newActive.activeSiege = true;
+            newActive.tick = Game.time;
+        }
+    }
+    let swarms = _.filter(Memory.targetRooms, (t) => t.type === 'swarm');
+    if (swarms.length) {
+        let activeSwarm = _.filter(swarms, (t) => t.activeSwarm)[0];
+        if (!activeSwarm) {
+            let newActive = shuffle(swarms)[0];
+            newActive.activeSwarm = true;
             newActive.tick = Game.time;
         }
     }

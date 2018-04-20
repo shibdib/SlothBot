@@ -340,7 +340,9 @@ function addCreepsToMatrix(room, matrix) {
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
         if (!_.includes(FRIENDLIES, creeps[key].owner.username) && (creeps[key].getActiveBodyparts(ATTACK) || creeps[key].getActiveBodyparts(RANGED_ATTACK))) {
-            let avoidZone = creeps[key].room.lookForAtArea(LOOK_TERRAIN, creeps[key].pos.y - 6, creeps[key].pos.x - 6, creeps[key].pos.y + 6, creeps[key].pos.x + 6, true);
+            let range = 6
+            if (!creeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 4;
+            let avoidZone = creeps[key].room.lookForAtArea(LOOK_TERRAIN, creeps[key].pos.y - range, creeps[key].pos.x - range, creeps[key].pos.y + range, creeps[key].pos.x + range, true);
             for (let key in avoidZone) {
                 let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
                 if (!position.checkForWall()) {
@@ -381,12 +383,6 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     for (let structure of room.structures) {
         if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
-            matrix.set(structure.pos.x, structure.pos.y, roadCost + 1);
-        } else if (structure instanceof StructureRampart && room.memory.responseNeeded && (structure.my || structure.isPublic)) {
-            matrix.set(structure.pos.x, structure.pos.y, 1);
-        } else if (structure instanceof StructureRoad && room.memory.responseNeeded && structure.pos.checkForRampart()) {
-            matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
         } else if (structure instanceof StructureRoad) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
         } else if (structure instanceof StructureContainer) {

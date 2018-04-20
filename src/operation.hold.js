@@ -45,7 +45,7 @@ Creep.prototype.holdRoom = function () {
                 }
             }
         } else if (this.memory.role === 'attacker') {
-            this.handleDefender();
+            this.handleMilitaryCreep();
         } else if (this.memory.role === 'healer') {
             this.squadHeal();
         } else if (this.memory.role === 'unClaimer') {

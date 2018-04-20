@@ -27,7 +27,7 @@ Creep.prototype.harassRoom = function () {
                 }
             }
         } else if (this.memory.role === 'attacker') {
-            this.handleDefender();
+            this.handleMilitaryCreep();
         } else if (this.memory.role === 'healer') {
             this.squadHeal();
         }

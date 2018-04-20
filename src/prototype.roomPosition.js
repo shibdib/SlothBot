@@ -64,11 +64,11 @@ RoomPosition.prototype.checkForBuiltWall = function () {
 };
 
 RoomPosition.prototype.checkForRampart = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART}).length;
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})[0];
 };
 
 RoomPosition.prototype.checkForBarrierStructure = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL}).length;
+    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL})[0];
 };
 
 RoomPosition.prototype.checkForObstacleStructure = function () {

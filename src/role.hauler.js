@@ -228,9 +228,11 @@ function boostDelivery(creep) {
             if (storage.store[lab.memory.neededBoost] > 0) {
                 creep.memory.labTech = true;
                 creep.memory.itemStorage = storage.id;
+                return true;
             } else if (terminal.store[lab.memory.neededBoost] > 0) {
                 creep.memory.labTech = true;
                 creep.memory.itemStorage = terminal.id;
+                return true;
             } else {
                 delete creep.memory.labTech;
                 delete creep.memory.itemStorage;

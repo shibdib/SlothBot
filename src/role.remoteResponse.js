@@ -21,12 +21,12 @@ function role(creep) {
             creep.heal(creep);
         }
         if (hostiles) {
-            creep.handleDefender();
+            creep.handleMilitaryCreep();
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room}
         }
     } else {
-        if (!creep.handleDefender()) {
+        if (!creep.handleMilitaryCreep()) {
             findDefensivePosition(creep, creep);
         }
     }
