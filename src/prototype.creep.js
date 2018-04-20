@@ -352,7 +352,7 @@ Creep.prototype.reportDamage = function () {
         return this.memory._lastHits = this.hits;
     }
     if (this.hits < this.memory._lastHits) {
-        if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== USERNAME))) return false;
+        if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== USERNAME)) && this.memory.targetRoom !== this.room.name) return false;
         let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => c.pos.getRangeTo(this) <= 3 && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
             for (let key in nearbyCreeps) {
