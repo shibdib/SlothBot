@@ -15,7 +15,7 @@ Room.prototype.buildRoom = function () {
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     let structures = this.structures;
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
-    if (!spawn.length) return buildSpawn(this, structures);
+    if (!spawn.length) return rebuildSpawn(this, structures);
     // Clean bad roads
     if (Game.time % 500 === 0) {
         for (let key in this.structures) {
@@ -618,6 +618,24 @@ function buildRoadAround(room, position) {
 function buildRoad(position) {
     //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
+}
+
+function rebuildSpawn(room) {
+    if (!room.memory.extensionHub || !room.memory.extensionHub.x) return findExtensionHub(room);
+    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+    if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART).length) {
+        switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
+            case OK:
+                break;
+            case ERR_RCL_NOT_ENOUGH:
+        }
+    } else {
+        switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
+            case OK:
+                break;
+            case ERR_RCL_NOT_ENOUGH:
+        }
+    }
 }
 
 function isEven(n) {

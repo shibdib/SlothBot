@@ -4,6 +4,19 @@ Creep.prototype.swarmRoom = function () {
         let sentence = ['Swarm', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
+        threatManagement(this);
         this.handleMilitaryCreep(true);
     }
 };
+
+function threatManagement(creep) {
+    let user = creep.room.controller.owner.username;
+    let cache = Memory._badBoyList || {};
+    let threatRating = 50;
+    if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];
+    cache[user] = {
+        threatRating: threatRating,
+        lastAction: Game.time,
+    };
+    Memory._badBoyList = cache;
+}

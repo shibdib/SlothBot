@@ -17,7 +17,6 @@ Creep.prototype.scoutRoom = function () {
         };
         Memory.targetRooms = cache;
     } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && countableStructures.length) {
-        if (!_.includes(FRIENDLIES, controller.owner.username)) addThreat(controller.owner.username, 100);
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.room.name] = {
@@ -27,7 +26,6 @@ Creep.prototype.scoutRoom = function () {
         };
         Memory.targetRooms = cache;
     } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0) && !countableStructures.length) {
-        if (!_.includes(FRIENDLIES, controller.owner.username)) addThreat(controller.owner.username, 100);
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.room.name] = {
@@ -49,7 +47,6 @@ Creep.prototype.scoutRoom = function () {
         }
         delete Memory.targetRooms[this.pos.roomName];
     } else if (!controller.owner && countableStructures.length < 3) {
-        if (controller.reservation && !_.includes(FRIENDLIES, controller.reservation.username)) addThreat(controller.reservation.username, 100);
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.room.name] = {
@@ -59,7 +56,6 @@ Creep.prototype.scoutRoom = function () {
         };
         Memory.targetRooms = cache;
     } else if (!controller.owner && countableStructures.length > 2) {
-        if (controller.reservation && !_.includes(FRIENDLIES, controller.reservation.username)) addThreat(controller.reservation.username, 100);
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.room.name] = {
@@ -71,24 +67,3 @@ Creep.prototype.scoutRoom = function () {
     }
     return this.suicide();
 };
-
-function addThreat(user, amount = 50) {
-    let cache = Memory._badBoyList || {};
-    let threatRating;
-    if (cache[user]) {
-        if (cache[user].lastAction + 10 > Game.time) return true;
-        log.e(this.name + ' has taken damage in ' + this.room.name + '. Adjusting threat rating for ' + user);
-        if (_.includes(FRIENDLIES, user)) {
-            threatRating = cache[user]['threatRating'] + 0.1;
-        } else {
-            threatRating = cache[user]['threatRating'] + 0.5;
-        }
-    } else {
-        threatRating = 2.5;
-    }
-    cache[user] = {
-        threatRating: threatRating,
-        lastAction: Game.time,
-    };
-    Memory._badBoyList = cache;
-}

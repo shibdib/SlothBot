@@ -100,6 +100,8 @@ function role(creep) {
                         break;
                 }
             } else if (creep.memory.initialBuilder) {
+                // Attempt to safemode
+                if (creep.room.controller.level === 2 && !creep.room.controller.safeMode) creep.room.controller.activateSafeMode();
                 if (creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]) {
                     switch (creep.dismantle(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0])) {
                         case OK:
@@ -115,12 +117,12 @@ function role(creep) {
                     if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(creep.room.controller);
                     }
-                } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000).length) {
-                    switch (creep.repair(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000)[0])) {
+                } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000).length) {
+                    switch (creep.repair(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000)[0])) {
                         case OK:
                             break;
                         case ERR_NOT_IN_RANGE:
-                            creep.shibMove(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000)[0], {range: 3});
+                            creep.shibMove(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000)[0], {range: 3});
                             break;
                     }
                 } else if (!creep.findConstruction()) {

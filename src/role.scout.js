@@ -5,6 +5,7 @@
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    creep.borderCheck();
     creep.scoutRoom();
 }
 

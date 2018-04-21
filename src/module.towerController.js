@@ -51,6 +51,12 @@ function towerControl(room) {
                 if (woundedCreep.length > 0) {
                     tower.heal(woundedCreep[0]);
                 }
+            } else if (tower.energy > tower.energyCapacity * 0.45) {
+                let creeps = tower.room.creeps;
+                let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
+                if (woundedCreep.length > 0) {
+                    tower.heal(woundedCreep[0]);
+                }
             } else if (tower.energy > tower.energyCapacity * 0.65) {
                 let creeps = tower.room.creeps;
                 let structures = tower.room.structures;

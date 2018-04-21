@@ -42,7 +42,7 @@ function controller(room) {
             room.memory.requestingSupport = true;
         }
     } else {
-        //ramparts public unless needed
+        //ramparts up unless ally in room and no enemies near him
         rampartManager(room, structures);
         if (!room.memory.requestingSupport && room.controller.level > 4) {
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.requestingSupport && Game.map.findRoute(room.name, r.name).length < 9)[0];
@@ -69,30 +69,30 @@ module.exports.controller = profiler.registerFN(controller, 'defenseController')
 
 //Functions
 
-function rampartManager(room, structures, attack = undefined) {
-    if (attack !== room.memory.rampartState) {
-        let rampart = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);
-        if (rampart.length > 0) {
-            if (rampart[0]) {
-                if (!room.memory.responseNeeded) {
-                    for (let i = 0; i < rampart.length; i++) {
-                        if (rampart[i]) {
-                            if (rampart[i].isPublic === false) {
-                                rampart[i].setPublic(true);
-                            }
-                        }
+function rampartManager(room, structures) {
+    let ramparts = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);
+    let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+    if (ramparts.length) {
+        if (room.memory.responseNeeded) {
+            if (Game.cpu.bucket > 7500) {
+                for (let key in ramparts) {
+                    let rampart = ramparts[key];
+                    if (rampart.pos.findInRange(enemies, 5)) {
+                        rampart.setPublic(false)
+                    } else {
+                        rampart.setPublic(true)
                     }
-                    delete room.memory.rampartState;
-                } else {
-                    for (let i = 0; i < rampart.length; i++) {
-                        if (rampart[i]) {
-                            if (rampart[i].isPublic === true) {
-                                rampart[i].setPublic(false);
-                            }
-                        }
-                    }
-                    room.memory.rampartState = true;
                 }
+            } else {
+                for (let key in ramparts) {
+                    let rampart = ramparts[key];
+                    rampart.setPublic(false)
+                }
+            }
+        } else if (Game.time % 100) {
+            for (let key in ramparts) {
+                let rampart = ramparts[key];
+                rampart.setPublic(true)
             }
         }
     }

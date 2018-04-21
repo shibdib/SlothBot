@@ -245,13 +245,26 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'ranger')) {
+            let cache = Memory.targetRooms || {};
+            let level = name.match(/\d+$/)[0] || 1;
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'rangers',
+                level: level
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
         if (_.startsWith(name, 'swarm')) {
             let cache = Memory.targetRooms || {};
+            let level = name.match(/\d+$/)[0] || 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'swarm',
-                level: 1
+                level: level
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();

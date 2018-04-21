@@ -32,6 +32,8 @@ function role(creep) {
     if (creep.memory.operation && creep.memory.operation === 'guard') creep.guardRoom();
     // Hold
     if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
+    // Hold
+    if (creep.memory.operation && creep.memory.operation === 'rangers') creep.rangersRoom();
 }
 
 module.exports.role = profiler.registerFN(role, 'longbow');

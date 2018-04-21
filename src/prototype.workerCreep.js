@@ -11,6 +11,7 @@ Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 Creep.prototype.findSource = function (ignoreOthers = false) {
     let source = shuffle(this.room.sources);
     if (this.memory.role === 'stationaryHarvester') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'stationaryHarvester' && c.memory.source === s.id).length === 0);
+    if (this.memory.role === 'remoteHarvester') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'remoteHarvester' && c.memory.source === s.id).length === 0);
     if (ignoreOthers) source = this.room.sources;
     if (source.length > 0) {
         this.memory.source = this.pos.findClosestByRange(source).id;
@@ -275,10 +276,10 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
             if (object && object.pos.rangeToTarget(this) <= range) {
-                if (object.id === this.room.memory.controllerContainer) continue;
+                let weight = 0.3;
+                if (object.id === this.room.memory.controllerContainer) weight = 5;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
                 if (numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
-                let weight = 0.3;
                 if (object.store[RESOURCE_ENERGY] > 1500) weight = 0.1;
                 const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
                 containers.push({
@@ -380,10 +381,10 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
             if (object && object.pos.rangeToTarget(this) <= range) {
-                if (object.id === this.room.memory.controllerContainer || (object.room.memory.responseNeeded && object.pos.getRangeTo(hub) > 9)) continue;
+                let weight = 0.3;
+                if (object.id === this.room.memory.controllerContainer) weight = 5;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
                 if (numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
-                let weight = 0.3;
                 if (object.store[RESOURCE_ENERGY] > 1500) weight = 0.1;
                 const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
                 containers.push({
@@ -700,7 +701,7 @@ Creep.prototype.findEssentials = function () {
     }
     //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
+    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.pos.rangeToTarget(this) > 1 && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;

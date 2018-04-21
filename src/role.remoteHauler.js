@@ -14,7 +14,7 @@ function role(creep) {
         delete creep.memory.storageDestination;
         creep.memory.hauling = false;
     }
-    if (_.sum(creep.carry) >= creep.carryCapacity / 0.5) {
+    if (_.sum(creep.carry) >= creep.carryCapacity * 0.5) {
         creep.memory.hauling = true;
         delete creep.memory.destination;
         delete creep.memory.containerID;
@@ -76,7 +76,7 @@ function role(creep) {
                                 }
                                 break;
                             case ERR_FULL:
-                                delete creep.memory.storageDestination;
+                                creep.memory.storageDestination = undefined;
                                 break;
                         }
                     }

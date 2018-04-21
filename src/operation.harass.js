@@ -1,6 +1,7 @@
 Creep.prototype.harassRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+        threatManagement(this);
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
@@ -33,3 +34,16 @@ Creep.prototype.harassRoom = function () {
         }
     }
 };
+
+function threatManagement(creep) {
+    if (!creep.room.controller || !creep.room.controller.reservation) return;
+    let user = creep.room.controller.reservation.username;
+    let cache = Memory._badBoyList || {};
+    let threatRating = 50;
+    if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];
+    cache[user] = {
+        threatRating: threatRating,
+        lastAction: Game.time,
+    };
+    Memory._badBoyList = cache;
+}

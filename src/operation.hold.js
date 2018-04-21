@@ -73,12 +73,8 @@ Creep.prototype.holdRoom = function () {
 function threatManagement(creep) {
     let user = creep.room.controller.owner.username;
     let cache = Memory._badBoyList || {};
-    let threatRating;
-    if (cache[user]) {
-        if (cache[user]['threatRating'] < 50) threatRating = 50;
-    } else {
-        threatRating = 50;
-    }
+    let threatRating = 50;
+    if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];
     cache[user] = {
         threatRating: threatRating,
         lastAction: Game.time,

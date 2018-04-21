@@ -42,15 +42,15 @@ let globals = function () {
         // Workers
         worker: 3,
         waller: 2,
-        upgrader: 4,
+        upgrader: 5,
         mineralHarvester: 5,
         // Haulers
         hauler: 2,
         // Remotes
         remoteUtility: 5,
-        remoteHarvester: 5,
-        remoteHauler: 5,
-        pioneer: 5,
+        remoteHarvester: 3,
+        remoteHauler: 4,
+        pioneer: 3,
         remoteResponse: 3,
         reserver: 5,
         // Power
@@ -62,8 +62,8 @@ let globals = function () {
         SKhauler: 6,
         // Military
         siege: 6,
-        harass: 4,
-        hold: 2,
+        harass: 5,
+        hold: 4,
         raid: 8,
         clean: 8,
         swarm: 4,
@@ -72,6 +72,7 @@ let globals = function () {
         // Misc
         claimer: 2,
         explorer: 2,
+        jerk: 2,
     };
 
     global.SPAWN = {
