@@ -32,7 +32,7 @@ module.exports.processBuildQueue = function () {
                     } else {
                         body = bodyGenerator(level, role);
                     }
-                    if (body) break;
+                    if (body.length) break;
                 }
                 if (!body || !body.length) continue;
                 if (topPriority && typeof topPriority === 'object') {
@@ -261,7 +261,7 @@ module.exports.workerCreepQueue = function (room) {
     if (!_.includes(queue, 'worker') && !room.memory.responseNeeded) {
         let amount = 1;
         if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length > 0) amount = 3;
-        let workers = _.filter(roomCreeps, (creep) => creep.memory && creep.memory.role === 'worker');
+        let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
         } else if (level <= 4 && workers.length < room.constructionSites.length) {
@@ -291,7 +291,7 @@ module.exports.workerCreepQueue = function (room) {
     //SPECIALIZED
     //Waller
     if (room.controller.level >= 2 && !_.includes(queue, 'waller')) {
-        let wallers = _.filter(roomCreeps, (creep) => creep.memory && creep.memory.role === 'waller');
+        let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 3;
         if (TEN_CPU) amount = 1;
         if (wallers.length < amount) {
