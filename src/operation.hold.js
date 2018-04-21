@@ -5,7 +5,19 @@ Creep.prototype.holdRoom = function () {
         if (!this.room.controller.owner || this.room.controller.safeMode || !Memory.targetRooms[this.room.name]) {
             delete Memory.targetRooms[this.room.name];
             this.memory.awaitingOrders = true;
+            if (this.room.controller.safeMode) {
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'pending',
+                    dDay: tick + this.room.controller.safeMode,
+                };
+                Memory.targetRooms = cache;
+                if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
+            }
         }
+        threatManagement(this);
         // Convert to a scout if tower exists
         let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
         if (towers.length && _.max(towers, 'energy').energy > 10) {
@@ -57,3 +69,19 @@ Creep.prototype.holdRoom = function () {
         }
     }
 };
+
+function threatManagement(creep) {
+    let user = creep.room.controller.owner.username;
+    let cache = Memory._badBoyList || {};
+    let threatRating;
+    if (cache[user]) {
+        if (cache[user]['threatRating'] < 50) threatRating = 50;
+    } else {
+        threatRating = 50;
+    }
+    cache[user] = {
+        threatRating: threatRating,
+        lastAction: Game.time,
+    };
+    Memory._badBoyList = cache;
+}

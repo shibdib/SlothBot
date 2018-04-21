@@ -91,9 +91,7 @@ function depositEnergy(creep) {
         }
     } else {
         let buildSite = Game.getObjectById(creep.containerBuilding());
-        if (buildSite) {
-            creep.build(buildSite);
-        } else {
+        if (!buildSite) {
             creep.harvesterContainerBuild();
         }
     }

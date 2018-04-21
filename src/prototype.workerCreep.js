@@ -38,6 +38,7 @@ Creep.prototype.findMineral = function () {
 
 Creep.prototype.findConstruction = function () {
     let construction = this.room.constructionSites;
+    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -80,6 +81,20 @@ Creep.prototype.findConstruction = function () {
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_WALL);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        return;
+    }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -135,14 +150,14 @@ findRepair = function (level) {
         this.memory.task = 'repair';
         return;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 500000 * level);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 100000 * level);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         return;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 500000 * level);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 100000 * level);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -328,9 +343,8 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     if (this.room.controller.level < 4) {
         let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}))[0];
         if (dropped) {
-            let weight = 0.3;
-            let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === dropped.id && c.id !== this.id).length;
-            let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
+            let weight = 0.2;
+            let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
             energy.push({
                 id: dropped.id,
                 distWeighted: droppedDistWeighted,
@@ -442,9 +456,8 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     if (this.room.controller.level < 4) {
         let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}))[0];
         if (dropped) {
-            let weight = 0.3;
-            let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === dropped.id && c.id !== this.id).length;
-            let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
+            let weight = 0.2;
+            let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
             energy.push({
                 id: dropped.id,
                 distWeighted: droppedDistWeighted,

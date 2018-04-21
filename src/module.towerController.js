@@ -15,7 +15,7 @@ function towerControl(room) {
                 let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 1) && !_.includes(FRIENDLIES, s.owner.username));
                 let unArmedHostile = _.filter(creeps, (s) => (!s.getActiveBodyparts(ATTACK) || !s.getActiveBodyparts(RANGED_ATTACK) || !s.getActiveBodyparts(HEAL) || !s.getActiveBodyparts(WORK)) && !_.includes(FRIENDLIES, s.owner.username));
                 let healPower = 0;
-                if (armedHostile.length > 0) {
+                if (armedHostile.length || unArmedHostile.length) {
                     for (let i = 0; i < armedHostile.length; i++) {
                         let healers = _.filter(creeps, (s) => (s.getActiveBodyparts(HEAL) >= 4 && !_.includes(FRIENDLIES, s.owner.username) && s.pos.getRangeTo(armedHostile[i]) === 1));
                         if (healers.length > 0) healPower = ((healers[0].getActiveBodyparts(HEAL) * HEAL_POWER) * 2) * healers.length;
@@ -36,10 +36,10 @@ function towerControl(room) {
                         } else if (armedHostile[i].hits <= 150 * towers.length) {
                             tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (unArmedHostile[0]) {
-                            tower.attack(unArmedHostile[0]);
-                            continue towers;
                         }
+                    }
+                    if (unArmedHostile[0]) {
+                        tower.attack(unArmedHostile[0]);
                     }
                 }
                 let headShot = _.filter(creeps, (c) => c.hits <= 150 * towers.length && _.includes(FRIENDLIES, c.owner.username) === false);

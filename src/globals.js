@@ -63,7 +63,7 @@ let globals = function () {
         // Military
         siege: 6,
         harass: 6,
-        hold: 5,
+        hold: 2,
         raid: 8,
         clean: 8,
         swarm: 4,

@@ -10,6 +10,11 @@ function role(creep) {
         creep.repairRoad();
         if (creep.borderCheck()) return null;
         if (creep.wrongRoom()) return null;
+    if (_.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length &&
+        _.filter(creep.room.creeps, (creep) => creep.memory && creep.memory.role === 'waller').length > 3) {
+        creep.memory.role = 'worker';
+        return null;
+    }
     if (creep.carry.energy === 0) creep.memory.working = undefined;
         if (creep.isFull) creep.memory.working = true;
     if (creep.memory.working) {
