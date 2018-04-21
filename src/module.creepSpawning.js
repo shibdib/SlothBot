@@ -454,7 +454,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     //Claim Stuff
-    if (!_.includes(queue, 'claimer') && room.memory.claimTarget && !room.memory.responseNeeded && room.constructionSites.length === 0) {
+    if (!_.includes(queue, 'claimer') && room.memory.claimTarget && !room.memory.responseNeeded) {
         let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'claimer');
         if (claimer.length < 1 && !_.includes(Memory.ownedRooms, room.memory.claimTarget) && !room.memory.activeClaim) {
             queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: room.memory.claimTarget})

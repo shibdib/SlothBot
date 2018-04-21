@@ -1,7 +1,7 @@
 let _ = require('lodash');
 let shib = require("shibBench");
 
-const DEFAULT_MAXOPS = 5000;
+const DEFAULT_MAXOPS = 25000;
 const STATE_STUCK = 3;
 
 const structureMatrixCache = {};
