@@ -10,11 +10,15 @@ function role(creep) {
     creep.room.cacheRoomIntel();
     if (!creep.memory.destination) creep.memory.destination = _.sample(_.filter(Game.map.describeExits(creep.pos.roomName), (r) => Game.map.isRoomAvailable(r)));
     if (creep.memory.destinationReached !== true) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
-            allowHostile: true,
-            offRoad: true,
-            range: 23
-        });
+        try {
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
+                allowHostile: true,
+                offRoad: true,
+                range: 23
+            });
+        } catch (e) {
+            creep.memory.destinationReached = undefined;
+        }
         if (creep.pos.roomName === creep.memory.destination) {
             if (creep.room.controller && creep.room.controller.pos.findInRange(creep.room.structures, 1).length < 2 &&
                 (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) && (!creep.room.controller.owner ||

@@ -14,13 +14,20 @@ Creep.prototype.harassRoom = function () {
             }
         } else {
             this.memory.awaitingOrders = true;
+            if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
         }
         if (this.memory.role === 'longbow') {
             if (hostile) {
-                if (this.hits < this.hitsMax * 0.50) return this.kite(8);
+                Memory.targetRooms[this.memory.targetRoom].hostilesLastSeen = Game.time;
+                if (this.hits < this.hitsMax * 0.50 || !this.getActiveBodyparts(RANGED_ATTACK)) return this.kite(8);
                 return this.fightRanged(hostile);
             } else {
                 if (Memory.targetRooms[this.memory.targetRoom]) Memory.targetRooms[this.memory.targetRoom].level = 1;
+                if (!Memory.targetRooms[this.memory.targetRoom].hostilesLastSeen) Memory.targetRooms[this.memory.targetRoom].hostilesLastSeen = Game.time;
+                if (Memory.targetRooms[this.memory.targetRoom].hostilesLastSeen && Memory.targetRooms[this.memory.targetRoom].hostilesLastSeen + 250 < Game.time) {
+                    delete Memory.targetRooms[this.room.name];
+                    this.memory.awaitingOrders = true;
+                }
                 if (!this.moveToHostileConstructionSites()) {
                     if (!this.healMyCreeps() && !this.healAllyCreeps()) {
                         this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 17});

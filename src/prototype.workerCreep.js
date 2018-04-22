@@ -328,7 +328,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         });
     }
     //Take straight from harvesters at low level
-    if (this.room.controller.level < 3) {
+    if (this.room.controller.level < 6) {
         let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
         if (harvester) {
             let weight = 0.3;
@@ -341,8 +341,8 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         }
     }
     //Dropped at lower lvl
-    if (this.room.controller.level < 4) {
-        let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}))[0];
+    if (this.room.controller.level < 6) {
+        let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}))[0];
         if (dropped) {
             let weight = 0.2;
             let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
@@ -441,7 +441,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         });
     }
     //Take straight from harvesters at low level
-    if (this.room.controller.level < 3) {
+    if (this.room.controller.level < 6) {
         let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
         if (harvester) {
             let weight = 0.3;
@@ -454,8 +454,8 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         }
     }
     //Dropped at lower lvl
-    if (this.room.controller.level < 4) {
-        let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}))[0];
+    if (this.room.controller.level < 6) {
+        let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}))[0];
         if (dropped) {
             let weight = 0.2;
             let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;

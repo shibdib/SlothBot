@@ -14,6 +14,11 @@ function controller(room) {
     let structures = room.structures;
     room.invaderCheck();
     room.handleNukeAttack();
+    safeModeManager(room);
+    //ramparts up unless ally in room and no enemies near him
+    let rampartCpu = Game.cpu.getUsed();
+    rampartManager(room, structures);
+    shib.shibBench('rampartManager', rampartCpu);
     if (room.memory.threatLevel >= 4) {
         let coveredSpawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.pos.checkForRampart());
         let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner));
@@ -34,7 +39,6 @@ function controller(room) {
         }
     }
     if (room.memory.responseNeeded) {
-        rampartManager(room, structures, true);
         let playerHostile = _.filter(creeps, (c) => (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(FRIENDLIES, c.owner.username) === false && c.owner.username !== 'Invader')[0];
         let tower = _.max(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER), 'energy');
         let responders = _.filter(creeps, (c) => c.memory && c.memory.role === 'responder' && c.memory.overlord === room.name);
@@ -42,8 +46,6 @@ function controller(room) {
             room.memory.requestingSupport = true;
         }
     } else {
-        //ramparts up unless ally in room and no enemies near him
-        rampartManager(room, structures);
         if (!room.memory.requestingSupport && room.controller.level > 4) {
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.requestingSupport && Game.map.findRoute(room.name, r.name).length < 9)[0];
             if (needyRoom) {
@@ -71,31 +73,29 @@ module.exports.controller = profiler.registerFN(controller, 'defenseController')
 
 function rampartManager(room, structures) {
     let ramparts = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);
-    let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+    let allies = _.filter(room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
     if (ramparts.length) {
         if (room.memory.responseNeeded) {
-            if (Game.cpu.bucket > 7500) {
-                for (let key in ramparts) {
-                    let rampart = ramparts[key];
-                    if (rampart.pos.findInRange(enemies, 5)) {
-                        rampart.setPublic(false)
-                    } else {
-                        rampart.setPublic(true)
-                    }
-                }
-            } else {
-                for (let key in ramparts) {
-                    let rampart = ramparts[key];
-                    rampart.setPublic(false)
-                }
-            }
-        } else if (Game.time % 100) {
             for (let key in ramparts) {
                 let rampart = ramparts[key];
-                rampart.setPublic(true)
+                rampart.setPublic(false)
+            }
+        }
+        if (allies) {
+            let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+            for (let key in ramparts) {
+                let rampart = ramparts[key];
+                if (rampart.pos.findInRange(allies, 4).length && !rampart.pos.findInRange(enemies, 6).length) {
+                    rampart.setPublic(true)
+                } else {
+                    rampart.setPublic(false)
+                }
             }
         }
     }
 }
 
-rampartManager = profiler.registerFN(rampartManager, 'rampartManagerDefense');
+function safeModeManager(room) {
+    if (room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) return;
+    if (room.controller.level < 3) return room.controller.activateSafeMode();
+}

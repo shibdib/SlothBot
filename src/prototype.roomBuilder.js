@@ -191,7 +191,7 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
                     } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
                 } else {
@@ -211,7 +211,7 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
                     } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
                 } else {
@@ -231,7 +231,7 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.x % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
                     } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
                 } else {
@@ -251,9 +251,11 @@ function buildWalls(room, structures) {
                 if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
                 if (position.y % 2) {
                     position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 6 && position.checkForRampart() && !position.checkForRoad()) {
+                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
                         position.createConstructionSite(STRUCTURE_ROAD);
-                    } else if (room.controller.level >= 6 && position.checkForRampart()) buildRoadAround(room, position);
+                    } else if (room.controller.level >= 4 && position.checkForRampart()) {
+                        buildRoadFromTo();
+                    }
                 } else {
                     if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
                         position.createConstructionSite(STRUCTURE_RAMPART);

@@ -5,6 +5,7 @@ function cleanup() {
     if (Game.time % 50 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         cleanDistanceCacheByUsage();
+        cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanRoomIntel();
@@ -40,18 +41,28 @@ function cleanPathCacheByUsage() {
 }
 
 function cleanRouteCacheByUsage() {
-    if (Memory.routeCache && _.size(Memory.routeCache) > 750) { //1500 entries ~= 100kB
+    if (Memory.routeCache && _.size(Memory.routeCache) > 400) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory.routeCache, 'uses');
-        let overage = (_.size(Memory.routeCache) - 750) + 100;
+        let overage = (_.size(Memory.routeCache) - 400) + 100;
         log.i('Cleaning Route cache (Over max size by ' + overage + ')...');
         Memory.routeCache = _.slice(sorted, overage, _.size(Memory.routeCache));
     }
 }
 
+function cleanRouteCacheByAge() {
+    if (Memory.routeCache) { //1500 entries ~= 100kB
+        let originalCount = Memory.routeCache;
+        let good = _.filter(Memory.routeCache, (r) => r.tick > Game.time - 2000);
+        let prunedCount = originalCount - good.length;
+        if (prunedCount) log.i('Cleaning Route cache (Removed ' + prunedCount + ' old routes.)');
+        Memory.routeCache = good;
+    }
+}
+
 function cleanDistanceCacheByUsage() {
-    if (Memory.distanceCache && _.size(Memory.distanceCache) > 750) { //1500 entries ~= 100kB
+    if (Memory.distanceCache && _.size(Memory.distanceCache) > 400) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory.distanceCache, 'uses');
-        let overage = (_.size(Memory.distanceCache) - 750) + 100;
+        let overage = (_.size(Memory.distanceCache) - 400) + 100;
         log.i('Cleaning Distance cache (Over max size by '+overage+')...');
         Memory.distanceCache = _.slice(sorted, overage, _.size(Memory.distanceCache));
     }

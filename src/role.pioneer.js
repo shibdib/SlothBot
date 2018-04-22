@@ -10,7 +10,7 @@ function role(creep) {
     //Invader detection
     creep.repairRoad();
     let hostiles = creep.findClosestEnemy();
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 7) return creep.retreat();
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
@@ -45,6 +45,7 @@ function role(creep) {
     }
     if (creep.isFull) creep.memory.hauling = true;
     if (creep.memory.destinationReached) {
+        if (creep.memory.initialBuilder && !creep.room.controller.safeMode && !creep.room.controller.safeModeCooldown && creep.room.controller.safeModeAvailable) creep.room.controller.activateSafeMode();
         if (creep.memory.hauling === false) {
             let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100);
             if (container.length > 0) {
@@ -99,38 +100,24 @@ function role(creep) {
                         creep.memory.task = undefined;
                         break;
                 }
-            } else if (creep.memory.initialBuilder) {
-                // Attempt to safemode
-                if (creep.room.controller.level === 2 && !creep.room.controller.safeMode) creep.room.controller.activateSafeMode();
-                if (creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]) {
-                    switch (creep.dismantle(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0])) {
-                        case OK:
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(creep.room.controller.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_WALL})[0]);
-                    }
-                } else if (creep.memory.initialBuilder && creep.room.controller && creep.room.controller.level < 2) {
-                    if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
-                } else if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
-                    creep.memory.upgrade = true;
-                    if (creep.room.controller.ticksToDowngrade >= 2000) delete creep.memory.upgrade;
-                    if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(creep.room.controller);
-                    }
-                } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000).length) {
-                    switch (creep.repair(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000)[0])) {
-                        case OK:
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000)[0], {range: 3});
-                            break;
-                    }
-                } else if (!creep.findConstruction()) {
-                    creep.findRepair(1);
+            } else if (creep.room.controller && creep.room.controller.owner && creep.room.controller.my && creep.room.controller.level < 2) {
+                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
+            } else if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.my && creep.room.controller.ticksToDowngrade < 3000)) {
+                creep.memory.upgrade = true;
+                if (creep.room.controller.ticksToDowngrade >= 4000) delete creep.memory.upgrade;
+                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(creep.room.controller);
                 }
-            } else if (!creep.findConstruction()) {
+            } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000).length) {
+                switch (creep.repair(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000)[0])) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000)[0], {range: 3});
+                        break;
+                }
+            } else if (!creep.findConstruction())
                 creep.findRepair(1);
-            }
         }
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});

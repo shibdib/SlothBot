@@ -210,7 +210,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let barriers;
         barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 5;
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
-        nonCombats = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) === 1 || e.getActiveBodyparts(RANGED_ATTACK) === 1) && !_.includes(FRIENDLIES, e.owner.username));
+        nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
         towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
@@ -235,14 +235,19 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                         plains++
                     }
                 }
-                if (wall < 600 && plains > 200) {
+                if (wall < 700 && plains > 75) {
                     let sourceDist = 0;
                     for (let source in sources) {
                         let range = sources[source].pos.getRangeTo(room.controller);
                         sourceDist = sourceDist + range;
                     }
-                    claimValue = plains - sourceDist;
+                    claimValue = plains / sourceDist;
                     let minerals = Memory.ownedMineral;
+                    let roomRangeMulti = 0;
+                    let closestRange = room.findClosestOwnedRoom(true);
+                    if (2 < closestRange < 6) roomRangeMulti = 50;
+                    if (5 < closestRange < 9) roomRangeMulti = 20;
+                    claimValue = claimValue + roomRangeMulti;
                     if (!_.includes(minerals, room.mineral[0].mineralType)) claimValue = claimValue / 2;
                     claimWorthy = true;
                 } else {
@@ -257,6 +262,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 needsCleaning = true;
             }
         }
+        let possibleRemote;
+        if (!owner && nonCombats.length >= 2) possibleRemote = true;
         let key = room.name;
         cache[key] = {
             cached: Game.time,
@@ -274,7 +281,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             sk: sk,
             claimValue: claimValue,
             claimWorthy: claimWorthy,
-            needsCleaning: needsCleaning
+            needsCleaning: needsCleaning,
+            possibleRemote: possibleRemote
         };
         Memory.roomCache = cache;
         if (power.length && power[0].ticksToDecay >= 2500) {
@@ -498,4 +506,21 @@ Room.prototype.handleNukeAttack = function () {
     }
 
     return true;
+};
+
+Room.prototype.findClosestOwnedRoom = function (range = false) {
+    let distance = 0;
+    let closest;
+    for (let key in Memory.ownedRooms) {
+        let range = Game.map.findRoute(this, Memory.ownedRooms[key]).length;
+        if (!distance) {
+            distance = range;
+            closest = Memory.ownedRooms[key].name;
+        } else if (range < distance) {
+            distance = range;
+            closest = Memory.ownedRooms[key].name;
+        }
+    }
+    if (!range) return closest;
+    return distance;
 };

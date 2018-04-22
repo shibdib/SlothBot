@@ -35,7 +35,7 @@ function role(creep) {
                     case ERR_INVALID_TARGET:
                         break;
                     case OK:
-                        Game.rooms[creep.memory.overlord].memory.activeClaim = true;
+                        Game.rooms[creep.memory.overlord].memory.claimTarget = undefined;
                 }
             }
         }

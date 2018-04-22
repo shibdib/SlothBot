@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
-    creep.borderCheck();
+    if (creep.borderCheck()) return;
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Responder Mode
     if (creep.memory.responseTarget) {
@@ -20,7 +20,7 @@ function role(creep) {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 23}); //to move to any room}
             }
         } else {
-            if (!creep.handleMilitaryCreep()) {
+            if (!creep.handleMilitaryCreep(false, true)) {
                 creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
                 return findDefensivePosition(creep, creep);
             }

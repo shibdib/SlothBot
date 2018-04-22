@@ -30,9 +30,6 @@ function towerControl(room) {
                         } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(tower.room.creeps, {filter: (c) => c.memory && (c.memory.role === 'responder' || c.memory.role === 'remoteResponse')})) === 1) {
                             tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(tower.room.creeps, {filter: (c) => c.my})) <= 3) {
-                            tower.attack(armedHostile[i]);
-                            continue towers;
                         } else if (armedHostile[i].hits <= 150 * towers.length) {
                             tower.attack(armedHostile[i]);
                             continue towers;

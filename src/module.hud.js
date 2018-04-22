@@ -3,6 +3,7 @@ module.exports.hud = function () {
     for (let key in Memory.targetRooms) {
         let level = Memory.targetRooms[key].level || 1;
         let type = Memory.targetRooms[key].type;
+        let priority = Memory.targetRooms[key].priority || 4;
         if (Memory.targetRooms[key].type === 'attack') type = 'Scout';
         let stagingRoom;
         for (let staging in Memory.stagingRooms) {
@@ -36,14 +37,14 @@ module.exports.hud = function () {
         }
         if (!stagingRoom) {
             new RoomVisual(key).text(
-                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level,
+                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority,
                 1,
                 3,
                 {align: 'left', opacity: 0.8}
             );
         } else {
             new RoomVisual(key).text(
-                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level ' + level + ' - Staging From ' + stagingRoom,
+                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' - Staging From ' + stagingRoom,
                 1,
                 3,
                 {align: 'left', opacity: 0.8}
@@ -94,7 +95,7 @@ module.exports.hud = function () {
             {align: 'left', opacity: 0.5, color: '#ff0000'}
         );
         new RoomVisual().text(
-            ' Operation Type: ' + _.capitalize(type) + ' Level ' + level + ' in Room ' + key,
+            ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' in Room ' + key,
             1,
             35 + opCount,
             {align: 'left', opacity: 0.5}

@@ -105,7 +105,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     //check for cached
     let cached;
     if (!target) return creep.moveRandom();
-    let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, target.roomName);
+    let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
     if (options.useCache && !options.checkPath) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps && options.useCache) {
         pathInfo.findAttempt = undefined;
@@ -121,7 +121,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = options.route;
-        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 1))) {
+        if (!allowedRooms && roomDistance > 1) {
             let route;
             if (options.useCache) route = getRoute(origin, target);
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
@@ -273,9 +273,16 @@ function findRoute(origin, destination, options = {}) {
                     return 255;
                 }
             }
+            // Avoid rooms reserved by others
+            if (Memory.roomCache && Memory.roomCache[roomName]) {
+                if ((Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation.username))
+                    || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.reservation && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.reservation.username))) {
+                    return 150;
+                }
+            }
             // Check for manual flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
-                return 255;
+                return 256;
             }
             return 2.5;
         }
@@ -381,7 +388,9 @@ function addSksToMatrix(room, matrix) {
 
 function addStructuresToMatrix(room, matrix, roadCost) {
     for (let structure of room.structures) {
-        if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
+        if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+            matrix.set(structure.pos.x, structure.pos.y, 256);
+        } else if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost + 1);
@@ -535,4 +544,9 @@ function getPosKey(pos) {
 // assigns a function to Creep.prototype: creep.travelTo(destination)
 Creep.prototype.shibMove = function (destination, options) {
     return shibMove(this, destination, options);
+};
+
+// assigns a function to Creep.prototype: creep.travelTo(destination)
+Creep.prototype.shibRoute = function (destination, options) {
+    return findRoute(this.room.name, destination, options);
 };
