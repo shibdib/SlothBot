@@ -17,7 +17,7 @@ function controller(room) {
     safeModeManager(room);
     //ramparts up unless ally in room and no enemies near him
     let rampartCpu = Game.cpu.getUsed();
-    rampartManager(room, structures);
+    //rampartManager(room, structures);
     shib.shibBench('rampartManager', rampartCpu);
     if (room.memory.threatLevel >= 4) {
         let coveredSpawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.pos.checkForRampart());

@@ -285,7 +285,8 @@ module.exports.workerCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (room.controller.level >= 2 && !_.includes(queue, 'waller')) {
+    let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
+    if (room.controller.level >= 2 && !_.includes(queue, 'waller') && tower.length) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 3;
         if (TEN_CPU) amount = 1;
