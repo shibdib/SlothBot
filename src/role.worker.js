@@ -12,11 +12,6 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     //INITIAL CHECKS
     if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.suicide();
-    if (!_.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length &&
-        _.filter(creep.room.creeps, (creep) => creep.memory && creep.memory.role === 'worker').length > 1) {
-        creep.memory.role = 'waller';
-        return null;
-    }
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
