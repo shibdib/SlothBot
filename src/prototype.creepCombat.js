@@ -297,7 +297,7 @@ Creep.prototype.moveToStaging = function () {
         this.shibMove(alreadyStaged, {repathChance: 0.5});
         return true;
     } else {
-        let route = Game.map.findRoute(this.room.name, this.memory.targetRoom);
+        let route = this.shibRoute(this.room.name, this.memory.targetRoom);
         let routeLength = route.length;
         if (routeLength < 3) {
             this.memory.stagingRoom = this.memory.overlord;

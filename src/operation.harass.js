@@ -1,5 +1,10 @@
 Creep.prototype.harassRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
+        if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type !== 'harass') {
+            this.memory.responseTarget = this.room.name;
+            this.memory.operation = undefined;
+            return;
+        }
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
         threatManagement(this);
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
@@ -8,9 +13,21 @@ Creep.prototype.harassRoom = function () {
         let hostile = this.findClosestEnemy();
         if (Memory.targetRooms[this.memory.targetRoom]) {
             if (hostile && hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
-                Memory.targetRooms[this.memory.targetRoom].level = 3;
-            } else {
                 Memory.targetRooms[this.memory.targetRoom].level = 2;
+                if (Math.random() > Math.random()) {
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[this.room.name] = {
+                        tick: tick,
+                        type: 'rangers',
+                        level: 1,
+                        priority: Memory.targetRooms[this.memory.targetRoom].priority
+                    };
+                    Memory.targetRooms = cache;
+                    return;
+                }
+            } else {
+                Memory.targetRooms[this.memory.targetRoom].level = 1;
             }
         } else {
             this.memory.awaitingOrders = true;

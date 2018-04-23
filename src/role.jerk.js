@@ -11,7 +11,10 @@ function role(creep) {
     let sentence = ['Just', 'Here', 'Annoying', 'You'];
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);
-    if (!creep.memory.destination) creep.memory.destination = _.sample(_.filter(Game.map.describeExits(creep.pos.roomName), (r) => Game.map.isRoomAvailable(r)));
+    if (!creep.memory.destination) {
+        let adjacent = Game.map.describeExits(creep.pos.roomName);
+        creep.memory.destination = _.sample(adjacent);
+    }
     if (creep.memory.destinationReached !== true) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
             allowHostile: true,

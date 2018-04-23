@@ -730,6 +730,20 @@ module.exports.militaryCreepQueue = function () {
                 })
             }
         }
+        // Swarm Harass
+        if (Memory.targetRooms[key].type === 'swarmHarass') {
+            let swarm = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'swarm');
+            if (swarm.length < 4 * opLevel && !_.includes(queue, 'swarm')) {
+                queueMilitaryCreep(priority, {
+                    role: 'swarm',
+                    targetRoom: key,
+                    operation: 'swarmHarass',
+                    military: true,
+                    waitFor: 4 * opLevel,
+                    staging: stagingRoom
+                })
+            }
+        }
         // Rangers
         if (Memory.targetRooms[key].type === 'rangers') {
             let swarm = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');

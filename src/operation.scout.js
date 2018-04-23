@@ -69,9 +69,11 @@ Creep.prototype.scoutRoom = function () {
     } else if (!controller.owner && countableStructures.length < 3) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
+        let type = 'swarmHarass';
+        if (Math.random() > Math.random()) type = 'harass';
         cache[this.room.name] = {
             tick: tick,
-            type: 'harass',
+            type: type,
             level: 1,
             priority: priority
         };

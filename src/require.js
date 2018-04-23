@@ -19,4 +19,5 @@ require("operation.robbery");
 require("operation.guard");
 require("operation.hold");
 require("operation.swarm");
+require("operation.swarmHarass");
 require("operation.rangers");
