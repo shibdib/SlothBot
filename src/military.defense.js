@@ -42,8 +42,12 @@ function controller(room) {
         let playerHostile = _.filter(creeps, (c) => (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(FRIENDLIES, c.owner.username) === false && c.owner.username !== 'Invader')[0];
         let tower = _.max(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER), 'energy');
         let responders = _.filter(creeps, (c) => c.memory && c.memory.role === 'responder' && c.memory.overlord === room.name);
-        if ((tower.energy < 10 && responders.length === 0) || !tower || playerHostile || room.memory.threatLevel >= 4) {
+        if (((tower.energy < 10 && !responders.length) || !tower || playerHostile || room.memory.threatLevel >= 4) && !room.controller.safeMode) {
             room.memory.requestingSupport = true;
+        }
+        if (tower.energy < 10 && !responders.length && room.memory.threatLevel >= 3 && !room.controller.safeMode && !room.controller.safeModeCooldown && room.controller.safeModeAvailable) {
+            room.controller.activateSafeMode();
+            room.memory.requestingSupport = undefined;
         }
     } else {
         if (!room.memory.requestingSupport && room.controller.level > 4) {

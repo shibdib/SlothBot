@@ -15,7 +15,10 @@ Room.prototype.buildRoom = function () {
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     let structures = this.structures;
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
-    if (!spawn.length) return rebuildSpawn(this, structures);
+    if (!spawn.length) {
+        buildTowers(this, structures);
+        return rebuildSpawn(this, structures);
+    }
     // Clean bad roads
     if (Game.time % 500 === 0) {
         for (let key in this.structures) {

@@ -373,7 +373,6 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
 
 Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     let energy = [];
-    let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
     //Container
     let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= 100);
     if (container.length > 0) {

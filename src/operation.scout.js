@@ -4,6 +4,8 @@ Creep.prototype.scoutRoom = function () {
         offRoad: true
     });
     this.room.cacheRoomIntel(true);
+    //Chance nothing happens
+    if (Math.random() > Math.random()) return this.suicide();
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let countableStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL);
     let controller = this.room.controller;
@@ -41,7 +43,7 @@ Creep.prototype.scoutRoom = function () {
         Memory.targetRooms = cache;
     } else if (controller.owner && towers.length && range >= 4) {
         this.room.cacheRoomIntel(true);
-        if (controller.level <= 5 && Memory.ownedRooms.length > 1 && _.random(0, 4) === 1) {
+        if (controller.level <= 5 && Memory.ownedRooms.length > 1) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.room.name] = {
@@ -53,8 +55,7 @@ Creep.prototype.scoutRoom = function () {
         }
         delete Memory.targetRooms[this.pos.roomName];
     } else if (controller.owner && towers.length && range < 4) {
-        this.room.cacheRoomIntel(true);
-        if (controller.level <= 5 && Memory.ownedRooms.length > 1 && _.random(0, 3) === 1) {
+        if (controller.level <= 5 && Memory.ownedRooms.length > 1) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.room.name] = {

@@ -85,7 +85,7 @@ function mind(room, roomLimit) {
     }
 
     // Handle Links
-    if (Game.time % 10 === 0 && room.level >= 5) {
+    if (room.level >= 5) {
         cpu = Game.cpu.getUsed();
         try {
             links.linkControl(room);

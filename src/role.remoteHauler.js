@@ -20,6 +20,7 @@ function role(creep) {
         delete creep.memory.containerID;
     }
     if (!creep.memory.destination && !creep.memory.hauling) {
+        if (!Game.rooms[creep.memory.overlord].memory.remoteRooms) return creep.suicide();
         let remotes = shuffle(Game.rooms[creep.memory.overlord].memory.remoteRooms);
         for (let key in remotes) {
             let remote = remotes[key];
