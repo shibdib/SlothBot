@@ -61,7 +61,7 @@ function role(creep) {
                     let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
                     if (container) creep.room.memory.controllerContainer = container.id;
                 }
-                if (!creep.memory.energyDestination && creep.room.controller.level <= 4) {
+                if (!creep.memory.energyDestination) {
                     if (!creep.findEnergy(6)) {
                         let source = creep.pos.getClosestSource();
                         if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)

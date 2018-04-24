@@ -77,7 +77,7 @@ function buildExtensions(room) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7) continue;
+                }).length > 7 || pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) < 5) continue;
             switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
                 case OK:
                     if (_.filter(pos.findInRange(FIND_STRUCTURES, 1), (s) => s.structureType === STRUCTURE_ROAD).length > 0) continue;
@@ -306,7 +306,7 @@ function buildStorage(room) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7) continue;
+                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_STORAGE);
         }
     }
@@ -329,7 +329,7 @@ function buildTerminal(room) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7) continue;
+                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_TERMINAL);
         }
     }
@@ -352,7 +352,7 @@ function buildObserver(room, structures) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkForAllStructure().length > 0) continue;
+            if (position.checkForAllStructure().length > 0 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_OBSERVER);
         }
     }
@@ -374,7 +374,7 @@ function buildNuker(room, structures) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7) continue;
+                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_NUKER);
         }
     }
@@ -396,7 +396,7 @@ function buildPowerSpawn(room, structures) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7) continue;
+                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_POWER_SPAWN);
         }
     }
@@ -418,7 +418,7 @@ function buildSpawn(room, structures) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7) continue;
+                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_SPAWN);
         }
     }

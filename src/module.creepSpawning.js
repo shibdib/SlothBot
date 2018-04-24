@@ -244,7 +244,7 @@ module.exports.workerCreepQueue = function (room) {
         count = upgraders.length;
         let number = _.round((12 - level) / 2);
         if (!room.constructionSites.length && level < 5) number = 12 - level;
-        if (level >= 5 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
+        if (level >= 7 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
         if (count < number) {
             if (level < 3) {
                 queueCreep(room, 2, {role: 'upgrader'})
