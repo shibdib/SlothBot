@@ -19,6 +19,7 @@ module.exports.bodyGenerator = function (level, role) {
                 attack = 1
             }
             move = 1;
+            if (level > 2) move = 2;
             break;
         // General Creeps
         case 'worker':
@@ -36,7 +37,7 @@ module.exports.bodyGenerator = function (level, role) {
             move = work + carry;
             break;
         case 'upgrader':
-            if (level < 3) {
+            if (level < 4) {
                 work = level + 1;
                 carry = 1;
                 move = work + carry;
@@ -53,7 +54,7 @@ module.exports.bodyGenerator = function (level, role) {
                 move = carry;
                 break;
             } else {
-                carry = 2 * level;
+                carry = 3 * level;
                 work = _.random(0, 1);
                 move = _.round((carry / 2)) + work;
                 break;

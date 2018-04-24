@@ -22,7 +22,19 @@ Creep.prototype.scoutRoom = function () {
     } else {
         priority = 4;
     }
-    if (controller.owner && controller.safeMode) {
+    if (!controller) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        let type = 'swarmHarass';
+        if (Math.random() > Math.random()) type = 'harass';
+        cache[this.room.name] = {
+            tick: tick,
+            type: type,
+            level: 1,
+            priority: priority
+        };
+        Memory.targetRooms = cache;
+    } else if (controller.owner && controller.safeMode) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[this.room.name] = {

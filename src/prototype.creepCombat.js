@@ -11,6 +11,22 @@ Creep.prototype.findClosestSourceKeeper = function () {
     });
 };
 
+Creep.prototype.findClosestUnarmedEnemy = function () {
+    let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && c.owner.username !== 'Source Keeper' && (!c.getActiveBodyparts(ATTACK) || !c.getActiveBodyparts(RANGED_ATTACK)) && (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
+    if (enemy) {
+        if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
+        this.memory.target = enemy.id;
+        return enemy;
+    }
+    enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && (!c.getActiveBodyparts(ATTACK) || !c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username !== 'Source Keeper' && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
+    if (enemy) {
+        if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
+        this.memory.target = enemy.id;
+        return enemy;
+    }
+    return false;
+};
+
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
     let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) && c.owner.username !== 'Source Keeper' && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
     if (enemy) {
@@ -46,6 +62,7 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
             return enemy;
         }
     }
+    return false;
 };
 
 Creep.prototype.findClosestBarrier = function (walls = true) {
@@ -145,8 +162,10 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     return false;
 };
 
-Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true) {
-    let hostile = this.findClosestEnemy(barrier);
+Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, unArmedFirst = false) {
+    let hostile;
+    if (unArmedFirst) hostile = this.findClosestUnarmedEnemy();
+    if (!hostile) hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst);
     if (hostile && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
         if (rampart && this.fightRampart()) return true;
         if (this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
@@ -269,7 +288,7 @@ Creep.prototype.moveToStaging = function () {
     if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.targetRoom) return false;
     if (this.memory.staging) this.memory.stagingRoom = this.memory.staging;
     if (this.memory.stagingRoom === this.room.name) {
-        if (this.room.memory.responseNeeded) {
+        if (this.room.memory.responseNeeded || this.findClosestEnemy()) {
             this.handleMilitaryCreep(false, true);
             findDefensivePosition(this, this);
             return;
@@ -299,13 +318,13 @@ Creep.prototype.moveToStaging = function () {
     } else {
         let route = this.shibRoute(this.memory.targetRoom);
         let routeLength = route.length;
-        if (routeLength < 3) {
+        if (routeLength <= 4) {
             this.memory.stagingRoom = this.memory.overlord;
             this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
             return true;
         }
         let stageHere = _.round(routeLength / 2);
-        this.memory.stagingRoom = route[stageHere].room;
+        this.memory.stagingRoom = route[stageHere];
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
         return true;
     }

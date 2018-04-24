@@ -223,39 +223,24 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 reservationTick = room.controller.reservation.ticksToEnd + Game.time;
             }
             // Handle claim targets
-            if (!owner && !reservation && sources.length > 1 && room.controller.pos.countOpenTerrainAround() > 0) {
-                let wall = 0;
-                let plains = 0;
-                let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
-                for (let key in terrain) {
-                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                    if (position.checkForWall()) {
-                        wall++
-                    } else if (position.checkForPlain()) {
-                        plains++
-                    }
+            let closestRoom = this.findClosestOwnedRoom(true);
+            if (!owner && !reservation && sources.length > 1 && closestRoom > 2) {
+                let sourceDist = 0;
+                for (let source in sources) {
+                    let range = sources[source].pos.getRangeTo(room.controller);
+                    sourceDist = sourceDist + range;
                 }
-                if (wall < 700 && plains > 75) {
-                    let sourceDist = 0;
-                    for (let source in sources) {
-                        let range = sources[source].pos.getRangeTo(room.controller);
-                        sourceDist = sourceDist + range;
-                    }
-                    claimValue = plains / sourceDist;
-                    let minerals = Memory.ownedMineral;
-                    let roomRangeMulti = 0;
-                    let closestRange = room.findClosestOwnedRoom(true);
-                    if (2 < closestRange < 6) roomRangeMulti = 50;
-                    if (5 < closestRange < 9) roomRangeMulti = 20;
-                    claimValue = claimValue + roomRangeMulti;
-                    if (!_.includes(minerals, room.mineral[0].mineralType)) claimValue = claimValue / 2;
-                    claimWorthy = true;
-                } else {
-                    claimWorthy = false;
-                }
+                claimValue = 250 - sourceDist;
+                let minerals = Memory.ownedMineral;
+                let roomRangeMulti = 0;
+                if (3 < closestRoom < 7) roomRangeMulti = 50;
+                if (6 < closestRoom < 13) roomRangeMulti = 20;
+                claimValue = claimValue + roomRangeMulti;
+                if (!_.includes(minerals, room.mineral[0].mineralType)) claimValue = claimValue * 2;
+                claimWorthy = true;
             } else {
                 claimValue = undefined;
-                claimWorthy = false;
+                claimWorthy = undefined;
             }
             // Handle abandoned rooms
             if (!owner && !reservation && structures.length > 2) {
@@ -508,11 +493,12 @@ Room.prototype.handleNukeAttack = function () {
     return true;
 };
 
-Room.prototype.findClosestOwnedRoom = function (range = false) {
+Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false) {
     let distance = 0;
     let closest;
     for (let key in Memory.ownedRooms) {
         let range = Game.map.findRoute(this, Memory.ownedRooms[key]).length;
+        if (safePath) range = this.shibRoute(Memory.ownedRooms[key]).length;
         if (!distance) {
             distance = range;
             closest = Memory.ownedRooms[key].name;

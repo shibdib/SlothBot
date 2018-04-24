@@ -3,6 +3,7 @@ let overlord = require('main.Overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
 let spawning = require('module.creepSpawning');
+let expansion = require('module.expansion');
 let diplomacy = require('module.diplomacy');
 let hud = require('module.hud');
 let shib = require("shibBench");
@@ -57,7 +58,7 @@ function mind() {
             maxRooms = 2;
         }
         if (Game.time % 100 === 0 && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount <= maxRooms) {
-            activeRoom.claimNewRoom();
+            expansion.claimNewRoom(activeRoom);
         }
         processed++;
     }

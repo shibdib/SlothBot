@@ -40,8 +40,10 @@ Creep.prototype.holdRoom = function () {
         if (Memory.targetRooms[this.memory.targetRoom]) {
             if (hostile && hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
                 Memory.targetRooms[this.memory.targetRoom].level = 3;
-            } else {
+            } else if (hostile && hostile.body && !hostile.getActiveBodyparts(ATTACK) && !hostile.getActiveBodyparts(RANGED_ATTACK)) {
                 Memory.targetRooms[this.memory.targetRoom].level = 2;
+            } else {
+                Memory.targetRooms[this.memory.targetRoom].level = 1;
             }
         }
         if (this.memory.role === 'longbow') {
@@ -49,7 +51,6 @@ Creep.prototype.holdRoom = function () {
                 if (this.hits < this.hitsMax * 0.50) return this.kite(8);
                 return this.fightRanged(hostile);
             } else {
-                if (Memory.targetRooms[this.memory.targetRoom]) Memory.targetRooms[this.memory.targetRoom].level = 1;
                 if (!this.moveToHostileConstructionSites()) {
                     if (!this.healMyCreeps() && !this.healAllyCreeps()) {
                         this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 17});
@@ -71,8 +72,11 @@ Creep.prototype.holdRoom = function () {
 };
 
 function threatManagement(creep) {
-    let user = creep.room.controller.owner.username;
-    if (_.includes(FRIENDLIES, user)) return;
+    if (!creep.room.controller) return;
+    let user;
+    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
+    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
+    if (!user) return;
     let cache = Memory._badBoyList || {};
     let threatRating = 50;
     if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];

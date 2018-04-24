@@ -197,6 +197,7 @@ Creep.prototype.harvestDepositContainer = profiler.registerFN(harvestDepositCont
 
 harvesterContainerBuild = function () {
     if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
+        if (Game.getObjectById(this.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
         if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
             return null;
         }

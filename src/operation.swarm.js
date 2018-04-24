@@ -10,8 +10,11 @@ Creep.prototype.swarmRoom = function () {
 };
 
 function threatManagement(creep) {
-    let user = creep.room.controller.owner.username;
-    if (_.includes(FRIENDLIES, user)) return;
+    if (!creep.room.controller) return;
+    let user;
+    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
+    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
+    if (!user) return;
     let cache = Memory._badBoyList || {};
     let threatRating = 50;
     if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];

@@ -109,6 +109,7 @@ function manualAttacks() {
         //Cancel attacks
         if (_.startsWith(name, 'cancel')) {
             delete Memory.targetRooms[Game.flags[name].pos.roomName];
+            delete Memory.roomCache[Game.flags[name].pos.roomName];
             if (Memory.activeSiege && Memory.activeSiege === Game.flags[name].pos.roomName) delete Memory.activeSiege;
             Game.flags[name].remove();
         }

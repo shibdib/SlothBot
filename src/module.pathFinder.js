@@ -546,8 +546,9 @@ function getPosKey(pos) {
 Creep.prototype.shibMove = function (destination, options) {
     return shibMove(this, destination, options);
 };
-
-// assigns a function to Creep.prototype: creep.travelTo(destination)
 Creep.prototype.shibRoute = function (destination, options) {
     return findRoute(this.room.name, destination, options);
+};
+Room.prototype.shibRoute = function (destination, options) {
+    return findRoute(this.name, destination, options);
 };

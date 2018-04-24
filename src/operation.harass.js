@@ -16,9 +16,7 @@ Creep.prototype.harassRoom = function () {
                 Memory.targetRooms[this.memory.targetRoom].level = 2;
                 if (Math.random() > Math.random()) {
                     let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
                     cache[this.room.name] = {
-                        tick: tick,
                         type: 'rangers',
                         level: 1,
                         priority: Memory.targetRooms[this.memory.targetRoom].priority
@@ -60,9 +58,11 @@ Creep.prototype.harassRoom = function () {
 };
 
 function threatManagement(creep) {
-    if (!creep.room.controller || !creep.room.controller.reservation) return;
-    let user = creep.room.controller.reservation.username;
-    if (_.includes(FRIENDLIES, user)) return;
+    if (!creep.room.controller) return;
+    let user;
+    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
+    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
+    if (!user) return;
     let cache = Memory._badBoyList || {};
     let threatRating = 50;
     if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];

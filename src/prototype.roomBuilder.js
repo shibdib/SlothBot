@@ -121,7 +121,7 @@ function findExtensionHub(room) {
         }
         let pos = new RoomPosition(getRandomInt(12, 38), getRandomInt(12, 38), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
-        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
+        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 1, pos.x - 1, pos.y + 1, pos.x + 1, true);
         let wall = false;
         for (let key in terrain) {
             let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
@@ -140,7 +140,7 @@ function findExtensionHub(room) {
 }
 
 function controllerSupplier(room, structures) {
-    if (room.level < 4) return;
+    if (room.level < 3) return;
     let controllerContainer = _.filter(room.controller.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
     if (!controllerContainer) {
         let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
@@ -548,6 +548,7 @@ function buildTowers(room, structures) {
 function buildRoads(room, structures) {
     if (Game.time % 100 !== 0 || (room.controller.level < 4 || _.size(Game.constructionSites) >= 45)) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
+    buildRoadAround(room, spawner.pos);
     let mineral = room.mineral[0];
     let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     for (let source of room.sources) {
@@ -564,12 +565,12 @@ function buildRoads(room, structures) {
             buildRoadFromTo(room, room.controller, target);
         }
     }
-    if (mineral) {
+    if (mineral && room.controller.level > 5) {
         buildRoadAround(room, mineral.pos);
         buildRoadFromTo(room, spawner, mineral);
     }
     let neighboring = Game.map.describeExits(spawner.pos.roomName);
-    if (neighboring) {
+    if (neighboring && room.controller.level > 4) {
         if (neighboring['1']) {
             let exits = spawner.room.find(FIND_EXIT_TOP);
             let middle = _.round(exits.length / 2);
