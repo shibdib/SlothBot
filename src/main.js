@@ -34,11 +34,6 @@ module.exports.loop = function() {
         }
         Memory.tickLength = average(Memory.tickLengthArray);
 
-        //GC
-        let gcMem = Game.cpu.getUsed();
-        if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name) && Game.cpu.getHeapStatistics() && Game.cpu.getHeapStatistics().total_heap_size + Game.cpu.getHeapStatistics().externally_allocated_size > 0.85 * Game.cpu.getHeapStatistics().heap_size_limit) gc();
-        shib.shibBench('garbageCollection', gcMem);
-
         //Update allies
         populateLOANlist();
 
