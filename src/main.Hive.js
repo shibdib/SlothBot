@@ -75,7 +75,7 @@ function mind() {
         shib.shibBench('processBuildQueue', cpu);
     }
     //Room HUD (If CPU Allows)
-    if (Game.cpu.getUsed() < Game.cpu.limit) {
+    if (!TEN_CPU && Game.cpu.getUsed() < Game.cpu.limit) {
         cpu = Game.cpu.getUsed();
         hud.hud();
         shib.shibBench('roomHud', cpu);
