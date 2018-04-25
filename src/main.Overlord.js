@@ -109,14 +109,16 @@ function mind(room, roomLimit) {
     }
 
     // Power Processing
-    cpu = Game.cpu.getUsed();
-    try {
-        power.powerControl(room);
-    } catch (e) {
-        log.e('Power Control for room ' + room.name + ' experienced an error');
-        log.e(e.stack);
+    if (!TEN_CPU) {
+        cpu = Game.cpu.getUsed();
+        try {
+            power.powerControl(room);
+        } catch (e) {
+            log.e('Power Control for room ' + room.name + ' experienced an error');
+            log.e(e.stack);
+        }
+        shib.shibBench('powerControl', cpu);
     }
-    shib.shibBench('powerControl', cpu);
 
     // Store Data
     let minerals = Memory.ownedMineral || [];
