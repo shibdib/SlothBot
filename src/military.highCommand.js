@@ -6,13 +6,13 @@ const profiler = require('screeps-profiler');
 
 function highCommand() {
     manualAttacks();
-    if (Game.time % 10 === 0) manageAttacks();
+    if (Game.time % 10 === 0 || Game.cpu.bucket < 5000) manageAttacks();
     if (Game.time % 150 === 0) {
         let maxLevel = _.max(_.filter(Game.spawns), '.room.controller.level').room.controller.level;
         for (let key in Memory.ownedRooms) {
             let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
             for (let key in cleaningTargets) {
-                if (!Memory.targetRooms[cleaningTargets[key].name] && Math.random() > Math.random()) {
+                if (Game.cpu.bucket > 7500 && !Memory.targetRooms[cleaningTargets[key].name] && Math.random() > Math.random()) {
                     let cache = Memory.targetRooms || {};
                     let tick = Game.time;
                     cache[cleaningTargets[key].name] = {
@@ -27,7 +27,7 @@ function highCommand() {
                 let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && ((r.owner && r.level <= 4 && !_.includes(FRIENDLIES, r.owner.username))
                     || (r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.possibleRemote) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 2);
                 for (let key in localTargets) {
-                    if ((!Memory.targetRooms || !Memory.targetRooms[localTargets[key].name]) && Math.random() > 0.3) {
+                    if (Game.cpu.bucket > 5500 && (!Memory.targetRooms || !Memory.targetRooms[localTargets[key].name]) && Math.random() > 0.3) {
                         let cache = Memory.targetRooms || {};
                         let tick = Game.time;
                         cache[localTargets[key].name] = {
@@ -49,7 +49,7 @@ function highCommand() {
                 } else {
                     priority = 4;
                 }
-                if ((!Memory.targetRooms || !Memory.targetRooms[enemySiege[key].name]) && Math.random() > Math.random()) {
+                if (Game.cpu.bucket > 7500 && (!Memory.targetRooms || !Memory.targetRooms[enemySiege[key].name]) && Math.random() > Math.random()) {
                     if (enemySiege[key].level >= 3) {
                         let cache = Memory.targetRooms || {};
                         if (maxLevel >= 7 && _.random(0, 1) === 1) {
@@ -89,7 +89,7 @@ function highCommand() {
                 (r.reservation && (_.includes(HOSTILES, r.reservation.username) || _.includes(Memory._threatList, r.reservation.username) || _.includes(Memory._nuisance, r.reservation.username) || r.possibleRemote)) &&
                 Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 8);
             for (let key in enemyHarass) {
-                if ((!Memory.targetRooms || !Memory.targetRooms[enemyHarass[key].name]) && Math.random() > Math.random()) {
+                if (Game.cpu.bucket > 8500 && (!Memory.targetRooms || !Memory.targetRooms[enemyHarass[key].name]) && Math.random() > Math.random()) {
                     let cache = Memory.targetRooms || {};
                     let tick = Game.time;
                     cache[enemyHarass[key].name] = {
@@ -327,7 +327,7 @@ function nukeFlag(flag) {
 }
 
 function manageAttacks() {
-    if (!Memory.targetRooms || !Memory.targetRooms.length) return;
+    if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
     if (sieges.length) {
         let activeSiege = _.filter(sieges, (t) => t.activeSiege)[0];
@@ -347,9 +347,11 @@ function manageAttacks() {
         }
     }
     for (let key in Memory.targetRooms) {
-        if (!Memory.targetRooms[key].dDay) {
-            if (Memory.targetRooms[key].tick + 6000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending' && Memory.targetRooms[key].type !== 'attack') delete Memory.targetRooms[key];
-        } else if (Memory.targetRooms[key].dDay - 150 <= Game.time) {
+        if (Game.cpu.bucket < 7500 || (Memory.targetRooms[key].tick + 6000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending' && Memory.targetRooms[key].type !== 'attack')) {
+            delete Memory.targetRooms[key];
+            continue;
+        }
+        if (Memory.targetRooms[key].dDay && Memory.targetRooms[key].dDay - 150 <= Game.time) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[key] = {

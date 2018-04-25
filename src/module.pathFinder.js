@@ -201,10 +201,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
                 if (creep.memory.badPathing) creep.memory.badPathing++;
-                if (creep.memory.badPathing > 150) {
-                    //log.e("Creep " + creep.name + " is stuck in " + creep.room.name + ", suiciding for the good of the CPU.");
-                    //return creep.suicide();
-                }
+                if (creep.memory.badPathing > 25) return creep.memory._shibMove = undefined;
                 return creep.moveTo(target);
             }
         }
@@ -233,6 +230,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
+    let roomDistance = Game.map.findRoute(origin, destination).length;
     let highwayBias = 1;
     if (options.preferHighway) {
         highwayBias = 2.5;
@@ -295,6 +293,9 @@ function findRoute(origin, destination, options = {}) {
         for (let key in route) {
             path.push(route[key].room)
         }
+    }
+    if (roomDistance > 2 && path[1] === destination) {
+        path.splice(1, 1);
     }
     return path;
 }

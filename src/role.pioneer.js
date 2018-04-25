@@ -51,6 +51,15 @@ function role(creep) {
                 if (creep.withdraw(container[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container[0]);
                 }
+            } else if (creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}).length) {
+                let dropped = _.max(creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}), 'amount');
+                switch (creep.pickup(dropped)) {
+                    case OK:
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(dropped);
+                        break;
+                }
             } else {
                 let source = creep.pos.getClosestSource();
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)

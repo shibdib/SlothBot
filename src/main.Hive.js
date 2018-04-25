@@ -21,9 +21,9 @@ function mind() {
 
     let cpu;
     // High Command
-        cpu = Game.cpu.getUsed();
-        highCommand.highCommand();
-        shib.shibBench('highCommand', cpu);
+    cpu = Game.cpu.getUsed();
+    highCommand.highCommand();
+    shib.shibBench('highCommand', cpu);
 
     // Handle Labs
     cpu = Game.cpu.getUsed();
@@ -103,5 +103,6 @@ function minionController(minion) {
     }
     shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
+
 module.exports.hiveMind = profiler.registerFN(mind, 'hiveMind');
 

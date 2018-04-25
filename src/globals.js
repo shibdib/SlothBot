@@ -10,7 +10,7 @@ let globals = function () {
 
     global.FRIENDLIES = RawMemory.segments[2];
 
-    global.TEN_CPU = Game.cpu.limit === 10;
+    global.TEN_CPU = Game.cpu.limit === 10 || Game.shard.name === 'shard1';
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
@@ -40,19 +40,19 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        worker: 3,
-        waller: 2,
+        worker: 5,
+        waller: 3,
         upgrader: 3,
-        mineralHarvester: 5,
+        mineralHarvester: 6,
         // Haulers
         hauler: 2,
         // Remotes
         remoteUtility: 5,
-        remoteHarvester: 2,
-        remoteHauler: 2,
-        pioneer: 3,
+        remoteHarvester: 4,
+        remoteHauler: 3,
+        pioneer: 4,
         remoteResponse: 3,
-        reserver: 5,
+        reserver: 4,
         // Power
         Power: 5,
         // SK
@@ -61,10 +61,10 @@ let globals = function () {
         SKsupport: 6,
         SKhauler: 6,
         // Military
-        urgent: 2,
-        high: 3,
-        medium: 5,
-        secondary: 6,
+        urgent: 3,
+        high: 5,
+        medium: 6,
+        secondary: 7,
         siege: 6,
         harass: 5,
         hold: 4,

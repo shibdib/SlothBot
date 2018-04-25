@@ -30,13 +30,14 @@ function role(creep) {
             creep.memory.destinationReached = true;
         }
         return null;
-    } else if (creep.carry.energy === creep.carryCapacity) {
-        depositEnergy(creep);
     } else {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (source) {
                 switch (creep.harvest(source)) {
+                    case OK:
+                        if (creep.carry.energy === creep.carryCapacity) depositEnergy(creep);
+                        break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(source);
                         break;
@@ -56,27 +57,23 @@ module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
-        let buildSite = Game.getObjectById(creep.containerBuilding());
-        if (buildSite) {
-            creep.build(buildSite);
-        } else {
-            creep.memory.containerID = creep.harvestDepositContainer();
-        }
+        creep.room.memory.needsPickup = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}).amount > 500;
+        if (Game.rooms[creep.memory.overlord].controller.level >= 4) creep.memory.containerID = creep.harvestDepositContainer();
     } else if (creep.memory.containerID) {
         if (!creep.memory.buildAttempt) remoteRoads(creep);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            creep.room.memory.needsPickup = _.sum(container.store) > 750;
+            creep.room.memory.needsPickup = _.sum(container.store) > 500;
             if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
-            if (container.hits < container.hitsMax * 0.5) {
+            if (Game.time % 10 === 0 && container.hits < container.hitsMax * 0.75) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container);
                 } else {
                     creep.say('Fixing');
                 }
-            } else if (container.store[RESOURCE_ENERGY] !== container.storeCapacity) {
-                creep.transfer(container, RESOURCE_ENERGY);
             }
+        } else {
+            creep.memory.containerID = undefined;
         }
     }
 }

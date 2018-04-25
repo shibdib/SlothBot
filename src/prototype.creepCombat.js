@@ -12,13 +12,13 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestUnarmedEnemy = function () {
-    let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && c.owner.username !== 'Source Keeper' && (!c.getActiveBodyparts(ATTACK) || !c.getActiveBodyparts(RANGED_ATTACK)) && (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
+    let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username)) || (Game.shard.name === 'matt-scr' && !_.includes(FRIENDLIES, c.owner.username))) && c.owner.username !== 'Source Keeper' && (!c.getActiveBodyparts(ATTACK) || !c.getActiveBodyparts(RANGED_ATTACK)) && (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         this.memory.target = enemy.id;
         return enemy;
     }
-    enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && (!c.getActiveBodyparts(ATTACK) || !c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username !== 'Source Keeper' && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
+    enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username)) || (Game.shard.name === 'matt-scr' && !_.includes(FRIENDLIES, c.owner.username))) && (!c.getActiveBodyparts(ATTACK) || !c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username !== 'Source Keeper' && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         this.memory.target = enemy.id;
@@ -28,7 +28,7 @@ Creep.prototype.findClosestUnarmedEnemy = function () {
 };
 
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
-    let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) && c.owner.username !== 'Source Keeper' && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
+    let enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username)) || (Game.shard.name === 'matt-scr' && !_.includes(FRIENDLIES, c.owner.username))) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) && c.owner.username !== 'Source Keeper' && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         this.memory.target = enemy.id;
@@ -40,13 +40,13 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
             return enemy;
         }
     }
-    enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && c.owner.username !== 'Source Keeper' && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
+    enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username)) || (Game.shard.name === 'matt-scr' && !_.includes(FRIENDLIES, c.owner.username))) && c.owner.username !== 'Source Keeper' && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         this.memory.target = enemy.id;
         return enemy;
     }
-    enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username))) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner.username !== 'Source Keeper' && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
+    enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username)) || (Game.shard.name === 'matt-scr' && !_.includes(FRIENDLIES, c.owner.username))) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1) && c.owner.username !== 'Source Keeper' && _.filter(this.room.creeps, (a) => a.memory && a.memory.target === c.id).length < 6});
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         this.memory.target = enemy.id;

@@ -339,8 +339,8 @@ Room.prototype.invaderCheck = function () {
     }
     this.memory.lastInvaderCheck = Game.time;
     let invader = _.filter(this.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Source Keeper');
-    let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
     if (invader.length > 0) {
+        let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
         let availableCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, this.name) <= 5);
         if (availableCreeps.length) {

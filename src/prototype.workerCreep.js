@@ -329,7 +329,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         });
     }
     //Take straight from harvesters at low level
-    if (this.room.controller.level < 6) {
+    if (this.room.controller.level < 5) {
         let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
         if (harvester) {
             let weight = 0.3;
@@ -405,9 +405,9 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 0) {
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === storageLink.id && c.id !== this.id).length;
-        if (numberOfUsers < 1) {
+        if (numberOfUsers < 2) {
             let weight = 0.3;
-            if (storageLink.energy > 500) weight = 0.01;
+            if (storageLink.energy > 500) weight = 0.05;
             const storageLinkDistWeighted = _.round(storageLink.pos.rangeToTarget(this) * weight, 0) + 1;
             energy.push({
                 id: storageLink.id,
@@ -441,10 +441,10 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         });
     }
     //Take straight from harvesters at low level
-    if (this.room.controller.level < 6) {
+    if (this.room.controller.level < 5) {
         let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
         if (harvester) {
-            let weight = 0.3;
+            let weight = 0.6;
             const harvesterDistWeighted = _.round(harvester.pos.rangeToTarget(this) * weight, 0) + 1;
             energy.push({
                 id: harvester.id,
@@ -457,7 +457,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     if (this.room.controller.level < 6) {
         let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}))[0];
         if (dropped) {
-            let weight = 0.2;
+            let weight = 0.5;
             let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
             energy.push({
                 id: dropped.id,
