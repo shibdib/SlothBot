@@ -25,7 +25,7 @@ let globals = function () {
         RESOURCE_CATALYZED_GHODIUM_ACID];
 
     global.TRADE_AMOUNT = 5000;
-    global.ENERGY_AMOUNT = 20000;
+    global.ENERGY_AMOUNT = 50000;
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 10000;
     global.BOOST_AMOUNT = 2500;

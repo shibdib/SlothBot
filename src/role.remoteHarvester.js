@@ -57,7 +57,8 @@ module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
-        creep.room.memory.needsPickup = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY}).amount > 500;
+        let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
+        if (dropped && dropped.amount) creep.room.memory.needsPickup = true;
         if (Game.rooms[creep.memory.overlord].controller.level >= 4) creep.memory.containerID = creep.harvestDepositContainer();
     } else if (creep.memory.containerID) {
         if (!creep.memory.buildAttempt) remoteRoads(creep);

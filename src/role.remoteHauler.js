@@ -74,10 +74,6 @@ function role(creep) {
                                 break;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(storageItem);
-                                if (creep.carry[RESOURCE_ENERGY] > 0) {
-                                    let adjacentStructure = shuffle(_.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity));
-                                    if (adjacentStructure.length) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
-                                }
                                 break;
                             case ERR_FULL:
                                 creep.memory.storageDestination = undefined;
@@ -88,6 +84,7 @@ function role(creep) {
                     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity * 0.75);
                     let storage = creep.room.storage;
                     let terminal = creep.room.terminal;
+                    let link = Game.getObjectById(creep.room.memory.controllerLink);
                     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity)[0];
                     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
                     if (labs[0] && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
@@ -97,7 +94,11 @@ function role(creep) {
                     } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.90 && (storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 ||
                         terminal.store[RESOURCE_ENERGY] <= 5000 || _.sum(storage.store) >= storage.storeCapacity * 0.90)) {
                         creep.memory.storageDestination = terminal.id;
-                    } else if (Math.random() > Math.random() && controllerContainer && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.25) {
+                    } else if (!link && controllerContainer && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.75) {
+                        creep.memory.storageDestination = controllerContainer.id;
+                    } else if (storage && storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+                        creep.memory.storageDestination = storage.id;
+                    } else if (link && controllerContainer && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.25) {
                         creep.memory.storageDestination = controllerContainer.id;
                     } else if (storage) {
                         creep.memory.storageDestination = storage.id;

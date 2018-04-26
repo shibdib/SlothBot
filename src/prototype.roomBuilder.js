@@ -33,9 +33,9 @@ Room.prototype.buildRoom = function () {
     buildTerminal(this);
     buildSpawn(this, structures);
     buildTowers(this, structures);
-    buildWalls(this, structures);
-    if (_.size(Game.constructionSites) > 75) return;
     controllerSupplier(this, structures);
+    if (_.size(Game.constructionSites) > 75) return;
+    buildWalls(this, structures);
     buildLabs(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
@@ -159,9 +159,9 @@ function controllerSupplier(room, structures) {
     } else {
         room.memory.controllerContainer = controllerContainer.id;
     }
-    if (room.level >= 6) {
+    if (room.level >= 5) {
         let controllerLink = _.filter(room.controller.pos.findInRange(structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
-        if (!controllerLink && room.memory.storageLink) {
+        if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
             for (let key in zoneTerrain) {
                 if (_.filter(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
@@ -497,7 +497,7 @@ function buildLabs(room, structures) {
 }
 
 function buildLinks(room) {
-    if (room.controller.level < 5) return;
+    if (room.controller.level < 5 || !room.memory.controllerLink) return;
     let storage = room.storage;
     if (storage) {
         let built = _.filter(storage.pos.findInRange(storage.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK);

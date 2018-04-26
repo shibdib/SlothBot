@@ -21,9 +21,9 @@ function linkControl(room) {
                 continue;
             }
         }
-        if (link.energy < 250) continue;
+        if (link.energy < 50) continue;
         let upgrader = _.filter(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader')[0];
-        if (upgrader && controllerLink && controllerLink.energy + upgrader.carry[RESOURCE_ENERGY] < 150 && link.room.energyAvailable > link.room.energyCapacityAvailable * 0.70) {
+        if (upgrader && controllerLink && controllerLink.energy < 500) {
             link.transferEnergy(controllerLink);
         } else if (storageLink && storageLink.energy < 300) {
             link.transferEnergy(storageLink);
