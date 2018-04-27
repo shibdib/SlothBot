@@ -48,7 +48,7 @@ let globals = function () {
         hauler: 2,
         // Remotes
         remoteUtility: 5,
-        remoteHarvester: 4,
+        remoteHarvester: 3,
         remoteHauler: 3,
         pioneer: 4,
         remoteResponse: 3,

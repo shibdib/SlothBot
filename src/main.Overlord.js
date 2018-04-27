@@ -49,7 +49,7 @@ function mind(room, roomLimit) {
     // Manage creep spawning
     if (Game.time % 10 === 0) {
         try {
-            if (room.controller.level >= 2 && Game.time % 20 === 0 && !TEN_CPU) {
+            if (room.controller.level >= 2 && !TEN_CPU) {
                 let remoteSpawn = Game.cpu.getUsed();
                 spawning.remoteCreepQueue(room);
                 shib.shibBench('remoteSpawn', remoteSpawn);

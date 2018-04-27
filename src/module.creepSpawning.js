@@ -477,7 +477,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (!_.includes(queue, 'remoteHauler') && !TEN_CPU && harvesterCount) {
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
             if (remoteHauler.length <= harvesterCount) {
-                queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'})
+                queueCreep(room, PRIORITIES.remoteHauler + (_.round(remoteHauler.length * 0.25)), {role: 'remoteHauler'})
             }
         }
     }

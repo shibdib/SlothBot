@@ -471,7 +471,7 @@ function buildLabs(room, structures) {
                     for (let key in surrounding) {
                         let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
                         good = false;
-                        if (labPos.checkForWall() || labPos.checkForAllStructure().length > 0) break;
+                        if (labPos.x < 2 || labPos.y < 2 || labPos.x > 48 || labPos.y > 48 || labPos.checkForWall() || labPos.checkForAllStructure().length > 0) break;
                         good = true;
                         if (good) {
                             return position.createConstructionSite(STRUCTURE_LAB);
