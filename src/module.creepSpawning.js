@@ -253,7 +253,7 @@ module.exports.workerCreepQueue = function (room) {
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     // Level 1 room management
-    if (level === 1 || TEN_CPU) {
+    if (level === 1) {
         return roomStartup(room, roomCreeps);
     }
     //Harvesters
