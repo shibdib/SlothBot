@@ -13,6 +13,7 @@ function mind() {
     if (!global.USERNAME) {
         for (let key in Game.spawns) {
             global.USERNAME = Game.spawns[key].owner.username;
+            break;
         }
     }
 

@@ -24,6 +24,16 @@ function mind(room, roomLimit) {
         room.memory.badCount = undefined;
     }
 
+    // Set Energy Needs
+    let terminalEnergy = 0;
+    if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
+    let storageEnergy = 0;
+    if (room.storage) storageEnergy = room.storage.store[RESOURCE_ENERGY] || 0;
+    let energyInRoom = terminalEnergy + storageEnergy;
+    room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT + (ENERGY_AMOUNT * 0.19);
+    room.memory.extremeEnergySurplus = energyInRoom >= ENERGY_AMOUNT * 3;
+    room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT;
+
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
 

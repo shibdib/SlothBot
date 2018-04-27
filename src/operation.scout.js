@@ -4,11 +4,20 @@ Creep.prototype.scoutRoom = function () {
         offRoad: true
     });
     this.room.cacheRoomIntel(true);
-    //Chance nothing happens
+    // Get current operations
+    let totalCount;
+    if (_.size(Memory.targetRooms)) {
+        totalCount = _.size(Memory.targetRooms);
+    }
+    // Chance nothing happens
     if (Math.random() > Math.random()) return this.suicide();
+    // Get available rooms
+    let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
+    // Get room details
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let countableStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL);
     let controller = this.room.controller;
+    // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
     let closestOwned = this.room.findClosestOwnedRoom();
     let pathedRange = this.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length;
@@ -17,89 +26,71 @@ Creep.prototype.scoutRoom = function () {
         priority = 1;
     } else if (range <= 2 && pathedRange <= 2) {
         priority = 2;
-    } else if (pathedRange <= 4) {
+    } else if (pathedRange <= 5) {
         priority = 3;
     } else {
         priority = 4;
     }
-    if (!controller) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        let type = 'swarmHarass';
-        if (Math.random() > Math.random()) type = 'harass';
-        cache[this.room.name] = {
-            tick: tick,
-            type: type,
-            level: 1,
-            priority: priority
-        };
-        Memory.targetRooms = cache;
-    } else if (controller.owner && controller.safeMode) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
+    // Plan op based on room comp
+    let cache = Memory.targetRooms || {};
+    let tick = Game.time;
+    if (totalCount < surplusRooms * 3 || priority === 1) {
+        if (!controller) {
+            let type = 'swarmHarass';
+            if (Math.random() > Math.random()) type = 'harass';
+            cache[this.room.name] = {
+                tick: tick,
+                type: type,
+                level: 1,
+                priority: priority
+            };
+        } else if (controller.owner && controller.safeMode) {
+            cache[this.room.name] = {
+                tick: tick,
+                type: 'pending',
+                dDay: tick + this.room.controller.safeMode,
+            };
+        } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0)) {
+            cache[this.room.name] = {
+                tick: tick,
+                type: 'hold',
+                level: 2,
+                priority: 2
+            };
+        } else if (controller.owner && towers.length) {
+            if (controller.level <= 5 && Math.random() > Math.random()) {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'swarm',
+                    level: 1,
+                    priority: priority
+                };
+            }
+        } else if (!controller.owner && countableStructures.length < 3) {
+            let type = 'swarmHarass';
+            if (Math.random() > Math.random()) type = 'harass';
+            cache[this.room.name] = {
+                tick: tick,
+                type: type,
+                level: 1,
+                priority: priority
+            };
+        } else if (!controller.owner && countableStructures.length > 2) {
+            cache[this.room.name] = {
+                tick: tick,
+                type: 'clean',
+                level: 1,
+                priority: priority
+            };
+        }
+    } else {
         cache[this.room.name] = {
             tick: tick,
             type: 'pending',
-            dDay: tick + this.room.controller.safeMode,
+            dDay: tick + 2500,
         };
-        Memory.targetRooms = cache;
-    } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0)) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[this.room.name] = {
-            tick: tick,
-            type: 'hold',
-            level: 2,
-            priority: 2
-        };
-        Memory.targetRooms = cache;
-    } else if (controller.owner && towers.length && range >= 4) {
-        this.room.cacheRoomIntel(true);
-        if (controller.level <= 5 && Memory.ownedRooms.length > 1) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[this.room.name] = {
-                tick: tick,
-                type: 'swarm',
-                level: 1,
-                priority: priority
-            };
-        }
-        delete Memory.targetRooms[this.pos.roomName];
-    } else if (controller.owner && towers.length && range < 4) {
-        if (controller.level <= 5 && Memory.ownedRooms.length > 1) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[this.room.name] = {
-                tick: tick,
-                type: 'swarm',
-                level: 1,
-                priority: priority
-            };
-        }
-        delete Memory.targetRooms[this.pos.roomName];
-    } else if (!controller.owner && countableStructures.length < 3) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        let type = 'swarmHarass';
-        if (Math.random() > Math.random()) type = 'harass';
-        cache[this.room.name] = {
-            tick: tick,
-            type: type,
-            level: 1,
-            priority: priority
-        };
-        Memory.targetRooms = cache;
-    } else if (!controller.owner && countableStructures.length > 2) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[this.room.name] = {
-            tick: tick,
-            type: 'clean',
-            level: 1,
-            priority: priority
-        };
-        Memory.targetRooms = cache;
     }
+    delete Memory.targetRooms[this.pos.roomName];
+    Memory.targetRooms = cache;
     return this.suicide();
 };

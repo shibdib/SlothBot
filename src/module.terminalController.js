@@ -22,8 +22,6 @@ function terminalControl(room) {
         let terminalEnergy = terminal.store[RESOURCE_ENERGY] || 0;
         let storageEnergy = storage.store[RESOURCE_ENERGY] || 0;
         let energyInRoom = terminalEnergy + storageEnergy;
-        terminal.room.memory.energySurplus = energyInRoom >= energyAmount + (energyAmount * 0.19);
-        terminal.room.memory.energyNeeded = energyInRoom < energyAmount;
 
         //Cleanup broken or old order
         orderCleanup(myOrders);

@@ -15,6 +15,10 @@ function role(creep) {
     }
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) {
+        if (creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
+            creep.cacheRoomIntel();
+            return creep.suicide();
+        }
         creep.memory.destinationReached = true;
         if (creep.room.constructionSites.length > 0) {
             creep.room.memory.requestingPioneer = true;

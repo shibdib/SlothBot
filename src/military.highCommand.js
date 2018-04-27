@@ -103,6 +103,8 @@ function highCommand() {
     }
 }
 
+module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
+
 
 function manualAttacks() {
     for (let name in Game.flags) {
@@ -311,8 +313,6 @@ function manualAttacks() {
         }
     }
 }
-
-module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
 
 function nukeFlag(flag) {
     let nuker = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, flag.pos.roomName) <= 10)[0];

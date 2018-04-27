@@ -159,7 +159,7 @@ function controllerSupplier(room, structures) {
     } else {
         room.memory.controllerContainer = controllerContainer.id;
     }
-    if (room.level >= 5) {
+    if (room.level >= 5 && controllerContainer) {
         let controllerLink = _.filter(room.controller.pos.findInRange(structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
