@@ -432,9 +432,9 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].reservation && Memory.roomCache[room.memory.remoteRooms[keys]].reservation !== USERNAME)) continue;
             if (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].owner) continue;
             // Set harvester target
-            let harvesterTarget = 9;
-            if (room.memory.energySurplus) harvesterTarget = 6;
-            if (room.memory.extremeEnergySurplus) harvesterTarget = 2;
+            let harvesterTarget = 12;
+            if (room.memory.energySurplus) harvesterTarget = 9;
+            if (room.memory.extremeEnergySurplus) harvesterTarget = 4;
             // Remote Response
             if (!_.includes(queue, 'longbow')) {
                 if (remoteRoom && remoteRoom.memory.responseNeeded === true && !room.memory.responseNeeded) {
