@@ -328,6 +328,12 @@ function nukeFlag(flag) {
 
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
+    let totalCount;
+    if (_.size(Memory.targetRooms)) {
+        totalCount = _.size(Memory.targetRooms);
+    }
+    // Get available rooms
+    let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
     if (sieges.length) {
         let activeSiege = _.filter(sieges, (t) => t.activeSiege)[0];
@@ -347,6 +353,10 @@ function manageAttacks() {
         }
     }
     for (let key in Memory.targetRooms) {
+        if (totalCount > surplusRooms * 3 && Memory.targetRooms[key].priority !== 1) {
+            delete Memory.targetRooms[key];
+            continue;
+        }
         if (Game.cpu.bucket < 7500 || (Memory.targetRooms[key].tick + 6000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending' && Memory.targetRooms[key].type !== 'attack')) {
             delete Memory.targetRooms[key];
             continue;
