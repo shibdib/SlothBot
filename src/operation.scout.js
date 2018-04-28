@@ -5,13 +5,24 @@ Creep.prototype.scoutRoom = function () {
     });
     this.room.cacheRoomIntel(true);
     // Get current operations
-    let totalCount;
+    let totalCount = 0;
     if (_.size(Memory.targetRooms)) {
-        totalCount = _.size(Memory.targetRooms);
+        totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
     }
-    // Chance nothing happens
-    if (Math.random() > Math.random()) return this.suicide();
+    // Chance it gets delayed
+    if (Math.random() > 0.6) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[this.room.name] = {
+            tick: tick,
+            type: 'pending',
+            dDay: tick + 2500,
+        };
+        Memory.targetRooms = cache;
+        return this.suicide();
+    }
     // Get available rooms
+    let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Get room details
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
@@ -20,7 +31,7 @@ Creep.prototype.scoutRoom = function () {
     // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
     let closestOwned = this.room.findClosestOwnedRoom();
-    let pathedRange = this.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length;
+    let pathedRange = this.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
     let priority = 4;
     if (range === 1) {
         priority = 1;
@@ -34,7 +45,7 @@ Creep.prototype.scoutRoom = function () {
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
-    if (totalCount < surplusRooms * 3 || priority === 1) {
+    if (totalCount < surplusRooms * 3 || totalCount < totalRooms || priority === 1) {
         if (!controller) {
             let type = 'swarmHarass';
             if (Math.random() > Math.random()) type = 'harass';
@@ -82,6 +93,13 @@ Creep.prototype.scoutRoom = function () {
                 level: 1,
                 priority: priority
             };
+        } else {
+            cache[this.room.name] = {
+                tick: tick,
+                type: 'harass',
+                level: 1,
+                priority: priority
+            };
         }
     } else {
         cache[this.room.name] = {
@@ -90,7 +108,6 @@ Creep.prototype.scoutRoom = function () {
             dDay: tick + 2500,
         };
     }
-    delete Memory.targetRooms[this.pos.roomName];
     Memory.targetRooms = cache;
     return this.suicide();
 };

@@ -49,6 +49,14 @@ function controller(room) {
             room.controller.activateSafeMode();
             room.memory.requestingSupport = undefined;
         }
+        if (room.controller.level < 4 && !room.controller.safeMode) {
+            let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
+            let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_EXIT)) > 3);
+            let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
+            if (!spawns.length && !alliedMilitary.length && enemyMilitary.length) {
+                abandonOverrun(room);
+            }
+        }
     } else {
         if (!room.memory.requestingSupport && room.controller.level > 4) {
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.requestingSupport && Game.map.findRoute(room.name, r.name).length < 9)[0];
@@ -102,4 +110,28 @@ function rampartManager(room, structures) {
 function safeModeManager(room) {
     if (room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) return;
     if (room.controller.level < 3) return room.controller.activateSafeMode();
+    let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
+    let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_EXIT)) > 3);
+    if (enemyMilitary.length && !alliedMilitary.length) {
+        return room.controller.activateSafeMode();
+    }
 }
+
+abandonOverrun = function (room) {
+    for (let key in room.creeps) {
+        room.creeps[key].suicide();
+    }
+    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name);
+    for (let key in overlordFor) {
+        overlordFor[key].suicide();
+    }
+    for (let key in room.structures) {
+        room.structures[key].destroy();
+    }
+    for (let key in room.constructionSites) {
+        room.constructionSites[key].remove();
+    }
+    delete room.memory;
+    delete Memory.roomCache[room.name];
+    room.controller.unclaim();
+};

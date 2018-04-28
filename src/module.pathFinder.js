@@ -122,6 +122,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let destRoomName = target.roomName;
         let allowedRooms = pathInfo.route || options.route;
         if (!allowedRooms && roomDistance > 1) {
+            if (roomDistance > 12) options.returnIncomplete = true;
             let route;
             if (options.useCache) route = getRoute(origin, target);
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
@@ -201,8 +202,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
                 if (creep.memory.badPathing) creep.memory.badPathing++;
-                if (creep.memory.badPathing > 125) {
+                if (creep.memory.badPathing > 500) {
                     log.e(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
+                    if (creep.memory.military && creep.memory.targetRoom) {
+                        delete Memory.targetRooms[creep.memory.targetRoom];
+                        delete Memory.roomCache[creep.memory.targetRoom];
+                    }
                     return creep.suicide();
                 }
                 if (creep.memory.badPathing > 25) {
@@ -238,6 +243,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
     let roomDistance = Game.map.findRoute(origin, destination).length;
+    if (roomDistance > 14) {
+        destination = Game.map.findRoute(origin, destination)[7]
+    }
     let highwayBias = 1;
     if (options.preferHighway) {
         highwayBias = 2.5;
@@ -258,7 +266,7 @@ function findRoute(origin, destination, options = {}) {
             let isMyRoom = Game.rooms[roomName] &&
                 Game.rooms[roomName].controller &&
                 Game.rooms[roomName].controller.my;
-            if (isHighway || isMyRoom) {
+            if (isMyRoom) {
                 return 1;
             } else
             // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
@@ -272,6 +280,7 @@ function findRoute(origin, destination, options = {}) {
                     return 4 * highwayBias;
                 }
             }
+            if (isHighway && options.preferHighway) return 1;
             // Avoid rooms owned by others
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
@@ -283,7 +292,7 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation.username))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.reservation && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.reservation.username))) {
-                    return 150;
+                    return 25;
                 }
             }
             // Check for manual flagged rooms

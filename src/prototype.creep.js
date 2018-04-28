@@ -382,12 +382,4 @@ Creep.prototype.reportDamage = function () {
             }
         }
     }
-    if (this.memory.military && ((this.memory.targetRoom && this.memory.targetRoom === this.room.name) || (this.memory.responseTarget && this.memory.responseTarget === this.room.name))) {
-        let friendlyTombstones = _.pluck(_.filter(this.room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username)), '.creep.name');
-        let enemyTombstones = _.pluck(_.filter(this.room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username)), '.creep.name');
-        let enemyDead = this.room.memory.enemyDead || [];
-        this.room.memory.enemyDead = _.union(enemyDead, enemyTombstones);
-        let friendlyDead = this.room.memory.friendlyDead || [];
-        this.room.memory.friendlyDead = _.union(friendlyDead, friendlyTombstones);
-    }
 };

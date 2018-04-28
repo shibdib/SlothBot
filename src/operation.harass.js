@@ -1,3 +1,5 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.harassRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type !== 'harass') {
@@ -7,6 +9,7 @@ Creep.prototype.harassRoom = function () {
         }
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
         threatManagement(this);
+        highCommand.operationSustainability(this.room);
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
@@ -14,7 +17,7 @@ Creep.prototype.harassRoom = function () {
         if (Memory.targetRooms[this.memory.targetRoom]) {
             if (hostile && hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
                 Memory.targetRooms[this.memory.targetRoom].level = 2;
-                if (Math.random() > Math.random()) {
+                if (Math.random() > 0.9) {
                     let cache = Memory.targetRooms || {};
                     cache[this.room.name] = {
                         type: 'rangers',

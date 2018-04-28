@@ -349,7 +349,7 @@ module.exports.workerCreepQueue = function (room) {
         if (!_.includes(queue, 'longbow') && room.memory.threatLevel > 2) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
             if (longbow.length < _.round(room.memory.numberOfHostiles / 3) + 1) {
-                queueCreep(room, PRIORITIES.responder + 1, {
+                queueCreep(room, PRIORITIES.responder, {
                     role: 'longbow',
                     responseTarget: room.name,
                     military: true,
@@ -379,11 +379,11 @@ module.exports.remoteCreepQueue = function (room) {
     let queue = room.memory.creepBuildQueue;
     let range = room.memory.remoteRange || 1;
     let sources = 0;
-    if (level >= 4 && (!room.memory.remoteRange || Game.time % 1000 === 0)) {
+    if (level >= 2 && (!room.memory.remoteRange || Game.time % 1000 === 0)) {
         range:
             for (range = 1; range < 3; range++) {
                 for (let keys in room.memory.remoteRooms) {
-                    if (!Memory.roomCache[room.memory.remoteRooms[keys]] || room.shibRoute(room.memory.remoteRooms[keys]).length > range ||
+                    if (!Memory.roomCache[room.memory.remoteRooms[keys]] || room.shibRoute(room.memory.remoteRooms[keys]).length - 1 > range ||
                         checkIfSK(room.memory.remoteRooms[keys]) || Memory.roomCache[room.memory.remoteRooms[keys]].owner) continue;
                     if (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].reservation && Memory.roomCache[room.memory.remoteRooms[keys]].reservation !== USERNAME)) continue;
                     let roomSources = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length || 0;
@@ -394,7 +394,7 @@ module.exports.remoteCreepQueue = function (room) {
         room.memory.remoteRange = range;
     }
     // Assist room
-    let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length <= 15))[0];
+    let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
     if (needyRoom && !room.memory.responseNeeded && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) {
         if (!_.includes(queue, 'pioneer')) {
             let pioneers = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
@@ -412,7 +412,7 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
     }
-    let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && room.shibRoute(r.name).length < 15))[0];
+    let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && room.shibRoute(r.name).length - 1 < 15))[0];
     if (responseNeeded && !_.includes(queue, 'remoteResponse')) {
         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseNeeded.name && creep.memory.role === 'remoteResponse');
         if (responder.length < 3) {
@@ -428,7 +428,7 @@ module.exports.remoteCreepQueue = function (room) {
         let harvesterCount = 0;
         for (let keys in room.memory.remoteRooms) {
             let remoteRoom = Game.rooms[room.memory.remoteRooms[keys]];
-            if (room.shibRoute(room.memory.remoteRooms[keys]).length > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
+            if (room.shibRoute(room.memory.remoteRooms[keys]).length - 1 > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
             if (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].reservation && Memory.roomCache[room.memory.remoteRooms[keys]].reservation !== USERNAME)) continue;
             if (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].owner) continue;
             // Set harvester target

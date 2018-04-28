@@ -173,6 +173,8 @@ let globals = function () {
         , crossedSword: "\u2694"
     };
 
+    global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
+
     global.CUMULATIVE_CONTROLLER_DOWNGRADE = _.map(CONTROLLER_DOWNGRADE, (v1, k1, c1) => (_.reduce(c1, (a, v2, k2, c2) => (a + ((k2 <= k1) ? v2 : 0)), 0)));
 
     global.resourceWorth = function (resourceType) {

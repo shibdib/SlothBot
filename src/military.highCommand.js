@@ -6,8 +6,14 @@ const profiler = require('screeps-profiler');
 
 function highCommand() {
     manualAttacks();
+    let totalCount;
+    if (_.size(Memory.targetRooms)) {
+        totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
+    }
+    let totalRooms = Memory.ownedRooms.length;
+    let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     if (Game.time % 10 === 0 || Game.cpu.bucket < 5000) manageAttacks();
-    if (Game.time % 150 === 0) {
+    if (Game.time % 200 === 0 && (totalCount < surplusRooms * 3 || totalCount < totalRooms)) {
         let maxLevel = _.max(_.filter(Game.spawns), '.room.controller.level').room.controller.level;
         for (let key in Memory.ownedRooms) {
             let cleaningTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 2000 && r.needsCleaning && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 5);
@@ -21,22 +27,6 @@ function highCommand() {
                         level: 1
                     };
                     Memory.targetRooms = cache;
-                }
-            }
-            if (ATTACK_LOCALS) {
-                let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && ((r.owner && r.level <= 4 && !_.includes(FRIENDLIES, r.owner.username))
-                    || (r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.possibleRemote) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 2);
-                for (let key in localTargets) {
-                    if (Game.cpu.bucket > 5500 && (!Memory.targetRooms || !Memory.targetRooms[localTargets[key].name]) && Math.random() > 0.3) {
-                        let cache = Memory.targetRooms || {};
-                        let tick = Game.time;
-                        cache[localTargets[key].name] = {
-                            tick: tick,
-                            type: 'attack',
-                            local: true
-                        };
-                        Memory.targetRooms = cache;
-                    }
                 }
             }
             let enemySiege = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 &&
@@ -95,6 +85,24 @@ function highCommand() {
                     cache[enemyHarass[key].name] = {
                         tick: tick,
                         type: 'attack'
+                    };
+                    Memory.targetRooms = cache;
+                }
+            }
+        }
+    }
+    if (Game.time % 100 === 0 && ATTACK_LOCALS) {
+        for (let key in Memory.ownedRooms) {
+            let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && ((r.owner && r.level <= 4 && !_.includes(FRIENDLIES, r.owner.username))
+                || (r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.possibleRemote) && Game.map.findRoute(r.name, Memory.ownedRooms[key].name).length <= 2);
+            for (let key in localTargets) {
+                if (Game.cpu.bucket > 5500 && (!Memory.targetRooms || !Memory.targetRooms[localTargets[key].name]) && Math.random() > 0.3) {
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[localTargets[key].name] = {
+                        tick: tick,
+                        type: 'attack',
+                        local: true
                     };
                     Memory.targetRooms = cache;
                 }
@@ -328,11 +336,12 @@ function nukeFlag(flag) {
 
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
+    // Get available rooms
     let totalCount;
     if (_.size(Memory.targetRooms)) {
-        totalCount = _.size(Memory.targetRooms);
+        totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
     }
-    // Get available rooms
+    let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
     if (sieges.length) {
@@ -353,11 +362,12 @@ function manageAttacks() {
         }
     }
     for (let key in Memory.targetRooms) {
-        if (totalCount > surplusRooms * 3 && Memory.targetRooms[key].priority !== 1) {
+        if (totalCount > surplusRooms * 3 && totalCount > totalRooms && Memory.targetRooms[key].priority !== 1 && Memory.targetRooms[key].type !== 'attack') {
             delete Memory.targetRooms[key];
+            totalCount--;
             continue;
         }
-        if (Game.cpu.bucket < 7500 || (Memory.targetRooms[key].tick + 6000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending' && Memory.targetRooms[key].type !== 'attack')) {
+        if (Game.cpu.bucket < 7500 || (Memory.targetRooms[key].tick + 5000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending' && Memory.targetRooms[key].type !== 'attack')) {
             delete Memory.targetRooms[key];
             continue;
         }
@@ -370,6 +380,7 @@ function manageAttacks() {
                 level: 1,
                 dDay: undefined
             };
+            Memory.targetRooms = cache;
         }
         if (Memory.targetRooms[key].waves) {
             if (Memory.targetRooms[key].waves >= 3) {
@@ -378,3 +389,26 @@ function manageAttacks() {
         }
     }
 }
+
+module.exports.operationSustainability = function (room) {
+    let operation = Memory.targetRooms[room.name];
+    if (!operation || operation.sustainabilityCheck === Game.time) return;
+    let friendlyDead = operation.friendlyDead || 0;
+    let friendlyTombstones = _.pluck(_.filter(room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username)), '.creep.body');
+    for (let creep of friendlyTombstones) {
+        friendlyDead = friendlyDead + UNIT_COST(creep);
+    }
+    let enemyDead = operation.enemyDead || 0;
+    let enemyTombstones = _.pluck(_.filter(room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username)), '.creep.body');
+    for (let creep of enemyTombstones) {
+        enemyDead = enemyDead + UNIT_COST(creep);
+    }
+    operation.enemyDead = enemyDead;
+    operation.friendlyDead = friendlyDead;
+    operation.sustainabilityCheck = Game.time;
+    if (operation.tick + 500 >= Game.time && operation.friendlyDead > operation.enemyDead) {
+        delete Memory.targetRooms[room.name]
+    } else {
+        Memory.targetRooms[room.name] = operation;
+    }
+};

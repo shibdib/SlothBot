@@ -1,3 +1,5 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.swarmHarassRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
@@ -5,6 +7,7 @@ Creep.prototype.swarmHarassRoom = function () {
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
         threatManagement(this);
+        highCommand.operationSustainability(this.room);
         if (Memory.targetRooms[this.memory.targetRoom]) {
             let hostile = this.findClosestEnemy();
             if (hostile && hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {

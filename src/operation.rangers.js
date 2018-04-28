@@ -1,3 +1,5 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.rangersRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         let sentence = ['Pew', 'Bang', 'Pop', 'Peeeeeew'];
@@ -9,10 +11,12 @@ Creep.prototype.rangersRoom = function () {
             if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
             this.handleMilitaryCreep(false, false);
             threatManagement(this);
+            highCommand.operationSustainability(this.room);
         } else {
             if (this.room.name === this.memory.targetRoom) {
                 this.handleMilitaryCreep(false, false);
                 threatManagement(this);
+                highCommand.operationSustainability(this.room);
             } else {
                 if (this.pos.getRangeTo(squadLeader[0]) > 2) this.shibMove(squadLeader[0], {ignoreCreeps: false})
             }

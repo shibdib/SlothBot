@@ -26,7 +26,7 @@ function role(creep) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room}
         }
     } else {
-        if (!creep.handleMilitaryCreep(false, true)) {
+        if (!creep.handleMilitaryCreep(false, true, true)) {
             findDefensivePosition(creep, creep);
         }
     }

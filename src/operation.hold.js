@@ -1,3 +1,5 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.holdRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
@@ -18,6 +20,7 @@ Creep.prototype.holdRoom = function () {
             }
         }
         threatManagement(this);
+        highCommand.operationSustainability(this.room);
         // Convert to a scout if tower exists
         let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
         if (towers.length && _.max(towers, 'energy').energy > 10) {

@@ -498,7 +498,7 @@ Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false)
     let closest;
     for (let key in Memory.ownedRooms) {
         let range = Game.map.findRoute(this, Memory.ownedRooms[key]).length;
-        if (safePath) range = this.shibRoute(Memory.ownedRooms[key]).length;
+        if (safePath) range = this.shibRoute(Memory.ownedRooms[key]).length - 1;
         if (!distance) {
             distance = range;
             closest = Memory.ownedRooms[key].name;

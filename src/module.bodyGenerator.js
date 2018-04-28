@@ -85,7 +85,7 @@ module.exports.bodyGenerator = function (level, role) {
             tough = _.round(0.5 * level);
             attack = 1 * level;
             move = (tough + attack) / 2;
-            if (3 < level < 7) {
+            if (level < 7 && level > 3) {
                 _.round(attack = 3 * level);
                 move = (tough + attack) / 4;
             }

@@ -9,7 +9,7 @@ function role(creep) {
     creep.say(ICONS.respond, true);
     if (creep.room.memory.threatLevel > 2) if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack']);
     creep.borderCheck();
-    if (!creep.handleMilitaryCreep(false, true)) {
+    if (!creep.handleMilitaryCreep(false, true, true)) {
         findDefensivePosition(creep, creep);
     }
 }

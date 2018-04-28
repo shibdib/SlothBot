@@ -50,6 +50,22 @@ module.exports.hud = function () {
                 {align: 'left', opacity: 0.8}
             );
         }
+        if (Memory.targetRooms[key].enemyDead) {
+            new RoomVisual(key).text(
+                'Enemy Energy Destroyed ' + Memory.targetRooms[key].enemyDead,
+                1,
+                5,
+                {align: 'left', opacity: 0.8, color: '#ff0000'}
+            );
+        }
+        if (Memory.targetRooms[key].friendlyDead) {
+            new RoomVisual(key).text(
+                'Friendly Energy Destroyed ' + Memory.targetRooms[key].friendlyDead,
+                1,
+                6,
+                {align: 'left', opacity: 0.8, color: '#ff0000'}
+            );
+        }
         let creeps = _.filter(Game.creeps, (c) => c.memory.targetRoom === key);
         let y = 0;
         if (type !== 'swarm') {
