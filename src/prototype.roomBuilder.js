@@ -72,7 +72,7 @@ function buildExtensions(room) {
             x = _.sample([x, -x]);
             y = _.sample([y, -y]);
             let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
-            if (pos.checkForAllStructure().length > 0 || pos.getRangeTo(hub) < 2 || pos.x === hub.x || pos.y === hub.y
+            if (pos.checkIfOutOfBounds() || pos.checkForAllStructure().length > 0 || pos.getRangeTo(hub) < 2 || pos.x === hub.x || pos.y === hub.y
                 || !room.findPath(pos, hub, {range: 1}) || room.findPath(pos, hub, {
                     range: 1,
                     ignoreDestructibleStructures: true,
@@ -297,7 +297,7 @@ function buildStorage(room) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
+            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
                     range: 1,
                     ignoreCreeps: true
                 }).length
@@ -320,7 +320,7 @@ function buildTerminal(room) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
+            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
                     range: 1,
                     ignoreCreeps: true
                 }).length
@@ -351,7 +351,7 @@ function buildObserver(room, structures) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkForAllStructure().length > 0 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
+            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_OBSERVER);
         }
     }
@@ -365,7 +365,7 @@ function buildNuker(room, structures) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
+            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
                     range: 1,
                     ignoreCreeps: true
                 }).length
@@ -387,7 +387,7 @@ function buildPowerSpawn(room, structures) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
+            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
                     range: 1,
                     ignoreCreeps: true
                 }).length
@@ -409,7 +409,7 @@ function buildSpawn(room, structures) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 7, hub.x - 7, hub.y + 7, hub.x + 7, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
+            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
                     range: 1,
                     ignoreCreeps: true
                 }).length
@@ -435,7 +435,7 @@ function buildLabs(room, structures) {
             for (let key in safeZone) {
                 let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
                 if (position.getRangeTo(terminal.pos) === 2) {
-                    if (position.checkForAllStructure().length > 0 || !room.findPath(position, terminal.pos, {
+                    if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || !room.findPath(position, terminal.pos, {
                             range: 1,
                             ignoreCreeps: true
                         }).length
@@ -465,12 +465,12 @@ function buildLabs(room, structures) {
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
                 if (position.getRangeTo(hub) > 8) {
-                    if (position.x > 44 || position.x < 6 || position.y > 44 || position.y < 6 || position.checkForWall() || position.checkForAllStructure().length > 0) continue;
+                    if (position.checkIfOutOfBounds() || position.checkForWall() || position.checkForAllStructure().length > 0) continue;
                     let surrounding = room.lookForAtArea(LOOK_TERRAIN, position.y - 3, position.x - 3, position.y + 3, position.x + 3, true);
                     for (let key in surrounding) {
                         let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
                         good = false;
-                        if (labPos.x < 2 || labPos.y < 2 || labPos.x > 48 || labPos.y > 48 || labPos.checkForWall() || labPos.checkForAllStructure().length > 0) break;
+                        if (labPos.checkIfOutOfBounds() || labPos.checkForWall() || labPos.checkForAllStructure().length > 0) break;
                         good = true;
                         if (good) {
                             return position.createConstructionSite(STRUCTURE_LAB);
@@ -483,7 +483,7 @@ function buildLabs(room, structures) {
             buildRoadFromTo(room, labs[0], room.controller);
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                if (position.checkForAllStructure().length > 0) continue;
+                if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0) continue;
                 switch (position.createConstructionSite(STRUCTURE_LAB)) {
                     case OK:
                         continue;
@@ -507,7 +507,7 @@ function buildLinks(room) {
             for (let key in zoneTerrain) {
                 if (_.filter(storage.pos.findInRange(storage.room.constructionSites, 2), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
-                if (position.checkForAllStructure().length > 0) continue;
+                if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0) continue;
                 return position.createConstructionSite(STRUCTURE_LINK);
             }
         }
@@ -523,7 +523,7 @@ function buildTowers(room, structures) {
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
             if (position.getRangeTo(hub) === 5) {
-                if (position.checkForImpassible()) continue;
+                if (position.checkIfOutOfBounds() || position.checkForImpassible()) continue;
                 if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
                         range: 1,
                         ignoreCreeps: true

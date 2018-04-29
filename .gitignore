@@ -13,3 +13,6 @@
 # mpeltonen/sbt-idea plugin
 # JIRA plugin
 # Crashlytics plugin (for Android Studio and IntelliJ)
+node_modules/
+package-lock.json
+/.screeps.json
