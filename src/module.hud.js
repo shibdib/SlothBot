@@ -50,19 +50,11 @@ module.exports.hud = function () {
                 {align: 'left', opacity: 0.8}
             );
         }
-        if (Memory.targetRooms[key].enemyDead) {
+        if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
             new RoomVisual(key).text(
-                'Enemy Energy Destroyed ' + Memory.targetRooms[key].enemyDead,
+                'Enemy Kills/Energy - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' Friendly Losses/Energy - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead,
                 1,
-                5,
-                {align: 'left', opacity: 0.8, color: '#ff0000'}
-            );
-        }
-        if (Memory.targetRooms[key].friendlyDead) {
-            new RoomVisual(key).text(
-                'Friendly Energy Destroyed ' + Memory.targetRooms[key].friendlyDead,
-                1,
-                6,
+                0,
                 {align: 'left', opacity: 0.8, color: '#ff0000'}
             );
         }

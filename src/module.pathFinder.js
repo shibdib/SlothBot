@@ -191,6 +191,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         if ((ret.incomplete || options.ensurePath) && !options.returnIncomplete) {
             if (options.checkPath) return false;
             if (roomDistance === 0) return creep.idleFor(1);
+            target = new RoomPosition(25, 25, target.roomName);
+            options.range = 23;
             if (!pathInfo.findAttempt) {
                 options.useFindRoute = true;
                 options.allowSK = true;
@@ -204,6 +206,8 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 if (creep.memory.badPathing) creep.memory.badPathing++;
                 if (creep.memory.badPathing > 500) {
                     log.e(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
+                    log.e('Ret - ' + JSON.stringify(ret));
+                    if (allowedRooms) log.e('Path - ' + allowedRooms);
                     if (creep.memory.military && creep.memory.targetRoom) {
                         delete Memory.targetRooms[creep.memory.targetRoom];
                         delete Memory.roomCache[creep.memory.targetRoom];
@@ -243,9 +247,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
     let roomDistance = Game.map.findRoute(origin, destination).length;
-    if (roomDistance > 14) {
-        destination = Game.map.findRoute(origin, destination)[7]
-    }
     let highwayBias = 1;
     if (options.preferHighway) {
         highwayBias = 2.5;
@@ -260,6 +261,9 @@ function findRoute(origin, destination, options = {}) {
                 // room is too far out of the way
                 return 256;
             }
+            // If room is under attack
+            if ((Game.rooms[roomName] && Game.rooms[roomName].memory.responseNeeded) || (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel)) return 100;
+            // Get special rooms via name
             let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
             let isHighway = (parsed[1] % 10 === 0) ||
                 (parsed[2] % 10 === 0);
@@ -297,7 +301,7 @@ function findRoute(origin, destination, options = {}) {
             }
             // Check for manual flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
-                return 256;
+                return 255;
             }
             return 2.5;
         }
@@ -310,7 +314,7 @@ function findRoute(origin, destination, options = {}) {
             path.push(route[key].room)
         }
     }
-    if (roomDistance > 2 && path[1] === destination) {
+    if (path && roomDistance > 2 && path[1] === destination) {
         path.splice(1, 1);
     }
     return path;
@@ -362,16 +366,18 @@ function getCreepMatrix(room) {
 
 function addCreepsToMatrix(room, matrix) {
     let creeps = room.creeps;
+    let enemyCreeps = _.filter(creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
         if (!_.includes(FRIENDLIES, creeps[key].owner.username) && (creeps[key].getActiveBodyparts(ATTACK) || creeps[key].getActiveBodyparts(RANGED_ATTACK))) {
-            let range = 6
-            if (!creeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 4;
+            let range = 6;
+            if (!creeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
             let avoidZone = creeps[key].room.lookForAtArea(LOOK_TERRAIN, creeps[key].pos.y - range, creeps[key].pos.x - range, creeps[key].pos.y + range, creeps[key].pos.x + range, true);
             for (let key in avoidZone) {
                 let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
                 if (!position.checkForWall()) {
-                    matrix.set(position.x, position.y, 150)
+                    let inRange = position.findInRange(enemyCreeps, range);
+                    matrix.set(position.x, position.y, 50 * inRange)
                 }
             }
         }

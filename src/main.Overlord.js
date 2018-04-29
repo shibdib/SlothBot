@@ -11,6 +11,7 @@ function mind(room, roomLimit) {
     let mindStart = Game.cpu.getUsed();
 
     // Abandon Bad Rooms
+    log.d('Abandon Check');
     let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner));
     let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.my);
     if (room.controller.level <= 4 && hostiles.length && !worthyStructures.length) {
@@ -25,6 +26,7 @@ function mind(room, roomLimit) {
     }
 
     // Set Energy Needs
+    log.d('Energy Status');
     let terminalEnergy = 0;
     if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
     let storageEnergy = 0;
@@ -39,11 +41,13 @@ function mind(room, roomLimit) {
 
     // Handle Defense
     let cpu = Game.cpu.getUsed();
+    log.d('Defence Module');
     defense.controller(room);
     shib.shibBench('defenseController', cpu);
 
     //Build Room
     if (Game.time % 50 === 0) {
+        log.d('Room Building Module');
         let roomBuild = Game.cpu.getUsed();
         try {
             room.buildRoom();
@@ -58,6 +62,7 @@ function mind(room, roomLimit) {
 
     // Manage creep spawning
     if (Game.time % 10 === 0) {
+        log.d('Creep Queueing');
         try {
             if (room.controller.level >= 2 && !TEN_CPU) {
                 let remoteSpawn = Game.cpu.getUsed();
@@ -75,6 +80,7 @@ function mind(room, roomLimit) {
     }
 
     // Manage creeps
+    log.d('Manage Room Creeps');
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
     // Worker minions
     for (let key in roomCreeps) {
@@ -84,6 +90,7 @@ function mind(room, roomLimit) {
 
     // Observer Control
     if (room.level === 8) {
+        log.d('Observer Module');
         let observerCpu = Game.cpu.getUsed();
         try {
             observers.observerControl(room);
@@ -96,6 +103,7 @@ function mind(room, roomLimit) {
 
     // Handle Links
     if (room.level >= 5) {
+        log.d('Links Module');
         cpu = Game.cpu.getUsed();
         try {
             links.linkControl(room);
@@ -108,6 +116,7 @@ function mind(room, roomLimit) {
 
     // Handle Terminals
     if (Game.time % 15 === 0 && room.level >= 6) {
+        log.d('Terminal Module');
         cpu = Game.cpu.getUsed();
         try {
             terminals.terminalControl(room);
@@ -120,6 +129,7 @@ function mind(room, roomLimit) {
 
     // Power Processing
     if (!TEN_CPU) {
+        log.d('Power Module');
         cpu = Game.cpu.getUsed();
         try {
             power.powerControl(room);
@@ -131,6 +141,7 @@ function mind(room, roomLimit) {
     }
 
     // Store Data
+    log.d('Data Store');
     let minerals = Memory.ownedMineral || [];
     if (!_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
     Memory.ownedMineral = minerals;

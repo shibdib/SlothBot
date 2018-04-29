@@ -179,8 +179,7 @@ function controllerSupplier(room, structures) {
 function buildWalls(room, structures) {
     let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     if (!tower.length) return;
-    let barrier = _.min(_.filter(room.structures, (s) => (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && (s.pos.x === 2 || s.pos.y === 2 || s.pos.x === 1 || s.pos.y === 1)), 'hits');
-    if (barrier.hits > barrier.hits < 500000 * room.controller.level) {
+    if (room.controller.level > 6) {
         for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
@@ -461,7 +460,7 @@ function buildLabs(room, structures) {
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
             let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 9, hub.x - 9, hub.y + 9, hub.x + 9, true);
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 25, hub.x - 25, hub.y + 25, hub.x + 25, true);
             let good;
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);

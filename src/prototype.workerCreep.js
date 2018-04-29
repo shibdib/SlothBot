@@ -430,8 +430,9 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Storage
     let sStorage = this.room.storage;
-    if (sStorage && (this.room.memory.energySurplus || this.room.memory.responseNeeded)) {
-        let weight = 0.3;
+    if (sStorage && sStorage.store[RESOURCE_ENERGY]) {
+        let weight = 15;
+        if (this.room.memory.energySurplus || this.room.memory.responseNeeded) weight = 0.3;
         if (this.room.memory.responseNeeded) weight = 1.2;
         const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
         energy.push({
@@ -689,17 +690,18 @@ Creep.prototype.findEssentials = function () {
             harvest: false
         });
     }
-    //Terminal
-    let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] < 5000) {
+    /**
+     //Terminal
+     let terminal = this.room.terminal;
+     if (terminal && terminal.store[RESOURCE_ENERGY] < 5000) {
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.5, 0) + 1;
         storage.push({
             id: terminal.id,
             distWeighted: terminalDistWeighted,
             harvest: false
         });
-    }
-    //Controller Container
+    }**/
+        //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
     if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.pos.rangeToTarget(this) > 1 && controllerContainer.store[RESOURCE_ENERGY] < 1000) {
         let containerDistWeighted;

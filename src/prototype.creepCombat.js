@@ -104,7 +104,7 @@ Creep.prototype.attackHostile = function (hostile) {
             return this.shibMove(hostile, {range: 0, ignoreRoads: true});
         case ERR_NOT_IN_RANGE:
             if (this.hits < this.hitsMax) this.heal(this);
-            return this.shibMove(hostile, {ignoreCreeps: false, ignoreRoads: true});
+            return this.shibMove(hostile, {ignoreCreeps: false});
     }
 };
 
@@ -643,7 +643,6 @@ function addCreepsToMatrix(room, matrix) {
 }
 
 Creep.prototype.goHomeAndHeal = function () {
-    if (Game.map.getRoomLinearDistance(this.room.name, this.memory.overlord) > 2) return;
     this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
 };
 

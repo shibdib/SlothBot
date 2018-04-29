@@ -10,8 +10,8 @@ Creep.prototype.swarmHarassRoom = function () {
         highCommand.operationSustainability(this.room);
         if (Memory.targetRooms[this.memory.targetRoom]) {
             let hostile = this.findClosestEnemy();
-            if (hostile && hostile.body && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK))) {
-                Memory.targetRooms[this.memory.targetRoom].level = 2;
+            if (hostile && hostile.body && (hostile.getActiveBodyparts(ATTACK) > 3 || hostile.getActiveBodyparts(RANGED_ATTACK) > 3)) {
+                delete Memory.targetRooms[this.memory.targetRoom];
             } else {
                 Memory.targetRooms[this.memory.targetRoom].level = 1;
             }

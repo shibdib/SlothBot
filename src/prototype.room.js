@@ -247,8 +247,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 needsCleaning = true;
             }
         }
-        let possibleRemote;
-        if (!owner && nonCombats.length >= 2) possibleRemote = true;
+        let potentialTarget;
+        if (!owner && nonCombats.length >= 2) potentialTarget = true;
         let key = room.name;
         cache[key] = {
             cached: Game.time,
@@ -267,7 +267,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             claimValue: claimValue,
             claimWorthy: claimWorthy,
             needsCleaning: needsCleaning,
-            possibleRemote: possibleRemote
+            potentialTarget: potentialTarget
         };
         Memory.roomCache = cache;
         if (power.length && power[0].ticksToDecay >= 2500) {
@@ -326,6 +326,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
+    if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     let sk;
     if (this.memory.lastInvaderCheck === Game.time) return;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
@@ -348,6 +349,8 @@ Room.prototype.invaderCheck = function () {
             for (let key in availableCreeps) {
                 if (retasked + 1 >= invader.length) break;
                 availableCreeps[key].memory.awaitingOrders = undefined;
+                availableCreeps[key].memory.targetRoom = undefined;
+                availableCreeps[key].memory.operation = undefined;
                 availableCreeps[key].memory.responseTarget = this.name;
                 if (availableCreeps[key].room.name !== this.name) log.a(availableCreeps[key].name + ' has been re-tasked to assist ' + this.name + ' they are en-route from ' + availableCreeps[key].room.name);
                 retasked++;
@@ -364,6 +367,7 @@ Room.prototype.invaderCheck = function () {
         if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
             if (armed.length) {
                 this.memory.threatLevel = 3;
+                Memory.roomCache[this.name].threatLevel = 3;
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let multiple = 2;
@@ -389,12 +393,14 @@ Room.prototype.invaderCheck = function () {
                 this.memory.roomHeat = roomHeat + (armed.length * 5);
             } else {
                 this.memory.threatLevel = 1;
+                Memory.roomCache[this.name].threatLevel = 1;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
             }
         }
         if (invader.length > 1 && invader[0].owner.username !== 'Invader') {
             if (armed.length) {
                 this.memory.threatLevel = 4;
+                Memory.roomCache[this.name].threatLevel = 4;
                 let cache = Memory._badBoyList || {};
                 let key = armed[0].owner.username;
                 let multiple = 2;
@@ -420,12 +426,14 @@ Room.prototype.invaderCheck = function () {
                 this.memory.roomHeat = roomHeat + (armed.length * 5);
             } else {
                 this.memory.threatLevel = 2;
+                Memory.roomCache[this.name].threatLevel = 2;
                 if (invader[0].getActiveBodyparts(MOVE) === 1) return true;
             }
         }
-        return !!armed.length;
+        return armed.length > 0;
     }
     if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
+        Memory.roomCache[this.name].threatLevel = undefined;
         this.memory.roomHeat = (this.memory.roomHeat - 0.5) || 0;
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;

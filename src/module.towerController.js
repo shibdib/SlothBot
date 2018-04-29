@@ -22,10 +22,10 @@ function towerControl(room) {
                         if (inRangeHealers.length > 0) healPower = ((inRangeHealers[0].getActiveBodyparts(HEAL) * HEAL_POWER) * 2) * inRangeHealers.length;
                         let range = armedHostile[i].pos.getRangeTo(tower);
                         let towerDamage = determineDamage(range);
-                        if ((!inRangeHealers.length || (healPower < (towerDamage * towers.length) * 0.9)) && (armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1)) {
+                        if ((!inRangeHealers.length || (healPower < (towerDamage * towers.length) * 0.9)) && ((armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1) || armedHostile[i].owner.username === 'Invader')) {
                             tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(tower.room.creeps, {filter: (c) => c.memory && (c.memory.role === 'responder' || c.memory.role === 'remoteResponse')})) === 1 && (healPower < (towerDamage * towers.length) * 0.7)) {
+                        } else if ((!inRangeHealers.length || (healPower < (towerDamage * towers.length) * 0.9)) && armedHostile[i].pos.getRangeTo(armedHostile[i].pos.findClosestByRange(tower.room.creeps, {filter: (c) => c.memory && (c.memory.role === 'responder' || c.memory.role === 'remoteResponse')})) === 1 && (healPower < (towerDamage * towers.length) * 0.7)) {
                             tower.attack(armedHostile[i]);
                             continue towers;
                         } else if (armedHostile[i].hits <= 150 * towers.length) {

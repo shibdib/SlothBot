@@ -24,12 +24,12 @@ module.exports.bodyGenerator = function (level, role) {
         // General Creeps
         case 'worker':
             work = level;
-            carry = _.round((1 * level) / 3) || 1;
+            carry = level;
             move = work + carry;
             break;
         case 'waller':
             work = level;
-            carry = _.round((1 * level) / 3) || 1;
+            carry = level;
             if (level === 8) {
                 work = 15;
                 carry = 10;
@@ -82,13 +82,11 @@ module.exports.bodyGenerator = function (level, role) {
             break;
         // Military
         case 'responder':
-            tough = _.round(0.5 * level);
             attack = 1 * level;
-            move = (tough + attack) / 2;
             if (level < 7 && level > 3) {
-                _.round(attack = 3 * level);
-                move = (tough + attack) / 4;
+                attack = 3 * level;
             }
+            move = _.round(attack / 2);
             if (level >= 7) {
                 attack = 30;
                 move = 15;
@@ -113,22 +111,34 @@ module.exports.bodyGenerator = function (level, role) {
             move = tough + heal + attack;
             break;
         case 'healer':
-            tough = _.round(0.5 * level);
-            heal = _.round(0.5 * level);
+            tough = 2;
+            heal = level - 1;
+            if (level >= 5) heal = level;
+            if (level >= 7) heal = 15;
             move = tough + heal;
             break;
         case 'longbow':
-            if (level < 5) {
-                rangedAttack = level - 1;
-                heal = 1;
-                move = level + heal;
-                break;
+            if (level === 4) {
+                rangedAttack = 2;
+                heal = 2;
+                tough = 3;
+                move = 7;
+            } else if (level === 5) {
+                rangedAttack = 3;
+                heal = 3;
+                tough = 3;
+                move = 9;
+            } else if (level === 6) {
+                rangedAttack = 4;
+                heal = 4;
+                tough = 4;
+                move = 12;
+            } else if (level >= 7) {
+                rangedAttack = 10;
+                heal = 10;
+                tough = 5;
+                move = 25;
             }
-            tough = _.round(0.5 * level);
-            rangedAttack = level;
-            heal = 2;
-            if (level >= 7) rangedAttack = level + 5;
-            move = tough + rangedAttack + heal;
             break;
         case 'raider':
             if (level < 6) break;
@@ -191,7 +201,7 @@ module.exports.bodyGenerator = function (level, role) {
             move = _.round(work / 2);
             break;
         case 'remoteHauler':
-            carry = 3 * level;
+            carry = 2 * level;
             work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
             break;

@@ -9,18 +9,6 @@ Creep.prototype.scoutRoom = function () {
     if (_.size(Memory.targetRooms)) {
         totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
     }
-    // Chance it gets delayed
-    if (Math.random() > 0.6) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[this.room.name] = {
-            tick: tick,
-            type: 'pending',
-            dDay: tick + 2500,
-        };
-        Memory.targetRooms = cache;
-        return this.suicide();
-    }
     // Get available rooms
     let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
@@ -33,11 +21,11 @@ Creep.prototype.scoutRoom = function () {
     let closestOwned = this.room.findClosestOwnedRoom();
     let pathedRange = this.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
     let priority = 4;
-    if (range === 1) {
+    if (range <= 2) {
         priority = 1;
-    } else if (range <= 2 && pathedRange <= 2) {
+    } else if (range <= 3 && pathedRange <= 3) {
         priority = 2;
-    } else if (pathedRange <= 5) {
+    } else if (pathedRange <= 6) {
         priority = 3;
     } else {
         priority = 4;
@@ -45,7 +33,7 @@ Creep.prototype.scoutRoom = function () {
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
-    if (totalCount < surplusRooms * 3 || totalCount < totalRooms || priority === 1) {
+    if (totalCount < surplusRooms * 3 || totalCount < totalRooms || priority === 1 || Memory.targetRooms[this.room.name].local) {
         if (!controller) {
             let type = 'swarmHarass';
             if (Math.random() > Math.random()) type = 'harass';

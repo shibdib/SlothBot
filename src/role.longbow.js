@@ -25,6 +25,7 @@ function role(creep) {
                 return findDefensivePosition(creep, creep);
             }
         }
+        return;
     }
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();

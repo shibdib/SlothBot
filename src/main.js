@@ -12,14 +12,14 @@ let shib = require("shibBench");
 
 module.exports.loop = function() {
     profiler.wrap(function () {
+        log.d('Initiating Tick');
         let mainCpu = Game.cpu.getUsed();
-        //Dissi hack
-        //tryInitSameMemory();
 
         //Logging level
-        Memory.loggingLevel = 5; //Set level 1-5 (5 being most info)
+        Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
         // Get Tick Length
+        log.d('Getting Tick Length');
         let d = new Date();
         let seconds = _.round(d.getTime() / 1000, 2);
         let lastTick = Memory.lastTick || seconds;
@@ -35,21 +35,26 @@ module.exports.loop = function() {
         Memory.tickLength = average(Memory.tickLengthArray);
 
         //Update allies
+        log.d('Updating LOAN List');
         populateLOANlist();
 
         //Must run modules
+        log.d('Utility Modules');
         segments.segmentManager();
         cleanUp.cleanup();
 
         //Bucket Check
+        log.d('Bucket Check');
         if (Game.cpu.bucket < 100 * Game.cpu.tickLimit && Game.cpu.bucket < Game.cpu.limit * 10) {
             log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
             return;
         }
 
         //Hive Mind
+        log.d('Initiate Hive');
         hive.hiveMind();
 
+        log.d('Benchmark Processed');
         shib.shibBench('Total', mainCpu);
         shib.processBench();
     });
@@ -127,13 +132,4 @@ nukes = function (target) {
         if (target) log.a(nukes[key].room.name + ' has a nuclear missile available that is in range of ' + target);
         if (!target) log.a(nukes[key].room.name + ' has a nuclear missile available.')
     }
-};
-
-test = function () {
-    let cache = Memory._badBoyList || {};
-    cache['TESTING'] = {
-        threatRating: 5,
-        lastAction: Game.time,
-    };
-    Memory._badBoyList = cache;
 };
