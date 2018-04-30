@@ -436,7 +436,7 @@ module.exports.remoteCreepQueue = function (room) {
     if (responseNeeded && !_.includes(queue, 'remoteResponse')) {
         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseNeeded.name && creep.memory.role === 'remoteResponse');
         if (responder.length < 3) {
-            queueCreep(room, PRIORITIES.responder, {
+            queueCreep(room, PRIORITIES.remoteResponse, {
                 role: 'remoteResponse',
                 responseTarget: responseNeeded.name,
                 military: true
@@ -453,13 +453,13 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].owner) continue;
             // Check if room is hostile
             let roomThreat;
-            if ((Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded) || (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel)) roomThreat = true;
+            if ((Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded) || (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel || Memory.roomCache[room.memory.remoteRooms[keys]].hostiles))) roomThreat = true;
             // Remote Response
             if (!_.includes(queue, 'longbow')) {
                 if (roomThreat && !room.memory.responseNeeded) {
                     let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.remoteRooms[keys] && creep.memory.role === 'longbow');
                     if (longbow.length < 2) {
-                        queueCreep(room, PRIORITIES.remoteResponse, {
+                        queueCreep(room, PRIORITIES.responder, {
                             role: 'longbow',
                             responseTarget: room.memory.remoteRooms[keys],
                             military: true,

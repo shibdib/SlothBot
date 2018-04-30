@@ -144,6 +144,11 @@ module.exports.bodyGenerator = function (level, role) {
                 heal = 10;
                 tough = 5;
                 move = 25;
+            } else {
+                rangedAttack = 1;
+                heal = 1;
+                tough = 1;
+                move = 3;
             }
             break;
         case 'raider':
