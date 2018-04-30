@@ -459,18 +459,19 @@ function buildLabs(room, structures) {
         }
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
-            let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 25, hub.x - 25, hub.y + 25, hub.x + 25, true);
+            let hub = new RoomPosition(25, 25, room.name);
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 18, hub.x - 18, hub.y + 18, hub.x + 18, true);
             let good;
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                if (position.getRangeTo(hub) > 8) {
-                    if (position.checkIfOutOfBounds() || position.checkForWall() || position.checkForAllStructure().length > 0) continue;
+                if (!position.checkIfOutOfBounds()) {
+                    if (position.checkForWall() || position.checkForAllStructure().length > 0) continue;
                     let surrounding = room.lookForAtArea(LOOK_TERRAIN, position.y - 3, position.x - 3, position.y + 3, position.x + 3, true);
                     for (let key in surrounding) {
                         let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
                         good = false;
-                        if (labPos.checkIfOutOfBounds() || labPos.checkForWall() || labPos.checkForAllStructure().length > 0) break;
+                        if (labPos.checkIfOutOfBounds() || labPos.checkForWall() || labPos.checkForAllStructure().length ||
+                            labPos.x < 5 || labPos.x > 44 || labPos.y < 5 || labPos.y > 44) break;
                         good = true;
                         if (good) {
                             return position.createConstructionSite(STRUCTURE_LAB);

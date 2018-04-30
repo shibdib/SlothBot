@@ -368,8 +368,7 @@ module.exports.workerCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.responder, {
                     role: 'longbow',
                     responseTarget: room.name,
-                    military: true,
-                    misc: 'vary'
+                    military: true
                 })
             }
         }
@@ -462,8 +461,7 @@ module.exports.remoteCreepQueue = function (room) {
                         queueCreep(room, PRIORITIES.responder, {
                             role: 'longbow',
                             responseTarget: room.memory.remoteRooms[keys],
-                            military: true,
-                            misc: 'vary'
+                            military: true
                         })
                     }
                 }
@@ -712,8 +710,7 @@ module.exports.militaryCreepQueue = function () {
                     targetRoom: key,
                     operation: 'harass',
                     waitFor: opLevel * 2,
-                    military: true,
-                    misc: 'vary'
+                    military: true
                 })
             }
         }
