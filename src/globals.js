@@ -50,10 +50,10 @@ let globals = function () {
         // Remotes
         remoteUtility: 5,
         remoteHarvester: 3,
-        remoteHauler: 3,
-        pioneer: 4,
+        remoteHauler: 4,
+        pioneer: 5,
         remoteResponse: 3,
-        reserver: 4,
+        reserver: 5,
         // Power
         Power: 5,
         // SK
@@ -62,10 +62,10 @@ let globals = function () {
         SKsupport: 6,
         SKhauler: 6,
         // Military
-        urgent: 3,
-        high: 5,
-        medium: 6,
-        secondary: 7,
+        urgent: 5,
+        high: 6,
+        medium: 7,
+        secondary: 8,
         siege: 6,
         harass: 5,
         hold: 4,

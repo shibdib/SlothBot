@@ -290,11 +290,6 @@ Creep.prototype.moveToStaging = function () {
     if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.targetRoom) return false;
     if (this.memory.staging) this.memory.stagingRoom = this.memory.staging;
     if (this.memory.stagingRoom === this.room.name) {
-        if (this.room.memory.responseNeeded || this.findClosestEnemy()) {
-            this.handleMilitaryCreep(false, true);
-            findDefensivePosition(this, this);
-            return;
-        }
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom));
         let inPlace = _.filter(this.room.creeps, (creep) => creep.memory && creep.memory.targetRoom === this.memory.targetRoom);
         if (inPlace.length >= this.memory.waitFor) {

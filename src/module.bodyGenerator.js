@@ -19,12 +19,17 @@ module.exports.bodyGenerator = function (level, role) {
                 attack = 1
             }
             move = 1;
-            if (level > 2) move = 2;
+            if (level > 2) move = 3;
             break;
         // General Creeps
         case 'worker':
             work = level;
             carry = level;
+            move = work + carry;
+            break;
+        case 'repairer':
+            work = 2;
+            carry = 1;
             move = work + carry;
             break;
         case 'waller':
@@ -50,11 +55,11 @@ module.exports.bodyGenerator = function (level, role) {
             }
         case 'hauler':
             if (level < 4) {
-                carry = 1 * level;
+                carry = level;
                 move = carry;
-                break;
+                break
             } else {
-                carry = 3 * level;
+                carry = _.random(level, 3 * level);
                 work = _.random(0, 1);
                 move = _.round((carry / 2)) + work;
                 break;
@@ -70,7 +75,7 @@ module.exports.bodyGenerator = function (level, role) {
                 move = 2;
                 break;
             } else {
-                work = 6;
+                work = 5;
                 carry = 1;
                 move = 2;
                 break;
@@ -88,8 +93,9 @@ module.exports.bodyGenerator = function (level, role) {
             }
             move = _.round(attack / 2);
             if (level >= 7) {
+                tough = 3;
                 attack = 30;
-                move = 15;
+                move = 17;
             }
             break;
         case 'remoteResponse':
@@ -196,12 +202,12 @@ module.exports.bodyGenerator = function (level, role) {
             move = work + carry;
             break;
         case 'remoteHarvester':
-            work = _.round((1 * level) / 2);
-            carry = _.round((1 * level) / 3) || 1;
+            work = _.round(0.5 * level);
+            carry = 1;
             move = _.round(work / 2);
             break;
         case 'remoteHauler':
-            carry = 2 * level;
+            carry = _.random(level, 2 * level);
             work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
             break;
