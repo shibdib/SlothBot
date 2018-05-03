@@ -82,12 +82,7 @@ Creep.prototype.scoutRoom = function () {
                 priority: priority
             };
         } else {
-            cache[this.room.name] = {
-                tick: tick,
-                type: 'harass',
-                level: 1,
-                priority: priority
-            };
+            delete Memory.targetRooms[this.room.name];
         }
     } else {
         cache[this.room.name] = {

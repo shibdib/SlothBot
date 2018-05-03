@@ -263,7 +263,7 @@ Creep.prototype.flee = function (target) {
 Creep.prototype.fightRanged = function (target) {
     let hostile = this.findClosestEnemy(false);
     let range = this.pos.getRangeTo(hostile);
-    let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
+    let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     if (range <= 3) {
         if (range <= 2) {
             this.kite();

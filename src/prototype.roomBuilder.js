@@ -179,90 +179,102 @@ function controllerSupplier(room, structures) {
 function buildWalls(room, structures) {
     let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     if (!tower.length) return;
-    if (room.controller.level > 6) {
+    if (room.controller.level > 8) {
         for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
     if (room.controller.level < 2) return;
     let neighboring = Game.map.describeExits(room.name);
-    if (neighboring && !TEN_CPU) {
+    if (neighboring) {
         if (neighboring['1']) {
-            let exits = room.find(FIND_EXIT_TOP);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 0, 2, 49, true);
-            for (let key in terrain) {
-                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.x % 2) {
-                    position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                        position.createConstructionSite(STRUCTURE_ROAD);
-                    }
-                } else {
-                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+            let secondary = Game.map.describeExits(neighboring['1']);
+            if (_.size(secondary) > 1) {
+                let exits = room.find(FIND_EXIT_TOP);
+                let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 0, 2, 49, true);
+                for (let key in terrain) {
+                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                    if (position.x % 2) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
+                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
+                            position.createConstructionSite(STRUCTURE_ROAD);
+                        }
                     } else {
-                        position.createConstructionSite(STRUCTURE_WALL);
+                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                            position.createConstructionSite(STRUCTURE_RAMPART);
+                        } else {
+                            position.createConstructionSite(STRUCTURE_WALL);
+                        }
                     }
                 }
             }
         }
         if (neighboring['3']) {
-            let exits = room.find(FIND_EXIT_RIGHT);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 47, 49, 48, true);
-            for (let key in terrain) {
-                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.y % 2) {
-                    position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                        position.createConstructionSite(STRUCTURE_ROAD);
-                    }
-                } else {
-                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+            let secondary = Game.map.describeExits(neighboring['3']);
+            if (_.size(secondary) > 1) {
+                let exits = room.find(FIND_EXIT_RIGHT);
+                let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 47, 49, 48, true);
+                for (let key in terrain) {
+                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                    if (position.y % 2) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
+                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
+                            position.createConstructionSite(STRUCTURE_ROAD);
+                        }
                     } else {
-                        position.createConstructionSite(STRUCTURE_WALL);
+                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                            position.createConstructionSite(STRUCTURE_RAMPART);
+                        } else {
+                            position.createConstructionSite(STRUCTURE_WALL);
+                        }
                     }
                 }
             }
         }
         if (neighboring['5']) {
-            let exits = room.find(FIND_EXIT_BOTTOM);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 47, 0, 49, 48, true);
-            for (let key in terrain) {
-                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.x % 2) {
-                    position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                        position.createConstructionSite(STRUCTURE_ROAD);
-                    }
-                } else {
-                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+            let secondary = Game.map.describeExits(neighboring['5']);
+            if (_.size(secondary) > 1) {
+                let exits = room.find(FIND_EXIT_BOTTOM);
+                let terrain = room.lookForAtArea(LOOK_TERRAIN, 47, 0, 49, 48, true);
+                for (let key in terrain) {
+                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                    if (position.x % 2) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
+                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
+                            position.createConstructionSite(STRUCTURE_ROAD);
+                        }
                     } else {
-                        position.createConstructionSite(STRUCTURE_WALL);
+                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                            position.createConstructionSite(STRUCTURE_RAMPART);
+                        } else {
+                            position.createConstructionSite(STRUCTURE_WALL);
+                        }
                     }
                 }
             }
         }
         if (neighboring['7']) {
-            let exits = room.find(FIND_EXIT_LEFT);
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 1, 49, 2, true);
-            for (let key in terrain) {
-                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                if (position.y % 2) {
-                    position.createConstructionSite(STRUCTURE_RAMPART);
-                    if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                        position.createConstructionSite(STRUCTURE_ROAD);
-                    }
-                } else {
-                    if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+            let secondary = Game.map.describeExits(neighboring['7']);
+            if (_.size(secondary) > 1) {
+                let exits = room.find(FIND_EXIT_LEFT);
+                let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 1, 49, 2, true);
+                for (let key in terrain) {
+                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
+                    if (position.y % 2) {
                         position.createConstructionSite(STRUCTURE_RAMPART);
+                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
+                            position.createConstructionSite(STRUCTURE_ROAD);
+                        }
                     } else {
-                        position.createConstructionSite(STRUCTURE_WALL);
+                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
+                            position.createConstructionSite(STRUCTURE_RAMPART);
+                        } else {
+                            position.createConstructionSite(STRUCTURE_WALL);
+                        }
                     }
                 }
             }

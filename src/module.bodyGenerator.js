@@ -139,7 +139,12 @@ module.exports.bodyGenerator = function (level, role) {
                 heal = 4;
                 tough = 4;
                 move = 12;
-            } else if (level >= 7) {
+            } else if (level === 7) {
+                rangedAttack = 6;
+                heal = 7;
+                tough = 5;
+                move = 18;
+            } else if (level === 8) {
                 rangedAttack = 10;
                 heal = 10;
                 tough = 5;
@@ -251,4 +256,4 @@ module.exports.bodyGenerator = function (level, role) {
     let toughArray = [];
     for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
     return toughArray.concat(shuffle(body), moveArray, healArray);
-}
+};

@@ -21,16 +21,11 @@ function role(creep) {
     }
     if (!creep.memory.destination && !creep.memory.hauling && !creep.memory.destinationReached) {
         if (!Game.rooms[creep.memory.overlord].memory.remoteRooms) return creep.suicide();
-        let remotes = shuffle(Game.rooms[creep.memory.overlord].memory.remoteRooms);
-        for (let key in remotes) {
-            let remote = remotes[key];
-            let hauler = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === creep.memory.overlord && c.memory.role === creep.memory.role && c.memory.destination === remotes[key]);
-            if (Game.rooms[remote] && !hauler.length && Game.rooms[remote].memory.needsPickup) {
-                creep.memory.destination = remotes[key];
-                break;
-            }
-        }
-        if (!creep.memory.destination) creep.getEnergy();
+        let overlord = Game.rooms[creep.memory.overlord];
+        let requesting = overlord.memory.remotesNeedingHauler;
+        if (!requesting.length) return creep.idleFor(15);
+        creep.memory.destination = requesting[0];
+        overlord.memory.remotesNeedingHauler = _.filter(requesting, (r) => r !== creep.memory.destination);
     }
     if (creep.pos.roomName === creep.memory.destination) {
         creep.memory.destinationReached = true;

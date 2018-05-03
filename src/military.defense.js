@@ -15,10 +15,12 @@ function controller(room) {
     room.invaderCheck();
     room.handleNukeAttack();
     safeModeManager(room);
-    //ramparts up unless ally in room and no enemies near him
+    //TODO: ramparts up unless ally in room and no enemies near him
     let rampartCpu = Game.cpu.getUsed();
     //rampartManager(room, structures);
     shib.shibBench('rampartManager', rampartCpu);
+    // Early Warning System
+    //earlyWarning(room);
     if (room.memory.threatLevel >= 4) {
         let coveredSpawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.pos.checkForRampart());
         let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner));
@@ -72,10 +74,10 @@ function controller(room) {
     }
 
 
-//Remote Defense
+//TODO: Remote Defense
 
 
-//Allied Defense
+//TODO: Allied Defense
 
 }
 
@@ -114,6 +116,16 @@ function safeModeManager(room) {
     let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_EXIT)) > 3);
     if (enemyMilitary.length && !alliedMilitary.length) {
         return room.controller.activateSafeMode();
+    }
+}
+
+function earlyWarning(room) {
+    let earlyWarning;
+    if (room.memory.remoteRooms) earlyWarning = _.filter(room.memory.remoteRooms, (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3);
+    if (earlyWarning.length) {
+        room.memory.responseNeeded = true;
+        room.memory.tickDetected = Game.time;
+        room.memory.threatLevel = Memory.roomCache[earlyWarning[0]].threatLevel;
     }
 }
 

@@ -26,6 +26,13 @@ function role(creep) {
             delete creep.room.memory.requestingPioneer;
         }
     }
+    // Call for hauler
+    let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
+    if (dropped && dropped.amount > 500) markReadyForHauler(creep);
+    if (creep.memory.containerID) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container && _.sum(container.store) > 500) markReadyForHauler(creep);
+    }
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
@@ -61,14 +68,12 @@ module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
-        let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
-        if (dropped && dropped.amount) creep.room.memory.needsPickup = true;
         if (Game.rooms[creep.memory.overlord].controller.level >= 4) creep.memory.containerID = creep.harvestDepositContainer();
     } else if (creep.memory.containerID) {
         if (!creep.memory.buildAttempt) remoteRoads(creep);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            creep.room.memory.needsPickup = _.sum(container.store) > 500;
+            if (_.sum(container.store) > 500) markReadyForHauler(creep);
             if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
             if (Game.time % 10 === 0 && container.hits < container.hitsMax * 0.75) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
@@ -142,4 +147,12 @@ function buildRoadAround(room, position) {
 function buildRoad(position) {
     //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
+}
+
+function markReadyForHauler(creep) {
+    let overlord = Game.rooms[creep.memory.overlord];
+    let requester = overlord.memory.remotesNeedingHauler || [];
+    let inbound = _.filter(Game.creeps, (c) => c.memory.destination === creep.room.name && (c.memory.role === 'remoteHauler' || c.memory.role === 'hauler'));
+    if (!_.includes(requester, creep.room.name) && inbound.length < 2) requester.push(creep.room.name);
+    overlord.memory.remotesNeedingHauler = requester;
 }

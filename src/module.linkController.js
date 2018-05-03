@@ -33,7 +33,7 @@ function linkControl(room) {
             link.transferEnergy(storageLink);
         }
     }
-    if (storageLink && controllerLink && storageLink.energy > 100 && controllerLink.energy < 250 && storageLink.room.energyAvailable > storageLink.room.energyCapacityAvailable * 0.50) {
+    if (storageLink && controllerLink && storageLink.energy > 100 && controllerLink.energy < 250 && storageLink.room.energyAvailable > storageLink.room.energyCapacityAvailable * 0.95) {
         storageLink.transferEnergy(controllerLink);
     }
 }

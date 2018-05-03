@@ -62,7 +62,11 @@ function role(creep) {
                 if (source) creep.memory.source = source.id;
             } else if (creep.memory.source) {
                 let source = Game.getObjectById(creep.memory.source);
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+                if (source && source.energy) {
+                    if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+                } else {
+                    delete creep.memory.source;
+                }
             }
         }
     }
