@@ -29,6 +29,7 @@ module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 function manageBoostProduction(room) {
     let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2);
     if (!availableLabs.length) return;
+    availableLabs = availableLabs[0];
     let storage = room.storage;
     let terminal = room.terminal;
     let boost;
@@ -67,7 +68,7 @@ function manageBoostProduction(room) {
     if (!boost) return;
     let componentOne = BOOST_COMPONENTS[boost][0];
     let componentTwo = BOOST_COMPONENTS[boost][1];
-    let hub = availableLabs.pos.findInRange(room.structures, 3, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
+    let hub = availableLabs.pos.findInRange(room.structures, 2, {filter: (s) => s.structureType === STRUCTURE_LAB && !s.memory.active});
     for (let labID in hub) {
         let one = _.filter(hub, (h) => h.memory.itemNeeded === componentOne)[0];
         let two = _.filter(hub, (h) => h.memory.itemNeeded === componentTwo)[0];
@@ -124,47 +125,46 @@ function manageActiveLabs(room) {
                 }
                 //If on cooldown continue
                 if (outputLab.cooldown) continue;
-                //Check for range issues
-                let rangeOne;
-                let rangeTwo;
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
-                if (creatorOne) rangeOne = creatorOne.pos.getRangeTo(outputLab);
-                if (creatorTwo) rangeTwo = creatorTwo.pos.getRangeTo(outputLab);
-                if ((rangeOne > 3 || rangeTwo > 3 || !rangeOne || !rangeTwo) && !outputLab.memory.neededBoost) {
-                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
-                    for (let id in creators) {
-                        creators[id].memory = undefined;
-                    }
-                    outputLab.memory = undefined;
-                    continue;
-                }
                 //Clean bad boosting
                 if (outputLab.memory.neededBoost && outputLab.memory.neededBoost !== outputLab.memory.creating) delete outputLab.memory.neededBoost;
                 if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) delete creatorOne.memory.neededBoost;
                 if (creatorTwo.memory.neededBoost && creatorTwo.memory.neededBoost !== creatorTwo.memory.itemNeeded) delete creatorTwo.memory.neededBoost;
-                if (outputLab.memory.creating) outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]));
-                // Enough created
-                let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
-                if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
-                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
-                    for (let id in creators) {
-                        creators[id].memory = undefined;
-                    }
-                    outputLab.memory = undefined;
-                    continue;
-                }
-                // Input shortage
-                for (let id in creators) {
-                    let lab = Game.getObjectById(creators[id]);
-                    let total = getBoostAmount(lab.room, lab.memory.itemNeeded);
-                    if (total < 100) {
-                        log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
-                        for (let id in creators) {
-                            creators[id].memory = undefined;
-                        }
-                        outputLab.memory = undefined;
-                        continue active;
+                if (outputLab.memory.creating) {
+                    switch (outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]))) {
+                        case OK:
+                            // Enough created
+                            let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
+                            if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
+                                log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
+                                for (let id in creators) {
+                                    creators[id].memory = undefined;
+                                }
+                                outputLab.memory = undefined;
+                                continue;
+                            }
+                            continue;
+                        case ERR_NOT_ENOUGH_RESOURCES:
+                            for (let id in creators) {
+                                let lab = Game.getObjectById(creators[id]);
+                                let total = getBoostAmount(lab.room, lab.memory.itemNeeded);
+                                if (total < 150) {
+                                    log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
+                                    for (let id in creators) {
+                                        creators[id].memory = undefined;
+                                    }
+                                    outputLab.memory = undefined;
+                                    continue active;
+                                }
+                            }
+                            continue;
+                        case ERR_NOT_IN_RANGE:
+                            log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a range issue.');
+                            for (let id in creators) {
+                                creators[id].memory = undefined;
+                            }
+                            outputLab.memory = undefined;
                     }
                 }
             }
@@ -174,15 +174,12 @@ function manageActiveLabs(room) {
 function checkForInputs(room, boost) {
     let storage = room.storage;
     let terminal = room.terminal;
-    let labTech = _.filter(room.creeps, (c) => c.memory && c.memory.role === 'labTech');
     let components = BOOST_COMPONENTS[boost];
     if (!components.length) return undefined;
     for (let input of shuffle(components)) {
         let storageAmount = storage.store[input] || 0;
         let terminalAmount = terminal.store[input] || 0;
-        let techAmount;
-        if (labTech.length) techAmount = labTech.carry[input] || 0;
-        if (storageAmount + terminalAmount + techAmount < 500) return checkForInputs(room, input);
+        if (storageAmount + terminalAmount < 500) return checkForInputs(room, input);
     }
     return boost;
 }

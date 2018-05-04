@@ -345,6 +345,13 @@ function getResourceAmount(room, boost) {
 }
 
 function remoteHelper(creep) {
+    let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === creep.memory.overlord);
+    let hauler = _.filter(roomCreeps, (c) => (c.memory.role === 'hauler' && c.memory.remote && c.id !== creep.id));
+    if (hauler.length) {
+        creep.memory.destination = undefined;
+        creep.memory.remote = undefined;
+        return;
+    }
     if (!creep.memory.remote) {
         let overlord = Game.rooms[creep.memory.overlord];
         let requesting = overlord.memory.remotesNeedingHauler;

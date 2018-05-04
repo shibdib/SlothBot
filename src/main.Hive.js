@@ -80,12 +80,10 @@ function mind() {
         shib.shibBench('militarySpawn', cpu);
     }
     //Process creep build queues
-    if (Game.time % 2 === 0) {
-        cpu = Game.cpu.getUsed();
-        log.d('Process Build Queues');
-        spawning.processBuildQueue();
-        shib.shibBench('processBuildQueue', cpu);
-    }
+    cpu = Game.cpu.getUsed();
+    log.d('Process Build Queues');
+    spawning.processBuildQueue();
+    shib.shibBench('processBuildQueue', cpu);
     //Room HUD (If CPU Allows)
     if (!TEN_CPU && Game.cpu.getUsed() < Game.cpu.limit) {
         cpu = Game.cpu.getUsed();

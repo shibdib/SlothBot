@@ -122,7 +122,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let destRoomName = target.roomName;
         let allowedRooms = pathInfo.route || options.route;
         if (!allowedRooms && roomDistance > 1) {
-            if (roomDistance > 12) options.returnIncomplete = true;
             let route;
             if (options.useCache) route = getRoute(origin, target);
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
@@ -195,6 +194,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             options.range = 23;
             if (!pathInfo.findAttempt) {
                 options.useFindRoute = true;
+                options.returnIncomplete = true;
                 options.allowSK = true;
                 options.maxRooms = 16;
                 pathInfo.findAttempt = true;
@@ -213,10 +213,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                         delete Memory.roomCache[creep.memory.targetRoom];
                     }
                     return creep.suicide();
-                }
-                if (creep.memory.badPathing > 25) {
-                    creep.memory._shibMove = undefined;
-                    return shibPath(creep, heading, pathInfo, origin, target, options);
                 }
                 return creep.moveTo(target);
             }
@@ -294,7 +290,7 @@ function findRoute(origin, destination, options = {}) {
             }
             // Avoid rooms reserved by others
             if (Memory.roomCache && Memory.roomCache[roomName]) {
-                if ((Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation.username))
+                if ((Memory.roomCache[roomName].reservation && (!_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation.username) || Memory.roomCache[roomName].potentialTarget))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.reservation && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.reservation.username))) {
                     return 25;
                 }

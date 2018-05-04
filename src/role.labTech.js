@@ -26,12 +26,10 @@ function role(creep) {
         let terminal = creep.room.terminal;
         let storage = creep.room.storage;
         for (let key in labs) {
-            let helper = _.filter(creep.room.creeps, (c) => c.memory && c.memory.labHelper === labs[key].id && c.id !== creep.id)[0];
-            if (helper) continue;
-            if (creep.memory.emptying ||
+            if ((!creep.memory.emptying ||
                 (labs[key].memory.itemNeeded && !labs[key].memory.neededBoost && (labs[key].mineralType && labs[key].mineralType !== labs[key].memory.itemNeeded)) ||
                 (!labs[key].memory.itemNeeded && !labs[key].memory.neededBoost && labs[key].mineralAmount >= 500) ||
-                (!labs[key].memory.itemNeeded && !labs[key].memory.neededBoost && labs[key].mineralType && labs[key].mineralType !== labs[key].memory.creating)) {
+                (!labs[key].memory.itemNeeded && !labs[key].memory.neededBoost && labs[key].mineralType && labs[key].mineralType !== labs[key].memory.creating)) && !creep.memory.componentNeeded) {
                 if (!creep.memory.labHelper) creep.memory.labHelper = labs[key].id;
                 let lab = Game.getObjectById(creep.memory.labHelper);
                 if (_.sum(creep.carry) > 0) {

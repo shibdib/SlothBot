@@ -196,7 +196,7 @@ module.exports.hud = function () {
             new RoomVisual(name).text(
                 ICONS.claimController + ' Claim Target: ' + room.memory.claimTarget,
                 1,
-                4,
+                7,
                 {align: 'left', opacity: 0.5, color: '#31ff1e'}
             );
         }

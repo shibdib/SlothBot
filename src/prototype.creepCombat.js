@@ -287,12 +287,12 @@ Creep.prototype.fightRanged = function (target) {
 };
 
 Creep.prototype.moveToStaging = function () {
-    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.targetRoom) return false;
+    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.targetRoom || !Memory.targetRooms[this.memory.targetRoom]) return false;
     if (this.memory.staging) this.memory.stagingRoom = this.memory.staging;
     if (this.memory.stagingRoom === this.room.name) {
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom));
         let inPlace = _.filter(this.room.creeps, (creep) => creep.memory && creep.memory.targetRoom === this.memory.targetRoom);
-        if (inPlace.length >= this.memory.waitFor) {
+        if (inPlace.length >= this.memory.waitFor || this.ticksToLive <= 800) {
             this.memory.stagingComplete = true;
             if (!Memory.targetRooms[this.memory.targetRoom].lastWave || Memory.targetRooms[this.memory.targetRoom].lastWave + 50 < Game.time) {
                 let waves = Memory.targetRooms[this.memory.targetRoom].waves || 0;

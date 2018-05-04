@@ -6,6 +6,7 @@ const profiler = require('screeps-profiler');
 
 function highCommand() {
     manualAttacks();
+    manageResponseForces();
     if (Game.time % 10 === 0 || Game.cpu.bucket < 5000) manageAttacks();
     operationRequests();
 }
@@ -113,6 +114,17 @@ function manageAttacks() {
                 delete Memory.targetRooms[key];
             }
         }
+    }
+}
+
+function manageResponseForces() {
+    let idleResponders = _.filter(Game.creeps, (c) => c.memory.awaitingOrders);
+    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded), 'threatLevel');
+    if (!responseTargets || !responseTargets.name) return;
+    for (let creep of idleResponders) {
+        creep.memory.responseTarget = responseTargets.name;
+        creep.memory.awaitingOrders = undefined;
+        log.i(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
     }
 }
 

@@ -472,22 +472,20 @@ function buildLabs(room, structures) {
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
             let hub = new RoomPosition(25, 25, room.name);
-            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 18, hub.x - 18, hub.y + 18, hub.x + 18, true);
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
             let good;
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                if (!position.checkIfOutOfBounds()) {
-                    if (position.checkForWall() || position.checkForAllStructure().length > 0) continue;
-                    let surrounding = room.lookForAtArea(LOOK_TERRAIN, position.y - 3, position.x - 3, position.y + 3, position.x + 3, true);
-                    for (let key in surrounding) {
-                        let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                        good = false;
-                        if (labPos.checkIfOutOfBounds() || labPos.checkForWall() || labPos.checkForAllStructure().length ||
-                            labPos.x < 5 || labPos.x > 44 || labPos.y < 5 || labPos.y > 44) break;
-                        good = true;
-                        if (good) {
-                            return position.createConstructionSite(STRUCTURE_LAB);
-                        }
+                if (position.checkForWall() || position.checkForAllStructure().length > 0) continue;
+                let surrounding = room.lookForAtArea(LOOK_TERRAIN, position.y - 3, position.x - 3, position.y + 3, position.x + 3, true);
+                for (let key in surrounding) {
+                    let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
+                    good = false;
+                    if (labPos.checkForWall() || labPos.checkForAllStructure().length ||
+                        labPos.x < 5 || labPos.x > 44 || labPos.y < 5 || labPos.y > 44) break;
+                    good = true;
+                    if (good) {
+                        return position.createConstructionSite(STRUCTURE_LAB);
                     }
                 }
             }
@@ -496,7 +494,7 @@ function buildLabs(room, structures) {
             buildRoadFromTo(room, labs[0], room.controller);
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0) continue;
+                if (position.checkForWall() || position.checkForAllStructure().length > 0) continue;
                 switch (position.createConstructionSite(STRUCTURE_LAB)) {
                     case OK:
                         continue;

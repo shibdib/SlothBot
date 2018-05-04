@@ -427,8 +427,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     let sStorage = this.room.storage;
     if (sStorage && (this.room.memory.energySurplus || this.room.memory.responseNeeded)) {
         let weight = 15;
-        if (this.room.memory.energySurplus || this.room.memory.responseNeeded) weight = 0.3;
-        if (this.room.memory.responseNeeded) weight = 1.2;
+        if (this.room.memory.responseNeeded) weight = 0.3;
         const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
         energy.push({
             id: sStorage.id,

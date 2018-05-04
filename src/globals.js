@@ -62,10 +62,10 @@ let globals = function () {
         SKsupport: 6,
         SKhauler: 6,
         // Military
-        urgent: 4,
-        high: 5,
-        medium: 6,
-        secondary: 7,
+        urgent: 7,
+        high: 8,
+        medium: 9,
+        secondary: 10,
         siege: 6,
         harass: 5,
         hold: 4,
@@ -75,7 +75,7 @@ let globals = function () {
         scout: 2,
         responder: 2,
         // Misc
-        claimer: 2,
+        claimer: 5,
         explorer: 2,
         jerk: 2,
     };

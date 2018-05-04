@@ -56,7 +56,10 @@ function role(creep) {
             depositEnergy(creep);
         }
     } else {
-        creep.findSource();
+        if (!creep.findSource()) {
+            let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester'), 'ticksToLive');
+            creep.memory.source = oldestHarvester.memory.source;
+        }
     }
 }
 module.exports.role = profiler.registerFN(role, 'harvesterRole');
