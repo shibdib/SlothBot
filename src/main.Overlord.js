@@ -12,7 +12,7 @@ function mind(room, roomLimit) {
 
     // Abandon Bad Rooms
     log.d('Abandon Check');
-    let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner));
+    let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
     let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.my);
     if (room.controller.level <= 4 && hostiles.length && !worthyStructures.length) {
         if (Game.time % 25 === 0) room.memory.badCount = room.memory.badCount++ || 1;

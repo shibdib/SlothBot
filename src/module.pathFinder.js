@@ -426,7 +426,7 @@ function addStructuresToMatrix(room, matrix, roadCost) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         }
     }
-    let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner)));
+    let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
     for (let site of blockingSites) {
         matrix.set(site.pos.x, site.pos.y, 256);
     }

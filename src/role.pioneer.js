@@ -108,9 +108,9 @@ function role(creep) {
                         creep.memory.task = undefined;
                         break;
                 }
-            } else if (creep.room.controller && creep.room.controller.owner && creep.room.controller.my && creep.room.controller.level < 3) {
+            } else if (creep.room.controller && creep.room.controller.my && creep.room.controller.level < 3) {
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) creep.shibMove(creep.room.controller, {range: 3});
-            } else if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.my && creep.room.controller.ticksToDowngrade < 3000)) {
+            } else if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.my && creep.room.controller.ticksToDowngrade < 3000)) {
                 creep.memory.upgrade = true;
                 if (creep.room.controller.ticksToDowngrade >= 4000) delete creep.memory.upgrade;
                 if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
