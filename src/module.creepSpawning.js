@@ -410,6 +410,25 @@ module.exports.workerCreepQueue = function (room) {
             })
         }
     }
+    // Assist room
+    let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
+    if (needyRoom && !room.memory.responseNeeded && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) {
+        if (!_.includes(queue, 'pioneer')) {
+            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
+            if (pioneers.length < level * 2) {
+                queueCreep(room, 2, {
+                    role: 'pioneer',
+                    destination: needyRoom.name
+                })
+            }
+        }
+        if (!_.includes(queue, 'longbow')) {
+            let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === needyRoom.name && creep.memory.role === 'longbow');
+            if (longbow.length < 2) {
+                queueCreep(room, 2, {role: 'longbow', responseTarget: needyRoom.name, military: true})
+            }
+        }
+    }
 };
 
 module.exports.remoteCreepQueue = function (room) {
@@ -434,25 +453,6 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
         room.memory.remoteRange = range;
-    }
-    // Assist room
-    let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
-    if (needyRoom && !room.memory.responseNeeded && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) {
-        if (!_.includes(queue, 'pioneer')) {
-            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
-            if (pioneers.length < level * 2) {
-                queueCreep(room, 2, {
-                    role: 'pioneer',
-                    destination: needyRoom.name
-                })
-            }
-        }
-        if (!_.includes(queue, 'longbow')) {
-            let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === needyRoom.name && creep.memory.role === 'longbow');
-            if (longbow.length < 2) {
-                queueCreep(room, 2, {role: 'longbow', responseTarget: needyRoom.name, military: true})
-            }
-        }
     }
     let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && room.shibRoute(r.name).length - 1 < 15))[0];
     if (responseNeeded && !_.includes(queue, 'remoteResponse')) {
