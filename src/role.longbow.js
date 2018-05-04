@@ -17,7 +17,7 @@ function role(creep) {
             if (hostile) {
                 return creep.fightRanged(hostile);
             } else {
-                return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 23}); //to move to any room}
+                return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
             }
         } else {
             if (!creep.handleMilitaryCreep(false, true)) {
@@ -47,6 +47,8 @@ function findDefensivePosition(creep, target) {
             if (bestRampart.pos !== creep.pos) {
                 creep.shibMove(bestRampart, {forceRepath: true, range: 0});
             }
+        } else {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
         }
     }
 }
