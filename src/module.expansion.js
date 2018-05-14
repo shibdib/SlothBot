@@ -25,7 +25,6 @@ module.exports.claimNewRoom = function (room) {
         if (room.memory.claimTarget) {
             delete Memory.roomCache[room.memory.claimTarget].claimWorthy;
             Memory.lastExpansion = Game.time;
-            Game.notify(room.memory.claimTarget + ' - Has been marked for claiming by ' + room.name);
             log.i(room.memory.claimTarget + ' - Has been marked for claiming by ' + room.name);
         } else {
             log.i(room.name + ' Could not find any valid expansion rooms.');
