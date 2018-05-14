@@ -26,24 +26,46 @@ function mind() {
     // High Command
     cpu = Game.cpu.getUsed();
     log.d('High Command Module');
-    highCommand.highCommand();
+    try {
+        highCommand.highCommand();
+    } catch (e) {
+        log.e('High Command Module experienced an error');
+        log.e(e.stack);
+    }
     shib.shibBench('highCommand', cpu);
 
     // Handle Labs
     cpu = Game.cpu.getUsed();
     log.d('Lab Manager Module');
-    if (Game.cpu.bucket > 5000) labs.labManager();
+    if (Game.cpu.bucket > 5000) {
+        try {
+            labs.labManager();
+        } catch (e) {
+            log.e('Lab Module experienced an error');
+            log.e(e.stack);
+        }
+    }
     shib.shibBench('labControl', cpu);
 
     // Handle Diplomacy
     log.d('Diplomacy Module');
-    diplomacy.diplomacyOverlord();
+    try {
+        diplomacy.diplomacyOverlord();
+    } catch (e) {
+        log.e('Diplomacy Module experienced an error');
+        log.e(e.stack);
+    }
 
     // Military first
     log.d('Military Creep Management');
     let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military));
     for (let key in militaryCreeps) {
-        minionController(militaryCreeps[key]);
+        try {
+            minionController(militaryCreeps[key]);
+        } catch (e) {
+            log.e('Military Minion Controller experienced an error');
+            log.e(e.stack);
+        }
     }
 
     // Process Overlords
@@ -60,15 +82,25 @@ function mind() {
         if (cpuBucket < 10000) roomLimit = (cpuLimit * 0.9) / (overlordCount - processed);
         if (cpuBucket > 7500) roomLimit = cpuTickLimit / (overlordCount - processed);
         log.d('Overlord For ' + activeRoom.name);
-        overlord.overlordMind(activeRoom, roomLimit);
+        try {
+            overlord.overlordMind(activeRoom, roomLimit);
+        } catch (e) {
+            log.e('Overlord Module experienced an error');
+            log.e(e.stack);
+        }
         //Expansion Manager
         let maxRooms = _.round(Game.cpu.limit / 15);
         if (TEN_CPU) {
             maxRooms = 2;
         }
-        if (Game.time % 100 === 0 && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount < maxRooms) {
+        if (Game.time % 100 === 0 && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount <= maxRooms) {
             log.d('Expansion Module');
-            expansion.claimNewRoom(activeRoom);
+            try {
+                expansion.claimNewRoom(activeRoom);
+            } catch (e) {
+                log.e('Expansion Module experienced an error');
+                log.e(e.stack);
+            }
         }
         processed++;
     }
@@ -76,19 +108,36 @@ function mind() {
     if (Game.time % 3 === 0) {
         cpu = Game.cpu.getUsed();
         log.d('Military Build Queue');
-        spawning.militaryCreepQueue();
+        try {
+            spawning.militaryCreepQueue();
+        } catch (e) {
+            log.e('Military Creep queue experienced an error');
+            log.e(e.stack);
+        }
         shib.shibBench('militarySpawn', cpu);
     }
     //Process creep build queues
-    cpu = Game.cpu.getUsed();
-    log.d('Process Build Queues');
-    spawning.processBuildQueue();
-    shib.shibBench('processBuildQueue', cpu);
+    if (Game.time % 2 === 0) {
+        cpu = Game.cpu.getUsed();
+        log.d('Process Build Queues');
+        try {
+            spawning.processBuildQueue();
+        } catch (e) {
+            log.e('Creep build queue experienced an error');
+            log.e(e.stack);
+        }
+        shib.shibBench('processBuildQueue', cpu);
+    }
     //Room HUD (If CPU Allows)
     if (!TEN_CPU && Game.cpu.getUsed() < Game.cpu.limit) {
         cpu = Game.cpu.getUsed();
         log.d('Room HUD');
-        hud.hud();
+        try {
+            hud.hud();
+        } catch (e) {
+            log.e('Room HUD experienced an error');
+            log.e(e.stack);
+        }
         shib.shibBench('roomHud', cpu);
     }
 }

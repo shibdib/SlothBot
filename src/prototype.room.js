@@ -177,6 +177,30 @@ Object.defineProperty(Room.prototype, 'level', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'energy', {
+    get: function () {
+        if (!this.controller || this.controller.owner.username !== USERNAME) {
+            if (!this._energy) {
+                this._energy = undefined;
+            }
+        } else {
+            if (!this._energy) {
+                this._energy = getRoomEnergy(this);
+            }
+        }
+        return this._energy;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+function getRoomEnergy(room) {
+    let energy = room.energyAvailable;
+    if (room.storage) energy = room.storage.store[RESOURCE_ENERGY] + energy;
+    if (room.terminal) energy = room.terminal.store[RESOURCE_ENERGY] + energy;
+    return energy;
+}
+
 /**
  * Provides structure memory.
  */

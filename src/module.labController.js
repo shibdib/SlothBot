@@ -11,8 +11,7 @@ function labManager() {
         let room = Memory.ownedRooms[key];
         let reactionRooms = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom);
         if (!reactionRooms[0]) room.memory.reactionRoom = true;
-        let targetAmount = _.round(Memory.ownedRooms.length / 4);
-        if (!room.memory.reactionRoom && (reactionRooms.length < targetAmount || room.controller.level === 8)) {
+        if (!room.memory.reactionRoom) {
             room.memory.reactionRoom = true;
             log.a(room.name + ' is now a reaction room.');
         }
@@ -103,7 +102,7 @@ function manageBoostProduction(room) {
 
 function manageActiveLabs(room) {
     let activeLabs = _.filter(room.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);
-    if (activeLabs[0]) {
+    if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
                 let hub = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.roomName === activeLabs[key].pos.roomName);
@@ -116,12 +115,14 @@ function manageActiveLabs(room) {
                     continue;
                 }
                 if (outputLab.memory.creating) {
-                    outputLab.room.visual.text(
-                        ICONS.reaction + ' ' + outputLab.memory.creating,
-                        outputLab.pos.x,
-                        outputLab.pos.y,
-                        {align: 'left', opacity: 0.8}
-                    );
+                    for (let lab of hub) {
+                        lab.room.visual.text(
+                            lab.memory.creating,
+                            lab.pos.x,
+                            lab.pos.y,
+                            {opacity: 0.8, font: 0.3}
+                        );
+                    }
                 }
                 //If on cooldown continue
                 if (outputLab.cooldown) continue;
@@ -175,7 +176,7 @@ function checkForInputs(room, boost) {
     let storage = room.storage;
     let terminal = room.terminal;
     let components = BOOST_COMPONENTS[boost];
-    if (!components.length) return undefined;
+    if (!components || !components.length) return undefined;
     for (let input of shuffle(components)) {
         let storageAmount = storage.store[input] || 0;
         let terminalAmount = terminal.store[input] || 0;

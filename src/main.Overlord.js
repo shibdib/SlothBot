@@ -166,6 +166,12 @@ function minionController(minion) {
     let start = Game.cpu.getUsed();
     try {
         creepRole.role(minion);
+        minion.room.visual.text(
+            _.round(Game.cpu.getUsed() - start, 2),
+            minion.pos.x,
+            minion.pos.y,
+            {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
+        );
     } catch (e) {
         log.e(minion.name + ' experienced an error in room ' + minion.room.name);
         log.e(e.stack);
