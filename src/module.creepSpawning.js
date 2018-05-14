@@ -298,11 +298,11 @@ module.exports.workerCreepQueue = function (room) {
     //Worker
     if (!_.includes(queue, 'worker') && !room.memory.responseNeeded) {
         let amount = 0;
-        if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) amount = 3;
+        if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) amount = 2;
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
-        } else if (level <= 2 && 6 > workers.length < room.constructionSites.length) {
+        } else if (level <= 2 && 6 > workers.length < room.constructionSites.length && !TEN_CPU) {
             queueCreep(room, workers.length + 1, {role: 'worker'})
         }
     }
