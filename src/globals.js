@@ -53,7 +53,7 @@ let globals = function () {
         remoteHauler: 3,
         pioneer: 6,
         remoteResponse: 3,
-        reserver: 6,
+        reserver: 3,
         // Power
         Power: 5,
         // SK
