@@ -350,7 +350,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
-    if (!Memory.roomCache) Memory.roomCache = [];
+    if (!Memory.roomCache) Memory.roomCache = {};
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     let sk;
     if (this.memory.lastInvaderCheck === Game.time) return;

@@ -194,7 +194,7 @@ module.exports.bodyGenerator = function (level, role) {
             break;
         // Remote
         case 'claimer':
-            if (level < 4) break;
+            if (level < 3) break;
             claim = 1;
             move = 1;
             break;

@@ -5,6 +5,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function highCommand() {
+    if (!Memory.targetRooms) Memory.targetRooms = {};
     manualAttacks();
     manageResponseForces();
     if (Game.time % 10 === 0 || Game.cpu.bucket < 5000) manageAttacks();

@@ -6,7 +6,6 @@ module.exports.claimNewRoom = function (room) {
     let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && r.name !== room.name);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     delete room.memory.claimTarget;
-    if (avoidRooms.length === 0) return;
     if (worthyRooms.length > 0) {
         let possibles = {};
         loop1:
