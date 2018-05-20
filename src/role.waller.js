@@ -17,7 +17,7 @@ function role(creep) {
     if (creep.isFull) creep.memory.working = true;
     if (creep.memory.working) {
         creep.memory.source = undefined;
-        if (!creep.memory.currentTarget) {
+        if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget)) {
             let barrier = _.min(_.filter(creep.room.structures, (s) => (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && (s.pos.x === 2 || s.pos.y === 2 || s.pos.x === 1 || s.pos.y === 1)), 'hits');
             if (barrier.hits > barrier.hits < 500000 * creep.room.controller.level) barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART), 'hits');
             let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)[0];

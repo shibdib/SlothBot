@@ -457,7 +457,9 @@ Room.prototype.invaderCheck = function () {
         }
         return armed.length > 0;
     }
-    if (this.memory.tickDetected < Game.time - 30 || this.memory.responseNeeded === false) {
+    let waitOut = 30;
+    if (this.controller && this.controller.my) waitOut = 500;
+    if (this.memory.tickDetected < Game.time - waitOut || this.memory.responseNeeded === false) {
         Memory.roomCache[this.name].threatLevel = undefined;
         this.memory.roomHeat = (this.memory.roomHeat - 0.5) || 0;
         this.memory.numberOfHostiles = undefined;

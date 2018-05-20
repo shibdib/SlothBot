@@ -6,7 +6,7 @@ function segmentManager() {
     if (!!~['shard0','shard1','shard2'].indexOf(Game.shard.name)) {
         doNotAggressArray = global.LOANlist;
     } else if (Game.shard.name === 'swc') {
-        doNotAggressArray = ['Shibdib']
+        doNotAggressArray = ['Shibdib', 'Nyoom']
     } else {
         doNotAggressArray = [MY_USERNAME];
     }

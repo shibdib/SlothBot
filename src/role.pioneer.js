@@ -45,6 +45,15 @@ function role(creep) {
     }
     if (creep.isFull) creep.memory.hauling = true;
     if (creep.memory.destinationReached) {
+        //Harvester
+        let pioneers = _.filter(creep.room.creeps, (s) => s.my && s.memory.role === 'pioneer');
+        if (pioneers.length > 3 && !_.filter(pioneers, (p) => p.memory.harvester && p.id !== creep.id).length) {
+            creep.memory.harvester = true;
+            let source = creep.pos.getClosestSource();
+            if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source);
+            creep.say(ICONS.harvest);
+            return;
+        }
         if (creep.memory.hauling === false) {
             let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] > 100);
             if (container.length > 0) {
