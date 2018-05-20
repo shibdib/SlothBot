@@ -222,7 +222,7 @@ Creep.prototype.fightRampart = function () {
     let target = this.findClosestEnemy(false, true);
     if (!target || !target.pos || (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK))) return false;
     let closestExit = target.pos.findClosestByRange(FIND_EXIT);
-    if (target.pos.getRangeTo(closestExit) > 1) return false;
+    if (target.pos.getRangeTo(closestExit) > 2) return false;
     let position;
     if (this.memory.assignedRampart) position = Game.getObjectById(this.memory.assignedRampart);
     if (!this.memory.assignedRampart || (Game.time % 10 === 0 && Math.random() > .6)) {
