@@ -93,7 +93,8 @@ function mind() {
         if (TEN_CPU) {
             maxRooms = 2;
         }
-        if (Game.time % 500 === 0 && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount <= maxRooms) {
+        let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
+        if (Game.time % 500 === 0 && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount <= maxRooms && !needyRoom.length) {
             log.d('Expansion Module');
             try {
                 expansion.claimNewRoom(activeRoom);
