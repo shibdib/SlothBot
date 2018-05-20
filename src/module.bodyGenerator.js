@@ -205,7 +205,11 @@ module.exports.bodyGenerator = function (level, role) {
             move = 1;
             break;
         case 'reserver':
-            claim = _.round(0.3 * level);
+            if (level < 7) {
+                claim = 2;
+            } else {
+                claim = 5;
+            }
             move = claim;
             break;
         case 'pioneer':

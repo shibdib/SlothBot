@@ -38,7 +38,7 @@ function operationRequests() {
             }
         }
     }
-    if (totalCount < surplusRooms * 3 || totalCount < totalRooms) {
+    if (totalCount < surplusRooms * 2 || totalCount < totalRooms) {
         // Harass Targets
         if (Game.time % 250 === 0 && Game.cpu.bucket > 7500) {
             for (let ownedRoom of Memory.ownedRooms) {
@@ -223,7 +223,7 @@ function manualAttacks() {
         if (_.startsWith(name, 'siege')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
@@ -248,7 +248,7 @@ function manualAttacks() {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'defend',
@@ -271,7 +271,7 @@ function manualAttacks() {
         if (_.startsWith(name, 'clean')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
@@ -285,7 +285,7 @@ function manualAttacks() {
         if (_.startsWith(name, 'harass')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
@@ -299,7 +299,7 @@ function manualAttacks() {
         if (_.startsWith(name, 'hold')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
@@ -313,7 +313,7 @@ function manualAttacks() {
         if (_.startsWith(name, 'drain')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
@@ -326,7 +326,7 @@ function manualAttacks() {
         }
         if (_.startsWith(name, 'robbery')) {
             let cache = Memory.targetRooms || {};
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
@@ -340,7 +340,7 @@ function manualAttacks() {
         if (_.startsWith(name, 'ranger')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
@@ -354,7 +354,7 @@ function manualAttacks() {
         if (_.startsWith(name, 'swarm')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;
-            let priority = name.match(/\d+$/)[1] || 4;
+            let priority = 1;
             let tick = Game.time;
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,

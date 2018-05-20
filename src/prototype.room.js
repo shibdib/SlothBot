@@ -274,6 +274,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let potentialTarget;
         if (!owner && nonCombats.length >= 2) potentialTarget = true;
         let key = room.name;
+        if (Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
             cached: Game.time,
             name: room.name,
