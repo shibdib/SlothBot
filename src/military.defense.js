@@ -47,7 +47,7 @@ function controller(room) {
         if (((tower.energy < 10 && !responders.length) || !tower || playerHostile || room.memory.threatLevel >= 4) && !room.controller.safeMode) {
             room.memory.requestingSupport = true;
         }
-        if (room.controller.level < 4 && !room.controller.safeMode) {
+        if (room.controller.level < 3 && !room.controller.safeMode) {
             let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
             let alliedCivilian = _.filter(room.creeps, (c) => c.memory && !c.memory.military);
             let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_EXIT)) > 3);
