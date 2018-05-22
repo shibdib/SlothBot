@@ -7,7 +7,7 @@ Creep.prototype.harassRoom = function () {
             this.memory.operation = undefined;
             return;
         }
-        if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+        if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
         threatManagement(this);
         highCommand.operationSustainability(this.room);
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
@@ -19,10 +19,11 @@ Creep.prototype.harassRoom = function () {
                 Memory.targetRooms[this.memory.targetRoom].level = 2;
             } else {
                 Memory.targetRooms[this.memory.targetRoom].level = 1;
+                this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
             }
         } else {
             this.memory.awaitingOrders = true;
-            if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
+            if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
         }
         if (this.memory.role === 'longbow') {
             this.handleMilitaryCreep();

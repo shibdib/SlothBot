@@ -235,7 +235,7 @@ Creep.prototype.fightRampart = function () {
     if (this.pos.getRangeTo(target) <= 1 && this.getActiveBodyparts(ATTACK)) {
         this.attack(target)
     } else if (this.pos.getRangeTo(position) > 0) {
-        this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0});
+        this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0, ignoreCreeps: false});
     }
     if (this.getActiveBodyparts(RANGED_ATTACK) && 1 < this.pos.getRangeTo(target) <= 3) {
         let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});

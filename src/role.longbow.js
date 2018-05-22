@@ -15,7 +15,7 @@ function role(creep) {
         if (creep.room.name !== creep.memory.responseTarget) {
             let hostile = creep.findClosestEnemy();
             if (hostile) {
-                return creep.fightRanged(hostile);
+                return creep.handleMilitaryCreep(false, true);
             } else {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
             }

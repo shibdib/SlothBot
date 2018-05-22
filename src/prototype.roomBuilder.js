@@ -580,7 +580,7 @@ function buildRoads(room, structures) {
         buildRoadFromTo(room, spawner, mineral);
     }
     let neighboring = Game.map.describeExits(spawner.pos.roomName);
-    if (neighboring && room.controller.level > 4) {
+    if (neighboring && room.controller.level > 3) {
         if (neighboring['1']) {
             let exits = spawner.room.find(FIND_EXIT_TOP);
             let middle = _.round(exits.length / 2);

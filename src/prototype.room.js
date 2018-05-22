@@ -248,7 +248,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             }
             // Handle claim targets
             let closestRoom = this.findClosestOwnedRoom(true);
-            if (!owner && !reservation && sources.length > 1 && closestRoom > 2) {
+            let safemodeCooldown = this.controller.safeModeCooldown;
+            if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2) {
                 let sourceDist = 0;
                 for (let source in sources) {
                     let range = sources[source].pos.getRangeTo(room.controller);
@@ -459,7 +460,7 @@ Room.prototype.invaderCheck = function () {
         return armed.length > 0;
     }
     let waitOut = 30;
-    if (this.controller && this.controller.my) waitOut = 500;
+    if (this.controller && this.controller.my) waitOut = 250;
     if (this.memory.tickDetected < Game.time - waitOut || this.memory.responseNeeded === false) {
         Memory.roomCache[this.name].threatLevel = undefined;
         this.memory.roomHeat = (this.memory.roomHeat - 0.5) || 0;

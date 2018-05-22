@@ -413,7 +413,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Terminal
     let terminal = this.room.terminal;
-    if (terminal && (terminal.store[RESOURCE_ENERGY] >= 10000 || this.room.memory.responseNeeded)) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] >= 10000 || this.room.memory.responseNeeded)) {
         let weight = 0.3;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id && c.id !== this.id).length;
         const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
@@ -425,8 +425,8 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Storage
     let sStorage = this.room.storage;
-    if (sStorage && (this.room.memory.energySurplus || this.room.memory.responseNeeded)) {
-        let weight = 15;
+    if (sStorage && sStorage.store[RESOURCE_ENERGY] && (this.room.memory.energySurplus || this.room.memory.responseNeeded)) {
+        let weight = 0.8;
         if (this.room.memory.responseNeeded) weight = 0.3;
         const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
         energy.push({

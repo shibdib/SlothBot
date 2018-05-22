@@ -175,6 +175,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     matrix = getCreepMatrix(room);
                     addSksToMatrix(room, matrix);
                 }
+                addHostilesToMatrix(room, matrix);
                 addBorderToMatrix(room, matrix);
                 if (options.stayInHub) addOutsideHubToMatrix(room, matrix);
             }
@@ -304,8 +305,11 @@ function findRoute(origin, destination, options = {}) {
     });
     let path = undefined;
     if (route.length) {
+        if (route.length > 10) {
+            return findRoute(origin, route[9].room, options);
+        }
         path = [];
-        path.push(origin, destination);
+        path.push(origin);
         for (let key in route) {
             path.push(route[key].room)
         }
@@ -362,19 +366,25 @@ function getCreepMatrix(room) {
 
 function addCreepsToMatrix(room, matrix) {
     let creeps = room.creeps;
-    let enemyCreeps = _.filter(creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
-        if (!_.includes(FRIENDLIES, creeps[key].owner.username) && (creeps[key].getActiveBodyparts(ATTACK) || creeps[key].getActiveBodyparts(RANGED_ATTACK))) {
-            let range = 6;
-            if (!creeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
-            let avoidZone = creeps[key].room.lookForAtArea(LOOK_TERRAIN, creeps[key].pos.y - range, creeps[key].pos.x - range, creeps[key].pos.y + range, creeps[key].pos.x + range, true);
-            for (let key in avoidZone) {
-                let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
-                if (!position.checkForWall()) {
-                    let inRange = position.findInRange(enemyCreeps, range);
-                    matrix.set(position.x, position.y, 50 * inRange)
-                }
+    }
+    return matrix;
+}
+
+function addHostilesToMatrix(room, matrix) {
+    let enemyCreeps = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
+    for (let key in enemyCreeps) {
+        if (matrix.get(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y) > 100) continue;
+        matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 0xff);
+        let range = 6;
+        if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
+        let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
+        for (let key in avoidZone) {
+            let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
+            if (!position.checkForWall()) {
+                let inRange = position.findInRange(enemyCreeps, range);
+                matrix.set(position.x, position.y, 50 * inRange)
             }
         }
     }
@@ -409,6 +419,8 @@ function addSksToMatrix(room, matrix) {
 function addStructuresToMatrix(room, matrix, roadCost) {
     for (let structure of room.structures) {
         if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
+            matrix.set(structure.pos.x, structure.pos.y, 256);
+        } else if (structure instanceof StructureWall) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 256);

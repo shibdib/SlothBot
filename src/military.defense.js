@@ -117,11 +117,7 @@ function safeModeManager(room) {
 function earlyWarning(room) {
     let earlyWarning;
     if (room.memory.remoteRooms) earlyWarning = _.filter(room.memory.remoteRooms, (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3);
-    if (earlyWarning.length) {
-        room.memory.responseNeeded = true;
-        room.memory.tickDetected = Game.time;
-        room.memory.threatLevel = Memory.roomCache[earlyWarning[0]].threatLevel;
-    }
+    room.memory.earlyWarning = !!earlyWarning.length;
 }
 
 abandonOverrun = function (room) {
@@ -139,6 +135,7 @@ abandonOverrun = function (room) {
         room.constructionSites[key].remove();
     }
     delete room.memory;
+    delete Memory.rooms[room.name];
     delete Memory.roomCache[room.name];
     room.controller.unclaim();
 };
