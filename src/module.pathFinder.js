@@ -414,8 +414,6 @@ function addStructuresToMatrix(room, matrix, roadCost) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost + 1);
-        } else if (structure instanceof StructureRampart && room.memory.responseNeeded && (structure.my || structure.isPublic)) {
-            matrix.set(structure.pos.x, structure.pos.y, 1);
         } else if (structure instanceof StructureRoad) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
         } else if (structure instanceof StructureContainer) {
