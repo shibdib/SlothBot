@@ -225,18 +225,13 @@ Creep.prototype.fightRampart = function () {
     if (target.pos.getRangeTo(closestExit) > 2) return false;
     let position;
     if (this.memory.assignedRampart) position = Game.getObjectById(this.memory.assignedRampart);
-    if (!this.memory.assignedRampart || (Game.time % 10 === 0 && Math.random() > .6)) {
+    if (!this.memory.assignedRampart || (Game.time % 3 === 0 && Math.random() > .6)) {
         this.memory.assignedRampart = undefined;
         position = target.pos.findClosestByPath(this.room.structures,
             {filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() && !_.filter(this.room.creeps, (c) => c.memory && c.memory.assignedRampart === r.id && c.id !== this.id).length && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
     }
-    if (!position || position.pos.getRangeTo(target) > 6) return false;
+    if (!position || position.pos.getRangeTo(target) > 15) return false;
     this.memory.assignedRampart = position.id;
-    if (this.pos.getRangeTo(target) <= 1 && this.getActiveBodyparts(ATTACK)) {
-        this.attack(target)
-    } else if (this.pos.getRangeTo(position) > 0) {
-        this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0, ignoreCreeps: false});
-    }
     if (this.getActiveBodyparts(RANGED_ATTACK) && 1 < this.pos.getRangeTo(target) <= 3) {
         let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
         if (targets.length > 1) {
@@ -244,6 +239,13 @@ Creep.prototype.fightRampart = function () {
         } else {
             this.rangedAttack(target);
         }
+    }
+    if (this.pos.getRangeTo(position) > 0) {
+        this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0, ignoreCreeps: false});
+        return true;
+    }
+    if (this.pos.getRangeTo(target) <= 1 && this.getActiveBodyparts(ATTACK)) {
+        this.attack(target)
     }
     return true;
 };
