@@ -205,6 +205,7 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
+                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
@@ -228,6 +229,7 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
+                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
@@ -251,6 +253,7 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
+                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
@@ -274,13 +277,14 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
+                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
             }
         }
     }
-    if (room.controller.level === 9) {
+    if (room.controller.level >= 9 && _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL), 'hits').hits >= 1000000) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
         for (let key in safeZone) {

@@ -301,7 +301,7 @@ module.exports.workerCreepQueue = function (room) {
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
-        } else if (level <= 2 && 6 > workers.length < room.constructionSites.length && !TEN_CPU) {
+        } else if (level <= 3 && workers.length < _.size(room.constructionSites) && !TEN_CPU) {
             queueCreep(room, workers.length + 1, {role: 'worker'})
         }
     }
@@ -808,27 +808,6 @@ module.exports.militaryCreepQueue = function () {
         }
     }
 };
-
-function getLevel(room) {
-    let energy = room.energyCapacityAvailable;
-    if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
-        return 1;
-    } else if (energy >= RCL_2_ENERGY && energy < RCL_3_ENERGY) {
-        return 2
-    } else if (energy >= RCL_3_ENERGY && energy < RCL_4_ENERGY) {
-        return 3
-    } else if (energy >= RCL_4_ENERGY && energy < RCL_5_ENERGY) {
-        return 4
-    } else if (energy >= RCL_5_ENERGY && energy < RCL_6_ENERGY) {
-        return 5
-    } else if (energy >= RCL_6_ENERGY && energy < RCL_7_ENERGY) {
-        return 6
-    } else if (energy >= RCL_7_ENERGY && energy < RCL_8_ENERGY) {
-        return 7
-    } else if (energy >= RCL_8_ENERGY) {
-        return 8
-    }
-}
 
 function checkIfSK(roomName) {
     let parsed;

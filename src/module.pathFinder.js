@@ -121,7 +121,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = pathInfo.route || options.route;
-        if (!allowedRooms && roomDistance > 1) {
+        if (!allowedRooms && roomDistance > 5) {
             let route;
             if (options.useCache) route = getRoute(origin, target);
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
@@ -177,7 +177,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 }
                 addHostilesToMatrix(room, matrix);
                 addBorderToMatrix(room, matrix);
-                if (options.stayInHub) addOutsideHubToMatrix(room, matrix);
             }
             return matrix;
         };
@@ -305,9 +304,6 @@ function findRoute(origin, destination, options = {}) {
     });
     let path = undefined;
     if (route.length) {
-        if (route.length > 10) {
-            return findRoute(origin, route[9].room, options);
-        }
         path = [];
         path.push(origin);
         for (let key in route) {
@@ -375,13 +371,14 @@ function addCreepsToMatrix(room, matrix) {
 function addHostilesToMatrix(room, matrix) {
     let enemyCreeps = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     for (let key in enemyCreeps) {
-        if (matrix.get(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y) > 100) continue;
+        if (matrix.get(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y)) continue;
         matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 0xff);
         let range = 6;
         if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
         let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
         for (let key in avoidZone) {
             let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
+            if (matrix.get(position.x, position.y)) continue;
             if (!position.checkForWall()) {
                 let inRange = position.findInRange(enemyCreeps, range);
                 matrix.set(position.x, position.y, 50 * inRange)
@@ -456,18 +453,6 @@ function addBorderToMatrix(room, matrix) {
                 matrix.set(x, y, 0x03);
             }
         }
-    }
-    return matrix;
-}
-
-function addOutsideHubToMatrix(room, matrix) {
-    if (!room.memory.extensionHub) return matrix;
-    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    let dangerZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 8, hub.x - 8, hub.y + 8, hub.x + 8, true);
-    for (let p in dangerZone) {
-        let pos = new RoomPosition(dangerZone[p].x, dangerZone[p].y, room.name);
-        if (pos.getRangeTo(hub) <= 6 || Game.map.getTerrainAt(pos.x, pos.y, room.name) === "wall") continue;
-        matrix.set(pos.x, pos.y, 175)
     }
     return matrix;
 }

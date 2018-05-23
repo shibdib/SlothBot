@@ -440,6 +440,27 @@ let globals = function () {
 
         return array;
     };
+
+    global.getLevel = function (room) {
+        let energy = room.energyCapacityAvailable;
+        if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
+            return 1;
+        } else if (energy >= RCL_2_ENERGY && energy < RCL_3_ENERGY) {
+            return 2
+        } else if (energy >= RCL_3_ENERGY && energy < RCL_4_ENERGY) {
+            return 3
+        } else if (energy >= RCL_4_ENERGY && energy < RCL_5_ENERGY) {
+            return 4
+        } else if (energy >= RCL_5_ENERGY && energy < RCL_6_ENERGY) {
+            return 5
+        } else if (energy >= RCL_6_ENERGY && energy < RCL_7_ENERGY) {
+            return 6
+        } else if (energy >= RCL_7_ENERGY && energy < RCL_8_ENERGY) {
+            return 7
+        } else if (energy >= RCL_8_ENERGY) {
+            return 8
+        }
+    }
 };
 
 module.exports = globals;
