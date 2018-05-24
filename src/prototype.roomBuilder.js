@@ -205,7 +205,6 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
-                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
@@ -229,7 +228,6 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
-                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
@@ -253,7 +251,6 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
-                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
@@ -277,7 +274,6 @@ function buildWalls(room, structures) {
                             position.createConstructionSite(STRUCTURE_RAMPART);
                         } else {
                             position.createConstructionSite(STRUCTURE_WALL);
-                            if (room.controller.level >= 4) buildRoadAround(room, position);
                         }
                     }
                 }
