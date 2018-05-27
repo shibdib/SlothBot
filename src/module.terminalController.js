@@ -65,8 +65,8 @@ module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalC
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (const resourceType in terminal.store) {
-            if (Game.market.credits < 25000 && !_.includes(MAKE_THESE_BOOSTS, resourceType)) {
-                let sellableAmount = terminal.store[resourceType];
+            if (Game.market.credits < 25000 && !_.includes(MAKE_THESE_BOOSTS, resourceType) && terminal.store[resourceType] > reactionAmount * 2) {
+                let sellableAmount = terminal.store[resourceType] - reactionAmount * 2;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(sellableAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
