@@ -61,7 +61,7 @@ function emptyLab(creep) {
     creep.say(ICONS.reaction + 'Emptying', true);
     if (_.sum(creep.carry) > 0) {
         for (let resourceType in creep.carry) {
-            if ((_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM) && _.sum(terminal.store) < terminal.storeCapacity * 0.95) {
+            if (_.sum(terminal.store) < terminal.storeCapacity * 0.95) {
                 switch (creep.transfer(terminal, resourceType)) {
                     case OK:
                         creep.memory.empty = undefined;
@@ -135,6 +135,7 @@ function supplyLab(creep) {
                 creep.memory.labHelper = undefined;
                 creep.memory.componentNeeded = undefined;
                 creep.memory.supplier = undefined;
+                lab.memory = undefined;
             }
         } else {
             if (_.sum(creep.carry) > creep.carry[creep.memory.componentNeeded]) {

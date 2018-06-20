@@ -128,6 +128,14 @@ function manageActiveLabs(room) {
                 if (outputLab.cooldown) continue;
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
+                //If any dont exist reset
+                if (!outputLab || !creatorOne || !creatorTwo) {
+                    for (let id in creators) {
+                        creators[id].memory = undefined;
+                    }
+                    outputLab.memory = undefined;
+                    continue
+                }
                 //Clean bad boosting
                 if (outputLab.memory.neededBoost && outputLab.memory.neededBoost !== outputLab.memory.creating) delete outputLab.memory.neededBoost;
                 if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) delete creatorOne.memory.neededBoost;
