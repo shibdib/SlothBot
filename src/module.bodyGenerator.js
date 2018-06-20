@@ -137,22 +137,22 @@ module.exports.bodyGenerator = function (level, role) {
                 move = 7;
             } else if (level === 5) {
                 rangedAttack = 3;
-                heal = 3;
+                heal = 2;
                 tough = 3;
                 move = 9;
             } else if (level === 6) {
                 rangedAttack = 4;
-                heal = 4;
+                heal = 2;
                 tough = 4;
-                move = 12;
+                move = 10;
             } else if (level === 7) {
                 rangedAttack = 6;
-                heal = 7;
+                heal = 5;
                 tough = 5;
-                move = 18;
+                move = 16;
             } else if (level === 8) {
-                rangedAttack = 10;
-                heal = 10;
+                rangedAttack = 12;
+                heal = 8;
                 tough = 5;
                 move = 25;
             } else {

@@ -89,13 +89,13 @@ function mind() {
             log.e(e.stack);
         }
         //Expansion Manager
-        let maxRooms = _.round(Game.cpu.limit / 15);
+        let maxRooms = _.round(Game.cpu.limit / 20);
         if (TEN_CPU) {
             maxRooms = 2;
         }
         let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
         let safemoded = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
-        if (Game.time % 500 === 0 && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount <= maxRooms && !needyRoom.length && !safemoded.length) {
+        if (cpuBucket === 10000 && Game.time % 500 === 0 && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount <= maxRooms && !needyRoom.length && !safemoded.length) {
             log.d('Expansion Module');
             try {
                 expansion.claimNewRoom(activeRoom);

@@ -45,7 +45,7 @@ module.exports.loop = function() {
 
         //Bucket Check
         log.d('Bucket Check');
-        if (Game.cpu.bucket < 100 * Game.cpu.tickLimit && Game.cpu.bucket < Game.cpu.limit * 10) {
+        if (Game.cpu.bucket < Game.cpu.limit * 10) {
             log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
             return;
         }

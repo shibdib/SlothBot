@@ -13,7 +13,6 @@ function role(creep) {
         creep.memory.destination = _.sample(adjacent);
     }
     if (creep.memory.destinationReached !== true) {
-        if (Game.time % 200) creep.memory.destinationReached = true;
         if (creep.pos.roomName === creep.memory.destination) {
             if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) &&
                 (!creep.room.controller.owner || !_.includes(FRIENDLIES, creep.room.controller.owner.username)) &&

@@ -33,7 +33,7 @@ function role(creep) {
         creep.memory.hauling = true;
         creep.memory.remote = undefined;
     }
-    if (Game.time % 25 === 0 || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (nuclearEngineer(creep) || terminalWorker(creep)) return null;
+    if (Game.time % 2 === 0 || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (nuclearEngineer(creep) || terminalWorker(creep)) return null;
     if (Game.time % 5 === 0 || creep.memory.labTech) if (boostDelivery(creep)) return null;
     if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
         let storage = creep.room.storage;
@@ -53,7 +53,7 @@ function role(creep) {
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
             } else {
-                remoteHelper(creep);
+                //remoteHelper(creep);
             }
         }
     } else {
@@ -102,7 +102,7 @@ function terminalWorker(creep) {
     let storage = creep.room.storage;
     let haulers = _.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'hauler');
     let terminalWorker = _.filter(Game.creeps, (c) => c.memory.terminalWorker && c.memory.overlord === creep.memory.overlord)[0];
-    if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker)) || haulers.length < 2) return undefined;
+    if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker))) return undefined;
     if (creep.memory.terminalDelivery) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(terminal, resourceType)) {
@@ -117,7 +117,7 @@ function terminalWorker(creep) {
         }
     } else {
         for (let resourceType in storage.store) {
-            if (_.sum(terminal.store) > 0.9 * terminal.storeCapacity) break;
+            if (_.sum(terminal.store) > 0.85 * terminal.storeCapacity) break;
             if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY)) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
@@ -129,6 +129,9 @@ function terminalWorker(creep) {
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(storage);
                                 creep.memory.terminalWorker = true;
+                                return true;
+                            case ERR_FULL:
+                                creep.drop(resourceType);
                                 return true;
                         }
                     }
@@ -164,11 +167,12 @@ function terminalWorker(creep) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
-                    delete creep.memory.terminalWorker;
-                    delete creep.memory.terminalCleaning;
                     return undefined;
                 case ERR_NOT_IN_RANGE:
                     return creep.shibMove(storage);
+                case ERR_FULL:
+                    creep.drop(resourceType);
+                    return true;
             }
         }
         return true;
@@ -182,6 +186,8 @@ function terminalWorker(creep) {
                 return creep.shibMove(storage);
         }
     }
+    delete creep.memory.terminalWorker;
+    delete creep.memory.terminalCleaning;
     delete creep.memory.terminalDelivery;
     return delete creep.memory.terminalWorker;
 }

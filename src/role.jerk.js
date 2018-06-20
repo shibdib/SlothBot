@@ -16,7 +16,6 @@ function role(creep) {
         creep.memory.destination = _.sample(adjacent);
     }
     if (creep.memory.destinationReached !== true) {
-        if (Game.time % 100) creep.memory.destinationReached = true;
         if (creep.pos.roomName === creep.memory.destination) {
             if (!creep.handleMilitaryCreep(false, false, false, true)) {
                 if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) &&

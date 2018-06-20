@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
     }
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
-    if (droppedResources(creep)) return;
+    //if (droppedResources(creep)) return;
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
     // Empty labs
     if (creep.memory.empty) return emptyLab(creep);
@@ -82,6 +82,9 @@ function emptyLab(creep) {
                         creep.memory.empty = true;
                         creep.shibMove(storage);
                         return;
+                    case ERR_FULL:
+                        creep.drop(resourceType);
+                        return true;
                 }
             }
         }
@@ -112,6 +115,13 @@ function supplyLab(creep) {
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;
     let lab = Game.getObjectById(creep.memory.labHelper);
+    if (!lab || !terminal || !storage) {
+        creep.memory.itemStorage = undefined;
+        creep.memory.labHelper = undefined;
+        creep.memory.componentNeeded = undefined;
+        creep.memory.supplier = undefined;
+        return;
+    }
     creep.say(ICONS.reaction + 'Filling', true);
     creep.memory.componentNeeded = lab.memory.itemNeeded;
     if (!creep.carry[creep.memory.componentNeeded]) {

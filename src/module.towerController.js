@@ -34,7 +34,7 @@ function towerControl(room) {
                         if ((!inRangeHealers.length || (healPower < ((towerDamage * towers.length) + inRangeAttackPower) * 0.9)) && ((armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1) || armedHostile[i].owner.username === 'Invader')) {
                             tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if ((!inRangeHealers.length || (healPower < ((towerDamage * towers.length) + inRangeAttackPower) * 0.95)) && (armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1)) {
+                        } else if (!inRangeHealers.length || (healPower < ((towerDamage * towers.length) + inRangeAttackPower) * 0.95)) {
                             tower.attack(armedHostile[i]);
                             continue towers;
                         } else if (armedHostile[i].hits <= 150 * towers.length) {

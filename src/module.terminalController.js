@@ -65,18 +65,26 @@ module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalC
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (const resourceType in terminal.store) {
-            if (Game.market.credits < 25000 && !_.includes(MAKE_THESE_BOOSTS, resourceType) && terminal.store[resourceType] > reactionAmount * 2) {
-                let sellableAmount = terminal.store[resourceType] - reactionAmount * 2;
+            if (!_.includes(MAKE_THESE_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT) {
+                let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.5;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(sellableAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
                 if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
-                    if (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName) === OK) {
-                        return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+                    switch (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName)) {
+                        case OK:
+                            return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+                        case ERR_NOT_ENOUGH_RESOURCES:
+                            Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
+                            return
                     }
                 } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
-                    if (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName) === OK) {
-                        return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
+                    switch (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName)) {
+                        case OK:
+                            return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+                        case ERR_NOT_ENOUGH_RESOURCES:
+                            Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
+                            return
                     }
                 }
             }

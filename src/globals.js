@@ -67,7 +67,7 @@ let globals = function () {
         medium: 9,
         secondary: 10,
         siege: 6,
-        harass: 5,
+        harass: 3,
         hold: 4,
         raid: 8,
         clean: 8,
