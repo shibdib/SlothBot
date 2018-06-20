@@ -16,11 +16,6 @@ function role(creep) {
         creep.memory.destination = _.sample(adjacent);
     }
     if (creep.memory.destinationReached !== true) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
-            allowHostile: true,
-            offRoad: true,
-            range: 23
-        });
         if (Game.time % 100) creep.memory.destinationReached = true;
         if (creep.pos.roomName === creep.memory.destination) {
             if (!creep.handleMilitaryCreep(false, false, false, true)) {
@@ -39,6 +34,12 @@ function role(creep) {
                     creep.memory.destinationReached = true;
                 }
             }
+        } else {
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
+                allowHostile: true,
+                offRoad: true,
+                range: 23
+            });
         }
     } else {
         creep.memory.destination = undefined;

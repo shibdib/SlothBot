@@ -492,7 +492,6 @@ module.exports.remoteCreepQueue = function (room) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
                     let priority = PRIORITIES.reserver;
-                    if (level === 5) priority = priority + 1;
                     queueCreep(room, priority, {
                         role: 'reserver',
                         reservationTarget: room.memory.remoteRooms[keys]
@@ -510,7 +509,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!roomThreat && !room.memory.responseNeeded && room.memory.energySurplus && !_.includes(queue, 'pioneer') && !TEN_CPU && remoteRoom && remoteRoom.memory.requestingPioneer && !remoteRoom.memory.responseNeeded) {
+            if (!roomThreat && !room.memory.responseNeeded && !_.includes(queue, 'pioneer') && !TEN_CPU && remoteRoom && remoteRoom.memory.requestingPioneer && !remoteRoom.memory.responseNeeded) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
                 if (pioneers.length < 1) {
                     queueCreep(room, PRIORITIES.pioneer, {
