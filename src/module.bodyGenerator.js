@@ -69,13 +69,13 @@ module.exports.bodyGenerator = function (level, role) {
             move = _.round(carry / 2);
             break;
         case 'stationaryHarvester':
-            if (level < 3) {
+            if (level < 4) {
                 work = 4;
                 carry = 1;
                 move = 2;
                 break;
             } else {
-                work = 5;
+                work = 7;
                 carry = 1;
                 move = 2;
                 break;

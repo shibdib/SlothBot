@@ -99,7 +99,7 @@ function remoteRoads(creep) {
         buildRoadFromTo(creep.room, sources[0], sources[1]);
     }
     for (let key in sources){
-        if (_.size(Game.constructionSites) >= 50) return;
+        if (_.size(Game.constructionSites) >= 70) return;
         buildRoadAround(creep.room, sources[key].pos);
         buildRoadFromTo(creep.room, sources[key], homeExit[homeMiddle]);
         if (neighboring && _.size(Game.constructionSites) < 40 && Game.rooms[creep.memory.overlord].controller.level >= 6) {
