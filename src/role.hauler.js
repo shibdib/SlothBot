@@ -116,6 +116,7 @@ function terminalWorker(creep) {
             }
         }
     } else {
+        if (!storage) return undefined;
         for (let resourceType in storage.store) {
             if (_.sum(terminal.store) > 0.85 * terminal.storeCapacity) break;
             if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY)) {

@@ -252,6 +252,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
             let storage = terminal.room.storage;
+            if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
             let minerals = terminal.room.mineral[0];
             if ((minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) || stored >= reactionAmount) continue;
@@ -288,6 +289,7 @@ function onDemandReactionOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY] > 500) {
         for (let i = 0; i < reactionNeeds.length; i++) {
             let storage = terminal.room.storage;
+            if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
             let minerals = terminal.room.mineral[0];
             if ((minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) || stored >= reactionAmount) continue;
@@ -308,6 +310,7 @@ function onDemandReactionOrders(terminal, globalOrders) {
 function placeBoostOrders(terminal, storage, globalOrders, myOrders) {
     resource:
         for (let i = 0; i < boostNeeds.length; i++) {
+            if (!storage) return;
             let storedBoost = storage.store[boostNeeds[i]] + terminal.store[boostNeeds[i]] || 0;
             let activeOrder = _.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === boostNeeds[i] && o.type === ORDER_BUY)[0];
             if (storedBoost < boostAmount && Game.market.credits > 500 && !activeOrder) {
