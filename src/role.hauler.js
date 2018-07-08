@@ -39,7 +39,6 @@ function role(creep) {
     }
     creep.say(ICONS.haul, true);
     if (Game.time % 5 === 0 || creep.memory.labTech) if (boostDelivery(creep)) return null;
-    creep.say(1);
     if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
         let storage = creep.room.storage;
         for (let resourceType in creep.carry) {
