@@ -9,6 +9,7 @@ let spawning = require('module.creepSpawning');
 
 function mind(room, roomLimit) {
     let mindStart = Game.cpu.getUsed();
+    let cpuBucket = Game.cpu.bucket;
 
     // Abandon Bad Rooms
     log.d('Abandon Check');
@@ -32,9 +33,9 @@ function mind(room, roomLimit) {
     let storageEnergy = 0;
     if (room.storage) storageEnergy = room.storage.store[RESOURCE_ENERGY] || 0;
     let energyInRoom = terminalEnergy + storageEnergy;
-    room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT + (ENERGY_AMOUNT * 0.19);
-    room.memory.extremeEnergySurplus = energyInRoom >= ENERGY_AMOUNT * 3;
-    room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT;
+    room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT + (ENERGY_AMOUNT * 0.09);
+    room.memory.extremeEnergySurplus = energyInRoom >= ENERGY_AMOUNT * 2;
+    room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT * 0.8;
 
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
@@ -46,7 +47,7 @@ function mind(room, roomLimit) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (Game.time % 50 === 0) {
+    if (Game.time % 50 === 0 && cpuBucket >= 8000) {
         log.d('Room Building Module');
         let roomBuild = Game.cpu.getUsed();
         try {
@@ -61,7 +62,7 @@ function mind(room, roomLimit) {
     }
 
     // Manage creep spawning
-    if (Game.time % 10 === 0) {
+    if (Game.time % 10 === 0 && cpuBucket >= 3000) {
         log.d('Creep Queueing');
         try {
             if (room.controller.level >= 2 && !TEN_CPU) {
@@ -89,7 +90,7 @@ function mind(room, roomLimit) {
     }
 
     // Observer Control
-    if (room.level === 8) {
+    if (room.level === 8 && cpuBucket >= 8000) {
         log.d('Observer Module');
         let observerCpu = Game.cpu.getUsed();
         try {
@@ -115,7 +116,7 @@ function mind(room, roomLimit) {
     }
 
     // Handle Terminals
-    if (Game.time % 15 === 0 && room.level >= 6) {
+    if (Game.time % 15 === 0 && room.level >= 6 && cpuBucket >= 8000) {
         log.d('Terminal Module');
         cpu = Game.cpu.getUsed();
         try {
@@ -128,7 +129,7 @@ function mind(room, roomLimit) {
     }
 
     // Power Processing
-    if (!TEN_CPU) {
+    if (!TEN_CPU && cpuBucket >= 8000) {
         log.d('Power Module');
         cpu = Game.cpu.getUsed();
         try {

@@ -10,7 +10,6 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
-    creep.say(ICONS.haul, true);
     if (creep.renewalCheck(5)) return null;
     if (creep.borderCheck()) return null;
     if (!creep.memory.remote && creep.wrongRoom()) return null;
@@ -33,8 +32,14 @@ function role(creep) {
         creep.memory.hauling = true;
         creep.memory.remote = undefined;
     }
-    if (Game.time % 2 === 0 || creep.memory.nuclearEngineer || creep.memory.terminalWorker) if (nuclearEngineer(creep) || terminalWorker(creep)) return null;
+    if (Game.time % 2 === 0 || creep.memory.nuclearEngineer || creep.memory.terminalWorker) {
+        if (nuclearEngineer(creep) || terminalWorker(creep)) {
+            return null;
+        }
+    }
+    creep.say(ICONS.haul, true);
     if (Game.time % 5 === 0 || creep.memory.labTech) if (boostDelivery(creep)) return null;
+    creep.say(1);
     if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
         let storage = creep.room.storage;
         for (let resourceType in creep.carry) {
@@ -104,11 +109,16 @@ function terminalWorker(creep) {
     let terminalWorker = _.filter(Game.creeps, (c) => c.memory.terminalWorker && c.memory.overlord === creep.memory.overlord)[0];
     if (creep.memory.labTech || creep.memory.nuclearEngineer || (!creep.memory.terminalWorker && (!terminal || terminalWorker))) return undefined;
     if (creep.memory.terminalDelivery) {
+        if (_.sum(terminal.store) > 0.85 * terminal.storeCapacity) {
+            delete creep.memory.terminalDelivery;
+            return false;
+        }
         for (let resourceType in creep.carry) {
             switch (creep.transfer(terminal, resourceType)) {
                 case OK:
                     delete creep.memory.terminalDelivery;
-                    return delete creep.memory.terminalWorker;
+                    delete creep.memory.terminalWorker;
+                    return false;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(terminal);
                     creep.memory.terminalWorker = true;
@@ -116,16 +126,15 @@ function terminalWorker(creep) {
             }
         }
     } else {
-        if (!storage) return undefined;
+        if (!storage) return false;
         for (let resourceType in storage.store) {
             if (_.sum(terminal.store) > 0.85 * terminal.storeCapacity) break;
-            if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY)) {
+            if (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType) || _.includes(TIER_1_BOOSTS, resourceType) || resourceType === RESOURCE_GHODIUM || (!creep.room.memory.reactionRoom && resourceType !== RESOURCE_ENERGY) || storage.store[resourceType] > 100000) {
                 if (_.sum(creep.carry) > 0) {
                     for (let resourceType in creep.carry) {
                         switch (creep.transfer(storage, resourceType)) {
                             case OK:
                                 creep.memory.terminalWorker = true;
-                                creep.memory.terminalDelivery = resourceType;
                                 return true;
                             case ERR_NOT_IN_RANGE:
                                 creep.shibMove(storage);
@@ -168,7 +177,7 @@ function terminalWorker(creep) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
-                    return undefined;
+                    return false;
                 case ERR_NOT_IN_RANGE:
                     return creep.shibMove(storage);
                 case ERR_FULL:
@@ -190,7 +199,8 @@ function terminalWorker(creep) {
     delete creep.memory.terminalWorker;
     delete creep.memory.terminalCleaning;
     delete creep.memory.terminalDelivery;
-    return delete creep.memory.terminalWorker;
+    delete creep.memory.terminalWorker;
+    return false;
 }
 
 function boostDelivery(creep) {

@@ -45,7 +45,17 @@ module.exports.loop = function() {
 
         //Bucket Check
         log.d('Bucket Check');
+        if (Memory.cooldown) {
+            if (Memory.cooldown + 25 < Game.time) {
+                delete Memory.cooldown;
+            } else {
+                let countDown = (Memory.cooldown + 25) - Game.time;
+                log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
+                return;
+            }
+        }
         if (Game.cpu.bucket < Game.cpu.limit * 10) {
+            Memory.cooldown = Game.time;
             log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
             return;
         }

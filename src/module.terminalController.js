@@ -65,6 +65,7 @@ module.exports.terminalControl = profiler.registerFN(terminalControl, 'terminalC
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (const resourceType in terminal.store) {
+            if (resourceType === RESOURCE_ENERGY) continue;
             if (!_.includes(MAKE_THESE_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.5;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
@@ -76,7 +77,7 @@ function fillBuyOrders(terminal, globalOrders) {
                             return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
                         case ERR_NOT_ENOUGH_RESOURCES:
                             Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
-                            return
+                            return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
                     }
                 } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
                     switch (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName)) {
@@ -84,7 +85,7 @@ function fillBuyOrders(terminal, globalOrders) {
                             return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
                         case ERR_NOT_ENOUGH_RESOURCES:
                             Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
-                            return
+                            return log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
                     }
                 }
             }

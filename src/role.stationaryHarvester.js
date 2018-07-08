@@ -12,18 +12,10 @@ function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     let source;
 //INITIAL CHECKS
-    if (creep.borderCheck()) return null;
-    if (creep.wrongRoom()) return null;
     if (creep.carry.ticksToLive <= 5) {
         depositEnergy(creep);
         creep.suicide();
         return null;
-    }
-    if (creep.carry.energy < creep.carryCapacity) {
-        creep.memory.hauling = false;
-        if (creep.memory.linkID && creep.memory.containerID) {
-            if (pickupDropped(creep)) return null;
-        }
     }
     if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -36,12 +28,16 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (container && creep.pos.getRangeTo(container) > 0) {
-                    creep.shibMove(container, {range: 0});
+                if (!creep.memory.onContainer) {
+                    if (container && creep.pos.getRangeTo(container) > 0) {
+                        creep.shibMove(container, {range: 0});
+                    } else if (container) {
+                        creep.memory.onContainer = true;
+                    }
                 }
                 break;
         }
-        if (creep.carry.energy === creep.carryCapacity) {
+        if (creep.carry.energy === creep.carryCapacity && Game.time % 10 === 0) {
             if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
                 creep.memory.upgrade = true;
                 if (creep.room.controller.ticksToDowngrade >= 2000) {
@@ -67,9 +63,7 @@ module.exports.role = profiler.registerFN(role, 'harvesterRole');
 function depositEnergy(creep) {
     if (creep.room.controller.level < 3) return;
     let link;
-    if (!creep.memory.containerID || Game.getObjectById(creep.memory.containerID).pos.getRangeTo(creep) > 1) {
-        creep.memory.containerID = creep.harvestDepositContainer();
-    }
+    if (!creep.memory.containerID) creep.memory.containerID = creep.harvestDepositContainer();
     if (!creep.memory.linkID) {
         creep.memory.linkID = harvestDepositLink(creep);
     } else {
@@ -78,18 +72,11 @@ function depositEnergy(creep) {
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (creep.pos.getRangeTo(container) > 0) creep.shibMove(container, {range: 0});
             if (creep.carry[RESOURCE_ENERGY] > 20 && container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);
                 creep.say('Fixing');
-            }
-            else if (link && link.energy !== link.energyCapacity) {
-                if (link.hits < link.hitsMax * 0.25) {
-                    creep.repair(link);
-                    creep.say('Fixing');
-                } else if (link.energy !== link.energyCapacity) {
-                    creep.transfer(link, RESOURCE_ENERGY);
-                }
+            } else if (link && link.energy !== link.energyCapacity) {
+                creep.transfer(link, RESOURCE_ENERGY);
             }
         }
     } else {
@@ -127,21 +114,5 @@ function harvestDepositLink(creep) {
                 }
             }
         }
-    }
-}
-
-function pickupDropped(creep) {
-    let link = Game.getObjectById(creep.memory.linkID);
-    let container = Game.getObjectById(creep.memory.containerID);
-    if (container && link) {
-        if (creep.pos.getRangeTo(container) === 0 && link.energy < 700 && container.store[RESOURCE_ENERGY]) {
-            creep.withdraw(container, RESOURCE_ENERGY);
-            return true;
-        }
-        return false;
-    } else {
-        if (!container) creep.memory.containerID = undefined;
-        if (!link) creep.memory.linkID = undefined;
-        return false;
     }
 }

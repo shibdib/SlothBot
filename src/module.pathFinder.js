@@ -1,7 +1,7 @@
 let _ = require('lodash');
 let shib = require("shibBench");
 
-const DEFAULT_MAXOPS = 25000;
+const DEFAULT_MAXOPS = 5000;
 const STATE_STUCK = 3;
 
 const structureMatrixCache = {};
@@ -556,14 +556,6 @@ function getPosKey(pos) {
 
 // assigns a function to Creep.prototype: creep.travelTo(destination)
 Creep.prototype.shibMove = function (destination, options) {
-    if (TEN_CPU) {
-        switch (this.moveTo(destination, {noPathFinding: true})) {
-            case OK:
-                return;
-            case ERR_NOT_FOUND:
-                return this.moveTo(destination, {reusePath: 25})
-        }
-    }
     return shibMove(this, destination, options);
 };
 Creep.prototype.shibRoute = function (destination, options) {
