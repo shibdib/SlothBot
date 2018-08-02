@@ -9,15 +9,19 @@ function observerControl(room) {
     if (observer) {
         if (Game.time % 2 === 0) {
             let target;
+            let roomX = parseInt(room.name.substr(1, 2));
+            let roomY = parseInt(room.name.substr(4, 2));
             if (observer.room.memory.responseNeeded === true) {
-                let targets = _.filter(Game.rooms, (r) => Game.map.getRoomLinearDistance(r.name, observer.room.name) === 1);
-                target = targets[_.random(0, targets.length - 1)];
+                let targetX = roomX + (Math.round(Math.random() * 20 - 1));
+                let targetY = roomY + (Math.round(Math.random() * 20 - 1));
+                target = room.name.substr(0, 1) + targetX + room.name.substr(3, 1) + targetY;
             } else {
-                let targets = _.filter(Game.rooms, (r) => Game.map.getRoomLinearDistance(r.name, observer.room.name) <= 10);
-                target = targets[_.random(0, targets.length - 1)];
+                let targetX = roomX + (Math.round(Math.random() * 20 - 10));
+                let targetY = roomY + (Math.round(Math.random() * 20 - 10));
+                target = room.name.substr(0, 1) + targetX + room.name.substr(3, 1) + targetY;
             }
-            observer.observeRoom(target.name);
-            observer.room.memory.observerTarget = target.name;
+            observer.observeRoom(target);
+            observer.room.memory.observerTarget = target;
         } else {
             try {
                 if (observer.room.memory.observerTarget) {
