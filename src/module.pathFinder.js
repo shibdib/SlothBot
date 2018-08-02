@@ -39,7 +39,7 @@ function shibMove(creep, heading, options = {}) {
     if (!origin || !target) return;
     let pathingStart = Game.cpu.getUsed();
     updateRoomStatus(creep.room);
-    if (!creep.memory._shibMove || Math.random() > options.repathChance || options.forceRepath) creep.memory._shibMove = {};
+    if (!creep.memory._shibMove || Math.random() > options.repathChance || options.forceRepath || creep.memory._shibMove.length < 1) creep.memory._shibMove = {};
     // Check if target moved
     if (creep.memory._shibMove.target && (creep.memory._shibMove.target.x !== target.x || creep.memory._shibMove.target.y !== target.y)) creep.memory._shibMove = {};
     // Set var
