@@ -10,7 +10,7 @@ let globals = function () {
 
     global.FRIENDLIES = RawMemory.segments[2];
 
-    global.TEN_CPU = Game.cpu.limit === 10 || Game.shard.name === 'shard1';
+    global.TEN_CPU = Game.cpu.limit === 10;
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
