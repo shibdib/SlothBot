@@ -12,8 +12,9 @@ let protectedStructures = [
 ];
 
 Room.prototype.buildRoom = function () {
-    if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     let structures = this.structures;
+    cleanRoom(this, structures);
+    if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (!spawn.length) {
         buildTowers(this, structures);
@@ -43,6 +44,14 @@ Room.prototype.buildRoom = function () {
     buildExtractor(this, structures);
     if (Game.time % 500 === 0) buildRoads(this, structures);
 };
+
+function cleanRoom(room, structures) {
+    for (let key in this.structures) {
+        if (this.structures[key].owner && !this.structures[key].my) {
+            this.structures[key].destroy();
+        }
+    }
+}
 
 function buildExtensions(room) {
     let extensionCount = room.getExtensionCount();
