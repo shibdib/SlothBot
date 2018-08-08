@@ -45,7 +45,7 @@ function role(creep) {
 
 function cleanRoom(room, structures) {
     for (let key in structures) {
-        if (structures[key].owner && !structures[key].my) {
+        if (structures[key] && structures[key].owner && !structures[key].my) {
             structures[key].destroy();
         }
     }
