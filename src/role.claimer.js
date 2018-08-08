@@ -36,8 +36,17 @@ function role(creep) {
                         break;
                     case OK:
                         Game.rooms[creep.memory.overlord].memory.claimTarget = undefined;
+                        cleanRoom(creep.room, creep.room.structures)
                 }
             }
+        }
+    }
+}
+
+function cleanRoom(room, structures) {
+    for (let key in structures) {
+        if (structures[key].owner && !structures[key].my) {
+            structures[key].destroy();
         }
     }
 }
