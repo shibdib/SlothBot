@@ -243,13 +243,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
     let roomDistance = Game.map.findRoute(origin, destination).length;
-    let highwayBias = 1;
-    if (options.preferHighway) {
-        highwayBias = 2.5;
-        if (options.highwayBias) {
-            highwayBias = options.highwayBias;
-        }
-    }
+    let highwayBias = 0.8;
     let route = Game.map.findRoute(origin, destination, {
         routeCallback: function (roomName) {
             let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
@@ -280,7 +274,7 @@ function findRoute(origin, destination, options = {}) {
                     return 4 * highwayBias;
                 }
             }
-            if (isHighway && options.preferHighway) return 1;
+            if (isHighway && options.preferHighway) return 0.5;
             // Avoid rooms owned by others
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
