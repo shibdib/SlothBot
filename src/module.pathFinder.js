@@ -417,8 +417,6 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     for (let structure of room.structures) {
         if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructurePortal) {
-            matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureWall) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
