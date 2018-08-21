@@ -10,6 +10,7 @@ function threatManager() {
     Memory._nuisance = [];
     Memory._threatList = [];
     for (let key in Memory._badBoyList) {
+        if (key === MY_USERNAME) continue;
         let threat = Memory._badBoyList[key];
         if (threat.lastAction + 25 < Game.time) {
             newRating = threat.threatRating - 2;
