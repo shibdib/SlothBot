@@ -102,7 +102,7 @@ function role(creep) {
                     }
                 }
             } else {
-                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23, ignoreRoads: true});
+                creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
             }
         }
     } else if (creep.memory.destination && !creep.memory.destinationReached) {
