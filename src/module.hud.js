@@ -135,8 +135,8 @@ module.exports.hud = function () {
             Memory.gclProgressArray.push(progressPerTick)
         }
         progressPerTick = average(Memory.gclProgressArray);
-        let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progressTotal) / progressPerTick) * Memory.tickLength);
-        let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progressTotal) / progressPerTick);
+        let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
+        let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick);
         let displayTime;
         if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
         if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';

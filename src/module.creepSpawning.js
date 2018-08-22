@@ -284,6 +284,7 @@ module.exports.workerCreepQueue = function (room) {
         let priority = PRIORITIES.upgrader;
         if (upgraders.length) priority = priority + 1;
         let number = _.round((10 - level) / 2);
+        if (level < 4) number = _.round((20 - level) / 2);
         if (!room.constructionSites.length && level < 5) number = 12 - level;
         if (level >= 7 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
         if (upgraders.length < number) {
