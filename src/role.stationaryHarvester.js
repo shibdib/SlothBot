@@ -37,7 +37,7 @@ function role(creep) {
                 }
                 break;
         }
-        if (creep.carry.energy === creep.carryCapacity && Game.time % 3 === 0) {
+        if (creep.carry.energy === creep.carryCapacity && Game.time % 2 === 0) {
             if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
                 creep.memory.upgrade = true;
                 if (creep.room.controller.ticksToDowngrade >= 2000) {
