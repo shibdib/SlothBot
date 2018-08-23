@@ -36,8 +36,7 @@ Creep.prototype.scoutRoom = function () {
     let tick = Game.time;
     if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local) {
         if (!controller) {
-            let type = 'swarmHarass';
-            if (Math.random() > Math.random()) type = 'harass';
+            let type = 'harass';
             cache[this.room.name] = {
                 tick: tick,
                 type: type,
@@ -57,7 +56,8 @@ Creep.prototype.scoutRoom = function () {
                 level: 2,
                 priority: 2
             };
-        } else if (controller.owner && towers.length) {
+        }
+        /** else if (controller.owner && towers.length) {
             if (controller.level <= 5 && Math.random() > Math.random()) {
                 cache[this.room.name] = {
                     tick: tick,
@@ -65,10 +65,9 @@ Creep.prototype.scoutRoom = function () {
                     level: 1,
                     priority: priority
                 };
-            }
+            }**/
         } else if (!controller.owner && countableStructures.length < 3) {
-            let type = 'swarmHarass';
-            if (Math.random() > Math.random()) type = 'harass';
+        let type = 'harass';
             cache[this.room.name] = {
                 tick: tick,
                 type: type,
