@@ -695,13 +695,13 @@ Creep.prototype.findEssentials = function () {
     }**/
         //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && !this.room.memory.responseNeeded && controllerContainer.pos.rangeToTarget(this) > 1) {
+    if (controllerContainer && controllerContainer.pos.rangeToTarget(this) > 1) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
         if (object && !numberOfUsers) {
             let weight = 0.75;
-            if (this.room.energyAvailable > this.room.energyCapacityAvailable * 0.95) weight = 0.3;
+            if (this.room.energyAvailable > this.room.energyCapacityAvailable * 0.95 && !this.room.memory.responseNeeded) weight = 0.3;
             containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
         }
         storage.push({

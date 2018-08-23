@@ -37,7 +37,7 @@ module.exports.processBuildQueue = function () {
                     if (topPriority.reboot || level === 1) {
                         body = _.get(SPAWN[0], role);
                     } else {
-                        body = generator.bodyGenerator(level, role);
+                        body = generator.bodyGenerator(level, role, spawn.room);
                     }
                     if (body && body.length) break;
                 }
@@ -291,7 +291,7 @@ module.exports.workerCreepQueue = function (room) {
             if (level < 4) {
                 queueCreep(room, 2, {role: 'upgrader'})
             } else {
-                queueCreep(room, priority, {role: 'upgrader'}, room)
+                queueCreep(room, priority, {role: 'upgrader'})
             }
         }
     }
