@@ -221,7 +221,6 @@ function roomStartup(room, roomCreeps) {
     }
     let upgrader = _.filter(roomCreeps, (creep) => (creep.memory.role === 'upgrader'));
     if (upgrader.length < 9 - room.controller.level) {
-        console.log(111)
         queueCreep(room, 4, {role: 'upgrader'})
     }
     let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
@@ -286,10 +285,7 @@ module.exports.workerCreepQueue = function (room) {
         if (upgraders.length) priority = priority + upgraders.length;
         let number = 1;
         if (level < 4) number = _.round((20 - level) / 2);
-        console.log(upgraders.length)
-        console.log(number)
         if (upgraders.length < number) {
-            console.log(222)
             queueCreep(room, priority, {role: 'upgrader'})
         }
     }
