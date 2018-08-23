@@ -288,10 +288,10 @@ module.exports.workerCreepQueue = function (room) {
         if (!room.constructionSites.length && level < 5) number = 12 - level;
         number = 1;
         if (upgraders.length < number) {
-            if (level < 3) {
+            if (level < 4) {
                 queueCreep(room, 2, {role: 'upgrader'})
             } else {
-                queueCreep(room, priority, {role: 'upgrader'})
+                queueCreep(room, priority, {role: 'upgrader'}, room)
             }
         }
     }

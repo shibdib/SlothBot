@@ -1,4 +1,4 @@
-module.exports.bodyGenerator = function (level, role) {
+module.exports.bodyGenerator = function (level, role, room = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal;
     switch (role) {
@@ -49,6 +49,7 @@ module.exports.bodyGenerator = function (level, role) {
                 break;
             } else {
                 work = (3 * level) - 1;
+                if (room.memory.energyNeeded) work = level;
                 carry = 1;
                 move = level - 1;
                 break;
