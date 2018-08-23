@@ -286,7 +286,7 @@ module.exports.workerCreepQueue = function (room) {
         let number = _.round((10 - level) / 2);
         if (level < 4) number = _.round((20 - level) / 2);
         if (!room.constructionSites.length && level < 5) number = 12 - level;
-        if (level >= 7 || (Game.getObjectById(room.memory.controllerContainer) && Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] < 500)) number = 1;
+        number = 1;
         if (upgraders.length < number) {
             if (level < 3) {
                 queueCreep(room, 2, {role: 'upgrader'})
@@ -321,8 +321,8 @@ module.exports.workerCreepQueue = function (room) {
         return queueCreep(room, -1, {role: 'hauler', reboot: true});
     }
     if (!_.includes(queue, 'hauler')) {
-        let amount = 1;
-        if (level >= 7) amount = 2;
+        let amount = 2;
+        if (level >= 7) amount = 3;
         if (TEN_CPU) amount = 1;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if ((hauler[0].ticksToLive < 150 && hauler.length <= amount) || hauler.length < amount) {

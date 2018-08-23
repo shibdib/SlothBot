@@ -62,9 +62,13 @@ function role(creep) {
                     if (container) creep.room.memory.controllerContainer = container.id;
                 }
                 if (!link && !creep.memory.energyDestination) {
-                    if (!creep.findEnergy(25)) {
-                        let source = creep.pos.getClosestSource();
-                        if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+                    if (creep.room.controller.level < 4) {
+                        if (!creep.findEnergy(25)) {
+                            let source = creep.pos.getClosestSource();
+                            if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+                        }
+                    } else {
+                        creep.idleFor(5);
                     }
                 } else {
                     creep.idleFor(5);

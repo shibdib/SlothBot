@@ -48,9 +48,9 @@ module.exports.bodyGenerator = function (level, role) {
                 move = work + carry;
                 break;
             } else {
-                work = (2 * level) - 1;
-                carry = _.round((1 * level) / 3) || 1;
-                move = work / 2;
+                work = (3 * level) - 1;
+                carry = 1;
+                move = level - 1;
                 break;
             }
         case 'hauler':
