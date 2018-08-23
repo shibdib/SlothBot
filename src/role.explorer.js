@@ -10,6 +10,8 @@ function role(creep) {
     creep.room.cacheRoomIntel();
     if (!creep.memory.destination) {
         let adjacent = Game.map.describeExits(creep.pos.roomName);
+        let target = _.sample(adjacent);
+        if (!Game.map.isRoomAvailable(target)) return creep.say("??");
         creep.memory.destination = _.sample(adjacent);
     }
     if (creep.memory.destinationReached !== true) {
