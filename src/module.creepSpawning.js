@@ -409,8 +409,8 @@ module.exports.workerCreepQueue = function (room) {
     let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
     if (needyRoom && !room.memory.responseNeeded && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) {
         if (!_.includes(queue, 'pioneer')) {
-            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
-            if (pioneers.length < level * 2) {
+            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
+            if (pioneers.length < 10) {
                 queueCreep(room, PRIORITIES.upgrader, {
                     role: 'pioneer',
                     destination: needyRoom.name
@@ -432,8 +432,8 @@ module.exports.remoteCreepQueue = function (room) {
     let range = room.memory.remoteRange || 1;
     let sources = 0;
     // Set harvester target
-    let harvesterTarget = 5;
-    if (room.memory.energySurplus) harvesterTarget = 2;
+    let harvesterTarget = 7;
+    if (room.memory.energySurplus) harvesterTarget = 5;
     if (room.memory.extremeEnergySurplus) harvesterTarget = 1;
     if (level >= 2 && (!room.memory.remoteRange || Game.time % 200 === 0)) {
         range:
