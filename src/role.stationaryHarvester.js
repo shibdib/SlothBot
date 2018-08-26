@@ -72,10 +72,11 @@ function depositEnergy(creep) {
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
+            let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
             if (creep.carry[RESOURCE_ENERGY] > 20 && container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);
                 creep.say('Fixing');
-            } else if (link && link.energy !== link.energyCapacity) {
+            } else if (link && link.energy !== link.energyCapacity && controllerLink && controllerLink.energy < 400) {
                 creep.transfer(link, RESOURCE_ENERGY);
             }
         }
