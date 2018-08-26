@@ -329,7 +329,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                     if (activeRoom && Game.map.findRoute(activeRoom.name, room.name).length <= 3 && !owner && !sk && !reservation) {
                         if (activeRoom.memory.remoteRooms) {
                             if (_.includes(activeRoom.memory.remoteRooms, room.name) === false) {
-                                activeRoom.memory.remoteRooms.push(room.name);
+                                if (!Game.rooms[room.memory.remoteRooms[keys]] || !Game.rooms[room.memory.remoteRooms[keys]].memory.noRemote) {
+                                    activeRoom.memory.remoteRooms.push(room.name);
+                                }
                             }
                         } else {
                             activeRoom.memory.remoteRooms = [];
