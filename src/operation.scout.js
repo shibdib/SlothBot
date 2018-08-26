@@ -16,7 +16,7 @@ Creep.prototype.scoutRoom = function () {
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let countableStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL);
     let controller = this.room.controller;
-    if (controller.owner && controller.owner.username === MY_USERNAME) return this.suicide();
+    if (controller && controller.owner && controller.owner.username === MY_USERNAME) return this.suicide();
     // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
     let closestOwned = this.room.findClosestOwnedRoom();
