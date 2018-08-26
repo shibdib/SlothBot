@@ -66,7 +66,7 @@ function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (const resourceType in terminal.store) {
             if (resourceType === RESOURCE_ENERGY) continue;
-            if (!_.includes(MAKE_THESE_BOOSTS, resourceType) && terminal.store[resourceType] > SELL_OFF_AMOUNT) {
+            if (!_.includes(MAKE_THESE_BOOSTS, resourceType) && terminal.store[resourceType] >= SELL_OFF_AMOUNT) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.5;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
