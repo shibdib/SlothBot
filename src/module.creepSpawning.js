@@ -88,8 +88,11 @@ module.exports.processBuildQueue = function () {
                         }
                     })) {
                         case OK:
-                            log.i(spawn.room.name + ' Spawning a ' + role);
-                            if (topPriority.military) delete Memory.militaryBuildQueue;
+                            if (!topPriority.military) log.i(spawn.room.name + ' Spawning a ' + role);
+                            if (topPriority.military) {
+                                log.i(spawn.room.name + ' Spawning a ' + role + ' [Op: ' + topPriority.operation + ' in ' + topPriority.targetRoom + ']');
+                                delete Memory.militaryBuildQueue;
+                            }
                             return delete spawn.room.memory.creepBuildQueue[role];
                     }
                 }
@@ -97,7 +100,7 @@ module.exports.processBuildQueue = function () {
         } else {
             let spawningCreep = Game.creeps[spawn.spawning.name];
             spawn.room.visual.text(
-                ICONS.build + ' ' + spawningCreep.name,
+                ICONS.build + ' ' + spawningCreep.name + ' - Ticks Remaining: ' + spawn.spawning.remainingTime,
                 spawn.pos.x + 1,
                 spawn.pos.y,
                 {align: 'left', opacity: 0.8}
