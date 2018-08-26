@@ -12,8 +12,13 @@ function role(creep) {
         if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
         if (creep.memory.announcer) {
             if (!creep.memory.signed) {
-                creep.signController(creep.room.controller, _.sample(signs));
-                creep.memory.signed = true;
+                switch (creep.signController(creep.room.controller, _.sample(signs))) {
+                    case OK:
+                        creep.memory.signed = true;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.controller);
+                }
             }
             let sentence = ['-', '#overlords', '-'];
             if (creep.room.memory.responseNeeded) {
