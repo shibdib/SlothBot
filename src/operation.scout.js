@@ -34,6 +34,7 @@ Creep.prototype.scoutRoom = function () {
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
+    if (!Memory.targetRooms[this.room.name]) return this.suicide();
     if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local) {
         if (!controller) {
             let type = 'harass';

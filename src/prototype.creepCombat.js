@@ -40,6 +40,18 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
             return enemy;
         }
     }
+    if (this.room.controller && this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username)) {
+        enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType === STRUCTURE_SPAWN});
+        if (enemy) {
+            return enemy;
+        }
+    }
+    if (this.room.controller && this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username)) {
+        enemy = this.pos.findClosestByPath(this.room.structures, {filter: (c) => c.structureType === STRUCTURE_EXTENSION});
+        if (enemy) {
+            return enemy;
+        }
+    }
     enemy = this.pos.findClosestByPath(this.room.creeps, {filter: (c) => (_.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader' || (Game.shard.name === 'swc' && !_.includes(FRIENDLIES, c.owner.username)) || (Game.shard.name === 'matt-scr' && !_.includes(FRIENDLIES, c.owner.username))) && c.owner.username !== 'Source Keeper' && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && !c.my});
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
