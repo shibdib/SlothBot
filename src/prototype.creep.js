@@ -358,7 +358,7 @@ Creep.prototype.reportDamage = function () {
         if (nearbyCreeps.length) {
             for (let key in nearbyCreeps) {
                 let user = nearbyCreeps[key];
-                if (user === USERNAME) continue;
+                if (user === MY_USERNAME) continue;
                 let cache = Memory._badBoyList || {};
                 let threatRating;
                 if (cache[user]) {
