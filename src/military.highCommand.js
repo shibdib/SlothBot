@@ -20,7 +20,7 @@ function operationRequests() {
     let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
-    if (Game.time % 100 === 0 && ATTACK_LOCALS && Game.cpu.bucket > 5500) {
+    if (Game.time % 100 === 0 && ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < totalRooms) {
         for (let ownedRoom of Memory.ownedRooms) {
             let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username))
                 || (r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget) && Game.map.findRoute(r.name, ownedRoom.name).length <= 3);
