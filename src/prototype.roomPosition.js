@@ -102,7 +102,6 @@ RoomPosition.prototype.checkForImpassible = function () {
 
 RoomPosition.prototype.isExit = function () {
     return this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48;
-
 };
 
 RoomPosition.prototype.isValid = function () {
@@ -110,7 +109,6 @@ RoomPosition.prototype.isValid = function () {
         return false;
     }
     return !(this.x > 49 || this.y > 49);
-
 };
 
 RoomPosition.prototype.buildRoomPosition = function (direction, distance) {

@@ -86,7 +86,7 @@ function buildExtensions(room) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7 || pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) < 5) continue;
+                }).length > 8 || pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) < 4) continue;
             switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
                 case OK:
                     if (_.filter(pos.findInRange(FIND_STRUCTURES, 1), (s) => s.structureType === STRUCTURE_ROAD).length > 0) continue;
@@ -194,7 +194,7 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level < 2) return;
-    let neighboring = Game.map.describeExits(room.name);
+    /**let neighboring = Game.map.describeExits(room.name);
     if (neighboring) {
         if (neighboring['1']) {
             let secondary = Game.map.describeExits(neighboring['1']);
@@ -288,24 +288,18 @@ function buildWalls(room, structures) {
                 }
             }
         }
-    }
-    if (room.controller.level >= 9 && _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL), 'hits').hits >= 1000000) {
-        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
-        for (let key in safeZone) {
-            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position && position.getRangeTo(hub) === 10 && room.findPath(position, hub, {
-                range: 0,
-                ignoreDestructibleStructures: true,
-                ignoreCreeps: true
-            }).length < 12) {
-                position.createConstructionSite(STRUCTURE_RAMPART);
-                if (!position.checkForImpassible() && room.findPath(position, hub, {
-                    range: 0,
-                    ignoreDestructibleStructures: true,
-                    ignoreCreeps: true
-                }).length < 12) position.createConstructionSite(STRUCTURE_ROAD);
-            }
+    }**/
+    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+    let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
+    for (let key in safeZone) {
+        let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
+        if (position && !position.checkIfOutOfBounds() && position.getRangeTo(hub) === 8 && room.findPath(position, hub, {
+            range: 0,
+            ignoreDestructibleStructures: true,
+            ignoreCreeps: true
+        }).length < 10) {
+            position.createConstructionSite(STRUCTURE_RAMPART);
+            position.createConstructionSite(STRUCTURE_ROAD);
         }
     }
 }
@@ -481,7 +475,7 @@ function buildLabs(room, structures) {
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
             let hub = new RoomPosition(25, 25, room.name);
-            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 14, hub.x - 14, hub.y + 14, hub.x + 14, true);
             let good;
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
@@ -539,10 +533,10 @@ function buildTowers(room, structures) {
     let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
     if (tower.length < 6) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true));
+        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 7, hub.x - 7, hub.y + 7, hub.x + 7, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.getRangeTo(hub) === 5) {
+            if (position.getRangeTo(hub) === 7) {
                 if (position.checkIfOutOfBounds() || position.checkForImpassible()) continue;
                 if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
                         range: 1,
@@ -552,7 +546,7 @@ function buildTowers(room, structures) {
                         range: 1,
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true
-                    }).length > 7) continue;
+                    }).length > 8) continue;
                 switch (position.createConstructionSite(STRUCTURE_TOWER)) {
                     case OK:
                         continue;
@@ -573,9 +567,6 @@ function buildRoads(room, structures) {
     for (let source of room.sources) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
-    }
-    for (let extension of extensions) {
-        buildRoadFromTo(room, extension, spawner);
     }
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);
