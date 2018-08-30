@@ -186,14 +186,12 @@ function controllerSupplier(room, structures) {
 }
 
 function buildWalls(room, structures) {
-    let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
-    if (!tower.length) return;
     if (room.controller.level > 8) {
         for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
-    if (room.controller.level < 2) return;
+    if (room.controller.level < 4) return;
     /**let neighboring = Game.map.describeExits(room.name);
     if (neighboring) {
         if (neighboring['1']) {
