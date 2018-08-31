@@ -128,9 +128,17 @@ function findExtensionHub(room) {
             room.memory.extensionHub.y = spawn.pos.y;
             return;
         }
+        room.memory.hubSearch = room.memory.hubSearch++ || 1;
+        if (room.memory.hubSearch >= 20) {
+            abandonRoom(room);
+            Memory.roomCache[room.name].noClaim = true;
+            log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
+            Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
+            return;
+        }
         let pos = new RoomPosition(getRandomInt(12, 38), getRandomInt(12, 38), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
-        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 1, pos.x - 1, pos.y + 1, pos.x + 1, true);
+        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 5, pos.x - 5, pos.y + 5, pos.x + 5, true);
         let wall = false;
         for (let key in terrain) {
             let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
@@ -660,3 +668,22 @@ function isEven(n) {
 function isOdd(n) {
     return Math.abs(n % 2) === 1;
 }
+
+abandonRoom = function (room) {
+    if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
+    for (let key in Game.rooms[room].creeps) {
+        Game.rooms[room].creeps[key].suicide();
+    }
+    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
+    for (let key in overlordFor) {
+        overlordFor[key].suicide();
+    }
+    for (let key in Game.rooms[room].structures) {
+        Game.rooms[room].structures[key].destroy();
+    }
+    for (let key in Game.rooms[room].constructionSites) {
+        Game.rooms[room].constructionSites[key].remove();
+    }
+    delete Game.rooms[room].memory;
+    Game.rooms[room].controller.unclaim();
+};
