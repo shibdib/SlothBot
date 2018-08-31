@@ -287,7 +287,6 @@ function buildWalls(room, structures) {
             }
         }
     }**/
-    console.log(1111)
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
     for (let key in safeZone) {
