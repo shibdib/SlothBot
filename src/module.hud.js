@@ -128,11 +128,16 @@ module.exports.hud = function () {
         Memory.lastTickProgress = Game.gcl.progress;
         Memory.gclProgressArray = Memory.gclProgressArray || [];
         let progressPerTick = Game.gcl.progress - lastTickProgress;
-        if (Memory.gclProgressArray.length < 250) {
-            Memory.gclProgressArray.push(progressPerTick)
+        let paused = '';
+        if (progressPerTick > 0) {
+            if (Memory.gclProgressArray.length < 250) {
+                Memory.gclProgressArray.push(progressPerTick)
+            } else {
+                Memory.gclProgressArray.shift();
+                Memory.gclProgressArray.push(progressPerTick)
+            }
         } else {
-            Memory.gclProgressArray.shift();
-            Memory.gclProgressArray.push(progressPerTick)
+            paused = '  **PAUSED**'
         }
         progressPerTick = average(Memory.gclProgressArray);
         let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
@@ -143,7 +148,7 @@ module.exports.hud = function () {
         if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
         if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
         new RoomVisual(name).text(
-            ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - Next Level In Apx. ' + displayTime + ' or ' + ticksToUpgrade + ' ticks.',
+            ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - Next Level In Apx. ' + displayTime + ' or ' + ticksToUpgrade + ' ticks.' + paused,
             1,
             1,
             {align: 'left', opacity: 0.5}
@@ -154,11 +159,16 @@ module.exports.hud = function () {
             room.memory.lastTickProgress = room.controller.progress;
             let progressPerTick = room.controller.progress - lastTickProgress;
             room.memory.rclProgressArray = room.memory.rclProgressArray || [];
-            if (room.memory.rclProgressArray.length < 250) {
-                room.memory.rclProgressArray.push(progressPerTick)
+            let paused = '';
+            if (progressPerTick > 0) {
+                if (room.memory.rclProgressArray.length < 250) {
+                    room.memory.rclProgressArray.push(progressPerTick)
+                } else {
+                    room.memory.rclProgressArray.shift();
+                    room.memory.rclProgressArray.push(progressPerTick)
+                }
             } else {
-                room.memory.rclProgressArray.shift();
-                room.memory.rclProgressArray.push(progressPerTick)
+                paused = '  **PAUSED**'
             }
             progressPerTick = average(room.memory.rclProgressArray);
             let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickLength);
@@ -169,7 +179,7 @@ module.exports.hud = function () {
             if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
             if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
             new RoomVisual(name).text(
-                ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' - ' + room.controller.progress + '/' + room.controller.progressTotal + ' - Next Level In Apx. ' + displayTime + ' or ' + ticksToUpgrade + ' ticks.',
+                ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' - ' + room.controller.progress + '/' + room.controller.progressTotal + ' - Next Level In Apx. ' + displayTime + ' or ' + ticksToUpgrade + ' ticks.' + paused,
                 1,
                 3,
                 {align: 'left', opacity: 0.5}
