@@ -609,7 +609,7 @@ function getRandomInt(min, max) {
 
 function buildRoadFromTo(room, start, end) {
     let path = start.pos.findPathTo(end, {
-        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false
+        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false, swampCost: 1
     });
     for (let point of path) {
         let pos = new RoomPosition(point.x, point.y, room.name);
