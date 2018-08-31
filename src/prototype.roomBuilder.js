@@ -287,6 +287,7 @@ function buildWalls(room, structures) {
             }
         }
     }**/
+    console.log(1111)
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
     for (let key in safeZone) {
@@ -294,8 +295,9 @@ function buildWalls(room, structures) {
         if (position && !position.checkIfOutOfBounds() && position.getRangeTo(hub) === 8 && room.findPath(position, hub, {
             range: 0,
             ignoreDestructibleStructures: true,
-            ignoreCreeps: true
-        }).length < 10) {
+            ignoreCreeps: true,
+            swampCost: 1
+        }).length < 11) {
             position.createConstructionSite(STRUCTURE_RAMPART);
             position.createConstructionSite(STRUCTURE_ROAD);
         }
