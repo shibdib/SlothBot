@@ -186,7 +186,7 @@ function controllerSupplier(room, structures) {
 }
 
 function buildWalls(room, structures) {
-    if (room.controller.level > 8) {
+    if (room.controller.level > 5) {
         for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
