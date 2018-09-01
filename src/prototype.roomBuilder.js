@@ -201,7 +201,7 @@ function buildWalls(room, structures) {
     }
     if (room.controller.level < 4) return;
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    if (!room.memory.bunkerComplete) {
+    if (1 < 2) {
         let neighboring = Game.map.describeExits(room.name);
         let checkCount = room.memory.bunkerPosCheck || 0;
         room.memory.bunkerPosCheck = checkCount + 1;
@@ -224,10 +224,23 @@ function buildWalls(room, structures) {
                     if (path.length) {
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) === 8) {
-                                room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            if (pathPos.getRangeTo(hub) <= 8) {
+                                let path = room.findPath(hub, pathPos, {
+                                    costCallback: function (roomName, costMatrix) {
+                                        if (room.memory.bunkerPos) {
+                                            for (let location of room.memory.bunkerPos) {
+                                                costMatrix.set(location.x, location.y, 255);
+                                            }
+                                        }
+                                    }, swampCost: 1,
+                                    ignoreDestructibleStructures: true,
+                                    ignoreCreeps: true,
+                                });
+                                if (path.length === 8) {
+                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                                }
                             }
                         }
                     }
@@ -251,10 +264,23 @@ function buildWalls(room, structures) {
                     if (path.length) {
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) === 8) {
-                                room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            if (pathPos.getRangeTo(hub) <= 8) {
+                                let path = room.findPath(hub, pathPos, {
+                                    costCallback: function (roomName, costMatrix) {
+                                        if (room.memory.bunkerPos) {
+                                            for (let location of room.memory.bunkerPos) {
+                                                costMatrix.set(location.x, location.y, 255);
+                                            }
+                                        }
+                                    }, swampCost: 1,
+                                    ignoreDestructibleStructures: true,
+                                    ignoreCreeps: true,
+                                });
+                                if (path.length === 8) {
+                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                                }
                             }
                         }
                     }
@@ -278,10 +304,23 @@ function buildWalls(room, structures) {
                     if (path.length) {
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) === 8) {
-                                room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            if (pathPos.getRangeTo(hub) <= 8) {
+                                let path = room.findPath(hub, pathPos, {
+                                    costCallback: function (roomName, costMatrix) {
+                                        if (room.memory.bunkerPos) {
+                                            for (let location of room.memory.bunkerPos) {
+                                                costMatrix.set(location.x, location.y, 255);
+                                            }
+                                        }
+                                    }, swampCost: 1,
+                                    ignoreDestructibleStructures: true,
+                                    ignoreCreeps: true,
+                                });
+                                if (path.length === 8) {
+                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                                }
                             }
                         }
                     }
@@ -305,10 +344,23 @@ function buildWalls(room, structures) {
                     if (path.length) {
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) === 8) {
-                                room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            if (pathPos.getRangeTo(hub) <= 8) {
+                                let path = room.findPath(hub, pathPos, {
+                                    costCallback: function (roomName, costMatrix) {
+                                        if (room.memory.bunkerPos) {
+                                            for (let location of room.memory.bunkerPos) {
+                                                costMatrix.set(location.x, location.y, 255);
+                                            }
+                                        }
+                                    }, swampCost: 1,
+                                    ignoreDestructibleStructures: true,
+                                    ignoreCreeps: true,
+                                });
+                                if (path.length === 8) {
+                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                                }
                             }
                         }
                     }
@@ -322,26 +374,14 @@ function buildWalls(room, structures) {
     }
     for (let location of room.memory.bunkerPos) {
         let rampPos = new RoomPosition(location.x, location.y, room.name);
-        if (rampPos && !rampPos.checkIfOutOfBounds() && rampPos.getRangeTo(hub) === 8 && 6 < room.findPath(rampPos, hub, {
-            costCallback: function (roomName, costMatrix) {
-                if (room.memory.bunkerPos) {
-                    for (let location of room.memory.bunkerPos) {
-                        costMatrix.set(location.x, location.y, 255);
-                    }
-                }
-            },
-            range: 0,
-            ignoreDestructibleStructures: true,
-            ignoreCreeps: true,
-            swampCost: 1
-        }).length < 12) {
+        if (rampPos && !rampPos.checkIfOutOfBounds()) {
             room.visual.circle(rampPos, {
                 fill: 'blue',
                 radius: 0.55,
                 stroke: 'blue'
             });
-            rampPos.createConstructionSite(STRUCTURE_RAMPART);
-            rampPos.createConstructionSite(STRUCTURE_ROAD);
+            //rampPos.createConstructionSite(STRUCTURE_RAMPART);
+            //rampPos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
 }
