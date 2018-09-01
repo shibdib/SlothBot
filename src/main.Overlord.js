@@ -50,7 +50,7 @@ function mind(room, roomLimit) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (Game.time % 5 === 0 && cpuBucket >= 8000) {
+    if (Game.time % 50 === 0 && cpuBucket >= 8000) {
         log.d('Room Building Module');
         let roomBuild = Game.cpu.getUsed();
         try {
