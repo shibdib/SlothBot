@@ -322,7 +322,14 @@ function buildWalls(room, structures) {
     }
     for (let location of room.memory.bunkerPos) {
         let rampPos = new RoomPosition(location.x, location.y, room.name);
-        if (rampPos && !rampPos.checkIfOutOfBounds() && rampPos.getRangeTo(hub) === 8 && room.findPath(rampPos, hub, {
+        if (rampPos && !rampPos.checkIfOutOfBounds() && rampPos.getRangeTo(hub) === 8 && 6 < room.findPath(rampPos, hub, {
+            costCallback: function (roomName, costMatrix) {
+                if (room.memory.bunkerPos) {
+                    for (let location of room.memory.bunkerPos) {
+                        costMatrix.set(location.x, location.y, 255);
+                    }
+                }
+            },
             range: 0,
             ignoreDestructibleStructures: true,
             ignoreCreeps: true,
