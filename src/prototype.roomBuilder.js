@@ -35,8 +35,8 @@ Room.prototype.buildRoom = function () {
     buildSpawn(this, structures);
     buildTowers(this, structures);
     controllerSupplier(this, structures);
-    if (_.size(Game.constructionSites) > 75) return;
     buildWalls(this, structures);
+    if (_.size(Game.constructionSites) > 75) return;
     buildLabs(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
@@ -200,113 +200,133 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level < 4) return;
-    /**let neighboring = Game.map.describeExits(room.name);
-    if (neighboring) {
-        if (neighboring['1']) {
-            let secondary = Game.map.describeExits(neighboring['1']);
-            if (_.size(secondary) > 1) {
-                let exits = room.find(FIND_EXIT_TOP);
-                let terrain = room.lookForAtArea(LOOK_TERRAIN, 1, 0, 2, 49, true);
-                for (let key in terrain) {
-                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                    if (position.x % 2) {
-                        position.createConstructionSite(STRUCTURE_RAMPART);
-                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                            position.createConstructionSite(STRUCTURE_ROAD);
-                        }
-                    } else {
-                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
-                            position.createConstructionSite(STRUCTURE_RAMPART);
-                        } else {
-                            position.createConstructionSite(STRUCTURE_WALL);
-                        }
-                    }
-                }
-            }
-        }
-        if (neighboring['3']) {
-            let secondary = Game.map.describeExits(neighboring['3']);
-            if (_.size(secondary) > 1) {
-                let exits = room.find(FIND_EXIT_RIGHT);
-                let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 47, 49, 48, true);
-                for (let key in terrain) {
-                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                    if (position.y % 2) {
-                        position.createConstructionSite(STRUCTURE_RAMPART);
-                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                            position.createConstructionSite(STRUCTURE_ROAD);
-                        }
-                    } else {
-                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
-                            position.createConstructionSite(STRUCTURE_RAMPART);
-                        } else {
-                            position.createConstructionSite(STRUCTURE_WALL);
-                        }
-                    }
-                }
-            }
-        }
-        if (neighboring['5']) {
-            let secondary = Game.map.describeExits(neighboring['5']);
-            if (_.size(secondary) > 1) {
-                let exits = room.find(FIND_EXIT_BOTTOM);
-                let terrain = room.lookForAtArea(LOOK_TERRAIN, 47, 0, 49, 48, true);
-                for (let key in terrain) {
-                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                    if (position.x % 2) {
-                        position.createConstructionSite(STRUCTURE_RAMPART);
-                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                            position.createConstructionSite(STRUCTURE_ROAD);
-                        }
-                    } else {
-                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
-                            position.createConstructionSite(STRUCTURE_RAMPART);
-                        } else {
-                            position.createConstructionSite(STRUCTURE_WALL);
-                        }
-                    }
-                }
-            }
-        }
-        if (neighboring['7']) {
-            let secondary = Game.map.describeExits(neighboring['7']);
-            if (_.size(secondary) > 1) {
-                let exits = room.find(FIND_EXIT_LEFT);
-                let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 1, 49, 2, true);
-                for (let key in terrain) {
-                    let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                    if (position.getRangeTo(position.findClosestByRange(exits)) !== 2 || position.checkForWall()) continue;
-                    if (position.y % 2) {
-                        position.createConstructionSite(STRUCTURE_RAMPART);
-                        if (room.controller.level >= 4 && position.checkForRampart() && !position.checkForRoad()) {
-                            position.createConstructionSite(STRUCTURE_ROAD);
-                        }
-                    } else {
-                        if (position.checkForObstacleStructure() && !position.checkForBarrierStructure()) {
-                            position.createConstructionSite(STRUCTURE_RAMPART);
-                        } else {
-                            position.createConstructionSite(STRUCTURE_WALL);
-                        }
-                    }
-                }
-            }
-        }
-    }**/
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    let safeZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 10, hub.x - 10, hub.y + 10, hub.x + 10, true);
-    for (let key in safeZone) {
-        let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-        if (position && !position.checkIfOutOfBounds() && position.getRangeTo(hub) === 8 && room.findPath(position, hub, {
+    if (!room.memory.bunkerComplete) {
+        let neighboring = Game.map.describeExits(room.name);
+        let checkCount = room.memory.bunkerPosCheck || 0;
+        room.memory.bunkerPosCheck = checkCount + 1;
+        if (neighboring) {
+            if (neighboring['1']) {
+                let exits = room.find(FIND_EXIT_TOP);
+                let targetExit = hub.findClosestByRange(exits);
+                for (let i = 0; i < 100; i++) {
+                    let path = room.findPath(hub, targetExit, {
+                        costCallback: function (roomName, costMatrix) {
+                            if (room.memory.bunkerPos) {
+                                for (let location of room.memory.bunkerPos) {
+                                    costMatrix.set(location.x, location.y, 255);
+                                }
+                            }
+                        }, swampCost: 1
+                    });
+                    if (path.length) {
+                        for (let pathLocation of path) {
+                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
+                            if (pathPos.getRangeTo(hub) === 8) {
+                                room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            }
+                        }
+                    }
+                }
+            }
+            if (neighboring['3']) {
+                let exits = room.find(FIND_EXIT_RIGHT);
+                let targetExit = hub.findClosestByRange(exits);
+                for (let i = 0; i < 100; i++) {
+                    let path = room.findPath(hub, targetExit, {
+                        costCallback: function (roomName, costMatrix) {
+                            if (room.memory.bunkerPos) {
+                                for (let location of room.memory.bunkerPos) {
+                                    costMatrix.set(location.x, location.y, 255);
+                                }
+                            }
+                        }, swampCost: 1
+                    });
+                    if (path.length) {
+                        for (let pathLocation of path) {
+                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
+                            if (pathPos.getRangeTo(hub) === 8) {
+                                room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            }
+                        }
+                    }
+                }
+            }
+            if (neighboring['5']) {
+                let exits = room.find(FIND_EXIT_BOTTOM);
+                let targetExit = hub.findClosestByRange(exits);
+                for (let i = 0; i < 100; i++) {
+                    let path = room.findPath(hub, targetExit, {
+                        costCallback: function (roomName, costMatrix) {
+                            if (room.memory.bunkerPos) {
+                                for (let location of room.memory.bunkerPos) {
+                                    costMatrix.set(location.x, location.y, 255);
+                                }
+                            }
+                        }, swampCost: 1
+                    });
+                    if (path.length) {
+                        for (let pathLocation of path) {
+                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
+                            if (pathPos.getRangeTo(hub) === 8) {
+                                room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            }
+                        }
+                    }
+                }
+            }
+            if (neighboring['7']) {
+                let exits = room.find(FIND_EXIT_LEFT);
+                let targetExit = hub.findClosestByRange(exits);
+                for (let i = 0; i < 100; i++) {
+                    let path = room.findPath(hub, targetExit, {
+                        costCallback: function (roomName, costMatrix) {
+                            if (room.memory.bunkerPos) {
+                                for (let location of room.memory.bunkerPos) {
+                                    costMatrix.set(location.x, location.y, 255);
+                                }
+                            }
+                        }, swampCost: 1
+                    });
+                    if (path.length) {
+                        for (let pathLocation of path) {
+                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
+                            if (pathPos.getRangeTo(hub) === 8) {
+                                room.memory.bunkerPos = room.memory.bunkerPos || [];
+                                let entry = {"x": pathLocation.x, "y": pathLocation.y};
+                                if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
+                            }
+                        }
+                    }
+                }
+            }
+            if (room.memory.bunkerPosCheck === 5) {
+                room.memory.bunkerPosCheck = undefined;
+                room.memory.bunkerComplete = true;
+            }
+        }
+    }
+    for (let location of room.memory.bunkerPos) {
+        let rampPos = new RoomPosition(location.x, location.y, room.name);
+        if (rampPos && !rampPos.checkIfOutOfBounds() && rampPos.getRangeTo(hub) === 8 && room.findPath(rampPos, hub, {
             range: 0,
             ignoreDestructibleStructures: true,
             ignoreCreeps: true,
             swampCost: 1
-        }).length < 11) {
-            position.createConstructionSite(STRUCTURE_RAMPART);
-            position.createConstructionSite(STRUCTURE_ROAD);
+        }).length < 12) {
+            room.visual.circle(rampPos, {
+                fill: 'blue',
+                radius: 0.55,
+                stroke: 'blue'
+            });
+            rampPos.createConstructionSite(STRUCTURE_RAMPART);
+            rampPos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
 }
