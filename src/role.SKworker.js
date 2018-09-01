@@ -143,10 +143,13 @@ function skRoads(creep) {
 }
 
 function buildRoadFromTo(room, start, end) {
-    let path = start.pos.findPathTo(end, {ignoreCreeps: true, ignoreRoads: false});
+    let path = start.pos.findPathTo(end, {
+        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false, swampCost: 5, plainCost: 5
+    });
     for (let point of path) {
-        if (_.size(Game.constructionSites) >= 50) break;
-        buildRoad(new RoomPosition(point.x, point.y, room.name));
+        let pos = new RoomPosition(point.x, point.y, room.name);
+        if (pos.checkForImpassible()) continue;
+        buildRoad(pos);
     }
 }
 
