@@ -61,6 +61,12 @@ function mind(room, roomLimit) {
         }
         // Request builders
         requestBuilders(room);
+        // Silence Alerts
+        if (Game.time % 250 === 0) {
+            for (let building of room.structures) {
+                building.notifyWhenAttacked(false);
+            }
+        }
         shib.shibBench('roomBuild', roomBuild);
     }
 
