@@ -200,7 +200,6 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level < 4) return;
-    room.memory.bunkerPos = []
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (1 < 2) {
         let neighboring = Game.map.describeExits(room.name);
