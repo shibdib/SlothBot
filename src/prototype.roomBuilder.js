@@ -223,28 +223,10 @@ function buildWalls(room, structures) {
                         ignoreCreeps: true,
                     });
                     if (path.length > 7) {
-                        path.slice(0, 9);
-                        for (let pathLocation of path) {
-                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) <= 8) {
-                                let path = room.findPath(hub, pathPos, {
-                                    costCallback: function (roomName, costMatrix) {
-                                        if (room.memory.bunkerPos) {
-                                            for (let location of room.memory.bunkerPos) {
-                                                costMatrix.set(location.x, location.y, 255);
-                                            }
-                                        }
-                                    }, swampCost: 1,
-                                    ignoreDestructibleStructures: true,
-                                    ignoreCreeps: true,
-                                });
-                                if (path.length === 8) {
-                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
-                                }
-                            }
-                        }
+                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                        room.memory.bunkerPos = room.memory.bunkerPos || [];
+                        let entry = {"x": pathPos.x, "y": pathPos.y};
+                        if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
                     }
                 }
             }
@@ -264,28 +246,10 @@ function buildWalls(room, structures) {
                         ignoreCreeps: true,
                     });
                     if (path.length > 7) {
-                        path.slice(0, 9);
-                        for (let pathLocation of path) {
-                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) <= 8) {
-                                let path = room.findPath(hub, pathPos, {
-                                    costCallback: function (roomName, costMatrix) {
-                                        if (room.memory.bunkerPos) {
-                                            for (let location of room.memory.bunkerPos) {
-                                                costMatrix.set(location.x, location.y, 255);
-                                            }
-                                        }
-                                    }, swampCost: 1,
-                                    ignoreDestructibleStructures: true,
-                                    ignoreCreeps: true,
-                                });
-                                if (path.length === 8) {
-                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
-                                }
-                            }
-                        }
+                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                        room.memory.bunkerPos = room.memory.bunkerPos || [];
+                        let entry = {"x": pathPos.x, "y": pathPos.y};
+                        if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
                     }
                 }
             }
@@ -305,28 +269,10 @@ function buildWalls(room, structures) {
                         ignoreCreeps: true,
                     });
                     if (path.length > 7) {
-                        path.slice(0, 9);
-                        for (let pathLocation of path) {
-                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) <= 8) {
-                                let path = room.findPath(hub, pathPos, {
-                                    costCallback: function (roomName, costMatrix) {
-                                        if (room.memory.bunkerPos) {
-                                            for (let location of room.memory.bunkerPos) {
-                                                costMatrix.set(location.x, location.y, 255);
-                                            }
-                                        }
-                                    }, swampCost: 1,
-                                    ignoreDestructibleStructures: true,
-                                    ignoreCreeps: true,
-                                });
-                                if (path.length === 8) {
-                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
-                                }
-                            }
-                        }
+                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                        room.memory.bunkerPos = room.memory.bunkerPos || [];
+                        let entry = {"x": pathPos.x, "y": pathPos.y};
+                        if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
                     }
                 }
             }
@@ -346,28 +292,10 @@ function buildWalls(room, structures) {
                         ignoreCreeps: true,
                     });
                     if (path.length > 7) {
-                        path.slice(0, 9);
-                        for (let pathLocation of path) {
-                            let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
-                            if (pathPos.getRangeTo(hub) <= 8) {
-                                let path = room.findPath(hub, pathPos, {
-                                    costCallback: function (roomName, costMatrix) {
-                                        if (room.memory.bunkerPos) {
-                                            for (let location of room.memory.bunkerPos) {
-                                                costMatrix.set(location.x, location.y, 255);
-                                            }
-                                        }
-                                    }, swampCost: 1,
-                                    ignoreDestructibleStructures: true,
-                                    ignoreCreeps: true,
-                                });
-                                if (path.length === 8) {
-                                    room.memory.bunkerPos = room.memory.bunkerPos || [];
-                                    let entry = {"x": pathLocation.x, "y": pathLocation.y};
-                                    if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
-                                }
-                            }
-                        }
+                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                        room.memory.bunkerPos = room.memory.bunkerPos || [];
+                        let entry = {"x": pathPos.x, "y": pathPos.y};
+                        if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
                     }
                 }
             }
