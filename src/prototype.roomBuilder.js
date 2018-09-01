@@ -200,6 +200,7 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level < 4) return;
+    room.memory.bunkerPos = []
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (1 < 2) {
         let neighboring = Game.map.describeExits(room.name);
@@ -221,7 +222,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length) {
+                    if (path.length > 7) {
+                        path.slice(0, 9);
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
                             if (pathPos.getRangeTo(hub) <= 8) {
@@ -261,7 +263,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length) {
+                    if (path.length > 7) {
+                        path.slice(0, 9);
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
                             if (pathPos.getRangeTo(hub) <= 8) {
@@ -301,7 +304,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length) {
+                    if (path.length > 7) {
+                        path.slice(0, 9);
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
                             if (pathPos.getRangeTo(hub) <= 8) {
@@ -341,7 +345,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length) {
+                    if (path.length > 7) {
+                        path.slice(0, 9);
                         for (let pathLocation of path) {
                             let pathPos = new RoomPosition(pathLocation.x, pathLocation.y, room.name);
                             if (pathPos.getRangeTo(hub) <= 8) {
