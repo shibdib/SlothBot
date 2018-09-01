@@ -200,7 +200,6 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level < 4) return;
-    room.memory.bunkerPosCheck = undefined
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (room.memory.bunkerComplete) {
         let neighboring = Game.map.describeExits(room.name);
@@ -313,8 +312,8 @@ function buildWalls(room, structures) {
                 radius: 0.55,
                 stroke: 'blue'
             });
-            //rampPos.createConstructionSite(STRUCTURE_RAMPART);
-            //rampPos.createConstructionSite(STRUCTURE_ROAD);
+            rampPos.createConstructionSite(STRUCTURE_RAMPART);
+            rampPos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
 }
