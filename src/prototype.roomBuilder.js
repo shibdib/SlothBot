@@ -200,6 +200,7 @@ function buildWalls(room, structures) {
         }
     }
     if (room.controller.level < 4) return;
+    room.memory.bunkerPosCheck = undefined;
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (!room.memory.bunkerComplete) {
         let neighboring = Game.map.describeExits(room.name);
@@ -217,7 +218,9 @@ function buildWalls(room, structures) {
                                     costMatrix.set(location.x, location.y, 255);
                                 }
                             }
-                        }, swampCost: 1
+                        }, swampCost: 1,
+                        ignoreDestructibleStructures: true,
+                        ignoreCreeps: true,
                     });
                     if (path.length) {
                         for (let pathLocation of path) {
@@ -242,7 +245,9 @@ function buildWalls(room, structures) {
                                     costMatrix.set(location.x, location.y, 255);
                                 }
                             }
-                        }, swampCost: 1
+                        }, swampCost: 1,
+                        ignoreDestructibleStructures: true,
+                        ignoreCreeps: true,
                     });
                     if (path.length) {
                         for (let pathLocation of path) {
@@ -267,7 +272,9 @@ function buildWalls(room, structures) {
                                     costMatrix.set(location.x, location.y, 255);
                                 }
                             }
-                        }, swampCost: 1
+                        }, swampCost: 1,
+                        ignoreDestructibleStructures: true,
+                        ignoreCreeps: true,
                     });
                     if (path.length) {
                         for (let pathLocation of path) {
@@ -292,7 +299,9 @@ function buildWalls(room, structures) {
                                     costMatrix.set(location.x, location.y, 255);
                                 }
                             }
-                        }, swampCost: 1
+                        }, swampCost: 1,
+                        ignoreDestructibleStructures: true,
+                        ignoreCreeps: true,
                     });
                     if (path.length) {
                         for (let pathLocation of path) {
