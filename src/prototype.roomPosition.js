@@ -64,15 +64,15 @@ RoomPosition.prototype.checkForPlain = function () {
 };
 
 RoomPosition.prototype.checkForBuiltWall = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_WALL}).length;
+    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_WALL)[0];
 };
 
 RoomPosition.prototype.checkForRampart = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART})[0];
+    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0];
 };
 
 RoomPosition.prototype.checkForBarrierStructure = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL})[0];
+    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)[0];
 };
 
 RoomPosition.prototype.checkForObstacleStructure = function () {
@@ -84,12 +84,12 @@ RoomPosition.prototype.checkForConstructionSites = function () {
 };
 
 RoomPosition.prototype.checkForRoad = function () {
-    return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length;
+    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_ROAD)[0];
 };
 
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     if (Game.rooms[this.roomName]) {
-        if (!ramparts) return this.lookFor(LOOK_STRUCTURES, {filter: (s) => s.structureType !== STRUCTURE_RAMPART});
+        if (!ramparts) return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType !== STRUCTURE_RAMPART);
         return this.lookFor(LOOK_STRUCTURES);
     } else {
         return undefined;

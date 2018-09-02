@@ -72,6 +72,11 @@ function depositEnergy(creep) {
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
+            console.log(container.pos.checkForRampart())
+            if (!container.pos.checkForRampart()) {
+                console.log(2)
+                container.pos.createConstructionSite(STRUCTURE_RAMPART);
+            }
             let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
             if (creep.carry[RESOURCE_ENERGY] > 20 && container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);
