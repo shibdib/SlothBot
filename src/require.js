@@ -20,3 +20,4 @@ require("operation.hold");
 require("operation.swarm");
 require("operation.swarmHarass");
 require("operation.rangers");
+require("operation.claimClear");

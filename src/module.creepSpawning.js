@@ -689,6 +689,16 @@ module.exports.militaryCreepQueue = function () {
                 })
             }
         }
+        //Claim clear
+        if (Memory.targetRooms[key].type === 'claimClear') {
+            let claimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'claimer');
+            if (!claimer.length && !_.includes(queue, 'claimer')) {
+                queueMilitaryCreep(2, {
+                    role: 'scout', targetRoom: key,
+                    operation: 'claimClear', military: true
+                })
+            }
+        }
         // Robbery
         if (Memory.targetRooms[key].type === 'robbery') {
             let raiders = 3;

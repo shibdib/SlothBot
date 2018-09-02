@@ -6,6 +6,8 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
+    //Check if claim clear op
+    if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move
     creep.borderCheck();
     if (!creep.memory.destinationReached) {
