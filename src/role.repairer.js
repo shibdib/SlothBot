@@ -35,7 +35,7 @@ function role(creep) {
         }
         if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
             let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
-            if (repairNeeded.hits >= repairNeeded.hitsMax) return creep.memory.constructionSite = undefined;
+            if (repairNeeded.hits >= repairNeeded.hitsMax || repairNeeded.hits > 100000 * creep.room.controller.level) return creep.memory.constructionSite = undefined;
             switch (creep.repair(repairNeeded)) {
                 case OK:
                     return null;
