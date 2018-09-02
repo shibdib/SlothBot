@@ -2,19 +2,22 @@ let highCommand = require('military.highCommand');
 
 Creep.prototype.claimClear = function () {
     if (this.room.name === this.memory.targetRoom) {
-        switch (this.claimController(this.room.controller)) {
-            case ERR_NOT_IN_RANGE:
-                this.shibMove(this.room.controller);
-                break;
-            case ERR_BUSY:
-                break;
-            case ERR_NOT_FOUND:
-                break;
-            case ERR_INVALID_TARGET:
-                break;
-            case OK:
-                cleanRoom(this.room, this.room.structures);
-                this.signController(this.room.controller, 'Cleaning provided by #Overlord-bot');
+        if (this.room.controller.owner.username !== MY_USERNAME) {
+            switch (this.claimController(this.room.controller)) {
+                case ERR_NOT_IN_RANGE:
+                    this.shibMove(this.room.controller);
+                    break;
+                case ERR_BUSY:
+                    break;
+                case ERR_NOT_FOUND:
+                    break;
+                case ERR_INVALID_TARGET:
+                    break;
+                case OK:
+                    this.signController(this.room.controller, 'Cleaning provided by #Overlord-bot');
+            }
+        } else {
+            cleanRoom(this.room, this.room.structures);
             //this.room.controller.unclaim();
             //if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             //this.suicide();
