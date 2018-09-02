@@ -35,6 +35,7 @@ function role(creep) {
         }
         if (creep.memory.task === 'repair' && creep.memory.constructionSite) {
             let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
+            if (repairNeeded.hits >= repairNeeded.hitsMax) return creep.memory.constructionSite = undefined;
             switch (creep.repair(repairNeeded)) {
                 case OK:
                     return null;
@@ -42,10 +43,10 @@ function role(creep) {
                     creep.shibMove(repairNeeded, {range: 3});
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
-                    delete creep.memory.constructionSite;
+                    creep.memory.constructionSite = undefined;
                     break;
                 case ERR_RCL_NOT_ENOUGH:
-                    delete creep.memory.constructionSite;
+                    creep.memory.constructionSite = undefined;
             }
         }
     } else {
