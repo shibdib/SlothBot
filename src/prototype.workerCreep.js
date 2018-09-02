@@ -39,7 +39,6 @@ Creep.prototype.findMineral = function () {
 
 Creep.prototype.findConstruction = function () {
     let construction = this.room.constructionSites;
-    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -88,6 +87,7 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
+    let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
