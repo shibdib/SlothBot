@@ -41,7 +41,11 @@ module.exports.role = profiler.registerFN(role, 'longbow');
 
 function findDefensivePosition(creep, target) {
     if (target) {
-        let bestRampart = target.pos.findClosestByPath(creep.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y))});
+        let bestRampart = target.pos.findClosestByPath(creep.room.structures, {
+            filter: (r) => r.structureType === STRUCTURE_RAMPART &&
+                !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y)) &&
+                (!r.room.memory.extensionHub || (r.pos.x !== r.room.memory.extensionHub.x && r.pos.y !== r.room.memory.extensionHub.y))
+        });
         if (bestRampart) {
             creep.memory.assignedRampart = bestRampart.id;
             if (bestRampart.pos !== creep.pos) {
