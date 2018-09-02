@@ -14,10 +14,10 @@ Creep.prototype.claimClear = function () {
                 break;
             case OK:
                 cleanRoom(this.room, this.room.structures);
-                this.room.controller.signController('Room Cleaned Courtesy of #Overlord-Bot');
-                this.room.controller.unclaim();
-                if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
-                this.suicide();
+                this.signController(this.room.controller, 'Cleaning provided by #Overlord-bot');
+            //this.room.controller.unclaim();
+            //if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
+            //this.suicide();
         }
     } else {
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
