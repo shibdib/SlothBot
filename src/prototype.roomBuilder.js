@@ -199,7 +199,7 @@ function buildWalls(room, structures) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
-    if (room.controller.level < 4) return;
+    if (room.controller.level < 3) return;
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (room.memory.bunkerComplete) {
         let neighboring = Game.map.describeExits(room.name);
