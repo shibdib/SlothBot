@@ -17,9 +17,10 @@ function mind(room, roomLimit) {
     let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TOWER && s.my);
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     if (room.controller.level <= 4 && hostiles.length && !worthyStructures.length && hostiles.length >= towers.length * 2) {
-        if (Game.time % 25 === 0) room.memory.badCount = room.memory.badCount++ || 1;
+        let badCount = room.memory.badCount || 0;
+        if (Game.time % 25 === 0) room.memory.badCount = badCount + 1;
         if (room.memory.badCount >= 4) {
-            abandonRoom(room);
+            abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to a prolonged enemy presence.');
             Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence.');
