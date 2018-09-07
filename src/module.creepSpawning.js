@@ -401,7 +401,7 @@ module.exports.workerCreepQueue = function (room) {
         }
         let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'pioneer');
         if (!_.includes(queue, 'pioneer') && pioneers.length < -2 + level) {
-            queueCreep(room, PRIORITIES.claimer, {
+            queueCreep(room, PRIORITIES.claimer + pioneers.length, {
                 role: 'pioneer',
                 destination: room.memory.claimTarget,
                 initialBuilder: true

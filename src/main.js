@@ -114,7 +114,7 @@ resetBench = function () {
     log.a('Benchmarks Reset');
 };
 
-abandonRoom = function (room) {
+abandon = function (room) {
     if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
     for (let key in Game.rooms[room].creeps) {
         Game.rooms[room].creeps[key].suicide();

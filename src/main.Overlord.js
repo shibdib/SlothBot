@@ -16,10 +16,12 @@ function mind(room, roomLimit) {
     let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
     let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TOWER && s.my);
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
+    let badCount = room.memory.badCount || 0;
     if (room.controller.level <= 4 && hostiles.length && !worthyStructures.length && hostiles.length >= towers.length * 2) {
-        let badCount = room.memory.badCount || 0;
-        if (Game.time % 25 === 0) room.memory.badCount = badCount + 1;
-        if (room.memory.badCount >= 4) {
+        if (Game.time % 20 === 0) {
+            room.memory.badCount = badCount + 1;
+        }
+        if (room.memory.badCount > 4) {
             abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to a prolonged enemy presence.');
@@ -27,7 +29,11 @@ function mind(room, roomLimit) {
             return;
         }
     } else {
-        room.memory.badCount = undefined;
+        if (badCount === 0) {
+            room.memory.badCount = undefined;
+        } else {
+            room.memory.badCount = badCount - 1;
+        }
     }
 
     // Set Energy Needs
@@ -211,7 +217,6 @@ function requestBuilders(room) {
 }
 
 abandonRoom = function (room) {
-    if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
     for (let key in Game.rooms[room].creeps) {
         Game.rooms[room].creeps[key].suicide();
     }

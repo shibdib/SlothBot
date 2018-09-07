@@ -44,7 +44,7 @@ let globals = function () {
         worker: 4,
         waller: 6,
         upgrader: 3,
-        mineralHarvester: 6,
+        mineralHarvester: 3,
         // Haulers
         hauler: 2,
         // Remotes

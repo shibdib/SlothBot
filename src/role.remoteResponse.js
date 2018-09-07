@@ -20,7 +20,7 @@ function role(creep) {
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep);
         }
-        if (hostiles) {
+        if (hostiles && (!creep.room.controller || !creep.room.controller.safeMode)) {
             creep.handleMilitaryCreep();
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 15}); //to move to any room}
