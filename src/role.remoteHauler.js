@@ -23,7 +23,13 @@ function role(creep) {
         if (!Game.rooms[creep.memory.overlord].memory.remoteRooms) return creep.suicide();
         let overlord = Game.rooms[creep.memory.overlord];
         let requesting = overlord.memory.remotesNeedingHauler;
-        if (!requesting || !requesting.length) return creep.idleFor(15);
+        if (!requesting || !requesting.length) {
+            if (creep.pos.checkForRoad()) {
+                creep.moveRandom();
+            } else {
+                return creep.idleFor(15);
+            }
+        }
         creep.memory.destination = requesting[0];
         overlord.memory.remotesNeedingHauler = _.filter(requesting, (r) => r !== creep.memory.destination);
     }
