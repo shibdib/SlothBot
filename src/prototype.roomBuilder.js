@@ -14,7 +14,7 @@ let protectedStructures = [
 Room.prototype.buildRoom = function () {
     let structures = this.structures;
     cleanRoom(this, structures);
-    if (!this.memory.extensionHub || !this.memory.extensionHub.x) findExtensionHub(this);
+    if (!this.memory.extensionHub || !this.memory.extensionHub.x) return findExtensionHub(this);
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (!spawn.length) {
         buildTowers(this, structures);
@@ -128,17 +128,18 @@ function findExtensionHub(room) {
             room.memory.extensionHub.y = spawn.pos.y;
             return;
         }
-        room.memory.hubSearch = room.memory.hubSearch++ || 1;
-        if (room.memory.hubSearch >= 20) {
-            abandonRoom(room);
+        let hubSearch = room.memory.hubSearch || 0;
+        if (hubSearch >= 10) {
+            abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
             Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
             return;
         }
+        room.memory.hubSearch = hubSearch + 1;
         let pos = new RoomPosition(getRandomInt(12, 38), getRandomInt(12, 38), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
-        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 4, pos.x - 4, pos.y + 4, pos.x + 4, true);
+        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
         let wall = false;
         for (let key in terrain) {
             let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
@@ -677,7 +678,6 @@ function isOdd(n) {
 }
 
 abandonRoom = function (room) {
-    if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
     for (let key in Game.rooms[room].creeps) {
         Game.rooms[room].creeps[key].suicide();
     }

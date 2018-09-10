@@ -279,7 +279,7 @@ Creep.prototype.fightRanged = function (target) {
     let range = this.pos.getRangeTo(hostile);
     let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     if (range <= 3) {
-        if (range <= 2) {
+        if (range <= 2 && hostile.getActiveBodyparts(ATTACK)) {
             this.kite();
         }
         if (targets.length > 1) {

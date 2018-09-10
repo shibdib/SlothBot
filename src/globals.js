@@ -42,7 +42,7 @@ let globals = function () {
         stationaryHarvester: 1,
         // Workers
         worker: 4,
-        waller: 6,
+        waller: 4,
         upgrader: 3,
         mineralHarvester: 3,
         // Haulers
@@ -75,7 +75,7 @@ let globals = function () {
         scout: 2,
         responder: 2,
         // Misc
-        claimer: 3,
+        claimer: 5,
         explorer: 2,
         jerk: 2,
     };

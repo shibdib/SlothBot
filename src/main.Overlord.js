@@ -21,7 +21,7 @@ function mind(room, roomLimit) {
         if (Game.time % 20 === 0) {
             room.memory.badCount = badCount + 1;
         }
-        if (room.memory.badCount > 4) {
+        if (room.memory.badCount > 3) {
             abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to a prolonged enemy presence.');
