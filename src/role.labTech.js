@@ -48,6 +48,8 @@ module.exports.role = function (creep) {
     let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
     if (creep.pos.getRangeTo(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
+    } else if (creep.pos.checkForRoad()) {
+        creep.moveRandom();
     } else {
         creep.idleFor(15);
     }
