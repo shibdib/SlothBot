@@ -99,7 +99,7 @@ function role(creep) {
                         creep.memory.storageDestination = storage.id;
                     } else if (!link && controllerContainer && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.75) {
                         creep.memory.storageDestination = controllerContainer.id;
-                    } else if (link && controllerContainer && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.25) {
+                    } else if (link && link.energy < link.energyCapacity * 0.5 && controllerContainer && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.25) {
                         creep.memory.storageDestination = controllerContainer.id;
                     } else if (storage) {
                         creep.memory.storageDestination = storage.id;
