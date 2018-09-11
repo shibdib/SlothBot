@@ -341,7 +341,7 @@ module.exports.workerCreepQueue = function (room) {
         let amount = 2;
         if (TEN_CPU) amount = 1;
         if (wallers.length < amount) {
-            queueCreep(room, PRIORITIES.waller, {role: 'waller'})
+            queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
         }
     }
     //Mineral Harvester
