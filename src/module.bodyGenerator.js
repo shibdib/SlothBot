@@ -33,13 +33,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work + carry;
             break;
         case 'waller':
-            work = level;
+            work = level * 2;
             carry = level;
             if (level === 8) {
                 work = 15;
                 carry = 10;
             }
-            move = work + carry;
+            move = work;
             break;
         case 'upgrader':
             if (level < 4) {
