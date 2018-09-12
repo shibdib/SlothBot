@@ -480,7 +480,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (roomThreat) {
                     let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.remoteRooms[keys] && creep.memory.role === 'longbow');
                     if (longbow.length < 2) {
-                        queueCreep(room, PRIORITIES.high, {
+                        queueCreep(room, PRIORITIES.remoteHarvester, {
                             role: 'longbow',
                             responseTarget: room.memory.remoteRooms[keys],
                             military: true
