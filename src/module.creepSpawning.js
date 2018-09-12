@@ -415,7 +415,7 @@ module.exports.workerCreepQueue = function (room) {
         if (!_.includes(queue, 'pioneer')) {
             let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
             if (pioneers.length < 10) {
-                queueCreep(room, PRIORITIES.pioneer, {
+                queueCreep(room, PRIORITIES.pioneer + pioneers.length, {
                     role: 'pioneer',
                     destination: needyRoom.name
                 })

@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
     }
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
-    //if (droppedResources(creep)) return;
+    if (droppedResources(creep)) return;
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
     // Empty labs
     if (creep.memory.empty) return emptyLab(creep);
@@ -46,7 +46,24 @@ module.exports.role = function (creep) {
         return;
     }
     let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
-    if (creep.pos.getRangeTo(closeLab) > 3) {
+    if (_.sum(creep.carry) > 0) {
+        let storage = creep.room.storage;
+        for (let resourceType in creep.carry) {
+            switch (creep.transfer(storage, resourceType)) {
+                case OK:
+                    creep.memory.empty = undefined;
+                    creep.memory.labHelper = undefined;
+                    return;
+                case ERR_NOT_IN_RANGE:
+                    creep.memory.empty = true;
+                    creep.shibMove(storage);
+                    return;
+                case ERR_FULL:
+                    creep.drop(resourceType);
+                    return true;
+            }
+        }
+    } else if (creep.pos.getRangeTo(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
     } else if (creep.pos.checkForRoad()) {
         creep.moveRandom();
