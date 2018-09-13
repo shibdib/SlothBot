@@ -48,6 +48,10 @@ function role(creep) {
                 case ERR_RCL_NOT_ENOUGH:
                     creep.memory.constructionSite = undefined;
             }
+        } else if (creep.pos.checkForRoad()) {
+            creep.moveRandom();
+        } else {
+            creep.idleFor(15);
         }
     } else {
         if (creep.memory.energyDestination) {
