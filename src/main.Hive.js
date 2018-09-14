@@ -89,7 +89,7 @@ function mind() {
             log.e(e.stack);
         }
         //Expansion Manager
-        let maxRooms = _.round(Game.cpu.limit / 20);
+        let maxRooms = _.round((Game.cpu.limit - 15) / 20);
         if (TEN_CPU) {
             maxRooms = 2;
         }
