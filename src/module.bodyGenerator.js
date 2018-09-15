@@ -130,6 +130,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level >= 7) heal = 15;
             move = tough + heal;
             break;
+        case 'drainer':
+            if (level < 5) break;
+            tough = 4;
+            if (level >= 5) heal = level;
+            if (level >= 7) heal = 15;
+            move = tough + heal;
+            break;
         case 'longbow':
             if (level === 4) {
                 rangedAttack = 2;
