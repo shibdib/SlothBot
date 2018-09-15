@@ -449,8 +449,9 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         }
     }
     //Dropped
-    let dropped = shuffle(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}))[0];
-    if (dropped) {
+    let dropped = _.sortBy(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}), 'amount');
+    if (dropped.length) {
+        dropped = dropped[dropped.length - 1];
         let weight = 0.5;
         let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
         energy.push({

@@ -158,9 +158,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 25;
             } else {
                 rangedAttack = 1;
-                heal = 1;
                 tough = 1;
-                move = 3;
+                move = 2;
             }
             break;
         case 'raider':
