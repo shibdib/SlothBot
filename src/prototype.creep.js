@@ -251,7 +251,15 @@ Creep.prototype.tryToBoost = function (boosts) {
             }
             if (!this.memory.boostLab) {
                 let filledLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === this.memory.requestedBoosts[key] && s.energy > 0)[0];
-                if (filledLab) {
+                let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
+                let innerLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(hub) < 6)[0];
+                if (innerLab) {
+                    if (innerLab.memory.active) return this.idleFor(15);
+                    this.memory.boostLab = innerLab.id;
+                    innerLab.memory.neededBoost = this.memory.requestedBoosts[key];
+                    innerLab.memory.active = true;
+                    innerLab.memory.requested = Game.time;
+                } else if (filledLab) {
                     this.memory.boostLab = filledLab.id;
                     filledLab.memory.neededBoost = this.memory.requestedBoosts[key];
                     filledLab.memory.active = true;

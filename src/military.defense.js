@@ -21,18 +21,6 @@ function controller(room) {
     shib.shibBench('rampartManager', rampartCpu);
     // Early Warning System
     //earlyWarning(room);
-    if (room.memory.threatLevel >= 4) {
-        let coveredSpawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.pos.checkForRampart());
-        let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-        if (!coveredSpawns.length && hostiles.length && !room.controller.safeMode) {
-            switch (room.controller.activateSafeMode()) {
-                case OK:
-                    log.a(room.name + ' has entered Safemode.');
-                    Game.notify(room.name + ' has entered Safemode.');
-                    break;
-            }
-        }
-    }
     if (room.memory.responseNeeded && !room.memory.alertEmail) {
         room.memory.alertEmail = true;
         if (room.memory.threatLevel >= 4) {

@@ -19,7 +19,7 @@ function labManager() {
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && terminal && room.memory.reactionRoom && Game.time % 25 === 0) manageBoostProduction(room);
         if (lab && terminal && room.memory.reactionRoom && Game.time % 3 === 0) manageActiveLabs(room);
-        if (lab && terminal && Game.time % 15 === 0) cleanBoostLabs(room);
+        if (lab && terminal && Game.time % 50 === 0) cleanBoostLabs(room);
     }
 }
 

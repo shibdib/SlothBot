@@ -508,6 +508,23 @@ function buildLabs(room, structures) {
                 }
             }
         } else if (labs[0]) {
+            if (room.controller.level >= 7) {
+                let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB});
+                let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+                if (hub.getRangeTo(hub.findClosestByRange(labs)) > 6 && (!sites || hub.getRangeTo(hub.findClosestByRange(sites)) > 6)) {
+                    let innerLab = room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true);
+                    for (let key in innerLab) {
+                        let position = new RoomPosition(innerLab[key].x, innerLab[key].y, room.name);
+                        if (position.checkForWall() || position.checkForAllStructure().length > 0) continue;
+                        switch (position.createConstructionSite(STRUCTURE_LAB)) {
+                            case OK:
+                                break;
+                            case ERR_RCL_NOT_ENOUGH:
+                                return;
+                        }
+                    }
+                }
+            }
             let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 2, labs[0].pos.x - 2, labs[0].pos.y + 2, labs[0].pos.x + 2, true);
             buildRoadFromTo(room, labs[0], room.controller);
             for (let key in labHub) {
