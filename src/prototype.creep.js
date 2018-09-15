@@ -340,7 +340,7 @@ function getBoostAmount(room, boost) {
 
 Creep.prototype.repairRoad = function () {
     if (this.carry[RESOURCE_ENERGY] < 10 || this.getActiveBodyparts(WORK) === 0) return;
-    let inRangeRoad = _.min(_.filter(this.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.75), 'hits');
+    let inRangeRoad = _.min(_.filter(this.pos.findInRange(FIND_STRUCTURES, 3), (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.75), 'hits');
     if (inRangeRoad) return this.repair(inRangeRoad);
 };
 
