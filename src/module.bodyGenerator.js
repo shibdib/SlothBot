@@ -42,14 +42,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work;
             break;
         case 'upgrader':
-            if (level < 4) {
+            if (level < 5) {
                 work = level + 1;
                 carry = 1;
                 move = work + carry;
                 break;
             } else {
                 work = (3 * level) - 1;
-                if (room.memory.energyNeeded) work = level;
+                if (room.memory.energyNeeded) work = 2 * level;
                 carry = 1;
                 move = level - 1;
                 break;
