@@ -65,6 +65,7 @@ function mind(room, roomLimit) {
         } catch (e) {
             log.e('Room Building for room ' + room.name + ' experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         // Request builders
         requestBuilders(room);
@@ -93,6 +94,7 @@ function mind(room, roomLimit) {
         } catch (e) {
             log.e('Creep Spawning for room ' + room.name + ' experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
     }
 
@@ -114,6 +116,7 @@ function mind(room, roomLimit) {
         } catch (e) {
             log.e('Observer Control for room ' + room.name + ' experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         shib.shibBench('observerControl', observerCpu);
     }
@@ -127,6 +130,7 @@ function mind(room, roomLimit) {
         } catch (e) {
             log.e('Link Control for room ' + room.name + ' experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         shib.shibBench('linkControl', cpu);
     }
@@ -140,6 +144,7 @@ function mind(room, roomLimit) {
         } catch (e) {
             log.e('Terminal Control for room ' + room.name + ' experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         shib.shibBench('terminalControl', cpu);
     }
@@ -153,6 +158,7 @@ function mind(room, roomLimit) {
         } catch (e) {
             log.e('Power Control for room ' + room.name + ' experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         shib.shibBench('powerControl', cpu);
     }
@@ -192,6 +198,7 @@ function minionController(minion) {
     } catch (e) {
         log.e(minion.name + ' experienced an error in room ' + minion.room.name);
         log.e(e.stack);
+        Game.notify(e.stack);
     }
     shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }

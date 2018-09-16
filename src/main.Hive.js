@@ -31,6 +31,7 @@ function mind() {
     } catch (e) {
         log.e('High Command Module experienced an error');
         log.e(e.stack);
+        Game.notify(e.stack);
     }
     shib.shibBench('highCommand', cpu);
 
@@ -43,6 +44,7 @@ function mind() {
         } catch (e) {
             log.e('Lab Module experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
     }
     shib.shibBench('labControl', cpu);
@@ -54,6 +56,7 @@ function mind() {
     } catch (e) {
         log.e('Diplomacy Module experienced an error');
         log.e(e.stack);
+        Game.notify(e.stack);
     }
 
     // Military first
@@ -65,6 +68,7 @@ function mind() {
         } catch (e) {
             log.e('Military Minion Controller experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
     }
 
@@ -87,6 +91,7 @@ function mind() {
         } catch (e) {
             log.e('Overlord Module experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         //Expansion Manager
         let maxRooms = _.round((Game.cpu.limit - 15) / 20);
@@ -102,6 +107,7 @@ function mind() {
             } catch (e) {
                 log.e('Expansion Module experienced an error');
                 log.e(e.stack);
+                Game.notify(e.stack);
             }
         }
         processed++;
@@ -115,6 +121,7 @@ function mind() {
         } catch (e) {
             log.e('Military Creep queue experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         shib.shibBench('militarySpawn', cpu);
     }
@@ -127,6 +134,7 @@ function mind() {
         } catch (e) {
             log.e('Creep build queue experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         shib.shibBench('processBuildQueue', cpu);
     }
@@ -139,6 +147,7 @@ function mind() {
         } catch (e) {
             log.e('Room HUD experienced an error');
             log.e(e.stack);
+            Game.notify(e.stack);
         }
         shib.shibBench('roomHud', cpu);
     }
@@ -162,6 +171,7 @@ function minionController(minion) {
     } catch (e) {
         log.e(minion.name + ' experienced an error in room ' + minion.room.name);
         log.e(e.stack);
+        Game.notify(e.stack);
     }
     shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
