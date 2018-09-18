@@ -59,7 +59,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'hauler':
-            if (level < 4) {
+            if (level < 5) {
                 carry = level;
                 move = carry;
                 break
