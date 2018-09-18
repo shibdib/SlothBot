@@ -77,9 +77,13 @@ function role(creep) {
                             let source = creep.pos.getClosestSource();
                             if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
                         }
+                    } else if (creep.pos.checkForRoad()) {
+                        creep.moveRandom();
                     } else {
                         creep.idleFor(5);
                     }
+                } else if (creep.pos.checkForRoad()) {
+                    creep.moveRandom();
                 } else {
                     creep.idleFor(5);
                 }
