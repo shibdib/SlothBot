@@ -18,14 +18,6 @@ function role(creep) {
         return null;
     }
     if (creep.memory.source) {
-        let container = Game.getObjectById(creep.memory.containerID);
-        if (!creep.memory.onContainer) {
-            if (container && creep.pos.getRangeTo(container) > 0) {
-                creep.shibMove(container, {range: 0});
-            } else if (container) {
-                creep.memory.onContainer = true;
-            }
-        }
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -76,6 +68,14 @@ function depositEnergy(creep) {
     if (creep.room.controller.level < 3) return;
     let link;
     if (!creep.memory.containerID) creep.memory.containerID = creep.harvestDepositContainer();
+    if (!creep.memory.onContainer) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container && creep.pos.getRangeTo(container) > 0) {
+            return creep.shibMove(container, {range: 0});
+        } else if (container) {
+            creep.memory.onContainer = true;
+        }
+    }
     if (!creep.memory.linkID) {
         creep.memory.linkID = harvestDepositLink(creep);
     } else {
