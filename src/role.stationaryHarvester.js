@@ -19,6 +19,13 @@ function role(creep) {
     }
     if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
+        if (!creep.memory.onContainer) {
+            if (container && creep.pos.getRangeTo(container) > 0) {
+                creep.shibMove(container, {range: 0});
+            } else if (container) {
+                creep.memory.onContainer = true;
+            }
+        }
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -28,13 +35,6 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (!creep.memory.onContainer) {
-                    if (container && creep.pos.getRangeTo(container) > 0) {
-                        creep.shibMove(container, {range: 0});
-                    } else if (container) {
-                        creep.memory.onContainer = true;
-                    }
-                }
                 break;
         }
         if (creep.carry.energy === creep.carryCapacity) {

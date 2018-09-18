@@ -39,6 +39,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 work = 15;
                 carry = 10;
             }
+            if (level <= 4) {
+                work = level;
+                carry = level;
+            }
             move = work;
             break;
         case 'upgrader':
@@ -238,6 +242,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             carry = _.random(level, 2 * level);
             work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
+            if (level < 6) {
+                carry = level;
+                work = _.random(0, 1);
+                move = carry + work;
+            }
             break;
         case 'SKattacker':
             attack = 20;
