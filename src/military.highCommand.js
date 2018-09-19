@@ -123,7 +123,7 @@ function manageResponseForces() {
     if (!responseTargets || !responseTargets.name) {
         let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
         if (highestHeat) {
-            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, highestHeat.name).length <= 10);
+            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, highestHeat.name).length <= 5);
             for (let creep of idleResponders) {
                 creep.memory.responseTarget = highestHeat.name;
                 creep.memory.awaitingOrders = undefined;
@@ -131,7 +131,7 @@ function manageResponseForces() {
             }
         }
     } else {
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, responseTargets.name).length <= 10);
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, responseTargets.name).length <= 8);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;

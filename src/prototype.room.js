@@ -372,19 +372,6 @@ Room.prototype.invaderCheck = function () {
     if (invader.length > 0) {
         let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
-        let availableCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, this.name).length <= 10);
-        if (availableCreeps.length) {
-            let reTasked = 0;
-            for (let key in availableCreeps) {
-                if (reTasked >= invader.length) break;
-                availableCreeps[key].memory.awaitingOrders = undefined;
-                availableCreeps[key].memory.targetRoom = undefined;
-                availableCreeps[key].memory.operation = undefined;
-                availableCreeps[key].memory.responseTarget = this.name;
-                if (availableCreeps[key].room.name !== this.name) log.a(availableCreeps[key].name + ' has been re-tasked to assist ' + this.name + ' they are en-route from ' + availableCreeps[key].room.name);
-                reTasked++;
-            }
-        }
         this.memory.responseNeeded = true;
         this.memory.tickDetected = Game.time;
         if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
