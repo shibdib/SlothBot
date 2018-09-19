@@ -34,6 +34,8 @@ function role(creep) {
             log.a(creep.name + ' reassigned to heal ' + needsHeals.name + ' in ' + needsHeals.room.name + ' from ' + creep.room.name);
         } else if (creep.pos.checkForRoad()) {
             creep.moveRandom();
+        } else if (creep.room.name !== creep.memory.overlord) {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18});
         } else {
             creep.idleFor(15)
         }
