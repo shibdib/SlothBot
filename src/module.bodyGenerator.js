@@ -55,7 +55,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 work = (3 * level) - 1;
                 if (room.memory.energyNeeded) work = 2 * level;
                 carry = 1;
-                move = level - 1;
+                move = level;
                 break;
             }
         case 'hauler':
