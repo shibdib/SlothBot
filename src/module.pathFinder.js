@@ -33,6 +33,7 @@ function shibMove(creep, heading, options = {}) {
         radius: 0.55,
         stroke: 'black'
     });
+    if (!heading instanceof RoomPosition && creep.room.name !== heading.room.name) heading = new RoomPosition(25, 25, heading.room.name);
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     // Make sure origin and target are good
