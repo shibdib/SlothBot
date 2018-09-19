@@ -27,7 +27,8 @@ function role(creep) {
         let needsHeals = _.min(_.filter(Game.creeps, (c) => c.memory && c.memory.healsPlease && !c.memory.healsInbound && Game.map.findRoute(c.room.name, creep.room.name).length <= 10), 'hits');
         if (needsHeals.name) {
             needsHeals.memory.healsInbound = creep.id;
-            creep.memory.healTarget = needsHeals.id
+            creep.memory.healTarget = needsHeals.id;
+            log.a(creep.name + ' reassigned to heal ' + needsHeals.name + ' in ' + needsHeals.room.name + ' from ' + creep.room.name);
         } else if (creep.pos.checkForRoad()) {
             creep.moveRandom();
         } else {
