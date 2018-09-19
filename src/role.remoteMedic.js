@@ -14,7 +14,7 @@ function role(creep) {
         if (!target) return creep.memory.healTarget = undefined;
         switch (creep.heal(target)) {
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(target, {ignoreCreeps: true, ignoreStructures: false});
+                creep.shibMove(target);
                 creep.rangedHeal(target);
                 break;
             case OK:
