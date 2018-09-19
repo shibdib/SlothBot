@@ -14,6 +14,9 @@ function role(creep) {
         if (!target) return creep.memory.healTarget = undefined;
         switch (creep.heal(target)) {
             case ERR_NOT_IN_RANGE:
+                if (target.room.name !== creep.room.name) {
+                    return creep.shibMove(new RoomPosition(25, 25, target.room.name), {range: 18}); //to move to any room}
+                }
                 creep.shibMove(target);
                 creep.rangedHeal(target);
                 break;
