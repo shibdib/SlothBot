@@ -475,19 +475,6 @@ module.exports.remoteCreepQueue = function (room) {
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded) || (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel || Memory.roomCache[room.memory.remoteRooms[keys]].hostiles))) roomThreat = true;
-            // Remote Response
-            if (!_.includes(queue, 'longbow')) {
-                if (roomThreat) {
-                    let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.memory.remoteRooms[keys] && creep.memory.role === 'longbow');
-                    if (longbow.length < 2) {
-                        queueCreep(room, PRIORITIES.remoteHarvester, {
-                            role: 'longbow',
-                            responseTarget: room.memory.remoteRooms[keys],
-                            military: true
-                        })
-                    }
-                }
-            }
             if (!roomThreat && !room.memory.responseNeeded && !_.includes(queue, 'reserver') && level >= 5 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)))) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
@@ -518,6 +505,19 @@ module.exports.remoteCreepQueue = function (room) {
                         role: 'pioneer',
                         destination: room.memory.remoteRooms[keys]
                     })
+                }
+            }
+            // Remote Response
+            if (!_.includes(queue, 'remoteGuard')) {
+                if (roomThreat) {
+                    let remoteGuard = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteGuard');
+                    if (remoteGuard.length < 1) {
+                        queueCreep(room, PRIORITIES.remoteHauler, {
+                            role: 'remoteGuard',
+                            awaitingOrders: true,
+                            military: true
+                        })
+                    }
                 }
             }
         }

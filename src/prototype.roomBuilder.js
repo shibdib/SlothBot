@@ -137,7 +137,7 @@ function findExtensionHub(room) {
             return;
         }
         room.memory.hubSearch = hubSearch + 1;
-        let pos = new RoomPosition(getRandomInt(12, 38), getRandomInt(12, 38), room.name);
+        let pos = new RoomPosition(getRandomInt(5, 45), getRandomInt(5, 45), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
         let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
         let wall = false;

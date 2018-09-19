@@ -119,13 +119,24 @@ function manageAttacks() {
 }
 
 function manageResponseForces() {
-    let idleResponders = _.filter(Game.creeps, (c) => c.memory.awaitingOrders);
     let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded), 'threatLevel');
-    if (!responseTargets || !responseTargets.name) return;
-    for (let creep of idleResponders) {
-        creep.memory.responseTarget = responseTargets.name;
-        creep.memory.awaitingOrders = undefined;
-        log.i(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
+    if (!responseTargets || !responseTargets.name) {
+        let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
+        if (highestHeat) {
+            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, highestHeat.name).length <= 10);
+            for (let creep of idleResponders) {
+                creep.memory.responseTarget = highestHeat.name;
+                creep.memory.awaitingOrders = undefined;
+                log.i(creep.name + ' reassigned to guard ' + highestHeat.name + ' from ' + creep.room.name);
+            }
+        }
+    } else {
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, responseTargets.name).length <= 10);
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = responseTargets.name;
+            creep.memory.awaitingOrders = undefined;
+            log.i(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
+        }
     }
 }
 

@@ -372,17 +372,17 @@ Room.prototype.invaderCheck = function () {
     if (invader.length > 0) {
         let armed = _.filter(invader, (s) => s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(HEAL) >= 1 || s.getActiveBodyparts(WORK) >= 3);
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
-        let availableCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, this.name) <= 5);
+        let availableCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, this.name).length <= 10);
         if (availableCreeps.length) {
-            let retasked = 0;
+            let reTasked = 0;
             for (let key in availableCreeps) {
-                if (retasked + 1 >= invader.length) break;
+                if (reTasked >= invader.length) break;
                 availableCreeps[key].memory.awaitingOrders = undefined;
                 availableCreeps[key].memory.targetRoom = undefined;
                 availableCreeps[key].memory.operation = undefined;
                 availableCreeps[key].memory.responseTarget = this.name;
                 if (availableCreeps[key].room.name !== this.name) log.a(availableCreeps[key].name + ' has been re-tasked to assist ' + this.name + ' they are en-route from ' + availableCreeps[key].room.name);
-                retasked++;
+                reTasked++;
             }
         }
         this.memory.responseNeeded = true;
@@ -462,10 +462,11 @@ Room.prototype.invaderCheck = function () {
         return armed.length > 0;
     }
     let waitOut = 30;
-    if (this.controller && this.controller.my) waitOut = 250;
-    if (this.memory.tickDetected < Game.time - waitOut || this.memory.responseNeeded === false) {
+    if (this.controller && this.controller.my) waitOut = 100;
+    if (this.memory.tickDetected < Game.time - waitOut || !this.memory.responseNeeded) {
         Memory.roomCache[this.name].threatLevel = undefined;
         this.memory.roomHeat = (this.memory.roomHeat - 0.5) || 0;
+        if (this.memory.roomHeat <= 0) this.memory.roomHeat = undefined;
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;

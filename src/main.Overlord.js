@@ -7,7 +7,7 @@ let links = require('module.linkController');
 let terminals = require('module.terminalController');
 let spawning = require('module.creepSpawning');
 
-function mind(room, roomLimit) {
+module.exports.overlordMind = function (room, roomLimit) {
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 
@@ -172,8 +172,6 @@ function mind(room, roomLimit) {
     shib.shibBench('overlordMind', mindStart);
 }
 
-module.exports.overlordMind = profiler.registerFN(mind, 'overlordMind');
-
 function minionController(minion) {
     if (minion.spawning) return;
     if (minion.idle) return minion.say(ICONS.wait18);
@@ -189,8 +187,20 @@ function minionController(minion) {
     let start = Game.cpu.getUsed();
     try {
         creepRole.role(minion);
+        let used = Game.cpu.getUsed() - start;
+        minion.memory.cpuUsageArray = minion.memory.cpuUsageArray || [];
+        if (minion.memory.cpuUsageArray.length < 50) {
+            minion.memory.cpuUsageArray.push(used)
+        } else {
+            minion.memory.cpuUsageArray.shift();
+            minion.memory.cpuUsageArray.push(used);
+            if (average(minion.memory.cpuUsageArray) > 4) {
+                minion.suicide();
+                log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
+            }
+        }
         minion.room.visual.text(
-            _.round(Game.cpu.getUsed() - start, 2),
+            _.round(average(minion.memory.cpuUsageArray), 2),
             minion.pos.x,
             minion.pos.y,
             {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
@@ -203,15 +213,11 @@ function minionController(minion) {
     shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
 
-module.exports.minionController = profiler.registerFN(minionController, 'minionController');
-
 function cleanQueue(room) {
     for (let key in room.memory.creepBuildQueue) {
         if (room.memory.creepBuildQueue[key].room !== room.name) delete room.memory.creepBuildQueue[key]
     }
 }
-
-module.exports.cleanQueue = profiler.registerFN(cleanQueue, 'cleanCreepQueue');
 
 function requestBuilders(room) {
     let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);

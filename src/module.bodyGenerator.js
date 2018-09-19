@@ -117,6 +117,20 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
             move = tough + rangedAttack + heal + attack;
             break;
+        case 'remoteGuard':
+            if (level < 5) {
+                tough = _.round(0.5 * level);
+                rangedAttack = _.round((0.25 * level));
+                attack = _.round((0.5 * level) + 1);
+                heal = 0;
+            } else {
+                tough = _.round(0.5 * level);
+                rangedAttack = _.round((0.5 * level) + 1);
+                attack = _.round((0.5 * level) + 1);
+                heal = 0;
+            }
+            move = tough + rangedAttack + heal + attack;
+            break;
         case 'attacker':
             tough = _.round(0.5 * level);
             attack = _.round(0.5 * level);

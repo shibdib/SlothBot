@@ -89,7 +89,7 @@ RoomPosition.prototype.checkForRoad = function () {
 
 RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     if (Game.rooms[this.roomName]) {
-        if (!ramparts) return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType !== STRUCTURE_RAMPART);
+        if (!ramparts) return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD);
         return this.lookFor(LOOK_STRUCTURES);
     } else {
         return undefined;
