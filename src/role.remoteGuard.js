@@ -7,6 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (creep.borderCheck()) return;
+    creep.invaderCheck();
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Responder Mode
     if (creep.memory.responseTarget) {
