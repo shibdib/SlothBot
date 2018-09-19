@@ -168,6 +168,24 @@ function minionController(minion) {
     let start = Game.cpu.getUsed();
     try {
         creepRole.role(minion);
+        let used = Game.cpu.getUsed() - start;
+        minion.memory.cpuUsageArray = minion.memory.cpuUsageArray || [];
+        if (minion.memory.cpuUsageArray.length < 50) {
+            minion.memory.cpuUsageArray.push(used)
+        } else {
+            minion.memory.cpuUsageArray.shift();
+            minion.memory.cpuUsageArray.push(used);
+            if (average(minion.memory.cpuUsageArray) > 10) {
+                minion.suicide();
+                log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
+            }
+        }
+        minion.room.visual.text(
+            _.round(average(minion.memory.cpuUsageArray), 2),
+            minion.pos.x,
+            minion.pos.y,
+            {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
+        );
     } catch (e) {
         log.e(minion.name + ' experienced an error in room ' + minion.room.name);
         log.e(e.stack);
