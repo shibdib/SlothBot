@@ -145,10 +145,10 @@ nukes = function (target) {
 };
 
 roomCpu = function () {
+    log.e('---------------------------------------------------------------------------');
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
-        log.e('---------------------------------------------------------------------------');
         log.e(activeRoom.name + 'CPU Usage: ' + _.round(average(activeRoom.memory.cpuUsageArray), 2));
-        log.e('---------------------------------------------------------------------------');
     }
+    log.e('---------------------------------------------------------------------------');
 };
