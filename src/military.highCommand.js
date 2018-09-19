@@ -127,7 +127,7 @@ function manageResponseForces() {
             for (let creep of idleResponders) {
                 creep.memory.responseTarget = highestHeat.name;
                 creep.memory.awaitingOrders = undefined;
-                log.i(creep.name + ' reassigned to guard ' + highestHeat.name + ' from ' + creep.room.name);
+                log.a(creep.name + ' reassigned to guard ' + highestHeat.name + ' from ' + creep.room.name);
             }
         }
     } else {
@@ -135,7 +135,7 @@ function manageResponseForces() {
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
-            log.i(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
+            log.a(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
         }
     }
 }
