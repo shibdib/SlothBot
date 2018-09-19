@@ -170,7 +170,21 @@ module.exports.overlordMind = function (room, roomLimit) {
     Memory.ownedMineral = minerals;
 
     shib.shibBench('overlordMind', mindStart);
-}
+    let used = Game.cpu.getUsed() - mindStart;
+    room.memory.cpuUsageArray = room.memory.cpuUsageArray || [];
+    if (room.memory.cpuUsageArray.length < 50) {
+        room.memory.cpuUsageArray.push(used)
+    } else {
+        room.memory.cpuUsageArray.shift();
+        room.memory.cpuUsageArray.push(used);
+    }
+    room.visual.text(
+        'CPU Usage: ' + _.round(average(room.memory.cpuUsageArray), 2),
+        1,
+        8,
+        {align: 'left', opacity: 0.8, color: '#ff0000'}
+    );
+};
 
 function minionController(minion) {
     if (minion.spawning) return;

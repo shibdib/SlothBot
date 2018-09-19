@@ -143,3 +143,12 @@ nukes = function (target) {
         if (!target) log.a(nukes[key].room.name + ' has a nuclear missile available.')
     }
 };
+
+roomCpu = function () {
+    for (let key in Memory.ownedRooms) {
+        let activeRoom = Memory.ownedRooms[key];
+        log.e('---------------------------------------------------------------------------');
+        log.e(activeRoom.name + 'CPU Usage: ' + _.round(average(activeRoom.memory.cpuUsageArray), 2));
+        log.e('---------------------------------------------------------------------------');
+    }
+};
