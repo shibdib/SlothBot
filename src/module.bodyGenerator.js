@@ -236,7 +236,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'remoteHarvester':
             work = _.round(0.5 * level);
             carry = 1;
-            move = _.round(work / 2);
+            move = work;
             break;
         case 'remoteHauler':
             carry = _.random(level, 2 * level);
