@@ -519,6 +519,15 @@ module.exports.remoteCreepQueue = function (room) {
                 })
             }
         }
+        if (!_.includes(queue, 'remoteMedic')) {
+            let remoteMedic = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteMedic');
+            if (remoteMedic.length < 1) {
+                queueCreep(room, PRIORITIES.remoteHauler, {
+                    role: 'remoteMedic',
+                    military: true
+                })
+            }
+        }
         if (!_.includes(queue, 'remoteHauler') && !room.memory.responseNeeded) {
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
             if (remoteHauler.length <= _.round(totalRemoteHarvester.length * 0.8) && totalRemoteHarvester.length > 0) {

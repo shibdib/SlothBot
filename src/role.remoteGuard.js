@@ -46,10 +46,10 @@ function findDefensivePosition(creep, target) {
             if (bestRampart.pos !== creep.pos) {
                 creep.shibMove(bestRampart, {forceRepath: true, range: 0});
             }
+        } else if (creep.pos.checkForRoad()) {
+            creep.moveRandom();
         } else {
-            if (creep.pos.checkForRoad()) {
-                creep.moveRandom();
-            }
+            creep.idleFor(15)
         }
     }
 }
