@@ -82,8 +82,6 @@ function role(creep) {
                     } else {
                         creep.idleFor(5);
                     }
-                } else if (creep.pos.checkForRoad()) {
-                    creep.moveRandom();
                 } else {
                     creep.idleFor(5);
                 }
