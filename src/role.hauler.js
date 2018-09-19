@@ -15,9 +15,12 @@ function role(creep) {
     if (!creep.memory.remote && creep.wrongRoom()) return null;
     creep.repairRoad();
     if (creep.carry[RESOURCE_ENERGY] > 0) {
-        if (creep.memory.storageDestination && Game.getObjectById(creep.memory.storageDestination).structureType !== STRUCTURE_TOWER) {
-            let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
-            if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
+        if (creep.memory.storageDestination) {
+            if (!Game.getObjectById(creep.memory.storageDestination)) return creep.memory.storageDestination = undefined;
+            if (Game.getObjectById(creep.memory.storageDestination).structureType !== STRUCTURE_TOWER) {
+                let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
+                if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
+            }
         }
     }
     if (_.sum(creep.carry) === 0) {
