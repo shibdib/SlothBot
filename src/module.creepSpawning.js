@@ -507,18 +507,16 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            // Remote Response
-            if (!_.includes(queue, 'remoteGuard')) {
-                if (roomThreat) {
-                    let remoteGuard = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteGuard');
-                    if (remoteGuard.length < 1) {
-                        queueCreep(room, PRIORITIES.remoteHauler, {
-                            role: 'remoteGuard',
-                            awaitingOrders: true,
-                            military: true
-                        })
-                    }
-                }
+        }
+        // Remote Response
+        if (!_.includes(queue, 'remoteGuard')) {
+            let remoteGuard = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteGuard');
+            if (remoteGuard.length < 1) {
+                queueCreep(room, PRIORITIES.remoteHauler, {
+                    role: 'remoteGuard',
+                    awaitingOrders: true,
+                    military: true
+                })
             }
         }
         if (!_.includes(queue, 'remoteHauler') && !room.memory.responseNeeded) {
