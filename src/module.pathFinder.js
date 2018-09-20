@@ -495,6 +495,7 @@ function positionAtDirection(origin, direction) {
 function cacheRoute(from, to, route) {
     let key = from + '_' + to;
     let cache = Memory.routeCache || {};
+    if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
         route: JSON.stringify(route),
@@ -522,6 +523,7 @@ function getRoute(from, to) {
 function cachePath(creep, from, to, path) {
     let key = getPathKey(from, to);
     let cache = Game.rooms[creep.memory.overlord].memory.pathCache || {};
+    if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
         path: path,
