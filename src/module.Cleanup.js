@@ -3,10 +3,10 @@ const profiler = require('screeps-profiler');
 function cleanup() {
 //CLEANUP
     if (Game.time % 50 === 0) {
-        cleanPathCacheByUsage(); //clean path and distance caches
-        cleanDistanceCacheByUsage();
-        cleanRouteCacheByAge();
-        cleanRouteCacheByUsage();
+        //cleanPathCacheByUsage(); //clean path and distance caches
+        //cleanDistanceCacheByUsage();
+        //cleanRouteCacheByAge();
+        //cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanRoomIntel();
     }
