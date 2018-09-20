@@ -20,7 +20,7 @@ function role(creep) {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
             }
         } else {
-            if (!creep.handleMilitaryCreep(false, true)) {
+            if (!creep.handleMilitaryCreep(false, true, true)) {
                 creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
                 return findDefensivePosition(creep, creep);
             }
@@ -39,7 +39,7 @@ function findDefensivePosition(creep, target) {
     if (target) {
         let bestRampart = target.pos.findClosestByPath(creep.room.structures, {
             filter: (r) => r.structureType === STRUCTURE_RAMPART &&
-                !r.pos.checkForAllStructure(true) && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y)) &&
+                !r.pos.checkForObstacleStructure() && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === creep.pos.x && r.pos.y === creep.pos.y)) &&
                 (!r.room.memory.extensionHub || (r.pos.x !== r.room.memory.extensionHub.x && r.pos.y !== r.room.memory.extensionHub.y))
         });
         if (bestRampart) {
@@ -50,7 +50,7 @@ function findDefensivePosition(creep, target) {
         } else if (creep.pos.checkForRoad()) {
             creep.moveRandom();
         } else {
-            creep.idleFor(15)
+            creep.idleFor(5)
         }
     }
 }

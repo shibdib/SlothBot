@@ -79,6 +79,7 @@ function mind() {
     let overlordCount = Memory.ownedRooms.length;
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
+        if (activeRoom.memory.claimTarget) break;
         let cpuUsed = Game.cpu.getUsed();
         let cpuLimit = Game.cpu.limit - cpuUsed;
         let cpuTickLimit = Game.cpu.tickLimit - cpuUsed;

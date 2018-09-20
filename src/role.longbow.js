@@ -19,22 +19,23 @@ function role(creep) {
             } else {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
             }
-        } else {
-            if (!creep.handleMilitaryCreep(false, true)) {
-                creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
-                return findDefensivePosition(creep, creep);
-            }
+        } else if (!creep.handleMilitaryCreep(false, true)) {
+            creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
+            return findDefensivePosition(creep, creep);
         }
-        return;
+    } else if (creep.memory.operation) {
+        // Harass
+        if (creep.memory.operation === 'harass') creep.harassRoom();
+        // Escort
+        if (creep.memory.operation === 'guard') creep.guardRoom();
+        // Hold
+        if (creep.memory.operation === 'hold') creep.holdRoom();
+        // Hold
+        if (creep.memory.operation === 'rangers') creep.rangersRoom();
+    } else if (!creep.handleMilitaryCreep(false, true)) {
+        creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
+        return findDefensivePosition(creep, creep);
     }
-    // Harass
-    if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
-    // Escort
-    if (creep.memory.operation && creep.memory.operation === 'guard') creep.guardRoom();
-    // Hold
-    if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
-    // Hold
-    if (creep.memory.operation && creep.memory.operation === 'rangers') creep.rangersRoom();
 }
 
 module.exports.role = profiler.registerFN(role, 'longbow');
@@ -51,8 +52,10 @@ function findDefensivePosition(creep, target) {
             if (bestRampart.pos !== creep.pos) {
                 creep.shibMove(bestRampart, {forceRepath: true, range: 0});
             }
+        } else if (creep.pos.checkForRoad()) {
+            creep.moveRandom();
         } else {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
+            creep.idleFor(5)
         }
     }
 }

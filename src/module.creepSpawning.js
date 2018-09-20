@@ -421,12 +421,6 @@ module.exports.workerCreepQueue = function (room) {
                 })
             }
         }
-        if (!_.includes(queue, 'longbow')) {
-            let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === needyRoom.name && creep.memory.role === 'longbow');
-            if (longbow.length < 2) {
-                queueCreep(room, 2, {role: 'longbow', responseTarget: needyRoom.name, military: true})
-            }
-        }
     }
 };
 
@@ -512,8 +506,18 @@ module.exports.remoteCreepQueue = function (room) {
         if (!_.includes(queue, 'remoteGuard')) {
             let remoteGuard = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteGuard');
             if (remoteGuard.length < 1) {
-                queueCreep(room, PRIORITIES.remoteHauler, {
+                queueCreep(room, PRIORITIES.urgent, {
                     role: 'remoteGuard',
+                    awaitingOrders: true,
+                    military: true
+                })
+            }
+        }
+        if (!_.includes(queue, 'longbow')) {
+            let longbow = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'longbow');
+            if (longbow.length < 1) {
+                queueCreep(room, PRIORITIES.secondary, {
+                    role: 'longbow',
                     awaitingOrders: true,
                     military: true
                 })
@@ -522,7 +526,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (!_.includes(queue, 'remoteMedic')) {
             let remoteMedic = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteMedic');
             if (remoteMedic.length < 1) {
-                queueCreep(room, PRIORITIES.remoteHauler, {
+                queueCreep(room, PRIORITIES.urgent, {
                     role: 'remoteMedic',
                     military: true
                 })
