@@ -123,14 +123,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = pathInfo.route || options.route;
-        if (!allowedRooms && roomDistance > 5) {
+        if (!allowedRooms && roomDistance > 2) {
             let route;
-            if (options.useCache) route = getRoute(origin, target);
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
             if (route) {
                 allowedRooms = route;
                 pathInfo.route = route;
-                cacheRoute(origin, target, route);
             } else {
                 let exitDir = Game.map.findExit(origin.roomName, pathInfo.targetRoom);
                 if (exitDir === ERR_NO_PATH) {
@@ -246,7 +244,10 @@ function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 5;
     let roomDistance = Game.map.findRoute(origin, destination).length;
     let highwayBias = 0.8;
-    let route = Game.map.findRoute(origin, destination, {
+    let route;
+    if (options.useCache) route = getRoute(origin, destination);
+    if (route) return route;
+    route = Game.map.findRoute(origin, destination, {
         routeCallback: function (roomName) {
             let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
             if (rangeToRoom > restrictDistance) {
@@ -288,7 +289,7 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].reservation && (!_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation.username) || Memory.roomCache[roomName].potentialTarget))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.reservation && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.reservation.username))) {
-                    return 25;
+                    return 100;
                 }
             }
             // Check for manual flagged rooms
@@ -309,6 +310,7 @@ function findRoute(origin, destination, options = {}) {
     if (path && roomDistance > 2 && path[1] === destination) {
         path.splice(1, 1);
     }
+    cacheRoute(origin, destination, path);
     return path;
 }
 
@@ -491,7 +493,7 @@ function positionAtDirection(origin, direction) {
 }
 
 function cacheRoute(from, to, route) {
-    let key = from.roomName + '_' + to.roomName;
+    let key = from + '_' + to;
     let cache = Memory.routeCache || {};
     let tick = Game.time;
     cache[key] = {
@@ -499,13 +501,14 @@ function cacheRoute(from, to, route) {
         uses: 1,
         tick: tick
     };
+    console.log(cache)
     Memory.routeCache = cache;
 }
 
 function getRoute(from, to) {
     let cache = Memory.routeCache;
     if (cache) {
-        let cachedRoute = cache[from.roomName + '_' + to.roomName];
+        let cachedRoute = cache[from + '_' + to];
         if (cachedRoute) {
             cachedRoute.uses += 1;
             Memory.routeCache = cache;

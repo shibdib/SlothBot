@@ -32,10 +32,10 @@ function role(creep) {
             needsHeals.memory.healsInbound = creep.id;
             creep.memory.healTarget = needsHeals.id;
             log.a(creep.name + ' reassigned to heal ' + needsHeals.name + ' in ' + needsHeals.room.name + ' from ' + creep.room.name);
-        } else if (creep.pos.checkForRoad()) {
-            creep.moveRandom();
         } else if (creep.room.name !== creep.memory.overlord) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18});
+        } else if (creep.pos.checkForRoad()) {
+            creep.moveRandom();
         } else {
             creep.idleFor(15)
         }
