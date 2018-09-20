@@ -81,7 +81,7 @@ function buildExtensions(room) {
             x = _.sample([x, -x]);
             y = _.sample([y, -y]);
             let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
-            if (pos.checkIfOutOfBounds() || pos.checkForAllStructure().length > 0 || pos.getRangeTo(hub) < 2 || pos.x === hub.x || pos.y === hub.y
+            if (pos.checkIfOutOfBounds() || pos.checkForAllStructure().length > 0 || pos.checkForRoad() || pos.getRangeTo(hub) < 2 || pos.x === hub.x || pos.y === hub.y
                 || !room.findPath(pos, hub, {range: 1}) || room.findPath(pos, hub, {
                     range: 1,
                     ignoreDestructibleStructures: true,
