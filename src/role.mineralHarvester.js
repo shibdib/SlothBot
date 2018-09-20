@@ -9,6 +9,7 @@ const profiler = require('screeps-profiler');
  * @return {null}
  */
 function role(creep) {
+    if (!creep.memory.boostAttempt) return creep.tryToBoost(['harvest']);
     if (creep.renewalCheck(6)) return null;
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;

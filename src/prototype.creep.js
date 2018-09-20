@@ -212,6 +212,18 @@ Creep.prototype.tryToBoost = function (boosts) {
                         available.push(RESOURCE_ZYNTHIUM_OXIDE);
                     }
                     continue;
+                case 'harvest':
+                    boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
+                    boostNeeded = this.getActiveBodyparts(MOVE) * 30;
+                    this.memory.boostNeeded = boostNeeded;
+                    if (boostInRoom >= boostNeeded) {
+                        available.push(RESOURCE_CATALYZED_UTRIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_ALKALIDE) >= boostNeeded) {
+                        available.push(RESOURCE_UTRIUM_ALKALIDE);
+                    } else if (getBoostAmount(this.room, RESOURCE_UTRIUM_OXIDE) >= boostNeeded) {
+                        available.push(RESOURCE_UTRIUM_OXIDE);
+                    }
+                    continue;
                 case 'dismantle':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;

@@ -59,8 +59,6 @@ function role(creep) {
             if (!creep.memory.energyDestination) creep.getEnergy();
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
-            } else {
-                remoteHelper(creep);
             }
         }
     } else {

@@ -34,7 +34,11 @@ function role(creep) {
         if (creep.memory.operation === 'rangers') creep.rangersRoom();
     } else if (!creep.handleMilitaryCreep(false, true)) {
         creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
-        return findDefensivePosition(creep, creep);
+        if (creep.pos.checkForRoad()) {
+            creep.moveRandom();
+        } else {
+            creep.idleFor(5)
+        }
     }
 }
 

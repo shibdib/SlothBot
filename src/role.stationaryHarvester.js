@@ -10,6 +10,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
+    if (!creep.memory.boostAttempt) return creep.tryToBoost(['harvest']);
     let source;
 //INITIAL CHECKS
     if (creep.carry.ticksToLive <= 5) {

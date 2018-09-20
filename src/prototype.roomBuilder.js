@@ -642,6 +642,13 @@ function getRandomInt(min, max) {
 
 function buildRoadFromTo(room, start, end) {
     let path = start.pos.findPathTo(end, {
+        costCallback: function (roomName, costMatrix) {
+            for (let site of room.constructionSites) {
+                if (site.structureType === STRUCTURE_ROAD) {
+                    costMatrix.set(site.pos.x, site.pos.y, 1);
+                }
+            }
+        },
         maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false, swampCost: 5, plainCost: 5
     });
     for (let point of path) {
