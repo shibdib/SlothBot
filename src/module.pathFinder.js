@@ -535,6 +535,8 @@ function cachePath(creep, from, to, path) {
 
 function getPath(creep, from, to) {
     let cache = Game.rooms[creep.memory.overlord].memory.pathCache;
+    Game.rooms[creep.memory.overlord].memory.pathCache = undefined;
+    return null;
     if (cache) {
         let cachedPath = cache[getPathKey(from, to)];
         if (cachedPath) {
