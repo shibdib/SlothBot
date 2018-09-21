@@ -177,7 +177,7 @@ module.exports.overlordMind = function (room, roomLimit) {
     } else {
         room.memory.cpuUsageArray.shift();
         room.memory.cpuUsageArray.push(used);
-        if (average(room.memory.cpuUsageArray) > 20) {
+        if (average(room.memory.cpuUsageArray) > 20 && Game.time % 150 === 0) {
             log.e(room.name + ' is using a high amount of CPU - ' + average(room.memory.cpuUsageArray));
             Game.notify(room.name + ' is using a high amount of CPU - ' + average(room.memory.cpuUsageArray))
         }

@@ -137,7 +137,7 @@ function findExtensionHub(room) {
             return;
         }
         room.memory.hubSearch = hubSearch + 1;
-        let pos = new RoomPosition(getRandomInt(5, 45), getRandomInt(5, 45), room.name);
+        let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
         let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
         let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
         let wall = false;
@@ -203,6 +203,10 @@ function buildWalls(room, structures) {
     if (room.controller.level < 4) return;
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (!room.memory.bunkerComplete) {
+        let exits = room.find(FIND_EXIT);
+        let closestExitRange = hub.getRangeTo(hub.findClosestByPath(exits));
+        let buildRange = 7;
+        if (closestExitRange < 9) buildRange = closestExitRange - 2;
         let neighboring = Game.map.describeExits(room.name);
         let checkCount = room.memory.bunkerPosCheck || 0;
         room.memory.bunkerPosCheck = checkCount + 1;
@@ -222,8 +226,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > 7) {
-                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                    if (path.length > buildRange) {
+                        let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
                         if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
@@ -245,8 +249,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > 7) {
-                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                    if (path.length > buildRange) {
+                        let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
                         if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
@@ -268,8 +272,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > 7) {
-                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                    if (path.length > buildRange) {
+                        let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
                         if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
@@ -291,8 +295,8 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > 7) {
-                        let pathPos = new RoomPosition(path[7].x, path[7].y, room.name);
+                    if (path.length > buildRange) {
+                        let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
                         if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
