@@ -55,6 +55,7 @@ function role(creep) {
             } else if (container && container.store[RESOURCE_ENERGY] > 0) {
                 switch (creep.withdraw(container, RESOURCE_ENERGY)) {
                     case OK:
+                        if (creep.pos.getRangeTo(container) > 0) creep.shibMove(container, {range: 0});
                         break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(container);

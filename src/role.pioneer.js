@@ -12,6 +12,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
+    // Check for border wall blocking path
     if (creep.memory.destinationReached && (creep.pos.x === 1 || creep.pos.x === 48 || creep.pos.y === 1 || creep.pos.y === 48) && creep.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0]) {
         if (creep.memory.lastPos === creep.pos.x + ':' + creep.pos.y) {
             return creep.dismantle(creep.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART})[0]);
@@ -19,7 +20,14 @@ function role(creep) {
             creep.memory.lastPos = creep.pos.x + ':' + creep.pos.y;
         }
     }
-
+    // Fill before departure
+    if (creep.room.name === creep.memory.overlord && !creep.isFull) {
+        if (creep.memory.energyDestination) {
+            creep.withdrawEnergy();
+        } else {
+            creep.findEnergy()
+        }
+    }
     if (creep.memory.destinationReached && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0]) {
         if (creep.memory.initialBuilder && creep.room.controller.level >= 3) {
             if (!creep.room.memory.extensionHub) findExtensionHub(creep.room);
