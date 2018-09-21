@@ -502,7 +502,6 @@ function cacheRoute(from, to, route) {
         uses: 1,
         tick: tick
     };
-    console.log(cache)
     Memory.routeCache = cache;
 }
 
