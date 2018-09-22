@@ -195,13 +195,16 @@ function controllerSupplier(room, structures) {
 }
 
 function buildWalls(room, structures) {
+    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (room.controller.level >= 5) {
         for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
+        for (let store of _.filter(structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(hub) >= 8)) {
+            room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
+        }
     }
     if (room.controller.level < 4) return;
-    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (!room.memory.bunkerComplete) {
         let exits = room.find(FIND_EXIT);
         let closestExitRange = hub.getRangeTo(hub.findClosestByPath(exits));
