@@ -76,7 +76,7 @@ function depositEnergy(creep) {
             creep.memory.onContainer = true;
         }
     }
-    if (!creep.memory.extensionBuilt && creep.memory.containerID) extensionBuilder(creep);
+    if ((!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) && creep.memory.containerID) extensionBuilder(creep);
     if (!creep.memory.linkID) {
         creep.memory.linkID = harvestDepositLink(creep);
     } else {
@@ -163,5 +163,6 @@ function extensionBuilder(creep) {
             }
         }
         creep.memory.extensionBuilt = true;
+        creep.memory.storedLevel = creep.room.controller.level;
     }
 }
