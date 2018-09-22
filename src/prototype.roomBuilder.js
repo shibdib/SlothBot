@@ -595,15 +595,16 @@ function buildTowers(room, structures) {
 }
 
 function buildRoads(room, structures) {
-    if (room.controller.level < 4 || _.size(Game.constructionSites) >= 75) return;
+    if (room.controller.level < 2 || _.size(Game.constructionSites) >= 75) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
-    buildRoadAround(room, spawner.pos);
-    let mineral = room.mineral[0];
-    let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     for (let source of room.sources) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
     }
+    buildRoadAround(room, spawner.pos);
+    if (room.controller.level < 4 || _.size(Game.constructionSites) >= 75) return;
+    let mineral = room.mineral[0];
+    let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);
         let target = room.controller.pos.findClosestByRange(room.sources);

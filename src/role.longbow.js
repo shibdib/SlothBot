@@ -18,6 +18,7 @@ function role(creep) {
             if (hostile && (!creep.room.controller || !creep.room.controller.safeMode)) {
                 return creep.handleMilitaryCreep(false, true);
             } else {
+                console.log('res ' + creep.memory.responseTarget)
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
             }
         } else if (!creep.handleMilitaryCreep(false, true)) {

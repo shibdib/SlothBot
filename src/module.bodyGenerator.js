@@ -74,7 +74,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = _.round(carry / 2);
             break;
         case 'stationaryHarvester':
-            if (level < 4) {
+            if (level < 5) {
                 work = 4;
                 carry = 1;
                 move = 2;

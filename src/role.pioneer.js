@@ -20,14 +20,6 @@ function role(creep) {
             creep.memory.lastPos = creep.pos.x + ':' + creep.pos.y;
         }
     }
-    // Fill before departure
-    if (creep.room.name === creep.memory.overlord && !creep.isFull) {
-        if (creep.memory.energyDestination) {
-            creep.withdrawEnergy();
-        } else {
-            creep.findEnergy()
-        }
-    }
     if (creep.memory.destinationReached && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0]) {
         if (creep.memory.initialBuilder && creep.room.controller.level >= 3) {
             if (!creep.room.memory.extensionHub) findExtensionHub(creep.room);

@@ -12,7 +12,6 @@ function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['harvest']);
     let source;
-//INITIAL CHECKS
     if (creep.carry.ticksToLive <= 5) {
         depositEnergy(creep);
         creep.suicide();
@@ -77,10 +76,18 @@ function depositEnergy(creep) {
             creep.memory.onContainer = true;
         }
     }
+    if (!creep.memory.extensionBuilt && creep.memory.containerID) extensionBuilder(creep);
     if (!creep.memory.linkID) {
         creep.memory.linkID = harvestDepositLink(creep);
     } else {
         link = Game.getObjectById(creep.memory.linkID);
+    }
+    let extension = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(creep) === 1 && s.energy < s.energyCapacity)[0];
+    if (extension) {
+        switch (creep.transfer(extension, RESOURCE_ENERGY)) {
+            case OK:
+                return;
+        }
     }
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -135,5 +142,26 @@ function harvestDepositLink(creep) {
                 }
             }
         }
+    }
+}
+
+function extensionBuilder(creep) {
+    let container = Game.getObjectById(creep.memory.containerID);
+    if (container && creep.pos.getRangeTo(container) > 0) {
+        return creep.shibMove(container, {range: 0});
+    } else {
+        let count = 0;
+        for (let xOff = -1; xOff <= 1; xOff++) {
+            for (let yOff = -1; yOff <= 1; yOff++) {
+                if (xOff !== 0 || yOff !== 0) {
+                    let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
+                    if (pos.checkForImpassible() || pos.checkForRoad() || pos.checkForConstructionSites()) continue;
+                    if (!creep.memory.linkID && count === 0) continue;
+                    count++;
+                    pos.createConstructionSite(STRUCTURE_EXTENSION)
+                }
+            }
+        }
+        creep.memory.extensionBuilt = true;
     }
 }
