@@ -11,14 +11,13 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Responder Mode
     if (creep.memory.responseTarget) {
-        if (creep.memory.awaitingOrders) creep.memory.responseTarget = undefined;
+        if (creep.memory.awaitingOrders) return creep.memory.responseTarget = undefined;
         creep.say(ICONS.respond, true);
         if (creep.room.name !== creep.memory.responseTarget) {
             let hostile = creep.findClosestEnemy();
             if (hostile && (!creep.room.controller || !creep.room.controller.safeMode)) {
                 return creep.handleMilitaryCreep(false, true);
             } else {
-                console.log('res ' + creep.memory.responseTarget)
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
             }
         } else if (!creep.handleMilitaryCreep(false, true)) {
