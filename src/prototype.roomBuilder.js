@@ -494,7 +494,7 @@ function buildLabs(room, structures) {
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
             let hub = new RoomPosition(25, 25, room.name);
-            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 14, hub.x - 14, hub.y + 14, hub.x + 14, true);
+            let labHub = room.lookForAtArea(LOOK_TERRAIN, hub.y - 20, hub.x - 20, hub.y + 20, hub.x + 20, true);
             let good;
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
