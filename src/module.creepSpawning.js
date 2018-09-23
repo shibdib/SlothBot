@@ -430,9 +430,9 @@ module.exports.remoteCreepQueue = function (room) {
     let range = room.memory.remoteRange || 1;
     let sources = 0;
     // Set harvester target
-    let harvesterTarget = 5;
-    if (room.memory.energySurplus) harvesterTarget = 2;
-    if (room.memory.extremeEnergySurplus) harvesterTarget = 0;
+    let harvesterTarget = 7;
+    if (room.memory.energySurplus) harvesterTarget = 4;
+    if (room.memory.extremeEnergySurplus) harvesterTarget = 1;
     if (level >= 2 && (!room.memory.remoteRange || Game.time % 200 === 0)) {
         range:
             for (range = 1; range < 3; range++) {
@@ -469,7 +469,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded) || (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel || Memory.roomCache[room.memory.remoteRooms[keys]].hostiles))) roomThreat = true;
-            if (!roomThreat && !room.memory.responseNeeded && !_.includes(queue, 'reserver') && level >= 5 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)))) {
+            if (!roomThreat && !room.memory.responseNeeded && !_.includes(queue, 'reserver') && level >= 6 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.responseNeeded && (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time)))) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
                     let priority = PRIORITIES.remoteHarvester + 1;
