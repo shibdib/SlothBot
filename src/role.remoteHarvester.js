@@ -148,7 +148,7 @@ function buildRoadAround(room, position) {
     }
 }
 function buildRoad(position) {
-    //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
+    if (position.checkForWall()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
 
