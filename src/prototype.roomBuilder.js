@@ -216,7 +216,12 @@ function buildWalls(room, structures) {
         if (neighboring) {
             if (neighboring['1']) {
                 let exits = room.find(FIND_EXIT_TOP);
-                let targetExit = hub.findClosestByRange(exits);
+                let targetExit = hub.findClosestByPath(exits);
+                let baseline = room.findPath(hub, targetExit, {
+                    swampCost: 1,
+                    ignoreDestructibleStructures: true,
+                    ignoreCreeps: true,
+                });
                 for (let i = 0; i < 100; i++) {
                     let path = room.findPath(hub, targetExit, {
                         costCallback: function (roomName, costMatrix) {
@@ -229,8 +234,9 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > buildRange) {
+                    if (path.length > buildRange && path.length >= baseline.length * 0.8) {
                         let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
+
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
                         if (!_.includes(room.memory.bunkerPos, entry)) room.memory.bunkerPos.push(entry);
@@ -239,7 +245,12 @@ function buildWalls(room, structures) {
             }
             if (neighboring['3']) {
                 let exits = room.find(FIND_EXIT_RIGHT);
-                let targetExit = hub.findClosestByRange(exits);
+                let targetExit = hub.findClosestByPath(exits);
+                let baseline = room.findPath(hub, targetExit, {
+                    swampCost: 1,
+                    ignoreDestructibleStructures: true,
+                    ignoreCreeps: true,
+                });
                 for (let i = 0; i < 100; i++) {
                     let path = room.findPath(hub, targetExit, {
                         costCallback: function (roomName, costMatrix) {
@@ -252,7 +263,7 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > buildRange) {
+                    if (path.length > buildRange && path.length >= baseline.length * 0.8) {
                         let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
@@ -262,7 +273,12 @@ function buildWalls(room, structures) {
             }
             if (neighboring['5']) {
                 let exits = room.find(FIND_EXIT_BOTTOM);
-                let targetExit = hub.findClosestByRange(exits);
+                let targetExit = hub.findClosestByPath(exits);
+                let baseline = room.findPath(hub, targetExit, {
+                    swampCost: 1,
+                    ignoreDestructibleStructures: true,
+                    ignoreCreeps: true,
+                });
                 for (let i = 0; i < 100; i++) {
                     let path = room.findPath(hub, targetExit, {
                         costCallback: function (roomName, costMatrix) {
@@ -275,7 +291,7 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > buildRange) {
+                    if (path.length > buildRange && path.length >= baseline.length * 0.8) {
                         let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
@@ -285,7 +301,12 @@ function buildWalls(room, structures) {
             }
             if (neighboring['7']) {
                 let exits = room.find(FIND_EXIT_LEFT);
-                let targetExit = hub.findClosestByRange(exits);
+                let targetExit = hub.findClosestByPath(exits);
+                let baseline = room.findPath(hub, targetExit, {
+                    swampCost: 1,
+                    ignoreDestructibleStructures: true,
+                    ignoreCreeps: true,
+                });
                 for (let i = 0; i < 100; i++) {
                     let path = room.findPath(hub, targetExit, {
                         costCallback: function (roomName, costMatrix) {
@@ -298,7 +319,7 @@ function buildWalls(room, structures) {
                         ignoreDestructibleStructures: true,
                         ignoreCreeps: true,
                     });
-                    if (path.length > buildRange) {
+                    if (path.length > buildRange && path.length >= baseline.length * 0.8) {
                         let pathPos = new RoomPosition(path[buildRange].x, path[buildRange].y, room.name);
                         room.memory.bunkerPos = room.memory.bunkerPos || [];
                         let entry = {"x": pathPos.x, "y": pathPos.y};
@@ -320,8 +341,8 @@ function buildWalls(room, structures) {
                 radius: 0.55,
                 stroke: 'blue'
             });
-            //rampPos.createConstructionSite(STRUCTURE_RAMPART);
-            //rampPos.createConstructionSite(STRUCTURE_ROAD);
+            rampPos.createConstructionSite(STRUCTURE_RAMPART);
+            rampPos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
 }
