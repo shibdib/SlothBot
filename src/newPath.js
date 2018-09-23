@@ -405,7 +405,7 @@ function addBorderToMatrix(room, matrix) {
     let left = ((_.get(exits, LEFT, undefined) === undefined) ? 1 : 0);
     for (let y = top; y <= bottom; ++y) {
         for (let x = left; x <= right; x += ((y % 49 === 0) ? 1 : 49)) {
-            if (matrix.get(x, y) < 0x03 && Game.map.getTerrainAt(x, y, room.name) !== "wall") {
+            if (matrix.get(x, y) < 0x03 && Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL) {
                 matrix.set(x, y, 0x03);
             }
         }
@@ -419,7 +419,7 @@ function addOutsideHubToMatrix(room, matrix) {
     let dangerZone = room.lookForAtArea(LOOK_TERRAIN, hub.y - 8, hub.x - 8, hub.y + 8, hub.x + 8, true);
     for (let p in dangerZone) {
         let pos = new RoomPosition(dangerZone[p].x, dangerZone[p].y, room.name);
-        if (pos.getRangeTo(hub) <= 6 || Game.map.getTerrainAt(pos.x, pos.y, room.name) === "wall") continue;
+        if (pos.getRangeTo(hub) <= 6 || Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL) continue;
         matrix.set(pos.x, pos.y, 175)
     }
     return matrix;

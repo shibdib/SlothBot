@@ -638,7 +638,7 @@ function addBorderToMatrix(room, matrix) {
     let left = ((_.get(exits, LEFT, undefined) === undefined) ? 1 : 0);
     for (let y = top; y <= bottom; ++y) {
         for (let x = left; x <= right; x += ((y % 49 === 0) ? 1 : 49)) {
-            if (matrix.get(x, y) < 0x03 && Game.map.getTerrainAt(x, y, room.name) !== "wall") {
+            if (matrix.get(x, y) < 0x03 && Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL) {
                 matrix.set(x, y, 0x03);
             }
         }
