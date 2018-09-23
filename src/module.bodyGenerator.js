@@ -33,7 +33,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work + carry;
             break;
         case 'waller':
-            work = level * 2;
+            let multi = 1;
+            if (room.memory.energySurplus) multi = 2;
+            if (room.memory.extremeEnergySurplus) multi = 3;
+            work = (multi * level) - 1;
             carry = level;
             if (level === 8) {
                 work = 15;
@@ -52,10 +55,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = work + carry;
                 break;
             } else {
-                work = (3 * level) - 1;
-                if (room.memory.energyNeeded || level < 6) work = 2 * level;
+                let multi = 1;
+                if (room.memory.energySurplus) multi = 2;
+                if (room.memory.extremeEnergySurplus) multi = 3;
+                work = (multi * level) - 1;
                 carry = 1;
-                move = level;
+                move = _.round(work / 2);
                 break;
             }
         case 'hauler':

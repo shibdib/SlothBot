@@ -11,7 +11,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     if (creep.memory.healTarget) {
         let target = Game.getObjectById(creep.memory.healTarget);
-        if (!target) return creep.memory.healTarget = undefined;
+        if (!target || target.hits === target.hitsMax) return creep.memory.healTarget = undefined;
         switch (creep.heal(target)) {
             case ERR_NOT_IN_RANGE:
                 if (target.room.name !== creep.room.name) {
@@ -22,7 +22,6 @@ function role(creep) {
                 break;
             case OK:
                 creep.shibMove(target, {ignoreCreeps: true, ignoreStructures: false, range: 0});
-                if (target.hits === target.hitsMax) creep.memory.healTarget = undefined;
                 return true;
 
         }

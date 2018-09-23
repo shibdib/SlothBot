@@ -75,7 +75,7 @@ let globals = function () {
         scout: 2,
         responder: 2,
         // Misc
-        claimer: 5,
+        claimer: 3,
         explorer: 2,
         jerk: 2,
     };

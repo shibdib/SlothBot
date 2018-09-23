@@ -380,7 +380,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
             const object = container[i];
             if (object && object.pos.rangeToTarget(this) <= range) {
                 let weight = 0.3;
-                if (object.id === this.room.memory.controllerContainer) weight = 25;
+                if (object.id === this.room.memory.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
                 if (numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
                 if (object.store[RESOURCE_ENERGY] > 1500) weight = 0.3;
@@ -426,8 +426,9 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     //Storage
     let sStorage = this.room.storage;
     if (sStorage && sStorage.store[RESOURCE_ENERGY] && (this.room.memory.energySurplus || this.room.memory.responseNeeded)) {
-        let weight = 0.5;
-        if (this.room.memory.responseNeeded) weight = 0.2;
+        let weight = 50;
+        if (this.room.memory.energySurplus) weight = 0.4;
+        if (this.room.memory.responseNeeded || this.room.memory.extremeEnergySurplus) weight = 0.1;
         const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
         energy.push({
             id: sStorage.id,
