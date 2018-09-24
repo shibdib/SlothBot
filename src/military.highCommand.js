@@ -15,9 +15,8 @@ function highCommand() {
 module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
 
 function operationRequests() {
-    let totalCount = 0;
-    if (_.size(Memory.targetRooms)) totalCount = _.size(Memory.targetRooms);
-    let totalRooms = Memory.ownedRooms.length;
+    let totalCount = _.size(Memory.targetRooms) || 0;
+    let totalRooms = Memory.ownedRooms.length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
     if (Game.time % 100 === 0 && ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < totalRooms) {
@@ -27,6 +26,7 @@ function operationRequests() {
                 || (r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time) && Game.map.findRoute(r.name, ownedRoom.name).length <= 3);
             if (localTargets.length) {
                 for (let target of localTargets) {
+                    if (_.size(Memory.targetRooms) >= totalRooms) break;
                     let cache = Memory.targetRooms || {};
                     let tick = Game.time;
                     cache[target.name] = {
