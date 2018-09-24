@@ -450,7 +450,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         }
     }
     //Dropped
-    let dropped = _.sortBy(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50}), 'amount');
+    let dropped = _.sortBy(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50 && !r.pos.checkForImpassible()}), 'amount');
     if (dropped.length) {
         dropped = dropped[dropped.length - 1];
         let weight = 0.5;
