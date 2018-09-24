@@ -635,6 +635,10 @@ function buildRoads(room, structures) {
         if (target) {
             buildRoadFromTo(room, room.controller, target);
         }
+        let container = Game.getObjectById(room.memory.controllerContainer);
+        if (container) {
+            buildRoadFromTo(room, container, target);
+        }
     }
     if (mineral && room.controller.level > 5) {
         buildRoadAround(room, mineral.pos);
