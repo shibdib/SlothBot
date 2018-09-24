@@ -100,7 +100,7 @@ function buildExtensions(room) {
                             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
                             if (constructionCheck.length > 0 || roadCheck.length > 0) {
                             } else {
-                                build.createConstructionSite(STRUCTURE_ROAD);
+                                buildRoad(build);
                             }
                         }
                     }
@@ -342,7 +342,7 @@ function buildWalls(room, structures) {
                 stroke: 'blue'
             });
             rampPos.createConstructionSite(STRUCTURE_RAMPART);
-            rampPos.createConstructionSite(STRUCTURE_ROAD);
+            buildRoad(rampPos);
         }
     }
 }
@@ -686,8 +686,7 @@ function buildRoadFromTo(room, start, end) {
     });
     for (let point of path) {
         let pos = new RoomPosition(point.x, point.y, room.name);
-        if (pos.checkForImpassible()) continue;
-        buildRoad(pos);
+        if (!pos.checkForImpassible()) buildRoad(pos);
     }
 }
 
@@ -696,15 +695,14 @@ function buildRoadAround(room, position) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
-                if (pos.checkForImpassible()) continue;
-                buildRoad(pos);
+                if (!pos.checkForImpassible()) buildRoad(pos);
             }
         }
     }
 }
 
 function buildRoad(position) {
-    if (position.checkForWall()) return;
+    if (position.checkForImpassible()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
 
