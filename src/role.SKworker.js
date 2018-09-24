@@ -169,7 +169,7 @@ function buildRoadAround(room, position) {
 buildRoadAround = profiler.registerFN(buildRoadAround, 'buildRoadAroundFunctionRemote');
 
 function buildRoad(position) {
-    //if (position.checkForWall() || position.checkForObstacleStructure() || position.checkForRoad()) return;
+    if (position.checkForImpassible()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
 
