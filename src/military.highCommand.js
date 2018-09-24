@@ -15,15 +15,16 @@ function highCommand() {
 module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
 
 function operationRequests() {
-    let totalCount;
+    let totalCount = 0;
     if (_.size(Memory.targetRooms)) totalCount = _.size(Memory.targetRooms);
     let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
     if (Game.time % 100 === 0 && ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < totalRooms) {
         for (let ownedRoom of Memory.ownedRooms) {
+            if (_.size(Memory.targetRooms) > totalRooms) break;
             let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username))
-                || (r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget) && Game.map.findRoute(r.name, ownedRoom.name).length <= 3);
+                || (r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time) && Game.map.findRoute(r.name, ownedRoom.name).length <= 3);
             if (localTargets.length) {
                 for (let target of localTargets) {
                     let cache = Memory.targetRooms || {};
@@ -176,7 +177,8 @@ module.exports.operationSustainability = function (room) {
     if (operation.tick + 500 >= Game.time && (operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1000 < Game.time)) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
-        delete Memory.targetRooms[room.name]
+        delete Memory.targetRooms[room.name];
+        Memory.roomCache[room.name].attackCooldown = Game.time;
     } else {
         Memory.targetRooms[room.name] = operation;
     }
