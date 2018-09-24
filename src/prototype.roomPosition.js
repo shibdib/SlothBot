@@ -56,11 +56,11 @@ RoomPosition.prototype.countOpenTerrainAround = function () {
 };
 
 RoomPosition.prototype.checkForWall = function () {
-    return Game.map.getRoomTerrain(this.room.name).get(this.x, this.y) === TERRAIN_MASK_WALL;
+    return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) === TERRAIN_MASK_WALL;
 };
 
 RoomPosition.prototype.checkForPlain = function () {
-    return !Game.map.getRoomTerrain(this.room.name).get(this.x, this.y);
+    return !Game.map.getRoomTerrain(this.roomName).get(this.x, this.y);
 };
 
 RoomPosition.prototype.checkForBuiltWall = function () {
