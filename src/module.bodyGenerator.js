@@ -273,7 +273,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            carry = _.random(level, 2 * level);
+            carry = _.random(level, 3 * level);
             work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
             if (level < 6) {
