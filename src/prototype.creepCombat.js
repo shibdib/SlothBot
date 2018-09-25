@@ -315,6 +315,9 @@ Creep.prototype.moveToStaging = function () {
             }
             return false;
         } else {
+            if (this.pos.checkForRoad()) {
+                this.moveRandom();
+            }
             return true;
         }
     } else if (this.memory.stagingRoom) {
