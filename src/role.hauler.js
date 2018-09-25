@@ -10,7 +10,7 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     //INITIAL CHECKS
-    if (creep.renewalCheck(5)) return null;
+    //if (creep.renewalCheck(5)) return null;
     if (creep.borderCheck()) return null;
     if (!creep.memory.remote && creep.wrongRoom()) return null;
     creep.repairRoad();
