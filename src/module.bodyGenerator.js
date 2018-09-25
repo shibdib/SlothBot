@@ -244,9 +244,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         case 'reserver':
             if (level < 7) {
-                claim = 2;
+                claim = 3;
             } else {
-                claim = 5;
+                claim = level;
             }
             move = claim;
             break;
