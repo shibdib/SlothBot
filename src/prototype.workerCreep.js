@@ -299,7 +299,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
     }
     //Storage
     let sStorage = this.room.storage;
-    if (sStorage && sStorage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 0.5 && sStorage.pos.rangeToTarget(this) <= range) {
+    if (sStorage && sStorage.pos.rangeToTarget(this) <= range && sStorage.store[RESOURCE_ENERGY] > this.carryCapacity) {
         let weight = 1;
         if (this.room.memory.energySurplus) weight = 0.4;
         if (this.room.memory.responseNeeded || this.room.memory.extremeEnergySurplus) weight = 0.1;
@@ -324,7 +324,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         });
     }
     //Take straight from harvesters at low level
-    if (this.room.controller.level < 5) {
+    if (this.room.controller.level <= 3) {
         let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
         if (harvester) {
             let weight = 0.3;

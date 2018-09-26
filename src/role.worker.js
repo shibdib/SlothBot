@@ -68,12 +68,10 @@ function role(creep) {
             creep.withdrawEnergy();
         } else {
             if (!creep.findEnergy()) {
-                if (!creep.memory.energyDestination && !creep.memory.source) {
-                    let source = creep.pos.getClosestSource();
-                    if (source) creep.memory.source = source.id;
-                } else if (creep.memory.source) {
-                    let source = Game.getObjectById(creep.memory.source);
-                    if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+                if (creep.pos.checkForRoad()) {
+                    creep.moveRandom();
+                } else {
+                    return creep.idleFor(15);
                 }
             }
         }
