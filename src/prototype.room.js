@@ -499,10 +499,10 @@ Room.prototype.handleNukeAttack = function () {
     };
 
     for (let nuke of nukes) {
+        if (nuke.timeToLand <= 500) continue;
         let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 4, {
             filter: findSaveableStructures
         });
-        log.a('Nuke attack !!!!!');
         for (let structure of structures) {
             let lookConstructionSites = structure.pos.lookFor(LOOK_CONSTRUCTION_SITES);
             if (lookConstructionSites.length > 0) {

@@ -113,7 +113,7 @@ function buildExtensions(room) {
 }
 
 function findExtensionHub(room) {
-    for (let i = 1; i < 249; i++) {
+    for (let i = 1; i < 1000; i++) {
         let inBuildSpawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
         if (inBuildSpawn) {
             room.memory.extensionHub = {};
@@ -129,7 +129,7 @@ function findExtensionHub(room) {
             return;
         }
         let hubSearch = room.memory.hubSearch || 0;
-        if (hubSearch >= 100) {
+        if (hubSearch >= 750) {
             abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
