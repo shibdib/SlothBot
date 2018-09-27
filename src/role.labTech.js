@@ -257,6 +257,7 @@ function droppedResources(creep) {
 
 // Check for loot
 function checkForLoot(creep) {
+    if (!creep.room.storage) return false;
     let tombstones = _.filter(creep.room.tombstones, (s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
     if (tombstones.length) {
         for (let resourceType in tombstones[0].store) {
