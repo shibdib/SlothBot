@@ -129,7 +129,7 @@ function findExtensionHub(room) {
             return;
         }
         let hubSearch = room.memory.hubSearch || 0;
-        if (hubSearch >= 10) {
+        if (hubSearch >= 100) {
             abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
