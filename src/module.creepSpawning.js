@@ -381,7 +381,7 @@ module.exports.workerCreepQueue = function (room) {
     //Explorer
     if (!_.includes(queue, 'explorer') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
-        if (explorers.length < 1) {
+        if (explorers.length < 8 - level) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
