@@ -420,7 +420,7 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Storage
     let sStorage = this.room.storage;
-    if (sStorage && sStorage.store[RESOURCE_ENERGY] && (this.room.memory.energySurplus || this.room.memory.responseNeeded)) {
+    if (sStorage && sStorage.store[RESOURCE_ENERGY]) {
         let weight = 50;
         if (this.room.memory.energySurplus) weight = 0.6;
         if (this.room.memory.responseNeeded || this.room.memory.extremeEnergySurplus) weight = 0.1;

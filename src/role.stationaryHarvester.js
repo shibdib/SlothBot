@@ -46,7 +46,7 @@ function role(creep) {
     } else {
         if (!creep.findSource()) {
             let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester'), 'ticksToLive');
-            creep.memory.source = oldestHarvester.memory.source;
+            creep.shibMove(oldestHarvester);
         }
     }
 }

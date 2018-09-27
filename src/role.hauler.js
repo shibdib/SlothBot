@@ -114,20 +114,6 @@ function checkForLoot(creep) {
         }
         return true;
     }
-    let giftContainers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0 && _.sum(s.store) >= 250);
-    if (giftContainers.length) {
-        for (let resourceType in giftContainers[0].store) {
-            switch (creep.withdraw(giftContainers[0], resourceType)) {
-                case OK:
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(giftContainers[0], {range: 1});
-                    break;
-            }
-        }
-        creep.say('GIFT!', true);
-        return true;
-    }
 }
 
 function terminalWorker(creep) {

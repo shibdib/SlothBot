@@ -92,17 +92,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'mineralHarvester':
             work = 12;
-            carry = 5;
+            carry = 2;
             move = 6;
             if (level === 7) {
                 work = 20;
-                carry = 4;
+                carry = 2;
                 move = 10;
                 break;
             }
             if (level === 8) {
                 work = 25;
-                carry = 5;
+                carry = 2;
                 move = 13;
                 break;
             }
