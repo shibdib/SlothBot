@@ -17,7 +17,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     //INITIAL CHECKS
     if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.suicide();
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
+    if (creep.tryToBoost(['build'])) return;
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     if (creep.carry.energy === 0) {

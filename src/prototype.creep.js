@@ -89,6 +89,7 @@ Creep.prototype.borderCheck = function () {
         }
         return true;
     }
+    return false;
 };
 
 Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000, force = false) {
@@ -121,6 +122,18 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 
 Creep.prototype.tryToBoost = function (boosts) {
     let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
+    if (labs[0] && this.memory.boostAttempt && !this.memory.unboosted && this.ticksToLive <= 70) {
+        switch (labs[0].unboostCreep(this)) {
+            case OK:
+                return this.memory.unboosted = true;
+            case ERR_NOT_IN_RANGE:
+                this.say('Un-boosting');
+                return this.shibMove(lab);
+            case ERR_NOT_FOUND:
+                return this.memory.unboosted = true;
+        }
+    }
+    if (this.memory.boostAttempt) return false;
     if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
         let available = [];
@@ -415,4 +428,16 @@ Creep.prototype.reportDamage = function () {
     } else {
         this.memory.underAttack = undefined;
     }
+};
+
+
+Creep.prototype.fleeRoom = function (room) {
+    if (this.room.name !== room && !this.borderCheck()) return this.idleFor(this.memory.fleeNukeTime);
+    if (this.memory.fleeNukeTime <= Game.time) {
+        this.memory.fleeNukeTime = undefined;
+        this.memory.fleeNukeRoom = undefined;
+    }
+    let exit = this.pos.findClosestByPath(FIND_EXIT);
+    this.say('NUKE! RUN!', true);
+    this.shibMove(exit);
 };

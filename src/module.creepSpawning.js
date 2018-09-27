@@ -350,7 +350,7 @@ module.exports.workerCreepQueue = function (room) {
     if (level >= 6 && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !room.memory.responseNeeded && room.constructionSites.length === 0) {
         let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
         let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
-        if (mineralHarvesters.length < 2 && extractor && room.mineral[0].mineralAmount > 0) {
+        if (mineralHarvesters.length < 1 && extractor && room.mineral[0].mineralAmount > 0) {
             queueCreep(room, PRIORITIES.mineralHarvester, {
                 role: 'mineralHarvester',
                 assignedMineral: room.mineral[0].id
@@ -397,7 +397,7 @@ module.exports.workerCreepQueue = function (room) {
         if (!Game.rooms[room.memory.claimTarget] || !Game.rooms[room.memory.claimTarget].controller.my) {
             let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'claimer');
             if (claimer.length < 1 && !_.includes(Memory.ownedRooms, room.memory.claimTarget) && !room.memory.activeClaim) {
-                queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: room.memory.claimTarget})
+                queueCreep(room, PRIORITIES.pioneer - 1, {role: 'claimer', destination: room.memory.claimTarget})
             }
         }
         let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'pioneer');

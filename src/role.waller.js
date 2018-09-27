@@ -6,7 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['build']);
+    if (creep.tryToBoost(['build'])) return;
     creep.repairRoad();
     if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;

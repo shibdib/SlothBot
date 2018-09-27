@@ -199,6 +199,7 @@ function minionController(minion) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel();
     }
+    if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     if (Game.time % 25 === 0) minion.room.cacheRoomIntel();
     let memoryRole = minion.memory.role;
     let creepRole = require('role.' + memoryRole);

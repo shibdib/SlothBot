@@ -36,6 +36,7 @@ Room.prototype.buildRoom = function () {
     buildTowers(this, structures);
     controllerSupplier(this, structures);
     buildWalls(this, structures);
+    buildMineralContainer(this, structures);
     if (_.size(Game.constructionSites) > 75) return;
     buildLabs(this, structures);
     buildNuker(this, structures);
@@ -113,21 +114,22 @@ function buildExtensions(room) {
 }
 
 function findExtensionHub(room) {
+    let inBuildSpawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
+    if (inBuildSpawn) {
+        room.memory.extensionHub = {};
+        room.memory.extensionHub.x = inBuildSpawn.pos.x;
+        room.memory.extensionHub.y = inBuildSpawn.pos.y;
+        return;
+    }
+    let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
+    if (spawn) {
+        room.memory.extensionHub = {};
+        room.memory.extensionHub.x = spawn.pos.x;
+        room.memory.extensionHub.y = spawn.pos.y;
+        return;
+    }
     for (let i = 1; i < 1000; i++) {
-        let inBuildSpawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
-        if (inBuildSpawn) {
-            room.memory.extensionHub = {};
-            room.memory.extensionHub.x = inBuildSpawn.pos.x;
-            room.memory.extensionHub.y = inBuildSpawn.pos.y;
-            return;
-        }
-        let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
-        if (spawn) {
-            room.memory.extensionHub = {};
-            room.memory.extensionHub.x = spawn.pos.x;
-            room.memory.extensionHub.y = spawn.pos.y;
-            return;
-        }
+        let searched = [];
         let hubSearch = room.memory.hubSearch || 0;
         if (hubSearch >= 750) {
             abandonRoom(room.name);
@@ -136,23 +138,28 @@ function findExtensionHub(room) {
             Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
             return;
         }
-        room.memory.hubSearch = hubSearch + 1;
         let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
-        let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
-        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
-        let wall = false;
-        for (let key in terrain) {
-            let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-            if (!position.checkForWall()) {
-                continue;
+        let clean = pos.x + '.' + pos.y;
+        if (!_.includes(searched, clean)) {
+            searched.append(clean);
+            room.memory.hubSearch = hubSearch + 1;
+            let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
+            let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
+            let wall = false;
+            for (let key in terrain) {
+                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                if (!position.checkForImpassible()) {
+                    continue;
+                }
+                wall = true;
+                break;
             }
-            wall = true;
-            break;
-        }
-        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
-            room.memory.extensionHub = {};
-            room.memory.extensionHub.x = pos.x;
-            room.memory.extensionHub.y = pos.y;
+            if (pos.getRangeTo(closestStructure) >= 4 && !wall) {
+                room.memory.extensionHub = {};
+                room.memory.extensionHub.x = pos.x;
+                room.memory.extensionHub.y = pos.y;
+                room.memory.hubSearch = undefined;
+            }
         }
     }
 }
@@ -191,6 +198,30 @@ function controllerSupplier(room, structures) {
         } else if (controllerLink) {
             room.memory.controllerLink = controllerLink.id;
         }
+    }
+}
+
+function buildMineralContainer(room, structures) {
+    if (room.level < 6) return;
+    let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+    if (!extractor) return;
+    let extractorContainer = _.filter(extractor.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+    if (!extractorContainer) {
+        let extractorBuild = _.filter(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+        if (!extractorBuild) {
+            let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
+            for (let key in containerSpots) {
+                let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
+                if (position && position.getRangeTo(extractor) === 1) {
+                    if (!position.checkForImpassible()) {
+                        position.createConstructionSite(STRUCTURE_CONTAINER);
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        room.memory.extractorContainer = extractorContainer.id;
     }
 }
 

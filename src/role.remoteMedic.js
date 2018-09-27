@@ -6,7 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['heal']);
+    if (creep.tryToBoost(['heal'])) return;
     creep.borderCheck();
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     if (creep.memory.healTarget) {

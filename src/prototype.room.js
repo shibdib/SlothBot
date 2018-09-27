@@ -499,7 +499,12 @@ Room.prototype.handleNukeAttack = function () {
     };
 
     for (let nuke of nukes) {
-        if (nuke.timeToLand <= 500) continue;
+        if (nuke.timeToLand <= 200) {
+            for (let c of nuke.room.creeps) {
+                c.memory.fleeNukeTime = Game.time + nuke.timeToLand + 2;
+                c.memory.fleeNukeRoom = nuke.room.name;
+            }
+        }
         let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 4, {
             filter: findSaveableStructures
         });
