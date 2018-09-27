@@ -87,6 +87,7 @@ function role(creep) {
 
 module.exports.role = profiler.registerFN(role, 'basicHaulerRole');
 
+// Check for loot
 function checkForLoot(creep) {
     let tombstones = _.filter(creep.room.tombstones, (s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
     if (tombstones.length) {
@@ -99,6 +100,18 @@ function checkForLoot(creep) {
                     break;
             }
         }
+        return true;
+    }
+    let dropped = _.filter(FIND_DROPPED_RESOURCES, (s) => s.amount > 250);
+    if (dropped.length) {
+        switch (creep.pickup(dropped[0])) {
+            case OK:
+                break;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(dropped[0]);
+                break;
+        }
+        return true;
     }
 }
 

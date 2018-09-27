@@ -63,6 +63,8 @@ module.exports.role = function (creep) {
                     return true;
             }
         }
+    } else if (checkForLoot(creep)) {
+
     } else if (creep.pos.getRangeTo(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
     } else if (creep.pos.checkForRoad()) {
@@ -250,5 +252,33 @@ function droppedResources(creep) {
         }
     } else {
         return false;
+    }
+}
+
+// Check for loot
+function checkForLoot(creep) {
+    let tombstones = _.filter(creep.room.tombstones, (s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
+    if (tombstones.length) {
+        for (let resourceType in tombstones[0].store) {
+            switch (creep.withdraw(tombstones[0], resourceType)) {
+                case OK:
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(tombstones[0]);
+                    break;
+            }
+        }
+        return true;
+    }
+    let dropped = _.filter(FIND_DROPPED_RESOURCES, (s) => s.amount > 250);
+    if (dropped.length) {
+        switch (creep.pickup(dropped[0])) {
+            case OK:
+                break;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(dropped[0]);
+                break;
+        }
+        return true;
     }
 }

@@ -50,10 +50,10 @@ function role(creep) {
             if (terminal && creep.pos.getRangeTo(terminal) <= 1 && terminal.store[RESOURCE_ENERGY] > 0) creep.withdraw(terminal, RESOURCE_ENERGY);
             if (link && creep.pos.getRangeTo(link) <= 1 && link.energy > 0) creep.withdraw(link, RESOURCE_ENERGY);
         } else {
-            if (container && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
             if (creep.memory.energyDestination) {
                 creep.withdrawEnergy();
             } else if (container && container.store[RESOURCE_ENERGY] > 0) {
+                if (container && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
                 switch (creep.withdraw(container, RESOURCE_ENERGY)) {
                     case OK:
                         break;
