@@ -113,6 +113,20 @@ function checkForLoot(creep) {
         }
         return true;
     }
+    let giftContainers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY]);
+    if (giftContainers.length) {
+        for (let resourceType in giftContainers[0].store) {
+            switch (creep.withdraw(giftContainers[0], resourceType)) {
+                case OK:
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(giftContainers[0]);
+                    break;
+            }
+        }
+        creep.say('GIFT!', true);
+        return true;
+    }
 }
 
 function terminalWorker(creep) {

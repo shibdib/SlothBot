@@ -201,7 +201,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
             break;
         case 'raider':
-            if (level < 6) break;
+            if (level < 4) break;
             carry = _.round(1.5 * level);
             move = carry;
             break;
