@@ -274,22 +274,22 @@ function findRoute(origin, destination, options = {}) {
                     ((fMod >= 4) && (fMod <= 6)) &&
                     ((sMod >= 4) && (sMod <= 6));
                 if (isSK) {
-                    return 4 * highwayBias;
+                    return 4;
                 }
             }
             if (isHighway && options.preferHighway) return 0.5;
             // Avoid rooms owned by others
             if (Memory.roomCache && Memory.roomCache[roomName]) {
-                if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username))
+                if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username) && !Memory.roomCache[roomName].abandoned)
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
-                    return 255;
+                    return 200;
                 }
             }
             // Avoid rooms reserved by others
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].reservation && (!_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation.username) || Memory.roomCache[roomName].potentialTarget))
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.reservation && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.reservation.username))) {
-                    return 100;
+                    return 75;
                 }
             }
             // Check for manual flagged rooms

@@ -1,9 +1,11 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.drainRoom = function () {
     let sentence = ['Gimme', 'That', 'Energy', 'Please'];
     let word = Game.time % sentence.length;
     if (this.room.name === this.memory.targetRoom) {
-        let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy >= 15);
-        if (!tower.length) {
+        let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy >= 10);
+        if (!towers.length) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.pos.roomName] = {
@@ -13,6 +15,7 @@ Creep.prototype.drainRoom = function () {
             };
             Memory.targetRooms = cache;
         }
+        highCommand.operationSustainability(this.room);
     }
     this.say(sentence[word], true);
     this.heal(this);

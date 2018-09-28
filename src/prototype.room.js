@@ -226,13 +226,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     this.memory.lastIntelCache = Game.time;
     let room = Game.rooms[this.name];
     let owner, reservation, reservationTick, level, hostiles, nonCombats, sk, towers, claimValue, claimWorthy,
-        needsCleaning, power;
+        needsCleaning, power, abandoned;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER);
-        let barriers;
+        let barriers, spawns;
         barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 5;
+        spawns = _.filter(room.structures, (e) => e.structureType === STRUCTURE_SPAWN);
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
         towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
@@ -274,6 +275,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
         let potentialTarget;
         if (!owner && nonCombats.length >= 2) potentialTarget = true;
+        if (owner && !spawns) abandoned = true;
         let key = room.name;
         if (Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
@@ -282,6 +284,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             sources: sources,
             minerals: minerals,
             owner: owner,
+            abandoned: abandoned,
             reservation: reservation,
             reservationTick: reservationTick,
             level: level,

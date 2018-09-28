@@ -86,7 +86,7 @@ function rampartManager(room, structures) {
 }
 
 function safeModeManager(room) {
-    if (room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) return;
+    if (room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !room.memory.extensionHub) return;
     if (room.controller.level < 3) {
         let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 2));
         if (enemyMilitary.length) return room.controller.activateSafeMode();

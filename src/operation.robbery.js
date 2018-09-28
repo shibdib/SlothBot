@@ -8,7 +8,7 @@ Creep.prototype.robbery = function () {
         range: 23,
         preferHighway: true
     });
-    if (this.room.name === this.memory.targetRoom && ((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0))) {
+    if (this.room.name === this.memory.targetRoom && (!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) {
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #Overlord-Bot')) {
             case OK:
                 break;
@@ -26,11 +26,23 @@ Creep.prototype.robbery = function () {
         Memory.targetRooms = cache;
         return this.memory.role = 'remoteHauler';
     }
+    // Set level based on how much stuff to haul
+    if (this.room.name === this.memory.targetRoom) {
+        let storageAmount, terminalAmount = 0;
+        if (storage) storageAmount = _.sum(storage.store) || 0;
+        if (terminal) terminalAmount = _.sum(terminal.store) || 0;
+        let lootAmount = storageAmount + terminalAmount;
+        let opLevel = lootAmount / 500 || 1;
+        let cache = Memory.targetRooms || {};
+        cache[this.pos.roomName] = {
+            level: _.round(opLevel),
+        };
+        Memory.targetRooms = cache;
+    }
     if (!this.memory.hauling) {
-        if (((!terminal || (_.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] === 0)) && (!storage || _.sum(storage.store) - storage.store[RESOURCE_ENERGY] === 0)) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
-        if (storage && _.sum(storage.store) - storage.store[RESOURCE_ENERGY] > 0) {
+        if (((!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
+        if (storage && _.sum(storage.store)) {
             for (let resourceType in storage.store) {
-                if (resourceType === RESOURCE_ENERGY) continue;
                 switch (this.withdraw(storage, resourceType)) {
                     case OK:
                         break;
@@ -38,9 +50,8 @@ Creep.prototype.robbery = function () {
                         return this.shibMove(storage);
                 }
             }
-        } else if (terminal && _.sum(terminal.store) - terminal.store[RESOURCE_ENERGY] > 0) {
+        } else if (terminal && _.sum(terminal.store)) {
             for (let resourceType in terminal.store) {
-                if (resourceType === RESOURCE_ENERGY) continue;
                 switch (this.withdraw(terminal, resourceType)) {
                     case OK:
                         break;

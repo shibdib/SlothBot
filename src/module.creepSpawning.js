@@ -413,8 +413,8 @@ module.exports.workerCreepQueue = function (room) {
     let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
     if (needyRoom && !room.memory.responseNeeded) {
         if (!_.includes(queue, 'pioneer')) {
-            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
-            if (pioneers.length < 10) {
+            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
+            if (pioneers.length < 5) {
                 queueCreep(room, PRIORITIES.pioneer + pioneers.length, {
                     role: 'pioneer',
                     destination: needyRoom.name
@@ -715,9 +715,9 @@ module.exports.militaryCreepQueue = function () {
         }
         // Robbery
         if (Memory.targetRooms[key].type === 'robbery') {
-            let raiders = 3;
             let raider = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'raider');
-            if (raider.length < raiders && !_.includes(queue, 'raider')) {
+            if (opLevel > 10) opLevel = 10;
+            if (raider.length < opLevel && !_.includes(queue, 'raider')) {
                 queueMilitaryCreep(priority, {
                     role: 'raider',
                     targetRoom: key,
@@ -747,7 +747,7 @@ module.exports.militaryCreepQueue = function () {
                 drainers = 1;
             } else if (opLevel === 2) {
                 drainers = 2;
-            } else if (opLevel === 3) {
+            } else if (opLevel >= 3) {
                 drainers = 3;
             }
             let drainer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'drainer');
@@ -765,6 +765,7 @@ module.exports.militaryCreepQueue = function () {
         if (Memory.targetRooms[key].type === 'siege' && Memory.targetRooms[key].activeSiege) {
             let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine');
             let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeHealer');
+            if (opLevel > 2) opLevel = 2;
             if (siegeEngine.length < siegeHealer.length && !_.includes(queue, 'siegeEngine')) {
                 queueMilitaryCreep(priority, {
                     role: 'siegeEngine',

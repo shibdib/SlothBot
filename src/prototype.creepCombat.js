@@ -624,6 +624,10 @@ Creep.prototype.borderHump = function () {
     if (this.hits < this.hitsMax * 0.8 && this.room.name === this.memory.targetRoom) {
         let exit = this.pos.findClosestByRange(FIND_EXIT);
         return this.shibMove(exit, {ignoreCreeps: false});
+    } else if (this.hits === this.hitsMax && this.room.name === this.memory.targetRoom) {
+        this.borderCheck();
+        this.heal(this);
+        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23})
     } else if (this.hits < this.hitsMax && this.room.name !== this.memory.targetRoom) {
         this.borderCheck();
         this.heal(this);

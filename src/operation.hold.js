@@ -3,6 +3,19 @@ let highCommand = require('military.highCommand');
 Creep.prototype.holdRoom = function () {
     if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+        // Set room to be raided for loot if some is available
+        let terminal = this.room.terminal;
+        let storage = this.room.storage;
+        if ((terminal && _.sum(terminal.store) > 1000) || (storage && _.sum(storage.store) > 1000)) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[this.room.name] = {
+                tick: tick,
+                type: 'robbery'
+            };
+            Memory.targetRooms = cache;
+            return this.suicide();
+        }
         // Clear target if room is no longer owned
         if (!this.room.controller.owner || this.room.controller.safeMode || !Memory.targetRooms[this.room.name]) {
             delete Memory.targetRooms[this.room.name];

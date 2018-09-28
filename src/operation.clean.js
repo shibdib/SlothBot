@@ -1,3 +1,5 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.cleanRoom = function () {
     let sentence = ['Cleaning', 'Room', this.memory.targetRoom];
     let word = Game.time % sentence.length;
@@ -17,6 +19,7 @@ Creep.prototype.cleanRoom = function () {
         Memory.targetRooms = cache;
         return this.suicide();
     }
+    highCommand.operationSustainability(this.room);
     let creeps = this.pos.findClosestByRange(this.room.creeps, {filter: (e) => _.includes(FRIENDLIES, e.owner.username) === false});
     if (creeps && Memory.targetRooms[this.room.name]) {
         Memory.targetRooms[this.room.name].escort = true;

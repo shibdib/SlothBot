@@ -12,6 +12,7 @@ Creep.prototype.scoutRoom = function () {
     // Get available rooms
     let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
+    let rcl8Rooms = _.filter(Memory.ownedRooms, (r) => r.controller.level === 8).length;
     // Get room details
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let countableStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL);
@@ -34,6 +35,8 @@ Creep.prototype.scoutRoom = function () {
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
+    let terminal = this.room.terminal;
+    let storage = this.room.storage;
     if (!Memory.targetRooms[this.room.name]) return this.suicide();
     if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local) {
         if (!controller) {
@@ -50,28 +53,73 @@ Creep.prototype.scoutRoom = function () {
                 type: 'pending',
                 dDay: tick + this.room.controller.safeMode,
             };
-        } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy === 0)) {
-            cache[this.room.name] = {
-                tick: tick,
-                type: 'hold',
-                level: 2,
-                priority: 2
-            };
+        } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy <= 9)) {
+            // Set room to be raided for loot if some is available
+            if ((terminal && _.sum(terminal.store) > 1000) || (storage && _.sum(storage.store) > 1000)) {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'robbery',
+                    level: 1,
+                    priority: 2
+                };
+            } else {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'hold',
+                    level: 2,
+                    priority: 2
+                };
+            }
+        } else if (controller.owner && towers.length) {
+            if (!rcl8Rooms) {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'drain',
+                    level: towers.length,
+                    priority: 2
+                };
+            } else {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'siege',
+                    level: towers.length,
+                    priority: 1
+                };
+            }
         } else if (!controller.owner && countableStructures.length < 3) {
-        let type = 'harass';
-            cache[this.room.name] = {
-                tick: tick,
-                type: type,
-                level: 1,
-                priority: priority
-            };
+            // Set room to be raided for loot if some is available
+            if ((terminal && _.sum(terminal.store) > 1000) || (storage && _.sum(storage.store) > 1000)) {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'robbery',
+                    level: 1,
+                    priority: 2
+                };
+            } else {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'harass',
+                    level: 1,
+                    priority: priority
+                };
+            }
         } else if (!controller.owner && countableStructures.length > 2) {
-            cache[this.room.name] = {
-                tick: tick,
-                type: 'clean',
-                level: 1,
-                priority: priority
-            };
+            // Set room to be raided for loot if some is available
+            if ((terminal && _.sum(terminal.store) > 1000) || (storage && _.sum(storage.store) > 1000)) {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'robbery',
+                    level: 1,
+                    priority: 2
+                };
+            } else {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'clean',
+                    level: 1,
+                    priority: priority
+                };
+            }
         } else {
             delete Memory.targetRooms[this.room.name];
         }
