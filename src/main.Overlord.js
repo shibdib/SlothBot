@@ -182,8 +182,9 @@ module.exports.overlordMind = function (room, roomLimit) {
             Game.notify(room.name + ' is using a high amount of CPU - ' + average(room.memory.cpuUsageArray))
         }
     }
+    room.memory.averageCpu = _.round(average(room.memory.cpuUsageArray), 2);
     room.visual.text(
-        'CPU Usage: ' + _.round(average(room.memory.cpuUsageArray), 2),
+        'CPU Usage: ' + room.memory.averageCpu,
         1,
         8,
         {align: 'left', opacity: 0.8, color: '#ff0000'}
