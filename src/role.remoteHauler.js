@@ -106,6 +106,8 @@ function role(creep) {
                         creep.memory.storageDestination = controllerContainer.id;
                     } else if (storage) {
                         creep.memory.storageDestination = storage.id;
+                    } else if (controllerContainer) {
+                        creep.memory.storageDestination = controllerContainer.id;
                     } else {
                         creep.findEssentials()
                     }

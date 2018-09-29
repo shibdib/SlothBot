@@ -156,8 +156,8 @@ function extensionBuilder(creep) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
                     if (pos.checkForImpassible() || pos.checkForRoad() || pos.checkForConstructionSites()) continue;
-                    if (!creep.memory.linkID && count === 0) continue;
                     count++;
+                    if (!creep.memory.linkID && count === 1) continue;
                     pos.createConstructionSite(STRUCTURE_EXTENSION)
                 }
             }

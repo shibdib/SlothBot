@@ -11,31 +11,6 @@ module.exports.overlordMind = function (room, roomLimit) {
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 
-    // Abandon Bad Rooms
-    log.d('Abandon Check');
-    let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
-    let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TOWER && s.my);
-    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
-    let badCount = room.memory.badCount || 0;
-    if (room.controller.level <= 4 && hostiles.length && !worthyStructures.length && hostiles.length >= towers.length * 2) {
-        if (Game.time % 20 === 0) {
-            room.memory.badCount = badCount + 1;
-        }
-        if (room.memory.badCount > 3) {
-            abandonRoom(room.name);
-            Memory.roomCache[room.name].noClaim = true;
-            log.a(room.name + ' has been abandoned due to a prolonged enemy presence.');
-            Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence.');
-            return;
-        }
-    } else {
-        if (badCount === 0) {
-            room.memory.badCount = undefined;
-        } else {
-            room.memory.badCount = badCount - 1;
-        }
-    }
-
     // Set Energy Needs
     log.d('Energy Status');
     let terminalEnergy = 0;

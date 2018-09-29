@@ -26,7 +26,7 @@ function role(creep) {
 
         }
     } else {
-        let needsHeals = _.min(_.filter(Game.creeps, (c) => c.memory && c.memory.healsPlease && !c.memory.healsInbound && Game.map.findRoute(c.room.name, creep.room.name).length <= 10), 'hits');
+        let needsHeals = _.min(_.filter(Game.creeps, (c) => c.memory && c.id !== creep.id && c.memory.healsPlease && !c.memory.healsInbound && Game.map.findRoute(c.room.name, creep.room.name).length <= 10), 'hits');
         if (needsHeals.name) {
             needsHeals.memory.healsInbound = creep.id;
             creep.memory.healTarget = needsHeals.id;

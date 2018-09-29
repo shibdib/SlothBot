@@ -165,7 +165,6 @@ function findExtensionHub(room) {
 }
 
 function controllerSupplier(room, structures) {
-    if (room.level < 3) return;
     let controllerContainer = _.filter(room.controller.pos.findInRange(structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
     if (!controllerContainer) {
         let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
@@ -620,7 +619,7 @@ function buildTowers(room, structures) {
 }
 
 function buildRoads(room, structures) {
-    if (room.controller.level < 2 || _.size(Game.constructionSites) >= 75) return;
+    if (room.controller.level < 4 || _.size(Game.constructionSites) >= 75) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     for (let source of room.sources) {
         buildRoadAround(room, source.pos);

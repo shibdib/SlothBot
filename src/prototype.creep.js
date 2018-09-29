@@ -384,8 +384,10 @@ Creep.prototype.reportDamage = function () {
     if (this.hits === this.hitsMax) {
         this.memory.healsPlease = undefined;
         this.memory.healsInbound = undefined;
-    } else {
+    } else if (!this.getActiveBodyparts(HEAL)) {
         this.memory.healsPlease = true;
+    } else {
+        this.heal(this);
     }
     if (this.memory.healsInbound && !Game.getObjectById(this.memory.healsInbound)) this.memory.healsInbound = undefined;
     if (!this.memory._lastHits) return this.memory._lastHits = this.hits;

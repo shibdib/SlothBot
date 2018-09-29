@@ -10,6 +10,7 @@ function role(creep) {
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Responder Mode
     if (creep.memory.responseTarget) {
+        creep.memory.guardTime = undefined;
         if (creep.memory.awaitingOrders) return creep.memory.responseTarget = undefined;
         creep.say(ICONS.respond, true);
         if (creep.room.name !== creep.memory.responseTarget) {
@@ -28,6 +29,10 @@ function role(creep) {
         }
     } else {
         if (!creep.handleMilitaryCreep(false, true)) {
+            if (!creep.memory.guardTime) creep.memory.guardTime = Game.time;
+            if (creep.memory.guardTime + 200 <= Game.time && creep.room.name !== creep.memory.overlord) {
+                return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18});
+            }
             creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
             if (creep.pos.checkForRoad()) {
                 creep.moveRandom();
