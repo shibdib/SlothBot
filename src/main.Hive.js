@@ -159,7 +159,6 @@ function minionController(minion) {
     minion.notifyWhenAttacked(false);
     minion.reportDamage();
     if (minion.room.name !== minion.memory.overlord) {
-        minion.room.invaderCheck();
         minion.room.cacheRoomIntel();
     }
     if (Game.time % 25 === 0) minion.room.cacheRoomIntel();

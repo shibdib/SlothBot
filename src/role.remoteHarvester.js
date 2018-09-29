@@ -11,7 +11,7 @@ function role(creep) {
     //Invader detection
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) {
         if (creep.carry[RESOURCE_ENERGY]) creep.drop(RESOURCE_ENERGY);
-        return creep.kite(8);
+        return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18, offRoad: true});
     }
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) {
@@ -20,7 +20,6 @@ function role(creep) {
             return creep.suicide();
         }
         creep.memory.destinationReached = true;
-        creep.room.memory.remoteMining = true;
         if (creep.room.constructionSites.length > 0) {
             creep.room.memory.requestingPioneer = true;
         } else {

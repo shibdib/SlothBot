@@ -7,7 +7,10 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.say(ICONS.haul, true);
-    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.kite(8);
+    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {
+        range: 18,
+        offRoad: true
+    });
     if (creep.borderCheck()) return null;
     creep.repairRoad();
     if (_.sum(creep.carry) === 0) {

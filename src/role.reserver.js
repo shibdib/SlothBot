@@ -6,7 +6,10 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    //if (creep.renewalCheck(4)) return creep.shibMove(Game.rooms[creep.memory.overlord].find(FIND_MY_SPAWNS)[0]);
+    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {
+        range: 18,
+        offRoad: true
+    });
     creep.borderCheck();
     let signs = ["Reserved Territory of an #Overlord-Bot", "#Overlord-Bot Frontier - Visit at your own risk.", "#Overlord-Bot Exclusion Zone", "#Overlord-Bot Reserved Room"];
     let hostiles = creep.findClosestEnemy();
