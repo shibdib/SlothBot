@@ -37,6 +37,7 @@ Creep.prototype.scoutRoom = function () {
     let tick = Game.time;
     let terminal = this.room.terminal;
     let storage = this.room.storage;
+    let armedHostiles = _.filter(this.room.creeps, (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0);
     if (!Memory.targetRooms[this.room.name]) return this.suicide();
     if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local) {
         if (!controller) {
@@ -94,6 +95,14 @@ Creep.prototype.scoutRoom = function () {
                     type: 'robbery',
                     level: 1,
                     priority: 2
+                };
+            } else if (!armedHostiles.length) {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'harass',
+                    level: 1,
+                    annoy: true,
+                    priority: priority
                 };
             } else {
                 cache[this.room.name] = {

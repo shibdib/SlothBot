@@ -13,9 +13,12 @@ Creep.prototype.harassRoom = function () {
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
-        let hostile = this.findClosestEnemy();
         if (Memory.targetRooms[this.memory.targetRoom]) {
-            Memory.targetRooms[this.memory.targetRoom].level = 1;
+            if (this.findClosestEnemy()) {
+                Memory.targetRooms[this.memory.targetRoom].annoy = undefined;
+            } else {
+                Memory.targetRooms[this.memory.targetRoom].annoy = true;
+            }
             this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
         } else {
             this.memory.awaitingOrders = true;
