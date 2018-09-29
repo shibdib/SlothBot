@@ -22,6 +22,7 @@ function role(creep) {
         } else {
             if (!creep.handleMilitaryCreep(false, true, true)) {
                 creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
+                creep.invaderCheck();
                 return findDefensivePosition(creep, creep);
             }
         }
