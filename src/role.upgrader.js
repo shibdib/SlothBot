@@ -17,7 +17,7 @@ function role(creep) {
                     creep.memory.signed = true;
                     break;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(creep.room.controller, {range: 1});
+                    return creep.shibMove(creep.room.controller, {range: 1});
             }
         }
         let sentence = ['-', '#overlords', '-'];

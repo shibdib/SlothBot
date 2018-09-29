@@ -28,6 +28,7 @@ Room.prototype.buildRoom = function () {
             }
         }
     }
+    buildLabs(this, structures);
     buildExtensions(this);
     buildLinks(this);
     buildStorage(this);
@@ -38,7 +39,6 @@ Room.prototype.buildRoom = function () {
     buildWalls(this, structures);
     buildMineralContainer(this, structures);
     if (_.size(Game.constructionSites) > 75) return;
-    buildLabs(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
@@ -515,37 +515,27 @@ function buildSpawn(room, structures) {
 function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
     let terminal = room.terminal;
-    if (!room.memory.reactionRoom) {
-        let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
-        let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB);
-        if (lab.length + sites.length < 2 && terminal) {
-            let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, terminal.pos.y - 2, terminal.pos.x - 2, terminal.pos.y + 2, terminal.pos.x + 2, true));
-            let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-            for (let key in safeZone) {
-                let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-                if (position.getRangeTo(terminal.pos) === 2) {
-                    if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || !room.findPath(position, terminal.pos, {
-                            range: 1,
-                            ignoreCreeps: true
-                        }).length
-                        || room.findPath(position, hub, {
-                            range: 1,
-                            ignoreDestructibleStructures: true,
-                            ignoreCreeps: true
-                        }).length > 7) continue;
-                    position.createConstructionSite(STRUCTURE_LAB);
-                    break;
+    if (room.controller.level >= 7 && (!room.memory.boostLab || !Game.getObjectById(room.memory.boostLab))) {
+        let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(terminal) === 1)[0];
+        if (lab) return room.memory.boostLab = lab.id;
+        let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(terminal) === 1);
+        if (!sites.length) {
+            let terminalZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, terminal.pos.y - 1, terminal.pos.x - 1, terminal.pos.y + 1, terminal.pos.x + 1, true));
+            for (let key in terminalZone) {
+                let position = new RoomPosition(terminalZone[key].x, terminalZone[key].y, room.name);
+                if (position.checkIfOutOfBounds() || position.checkForImpassible()) continue;
+                switch (position.createConstructionSite(STRUCTURE_LAB)) {
+                    case OK:
+                        continue;
+                    case ERR_RCL_NOT_ENOUGH:
+                        let labs = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB && (!room.memory.boostLab || s.id !== room.memory.boostLab));
+                        labs[0].destroy();
                 }
+                break;
             }
         }
     } else {
-        let labs = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB);
-        // New reaction room conversion
-        if (labs[0] && labs[0].pos.getRangeTo(terminal) === 2) {
-            for (let key in labs) {
-                labs[key].destroy();
-            }
-        }
+        let labs = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB && (!room.memory.boostLab || s.id !== room.memory.boostLab));
         let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB})[0];
         if (labs.length === 0 && !sites) {
             let hub = new RoomPosition(25, 25, room.name);
@@ -553,37 +543,17 @@ function buildLabs(room, structures) {
             let good;
             for (let key in labHub) {
                 let position = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
-                if (position.checkForWall() || position.checkForAllStructure().length > 0) continue;
+                if (position.checkForImpassible()) continue;
                 let surrounding = room.lookForAtArea(LOOK_TERRAIN, position.y - 3, position.x - 3, position.y + 3, position.x + 3, true);
                 for (let key in surrounding) {
                     let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
                     good = false;
-                    if (labPos.checkForWall() || labPos.checkForAllStructure().length ||
-                        labPos.x < 5 || labPos.x > 44 || labPos.y < 5 || labPos.y > 44) break;
+                    if (labPos.checkForImpassible() || labPos.x < 3 || labPos.x > 47 || labPos.y < 3 || labPos.y > 47) break;
                     good = true;
-                    if (good) {
-                        return position.createConstructionSite(STRUCTURE_LAB);
-                    }
+                    if (good) return position.createConstructionSite(STRUCTURE_LAB);
                 }
             }
         } else if (labs[0]) {
-            if (room.controller.level >= 7) {
-                let sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (s) => s.structureType === STRUCTURE_LAB});
-                let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-                if (hub.getRangeTo(hub.findClosestByRange(labs)) > 6 && (!sites || hub.getRangeTo(hub.findClosestByRange(sites)) > 6)) {
-                    let innerLab = room.lookForAtArea(LOOK_TERRAIN, hub.y - 5, hub.x - 5, hub.y + 5, hub.x + 5, true);
-                    for (let key in innerLab) {
-                        let position = new RoomPosition(innerLab[key].x, innerLab[key].y, room.name);
-                        if (position.checkForWall() || position.checkForAllStructure().length > 0) continue;
-                        switch (position.createConstructionSite(STRUCTURE_LAB)) {
-                            case OK:
-                                break;
-                            case ERR_RCL_NOT_ENOUGH:
-                                return;
-                        }
-                    }
-                }
-            }
             let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 2, labs[0].pos.x - 2, labs[0].pos.y + 2, labs[0].pos.x + 2, true);
             buildRoadFromTo(room, labs[0], room.controller);
             for (let key in labHub) {

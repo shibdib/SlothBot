@@ -285,7 +285,13 @@ Creep.prototype.fightRanged = function (target) {
         if (targets.length > 1) {
             this.rangedMassAttack();
         } else {
-            this.rangedAttack(target);
+            if (range <= 1) this.rangedMassAttack();
+            if (range > 1) this.rangedAttack(target);
+            if (!target.getActiveBodyparts(ATTACK)) this.shibMove(target, {
+                ignoreCreeps: false,
+                range: 1,
+                ignoreRoads: true
+            });
         }
         return true;
     } else {
