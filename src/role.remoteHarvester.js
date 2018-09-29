@@ -20,6 +20,7 @@ function role(creep) {
             return creep.suicide();
         }
         creep.memory.destinationReached = true;
+        creep.room.memory.remoteMining = true;
         if (creep.room.constructionSites.length > 0) {
             creep.room.memory.requestingPioneer = true;
         } else {

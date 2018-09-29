@@ -357,10 +357,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
+    if (this.memory.lastInvaderCheck + 5 <= Game.time) return;
     if (!Memory.roomCache) Memory.roomCache = {};
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     let sk;
-    if (this.memory.lastInvaderCheck === Game.time) return;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
     if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) {
         this.memory.numberOfHostiles = undefined;

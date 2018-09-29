@@ -120,7 +120,7 @@ function manageAttacks() {
 }
 
 function manageResponseForces() {
-    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded), 'memory.threatLevel');
+    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded && (r.memory.remoteMining || r.controller.my)), 'memory.threatLevel');
     if (!responseTargets || !responseTargets.name) {
         let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
         if (highestHeat) {

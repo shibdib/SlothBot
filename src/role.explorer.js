@@ -8,6 +8,8 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     creep.borderCheck();
     creep.room.cacheRoomIntel();
+    let sayings = ['Dont Mind Me', 'Beep Beep', 'Just Saying Hi', 'o/', ':D', ':)'];
+    creep.say(_.sample(sayings), true);
     if (!creep.memory.destination) {
         let adjacent = Game.map.describeExits(creep.pos.roomName);
         let target = _.sample(adjacent);
