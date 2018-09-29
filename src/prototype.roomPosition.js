@@ -127,10 +127,12 @@ RoomPosition.prototype.rangeToTarget = function (target) {
 function cacheTargetDistance(origin, target) {
     let key = getPathKey(origin, target.pos);
     let cache = Memory.distanceCache || {};
+    if (cache instanceof Array) cache = {};
     let distance = origin.getRangeTo(target);
     cache[key] = {
         distance: distance,
-        uses: 1
+        uses: 1,
+        tick: Game.time
     };
     Memory.distanceCache = cache;
     return distance;

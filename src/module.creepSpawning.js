@@ -219,15 +219,15 @@ function roomStartup(room, roomCreeps) {
         queueCreep(room, 2, {role: 'hauler'})
     }
     let worker = _.filter(roomCreeps, (creep) => (creep.memory.role === 'worker'));
-    if (worker.length < 2) {
-        queueCreep(room, 3, {role: 'worker'})
+    if (worker.length < 10) {
+        queueCreep(room, 4, {role: 'worker'})
     }
     let upgrader = _.filter(roomCreeps, (creep) => (creep.memory.role === 'upgrader'));
     if (upgrader.length < 9 - room.controller.level) {
-        queueCreep(room, 4, {role: 'upgrader'})
+        queueCreep(room, 3, {role: 'upgrader'})
     }
     let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
-    if (explorers.length < 1) {
+    if (explorers.length < 5) {
         queueCreep(room, 5, {role: 'explorer'})
     }
     let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
@@ -359,7 +359,7 @@ module.exports.workerCreepQueue = function (room) {
     }
     // Local Responder
     if (room.memory.responseNeeded || room.memory.earlyWarning) {
-        if (!_.includes(queue, 'responder') && room.memory.threatLevel > 1) {
+        if (!_.includes(queue, 'responder') && room.memory.threatLevel > 2) {
             let count = 1;
             if (room.memory.threatLevel >= 3 && room.memory.numberOfHostiles) count = room.memory.numberOfHostiles * 0.5;
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
@@ -367,7 +367,7 @@ module.exports.workerCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.responder, {role: 'responder', responseTarget: room.name, military: true})
             }
         }
-        if (!_.includes(queue, 'longbow') && room.memory.threatLevel > 4) {
+        if (!_.includes(queue, 'longbow') && room.memory.threatLevel > 3) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
             if (longbow.length < _.round(room.memory.numberOfHostiles / 3) + 1) {
                 queueCreep(room, PRIORITIES.responder, {

@@ -4,8 +4,8 @@ function cleanup() {
 //CLEANUP
     if (Game.time % 50 === 0) {
         //cleanPathCacheByUsage(); //clean path and distance caches
-        //cleanDistanceCacheByUsage();
-        //cleanRouteCacheByAge();
+        cleanDistanceCacheByAge();
+        cleanRouteCacheByAge();
         //cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanRoomIntel();
@@ -51,11 +51,31 @@ function cleanRouteCacheByUsage() {
 
 function cleanRouteCacheByAge() {
     if (Memory.routeCache) { //1500 entries ~= 100kB
-        let originalCount = Memory.routeCache;
-        let good = _.filter(Memory.routeCache, (r) => r.tick > Game.time - 2000);
-        let prunedCount = originalCount - good.length;
+        let originalCount = Memory.routeCache.length;
+        let cache = Memory.routeCache;
+        for (let key in cache) {
+            if (cache[key].tick + 4500 < Game.time) {
+                delete cache[key];
+            }
+        }
+        let prunedCount = originalCount - cache.length;
         if (prunedCount) log.i('Cleaning Route cache (Removed ' + prunedCount + ' old routes.)');
-        Memory.routeCache = good;
+        Memory.routeCache = cache;
+    }
+}
+
+function cleanDistanceCacheByAge() {
+    if (Memory.distanceCache) { //1500 entries ~= 100kB
+        let originalCount = Memory.distanceCache.length;
+        let cache = Memory.distanceCache;
+        for (let key in cache) {
+            if (cache[key].tick + 100 < Game.time) {
+                delete cache[key];
+            }
+        }
+        let prunedCount = originalCount - cache.length;
+        if (prunedCount) log.i('Cleaning Distance cache (Removed ' + prunedCount + ' old routes.)');
+        Memory.distanceCache = cache;
     }
 }
 
