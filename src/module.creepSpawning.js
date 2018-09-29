@@ -413,7 +413,7 @@ module.exports.workerCreepQueue = function (room) {
     let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
     if (needyRoom && !room.memory.responseNeeded) {
         if (!_.includes(queue, 'pioneer')) {
-            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.destination === needyRoom.name && creep.memory.role === 'pioneer');
+            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && (creep.memory.role === 'pioneer' || creep.memory.role === 'worker'));
             if (pioneers.length < 5) {
                 queueCreep(room, PRIORITIES.pioneer + pioneers.length, {
                     role: 'pioneer',
