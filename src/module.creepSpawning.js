@@ -425,7 +425,7 @@ module.exports.workerCreepQueue = function (room) {
     if (upgradeAssist && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
         let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
         if (remoteUpgraders.length < 2) {
-            queueCreep(room, PRIORITIES.pioneer + remoteUpgraders.length, {
+            queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
                 role: 'remoteUpgrader',
                 destination: upgradeAssist.name
             })
