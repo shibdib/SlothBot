@@ -149,7 +149,7 @@ function buildRoadAround(room, position) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForImpassible() || _.size(room.constructionSites) >= 10) return;
+    if (position.checkForImpassible() || _.size(room.constructionSites) >= 5) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
 
