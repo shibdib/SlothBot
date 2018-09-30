@@ -126,13 +126,26 @@ function remoteRoads(creep) {
         }
     }
 }
+
 function buildRoadFromTo(room, start, end) {
     let path = start.pos.findPathTo(end, {
-        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false, swampCost: 5, plainCost: 5
+        costCallback: function (roomName, costMatrix) {
+            for (let site of room.constructionSites) {
+                if (site.structureType === STRUCTURE_ROAD) {
+                    costMatrix.set(site.pos.x, site.pos.y, 1);
+                }
+            }
+        },
+        maxOps: 10000,
+        serialize: false,
+        ignoreCreeps: true,
+        maxRooms: 1,
+        ignoreRoads: false,
+        swampCost: 15,
+        plainCost: 15
     });
     for (let point of path) {
         let pos = new RoomPosition(point.x, point.y, room.name);
-        if (pos.checkForImpassible()) continue;
         buildRoad(pos, room);
     }
 }
