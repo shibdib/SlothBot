@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.say(ICONS.respond, true);
-    if (creep.room.memory.threatLevel > 2) if (creep.tryToBoost(['attack'])) return;
+    if (creep.tryToBoost(['attack'])) return;
     creep.borderCheck();
     if (!creep.handleMilitaryCreep(false, true, true)) {
         findDefensivePosition(creep, creep);

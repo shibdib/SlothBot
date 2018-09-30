@@ -121,18 +121,22 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
-    let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
-    if (labs[0] && this.memory.boostAttempt && !this.memory.unboosted && this.ticksToLive <= 70) {
+    let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && !s.cooldown);
+    // Unboosting
+    /**if (labs[0] && this.memory.boostAttempt && !this.memory.unboosted && this.ticksToLive <= 75) {
         switch (labs[0].unboostCreep(this)) {
             case OK:
-                return this.memory.unboosted = true;
+                this.memory.unboosted = true;
+                break;
             case ERR_NOT_IN_RANGE:
                 this.say('Un-boosting');
-                return this.shibMove(lab);
+                break;
             case ERR_NOT_FOUND:
-                return this.memory.unboosted = true;
+                this.memory.unboosted = true;
         }
-    }
+        this.shibMove(labs[0]);
+        return true;
+    }**/
     if (this.memory.boostAttempt) return false;
     if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
@@ -252,7 +256,7 @@ Creep.prototype.tryToBoost = function (boosts) {
         }
         this.memory.requestedBoosts = available;
     } else {
-        if (this.memory.requestedBoosts.length === 0 || !this.memory.requestedBoosts.length || this.ticksToLive < 750) {
+        if (!this.memory.requestedBoosts.length || this.ticksToLive < 750) {
             this.memory.requestedBoosts = undefined;
             this.memory.boostLab = undefined;
             this.memory.boostNeeded = undefined;
@@ -277,7 +281,7 @@ Creep.prototype.tryToBoost = function (boosts) {
             if (!this.memory.boostLab) {
                 let filledLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === this.memory.requestedBoosts[key] && s.energy > 0)[0];
                 let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
-                let innerLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(hub) < 6)[0];
+                let innerLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(hub) < 9)[0];
                 if (innerLab) {
                     if (innerLab.memory.active) return this.idleFor(15);
                     this.memory.boostLab = innerLab.id;
@@ -331,15 +335,18 @@ Creep.prototype.tryToBoost = function (boosts) {
                         return this.shibMove(lab);
                     case ERR_NOT_IN_RANGE:
                         this.say(ICONS.boost);
-                        return this.shibMove(lab);
+                        this.shibMove(lab);
+                        return true;
                     case ERR_NOT_ENOUGH_RESOURCES:
                         this.say(ICONS.boost);
-                        return this.shibMove(lab);
+                        this.shibMove(lab);
+                        return true;
                 }
             } else {
-                return this.shibMove(lab);
+                this.shibMove(lab);
             }
         }
+        return true;
     }
 };
 

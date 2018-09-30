@@ -422,6 +422,17 @@ module.exports.workerCreepQueue = function (room) {
             }
         }
     }
+    // Power Level
+    let upgradeAssist = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.controller.level + 1 < level))[0];
+    if (upgradeAssist && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
+        let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
+        if (remoteUpgraders.length < 2) {
+            queueCreep(room, PRIORITIES.pioneer + remoteUpgraders.length, {
+                role: 'remoteUpgrader',
+                destination: upgradeAssist.name
+            })
+        }
+    }
 };
 
 module.exports.remoteCreepQueue = function (room) {
@@ -435,7 +446,7 @@ module.exports.remoteCreepQueue = function (room) {
     if (room.memory.extremeEnergySurplus) harvesterTarget = 1;
     if (level >= 2 && (!room.memory.remoteRange || Game.time % 200 === 0)) {
         range:
-            for (range = 1; range < 3; range++) {
+            for (range = 1; range < 4; range++) {
                 for (let keys in room.memory.remoteRooms) {
                     if (!Memory.roomCache[room.memory.remoteRooms[keys]] || room.shibRoute(room.memory.remoteRooms[keys]).length - 1 > range ||
                         checkIfSK(room.memory.remoteRooms[keys]) || Memory.roomCache[room.memory.remoteRooms[keys]].owner) continue;

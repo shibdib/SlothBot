@@ -267,6 +267,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             carry = _.round((1 * level) / 3) || 1;
             move = work + carry;
             break;
+        case 'remoteUpgrader':
+            if (level < 6) return;
+            work = level * 2;
+            carry = 2;
+            move = work + carry;
+            break;
         case 'remoteUtility':
             work = 1 * level;
             carry = _.round((1 * level) / 2) || 1;

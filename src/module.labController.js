@@ -64,6 +64,23 @@ function manageBoostProduction(room) {
             }
         }
     }
+    if (!boost) {
+        for (let key in TIER_1_BOOSTS) {
+            boost = checkForInputs(room, END_GAME_BOOSTS[key]);
+            if (!boost) continue;
+            let alreadyCreating = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === boost);
+            let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
+            let fresh = 0;
+            if (outputLab[0]) fresh = outputLab[0].mineralAmount;
+            let terminalAmount = terminal.store[boost] || 0;
+            let storageAmount = storage.store[boost] || 0;
+            if (alreadyCreating.length || terminalAmount + storageAmount + fresh >= BOOST_AMOUNT * 3) {
+                boost = undefined;
+            } else {
+                break;
+            }
+        }
+    }
     if (!boost) return;
     let componentOne = BOOST_COMPONENTS[boost][0];
     let componentTwo = BOOST_COMPONENTS[boost][1];

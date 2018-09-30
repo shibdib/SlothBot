@@ -37,7 +37,8 @@ function controller(room) {
     if (room.memory.responseNeeded && !room.memory.alertEmail) {
         room.memory.alertEmail = true;
         if (room.memory.threatLevel >= 4) {
-            let playerHostile = _.filter(creeps, (c) => (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(FRIENDLIES, c.owner.username) === false && c.owner.username !== 'Invader')[0];
+            let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(FRIENDLIES, c.owner.username) === false && c.owner.username !== 'Invader')[0];
+            if (!playerHostile.length) return;
             let hostileOwners = [];
             for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
             Game.notify('----------------------');

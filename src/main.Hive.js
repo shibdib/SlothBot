@@ -93,21 +93,27 @@ function mind() {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+
         //Expansion Manager
-        let maxRooms = _.round((Game.cpu.limit - overlordCount * 2) / 10);
-        if (TEN_CPU) {
-            maxRooms = 2;
-        }
-        let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
-        let safemoded = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
-        if (cpuBucket === 10000 && Game.time % 500 === 0 && !activeRoom.memory.claimTarget && activeRoom.controller.level >= 3 && Game.gcl.level > overlordCount && !activeClaim && overlordCount < maxRooms && !needyRoom.length && !safemoded.length) {
-            log.d('Expansion Module');
-            try {
-                expansion.claimNewRoom(activeRoom);
-            } catch (e) {
-                log.e('Expansion Module experienced an error');
-                log.e(e.stack);
-                Game.notify(e.stack);
+        if (activeRoom.controller.level >= 3 && cpuBucket === 10000 && Game.time % 15 === 0) {
+            let maxRooms = _.round((Game.cpu.limit - overlordCount * 2) / 10);
+            if (TEN_CPU) {
+                maxRooms = 2;
+            }
+            let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
+            let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
+            let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
+            if (!needyRoom.length && !safemode.length && !claimAttempt.length
+                && Game.gcl.level > overlordCount && !activeClaim && overlordCount < maxRooms
+            ) {
+                log.d('Expansion Module');
+                try {
+                    expansion.claimNewRoom(activeRoom);
+                } catch (e) {
+                    log.e('Expansion Module experienced an error');
+                    log.e(e.stack);
+                    Game.notify(e.stack);
+                }
             }
         }
         processed++;
