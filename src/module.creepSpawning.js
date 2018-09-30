@@ -282,7 +282,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Upgrader
-    if (!_.includes(queue, 'upgrader')) {
+    if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let priority = PRIORITIES.upgrader;
         if (upgraders.length) priority = priority + upgraders.length;
