@@ -121,7 +121,7 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
-    let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && !s.cooldown);
+    let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
     // Unboosting
     /**if (labs[0] && this.memory.boostAttempt && !this.memory.unboosted && this.ticksToLive <= 75) {
         switch (labs[0].unboostCreep(this)) {
