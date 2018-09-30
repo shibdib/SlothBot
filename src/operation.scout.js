@@ -14,7 +14,7 @@ Creep.prototype.scoutRoom = function () {
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let rcl8Rooms = _.filter(Memory.ownedRooms, (r) => r.controller.level === 8).length;
     // Get room details
-    let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+    let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive());
     let countableStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL);
     let controller = this.room.controller;
     if (controller && controller.owner && controller.owner.username === MY_USERNAME) return this.suicide();
