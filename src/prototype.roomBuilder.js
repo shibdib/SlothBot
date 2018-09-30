@@ -38,7 +38,6 @@ Room.prototype.buildRoom = function () {
     controllerSupplier(this, structures);
     buildWalls(this, structures);
     buildMineralContainer(this, structures);
-    if (_.size(Game.constructionSites) > 75) return;
     buildNuker(this, structures);
     buildObserver(this, structures);
     buildPowerSpawn(this, structures);
@@ -101,7 +100,7 @@ function buildExtensions(room) {
                             const constructionCheck = build.lookFor(LOOK_CONSTRUCTION_SITES);
                             if (constructionCheck.length > 0 || roadCheck.length > 0) {
                             } else {
-                                buildRoad(build);
+                                buildRoad(build, room);
                             }
                         }
                     }
@@ -169,13 +168,11 @@ function controllerSupplier(room, structures) {
     if (!controllerContainer) {
         let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
         if (!controllerBuild) {
-            let containerSpots = room.lookForAtArea(LOOK_TERRAIN, room.controller.pos.y - 1, room.controller.pos.x - 1, room.controller.pos.y + 1, room.controller.pos.x + 1, true);
-            for (let key in containerSpots) {
-                let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
-                if (position && position.getRangeTo(room.controller) === 1) {
-                    if (!position.checkForImpassible()) {
-                        position.createConstructionSite(STRUCTURE_CONTAINER);
-                        break;
+            for (let xOff = -1; xOff <= 1; xOff++) {
+                for (let yOff = -1; yOff <= 1; yOff++) {
+                    if (xOff !== 0 || yOff !== 0) {
+                        let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
+                        if (!pos.checkForImpassible()) return pos.createConstructionSite(STRUCTURE_CONTAINER);
                     }
                 }
             }
@@ -372,7 +369,7 @@ function buildWalls(room, structures) {
                 stroke: 'blue'
             });
             rampPos.createConstructionSite(STRUCTURE_RAMPART);
-            buildRoad(rampPos);
+            buildRoad(rampPos, room);
         }
     }
 }
@@ -629,6 +626,9 @@ function buildRoads(room, structures) {
     if (room.controller.level < 4 || _.size(Game.constructionSites) >= 75) return;
     let mineral = room.mineral[0];
     let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
+    for (let extension of extensions) {
+        buildRoadFromTo(room, spawner, extension);
+    }
     if (room.controller) {
         buildRoadAround(room, room.controller.pos);
         let target = room.controller.pos.findClosestByRange(room.sources);
@@ -682,11 +682,17 @@ function buildRoadFromTo(room, start, end) {
                 }
             }
         },
-        maxOps: 10000, serialize: false, ignoreCreeps: true, maxRooms: 1, ignoreRoads: false, swampCost: 5, plainCost: 5
+        maxOps: 10000,
+        serialize: false,
+        ignoreCreeps: true,
+        maxRooms: 1,
+        ignoreRoads: false,
+        swampCost: 15,
+        plainCost: 15
     });
     for (let point of path) {
         let pos = new RoomPosition(point.x, point.y, room.name);
-        if (!pos.checkForImpassible()) buildRoad(pos);
+        buildRoad(pos, room);
     }
 }
 
@@ -695,14 +701,14 @@ function buildRoadAround(room, position) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
-                if (!pos.checkForImpassible()) buildRoad(pos);
+                buildRoad(pos, room);
             }
         }
     }
 }
 
-function buildRoad(position) {
-    if (position.checkForImpassible()) return;
+function buildRoad(position, room) {
+    if (position.checkForImpassible() || _.size(room.constructionSites) >= 10) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
 

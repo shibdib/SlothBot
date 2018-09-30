@@ -157,7 +157,7 @@ function extensionBuilder(creep) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
                     if (pos.checkForImpassible() || pos.checkForRoad() || pos.checkForConstructionSites()) continue;
                     count++;
-                    if (!creep.memory.linkID && count === 1) continue;
+                    if (!creep.memory.linkID && count === 2) continue;
                     pos.createConstructionSite(STRUCTURE_EXTENSION)
                 }
             }

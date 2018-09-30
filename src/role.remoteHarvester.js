@@ -133,7 +133,7 @@ function buildRoadFromTo(room, start, end) {
     for (let point of path) {
         let pos = new RoomPosition(point.x, point.y, room.name);
         if (pos.checkForImpassible()) continue;
-        buildRoad(pos);
+        buildRoad(pos, room);
     }
 }
 function buildRoadAround(room, position) {
@@ -142,13 +142,14 @@ function buildRoadAround(room, position) {
             if (xOff !== 0 || yOff !== 0) {
                 if (_.size(Game.constructionSites) >= 50) break;
                 if (!position || !position.x || !position.y || !room.name) continue;
-                buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name));
+                buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name), room);
             }
         }
     }
 }
-function buildRoad(position) {
-    if (position.checkForImpassible()) return;
+
+function buildRoad(position, room) {
+    if (position.checkForImpassible() || _.size(room.constructionSites) >= 10) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
 
