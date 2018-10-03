@@ -261,7 +261,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             // Handle claim targets
             let closestRoom = this.findClosestOwnedRoom(true);
             let safemodeCooldown = this.controller.safeModeCooldown;
-            if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2) {
+            if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2 && !barriers) {
                 let sourceDist = 0;
                 for (let source in sources) {
                     let range = sources[source].pos.getRangeTo(room.controller);
