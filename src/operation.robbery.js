@@ -28,6 +28,7 @@ Creep.prototype.robbery = function () {
     }
     // Set level based on how much stuff to haul
     if (this.room.name === this.memory.targetRoom) {
+        let tick = Game.time;
         let storageAmount, terminalAmount = 0;
         if (storage) storageAmount = _.sum(storage.store) || 0;
         if (terminal) terminalAmount = _.sum(terminal.store) || 0;
@@ -35,6 +36,8 @@ Creep.prototype.robbery = function () {
         let opLevel = lootAmount / 500 || 1;
         let cache = Memory.targetRooms || {};
         cache[this.pos.roomName] = {
+            tick: tick,
+            type: 'robbery',
             level: _.round(opLevel),
         };
         Memory.targetRooms = cache;
