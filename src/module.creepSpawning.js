@@ -725,7 +725,7 @@ module.exports.militaryCreepQueue = function () {
         // Robbery
         if (Memory.targetRooms[key].type === 'robbery') {
             let raider = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'raider');
-            if (opLevel > 10) opLevel = 10;
+            if (opLevel > 10) opLevel = 6;
             if (raider.length < opLevel && !_.includes(queue, 'raider')) {
                 queueMilitaryCreep(priority, {
                     role: 'raider',
