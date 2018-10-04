@@ -45,7 +45,7 @@ Creep.prototype.robbery = function () {
     }
     if (!this.memory.hauling) {
         if (((!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
-        if (tower) {
+        if (tower.id) {
             switch (this.withdraw(tower, RESOURCE_ENERGY)) {
                 case OK:
                     break;
