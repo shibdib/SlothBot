@@ -50,7 +50,7 @@ Creep.prototype.robbery = function () {
                 case OK:
                     break;
                 case ERR_NOT_IN_RANGE:
-                    return this.shibMove(storage);
+                    return this.shibMove(tower);
             }
         } else if (storage && _.sum(storage.store)) {
             for (let resourceType in storage.store) {
