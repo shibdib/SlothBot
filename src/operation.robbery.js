@@ -4,6 +4,7 @@ Creep.prototype.robbery = function () {
     this.say(sentence[word], true);
     let terminal = this.room.terminal;
     let storage = this.room.storage;
+    let tower = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 0), 'energy');
     if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
         range: 23,
         preferHighway: true
@@ -44,7 +45,14 @@ Creep.prototype.robbery = function () {
     }
     if (!this.memory.hauling) {
         if (((!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
-        if (storage && _.sum(storage.store)) {
+        if (tower) {
+            switch (this.withdraw(tower, RESOURCE_ENERGY)) {
+                case OK:
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    return this.shibMove(storage);
+            }
+        } else if (storage && _.sum(storage.store)) {
             for (let resourceType in storage.store) {
                 switch (this.withdraw(storage, resourceType)) {
                     case OK:
