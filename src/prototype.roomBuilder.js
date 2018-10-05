@@ -522,7 +522,7 @@ function buildLabs(room, structures) {
                 if (position.checkIfOutOfBounds() || position.checkForImpassible()) continue;
                 switch (position.createConstructionSite(STRUCTURE_LAB)) {
                     case OK:
-                        continue;
+                        break;
                     case ERR_RCL_NOT_ENOUGH:
                         let labs = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB && (!room.memory.boostLab || s.id !== room.memory.boostLab));
                         labs[0].destroy();
