@@ -542,12 +542,12 @@ function buildLabs(room, structures) {
                 if (position.checkForImpassible()) continue;
                 let surrounding = room.lookForAtArea(LOOK_TERRAIN, position.y - 3, position.x - 3, position.y + 3, position.x + 3, true);
                 for (let key in surrounding) {
-                    let labPos = new RoomPosition(labHub[key].x, labHub[key].y, room.name);
+                    let labPos = new RoomPosition(surrounding[key].x, surrounding[key].y, room.name);
                     good = false;
                     if (labPos.checkForImpassible() || labPos.x < 3 || labPos.x > 47 || labPos.y < 3 || labPos.y > 47) break;
                     good = true;
-                    if (good) return position.createConstructionSite(STRUCTURE_LAB);
                 }
+                if (good) return position.createConstructionSite(STRUCTURE_LAB);
             }
         } else if (labs[0]) {
             let labHub = room.lookForAtArea(LOOK_TERRAIN, labs[0].pos.y - 2, labs[0].pos.x - 2, labs[0].pos.y + 2, labs[0].pos.x + 2, true);
