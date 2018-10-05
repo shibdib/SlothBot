@@ -132,7 +132,7 @@ function terminalWorker(creep) {
                 case OK:
                     delete creep.memory.terminalDelivery;
                     delete creep.memory.terminalWorker;
-                    return false;
+                    return true;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(terminal);
                     creep.memory.terminalWorker = true;
@@ -191,7 +191,7 @@ function terminalWorker(creep) {
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
-                    return false;
+                    return true;
                 case ERR_NOT_IN_RANGE:
                     return creep.shibMove(storage);
                 case ERR_FULL:
