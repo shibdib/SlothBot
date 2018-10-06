@@ -125,7 +125,7 @@ module.exports.overlordMind = function (room, roomLimit) {
     }
 
     // Power Processing
-    if (!TEN_CPU && cpuBucket >= 8000) {
+    if (!TEN_CPU && room.level >= 8 && cpuBucket >= 8000) {
         log.d('Power Module');
         cpu = Game.cpu.getUsed();
         try {
