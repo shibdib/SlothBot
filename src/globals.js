@@ -6,6 +6,10 @@ let globals = function () {
 
     global.HOSTILES = [];
 
+    global.NO_AGGRESSION = [];
+
+    global.MANUAL_FRIENDS = [];
+
     global.ATTACK_LOCALS = true;
 
     global.FRIENDLIES = RawMemory.segments[2];
