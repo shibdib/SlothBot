@@ -285,7 +285,7 @@ module.exports.workerCreepQueue = function (room) {
     if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let priority = PRIORITIES.upgrader;
-        if (upgraders.length) priority = priority + upgraders.length;
+        if (upgraders.length && level >= 4) priority = priority + upgraders.length;
         let number = 1;
         if (level < 4) number = _.round((20 - level) / 2);
         if (upgraders.length < number || (upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
