@@ -287,7 +287,7 @@ module.exports.workerCreepQueue = function (room) {
         let priority = PRIORITIES.upgrader;
         if (upgraders.length) priority = priority + upgraders.length;
         let number = 1;
-        if (level < 4) number = _.round((12 - level) / 2);
+        if (level < 4) number = _.round((20 - level) / 2);
         if (upgraders.length < number || (upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
             queueCreep(room, priority, {role: 'upgrader'})
         }
@@ -422,7 +422,7 @@ module.exports.workerCreepQueue = function (room) {
     }
     // Power Level
     let upgradeAssist = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.controller.level + 1 < level))[0];
-    if (upgradeAssist && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
+    if (upgradeAssist && room.memory.energySurplus && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
         let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
         if (remoteUpgraders.length < 2) {
             queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
