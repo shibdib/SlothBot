@@ -300,7 +300,7 @@ module.exports.workerCreepQueue = function (room) {
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
         } else if (level <= 3 && workers.length < _.size(room.constructionSites) * 1.5 && !TEN_CPU) {
-            queueCreep(room, PRIORITIES.worker, {role: 'worker'})
+            queueCreep(room, (PRIORITIES.upgrader - 1) + workers.length, {role: 'worker'})
         }
     }
     //Repairer

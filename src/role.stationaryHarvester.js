@@ -53,18 +53,6 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'harvesterRole');
 
 function depositEnergy(creep) {
-    if (creep.room.controller.level === 1 && creep.room.creeps.length < 3) {
-        let storageItem = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
-        switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
-            case OK:
-                break;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(storageItem);
-                break;
-            case ERR_FULL:
-                break;
-        }
-    }
     if (creep.room.controller.level < 3) return;
     let link;
     if (!creep.memory.containerID) creep.memory.containerID = creep.harvestDepositContainer();
