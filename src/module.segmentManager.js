@@ -5,11 +5,10 @@ function segmentManager() {
     let doNotAggressArray;
     if (!!~['shard0','shard1','shard2'].indexOf(Game.shard.name)) {
         doNotAggressArray = global.LOANlist;
-    } else if (Game.shard.name === 'swc') {
-        doNotAggressArray = ['Shibdib', 'Nyoom', 'Alcardian']
     } else {
         doNotAggressArray = [MY_USERNAME];
     }
+    doNotAggressArray.concat(global.MANUAL_FRIENDS);
     let mainRaw = {
         "api": {
             "version": "v1.0.0",
