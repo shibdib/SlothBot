@@ -135,25 +135,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = tough + rangedAttack + heal + attack;
             break;
         case 'remoteMedic':
-            if (level < 5) {
-                heal = 1;
-            } else {
-                heal = 3;
-            }
+            heal = 1;
             move = heal;
             break;
         case 'remoteGuard':
-            if (level < 5) {
-                tough = _.round(0.5 * level);
-                rangedAttack = _.round((0.25 * level));
-                attack = _.round((0.5 * level) + 1);
-                heal = 0;
-            } else {
-                tough = _.round(0.5 * level);
-                rangedAttack = _.round((0.5 * level) + 1);
-                attack = _.round((0.5 * level) + 1);
-                heal = 0;
-            }
+            tough = _.round(0.5 * level);
+            rangedAttack = _.round((0.25 * level));
+            attack = _.round((0.5 * level) + 1);
+            heal = 0;
             move = tough + rangedAttack + heal + attack;
             break;
         case 'attacker':
@@ -255,7 +244,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = 1;
             break;
         case 'reserver':
-            if (level < 7) {
+            if (level < 7 || !room.memory.energySurplus) {
                 claim = 3;
             } else {
                 claim = level;

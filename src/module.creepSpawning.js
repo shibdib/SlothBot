@@ -94,7 +94,7 @@ module.exports.processBuildQueue = function () {
             }
         } else {
             let spawningCreep = Game.creeps[spawn.spawning.name];
-            spawn.say(ICONS.build + ' ' + spawningCreep.name + ' - Ticks Remaining: ' + spawn.spawning.remainingTime - 1);
+            spawn.say(ICONS.build + ' ' + spawningCreep.name + ' - Ticks Remaining: ' + spawn.spawning.remainingTime);
         }
     }
 };
@@ -508,16 +508,6 @@ module.exports.remoteCreepQueue = function (room) {
             if (remoteGuard.length < 1) {
                 queueCreep(room, PRIORITIES.urgent, {
                     role: 'remoteGuard',
-                    awaitingOrders: true,
-                    military: true
-                })
-            }
-        }
-        if (!_.includes(queue, 'longbow')) {
-            let longbow = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'longbow');
-            if (longbow.length < 1) {
-                queueCreep(room, PRIORITIES.secondary, {
-                    role: 'longbow',
                     awaitingOrders: true,
                     military: true
                 })
