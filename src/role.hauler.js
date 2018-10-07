@@ -77,6 +77,7 @@ function role(creep) {
                     break;
                 case ERR_FULL:
                     delete creep.memory.storageDestination;
+                    delete creep.memory._shibMove;
                     if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
                     creep.findEssentials();
                     break;
