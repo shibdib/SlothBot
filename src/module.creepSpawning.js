@@ -212,7 +212,7 @@ function queueMilitaryCreep(importance, options = {}) {
 function roomStartup(room, roomCreeps) {
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length < 2) {
-        queueCreep(room, 1, {role: 'stationaryHarvester'})
+        queueCreep(room, 1 + (harvesters.length * 2), {role: 'stationaryHarvester'})
     }
     let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
     if (pawn.length < 2) {
