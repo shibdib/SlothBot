@@ -34,12 +34,12 @@ function role(creep) {
                 }
             } else if (barrier) {
                 creep.memory.currentTarget = barrier.id;
-                if (barrier.hits < 500000) {
-                    creep.memory.targetHits = 550000;
-                } else if (barrier.hits < 500000 * creep.room.controller.level) {
-                    creep.memory.targetHits = 510000 * creep.room.controller.level;
+                if (barrier.hits < 250000) {
+                    creep.memory.targetHits = 270000;
+                } else if (barrier.hits < 250000 * creep.room.controller.level) {
+                    creep.memory.targetHits = 260000 * creep.room.controller.level;
                 } else if (creep.room.memory.energySurplus) {
-                    creep.memory.targetHits = barrier.hits + 500000;
+                    creep.memory.targetHits = barrier.hits + 250000;
                 } else {
                     creep.memory.currentTarget = undefined;
                     if (creep.pos.checkForRoad()) {
