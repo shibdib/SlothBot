@@ -42,12 +42,7 @@ module.exports.processBuildQueue = function () {
                     if (body && body.length) break;
                 }
                 if (!body || !body.length) continue;
-                spawn.room.visual.text(
-                    'Queued - ' + role,
-                    spawn.pos.x + 1,
-                    spawn.pos.y,
-                    {align: 'left', opacity: 0.8}
-                );
+                spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1));
                 if (topPriority && typeof topPriority === 'object') {
                     _.defaults(topPriority, {
                         role: undefined,
@@ -99,12 +94,7 @@ module.exports.processBuildQueue = function () {
             }
         } else {
             let spawningCreep = Game.creeps[spawn.spawning.name];
-            spawn.room.visual.text(
-                ICONS.build + ' ' + spawningCreep.name + ' - Ticks Remaining: ' + spawn.spawning.remainingTime,
-                spawn.pos.x + 1,
-                spawn.pos.y,
-                {align: 'left', opacity: 0.8}
-            );
+            spawn.say(ICONS.build + ' ' + spawningCreep.name + ' - Ticks Remaining: ' + spawn.spawning.remainingTime);
         }
     }
 };

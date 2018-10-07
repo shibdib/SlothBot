@@ -3,6 +3,7 @@ require("prototype.workerCreep");
 require("prototype.creepCombat");
 require("prototype.creep");
 require("prototype.roomPosition");
+require("prototype.roomObject");
 require("prototype.room");
 require("prototype.roomBuilder");
 require('module.pathFinder');

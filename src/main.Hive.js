@@ -132,18 +132,16 @@ function mind() {
         shib.shibBench('militarySpawn', cpu);
     }
     //Process creep build queues
-    if (Game.time % 2 === 0) {
-        cpu = Game.cpu.getUsed();
-        log.d('Process Build Queues');
-        try {
-            spawning.processBuildQueue();
-        } catch (e) {
-            log.e('Creep build queue experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-        shib.shibBench('processBuildQueue', cpu);
+    cpu = Game.cpu.getUsed();
+    log.d('Process Build Queues');
+    try {
+        spawning.processBuildQueue();
+    } catch (e) {
+        log.e('Creep build queue experienced an error');
+        log.e(e.stack);
+        Game.notify(e.stack);
     }
+    shib.shibBench('processBuildQueue', cpu);
     //Room HUD (If CPU Allows)
     if (!TEN_CPU && Game.cpu.getUsed() < Game.cpu.limit) {
         cpu = Game.cpu.getUsed();

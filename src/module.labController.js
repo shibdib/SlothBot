@@ -133,12 +133,7 @@ function manageActiveLabs(room) {
                 }
                 if (outputLab.memory.creating) {
                     for (let lab of hub) {
-                        lab.room.visual.text(
-                            lab.memory.creating,
-                            lab.pos.x,
-                            lab.pos.y,
-                            {opacity: 0.8, font: 0.3}
-                        );
+                        lab.say(lab.memory.creating)
                     }
                 }
                 //If on cooldown continue
