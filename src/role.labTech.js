@@ -184,6 +184,12 @@ function supplyLab(creep) {
                         creep.memory.componentNeeded = undefined;
                         creep.memory.supplier = undefined;
                         return;
+                    case ERR_INVALID_ARGS:
+                        creep.memory.itemStorage = undefined;
+                        creep.memory.labHelper = undefined;
+                        creep.memory.componentNeeded = undefined;
+                        creep.memory.supplier = undefined;
+                        return;
                 }
             }
         }
@@ -203,10 +209,9 @@ function supplyLab(creep) {
 }
 
 function droppedResources(creep) {
-    let tombstone;
-    if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name)) tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY] || (!r.store[RESOURCE_ENERGY] && _.sum(r.store) > 0)})[0];
+    let tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY] || (!r.store[RESOURCE_ENERGY] && _.sum(r.store) > 0)})[0];
     let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
-    if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name) && tombstone) {
+    if (tombstone) {
         let storage = creep.room.storage;
         if (_.sum(creep.carry) > 0) {
             for (let resourceType in creep.carry) {
