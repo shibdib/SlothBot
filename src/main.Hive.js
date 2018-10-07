@@ -143,7 +143,7 @@ function mind() {
     }
     shib.shibBench('processBuildQueue', cpu);
     //Room HUD (If CPU Allows)
-    if (!TEN_CPU && Game.cpu.getUsed() < Game.cpu.limit) {
+    if (!TEN_CPU && Game.cpu.bucket > 9000) {
         cpu = Game.cpu.getUsed();
         log.d('Room HUD');
         try {
