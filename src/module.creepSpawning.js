@@ -277,7 +277,7 @@ module.exports.workerCreepQueue = function (room) {
         let priority = PRIORITIES.upgrader;
         if (upgraders.length && level >= 4) priority = priority + upgraders.length;
         let number = 1;
-        if (level < 4) number = _.round((20 - level) / 2);
+        if (room.controller.level < 4) number = _.round((20 - level) / 2);
         if (upgraders.length < number || (upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
             queueCreep(room, priority, {role: 'upgrader'})
         }
