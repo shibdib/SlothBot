@@ -67,13 +67,7 @@ function role(creep) {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else {
-            if (!creep.findEnergy()) {
-                if (creep.pos.checkForRoad()) {
-                    creep.moveRandom();
-                } else {
-                    return creep.idleFor(15);
-                }
-            }
+            creep.findEnergy();
         }
     }
 }
