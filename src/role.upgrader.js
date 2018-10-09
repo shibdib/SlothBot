@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     if (creep.tryToBoost(['upgrade'])) return;
     //ANNOUNCE
-    let signs = ["~~~OVERLORD BOT~~~", "~~OVERLORD BOT HIVE~~"];
+    let signs = OWNED_ROOM_SIGNS;
     if (_.filter(Game.creeps, (c) => (c.memory.announcer === true) && c.memory.overlord === creep.memory.overlord).length === 0) creep.memory.announcer = true;
     if (creep.memory.announcer) {
         if (!creep.memory.signed) {

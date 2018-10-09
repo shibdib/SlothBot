@@ -20,7 +20,7 @@ function role(creep) {
         if (creep.pos.roomName === creep.memory.destination) {
             if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) &&
                 !creep.room.controller.owner && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
-                let signs = ["#Overlord-Bot was here.", "#Overlord-Bot has collected intel from this room. We Know.", "Spawn More #Overlord-Bot's", "All your rooms belong to #Overlord-Bot"];
+                let signs = EXPLORED_ROOM_SIGNS;
                 switch (creep.signController(creep.room.controller, _.sample(signs))) {
                     case OK:
                         creep.memory.destinationReached = true;

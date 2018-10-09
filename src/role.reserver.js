@@ -11,7 +11,7 @@ function role(creep) {
         offRoad: true
     });
     creep.borderCheck();
-    let signs = ["Reserved Territory of an #Overlord-Bot", "#Overlord-Bot Frontier - Visit at your own risk.", "#Overlord-Bot Exclusion Zone", "#Overlord-Bot Reserved Room"];
+    let signs = RESERVE_ROOM_SIGNS;
     let hostiles = creep.findClosestEnemy();
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
