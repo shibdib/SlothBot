@@ -391,7 +391,7 @@ Room.prototype.invaderCheck = function () {
             this.memory.numberOfHostiles = invader.length || 1;
         }
         // Determine threat
-        if (invader.length === 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 1;
+        if ((invader.length === 1 && invader[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) this.memory.threatLevel = 1;
         if (invader.length > 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 2;
         if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
                 this.memory.threatLevel = 3;

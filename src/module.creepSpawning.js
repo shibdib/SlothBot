@@ -43,8 +43,9 @@ module.exports.processBuildQueue = function () {
                 }
                 if (!body || !body.length) continue;
                 let cost = global.UNIT_COST(body);
-                let available = spawn.room.energyAvailable;
-                if (cost > available) return spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + available + '/' + cost + ')');
+                // Continue if you cant afford it
+                if (cost > spawn.room.energyCapacityAvailable) continue;
+                if (cost > spawn.room.energyAvailable) return spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
                 if (topPriority && typeof topPriority === 'object') {
                     _.defaults(topPriority, {
                         role: undefined,
