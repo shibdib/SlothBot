@@ -337,7 +337,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         }
     }
     //Dropped
-    let dropped = this.pos.findClosestByPath(this.room.droppedEnergy, {filter: (r) => r.amount >= 50});
+    let dropped = this.pos.findClosestByPath(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
     if (dropped) {
         let weight = 0.5;
         let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;

@@ -32,7 +32,7 @@ function role(creep) {
     if (creep.memory.hauling !== true) {
         if (creep.memory.extractor) {
             if (Game.getObjectById(creep.memory.extractor).cooldown && Game.getObjectById(creep.memory.extractor).pos.getRangeTo(creep) < 2) {
-                creep.idleFor(Game.getObjectById(creep.memory.extractor).cooldown)
+                creep.idleFor(Game.getObjectById(creep.memory.extractor).cooldown - 1)
             } else {
                 let mineral = Game.getObjectById(creep.memory.assignedMineral);
                 switch (creep.harvest(mineral)) {
