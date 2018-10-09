@@ -116,4 +116,12 @@ RoomObject.prototype.say = function (what) {
         backgroundColor: "#eeeeee",
         backgroundPadding: 0.2
     });
-}
+};
+
+RoomObject.prototype.lineTo = function (to, color = "#eeeeee") {
+    this.room.visual.line(this.pos.x, this.pos.y, to.pos.x, to.pos.y, {
+        color: color,
+        opacity: 0.9,
+        width: 0.1
+    });
+};

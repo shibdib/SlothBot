@@ -18,7 +18,7 @@ function labManager() {
         let terminal = room.terminal;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && terminal && room.memory.reactionRoom && Game.time % 25 === 0) manageBoostProduction(room);
-        if (lab && terminal && room.memory.reactionRoom && Game.time % 3 === 0) manageActiveLabs(room);
+        if (lab && terminal && room.memory.reactionRoom) manageActiveLabs(room);
         if (lab && terminal && Game.time % 50 === 0) cleanBoostLabs(room);
     }
 }
@@ -133,7 +133,8 @@ function manageActiveLabs(room) {
                 }
                 if (outputLab.memory.creating) {
                     for (let lab of hub) {
-                        lab.say(lab.memory.creating)
+                        lab.say(lab.memory.creating);
+                        if (lab.memory.itemNeeded) lab.lineTo(outputLab);
                     }
                 }
                 //If on cooldown continue
