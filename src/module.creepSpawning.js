@@ -419,7 +419,7 @@ module.exports.workerCreepQueue = function (room) {
     }
     // Remote response
     let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && room.shibRoute(r.name).length - 1 < 15))[0];
-    if (responseNeeded && !_.includes(queue, 'remoteResponse')) {
+    if (responseNeeded && !_.includes(queue, 'remoteResponse') && !room.memory.responseNeeded) {
         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseNeeded.name && creep.memory.role === 'remoteResponse');
         if (responder.length < 3) {
             queueCreep(room, PRIORITIES.remoteResponse, {
