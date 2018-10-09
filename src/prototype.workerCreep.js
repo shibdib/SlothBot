@@ -687,17 +687,16 @@ Creep.prototype.findEssentials = function () {
             harvest: false
         });
     }
-    /**
-     //Terminal
-     let terminal = this.room.terminal;
-     if (terminal && terminal.store[RESOURCE_ENERGY] < 5000) {
-        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.5, 0) + 1;
+    //Terminal
+    let terminal = this.room.terminal;
+    if (terminal && terminal.store[RESOURCE_ENERGY] < 5000) {
+        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.1, 0) + 1;
         storage.push({
             id: terminal.id,
             distWeighted: terminalDistWeighted,
             harvest: false
         });
-    }**/
+    }
         //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
     if (controllerContainer && controllerContainer.pos.rangeToTarget(this) > 1) {

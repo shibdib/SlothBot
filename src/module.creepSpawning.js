@@ -38,13 +38,12 @@ module.exports.processBuildQueue = function () {
                         body = _.get(SPAWN[0], role);
                     } else {
                         body = generator.bodyGenerator(level, role, spawn.room);
+                        let cost = global.UNIT_COST(body);
                     }
-                    if (body && body.length) break;
+                    if (body && body.length && global.UNIT_COST(body) <= spawn.room.energyCapacityAvailable) break;
                 }
                 if (!body || !body.length) continue;
                 let cost = global.UNIT_COST(body);
-                // Continue if you cant afford it
-                if (cost > spawn.room.energyCapacityAvailable) continue;
                 if (cost > spawn.room.energyAvailable) {
                     spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
                     continue;
@@ -375,8 +374,8 @@ module.exports.workerCreepQueue = function (room) {
     }
     //Explorer
     if (!_.includes(queue, 'explorer') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
-        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
-        if (explorers.length < 8 - level) {
+        let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
+        if (explorers.length < 1) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
