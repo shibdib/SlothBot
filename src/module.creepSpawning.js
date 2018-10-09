@@ -208,11 +208,11 @@ function queueMilitaryCreep(importance, options = {}) {
 function roomStartup(room, roomCreeps) {
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length < 2) {
-        queueCreep(room, 1 + (harvesters.length * 2), {role: 'stationaryHarvester'})
+        queueCreep(room, 2 + (harvesters.length * 2), {role: 'stationaryHarvester'})
     }
     let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
     if (pawn.length < 2) {
-        queueCreep(room, 2, {role: 'hauler'})
+        queueCreep(room, 3, {role: 'hauler'})
     }
     let worker = _.filter(roomCreeps, (creep) => (creep.memory.role === 'worker'));
     if (worker.length < 3) {
@@ -220,7 +220,7 @@ function roomStartup(room, roomCreeps) {
     }
     let upgrader = _.filter(roomCreeps, (creep) => (creep.memory.role === 'upgrader'));
     if (upgrader.length < 5) {
-        queueCreep(room, 3, {role: 'upgrader'})
+        queueCreep(room, 1, {role: 'upgrader'})
     }
     let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
     if (explorers.length < 5) {
