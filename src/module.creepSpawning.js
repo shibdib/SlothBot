@@ -417,6 +417,18 @@ module.exports.workerCreepQueue = function (room) {
             }
         }
     }
+    // Remote response
+    let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && room.shibRoute(r.name).length - 1 < 15))[0];
+    if (responseNeeded && !_.includes(queue, 'remoteResponse')) {
+        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseNeeded.name && creep.memory.role === 'remoteResponse');
+        if (responder.length < 3) {
+            queueCreep(room, PRIORITIES.remoteResponse, {
+                role: 'remoteResponse',
+                responseTarget: responseNeeded.name,
+                military: true
+            })
+        }
+    }
     // Power Level
     let upgradeAssist = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.controller.level + 1 < level))[0];
     if (upgradeAssist && room.memory.energySurplus && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
@@ -452,17 +464,6 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
         room.memory.remoteRange = range;
-    }
-    let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && room.shibRoute(r.name).length - 1 < 15))[0];
-    if (responseNeeded && !_.includes(queue, 'remoteResponse')) {
-        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseNeeded.name && creep.memory.role === 'remoteResponse');
-        if (responder.length < 3) {
-            queueCreep(room, PRIORITIES.remoteResponse, {
-                role: 'remoteResponse',
-                responseTarget: responseNeeded.name,
-                military: true
-            })
-        }
     }
     //Remotes
     if (room.memory.remoteRooms) {
