@@ -45,7 +45,10 @@ module.exports.processBuildQueue = function () {
                 let cost = global.UNIT_COST(body);
                 // Continue if you cant afford it
                 if (cost > spawn.room.energyCapacityAvailable) continue;
-                if (cost > spawn.room.energyAvailable) return spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
+                if (cost > spawn.room.energyAvailable) {
+                    spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
+                    continue;
+                }
                 if (topPriority && typeof topPriority === 'object') {
                     _.defaults(topPriority, {
                         role: undefined,
@@ -64,7 +67,7 @@ module.exports.processBuildQueue = function () {
                         initialBuilder: undefined,
                         misc: undefined
                     });
-                    if (!topPriority.role) return;
+                    if (!topPriority.role) continue;
                     switch (spawn.spawnCreep(body, role + '_' + spawn.room.name + '_T' + spawn.room.controller.level + '_' + _.random(1, 500), {
                         memory: {
                             born: Game.time,
@@ -91,7 +94,7 @@ module.exports.processBuildQueue = function () {
                                 log.i(spawn.room.name + ' Spawning a ' + role + ' [Op: ' + topPriority.operation + ' in ' + topPriority.targetRoom + ']');
                                 delete Memory.militaryBuildQueue;
                             }
-                            return delete spawn.room.memory.creepBuildQueue[role];
+                            delete spawn.room.memory.creepBuildQueue[role];
                     }
                 }
             }
