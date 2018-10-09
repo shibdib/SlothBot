@@ -523,9 +523,10 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         if (!_.includes(queue, 'remoteHauler') && !room.memory.responseNeeded) {
+            let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
-            if (remoteHauler.length <= _.round(totalRemoteHarvester.length * 1.2) && totalRemoteHarvester.length > 0) {
-                queueCreep(room, PRIORITIES.remoteHauler + (_.round(remoteHauler.length * 0.25)), {role: 'remoteHauler'})
+            if (remoteHauler.length < remoteHarvester.length) {
+                queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'})
             }
         }
     }

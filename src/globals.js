@@ -58,7 +58,7 @@ let globals = function () {
         remoteUpgrader: 5,
         pioneer: 2,
         remoteResponse: 2,
-        reserver: 3,
+        reserver: 5,
         // Power
         Power: 5,
         // SK

@@ -460,9 +460,9 @@ function balanceBoosts(terminal) {
             let tradeAmount = TRADE_AMOUNT * 0.5;
             for (let id in otherTerminals) {
                 let stored = otherTerminals[id].store[END_GAME_BOOSTS[key]] || 0;
-                if (stored < TRADE_AMOUNT && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
+                if (stored < REACTION_AMOUNT && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(END_GAME_BOOSTS[key], tradeAmount, otherTerminals[id].room.name) === OK) {
-                        return log.a(' MARKET: Balancing ' + tradeAmount + ' ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                        return log.a(' MARKET: Balancing ' + tradeAmount + ' ' + END_GAME_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[END_GAME_BOOSTS[key]] + '/' + (stored + tradeAmount));
                     }
                 }
             }
@@ -473,9 +473,9 @@ function balanceBoosts(terminal) {
             let tradeAmount = TRADE_AMOUNT * 0.5;
             for (let id in otherTerminals) {
                 let stored = otherTerminals[id].store[TIER_2_BOOSTS[key]] || 0;
-                if (stored < TRADE_AMOUNT && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
+                if (stored < REACTION_AMOUNT && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(TIER_2_BOOSTS[key], tradeAmount, otherTerminals[id].room.name) === OK) {
-                        return log.a(' MARKET: Balancing ' + tradeAmount + ' ' + TIER_2_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                        return log.a(' MARKET: Balancing ' + tradeAmount + ' ' + TIER_2_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[TIER_2_BOOSTS[key]] + '/' + (stored + tradeAmount));
                     }
                 }
             }
@@ -486,9 +486,9 @@ function balanceBoosts(terminal) {
             let tradeAmount = TRADE_AMOUNT * 0.5;
             for (let id in otherTerminals) {
                 let stored = otherTerminals[id].store[TIER_1_BOOSTS[key]] || 0;
-                if (stored < TRADE_AMOUNT && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
+                if (stored < REACTION_AMOUNT && _.sum(otherTerminals[id].store) <= otherTerminals[id].storeCapacity * 0.9) {
                     if (terminal.send(TIER_1_BOOSTS[key], tradeAmount, otherTerminals[id].room.name) === OK) {
-                        return log.a(' MARKET: Balancing ' + tradeAmount + ' ' + TIER_1_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name);
+                        return log.a(' MARKET: Balancing ' + tradeAmount + ' ' + TIER_1_BOOSTS[key] + ' To ' + otherTerminals[id].room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[TIER_1_BOOSTS[key]] + '/' + (stored + tradeAmount));
                     }
                 }
             }

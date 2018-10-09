@@ -26,13 +26,8 @@ function role(creep) {
             delete creep.room.memory.requestingPioneer;
         }
     }
-    // Call for hauler
-    let dropped = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
-    if (dropped && dropped.amount > 500) markReadyForHauler(creep);
-    if (creep.memory.containerID) {
-        let container = Game.getObjectById(creep.memory.containerID);
-        if (container && _.sum(container.store) > 500) markReadyForHauler(creep);
-    }
+    //Check hauler status
+    if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
@@ -73,7 +68,6 @@ function depositEnergy(creep) {
         if (!creep.memory.buildAttempt) remoteRoads(creep);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (_.sum(container.store) > 500) markReadyForHauler(creep);
             if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
             if (Game.time % 10 === 0 && container.hits < container.hitsMax * 0.75) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
