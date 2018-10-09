@@ -125,7 +125,7 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
 Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
         if (!this._droppedEnergy) {
-            this._droppedEnergy = this.find(FIND_DROPPED_ENERGY);
+            this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY});
         }
         return this._droppedEnergy;
     },
