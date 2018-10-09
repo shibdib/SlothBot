@@ -113,10 +113,10 @@ Object.defineProperty(Room.prototype, 'structures', {
 
 Object.defineProperty(Room.prototype, 'droppedResources', {
     get: function () {
-        if (!this.droppedResources) {
-            this.droppedResources = this.find(FIND_DROPPED_RESOURCES);
+        if (!this._droppedResources) {
+            this._droppedResources = this.find(FIND_DROPPED_RESOURCES);
         }
-        return this.droppedResources;
+        return this._droppedResources;
     },
     enumerable: false,
     configurable: true
@@ -124,10 +124,10 @@ Object.defineProperty(Room.prototype, 'droppedResources', {
 
 Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
-        if (!this.droppedEnergy) {
-            this.droppedEnergy = this.find(FIND_DROPPED_ENERGY);
+        if (!this._droppedEnergy) {
+            this._droppedEnergy = this.find(FIND_DROPPED_ENERGY);
         }
-        return this.droppedEnergy;
+        return this._droppedEnergy;
     },
     enumerable: false,
     configurable: true
