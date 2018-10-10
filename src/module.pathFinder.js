@@ -68,7 +68,7 @@ function shibMove(creep, heading, options = {}) {
         options.freshMatrix = true;
         options.useCache = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-        let bumpCreep = _.filter(creep.room.creeps, (c) => c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path))[0];
+        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path))[0];
         if (bumpCreep) {
             bumpCreep.moveRandom();
             bumpCreep.say('Traffic', true)
