@@ -63,6 +63,7 @@ function shibMove(creep, heading, options = {}) {
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
+        if (pathInfo.newPos.lookFor(FIND_MY_CREEPS)) return pathInfo.newPos.lookFor(FIND_MY_CREEPS)[0].moveRandom();
         pathInfo.pathPosTime = 0;
         options.ignoreCreeps = false;
         options.freshMatrix = true;
