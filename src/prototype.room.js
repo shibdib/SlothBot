@@ -373,7 +373,7 @@ Room.prototype.invaderCheck = function () {
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     let sk;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
-    if ((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) {
+    if ((this.controller && this.controller.owner && !this.controller.my) || sk || (this.controller && this.controller.reservation && !this.controller.my)) {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;

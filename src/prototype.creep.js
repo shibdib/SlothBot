@@ -433,6 +433,7 @@ Creep.prototype.reportDamage = function () {
     } else {
         this.memory.underAttack = undefined;
     }
+    this.memory._lastHits = this.hits;
 };
 
 
