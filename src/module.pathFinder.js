@@ -63,16 +63,16 @@ function shibMove(creep, heading, options = {}) {
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
-        let bumpCreep = _.filter(creep.room.creeps, (c) => c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path))[0];
-        if (bumpCreep) {
-            bumpCreep.moveRandom();
-            return bumpCreep.say('Beep Beep')
-        }
         pathInfo.pathPosTime = 0;
         options.ignoreCreeps = false;
         options.freshMatrix = true;
         options.useCache = false;
         creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+        let bumpCreep = _.filter(creep.room.creeps, (c) => c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path))[0];
+        if (bumpCreep) {
+            bumpCreep.moveRandom();
+            bumpCreep.say('Traffic', true)
+        }
         if (Math.random() > .8) return creep.moveRandom();
     }
     //Execute path if target is valid and path is set
