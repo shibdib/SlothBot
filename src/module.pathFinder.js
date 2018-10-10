@@ -63,9 +63,8 @@ function shibMove(creep, heading, options = {}) {
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
         delete pathInfo.path;
-        console.log(new RoomPosition(pathInfo.newPos.x, pathInfo.newPos.y, creep.room.name).lookFor(FIND_MY_CREEPS))
-        if (new RoomPosition(pathInfo.newPos.x, pathInfo.newPos.y, creep.room.name).lookFor(FIND_MY_CREEPS)[0]) {
-            let bumpCreep = new RoomPosition(pathInfo.newPos.x, pathInfo.newPos.y, creep.room.name).lookFor(FIND_MY_CREEPS)[0];
+        let bumpCreep = _.filter(creep.room.creeps, (c) => c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y);
+        if (bumpCreep) {
             console.log(bumpCreep)
             bumpCreep.moveRandom();
             return bumpCreep.say('BUMP')
