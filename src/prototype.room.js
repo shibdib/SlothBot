@@ -373,7 +373,8 @@ Room.prototype.invaderCheck = function () {
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     let sk;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
-    if ((this.controller && this.controller.owner && !this.controller.my) || sk || (this.controller && this.controller.reservation && !this.controller.my)) {
+    let closestRoomRange = this.findClosestOwnedRoom(true);
+    if (((this.controller && this.controller.owner && !this.controller.my) || sk || (this.controller && this.controller.reservation && !this.controller.my)) && closestRoomRange <= 5) {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;
