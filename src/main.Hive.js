@@ -96,7 +96,7 @@ function mind() {
 
         //Expansion Manager
         if (activeRoom.controller.level >= 3 && cpuBucket === 10000 && Game.time % 15 === 0) {
-            let maxRooms = _.round((Game.cpu.limit - overlordCount * 2) / 10);
+            let maxRooms = _.round(Game.cpu.limit / 13);
             if (TEN_CPU) {
                 maxRooms = 2;
             }
