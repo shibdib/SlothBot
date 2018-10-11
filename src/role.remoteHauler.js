@@ -65,7 +65,7 @@ function role(creep) {
                     creep.memory.storageDestination = controllerContainer.id;
                 } else if (storage) {
                     creep.memory.storageDestination = storage.id;
-                } else if (controllerContainer) {
+                } else if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.75) {
                     creep.memory.storageDestination = controllerContainer.id;
                 } else {
                     creep.findEssentials()
