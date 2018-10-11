@@ -27,6 +27,7 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
+                if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
                 break;
         }
         if (creep.carry.energy === creep.carryCapacity) {
@@ -64,7 +65,6 @@ function depositEnergy(creep) {
             creep.memory.onContainer = true;
         }
     }
-    if ((!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) && creep.memory.containerID) extensionBuilder(creep);
     if (!creep.memory.linkID) {
         creep.memory.linkID = harvestDepositLink(creep);
     } else {
@@ -137,7 +137,7 @@ function extensionBuilder(creep) {
     let container = Game.getObjectById(creep.memory.containerID);
     if (container && creep.pos.getRangeTo(container) > 0) {
         return creep.shibMove(container, {range: 0});
-    } else {
+    } else if (Game.getObjectById(creep.containerBuilding())) {
         let count = 0;
         for (let xOff = -1; xOff <= 1; xOff++) {
             for (let yOff = -1; yOff <= 1; yOff++) {
@@ -152,5 +152,7 @@ function extensionBuilder(creep) {
         }
         creep.memory.extensionBuilt = true;
         creep.memory.storedLevel = creep.room.controller.level;
+    } else {
+        creep.harvesterContainerBuild();
     }
 }
