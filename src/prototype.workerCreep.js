@@ -598,7 +598,7 @@ Creep.prototype.findEssentials = function () {
         for (let i = 0; i < spawn.length; i++) {
             const object = spawn[i];
             if (object) {
-                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
+                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 1) {
                     continue;
                 }
                 const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
