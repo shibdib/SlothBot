@@ -301,7 +301,7 @@ module.exports.workerCreepQueue = function (room) {
     }
     //Repairer
     if (level >= 3 && !_.includes(queue, 'repairer') && !room.memory.responseNeeded) {
-        let amount = 1;
+        let amount = 0;
         let repairers = _.filter(roomCreeps, (creep) => creep.memory.role === 'repairer');
         if (repairers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'repairer'})
@@ -334,8 +334,6 @@ module.exports.workerCreepQueue = function (room) {
     if (level >= 4 && !_.includes(queue, 'waller') && tower.length) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
-        if (room.memory.energySurplus) amount = 2;
-        if (room.memory.extremeEnergySurplus) amount = 3;
         if (TEN_CPU) amount = 1;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
