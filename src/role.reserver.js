@@ -9,7 +9,7 @@ function role(creep) {
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     creep.borderCheck();
     if (creep.pos.roomName !== creep.memory.reservationTarget) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget));
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
     } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation.username === USERNAME)) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:
