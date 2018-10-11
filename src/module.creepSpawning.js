@@ -280,10 +280,10 @@ module.exports.workerCreepQueue = function (room) {
     if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let priority = PRIORITIES.upgrader;
-        if (upgraders.length && level >= 4) priority = priority + upgraders.length;
+        if (upgraders.length && level >= 2) priority = priority + upgraders.length;
         let number = 1;
         let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-        if (room.controller.level < 4 && !importantBuilds && !room.memory.controllerContainer) number = _.round((12 - level) / 2);
+        if (room.controller.level < 4 && !importantBuilds) number = _.round((8 - level) / 2);
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
             queueCreep(room, priority, {role: 'upgrader'})
         }
