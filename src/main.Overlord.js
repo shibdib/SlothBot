@@ -32,7 +32,7 @@ module.exports.overlordMind = function (room, roomLimit) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (Game.time % 50 === 0 && cpuBucket >= 8000) {
+    if (Game.time % 50 === 0 && cpuBucket >= 1000) {
         log.d('Room Building Module');
         let roomBuild = Game.cpu.getUsed();
         try {
@@ -45,7 +45,7 @@ module.exports.overlordMind = function (room, roomLimit) {
         // Request builders
         requestBuilders(room);
         // Silence Alerts
-        if (Game.time % 250 === 0) {
+        if (Game.time % 500 === 0) {
             for (let building of room.structures) {
                 building.notifyWhenAttacked(false);
             }
@@ -57,17 +57,25 @@ module.exports.overlordMind = function (room, roomLimit) {
     if (Game.time % 10 === 0 && cpuBucket >= 3000) {
         log.d('Creep Queueing');
         try {
-            if (room.controller.level >= 2 && !TEN_CPU) {
-                let remoteSpawn = Game.cpu.getUsed();
-                spawning.remoteCreepQueue(room);
-                shib.shibBench('remoteSpawn', remoteSpawn);
-            }
             let creepSpawn = Game.cpu.getUsed();
             spawning.workerCreepQueue(room);
             shib.shibBench('workerCreepQueue', creepSpawn);
             cleanQueue(room);
         } catch (e) {
             log.e('Creep Spawning for room ' + room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+    }
+
+    // Manage remote creep spawning
+    if (Game.time % 50 === 0 && cpuBucket >= 7000 && room.controller.level >= 2 && !TEN_CPU) {
+        try {
+            let remoteSpawn = Game.cpu.getUsed();
+            spawning.remoteCreepQueue(room);
+            shib.shibBench('remoteSpawn', remoteSpawn);
+        } catch (e) {
+            log.e('Remote Creep Spawning for room ' + room.name + ' experienced an error');
             log.e(e.stack);
             Game.notify(e.stack);
         }

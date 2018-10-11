@@ -17,9 +17,9 @@ function labManager() {
         }
         let terminal = room.terminal;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-        if (lab && terminal && room.memory.reactionRoom && Game.time % 25 === 0) manageBoostProduction(room);
-        if (lab && terminal && room.memory.reactionRoom) manageActiveLabs(room);
-        if (lab && terminal && Game.time % 50 === 0) cleanBoostLabs(room);
+        if (lab && terminal && room.memory.reactionRoom && Game.time % 50 === 0) manageBoostProduction(room);
+        if (lab && terminal && room.memory.reactionRoom && Game.time % 2 === 0) manageActiveLabs(room);
+        if (lab && terminal && Game.time % 100 === 0) cleanBoostLabs(room);
     }
 }
 
@@ -123,7 +123,6 @@ function manageActiveLabs(room) {
         active:
             for (let key in activeLabs) {
                 let hub = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === activeLabs[key].memory.creating && s.memory.active && s.pos.roomName === activeLabs[key].pos.roomName);
-                let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let outputLab = Game.getObjectById(_.pluck(_.filter(hub, (l) => !l.memory.itemNeeded), 'id')[0]);
                 if (!outputLab) {
                     for (let id in hub) {
@@ -139,6 +138,7 @@ function manageActiveLabs(room) {
                 }
                 //If on cooldown continue
                 if (outputLab.cooldown) continue;
+                let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
                 //If any dont exist reset

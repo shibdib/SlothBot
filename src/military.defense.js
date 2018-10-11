@@ -12,20 +12,20 @@ function controller(room) {
 
     // Tower control
     let towerCpu = Game.cpu.getUsed();
-    towers.towerControl(room);
+    if (Game.time % 5 === 0 || room.memory.responseNeeded) towers.towerControl(room);
     shib.shibBench('towerController', towerCpu);
 
     // Check for invaders and request help
     room.invaderCheck();
 
     // Handle nuke defense
-    room.handleNukeAttack();
+    if (Game.time % 100 === 0) room.handleNukeAttack();
 
     // Check if you should safemode
-    safeModeManager(room);
+    if (Game.time % 5 === 0) safeModeManager(room);
 
     // Abandon hopeless rooms
-    unsavableCheck(room);
+    if (Game.time % 5 === 0) unsavableCheck(room);
 
     //TODO: ramparts up unless ally in room and no enemies near him
     //rampartManager(room, structures);
@@ -118,12 +118,13 @@ function safeModeManager(room) {
     if (room.controller.level < 3) {
         let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 2));
         if (enemyMilitary.length) return room.controller.activateSafeMode();
-    }
-    let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
-    let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_MY_SPAWNS)) < 8);
-    if (enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByPath(enemyMilitary)) < 7) {
-        return room.controller.activateSafeMode();
+    } else {
+        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
+        let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_MY_SPAWNS)) < 8);
+        if (enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByPath(enemyMilitary)) < 7) {
+            return room.controller.activateSafeMode();
+        }
     }
 }
 

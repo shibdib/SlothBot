@@ -6,37 +6,27 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {
-        range: 18,
-        offRoad: true
-    });
+    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     creep.borderCheck();
-    let signs = RESERVE_ROOM_SIGNS;
-    let hostiles = creep.findClosestEnemy();
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
-    if (creep.pos.roomName !== creep.memory.reservationTarget) creep.memory.destinationReached = false;
-    if (creep.pos.roomName === creep.memory.reservationTarget) creep.memory.destinationReached = true;
-    if (!creep.memory.destinationReached) {
-        if (creep.pos.roomName === creep.memory.reservationTarget) {
-            creep.memory.destinationReached = true;
-        }
+    if (creep.pos.roomName !== creep.memory.reservationTarget) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget));
     } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation.username === USERNAME)) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:
                 if (!creep.memory.signed) {
+                    let signs = RESERVE_ROOM_SIGNS;
                     creep.signController(creep.room.controller, _.sample(signs));
                     creep.memory.signed = true;
                 }
-                let ticks;
-                if (creep.room.controller.reservation) {
-                    ticks = creep.room.controller.reservation['ticksToEnd'] || 0;
-                } else {
-                    ticks = 0;
+                if (creep.ticksToLive <= 50) {
+                    let ticks;
+                    if (creep.room.controller.reservation) {
+                        ticks = creep.room.controller.reservation['ticksToEnd'] || 0;
+                    } else {
+                        ticks = 0;
+                    }
+                    creep.room.memory.reservationExpires = Game.time + ticks - 1000;
                 }
-                let needReserver = Game.time + ticks - 1000;
-                creep.room.memory.reservationExpires = needReserver;
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(creep.room.controller);
