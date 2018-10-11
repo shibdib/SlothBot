@@ -7,8 +7,7 @@ let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
 let shib = require("shibBench");
-//profiler.enable();
-//global.lastMemoryTick = undefined;
+const tickLengthArray = [];
 
 module.exports.loop = function() {
     profiler.wrap(function () {
@@ -24,15 +23,14 @@ module.exports.loop = function() {
         let seconds = _.round(d.getTime() / 1000, 2);
         let lastTick = Memory.lastTick || seconds;
         Memory.lastTick = seconds;
-        Memory.tickLengthArray = Memory.tickLengthArray || [];
         let tickLength = seconds - lastTick;
-        if (Memory.tickLengthArray.length < 50) {
-            Memory.tickLengthArray.push(tickLength)
+        if (tickLengthArray.length < 50) {
+            tickLengthArray.push(tickLength)
         } else {
-            Memory.tickLengthArray.shift();
-            Memory.tickLengthArray.push(tickLength)
+            tickLengthArray.shift();
+            tickLengthArray.push(tickLength)
         }
-        Memory.tickLength = average(Memory.tickLengthArray);
+        Memory.tickLength = average(tickLengthArray);
 
         //Update allies
         log.d('Updating LOAN List');
