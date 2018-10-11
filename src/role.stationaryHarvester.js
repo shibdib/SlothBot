@@ -135,9 +135,11 @@ function harvestDepositLink(creep) {
 
 function extensionBuilder(creep) {
     let container = Game.getObjectById(creep.memory.containerID);
-    if (container && creep.pos.getRangeTo(container) > 0) {
-        return creep.shibMove(container, {range: 0});
-    } else if (Game.getObjectById(creep.containerBuilding())) {
+    let inBuild = Game.getObjectById(creep.containerBuilding());
+    if ((container && creep.pos.getRangeTo(container) > 0) || (inBuild && creep.pos.getRangeTo(container) > 0)) {
+        let moveTo = container || inBuild;
+        return creep.shibMove(moveTo, {range: 0});
+    } else if (container || inBuild) {
         let count = 0;
         for (let xOff = -1; xOff <= 1; xOff++) {
             for (let yOff = -1; yOff <= 1; yOff++) {
