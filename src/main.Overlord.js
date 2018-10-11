@@ -32,7 +32,7 @@ module.exports.overlordMind = function (room, roomLimit) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (Game.time % 50 === 0 && cpuBucket >= 1000) {
+    if (Game.time % 100 === 0 && cpuBucket >= 1000) {
         log.d('Room Building Module');
         let roomBuild = Game.cpu.getUsed();
         try {
