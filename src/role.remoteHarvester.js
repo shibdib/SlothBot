@@ -9,34 +9,23 @@ function role(creep) {
     let source;
     creep.borderCheck();
     //Invader detection
-    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) {
-        if (creep.carry[RESOURCE_ENERGY]) creep.drop(RESOURCE_ENERGY);
-        return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18, offRoad: true});
-    }
-    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
-    if (creep.pos.roomName === creep.memory.destination) {
-        if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
-            creep.room.cacheRoomIntel(true);
-            return creep.suicide();
-        }
-        creep.memory.destinationReached = true;
-        if (creep.room.constructionSites.length > 0) {
-            creep.room.memory.requestingPioneer = true;
-        } else {
-            delete creep.room.memory.requestingPioneer;
-        }
-    }
+    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
+    //Set destination reached
+    creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     //Check hauler status
     if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
     //Initial move
     if (!creep.memory.destinationReached) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.borderCheck();
-            creep.memory.destinationReached = true;
-        }
-        return null;
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else {
+        //Suicide and cache intel if room is reserved by someone else
+        if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
+            creep.room.cacheRoomIntel(true);
+            return creep.suicide();
+        }
+        //Request pioneer if construction sites exist
+        if (Game.time % 100 === 0) creep.room.memory.requestingPioneer = creep.room.constructionSites.length > 0;
+        //If source is set mine
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (source) {
@@ -53,6 +42,7 @@ function role(creep) {
             } else {
                 creep.memory.source = undefined;
             }
+            //Find Source
         } else {
             creep.findSource();
         }
@@ -63,7 +53,7 @@ module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
     if (!creep.memory.containerID) {
-        if (Game.rooms[creep.memory.overlord].controller.level >= 4) creep.memory.containerID = creep.harvestDepositContainer();
+        creep.memory.containerID = creep.harvestDepositContainer();
     } else if (creep.memory.containerID) {
         if (!creep.memory.buildAttempt) remoteRoads(creep);
         let container = Game.getObjectById(creep.memory.containerID);
@@ -158,12 +148,4 @@ function buildRoadAround(room, position) {
 function buildRoad(position, room) {
     if (position.checkForImpassible() || _.size(room.constructionSites) >= 5) return;
     position.createConstructionSite(STRUCTURE_ROAD);
-}
-
-function markReadyForHauler(creep) {
-    let overlord = Game.rooms[creep.memory.overlord];
-    let requester = overlord.memory.remotesNeedingHauler || [];
-    let inbound = _.filter(Game.creeps, (c) => c.memory.destination === creep.room.name && (c.memory.role === 'remoteHauler' || c.memory.role === 'hauler'));
-    if (!_.includes(requester, creep.room.name) && inbound.length < 2) requester.push(creep.room.name);
-    overlord.memory.remotesNeedingHauler = requester;
 }
