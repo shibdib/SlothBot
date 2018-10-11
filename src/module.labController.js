@@ -9,16 +9,11 @@ function labManager() {
     for (let key in shuffle(Memory.ownedRooms)) {
         if (Memory.ownedRooms[key].controller.level < 6) continue;
         let room = Memory.ownedRooms[key];
-        let reactionRooms = _.filter(Memory.ownedRooms, (r) => r.memory.reactionRoom);
-        if (!reactionRooms[0]) room.memory.reactionRoom = true;
-        if (!room.memory.reactionRoom) {
-            room.memory.reactionRoom = true;
-            log.a(room.name + ' is now a reaction room.');
-        }
+        if (!room.memory.reactionRoom) room.memory.reactionRoom = true;
         let terminal = room.terminal;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && terminal && room.memory.reactionRoom && Game.time % 50 === 0) manageBoostProduction(room);
-        if (lab && terminal && room.memory.reactionRoom && Game.time % 2 === 0) manageActiveLabs(room);
+        if (lab && terminal && room.memory.reactionRoom && Game.time % 5 === 0) manageActiveLabs(room);
         if (lab && terminal && Game.time % 100 === 0) cleanBoostLabs(room);
     }
 }
@@ -130,14 +125,14 @@ function manageActiveLabs(room) {
                     }
                     continue;
                 }
+                //If on cooldown continue
+                if (outputLab.cooldown) continue;
                 if (outputLab.memory.creating) {
                     for (let lab of hub) {
                         lab.say(lab.memory.creating);
                         if (lab.memory.itemNeeded) lab.lineTo(outputLab);
                     }
                 }
-                //If on cooldown continue
-                if (outputLab.cooldown) continue;
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
