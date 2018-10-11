@@ -41,7 +41,7 @@ function role(creep) {
     if (creep.wrongRoom()) return null;
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
-    creep.memory.working = creep.isFull();
+    creep.memory.working = creep.isFull;
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
         if (container && creep.pos.getRangeTo(container) === 0 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
