@@ -219,7 +219,7 @@ function roomStartup(room, roomCreeps) {
     }
     let upgrader = _.filter(roomCreeps, (creep) => (creep.memory.role === 'upgrader'));
     if (upgrader.length < 5) {
-        queueCreep(room, 1, {role: 'upgrader'})
+        queueCreep(room, 1 + (upgrader.length / 2), {role: 'upgrader'})
     }
     let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
     if (explorers.length < 5) {
