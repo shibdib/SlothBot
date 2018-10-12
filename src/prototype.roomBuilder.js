@@ -34,9 +34,9 @@ Room.prototype.buildRoom = function () {
     buildStorage(this);
     buildTerminal(this);
     buildSpawn(this, structures);
+    buildWalls(this, structures);
     buildTowers(this, structures);
     controllerSupplier(this, structures);
-    buildWalls(this, structures);
     buildMineralContainer(this, structures);
     buildNuker(this, structures);
     buildObserver(this, structures);
@@ -231,7 +231,6 @@ function buildWalls(room, structures) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
-    if (room.controller.level < 4) return;
     if (!room.memory.bunkerComplete) {
         let exits = room.find(FIND_EXIT);
         let closestExitRange = hub.getRangeTo(hub.findClosestByPath(exits));
@@ -360,6 +359,7 @@ function buildWalls(room, structures) {
             }
         }
     }
+    if (room.controller.level < 4) return;
     for (let location of room.memory.bunkerPos) {
         let rampPos = new RoomPosition(location.x, location.y, room.name);
         if (rampPos && !rampPos.checkIfOutOfBounds()) {
@@ -588,28 +588,15 @@ function buildLinks(room) {
 function buildTowers(room, structures) {
     if (room.controller.level < 3) return;
     let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
-    if (tower.length < 6) {
-        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 7, hub.x - 7, hub.y + 7, hub.x + 7, true));
-        for (let key in safeZone) {
-            let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.getRangeTo(hub) === 7) {
-                if (position.checkIfOutOfBounds() || position.checkForImpassible()) continue;
-                if (position.checkForAllStructure().length > 0 || !room.findPath(position, hub, {
-                        range: 1,
-                        ignoreCreeps: true
-                    }).length
-                    || room.findPath(position, hub, {
-                        range: 1,
-                        ignoreDestructibleStructures: true,
-                        ignoreCreeps: true
-                    }).length > 8) continue;
-                switch (position.createConstructionSite(STRUCTURE_TOWER)) {
-                    case OK:
-                        continue;
-                    case ERR_RCL_NOT_ENOUGH:
-                        return;
-                }
+    if (tower.length < 6 && room.memory.bunkerPos) {
+        for (let location of shuffle(room.memory.bunkerPos)) {
+            let buildPos = new RoomPosition(location.x, location.y, room.name);
+            if (buildPos.checkForObstacleStructure()) continue;
+            switch (buildPos.createConstructionSite(STRUCTURE_TOWER)) {
+                case OK:
+                    continue;
+                case ERR_RCL_NOT_ENOUGH:
+                    return;
             }
         }
     }
