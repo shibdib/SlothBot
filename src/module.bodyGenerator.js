@@ -55,9 +55,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = work + carry;
                 break;
             } else {
-                let multi = 2;
-                if (room.memory.energySurplus) multi = 3;
-                if (room.memory.extremeEnergySurplus) multi = 4;
+                let multi = 1;
+                if (room.memory.energySurplus) multi = 2;
+                if (room.memory.extremeEnergySurplus) multi = 3;
                 work = (multi * level) - 1;
                 carry = 1;
                 move = _.round(work / 2);
