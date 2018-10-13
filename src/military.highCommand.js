@@ -26,8 +26,8 @@ function operationRequests() {
     if (Game.time % 100 === 0 && ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < totalRooms) {
         for (let ownedRoom of Memory.ownedRooms) {
             if (_.size(Memory.targetRooms) >= totalRooms) break;
-            let localTargets = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
-                || (r.reservation && !_.includes(FRIENDLIES, r.reservation) && !_.includes(NO_AGGRESSION, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time) && Game.map.findRoute(r.name, ownedRoom.name).length <= 3);
+            let localTargets = _.filter(Memory.roomCache, (r) => Game.map.findRoute(r.name, ownedRoom.name).length <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
+                || (r.reservation && !_.includes(FRIENDLIES, r.reservation) && !_.includes(NO_AGGRESSION, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time));
             if (localTargets.length) {
                 for (let target of localTargets) {
                     if (_.size(Memory.targetRooms) >= totalRooms) break;

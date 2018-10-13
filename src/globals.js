@@ -11,6 +11,7 @@ let globals = function () {
     global.MANUAL_FRIENDS = [];
 
     global.ATTACK_LOCALS = true;
+    global.LOCAL_SPHERE = 2; //Range that rooms consider local
 
     global.FRIENDLIES = RawMemory.segments[2];
 
@@ -18,7 +19,7 @@ let globals = function () {
 
     //Signing
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD BOT HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER~~"];
-    global.RESERVE_ROOM_SIGNS = ["~~Reserved Territory of an #Overlord-Bot~~", "~~#Overlord-Bot Frontier - Visit at your own risk.~~", "~~#Overlord-Bot Exclusion Zone~~", "~~#Overlord-Bot Reserved Room~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER~~"];
+    global.RESERVE_ROOM_SIGNS = ["~~Reserved Territory of an #Overlord-Bot~~", "~~This is a restricted area, violators will be attacked #overlords~~", "~~#Overlord-Bot Exclusion Zone~~", "~~#Overlord-Bot Reserved Room~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER~~"];
     global.EXPLORED_ROOM_SIGNS = ["#Overlord-Bot was here.", "#Overlord-Bot has collected intel from this room. We Know.", "Spawn More #Overlord-Bot's", "All your rooms belong to #Overlord-Bot"];
 
     //Terminal
