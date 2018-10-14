@@ -52,8 +52,10 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
+    // Check for container and build one if one isn't there
     if (!creep.memory.containerID) {
-        creep.memory.containerID = creep.harvestDepositContainer();
+        let buildSite = Game.getObjectById(containerBuilding(Game.getObjectById(creep.memory.source), creep));
+        if (!buildSite) harvesterContainerBuild(creep);
     } else if (creep.memory.containerID) {
         if (!creep.memory.buildAttempt) remoteRoads(creep);
         let container = Game.getObjectById(creep.memory.containerID);
@@ -130,7 +132,7 @@ function buildRoadFromTo(room, start, end) {
     });
     for (let point of path) {
         let pos = new RoomPosition(point.x, point.y, room.name);
-        buildRoad(pos, room);
+        if (!buildRoad(pos, room)) return;
     }
 }
 function buildRoadAround(room, position) {
@@ -139,13 +141,37 @@ function buildRoadAround(room, position) {
             if (xOff !== 0 || yOff !== 0) {
                 if (_.size(Game.constructionSites) >= 50) break;
                 if (!position || !position.x || !position.y || !room.name) continue;
-                buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name), room);
+                if (!buildRoad(new RoomPosition(position.x + xOff, position.y + yOff, room.name), room)) return;
             }
         }
     }
 }
 
 function buildRoad(position, room) {
-    if (position.checkForImpassible() || _.size(room.constructionSites) >= 5) return;
-    position.createConstructionSite(STRUCTURE_ROAD);
+    if (position.checkForImpassible() || _.size(room.constructionSites) >= 5) return false;
+    return position.createConstructionSite(STRUCTURE_ROAD);
 }
+
+function containerBuilding(source, creep) {
+    let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    let built = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    if (site) {
+        if (source.pos.getRangeTo(site) <= 1) {
+            return site.id;
+        }
+    } else if (built) {
+        if (source.pos.getRangeTo(built) <= 1) {
+            creep.memory.containerID = built.id;
+            return built.id;
+        }
+    }
+}
+
+harvesterContainerBuild = function (creep) {
+    if (creep.memory.source && creep.pos.getRangeTo(Game.getObjectById(creep.memory.source)) <= 1) {
+        if (Game.getObjectById(creep.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
+        if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
+            return null;
+        }
+    }
+};

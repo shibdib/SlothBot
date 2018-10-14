@@ -95,7 +95,7 @@ function depositEnergy(creep) {
             }
         }
     } else {
-        let buildSite = Game.getObjectById(containerBuilding(Game.getObjectById(creep.memory.source)));
+        let buildSite = Game.getObjectById(containerBuilding(Game.getObjectById(creep.memory.source)), creep);
         if (!buildSite) {
             harvesterContainerBuild(creep);
         }
@@ -158,8 +158,8 @@ function extensionBuilder(creep) {
     }
 }
 
-function containerBuilding(source) {
-    let site = source.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+function containerBuilding(source, creep) {
+    let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site !== null && site !== undefined) {
         if (source.pos.getRangeTo(site) <= 1) {
             return site.id;
@@ -168,7 +168,7 @@ function containerBuilding(source) {
 }
 
 harvesterContainerBuild = function (creep) {
-    if (creep.memory.source && creep.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
+    if (creep.memory.source && creep.pos.getRangeTo(Game.getObjectById(creep.memory.source)) <= 1) {
         if (Game.getObjectById(creep.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
         if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
             return null;
