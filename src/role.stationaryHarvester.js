@@ -82,6 +82,7 @@ function depositEnergy(creep) {
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
+            if (creep.pos.getRangeTo(container) > 0) creep.shibMove(container, {range: 0});
             let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
             if (creep.carry[RESOURCE_ENERGY] > 20 && container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);

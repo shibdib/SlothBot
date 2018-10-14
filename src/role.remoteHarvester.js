@@ -4,9 +4,10 @@
 
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
+let shib = require("shibBench");
 
 function role(creep) {
-    let source;
+    let source, cpu;
     creep.borderCheck();
     //Invader detection
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
@@ -16,22 +17,30 @@ function role(creep) {
     if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
     //Initial move
     if (!creep.memory.destinationReached) {
+        cpu = Game.cpu.getUsed();
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
+        shib.shibBench('remoteMove', cpu);
     } else {
         //Suicide and cache intel if room is reserved by someone else
+        cpu = Game.cpu.getUsed();
         if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
             creep.room.cacheRoomIntel(true);
             return creep.suicide();
         }
         //Request pioneer if construction sites exist
+        cpu = Game.cpu.getUsed();
         if (Game.time % 100 === 0) creep.room.memory.requestingPioneer = creep.room.constructionSites.length > 0;
+        shib.shibBench('pioneerRequest', cpu);
         //If source is set mine
         if (creep.memory.source) {
+            cpu = Game.cpu.getUsed();
             source = Game.getObjectById(creep.memory.source);
             if (source) {
                 switch (creep.harvest(source)) {
                     case OK:
+                        cpu = Game.cpu.getUsed();
                         if (creep.carry.energy === creep.carryCapacity) depositEnergy(creep);
+                        shib.shibBench('remoteDeposit', cpu);
                         break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(source);
@@ -42,9 +51,12 @@ function role(creep) {
             } else {
                 creep.memory.source = undefined;
             }
+            shib.shibBench('remoteHarvest', cpu);
             //Find Source
         } else {
+            cpu = Game.cpu.getUsed();
             creep.findSource();
+            shib.shibBench('remoteFind', cpu);
         }
     }
 }
@@ -54,10 +66,14 @@ module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 function depositEnergy(creep) {
     // Check for container and build one if one isn't there
     if (!creep.memory.containerID) {
+        let cpu = Game.cpu.getUsed();
         let buildSite = Game.getObjectById(containerBuilding(Game.getObjectById(creep.memory.source), creep));
         if (!buildSite) harvesterContainerBuild(creep);
+        shib.shibBench('remoteContainer', cpu);
     } else if (creep.memory.containerID) {
+        let cpu = Game.cpu.getUsed();
         if (!creep.memory.buildAttempt) remoteRoads(creep);
+        shib.shibBench('remoteRoads', cpu);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});

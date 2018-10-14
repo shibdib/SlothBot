@@ -55,7 +55,7 @@ function role(creep) {
                 } else if (nuker && creep.carry[RESOURCE_ENERGY] === _.sum(creep.carry)) {
                     creep.memory.storageDestination = nuker.id;
                 } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.99 && (!storage || (storage.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 2 ||
-                    terminal.store[RESOURCE_ENERGY] <= 5000 || _.sum(storage.store) >= storage.storeCapacity * 0.90))) {
+                    terminal.store[RESOURCE_ENERGY] <= 10000 || _.sum(storage.store) >= storage.storeCapacity * 0.90))) {
                     creep.memory.storageDestination = terminal.id;
                 } else if (storage && (storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 1.5 || !storage.store[RESOURCE_ENERGY]) && Math.random() > 0.5) {
                     creep.memory.storageDestination = storage.id;

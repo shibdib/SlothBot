@@ -333,7 +333,6 @@ module.exports.workerCreepQueue = function (room) {
     if (level >= 4 && !_.includes(queue, 'waller') && tower.length) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
-        if (TEN_CPU) amount = 1;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
         }
@@ -445,9 +444,9 @@ module.exports.remoteCreepQueue = function (room) {
     let range = room.memory.remoteRange || 1;
     let sources = 0;
     // Set harvester target
-    let harvesterTarget = 7;
+    let harvesterTarget = 5;
     //if (room.memory.energySurplus) harvesterTarget = 4;
-    if (room.memory.extremeEnergySurplus) harvesterTarget = 4;
+    if (room.memory.extremeEnergySurplus) harvesterTarget = 3;
     if (!room.memory.remoteRange || Game.time % 200 === 0) {
         range:
             for (range = 1; range < 4; range++) {

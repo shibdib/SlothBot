@@ -114,15 +114,6 @@ module.exports.hud = function () {
         let name = Memory.ownedRooms[key].name;
         let room = Game.rooms[name];
         if (!room) continue;
-        //Reaction Room
-        if (room.memory.reactionRoom) {
-            new RoomVisual(name).text(
-                ICONS.reaction + ' REACTION ROOM',
-                1,
-                4,
-                {align: 'left', opacity: 0.5}
-            );
-        }
         //GCL
         let lastTickProgress = Memory.lastTickProgress || 0;
         Memory.lastTickProgress = Game.gcl.progress;
