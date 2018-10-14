@@ -5,16 +5,15 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function towerControl(room) {
-    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let creeps = room.creeps;
     let structures = room.structures;
+    let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
+    let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1) && !_.includes(FRIENDLIES, s.owner.username));
+    let healers = _.filter(creeps, (s) => (s.getActiveBodyparts(HEAL) >= 3) && !_.includes(FRIENDLIES, s.owner.username));
+    let unArmedHostile = _.filter(creeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK)) && !_.includes(FRIENDLIES, s.owner.username));
     towers:
         for (let tower of towers) {
             if (tower.room.memory.responseNeeded === true) {
-                let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
-                let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1) && !_.includes(FRIENDLIES, s.owner.username));
-                let healers = _.filter(creeps, (s) => (s.getActiveBodyparts(HEAL) >= 3) && !_.includes(FRIENDLIES, s.owner.username));
-                let unArmedHostile = _.filter(creeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK)) && !_.includes(FRIENDLIES, s.owner.username));
                 let healPower = 0;
                 if (armedHostile.length || unArmedHostile.length) {
                     for (let i = 0; i < armedHostile.length; i++) {
@@ -59,6 +58,8 @@ function towerControl(room) {
                 if (woundedCreep.length > 0) {
                     tower.heal(woundedCreep[0]);
                 }
+            } else if (unArmedHostile.length) {
+                tower.attack(_.sample(unArmedHostile));
             } else if (tower.energy > tower.energyCapacity * 0.65) {
                 let creeps = tower.room.creeps;
                 let structures = tower.room.structures;
