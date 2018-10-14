@@ -477,8 +477,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
                     let priority = PRIORITIES.remoteHarvester + 1;
-                    if (room.memory.energySurplus) priority = PRIORITIES.remoteHarvester - 1;
-                    if (room.memory.extremeEnergySurplus) priority = PRIORITIES.remoteHarvester - 2;
+                    if (room.memory.energySurplus) priority = PRIORITIES.remoteHarvester;
                     queueCreep(room, priority, {
                         role: 'reserver',
                         reservationTarget: room.memory.remoteRooms[keys]
