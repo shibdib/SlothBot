@@ -28,6 +28,9 @@ function role(creep) {
                 break;
             case OK:
                 if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
+                let container = Game.getObjectById(creep.memory.containerID);
+                let link = Game.getObjectById(creep.memory.linkID);
+                if (container && link && creep.room.memory.storageLink && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
                 break;
         }
         if (creep.carry.energy === creep.carryCapacity) {
@@ -79,9 +82,6 @@ function depositEnergy(creep) {
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (!container.pos.checkForRampart()) {
-                container.pos.createConstructionSite(STRUCTURE_RAMPART);
-            }
             let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
             if (creep.carry[RESOURCE_ENERGY] > 20 && container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);
