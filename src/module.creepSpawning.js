@@ -300,8 +300,8 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Repairer
-    if (level >= 3 && !_.includes(queue, 'repairer') && !room.memory.responseNeeded) {
-        let amount = 0;
+    if (level >= 5 && !_.includes(queue, 'repairer') && !room.memory.responseNeeded) {
+        let amount = 1;
         let repairers = _.filter(roomCreeps, (creep) => creep.memory.role === 'repairer');
         if (repairers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'repairer'})
