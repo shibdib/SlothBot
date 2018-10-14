@@ -177,7 +177,7 @@ module.exports.overlordMind = function (room, roomLimit) {
 function minionController(minion) {
     if (minion.spawning) return;
     if (minion.idle) return minion.say(ICONS.wait18);
-    if (Game.cpu.getUsed() >= Game.cpu.limit && Math.random() > 0.5) return minion.say('CPU');
+    if (Game.cpu.getUsed() >= Game.cpu.limit && Math.random() > 0.7) return minion.say('CPU');
     if (Game.cpu.bucket < 10000 && Math.random() > Game.cpu.bucket / 10000) return minion.say('BUCKET');
     minion.notifyWhenAttacked(false);
     minion.reportDamage();
