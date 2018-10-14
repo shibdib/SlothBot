@@ -92,9 +92,25 @@ Creep.prototype.robbery = function () {
                     }
                 }
             } else {
+                let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
                 let storage = this.room.storage;
                 let terminal = this.room.terminal;
-                if (storage && _.sum(storage.store) < storage.storeCapacity * 0.70) {
+                if (controllerContainer && this.carry[RESOURCE_ENERGY] === _.sum(this.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.70) {
+                    this.memory.storageDestination = controllerContainer.id;
+                    switch (this.transfer(controllerContainer, RESOURCE_ENERGY)) {
+                        case OK:
+                            delete this.memory.storageDestination;
+                            delete this.memory.destinationReached;
+                            break;
+                        case ERR_NOT_IN_RANGE:
+                            this.shibMove(controllerContainer);
+                            break;
+                        case ERR_FULL:
+                            delete this.memory.storageDestination;
+                            this.findStorage();
+                            break;
+                    }
+                } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.70) {
                     this.memory.storageDestination = storage.id;
                     for (const resourceType in this.carry) {
                         switch (this.transfer(storage, resourceType)) {
