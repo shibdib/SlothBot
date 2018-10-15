@@ -103,7 +103,7 @@ function mind() {
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
             let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
-            if (!needyRoom.length && !safemode.length && !claimAttempt.length
+            if (needyRoom.length < 3 && !safemode.length && !claimAttempt.length
                 && Game.gcl.level > overlordCount && !activeClaim && overlordCount < maxRooms
             ) {
                 log.d('Expansion Module');
