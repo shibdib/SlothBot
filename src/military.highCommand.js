@@ -224,7 +224,8 @@ function manualAttacks() {
                 tick: tick,
                 type: 'siege',
                 level: Number(level),
-                priority: Number(priority)
+                priority: Number(priority),
+                manual: true
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -248,7 +249,8 @@ function manualAttacks() {
                 tick: tick,
                 type: 'defend',
                 level: Number(level),
-                priority: Number(priority)
+                priority: Number(priority),
+                manual: true
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -296,7 +298,8 @@ function manualAttacks() {
                 tick: tick,
                 type: 'harass',
                 level: Number(level),
-                priority: Number(priority)
+                priority: Number(priority),
+                manual: true
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -310,7 +313,8 @@ function manualAttacks() {
                 tick: tick,
                 type: 'hold',
                 level: Number(level),
-                priority: Number(priority)
+                priority: Number(priority),
+                manual: true
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -324,7 +328,8 @@ function manualAttacks() {
                 tick: tick,
                 type: 'drain',
                 level: Number(level),
-                priority: Number(priority)
+                priority: Number(priority),
+                manual: true
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -351,7 +356,8 @@ function manualAttacks() {
                 tick: tick,
                 type: 'rangers',
                 level: level,
-                priority: Number(priority)
+                priority: Number(priority),
+                manual: true
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();

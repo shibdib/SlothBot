@@ -315,11 +315,13 @@ module.exports.workerCreepQueue = function (room) {
     }
     if (!_.includes(queue, 'hauler')) {
         let amount = 1;
+        if (2 < level < 7) amount = 2;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if ((hauler[0].ticksToLive < 250 && hauler.length <= amount) || hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
         }
     }
+    //LabTech
     if (level >= 6 && !_.includes(queue, 'labTech') && room.memory.reactionRoom && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) {
         let amount = 1;
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
