@@ -80,7 +80,7 @@ function towerControl(room) {
                 let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
                 tower.repair(lowestRampart);
             } else if (tower.energy > tower.energyCapacity * 0.45) {
-                let barriers = _.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500);
+                let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1500);
                 if (barriers.length > 0) {
                     tower.repair(barriers[0]);
                     continue;
