@@ -45,15 +45,15 @@ function role(creep) {
     if (creep.isFull) creep.memory.working = true;
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
-        if (container && creep.pos.rangeToTarget(container) === 0 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
-        if (link && creep.pos.rangeToTarget(link) <= 1 && link.energy > 0) creep.withdraw(link, RESOURCE_ENERGY);
+        if (container && creep.pos.getRangeTo(container) === 0 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
+        if (link && creep.pos.getRangeTo(link) <= 1 && link.energy > 0) creep.withdraw(link, RESOURCE_ENERGY);
     } else {
         if (creep.memory.energyDestination) {
             creep.withdrawEnergy();
         } else if (container && container.store[RESOURCE_ENERGY] > 0) {
             switch (creep.withdraw(container, RESOURCE_ENERGY)) {
                 case OK:
-                    if (container && creep.pos.rangeToTarget(container) > 0) return creep.shibMove(container, {range: 0});
+                    if (container && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(container);
@@ -67,7 +67,7 @@ function role(creep) {
             }
         } else {
             if (!container) {
-                let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.rangeToTarget(s.room.controller) <= 1});
+                let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
                 if (container) creep.room.memory.controllerContainer = container.id;
             }
             if (!link && !creep.memory.energyDestination) {

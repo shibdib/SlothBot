@@ -173,7 +173,7 @@ Creep.prototype.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFun
 containerBuilding = function () {
     let site = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site !== null && site !== undefined) {
-        if (this.pos.rangeToTarget(site) <= 1) {
+        if (this.pos.getRangeTo(site) <= 1) {
             return site.id;
         }
     }
@@ -183,9 +183,9 @@ Creep.prototype.containerBuilding = profiler.registerFN(containerBuilding, 'cont
 harvestDepositContainer = function () {
     let container = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (container) {
-        if (this.pos.rangeToTarget(container) <= 1) {
+        if (this.pos.getRangeTo(container) <= 1) {
             return container.id;
-        } else if (this.pos.rangeToTarget(container) <= 3) {
+        } else if (this.pos.getRangeTo(container) <= 3) {
             this.shibMove(container);
             return container.id;
         }
@@ -196,7 +196,7 @@ harvestDepositContainer = function () {
 Creep.prototype.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
 
 harvesterContainerBuild = function () {
-    if (this.memory.source && this.pos.rangeToTarget(Game.getObjectById(this.memory.source)) <= 1) {
+    if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
         if (Game.getObjectById(this.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
         if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
             return null;
@@ -504,7 +504,7 @@ Creep.prototype.findStorage = function () {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = tower[i];
-            if (object && object.energy < object.energyCapacity && object.pos.rangeToTarget(this) > 1) {
+            if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
                 if (object.room.memory.responseNeeded === true) {
                     const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0);
                     towers.push({
@@ -662,7 +662,7 @@ Creep.prototype.findEssentials = function () {
         let towers = [];
         for (let i = 0; i < tower.length; i++) {
             const object = tower[i];
-            if (object && object.energy < object.energyCapacity && object.pos.rangeToTarget(this) > 1) {
+            if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
                 if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
                     const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
                     towers.push({
@@ -735,7 +735,7 @@ Creep.prototype.findEssentials = function () {
         //Nuker
     let nuker = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (nuker) {
-        if (nuker.pos.rangeToTarget(this) > 1) {
+        if (nuker.pos.getRangeTo(this) > 1) {
             const nukerDistWeighted = _.round(nuker.pos.rangeToTarget(this) * 0.1, 0) + 1;
             storage.push({
                 id: nuker.id,
@@ -771,7 +771,7 @@ findDeliveries = function () {
     if (deliver.length > 0) {
         let deliveries = [];
         for (let i = 0; i < deliver.length; i++) {
-            if (deliver[i].pos.rangeToTarget(this) > 1) {
+            if (deliver[i].pos.getRangeTo(this) > 1) {
                 if (this.carry[RESOURCE_ENERGY] < deliver.carryCapacity - _.sum(deliver.carry)) {
                     continue;
                 }

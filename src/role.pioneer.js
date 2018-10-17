@@ -44,7 +44,7 @@ function role(creep) {
     if (creep.isFull) creep.memory.hauling = true;
     if (creep.memory.destinationReached) {
         let hostiles = creep.findClosestEnemy();
-        if (hostiles && creep.pos.rangeToTarget(hostiles) <= 4) return creep.retreat();
+        if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
         let pioneers = _.filter(creep.room.creeps, (s) => s.my && s.memory.role === 'pioneer');
         let stationaryHarvesters = _.filter(creep.room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester');
         if (pioneers.length > 3 && stationaryHarvesters.length < 2) {
@@ -177,7 +177,7 @@ function findExtensionHub(room) {
             wall = true;
             break;
         }
-        if (pos.rangeToTarget(closestStructure) >= 4 && wall === false) {
+        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
             room.memory.extensionHub = {};
             room.memory.extensionHub.x = pos.x;
             room.memory.extensionHub.y = pos.y;

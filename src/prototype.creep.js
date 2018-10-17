@@ -281,7 +281,7 @@ Creep.prototype.tryToBoost = function (boosts) {
             if (!this.memory.boostLab) {
                 let filledLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === this.memory.requestedBoosts[key] && s.energy > 0)[0];
                 let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
-                let innerLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.rangeToTarget(hub) < 9)[0];
+                let innerLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(hub) < 9)[0];
                 if (innerLab) {
                     if (innerLab.memory.active) return this.idleFor(15);
                     this.memory.boostLab = innerLab.id;
@@ -401,7 +401,7 @@ Creep.prototype.reportDamage = function () {
     if (this.hits < this.memory._lastHits) {
         this.memory.underAttack = true;
         if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== USERNAME)) && this.memory.targetRoom !== this.room.name) return false;
-        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => c.pos.rangeToTarget(this) <= 3 && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== USERNAME), 'owner.username'));
+        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => c.pos.getRangeTo(this) <= 3 && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
             for (let key in nearbyCreeps) {
                 let user = nearbyCreeps[key];
