@@ -58,7 +58,7 @@ module.exports.role = profiler.registerFN(role, 'harvesterRole');
 
 function depositEnergy(creep) {
     let link;
-    if (!creep.memory.containerID) creep.memory.containerID = creep.harvestDepositContainer();
+    if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
     if (!creep.memory.onContainer) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container && creep.pos.getRangeTo(container) > 0) {
@@ -132,6 +132,15 @@ function harvestDepositLink(creep) {
                 }
             }
         }
+    }
+}
+
+function harvestDepositContainer(source, creep) {
+    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
+    if (container) {
+        return container.id;
+    } else {
+        harvesterContainerBuild(creep);
     }
 }
 
