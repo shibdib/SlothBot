@@ -17,6 +17,9 @@ function role(creep) {
         creep.suicide();
         return null;
     }
+    //Attempt to build extensions
+    if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
+    //If source is set harvest
     if (creep.memory.source) {
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
@@ -27,10 +30,8 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
                 let container = Game.getObjectById(creep.memory.containerID);
-                let link = Game.getObjectById(creep.memory.linkID);
-                if (container && link && creep.room.memory.storageLink && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
+                if (container && Game.getObjectById(creep.memory.linkID) && creep.room.memory.storageLink && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
                 break;
         }
         if (creep.carry.energy === creep.carryCapacity) {
@@ -54,32 +55,37 @@ function role(creep) {
         }
     }
 }
+
 module.exports.role = profiler.registerFN(role, 'harvesterRole');
 
 function depositEnergy(creep) {
     let link;
     if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-    if (!creep.memory.onContainer) {
-        let container = Game.getObjectById(creep.memory.containerID);
-        if (container && creep.pos.getRangeTo(container) > 0) {
-            return creep.shibMove(container, {range: 0});
-        } else if (container) {
-            creep.memory.onContainer = true;
-        }
-    }
-    if (!creep.memory.linkID) {
-        creep.memory.linkID = harvestDepositLink(creep);
-    } else {
-        link = Game.getObjectById(creep.memory.linkID);
-    }
-    let extension = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(creep) === 1 && s.energy < s.energyCapacity)[0];
-    if (extension) {
-        switch (creep.transfer(extension, RESOURCE_ENERGY)) {
-            case OK:
-                return;
-        }
-    }
+    //Check if there is extensions
     if (creep.memory.containerID) {
+        let extension = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(creep) === 1 && s.energy < s.energyCapacity)[0];
+        if (extension) {
+            switch (creep.transfer(extension, RESOURCE_ENERGY)) {
+                case OK:
+                    return;
+            }
+        }
+        //Make sure you're on the container
+        if (creep.memory.containerID && !creep.memory.onContainer) {
+            let container = Game.getObjectById(creep.memory.containerID);
+            if (container && creep.pos.getRangeTo(container) > 0) {
+                return creep.shibMove(container, {range: 0});
+            } else if (container) {
+                creep.memory.onContainer = true;
+            }
+        }
+        //Find link
+        if (!creep.memory.linkID) {
+            creep.memory.linkID = harvestDepositLink(creep);
+        } else {
+            link = Game.getObjectById(creep.memory.linkID);
+        }
+        //Drop in container
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             if (creep.pos.getRangeTo(container) > 0) creep.shibMove(container, {range: 0});
@@ -96,11 +102,6 @@ function depositEnergy(creep) {
             } else {
                 creep.idleFor(15);
             }
-        }
-    } else {
-        let buildSite = Game.getObjectById(containerBuilding(Game.getObjectById(creep.memory.source), creep));
-        if (!buildSite) {
-            harvesterContainerBuild(creep);
         }
     }
 }
@@ -182,8 +183,6 @@ function containerBuilding(source, creep) {
 harvesterContainerBuild = function (creep) {
     if (creep.memory.source && creep.pos.getRangeTo(Game.getObjectById(creep.memory.source)) <= 1) {
         if (Game.getObjectById(creep.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
-        if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
-            return null;
-        }
+        creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
     }
 };
