@@ -95,7 +95,7 @@ function mind() {
         }
 
         //Expansion Manager
-        if (activeRoom.controller.level >= 3 && cpuBucket === 10000 && Game.time % 15 === 0) {
+        if (activeRoom.controller.level >= 3 && cpuBucket === 10000 && Game.time % 150 === 0) {
             let maxRooms = _.round(Game.cpu.limit / 15);
             if (TEN_CPU) {
                 maxRooms = 2;

@@ -25,8 +25,7 @@ module.exports.claimNewRoom = function (room) {
             delete Memory.roomCache[room.memory.claimTarget].claimWorthy;
             Memory.lastExpansion = Game.time;
             log.i(room.memory.claimTarget + ' - Has been marked for claiming by ' + room.name);
-        } else {
-            log.i(room.name + ' Could not find any valid expansion rooms.');
+            Game.notify(room.memory.claimTarget + ' - Has been marked for claiming by ' + room.name)
         }
     }
     shib.shibBench('roomClaiming', cpu);
