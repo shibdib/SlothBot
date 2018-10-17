@@ -67,7 +67,7 @@ function towerControl(room) {
                 if (woundedCreep.length > 0) {
                     tower.heal(woundedCreep[0]);
                 }
-                let barriers = _.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 1500);
+                let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1500);
                 if (barriers.length > 0) {
                     tower.repair(barriers[0]);
                     continue;
