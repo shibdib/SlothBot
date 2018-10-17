@@ -141,7 +141,8 @@ function harvestDepositContainer(source, creep) {
     if (container) {
         return container.id;
     } else {
-        harvesterContainerBuild(creep);
+        let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+        if (!site && creep.pos.rangeToTarget(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
     }
 }
 
@@ -166,23 +167,5 @@ function extensionBuilder(creep) {
         }
         creep.memory.extensionBuilt = true;
         creep.memory.storedLevel = creep.room.controller.level;
-    } else {
-        creep.harvesterContainerBuild();
     }
 }
-
-function containerBuilding(source, creep) {
-    let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (site !== null && site !== undefined) {
-        if (source.pos.getRangeTo(site) <= 1) {
-            return site.id;
-        }
-    }
-}
-
-harvesterContainerBuild = function (creep) {
-    if (creep.memory.source && creep.pos.getRangeTo(Game.getObjectById(creep.memory.source)) <= 1) {
-        if (Game.getObjectById(creep.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
-        creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
-    }
-};
