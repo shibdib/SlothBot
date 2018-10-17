@@ -50,7 +50,7 @@ function shibMove(creep, heading, options = {}) {
     let pathInfo = creep.memory._shibMove;
     pathInfo.targetRoom = targetRoom(heading);
     // Check if target reached or within 1
-    let rangeToDestination = creep.pos.getRangeTo(heading);
+    let rangeToDestination = creep.pos.rangeToTarget(heading);
     if (rangeToDestination <= options.range) {
         creep.memory._shibMove = undefined;
         shib.shibBench('pathfinding', pathingStart);

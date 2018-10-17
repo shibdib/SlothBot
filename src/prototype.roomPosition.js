@@ -128,7 +128,7 @@ function cacheTargetDistance(origin, target) {
     let key = getPathKey(origin, target.pos);
     let cache = Memory.distanceCache || {};
     if (cache instanceof Array) cache = {};
-    let distance = origin.getRangeTo(target);
+    let distance = origin.rangeToTarget(target);
     cache[key] = {
         distance: distance,
         uses: 1,

@@ -69,7 +69,7 @@ function role(creep) {
             if (creep.hits < creep.hitsMax) creep.heal(creep);
         }
         let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (hostiles && creep.pos.getRangeTo(hostiles) < 4) {
+        if (hostiles && creep.pos.rangeToTarget(hostiles) < 4) {
             creep.rangedAttack(hostiles);
         }
     }

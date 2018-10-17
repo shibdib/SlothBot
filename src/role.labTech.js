@@ -65,7 +65,7 @@ module.exports.role = function (creep) {
         }
     } else if (checkForLoot(creep)) {
 
-    } else if (creep.pos.getRangeTo(closeLab) > 3) {
+    } else if (creep.pos.rangeToTarget(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
     } else if (creep.pos.checkForRoad()) {
         creep.moveRandom();

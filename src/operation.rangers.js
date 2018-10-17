@@ -18,7 +18,7 @@ Creep.prototype.rangersRoom = function () {
                 threatManagement(this);
                 highCommand.operationSustainability(this.room);
             } else {
-                if (this.pos.getRangeTo(squadLeader[0]) > 2) this.shibMove(squadLeader[0], {ignoreCreeps: false})
+                if (this.pos.rangeToTarget(squadLeader[0]) > 2) this.shibMove(squadLeader[0], {ignoreCreeps: false})
             }
         }
     }

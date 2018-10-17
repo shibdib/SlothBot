@@ -76,7 +76,7 @@ function depositEnergy(creep) {
         shib.shibBench('remoteRoads', cpu);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
+            if (creep.pos.rangeToTarget(container) > 0) return creep.shibMove(container, {range: 0});
             if (Game.time % 10 === 0 && container.hits < container.hitsMax * 0.75) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container);
@@ -172,11 +172,11 @@ function containerBuilding(source, creep) {
     let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     let built = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site) {
-        if (source.pos.getRangeTo(site) <= 1) {
+        if (source.pos.rangeToTarget(site) <= 1) {
             return site.id;
         }
     } else if (built) {
-        if (source.pos.getRangeTo(built) <= 1) {
+        if (source.pos.rangeToTarget(built) <= 1) {
             creep.memory.containerID = built.id;
             return built.id;
         }
@@ -184,7 +184,7 @@ function containerBuilding(source, creep) {
 }
 
 harvesterContainerBuild = function (creep) {
-    if (creep.memory.source && creep.pos.getRangeTo(Game.getObjectById(creep.memory.source)) <= 1) {
+    if (creep.memory.source && creep.pos.rangeToTarget(Game.getObjectById(creep.memory.source)) <= 1) {
         if (Game.getObjectById(creep.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
         if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
             return null;
