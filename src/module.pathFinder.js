@@ -310,7 +310,10 @@ function findRoute(origin, destination, options = {}) {
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
                 return 255;
             }
-            return 2.5;
+            // Unknown rooms have a slightly higher weight
+            if (Memory.roomCache && Memory.roomCache[roomName]) return 8;
+            if (isHighway) return 2;
+            return 3;
         }
     });
     let path = undefined;
