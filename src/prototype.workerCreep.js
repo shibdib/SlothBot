@@ -374,11 +374,11 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         for (let i = 0; i < container.length; i++) {
             const object = container[i];
             if (object && object.pos.rangeToTarget(this) <= range) {
-                let weight = 0.3;
+                let weight = 0.5;
                 if (object.id === this.room.memory.controllerContainer) continue;
                 let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
                 if (numberOfUsers > object.store[RESOURCE_ENERGY] / this.carryCapacity) continue;
-                if (object.store[RESOURCE_ENERGY] > 1500) weight = 0.3;
+                if (object.store[RESOURCE_ENERGY] > 1700) weight = 0.2;
                 const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
                 containers.push({
                     id: container[i].id,
@@ -446,10 +446,10 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
     }
     //Dropped
     if (this.room.controller.level < 5) {
-        let dropped = _.sortBy(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= 50 && !r.pos.checkForImpassible()}), 'amount');
+        let dropped = _.sortBy(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= this.carryCapacity && !r.pos.checkForImpassible()}), 'amount');
         if (dropped.length) {
             dropped = dropped[dropped.length - 1];
-            let weight = 0.5;
+            let weight = 0.3;
             let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === dropped.id && c.id !== this.id).length;
             let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
             energy.push({
