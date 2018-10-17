@@ -18,7 +18,7 @@ Room.prototype.buildRoom = function () {
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (!spawn.length) {
         buildTowers(this, structures);
-        return rebuildSpawn(this, structures);
+        rebuildSpawn(this, structures);
     }
     // Clean bad roads
     if (Game.time % 500 === 0) {
