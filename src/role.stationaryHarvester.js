@@ -87,12 +87,14 @@ function depositEnergy(creep) {
             if (creep.carry[RESOURCE_ENERGY] > 20 && container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);
                 creep.say('Fixing');
-            } else if (link && link.energy !== link.energyCapacity && controllerLink && controllerLink.energy < 400 && (creep.memory.linkDrop || creep.room.memory.storageLink)) {
+            } else if (link && link.energy !== link.energyCapacity && controllerLink && controllerLink.energy < 400 && (creep.memory.linkDrop || creep.room.memory.storageLink || _.sum(container.store) === container.storeCapacity)) {
                 creep.transfer(link, RESOURCE_ENERGY);
                 creep.memory.linkDrop = undefined;
-            } else {
+            } else if (_.sum(container.store) !== container.storeCapacity) {
                 creep.transfer(container, RESOURCE_ENERGY);
                 creep.memory.linkDrop = true;
+            } else {
+                creep.idleFor(15);
             }
         }
     } else {
