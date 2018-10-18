@@ -34,7 +34,7 @@ function cleanPathCacheByUsage() {
         if (_.size(Memory.pathCache) > 750) {
             let sorted = _.sortBy(Memory.pathCache, 'uses');
             let overage = (_.size(Memory.pathCache) - 750) + 50;
-            log.i('Cleaning Path cache for ' + key + ' (Over max size by ' + overage + ')...');
+            log.i('Cleaning Path cache (Over max size by ' + overage + ')...');
             Memory.pathCache = _.slice(sorted, overage, _.size(Memory.pathCache));
         }
     }
@@ -50,7 +50,7 @@ function cleanPathCacheByAge() {
             }
         }
         let prunedCount = originalCount - cache.length;
-        if (prunedCount) log.i('Cleaning PAth cache (Removed ' + prunedCount + ' old paths.)');
+        if (prunedCount) log.i('Cleaning Path cache (Removed ' + prunedCount + ' old paths.)');
         Memory.pathCache = cache;
     }
 }
