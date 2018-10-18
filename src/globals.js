@@ -105,6 +105,10 @@ let globals = function () {
         }
     };
 
+    //Cache stuff
+    global.creepCpuArray = {};
+    global.roomCpuArray = {};
+
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
         , [STRUCTURE_SPAWN]: "\uD83C\uDFE5"

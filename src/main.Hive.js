@@ -175,19 +175,20 @@ function minionController(minion) {
     try {
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - start;
-        minion.memory.cpuUsageArray = minion.memory.cpuUsageArray || [];
-        if (minion.memory.cpuUsageArray.length < 50) {
-            minion.memory.cpuUsageArray.push(used)
+        let cpuUsageArray = creepCpuArray[minion.name] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
         } else {
-            minion.memory.cpuUsageArray.shift();
-            minion.memory.cpuUsageArray.push(used);
-            if (average(minion.memory.cpuUsageArray) > 6) {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+            if (average(cpuUsageArray) > 6) {
                 minion.suicide();
                 log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
             }
         }
+        creepCpuArray[minion.name] = cpuUsageArray;
         minion.room.visual.text(
-            _.round(average(minion.memory.cpuUsageArray), 2),
+            _.round(average(cpuUsageArray), 2),
             minion.pos.x,
             minion.pos.y,
             {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}

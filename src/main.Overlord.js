@@ -153,19 +153,21 @@ module.exports.overlordMind = function (room, roomLimit) {
     Memory.ownedMineral = minerals;
 
     shib.shibBench('overlordMind', mindStart);
+    delete room.memory.cpuUsageArray;
     let used = Game.cpu.getUsed() - mindStart;
-    room.memory.cpuUsageArray = room.memory.cpuUsageArray || [];
-    if (room.memory.cpuUsageArray.length < 50) {
-        room.memory.cpuUsageArray.push(used)
+    let cpuUsageArray = roomCpuArray[room.name] || [];
+    if (cpuUsageArray.length < 50) {
+        cpuUsageArray.push(used)
     } else {
-        room.memory.cpuUsageArray.shift();
-        room.memory.cpuUsageArray.push(used);
-        if (average(room.memory.cpuUsageArray) > 20 && Game.time % 150 === 0) {
-            log.e(room.name + ' is using a high amount of CPU - ' + average(room.memory.cpuUsageArray));
-            Game.notify(room.name + ' is using a high amount of CPU - ' + average(room.memory.cpuUsageArray))
+        cpuUsageArray.shift();
+        cpuUsageArray.push(used);
+        if (average(cpuUsageArray) > 20 && Game.time % 150 === 0) {
+            log.e(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
+            Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray))
         }
     }
-    room.memory.averageCpu = _.round(average(room.memory.cpuUsageArray), 2);
+    room.memory.averageCpu = _.round(average(cpuUsageArray), 2);
+    roomCpuArray[room.name] = cpuUsageArray;
     room.visual.text(
         'CPU Usage: ' + room.memory.averageCpu,
         1,
@@ -199,19 +201,20 @@ function minionController(minion) {
     try {
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - cpuUsed;
-        minion.memory.cpuUsageArray = minion.memory.cpuUsageArray || [];
-        if (minion.memory.cpuUsageArray.length < 50) {
-            minion.memory.cpuUsageArray.push(used)
+        let cpuUsageArray = creepCpuArray[minion.name] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
         } else {
-            minion.memory.cpuUsageArray.shift();
-            minion.memory.cpuUsageArray.push(used);
-            if (average(minion.memory.cpuUsageArray) > 4) {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+            if (average(cpuUsageArray) > 4) {
                 minion.suicide();
                 log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
             }
         }
+        creepCpuArray[minion.name] = cpuUsageArray;
         minion.room.visual.text(
-            _.round(average(minion.memory.cpuUsageArray), 2),
+            _.round(average(cpuUsageArray), 2),
             minion.pos.x,
             minion.pos.y,
             {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
