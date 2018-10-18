@@ -158,14 +158,17 @@ function mind() {
 }
 
 function minionController(minion) {
-    if (minion.spawning) return;
-    if (minion.idle) return minion.say(ICONS.wait18);
-    minion.notifyWhenAttacked(false);
-    minion.reportDamage();
-    if (minion.room.name !== minion.memory.overlord) {
-        minion.room.cacheRoomIntel();
-    }
-    if (Game.time % 25 === 0) minion.room.cacheRoomIntel();
+    // If spawning disable notifications
+    if (minion.spawning) return minion.notifyWhenAttacked(false);
+    // If idle sleep
+    if (minion.idle) return;
+    // Report damage if hits are low
+    if (minion.hits < minion.hitsMax) minion.reportDamage();
+    // Report intel chance
+    if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) minion.room.cacheRoomIntel();
+    // Handle nuke flee
+    if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
+    // Set role
     let memoryRole = minion.memory.role;
     let creepRole = require('role.' + memoryRole);
     let start = Game.cpu.getUsed();

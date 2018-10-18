@@ -179,22 +179,26 @@ function minionController(minion) {
     if (minion.spawning) return minion.notifyWhenAttacked(false);
     // If idle sleep
     if (minion.idle) return;
+    // Chance based CPU saving
     let cpuUsed = Game.cpu.getUsed();
     if ((cpuUsed >= Game.cpu.limit && Math.random() > 0.7) || (cpuUsed >= Game.cpu.limit * 0.9 && Math.random() > 0.9)) return minion.say('CPU');
     if (Game.cpu.bucket < 10000 && cpuUsed >= Game.cpu.limit && Math.random() > Game.cpu.bucket / 10000) return minion.say('BUCKET');
+    // Report damage if hits are low
     if (minion.hits < minion.hitsMax) minion.reportDamage();
-    if (minion.room.name !== minion.memory.overlord) {
+    // Report intel chance
+    if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel();
     }
+    // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
-    if (Game.time % 25 === 0) minion.room.cacheRoomIntel();
+    // Set role
     let memoryRole = minion.memory.role;
     let creepRole = require('role.' + memoryRole);
-    let start = Game.cpu.getUsed();
+    // Run role and log CPU
     try {
         creepRole.role(minion);
-        let used = Game.cpu.getUsed() - start;
+        let used = Game.cpu.getUsed() - cpuUsed;
         minion.memory.cpuUsageArray = minion.memory.cpuUsageArray || [];
         if (minion.memory.cpuUsageArray.length < 50) {
             minion.memory.cpuUsageArray.push(used)
@@ -217,7 +221,7 @@ function minionController(minion) {
         log.e(e.stack);
         Game.notify(e.stack);
     }
-    shib.shibBench(memoryRole, start, Game.cpu.getUsed());
+    shib.shibBench(memoryRole, cpuUsed, Game.cpu.getUsed());
 }
 
 function cleanQueue(room) {
