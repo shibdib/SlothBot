@@ -5,9 +5,7 @@
 let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
-/**
- * @return {null}
- */
+
 function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     if (creep.tryToBoost(['harvest'])) return;
@@ -15,12 +13,26 @@ function role(creep) {
     if (creep.carry.ticksToLive <= 5) {
         depositEnergy(creep);
         creep.suicide();
-        return null;
+        return;
     }
     //Attempt to build extensions
     if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
     //If source is set harvest
     if (creep.memory.source) {
+        if (creep.carry.energy === creep.carryCapacity) {
+            if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
+                creep.memory.upgrade = true;
+                if (creep.room.controller.ticksToDowngrade >= 2000) {
+                    delete creep.memory.upgrade;
+                    delete creep.memory.hauling;
+                }
+                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(creep.room.controller);
+                }
+                return;
+            }
+            return depositEnergy(creep);
+        }
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -33,20 +45,6 @@ function role(creep) {
                 let container = Game.getObjectById(creep.memory.containerID);
                 if (container && Game.getObjectById(creep.memory.linkID) && creep.room.memory.storageLink && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
                 break;
-        }
-        if (creep.carry.energy === creep.carryCapacity) {
-            if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
-                creep.memory.upgrade = true;
-                if (creep.room.controller.ticksToDowngrade >= 2000) {
-                    delete creep.memory.upgrade;
-                    delete creep.memory.hauling;
-                }
-                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(creep.room.controller);
-                }
-                return null;
-            }
-            depositEnergy(creep);
         }
     } else {
         if (!creep.findSource()) {
