@@ -159,37 +159,27 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 return shibPath(creep, target, pathInfo, origin, target, options);
             }
         }
-        let roomsSearched = 0;
         let callback = (roomName) => {
-            if (allowedRooms) {
-                if (!_.includes(allowedRooms, roomName)) {
-                    return false;
-                }
-            }
-            if (!options.allowHostile && checkAvoid(roomName)
-                && roomName !== destRoomName && roomName !== originRoomName) {
-                return false;
-            }
-            roomsSearched++;
+            if (allowedRooms && !_.includes(allowedRooms, roomName)) return false;
+            if (!options.allowHostile && checkAvoid(roomName) && roomName !== destRoomName && roomName !== originRoomName) return false;
+            if (!Game.rooms[roomName]) return;
             let matrix;
-            let room = creep.room;
-            if (room) {
-                if (options.ignoreStructures) {
-                    matrix = new PathFinder.CostMatrix();
-                    if (!options.ignoreCreeps) {
-                        addCreepsToMatrix(room, matrix);
-                        addSksToMatrix(room, matrix);
-                    }
-                } else if (options.ignoreCreeps || roomName !== originRoomName) {
-                    matrix = getStructureMatrix(room, options.freshMatrix);
-                    getSKMatrix(room, matrix)
-                } else {
-                    matrix = getCreepMatrix(room);
-                    getSKMatrix(room, matrix)
+            let room = Game.rooms[roomName];
+            if (options.ignoreStructures) {
+                matrix = new PathFinder.CostMatrix();
+                if (!options.ignoreCreeps) {
+                    addCreepsToMatrix(room, matrix);
+                    addSksToMatrix(room, matrix);
                 }
-                getHostileMatrix(room, matrix);
-                addBorderToMatrix(room, matrix);
+            } else if (options.ignoreCreeps || roomName !== originRoomName) {
+                matrix = getStructureMatrix(room, options.freshMatrix);
+                getSKMatrix(room, matrix)
+            } else {
+                matrix = getCreepMatrix(room);
+                getSKMatrix(room, matrix)
             }
+            getHostileMatrix(room, matrix);
+            addBorderToMatrix(room, matrix);
             return matrix;
         };
         let ret = PathFinder.search(origin, {pos: target, range: options.range}, {
