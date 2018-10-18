@@ -189,8 +189,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                         getSKMatrix(room, matrix)
                     } else {
                         if (creep.name === 'raider_W56S21_T5_274') console.log(2)
-                        matrix = getCreepMatrix(room);
-                        getSKMatrix(room, matrix)
+                        matrix = getStructureMatrix(room, options.freshMatrix);
+                        addCreepsToMatrix(room, matrix);
+                        addSksToMatrix(room, matrix);
                     }
                     getHostileMatrix(room, matrix);
                     addBorderToMatrix(room, matrix);
