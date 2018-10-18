@@ -153,7 +153,6 @@ module.exports.overlordMind = function (room, roomLimit) {
     Memory.ownedMineral = minerals;
 
     shib.shibBench('overlordMind', mindStart);
-    delete room.memory.cpuUsageArray;
     let used = Game.cpu.getUsed() - mindStart;
     let cpuUsageArray = roomCpuArray[room.name] || [];
     if (cpuUsageArray.length < 50) {
