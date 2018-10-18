@@ -116,7 +116,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     if (!target) return creep.moveRandom();
     let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
     if (options.useCache && !options.checkPath) cached = getPath(creep, origin, target);
-    if (cached && options.ignoreCreeps && options.useCache) {
+    if (cached && options.ignoreCreeps) {
         pathInfo.findAttempt = undefined;
         creep.memory.badPathing = undefined;
         pathInfo.target = target;
@@ -124,6 +124,11 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         pathInfo.usingCached = true;
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
+        creep.room.visual.circle(creep.pos, {
+            fill: 'transparent',
+            radius: 0.55,
+            stroke: 'red'
+        });
         return creep.move(nextDirection);
     } else {
         pathInfo.usingCached = undefined;
@@ -229,7 +234,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
         pathInfo.target = target;
-        cachePath(creep, origin, target, pathInfo.path);
+        if (options.ignoreCreeps && !options.ignoreStructures) cachePath(creep, origin, target, pathInfo.path);
         delete pathInfo.findAttempt;
         delete creep.memory.badPathing;
         creep.memory._shibMove = pathInfo;
@@ -553,8 +558,10 @@ function getRoute(from, to) {
 }
 
 function cachePath(creep, from, to, path) {
+    //Don't store short paths
+    if (path.length < 5) return;
     let key = getPathKey(from, to);
-    let cache = Game.rooms[creep.memory.overlord].memory.pathCache || {};
+    let cache = Memory.pathCache || {};
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -562,20 +569,16 @@ function cachePath(creep, from, to, path) {
         uses: 1,
         tick: tick
     };
-    Game.rooms[creep.memory.overlord].memory.pathCache = cache;
+    Memory.pathCache = cache;
 }
 
 function getPath(creep, from, to) {
-    let cache = Game.rooms[creep.memory.overlord].memory.pathCache;
-    Game.rooms[creep.memory.overlord].memory.pathCache = undefined;
-    return null;
-    if (cache) {
-        let cachedPath = cache[getPathKey(from, to)];
-        if (cachedPath) {
-            cachedPath.uses += 1;
-            Game.rooms[creep.memory.overlord].memory.pathCache = cache;
-            return cachedPath.path;
-        }
+    let cache = Memory.pathCache;
+    let cachedPath = cache[getPathKey(from, to)];
+    if (cache && cachedPath) {
+        cachedPath.uses += 1;
+        Memory.pathCache = cache;
+        return cachedPath.path;
     } else {
         return null;
     }
