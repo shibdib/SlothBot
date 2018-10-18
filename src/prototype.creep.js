@@ -11,9 +11,7 @@ Object.defineProperty(Creep.prototype, "idle", {
             delete this.idle;
             return 0;
         }
-        let say = ICONS.wait23;
-        if (this.memory.idle - Game.time < 23) say = ICONS.wait + '' + this.memory.idle - Game.time;
-        this.say(say);
+        this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7]));
         return this.memory.idle;
     },
     set: function (val) {
