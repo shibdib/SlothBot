@@ -161,6 +161,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         }
         let roomsSearched = 0;
         let callback = (roomName) => {
+            if (!allowedRooms) allowedRooms = [creep.room.name];
             if (allowedRooms) {
                 if (!_.includes(allowedRooms, roomName)) {
                     return false;
@@ -171,24 +172,25 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 return false;
             }
             roomsSearched++;
-            let matrix;
-            let room = creep.room;
-            if (room) {
-                if (options.ignoreStructures) {
-                    matrix = new PathFinder.CostMatrix();
-                    if (!options.ignoreCreeps) {
-                        addCreepsToMatrix(room, matrix);
-                        addSksToMatrix(room, matrix);
+            let matrix = new PathFinder.CostMatrix();
+            for (let roomName of allowedRooms) {
+                let room = Game.rooms[roomName];
+                if (room) {
+                    if (options.ignoreStructures) {
+                        if (!options.ignoreCreeps) {
+                            addCreepsToMatrix(room, matrix);
+                            addSksToMatrix(room, matrix);
+                        }
+                    } else if (options.ignoreCreeps || roomName !== originRoomName) {
+                        matrix = getStructureMatrix(room, options.freshMatrix);
+                        getSKMatrix(room, matrix)
+                    } else {
+                        matrix = getCreepMatrix(room);
+                        getSKMatrix(room, matrix)
                     }
-                } else if (options.ignoreCreeps || roomName !== originRoomName) {
-                    matrix = getStructureMatrix(room, options.freshMatrix);
-                    getSKMatrix(room, matrix)
-                } else {
-                    matrix = getCreepMatrix(room);
-                    getSKMatrix(room, matrix)
+                    getHostileMatrix(room, matrix);
+                    addBorderToMatrix(room, matrix);
                 }
-                getHostileMatrix(room, matrix);
-                addBorderToMatrix(room, matrix);
             }
             return matrix;
         };
