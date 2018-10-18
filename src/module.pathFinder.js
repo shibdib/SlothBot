@@ -175,6 +175,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             let matrix = new PathFinder.CostMatrix();
             if (creep.name === 'raider_W56S21_T5_274') console.log(allowedRooms)
             for (let roomName of allowedRooms) {
+                if (creep.name === 'raider_W56S21_T5_274') console.log(roomName)
                 let room = Game.rooms[roomName];
                 if (room) {
                     if (options.ignoreStructures) {
@@ -183,9 +184,11 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                             addSksToMatrix(room, matrix);
                         }
                     } else if (options.ignoreCreeps || roomName !== originRoomName) {
+                        if (creep.name === 'raider_W56S21_T5_274') console.log(1)
                         matrix = getStructureMatrix(room, options.freshMatrix);
                         getSKMatrix(room, matrix)
                     } else {
+                        if (creep.name === 'raider_W56S21_T5_274') console.log(2)
                         matrix = getCreepMatrix(room);
                         getSKMatrix(room, matrix)
                     }
