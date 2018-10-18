@@ -9,14 +9,15 @@ Creep.prototype.robbery = function () {
     let tower = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 0), 'energy');
     if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
         range: 23,
-        preferHighway: true
+        preferHighway: true,
+        offRoad: true
     });
     if (this.room.name === this.memory.targetRoom && (!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) {
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #Overlord-Bot')) {
             case OK:
                 break;
             case ERR_NOT_IN_RANGE:
-                return this.shibMove(this.room.controller);
+                return this.shibMove(this.room.controller, {offRoad: true});
         }
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
@@ -52,7 +53,7 @@ Creep.prototype.robbery = function () {
                 case OK:
                     break;
                 case ERR_NOT_IN_RANGE:
-                    return this.shibMove(tower);
+                    return this.shibMove(tower, {offRoad: true});
             }
         } else if (storage && _.sum(storage.store)) {
             for (let resourceType in storage.store) {
@@ -60,7 +61,7 @@ Creep.prototype.robbery = function () {
                     case OK:
                         break;
                     case ERR_NOT_IN_RANGE:
-                        return this.shibMove(storage);
+                        return this.shibMove(storage, {offRoad: true});
                 }
             }
         } else if (terminal && _.sum(terminal.store)) {
@@ -69,7 +70,7 @@ Creep.prototype.robbery = function () {
                     case OK:
                         break;
                     case ERR_NOT_IN_RANGE:
-                        return this.shibMove(terminal);
+                        return this.shibMove(terminal, {offRoad: true});
                 }
             }
         }
@@ -84,7 +85,7 @@ Creep.prototype.robbery = function () {
                         case OK:
                             break;
                         case ERR_NOT_IN_RANGE:
-                            this.shibMove(storageItem);
+                            this.shibMove(storageItem, {offRoad: true});
                             break;
                         case ERR_FULL:
                             delete this.memory.storageDestination;
@@ -103,7 +104,7 @@ Creep.prototype.robbery = function () {
                             delete this.memory.destinationReached;
                             break;
                         case ERR_NOT_IN_RANGE:
-                            this.shibMove(controllerContainer);
+                            this.shibMove(controllerContainer, {offRoad: true});
                             break;
                         case ERR_FULL:
                             delete this.memory.storageDestination;
@@ -119,7 +120,7 @@ Creep.prototype.robbery = function () {
                                 delete this.memory.destinationReached;
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                this.shibMove(storage);
+                                this.shibMove(storage, {offRoad: true});
                                 break;
                             case ERR_FULL:
                                 delete this.memory.storageDestination;
@@ -136,7 +137,7 @@ Creep.prototype.robbery = function () {
                                 delete this.memory.destinationReached;
                                 break;
                             case ERR_NOT_IN_RANGE:
-                                this.shibMove(terminal);
+                                this.shibMove(terminal, {offRoad: true});
                                 break;
                             case ERR_FULL:
                                 delete this.memory.storageDestination;
@@ -147,7 +148,11 @@ Creep.prototype.robbery = function () {
                 }
             }
         } else {
-            return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19, preferHighway: true});
+            return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {
+                range: 19,
+                preferHighway: true,
+                offRoad: true
+            });
         }
     }
 };
