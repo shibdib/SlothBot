@@ -173,6 +173,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             }
             roomsSearched++;
             let matrix = new PathFinder.CostMatrix();
+            if (creep.name === 'raider_W56S21_T5_274') console.log(allowedRooms)
             for (let roomName of allowedRooms) {
                 let room = Game.rooms[roomName];
                 if (room) {
