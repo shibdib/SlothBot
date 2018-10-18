@@ -11,13 +11,15 @@ Object.defineProperty(Creep.prototype, "idle", {
             delete this.idle;
             return 0;
         }
+        let say = ICONS.wait23;
+        if (this.memory.idle - Game.time < 23) say = ICONS.wait + '' + this.memory.idle - Game.time;
+        this.say(say);
         return this.memory.idle;
     },
     set: function (val) {
         if (!val && this.memory.idle) {
             delete(this.memory.idle);
-        }
-        else {
+        } else {
             this.memory.idle = val;
         }
     }
@@ -31,8 +33,7 @@ Object.defineProperty(Creep.prototype, "idle", {
 Creep.prototype.idleFor = function (ticks = 0) {
     if (ticks > 0) {
         this.idle = Game.time + ticks;
-    }
-    else {
+    } else {
         delete this.idle;
     }
 };
