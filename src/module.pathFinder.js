@@ -574,8 +574,9 @@ function cachePath(creep, from, to, path) {
 
 function getPath(creep, from, to) {
     let cache = Memory.pathCache;
+    if (!cache) return null;
     let cachedPath = cache[getPathKey(from, to)];
-    if (cache && cachedPath) {
+    if (cachedPath) {
         cachedPath.uses += 1;
         Memory.pathCache = cache;
         return cachedPath.path;
