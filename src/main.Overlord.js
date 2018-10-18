@@ -1,4 +1,3 @@
-let profiler = require('screeps-profiler');
 let observers = require('module.observerController');
 let power = require('module.powerManager');
 let shib = require("shibBench");
