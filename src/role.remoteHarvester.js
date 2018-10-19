@@ -87,6 +87,10 @@ function depositEnergy(creep) {
                 } else {
                     creep.say('Fixing');
                 }
+            } else if (_.sum(container.store) !== container.storeCapacity) {
+                creep.transfer(container, RESOURCE_ENERGY);
+            } else {
+                creep.idleFor(15);
             }
         } else {
             creep.memory.containerID = undefined;
