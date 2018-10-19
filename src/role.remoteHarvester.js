@@ -68,7 +68,11 @@ function depositEnergy(creep) {
     if (!creep.memory.containerID) {
         let cpu = Game.cpu.getUsed();
         let buildSite = Game.getObjectById(containerBuilding(Game.getObjectById(creep.memory.source), creep));
-        if (!buildSite) harvesterContainerBuild(creep);
+        if (!buildSite) {
+            harvesterContainerBuild(creep);
+        } else {
+            creep.build(buildSite);
+        }
         shib.shibBench('remoteContainer', cpu);
     } else if (creep.memory.containerID) {
         let cpu = Game.cpu.getUsed();
