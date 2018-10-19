@@ -4,7 +4,7 @@ function cleanup() {
 //CLEANUP
     if (Game.time % 50 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
-        cleanPathCacheByAge();
+        //cleanPathCacheByAge();
         cleanDistanceCacheByAge();
         cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
@@ -32,9 +32,9 @@ module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
 
 function cleanPathCacheByUsage() {
     if (Memory.pathCache) { //1500 entries ~= 100kB
-        if (_.size(Memory.pathCache) > 750) {
+        if (_.size(Memory.pathCache) > 1000) {
             let sorted = _.sortBy(Memory.pathCache, 'uses');
-            let overage = (_.size(Memory.pathCache) - 750) + 50;
+            let overage = (_.size(Memory.pathCache) - 1000) + 100;
             log.i('Cleaning Path cache (Over max size by ' + overage + ')...');
             Memory.pathCache = _.slice(sorted, overage, _.size(Memory.pathCache));
         }
