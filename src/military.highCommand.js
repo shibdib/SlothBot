@@ -10,10 +10,10 @@ function highCommand() {
     manualAttacks();
 
     // Manage old operations
-    if (Game.time % 10 === 0 || Game.cpu.bucket < 5000) manageAttacks();
+    if (Game.time % 50 === 0 || Game.cpu.bucket < 5000) manageAttacks();
 
     // Request scouting for new operations
-    operationRequests();
+    if (Game.time % 500 === 0 || Game.cpu.bucket < 5000) operationRequests();
 }
 
 module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
@@ -23,7 +23,7 @@ function operationRequests() {
     let totalRooms = Memory.ownedRooms.length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
-    if (Game.time % 100 === 0 && ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < totalRooms) {
+    if (ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < totalRooms) {
         for (let ownedRoom of Memory.ownedRooms) {
             if (_.size(Memory.targetRooms) >= totalRooms) break;
             let localTargets = _.filter(Memory.roomCache, (r) => Game.map.findRoute(r.name, ownedRoom.name).length <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
@@ -45,22 +45,20 @@ function operationRequests() {
     }
     if (totalCount < surplusRooms * 1.5) {
         // Harass Targets
-        if (Game.time % 250 === 0 && Game.cpu.bucket > 7500) {
-            for (let ownedRoom of Memory.ownedRooms) {
-                let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
-                    ((r.reservation && _.includes(Memory._threatList, r.reservation.username)) || r.potentialTarget) &&
-                    9 > Game.map.findRoute(r.name, ownedRoom.name).length > 3);
-                if (enemyHarass.length) {
-                    for (let target of enemyHarass) {
-                        if (_.size(Memory.targetRooms) >= surplusRooms * 3 && _.size(Memory.targetRooms) >= totalRooms) break;
-                        let cache = Memory.targetRooms || {};
-                        let tick = Game.time;
-                        cache[target.name] = {
-                            tick: tick,
-                            type: 'attack'
-                        };
-                        Memory.targetRooms = cache;
-                    }
+        for (let ownedRoom of Memory.ownedRooms) {
+            let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
+                ((r.reservation && _.includes(Memory._threatList, r.reservation.username)) || r.potentialTarget) &&
+                9 > Game.map.findRoute(r.name, ownedRoom.name).length > 3);
+            if (enemyHarass.length) {
+                for (let target of enemyHarass) {
+                    if (_.size(Memory.targetRooms) >= surplusRooms * 3 && _.size(Memory.targetRooms) >= totalRooms) break;
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[target.name] = {
+                        tick: tick,
+                        type: 'attack'
+                    };
+                    Memory.targetRooms = cache;
                 }
             }
         }
