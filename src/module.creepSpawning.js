@@ -487,7 +487,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!roomThreat && !_.includes(queue, 'remoteHarvester') && !TEN_CPU && !remoteRoom) {
+            if (!roomThreat && !_.includes(queue, 'remoteHarvester') && !TEN_CPU) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;
                 if (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].sources) sourceCount = Memory.roomCache[room.memory.remoteRooms[keys]].sources.length;
@@ -498,12 +498,13 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!roomThreat && !_.includes(queue, 'pioneer') && !TEN_CPU && remoteRoom && remoteRoom.memory.requestingPioneer) {
+            if (!roomThreat && !_.includes(queue, 'pioneer') && !TEN_CPU && remoteRoom) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
                 if (pioneers.length < 1) {
                     queueCreep(room, PRIORITIES.pioneer, {
                         role: 'pioneer',
-                        destination: room.memory.remoteRooms[keys]
+                        destination: room.memory.remoteRooms[keys],
+                        reboot: true
                     })
                 }
             }

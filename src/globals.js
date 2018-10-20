@@ -96,6 +96,7 @@ let globals = function () {
             stationaryHarvester: [WORK, WORK, CARRY, MOVE],
             worker: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
+            pioneer: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
             hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
             explorer: [MOVE],
