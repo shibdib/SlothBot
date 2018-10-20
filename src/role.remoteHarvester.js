@@ -73,7 +73,7 @@ function depositEnergy(creep) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
-            if (container.hits < container.hitsMax * 0.75) {
+            if (container.hits < container.hitsMax * 0.5) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container);
                 } else {

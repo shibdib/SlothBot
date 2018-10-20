@@ -109,7 +109,7 @@ Creep.prototype.findConstruction = function () {
 
 findRepair = function (level) {
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
-    let site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < 75000);
+    let site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.7);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
