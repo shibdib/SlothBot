@@ -146,8 +146,9 @@ function role(creep) {
                         creep.shibMove(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 25000)[0], {range: 3});
                         break;
                 }
-            } else if (!creep.findConstruction())
-                creep.findRepair(1);
+            } else if (!creep.findConstruction()) {
+                if (!creep.findRepair(1)) creep.idleFor(25);
+            }
         }
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
