@@ -147,7 +147,7 @@ function harvestDepositContainer(source, creep) {
 function extensionBuilder(creep) {
     let container = Game.getObjectById(creep.memory.containerID);
     let inBuild = Game.getObjectById(creep.containerBuilding());
-    if ((container && creep.pos.getRangeTo(container) > 0) || (inBuild && creep.pos.getRangeTo(container) > 0)) {
+    if ((container && creep.pos.getRangeTo(container) > 0) || (inBuild && creep.pos.getRangeTo(inBuild) > 0)) {
         let moveTo = container || inBuild;
         return creep.shibMove(moveTo, {range: 0});
     } else if (container || inBuild) {
@@ -156,9 +156,9 @@ function extensionBuilder(creep) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
-                    if (pos.checkForImpassible() || pos.checkForRoad() || pos.checkForConstructionSites()) continue;
+                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure()) continue;
                     count++;
-                    if (!creep.memory.linkID || count === 2) continue;
+                    if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
                     pos.createConstructionSite(STRUCTURE_EXTENSION)
                 }
             }
