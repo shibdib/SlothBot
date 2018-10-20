@@ -503,8 +503,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (pioneers.length < 1) {
                     queueCreep(room, PRIORITIES.remoteHarvester - 1, {
                         role: 'pioneer',
-                        destination: room.memory.remoteRooms[keys],
-                        reboot: true
+                        destination: room.memory.remoteRooms[keys]
                     })
                 }
             }
