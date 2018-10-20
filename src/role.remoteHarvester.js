@@ -22,14 +22,14 @@ function role(creep) {
         shib.shibBench('remoteMove', cpu);
     } else {
         //Suicide and cache intel if room is reserved by someone else
-        cpu = Game.cpu.getUsed();
         if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
             creep.room.cacheRoomIntel(true);
             return creep.suicide();
         }
         //Request pioneer if construction sites exist
         cpu = Game.cpu.getUsed();
-        if (Game.time % 100 === 0) creep.room.memory.requestingPioneer = creep.room.constructionSites.length > 0;
+        let container = Game.getObjectById(creep.memory.containerID);
+        creep.room.memory.requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7);
         shib.shibBench('pioneerRequest', cpu);
         //If source is set mine
         if (creep.memory.source) {

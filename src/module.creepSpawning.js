@@ -498,7 +498,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
-            if (!roomThreat && !_.includes(queue, 'pioneer') && !TEN_CPU && remoteRoom) {
+            if (!roomThreat && !_.includes(queue, 'pioneer') && !TEN_CPU && remoteRoom.memory.requestingPioneer) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
                 if (pioneers.length < 1) {
                     queueCreep(room, PRIORITIES.remoteHarvester - 1, {
