@@ -487,6 +487,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
+            //Harvesters
             if (!roomThreat && !_.includes(queue, 'remoteHarvester') && !TEN_CPU) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;
@@ -498,6 +499,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
+            //Pioneers
             if (!roomThreat && remoteRoom && !_.includes(queue, 'pioneer') && !TEN_CPU && remoteRoom.memory.requestingPioneer) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.remoteRooms[keys] && creep.memory.role === 'pioneer');
                 if (pioneers.length < 1) {
