@@ -19,20 +19,6 @@ function role(creep) {
     if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
     //If source is set harvest
     if (creep.memory.source) {
-        if (creep.carry.energy === creep.carryCapacity) {
-            if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
-                creep.memory.upgrade = true;
-                if (creep.room.controller.ticksToDowngrade >= 2000) {
-                    delete creep.memory.upgrade;
-                    delete creep.memory.hauling;
-                }
-                if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(creep.room.controller);
-                }
-                return;
-            }
-            return depositEnergy(creep);
-        }
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -44,6 +30,20 @@ function role(creep) {
             case OK:
                 let container = Game.getObjectById(creep.memory.containerID);
                 if (container && Game.getObjectById(creep.memory.linkID) && creep.room.memory.storageLink && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
+                if (creep.carry.energy === creep.carryCapacity) {
+                    if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
+                        creep.memory.upgrade = true;
+                        if (creep.room.controller.ticksToDowngrade >= 2000) {
+                            delete creep.memory.upgrade;
+                            delete creep.memory.hauling;
+                        }
+                        if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                            creep.shibMove(creep.room.controller);
+                        }
+                        return;
+                    }
+                    return depositEnergy(creep);
+                }
                 break;
         }
     } else {
@@ -147,7 +147,7 @@ function harvestDepositContainer(source, creep) {
 function extensionBuilder(creep) {
     let container = Game.getObjectById(creep.memory.containerID);
     let inBuild = Game.getObjectById(creep.containerBuilding());
-    if ((container && creep.pos.getRangeTo(container) > 0) || (inBuild && creep.pos.getRangeTo(container) > 0)) {
+    if ((container && creep.pos.getRangeTo(container) > 0) || (inBuild && creep.pos.getRangeTo(inBuild) > 0)) {
         let moveTo = container || inBuild;
         return creep.shibMove(moveTo, {range: 0});
     } else if (container || inBuild) {
@@ -156,9 +156,9 @@ function extensionBuilder(creep) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
-                    if (pos.checkForImpassible() || pos.checkForRoad() || pos.checkForConstructionSites()) continue;
+                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure()) continue;
                     count++;
-                    if (!creep.memory.linkID || count === 2) continue;
+                    if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
                     pos.createConstructionSite(STRUCTURE_EXTENSION)
                 }
             }

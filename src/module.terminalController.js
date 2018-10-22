@@ -52,7 +52,6 @@ function terminalControl(room) {
         if (placeBoostOrders(terminal, storage, globalOrders, myOrders)) return;
 
         //Sell off excess
-        if (fillBuyOrders(terminal, globalOrders)) return;
         if (extendSellOrders(terminal, globalOrders, myOrders)) return;
         if (placeSellOrders(terminal, globalOrders, myOrders)) return;
 

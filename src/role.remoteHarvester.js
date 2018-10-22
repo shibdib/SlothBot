@@ -22,14 +22,14 @@ function role(creep) {
         shib.shibBench('remoteMove', cpu);
     } else {
         //Suicide and cache intel if room is reserved by someone else
-        cpu = Game.cpu.getUsed();
         if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
             creep.room.cacheRoomIntel(true);
             return creep.suicide();
         }
         //Request pioneer if construction sites exist
         cpu = Game.cpu.getUsed();
-        if (Game.time % 100 === 0) creep.room.memory.requestingPioneer = creep.room.constructionSites.length > 0;
+        let container = Game.getObjectById(creep.memory.containerID);
+        creep.room.memory.requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7);
         shib.shibBench('pioneerRequest', cpu);
         //If source is set mine
         if (creep.memory.source) {
@@ -65,23 +65,15 @@ module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
 
 function depositEnergy(creep) {
     // Check for container and build one if one isn't there
-    if (!creep.memory.containerID) {
-        let cpu = Game.cpu.getUsed();
-        let buildSite = Game.getObjectById(containerBuilding(Game.getObjectById(creep.memory.source), creep));
-        if (!buildSite) {
-            harvesterContainerBuild(creep);
-        } else {
-            creep.build(buildSite);
-        }
-        shib.shibBench('remoteContainer', cpu);
-    } else if (creep.memory.containerID) {
+    if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
+    if (creep.memory.containerID) {
         let cpu = Game.cpu.getUsed();
         if (!creep.memory.buildAttempt) remoteRoads(creep);
         shib.shibBench('remoteRoads', cpu);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
             if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
-            if (Game.time % 10 === 0 && container.hits < container.hitsMax * 0.75) {
+            if (container.hits < container.hitsMax * 0.5) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container);
                 } else {
@@ -176,26 +168,13 @@ function buildRoad(position, room) {
     return position.createConstructionSite(STRUCTURE_ROAD);
 }
 
-function containerBuilding(source, creep) {
-    let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    let built = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (site) {
-        if (source.pos.getRangeTo(site) <= 1) {
-            return site.id;
-        }
-    } else if (built) {
-        if (source.pos.getRangeTo(built) <= 1) {
-            creep.memory.containerID = built.id;
-            return built.id;
-        }
+function harvestDepositContainer(source, creep) {
+    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
+    if (container) {
+        return container.id;
+    } else {
+        let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+        if (!site && creep.pos.rangeToTarget(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        if (site) creep.build(site);
     }
 }
-
-harvesterContainerBuild = function (creep) {
-    if (creep.memory.source && creep.pos.getRangeTo(Game.getObjectById(creep.memory.source)) <= 1) {
-        if (Game.getObjectById(creep.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
-        if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
-            return null;
-        }
-    }
-};

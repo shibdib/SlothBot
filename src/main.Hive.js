@@ -50,6 +50,7 @@ function mind() {
     shib.shibBench('labControl', cpu);
 
     // Handle Diplomacy
+    cpu = Game.cpu.getUsed();
     log.d('Diplomacy Module');
     try {
         diplomacy.diplomacyOverlord();
@@ -58,6 +59,7 @@ function mind() {
         log.e(e.stack);
         Game.notify(e.stack);
     }
+    shib.shibBench('diplomacyControl', cpu);
 
     // Military first
     log.d('Military Creep Management');
