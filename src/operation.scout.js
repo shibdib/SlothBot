@@ -10,7 +10,6 @@ Creep.prototype.scoutRoom = function () {
         totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
     }
     // Get available rooms
-    let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let rcl8Rooms = _.filter(Memory.ownedRooms, (r) => r.controller.level === 8).length;
     // Get room details
@@ -46,7 +45,8 @@ Creep.prototype.scoutRoom = function () {
                 tick: tick,
                 type: type,
                 level: 1,
-                priority: priority
+                priority: priority,
+                annoy: true
             };
         } else if (controller.owner && controller.safeMode) {
             cache[this.room.name] = {
@@ -54,7 +54,7 @@ Creep.prototype.scoutRoom = function () {
                 type: 'pending',
                 dDay: tick + this.room.controller.safeMode,
             };
-        } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy <= 9)) {
+        } else if (controller.owner && (!towers.length || _.max(towers, 'energy').energy < 10)) {
             // Set room to be raided for loot if some is available
             if ((terminal && _.sum(terminal.store) > 1000) || (storage && _.sum(storage.store) > 1000)) {
                 cache[this.room.name] = {
