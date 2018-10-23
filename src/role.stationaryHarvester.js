@@ -10,7 +10,7 @@ function role(creep) {
     //if (creep.renewalCheck(4)) return creep.shibMove(creep.pos.findClosestByRange(FIND_MY_SPAWNS));
     if (creep.tryToBoost(['harvest'])) return;
     let source;
-    if (creep.carry.ticksToLive <= 5) {
+    if (creep.ticksToLive <= 5) {
         depositEnergy(creep);
         creep.suicide();
         return;
