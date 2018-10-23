@@ -19,6 +19,8 @@ function role(creep) {
     if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
     //If source is set harvest
     if (creep.memory.source) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -28,7 +30,6 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                let container = Game.getObjectById(creep.memory.containerID);
                 if (container && Game.getObjectById(creep.memory.linkID) && creep.room.memory.storageLink && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
                 if (creep.carry.energy === creep.carryCapacity) {
                     if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
@@ -86,7 +87,6 @@ function depositEnergy(creep) {
         //Drop in container
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (creep.pos.getRangeTo(container) > 0) creep.shibMove(container, {range: 0});
             let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
             if (creep.carry[RESOURCE_ENERGY] > 20 && container.hits < container.hitsMax * 0.25) {
                 creep.repair(container);
