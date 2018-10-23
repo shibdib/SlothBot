@@ -286,8 +286,11 @@ module.exports.workerCreepQueue = function (room) {
         if (room.controller.level < 8 && room.memory.energySurplus) number = 2;
         if (room.controller.level < 8 && room.memory.extremeEnergySurplus) number = 3;
         if (room.controller.level < 4 && !importantBuilds) number = _.round((8 - level) / 2);
+        //If room is about to downgrade get a creep out asap
+        let reboot;
+        if (room.controller.ticksToDowngrade <= 1500) reboot = true;
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
-            queueCreep(room, priority, {role: 'upgrader'})
+            queueCreep(room, priority, {role: 'upgrader', reboot: reboot})
         }
     }
     //Worker

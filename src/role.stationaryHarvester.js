@@ -32,17 +32,6 @@ function role(creep) {
             case OK:
                 if (container && Game.getObjectById(creep.memory.linkID) && creep.room.memory.storageLink && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
                 if (creep.carry.energy === creep.carryCapacity) {
-                    if (creep.memory.upgrade || (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username === USERNAME && creep.room.controller.ticksToDowngrade < 1000)) {
-                        creep.memory.upgrade = true;
-                        if (creep.room.controller.ticksToDowngrade >= 2000) {
-                            delete creep.memory.upgrade;
-                            delete creep.memory.hauling;
-                        }
-                        if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(creep.room.controller);
-                        }
-                        return;
-                    }
                     return depositEnergy(creep);
                 }
                 break;
