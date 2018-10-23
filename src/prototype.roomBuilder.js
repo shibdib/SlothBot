@@ -1,3 +1,4 @@
+let shib = require("shibBench");
 let protectedStructures = [
     STRUCTURE_SPAWN,
     STRUCTURE_STORAGE,
@@ -13,7 +14,10 @@ let protectedStructures = [
 
 Room.prototype.buildRoom = function () {
     let structures = this.structures;
+    let cpu;
+    cpu = Game.cpu.getUsed();
     cleanRoom(this, structures);
+    shib.shibBench('roomBuildClean', cpu);
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) return findExtensionHub(this);
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
     if (!spawn.length) {
@@ -28,21 +32,51 @@ Room.prototype.buildRoom = function () {
             }
         }
     }
+    cpu = Game.cpu.getUsed();
     buildLabs(this, structures);
+    shib.shibBench('roomBuildLabs', cpu);
+    cpu = Game.cpu.getUsed();
     buildExtensions(this);
+    shib.shibBench('roomBuildExtensions', cpu);
+    cpu = Game.cpu.getUsed();
     buildLinks(this);
+    shib.shibBench('roomBuildLinks', cpu);
+    cpu = Game.cpu.getUsed();
     buildStorage(this);
+    shib.shibBench('roomBuildStorage', cpu);
+    cpu = Game.cpu.getUsed();
     buildTerminal(this);
+    shib.shibBench('roomBuildTerminal', cpu);
+    cpu = Game.cpu.getUsed();
     buildSpawn(this, structures);
+    shib.shibBench('roomBuildSpawn', cpu);
+    cpu = Game.cpu.getUsed();
     buildWalls(this, structures);
+    shib.shibBench('roomBuildWalls', cpu);
+    cpu = Game.cpu.getUsed();
     buildTowers(this, structures);
+    shib.shibBench('roomBuildTowers', cpu);
+    cpu = Game.cpu.getUsed();
     controllerSupplier(this, structures);
+    shib.shibBench('roomBuildSupplier', cpu);
+    cpu = Game.cpu.getUsed();
     buildMineralContainer(this, structures);
+    shib.shibBench('roomBuildMineralContainer', cpu);
+    cpu = Game.cpu.getUsed();
     buildNuker(this, structures);
+    shib.shibBench('roomBuildNuker', cpu);
+    cpu = Game.cpu.getUsed();
     buildObserver(this, structures);
+    shib.shibBench('roomBuildObserver', cpu);
+    cpu = Game.cpu.getUsed();
     buildPowerSpawn(this, structures);
+    shib.shibBench('roomBuildPower', cpu);
+    cpu = Game.cpu.getUsed();
     buildExtractor(this, structures);
+    shib.shibBench('roomBuildExtractor', cpu);
+    cpu = Game.cpu.getUsed();
     if (Game.time % 500 === 0) buildRoads(this, structures);
+    shib.shibBench('roomBuildRoads', cpu);
 };
 
 function cleanRoom(room, structures) {
