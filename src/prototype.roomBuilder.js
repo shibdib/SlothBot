@@ -95,13 +95,11 @@ function buildExtensions(room) {
         switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
             case OK:
                 break;
-            case ERR_RCL_NOT_ENOUGH:
         }
     } else {
         switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
             case OK:
                 break;
-            case ERR_RCL_NOT_ENOUGH:
         }
     }
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_EXTENSION).length || 0;
@@ -256,6 +254,8 @@ function buildMineralContainer(room, structures) {
 }
 
 function buildWalls(room, structures) {
+    let cpu;
+    cpu = Game.cpu.getUsed();
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
     if (room.controller.level >= 5) {
         for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
@@ -265,7 +265,9 @@ function buildWalls(room, structures) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
+    shib.shibBench('wallBuildProtected', cpu);
     if (!room.memory.bunkerComplete) {
+        cpu = Game.cpu.getUsed();
         let exits = room.find(FIND_EXIT);
         let closestExitRange = hub.getRangeTo(hub.findClosestByPath(exits));
         let buildRange = 7;
@@ -392,20 +394,37 @@ function buildWalls(room, structures) {
                 room.memory.bunkerComplete = true;
             }
         }
+        shib.shibBench('wallBuildFindBunker', cpu);
     }
     if (room.controller.level < 4) return;
+    cpu = Game.cpu.getUsed();
     for (let location of room.memory.bunkerPos) {
         let rampPos = new RoomPosition(location.x, location.y, room.name);
         if (rampPos && !rampPos.checkIfOutOfBounds()) {
-            room.visual.circle(rampPos, {
-                fill: 'blue',
-                radius: 0.55,
-                stroke: 'blue'
-            });
-            rampPos.createConstructionSite(STRUCTURE_RAMPART);
-            buildRoad(rampPos, room);
+            if (!rampPos.checkForBarrierStructure()) {
+                room.visual.circle(rampPos, {
+                    fill: 'red',
+                    radius: 0.55,
+                    stroke: 'red'
+                });
+                rampPos.createConstructionSite(STRUCTURE_RAMPART);
+            } else if (!rampPos.checkForRoad() && !rampPos.checkForObstacleStructure()) {
+                room.visual.circle(rampPos, {
+                    fill: 'blue',
+                    radius: 0.55,
+                    stroke: 'blue'
+                });
+                buildRoad(rampPos, room);
+            } else {
+                room.visual.circle(rampPos, {
+                    fill: 'green',
+                    radius: 0.55,
+                    stroke: 'green'
+                });
+            }
         }
     }
+    shib.shibBench('wallBuildBuildBunker', cpu);
 }
 
 function buildStorage(room) {
@@ -628,7 +647,7 @@ function buildTowers(room, structures) {
             if (buildPos.checkForObstacleStructure()) continue;
             switch (buildPos.createConstructionSite(STRUCTURE_TOWER)) {
                 case OK:
-                    continue;
+                    break;
                 case ERR_RCL_NOT_ENOUGH:
                     return;
             }
