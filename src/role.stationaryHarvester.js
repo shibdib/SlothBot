@@ -20,7 +20,14 @@ function role(creep) {
     //If source is set harvest
     if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
-        if (container && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
+        //Make sure you're on the container
+        if (creep.memory.containerID && !creep.memory.onContainer) {
+            if (container && creep.pos.getRangeTo(container) > 0) {
+                return creep.shibMove(container, {range: 0});
+            } else if (container) {
+                creep.memory.onContainer = true;
+            }
+        }
         source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
@@ -56,15 +63,6 @@ function depositEnergy(creep) {
             switch (creep.transfer(extension, RESOURCE_ENERGY)) {
                 case OK:
                     return;
-            }
-        }
-        //Make sure you're on the container
-        if (creep.memory.containerID && !creep.memory.onContainer) {
-            let container = Game.getObjectById(creep.memory.containerID);
-            if (container && creep.pos.getRangeTo(container) > 0) {
-                return creep.shibMove(container, {range: 0});
-            } else if (container) {
-                creep.memory.onContainer = true;
             }
         }
         //Find link
