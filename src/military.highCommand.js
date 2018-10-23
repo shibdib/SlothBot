@@ -10,10 +10,10 @@ function highCommand() {
     manualAttacks();
 
     // Manage old operations
-    if (Game.time % 50 === 0 || Game.cpu.bucket < 5000) manageAttacks();
+    if (Game.time % 50 === 0) manageAttacks();
 
     // Request scouting for new operations
-    if (Game.time % 500 === 0 || Game.cpu.bucket < 5000) operationRequests();
+    if (Game.time % 500 === 0) operationRequests();
 }
 
 module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
