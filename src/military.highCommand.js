@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 function highCommand() {
     if (!Memory.targetRooms) Memory.targetRooms = {};
     // Check for flags
-    manualAttacks();
+    if (Game.time % 10 === 0) manualAttacks();
 
     // Manage old operations
     if (Game.time % 50 === 0) manageAttacks();
