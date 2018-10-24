@@ -17,6 +17,7 @@ function role(creep) {
     //If short on harvesters become one
     let harvesters = _.filter(creep.room.creeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length < 2) return creep.memory.role = 'stationaryHarvester';
+    if (creep.wrongRoom()) return;
     creep.repairRoad();
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
