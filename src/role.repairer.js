@@ -10,16 +10,14 @@
  */
 const profiler = require('screeps-profiler');
 
-
-/**
- * @return {null}
- */
 function role(creep) {
     //INITIAL CHECKS
     if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.suicide();
     if (creep.tryToBoost(['build'])) return;
-    if (creep.borderCheck()) return null;
-    if (creep.wrongRoom()) return null;
+    //If short on harvesters become one
+    let harvesters = _.filter(creep.room.creeps, (c) => (c.memory.role === 'stationaryHarvester'));
+    if (harvesters.length < 2) return creep.memory.role = 'stationaryHarvester';
+    creep.repairRoad();
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
         creep.memory.constructionSite = undefined;
