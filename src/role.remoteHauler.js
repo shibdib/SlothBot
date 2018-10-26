@@ -67,8 +67,9 @@ function role(creep) {
                     creep.memory.storageDestination = storage.id;
                 } else if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.75) {
                     creep.memory.storageDestination = controllerContainer.id;
-                } else {
-                    creep.findEssentials()
+                } else if (!creep.findEssentials()) {
+                    let spawn = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+                    creep.shibMove(spawn, {range: 3})
                 }
             }
         } else {

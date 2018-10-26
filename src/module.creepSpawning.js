@@ -205,6 +205,7 @@ function queueMilitaryCreep(importance, options = {}) {
 }
 
 function roomStartup(room, roomCreeps) {
+    let level = getLevel(room);
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length < 2) {
         queueCreep(room, 2 + (harvesters.length * 2), {role: 'stationaryHarvester'})
@@ -214,11 +215,15 @@ function roomStartup(room, roomCreeps) {
         queueCreep(room, 3, {role: 'hauler'})
     }
     let worker = _.filter(roomCreeps, (creep) => (creep.memory.role === 'worker'));
-    if (worker.length < 3) {
+    let number = 1;
+    if (level !== room.controller.level) number = 5;
+    if (worker.length < number) {
         queueCreep(room, 4, {role: 'worker'})
     }
     let upgrader = _.filter(roomCreeps, (creep) => (creep.memory.role === 'upgrader'));
-    if (upgrader.length < 3) {
+    number = 3;
+    if (level !== room.controller.level) number = 2;
+    if (upgrader.length < number) {
         queueCreep(room, 1 + (upgrader.length / 2), {role: 'upgrader'})
     }
     let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
@@ -288,6 +293,7 @@ module.exports.workerCreepQueue = function (room) {
         if (room.controller.level < 4 && !importantBuilds) number = _.round((8 - level) / 2);
         //If room is about to downgrade get a creep out asap
         let reboot;
+        if (level !== room.controller.level) number = 1;
         if (room.controller.ticksToDowngrade <= 1500) reboot = true;
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
             queueCreep(room, priority, {role: 'upgrader', reboot: reboot})
@@ -383,6 +389,13 @@ module.exports.workerCreepQueue = function (room) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
+    //ProximityScout
+    if (!_.includes(queue, 'proximityScout') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
+        let proximityScouts = _.filter(roomCreeps, (creep) => creep.memory.role === 'proximityScout');
+        if (proximityScouts.length < 1) {
+            queueCreep(room, PRIORITIES.explorer + proximityScouts.length, {role: 'proximityScout'})
+        }
+    }
     //Jerk
     if (!_.includes(queue, 'jerk') && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
         let jerks = _.filter(Game.creeps, (creep) => creep.memory.role === 'jerk' || creep.memory.role === 'explorer');
@@ -451,7 +464,7 @@ module.exports.remoteCreepQueue = function (room) {
     let range = room.memory.remoteRange || 1;
     let sources = 0;
     // Set harvester target
-    let harvesterTarget = 7;
+    let harvesterTarget = 11;
     //if (room.memory.energySurplus) harvesterTarget = 6;
     //if (room.memory.extremeEnergySurplus) harvesterTarget = 5;
     if (!room.memory.remoteRange || Game.time % 200 === 0) {

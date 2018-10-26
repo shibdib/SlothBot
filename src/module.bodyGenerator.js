@@ -268,7 +268,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work + carry;
             break;
         case 'remoteHarvester':
-            if (level < 5) {
+            if (level < 3) {
+                work = 1;
+                carry = 1;
+                move = 2;
+                break;
+            } else if (3 < level < 5) {
                 work = _.round(0.5 * level);
                 carry = 1;
                 move = 2;
@@ -283,10 +288,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             carry = _.random(2 * level, 3 * level);
             work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
-            if (level < 6) {
+            if (3 < level < 6) {
                 carry = level;
                 work = _.random(0, 1);
                 move = carry + work;
+            } else if (level < 3) {
+                carry = 2;
+                move = 2;
+                work = 0;
+                break;
             }
             break;
         case 'SKattacker':

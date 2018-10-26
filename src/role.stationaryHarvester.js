@@ -56,8 +56,8 @@ module.exports.role = profiler.registerFN(role, 'harvesterRole');
 function depositEnergy(creep) {
     let link;
     if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-    //Check if there is extensions
     if (creep.memory.containerID) {
+        //Check if there is extensions
         let extension = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(creep) === 1 && s.energy < s.energyCapacity)[0];
         if (extension) {
             switch (creep.transfer(extension, RESOURCE_ENERGY)) {

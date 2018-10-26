@@ -18,7 +18,7 @@ let globals = function () {
     global.TEN_CPU = Game.cpu.limit === 10;
 
     //Signing
-    global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~ SLACK - https://screeps.slack.com/messages/C5USGH14J ~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~ SLACK - https://screeps.slack.com/messages/C5USGH14J ~~"];
+    global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];
     global.RESERVE_ROOM_SIGNS = ["~~Reserved Territory of an #overlords member~~", "~~This is a restricted area, violators will be attacked #overlords~~", "~~#overlords Exclusion Zone~~", "~~#overlords Reserved Room~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER~~"];
     global.EXPLORED_ROOM_SIGNS = ["#overlords were here.", "#overlords have collected intel from this room. We Know.", "Spawn More #Overlord-Bot's", "All your rooms belong to #overlords"];
 
@@ -98,11 +98,13 @@ let globals = function () {
             waller: [MOVE, MOVE, CARRY, WORK],
             pioneer: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
-            hauler: [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+            hauler: [CARRY, CARRY, MOVE, MOVE],
             explorer: [MOVE],
             scout: [MOVE],
             responder: [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK],
-            longbow: [RANGED_ATTACK, MOVE]
+            longbow: [RANGED_ATTACK, MOVE],
+            remoteHauler: [CARRY, CARRY, MOVE, MOVE],
+            remoteHarvester: [MOVE, CARRY, WORK],
         }
     };
 

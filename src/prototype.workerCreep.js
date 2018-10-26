@@ -210,7 +210,7 @@ Creep.prototype.withdrawEnergy = function () {
         return null;
     } else {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
-        if (energyItem) {
+        if (energyItem && ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0))) {
             switch (this.withdraw(energyItem, RESOURCE_ENERGY)) {
                 case OK:
                     this.memory.energyDestination = undefined;
@@ -332,6 +332,19 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
             energy.push({
                 id: harvester.id,
                 distWeighted: harvesterDistWeighted,
+                harvest: false
+            });
+        }
+    }
+    //Take straight from remoteHaulers at low level who have nowhere to drop
+    if (this.room.controller.level <= 3) {
+        let hauler = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'remoteHauler' && !c.memory.storageDestination && c.carry[RESOURCE_ENERGY] > 0))[0];
+        if (hauler) {
+            let weight = 0.3;
+            const haulerDistWeighted = _.round(hauler.pos.rangeToTarget(this) * weight, 0) + 1;
+            energy.push({
+                id: hauler.id,
+                distWeighted: haulerDistWeighted,
                 harvest: false
             });
         }

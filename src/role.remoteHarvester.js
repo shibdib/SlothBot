@@ -175,6 +175,6 @@ function harvestDepositContainer(source, creep) {
     } else {
         let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
         if (!site && creep.pos.rangeToTarget(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
-        if (site) creep.build(site);
+        if (site && Game.rooms[creep.memory.overlord].controller.level >= 5) creep.build(site);
     }
 }

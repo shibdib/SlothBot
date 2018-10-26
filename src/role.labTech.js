@@ -9,7 +9,7 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     creep.say(ICONS.reaction, true);
     //If short on harvesters become one
-    let haulers = _.filter(creep.room.creeps, (c) => (c.memory.role === 'hauler'));
+    let haulers = _.filter(creep.room.creeps, (c) => (c.my && c.memory.role === 'hauler'));
     if (!haulers.length) return creep.memory.role = 'hauler';
     if (creep.wrongRoom()) return;
     creep.repairRoad();
