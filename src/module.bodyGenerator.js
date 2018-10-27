@@ -173,31 +173,30 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = tough + heal;
             break;
         case 'longbow':
-            if (level === 4) {
+            if (level === 3) {
                 rangedAttack = 2;
-                heal = 2;
-                tough = 3;
-                move = 7;
-            } else if (level === 5) {
+                heal = 1;
+                move = 3;
+            } else if (level === 4) {
                 rangedAttack = 3;
                 heal = 2;
-                tough = 3;
-                move = 9;
-            } else if (level === 6) {
+                move = 5;
+            } else if (level === 5) {
                 rangedAttack = 4;
                 heal = 2;
-                tough = 4;
-                move = 10;
+                move = 6;
+            } else if (level === 6) {
+                rangedAttack = 5;
+                heal = 3;
+                move = 8;
             } else if (level === 7) {
                 rangedAttack = 6;
                 heal = 5;
-                tough = 5;
-                move = 16;
+                move = 11;
             } else if (level === 8) {
                 rangedAttack = 12;
                 heal = 8;
-                tough = 5;
-                move = 25;
+                move = 20;
             } else {
                 rangedAttack = 1;
                 tough = 1;
@@ -252,6 +251,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             } else {
                 claim = level;
             }
+            if (level === 4 || level === 5) claim = 2;
             move = claim;
             break;
         case 'pioneer':
@@ -288,11 +288,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            carry = _.random(2 * level, 3 * level);
+            carry = _.random(2 * level, 4 * level);
             work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
             if (3 < level < 6) {
-                carry = _.random(level, 3 * level);
+                carry = _.random(2 * level, 3 * level);
                 work = _.random(0, 1);
                 move = carry + work;
             } else if (level < 3) {

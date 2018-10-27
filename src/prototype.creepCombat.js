@@ -279,7 +279,7 @@ Creep.prototype.fightRanged = function (target) {
     let range = this.pos.getRangeTo(hostile);
     let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     if (range <= 3) {
-        if (range <= 2 && hostile.getActiveBodyparts(ATTACK)) {
+        if (range <= 3 && hostile.getActiveBodyparts(ATTACK)) {
             this.kite();
         }
         if (targets.length > 1) {
@@ -303,6 +303,28 @@ Creep.prototype.fightRanged = function (target) {
         } else {
             this.shibMove(target, {range: 2, ignoreRoads: true});
         }
+    }
+};
+
+Creep.prototype.attackInRange = function () {
+    let hostile = this.findClosestEnemy(false);
+    let range = this.pos.getRangeTo(hostile);
+    let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
+    if (range <= 3) {
+        if (range <= 2 && hostile.getActiveBodyparts(ATTACK)) {
+            this.kite();
+        }
+        if (targets.length > 1) {
+            this.rangedMassAttack();
+        } else {
+            if (range <= 1) this.rangedMassAttack();
+            if (range > 1) this.rangedAttack(hostile);
+        }
+        return true;
+    } else {
+        let opportunity = _.min(_.filter(this.pos.findInRange(FIND_CREEPS, 3), (c) => _.includes(FRIENDLIES, c.owner.username) === false), 'hits');
+        if (opportunity) this.rangedAttack(opportunity);
+        if (targets.length > 1) this.rangedMassAttack();
     }
 };
 
@@ -570,8 +592,8 @@ Room.prototype.findAttackCreeps = function (object) {
     // TODO defender stop in rooms with (non attacking) enemies
     //    return false;
 };
-Creep.prototype.kite = function (fleeRange = 4) {
-    let avoid = this.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0});
+Creep.prototype.kite = function (fleeRange = 8) {
+    let avoid = this.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0});
     let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1),
         (c) => {
             return {pos: c.pos, range: 15};

@@ -1,27 +1,32 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.rangersRoom = function () {
-    if (!this.moveToStaging() || this.room.name === this.memory.targetRoom) {
-        let sentence = ['Pew', 'Bang', 'Pop', 'Peeeeeew'];
-        let word = Game.time % sentence.length;
-        this.say(sentence[word], true);
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.squadLeader);
-        if (!squadLeader.length) this.memory.squadLeader = true;
-        if (this.memory.squadLeader) {
-            if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
-            this.handleMilitaryCreep(false, false);
-            threatManagement(this);
-            highCommand.operationSustainability(this.room);
-        } else {
-            if (this.room.name === this.memory.targetRoom) {
-                this.handleMilitaryCreep(false, false);
-                threatManagement(this);
-                highCommand.operationSustainability(this.room);
-            } else {
-                if (this.pos.getRangeTo(squadLeader[0]) > 2) this.shibMove(squadLeader[0], {ignoreCreeps: false})
-            }
+    let sentence = [ICONS.respond, 'SWAT', 'TEAM'];
+    let word = Game.time % sentence.length;
+    this.say(sentence[word], true);
+    let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
+    if (!squadLeader.length) this.memory.squadLeader = true;
+    if (this.memory.squadLeader) {
+        let squadMember = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && !c.memory.squadLeader);
+        if (!squadMember.length || (this.pos.getRangeTo(squadMember[0]) > 1 && !this.borderCheck())) return this.attackInRange();
+        if (this.hits === this.hitsMax && squadMember[0].hits < squadMember[0].hitsMax) {
+            this.heal(squadMember[0]);
+        } else if (this.hits < this.hitsMax) {
+            this.heal(this);
         }
+        if (this.room.name !== this.memory.targetRoom && !this.handleMilitaryCreep(false, false)) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+        this.handleMilitaryCreep(false, false);
+        threatManagement(this);
+    } else {
+        this.shibMove(squadLeader[0], {range: 0});
+        if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
+            this.heal(squadLeader[0]);
+        } else if (this.hits < this.hitsMax) {
+            this.heal(this);
+        }
+        this.attackInRange();
     }
+    highCommand.operationSustainability(this.room);
 };
 
 function threatManagement(creep) {

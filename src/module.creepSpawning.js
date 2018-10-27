@@ -345,7 +345,7 @@ module.exports.workerCreepQueue = function (room) {
     let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     if (level >= 3 && !_.includes(queue, 'waller') && tower.length) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        let amount = 1;
+        let amount = 2;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
         }
@@ -492,7 +492,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded) || (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel || Memory.roomCache[room.memory.remoteRooms[keys]].hostiles))) roomThreat = true;
-            if (!roomThreat && !_.includes(queue, 'reserver') && level >= 6 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
+            if (!roomThreat && !_.includes(queue, 'reserver') && level >= 4 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
                     let priority = PRIORITIES.remoteHarvester + 1;
@@ -844,13 +844,13 @@ module.exports.militaryCreepQueue = function () {
         // Rangers
         if (Memory.targetRooms[key].type === 'rangers') {
             let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
-            if (rangers.length < 5 * opLevel && !_.includes(queue, 'longbow')) {
+            if (rangers.length < 2 && !_.includes(queue, 'longbow')) {
                 queueMilitaryCreep(priority, {
                     role: 'longbow',
                     targetRoom: key,
                     operation: 'rangers',
                     military: true,
-                    waitFor: 4 * opLevel,
+                    waitFor: 2,
                     staging: stagingRoom
                 })
             }

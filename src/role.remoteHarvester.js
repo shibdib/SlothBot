@@ -7,7 +7,7 @@ const profiler = require('screeps-profiler');
 let shib = require("shibBench");
 
 function role(creep) {
-    let source, cpu;
+    let source;
     creep.borderCheck();
     //Invader detection
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
@@ -17,9 +17,7 @@ function role(creep) {
     if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
     //Initial move
     if (!creep.memory.destinationReached) {
-        cpu = Game.cpu.getUsed();
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
-        shib.shibBench('remoteMove', cpu);
     } else {
         //Suicide and cache intel if room is reserved by someone else
         if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
@@ -27,20 +25,23 @@ function role(creep) {
             return creep.suicide();
         }
         //Request pioneer if construction sites exist
-        cpu = Game.cpu.getUsed();
         let container = Game.getObjectById(creep.memory.containerID);
         Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7);
-        shib.shibBench('pioneerRequest', cpu);
         //If source is set mine
         if (creep.memory.source) {
-            cpu = Game.cpu.getUsed();
+            //Make sure you're on the container
+            if (creep.memory.containerID && !creep.memory.onContainer) {
+                if (container && creep.pos.getRangeTo(container) > 0) {
+                    return creep.shibMove(container, {range: 0});
+                } else if (container) {
+                    creep.memory.onContainer = true;
+                }
+            }
             source = Game.getObjectById(creep.memory.source);
             if (source) {
                 switch (creep.harvest(source)) {
                     case OK:
-                        cpu = Game.cpu.getUsed();
                         if (creep.carry.energy === creep.carryCapacity) depositEnergy(creep);
-                        shib.shibBench('remoteDeposit', cpu);
                         break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(source);
@@ -51,12 +52,9 @@ function role(creep) {
             } else {
                 creep.memory.source = undefined;
             }
-            shib.shibBench('remoteHarvest', cpu);
             //Find Source
         } else {
-            cpu = Game.cpu.getUsed();
             creep.findSource();
-            shib.shibBench('remoteFind', cpu);
         }
     }
 }
@@ -67,12 +65,9 @@ function depositEnergy(creep) {
     // Check for container and build one if one isn't there
     if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
     if (creep.memory.containerID) {
-        let cpu = Game.cpu.getUsed();
         if (!creep.memory.buildAttempt) remoteRoads(creep);
-        shib.shibBench('remoteRoads', cpu);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
             if (container.hits < container.hitsMax * 0.5) {
                 if (creep.repair(container) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(container);

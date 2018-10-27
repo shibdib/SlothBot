@@ -2,7 +2,7 @@ let _ = require('lodash');
 let shib = require("shibBench");
 
 const DEFAULT_MAXOPS = 10000;
-const STATE_STUCK = 3;
+const STATE_STUCK = 2;
 
 const structureMatrixCache = {};
 const creepMatrixCache = {};
@@ -61,19 +61,20 @@ function shibMove(creep, heading, options = {}) {
         return creep.move(direction);
     }
     //Clear path if stuck
-    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .5) {
-        delete pathInfo.path;
-        pathInfo.pathPosTime = 0;
-        options.ignoreCreeps = false;
-        options.freshMatrix = true;
-        options.useCache = false;
-        creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
-        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path))[0];
+    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .3) {
+        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path) && c.memory.role !== 'stationaryHarvester')[0];
         if (bumpCreep) {
-            bumpCreep.moveRandom();
+            bumpCreep.shibMove(creep, {range: 0});
             bumpCreep.say('Traffic', true)
+        } else {
+            delete pathInfo.path;
+            pathInfo.pathPosTime = 0;
+            options.ignoreCreeps = false;
+            options.freshMatrix = true;
+            options.useCache = false;
+            creep.room.visual.circle(creep.pos, {fill: 'transparent', radius: 0.55, stroke: 'blue'});
+            if (Math.random() > .9) return creep.moveRandom();
         }
-        if (Math.random() > .8) return creep.moveRandom();
     }
     //Execute path if target is valid and path is set
     if (pathInfo.path && !options.checkPath) {
