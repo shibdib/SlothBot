@@ -14,9 +14,6 @@ function role(creep) {
     //INITIAL CHECKS
     if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.suicide();
     if (creep.tryToBoost(['build'])) return;
-    //If short on harvesters become one
-    let harvesters = _.filter(creep.room.creeps, (c) => (c.memory.role === 'stationaryHarvester'));
-    if (harvesters.length < 2) return creep.memory.role = 'stationaryHarvester';
     if (creep.wrongRoom()) return;
     creep.repairRoad();
     if (creep.carry.energy === 0) {

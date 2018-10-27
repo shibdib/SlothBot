@@ -13,7 +13,9 @@ function role(creep) {
     creep.say(sentence[word], true);
     if (!creep.memory.destination) {
         let adjacent = Game.map.describeExits(creep.pos.roomName);
-        creep.memory.destination = _.sample(adjacent);
+        let target = _.sample(adjacent);
+        if (!Game.map.isRoomAvailable(target)) return creep.say("??");
+        creep.memory.destination = target;
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
@@ -27,7 +29,7 @@ function role(creep) {
                             creep.memory.destinationReached = true;
                             break;
                         case ERR_NOT_IN_RANGE:
-                            creep.shibMove(creep.room.controller, {offRoad: true});
+                            creep.shibMove(creep.room.controller);
                     }
                 } else {
                     creep.memory.destinationReached = true;
@@ -36,7 +38,6 @@ function role(creep) {
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
                 allowHostile: true,
-                offRoad: true,
                 range: 23
             });
         }

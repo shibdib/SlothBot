@@ -12,6 +12,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'observer':
             move = 1;
             break;
+        case 'proximityScout':
+            move = 1;
+            break;
         case 'jerk':
             if (_.random(0, 1) === 1) {
                 rangedAttack = 1
@@ -58,7 +61,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 let multi = 1.5;
                 if (room.memory.energySurplus) multi = 2;
                 if (room.memory.extremeEnergySurplus) multi = 2.5;
-                work = _.round((multi * level) - 1);
+                work = _.round((multi * level) + 1);
                 carry = 1;
                 move = _.round(work / 2);
                 break;
@@ -141,9 +144,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'remoteGuard':
             tough = _.round(0.5 * level);
             rangedAttack = _.round((0.25 * level));
-            attack = _.round((0.5 * level) + 1);
-            heal = 0;
-            move = tough + rangedAttack + heal + attack;
+            attack = _.random(2, _.round((0.5 * level) + 1));
+            heal = _.random(0, 1);
+            move = tough + rangedAttack + heal + attack + 1;
             break;
         case 'attacker':
             tough = _.round(0.5 * level);
@@ -289,7 +292,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             work = _.random(0, 1);
             move = _.round((carry / 2)) + work;
             if (3 < level < 6) {
-                carry = level;
+                carry = _.random(level, 3 * level);
                 work = _.random(0, 1);
                 move = carry + work;
             } else if (level < 3) {

@@ -29,7 +29,7 @@ function role(creep) {
         //Request pioneer if construction sites exist
         cpu = Game.cpu.getUsed();
         let container = Game.getObjectById(creep.memory.containerID);
-        creep.room.memory.requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7);
+        Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7);
         shib.shibBench('pioneerRequest', cpu);
         //If source is set mine
         if (creep.memory.source) {

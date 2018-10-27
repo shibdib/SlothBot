@@ -122,7 +122,7 @@ function safeModeManager(room) {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
         let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_MY_SPAWNS)) < 8);
-        if (enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByPath(enemyMilitary)) < 7) {
+        if (enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByPath(enemyMilitary)) < 9) {
             return room.controller.activateSafeMode();
         }
     }
@@ -139,7 +139,7 @@ function manageResponseForces() {
     if (!responseTargets || !responseTargets.name) {
         let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
         if (highestHeat) {
-            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, highestHeat.name).length <= 5);
+            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
             for (let creep of idleResponders) {
                 creep.memory.responseTarget = highestHeat.name;
                 creep.memory.awaitingOrders = undefined;
@@ -147,7 +147,7 @@ function manageResponseForces() {
             }
         }
     } else {
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.room.name, responseTargets.name).length <= 8);
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;

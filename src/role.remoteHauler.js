@@ -7,11 +7,8 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.say(ICONS.haul, true);
-    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {
-        range: 18,
-        offRoad: true
-    });
-    if (creep.borderCheck()) return null;
+    //Invader detection
+    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
     creep.repairRoad();
     // Set harvester pairing
     if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
@@ -86,8 +83,8 @@ function role(creep) {
         // Handle Moving
         if (creep.room.name !== pairedHarvester.room.name) {
             return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 23, offRoad: true});
-        } else if (creep.pos.getRangeTo(pairedHarvester) > 3) {
-            return creep.shibMove(pairedHarvester, {range: 2, offRoad: true});
+        } else if (creep.pos.getRangeTo(pairedHarvester) > 1) {
+            return creep.shibMove(pairedHarvester, {range: 1, offRoad: true});
         } else {
             let container = Game.getObjectById(pairedHarvester.memory.containerID) || undefined;
             if (container && _.sum(container.store) > creep.carryCapacity * 0.7) {

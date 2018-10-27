@@ -324,7 +324,7 @@ Creep.prototype.findEnergy = function (range = 250, hauler = false) {
         });
     }
     //Take straight from harvesters at low level
-    if (this.room.controller.level <= 3) {
+    if (this.room.controller.level <= 2) {
         let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
         if (harvester) {
             let weight = 0.3;
