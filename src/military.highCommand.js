@@ -49,13 +49,8 @@ function operationRequests() {
             ((r.reservation && _.includes(Memory._threatList, r.reservation.username)) || r.potentialTarget));
         if (enemyHarass.length) {
             for (let target of enemyHarass) {
-                let targetRoom = Game.rooms[target.name];
-                let closestOwned = targetRoom.findClosestOwnedRoom();
-                let pathedRange = targetRoom.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
-                if (pathedRange > 15) {
-                    Memory.roomCache[target.name].potentialTarget = undefined;
-                    continue;
-                }
+                let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+                if (lastOperation !== 0 && lastOperation + 2000 > Game.time) continue;
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
                 cache[target.name] = {
