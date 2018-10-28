@@ -147,14 +147,14 @@ nukes = function (target) {
 
 status = function () {
     log.e('---------------------------------------------------------------------------');
-    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (Game.gcl.progress) + '/' + (Game.gcl.progressTotal) + ' | Creep Count - ' + Game.creeps.length);
+    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + Game.creeps.length);
     log.e('--ROOM INFO--');
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
         let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
         log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy);
     }
-    if (Memory.targetRooms) {
+    if (Memory.targetRooms && Memory.targetRooms.length) {
         log.e('--OPERATION INFO--');
         for (let key in Memory.targetRooms) {
             let level = Memory.targetRooms[key].level || 1;
