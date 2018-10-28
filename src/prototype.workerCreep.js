@@ -712,7 +712,7 @@ Creep.prototype.findEssentials = function () {
     }
         //Controller Container
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && controllerContainer.pos.rangeToTarget(this) > 1 && Math.random() > 0.4) {
+    if (controllerContainer && controllerContainer.pos.rangeToTarget(this) > 1 && Math.random() > 0.3) {
         let containerDistWeighted;
         const object = controllerContainer;
         let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
