@@ -159,11 +159,7 @@ Creep.prototype.scoutRoom = function () {
             delete Memory.targetRooms[this.room.name];
         }
     } else {
-        cache[this.room.name] = {
-            tick: tick,
-            type: 'pending',
-            dDay: tick + 5000,
-        };
+        delete Memory.targetRooms[this.room.name];
     }
     Memory.roomCache[this.room.name].lastOperation = Game.time;
     Memory.targetRooms = cache;
