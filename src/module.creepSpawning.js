@@ -67,7 +67,9 @@ module.exports.processBuildQueue = function () {
                         misc: undefined
                     });
                     if (!topPriority.role) continue;
-                    switch (spawn.spawnCreep(body, role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 500), {
+                    let name = role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
+                    if (topPriority.operation) name = topPriority.operation + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
+                    switch (spawn.spawnCreep(body, name, {
                         memory: {
                             born: Game.time,
                             role: role,

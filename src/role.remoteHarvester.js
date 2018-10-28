@@ -19,17 +19,19 @@ function role(creep) {
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else {
+        let container = Game.getObjectById(creep.memory.containerID);
         //Suicide and cache intel if room is reserved by someone else
         if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
             creep.room.cacheRoomIntel(true);
             return creep.suicide();
         }
-        //Request pioneer if construction sites exist
-        let container = Game.getObjectById(creep.memory.containerID);
-        let lowRoad = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.6);
-        Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7) || lowRoad[0];
         //If source is set mine
         if (creep.memory.source) {
+            //Request pioneer if construction sites exist or repairs are needed
+            if (Game.time % 50 === 0) {
+                let lowRoad = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.6);
+                Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7) || lowRoad[0];
+            }
             //Make sure you're on the container
             if (creep.memory.containerID && !creep.memory.onContainer) {
                 if (container && creep.pos.getRangeTo(container) > 0) {
@@ -78,7 +80,7 @@ function depositEnergy(creep) {
             } else if (_.sum(container.store) !== container.storeCapacity) {
                 creep.transfer(container, RESOURCE_ENERGY);
             } else {
-                creep.idleFor(15);
+                creep.idleFor(25);
             }
         } else {
             creep.memory.containerID = undefined;

@@ -42,6 +42,7 @@ function role(creep) {
             creep.moveRandom();
         } else {
             creep.memory.inPlace = true;
+            delete creep.memory._shibMove;
         }
     }
 }

@@ -369,6 +369,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 Room.prototype.invaderCheck = function () {
     if (this.memory.lastInvaderCheck + 10 >= Game.time) return;
+    this.memory.lastInvaderCheck = Game.time;
     if (!Memory.roomCache) Memory.roomCache = {};
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     let sk;
@@ -382,7 +383,6 @@ Room.prototype.invaderCheck = function () {
         this.memory.threatLevel = undefined;
         return;
     }
-    this.memory.lastInvaderCheck = Game.time;
     let invader = _.filter(this.hostileCreeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Source Keeper' && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 3));
     if (invader.length > 0) {
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
