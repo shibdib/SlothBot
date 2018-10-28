@@ -186,6 +186,17 @@ status = function (roomName = undefined, creep = false) {
                 }
             }
         }
+        let borderPatrolLeaders = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
+        if (borderPatrolLeaders.length) {
+            log.e('--BORDER PATROL INFO--');
+            for (let patrol of borderPatrolLeaders) {
+                if (patrol.memory.contactReport) {
+                    log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName) + ' ~~CONTACT REPORTED~~');
+                } else {
+                    log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName));
+                }
+            }
+        }
         return log.e('---------------------------------------------------------------------------');
     } else if (!creep) {
         let activeRoom = Game.rooms[roomName];

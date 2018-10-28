@@ -31,7 +31,7 @@ Creep.prototype.borderPatrol = function () {
     } else if (this.memory.squadLeader && !this.memory.contactReport) {
         log.a('BORDER ALERT: Enemy contact in ' + this.room.name + ' moving to engage.');
         this.memory.contactReport = true;
-    } else {
+    } else if (!this.memory.squadLeader) {
         this.borderCheck();
         if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
         if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
