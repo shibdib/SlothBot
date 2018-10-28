@@ -5,7 +5,6 @@ Creep.prototype.rangersRoom = function () {
     highCommand.operationSustainability(this.room);
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    if (this.borderCheck()) return;
     let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
     if (!squadLeader.length) return this.memory.squadLeader = true;
     if (this.memory.squadLeader && !this.handleMilitaryCreep(false, false)) {

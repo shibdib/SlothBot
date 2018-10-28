@@ -267,6 +267,7 @@ function minionController(minion) {
     let creepRole = require('role.' + memoryRole);
     // Run role and log CPU
     try {
+        if (minion.borderCheck()) return;
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - cpuUsed;
         let cpuUsageArray = creepCpuArray[minion.name] || [];
