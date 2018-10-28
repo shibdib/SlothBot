@@ -22,7 +22,7 @@ Creep.prototype.holdRoom = function () {
             // Request unClaimer if room level is too high
             if (Memory.targetRooms[this.room.name]) Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive;
             threatManagement(this);
-        } else {
+        } else if (!this.memory.squadLeader) {
             if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
             if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
                 this.heal(squadLeader[0]);

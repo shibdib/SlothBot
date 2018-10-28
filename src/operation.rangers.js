@@ -17,7 +17,7 @@ Creep.prototype.rangersRoom = function () {
         }
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
         threatManagement(this);
-    } else {
+    } else if (!this.memory.squadLeader) {
         if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
         if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
             this.heal(squadLeader[0]);

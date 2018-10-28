@@ -166,7 +166,7 @@ module.exports.operationSustainability = function (room) {
     let trackedFriendly = operation.trackedFriendly || [];
     let friendlyTombstones = _.filter(room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username));
     for (let tombstone of friendlyTombstones) {
-        if (_.includes(trackedFriendly, tombstone.id)) continue;
+        if (_.includes(trackedFriendly, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
         friendlyDead = friendlyDead + UNIT_COST(tombstone.creep.body);
         trackedFriendly.push(tombstone.id);
     }
@@ -181,7 +181,7 @@ module.exports.operationSustainability = function (room) {
     let enemyTombstones = _.filter(room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username));
     let enemyKilled = operation.lastEnemyKilled || Game.time;
     for (let tombstone of enemyTombstones) {
-        if (_.includes(trackedEnemy, tombstone.id)) continue;
+        if (_.includes(trackedEnemy, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
         enemyKilled = Game.time;
         enemyDead = enemyDead + UNIT_COST(tombstone.creep.body);
         trackedEnemy.push(tombstone.id);
