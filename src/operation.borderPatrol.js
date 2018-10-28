@@ -32,7 +32,6 @@ Creep.prototype.borderPatrol = function () {
         log.a('BORDER ALERT: Enemy contact in ' + this.room.name + ' moving to engage.');
         this.memory.contactReport = true;
     } else if (!this.memory.squadLeader) {
-        this.borderCheck();
         if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
         if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
             this.heal(squadLeader[0]);
@@ -40,7 +39,5 @@ Creep.prototype.borderPatrol = function () {
             this.heal(this);
         }
         this.attackInRange();
-        // If squad leader is idle you idle
-        if (squadLeader[0].memory.idle) this.idleFor(squadLeader[0].memory.idle - Game.time);
     }
 };

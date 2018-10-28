@@ -667,20 +667,9 @@ module.exports.militaryCreepQueue = function () {
         // Hold
         if (Memory.targetRooms[key].type === 'hold') {
             let unClaimerNeeded = Memory.targetRooms[key].unClaimer;
-            let longbows = 0;
-            let attackers = 0;
-            let healers = 0;
+            let longbows = 2;
             let waitFor = 2;
-            if (opLevel === 1) {
-                longbows = 2;
-            } else if (opLevel === 2) {
-                longbows = 3;
-            } else if (opLevel >= 3) {
-                longbows = 2;
-                attackers = 1;
-                healers = 1;
-            }
-            let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
+            let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow' && creep.memory.operation === 'hold');
             if ((longbow.length < longbows || (longbow[0] && longbow[0].ticksToLive <= 500 && longbow.length < longbows + 1)) && !_.includes(queue, 'longbow')) {
                 queueMilitaryCreep(priority, {
                     role: 'longbow',
@@ -690,27 +679,7 @@ module.exports.militaryCreepQueue = function () {
                     military: true
                 })
             }
-            let attacker = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'attacker');
-            if ((attacker.length < attackers || (attacker[0] && attacker[0].ticksToLive <= 500 && attacker.length < attackers + 1)) && !_.includes(queue, 'attacker')) {
-                queueMilitaryCreep(priority, {
-                    role: 'attacker',
-                    targetRoom: key,
-                    operation: 'hold',
-                    waitFor: waitFor,
-                    military: true
-                })
-            }
-            let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer');
-            if ((healer.length < healers || (healer[0] && healer[0].ticksToLive <= 500 && healer.length < healers + 1)) && !_.includes(queue, 'healer') && longbow.length) {
-                queueMilitaryCreep(priority, {
-                    role: 'healer',
-                    targetRoom: key,
-                    operation: 'hold',
-                    waitFor: waitFor,
-                    military: true
-                })
-            }
-            let unClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'unClaimer');
+            let unClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'unClaimer' && creep.memory.operation === 'hold');
             if (unClaimerNeeded && (unClaimer.length < 1 || (unClaimer[0] && unClaimer[0].ticksToLive <= 125 && unClaimer.length < 2)) && !_.includes(queue, 'unClaimer') && longbow.length) {
                 queueMilitaryCreep(priority, {
                     role: 'unClaimer',

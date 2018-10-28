@@ -149,6 +149,17 @@ function manageAttacks() {
 }
 
 module.exports.operationSustainability = function (room) {
+    // Switch to pending if safemodes
+    if (room.controller && room.controller.safeMode) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[room.name] = {
+            tick: tick,
+            type: 'pending',
+            dDay: tick + room.controller.safeMode,
+        };
+        return Memory.targetRooms = cache;
+    }
     let operation = Memory.targetRooms[room.name];
     if (!operation || operation.sustainabilityCheck === Game.time) return;
     let friendlyDead = operation.friendlyDead || 0;

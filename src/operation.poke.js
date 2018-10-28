@@ -8,7 +8,7 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.pokeRoom = function () {
-    if (!this.handleMilitaryCreep()) {
+    if (!this.handleMilitaryCreep(false, false, false, true)) {
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
         threatManagement(this);
         highCommand.operationSustainability(this.room);

@@ -277,16 +277,26 @@ Creep.prototype.fightRanged = function (target) {
     let lastRange = this.memory.lastRange || range;
     let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     if (range <= 3) {
-        this.memory.lastRange = range;
-        if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue) {
-            this.kite();
-        }
-        if (targets.length > 1) {
-            this.rangedMassAttack();
+        if (hostile instanceof Creep) {
+            this.memory.lastRange = range;
+            if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue) {
+                this.kite();
+            }
+            if (targets.length > 1) {
+                this.rangedMassAttack();
+            } else {
+                if (range <= 1) this.rangedMassAttack();
+                if (range > 1) this.rangedAttack(target);
+                if (!target.getActiveBodyparts(ATTACK)) this.shibMove(target, {
+                    ignoreCreeps: false,
+                    range: 1,
+                    ignoreRoads: true
+                });
+            }
         } else {
             if (range <= 1) this.rangedMassAttack();
             if (range > 1) this.rangedAttack(target);
-            if (!target.getActiveBodyparts(ATTACK)) this.shibMove(target, {
+            if (range > 1) this.shibMove(target, {
                 ignoreCreeps: false,
                 range: 1,
                 ignoreRoads: true
@@ -297,15 +307,10 @@ Creep.prototype.fightRanged = function (target) {
         let opportunity = _.min(_.filter(this.pos.findInRange(FIND_CREEPS, 3), (c) => _.includes(FRIENDLIES, c.owner.username) === false), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
         if (targets.length > 1) this.rangedMassAttack();
-        if (lastRange === 6 && range === 4) {
-            this.memory.lastRange = range;
-            return true;
+        if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
+            this.shibMove(target, {ignoreCreeps: false, range: 3, ignoreRoads: true});
         } else {
-            if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
-                this.shibMove(target, {ignoreCreeps: false, range: 3, ignoreRoads: true});
-            } else {
-                this.shibMove(target, {range: 3, ignoreRoads: true});
-            }
+            this.shibMove(target, {range: 3, ignoreRoads: true});
         }
         this.memory.lastRange = range;
         return true;

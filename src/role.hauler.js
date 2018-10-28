@@ -11,7 +11,7 @@ function role(creep) {
     if (creep.wrongRoom()) return null;
     creep.say(ICONS.haul, true);
     // Special Tasks
-    if (Game.time % 5 === 0 || creep.memory.nuclearEngineer || creep.memory.terminalWorker || creep.memory.labTech || boostDelivery(creep) || nuclearEngineer(creep) || terminalWorker(creep)) return;
+    if (Game.time % 5 === 0 && (creep.memory.nuclearEngineer || creep.memory.terminalWorker || creep.memory.labTech || boostDelivery(creep) || nuclearEngineer(creep) || terminalWorker(creep))) return;
     // If hauling do things
     if (creep.memory.hauling) {
         if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
