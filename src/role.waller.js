@@ -12,12 +12,11 @@ function role(creep) {
     let harvesters = _.filter(creep.room.creeps, (c) => (c.my && c.memory.role === 'stationaryHarvester'));
     if (harvesters.length < 2) return creep.memory.role = 'stationaryHarvester';
     if (creep.wrongRoom()) return;
-    creep.repairRoad();
     if (creep.carry.energy === 0) {
         creep.memory.working = undefined;
         if (creep.room.memory.responseNeeded) creep.memory.currentTarget = undefined;
     }
-    if (creep.isFull) creep.memory.working = true;
+    if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
     if (creep.memory.working) {
         creep.memory.source = undefined;
         if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget)) {

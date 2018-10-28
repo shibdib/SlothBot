@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.borderCheck();
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['heal', 'tough', 'ranged']);
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();

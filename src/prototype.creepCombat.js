@@ -274,9 +274,10 @@ Creep.prototype.flee = function (target) {
 Creep.prototype.fightRanged = function (target) {
     let hostile = this.findClosestEnemy(false);
     let range = this.pos.getRangeTo(hostile);
+    let lastRange = this.memory.lastRange || range;
     let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     if (range <= 3) {
-        if (range <= 3 && hostile.getActiveBodyparts(ATTACK)) {
+        if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue) {
             this.kite();
         }
         if (targets.length > 1) {
@@ -295,11 +296,14 @@ Creep.prototype.fightRanged = function (target) {
         let opportunity = _.min(_.filter(this.pos.findInRange(FIND_CREEPS, 3), (c) => _.includes(FRIENDLIES, c.owner.username) === false), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
         if (targets.length > 1) this.rangedMassAttack();
-        if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
-            this.shibMove(target, {ignoreCreeps: false, range: 2, ignoreRoads: true});
-        } else {
-            this.shibMove(target, {range: 2, ignoreRoads: true});
+        if (lastRange !== 6 && range !== 4) {
+            if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
+                this.shibMove(target, {ignoreCreeps: false, range: 3, ignoreRoads: true});
+            } else {
+                this.shibMove(target, {range: 3, ignoreRoads: true});
+            }
         }
+        return true;
     }
 };
 
@@ -680,7 +684,19 @@ function addBorderToMatrix(room, matrix) {
 }
 
 function addCreepsToMatrix(room, matrix) {
-    room.find(FIND_CREEPS).forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
+    room.creeps.forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
+    let bad = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.getActiveBodyparts(ATTACK));
+    if (bad.length > 0) {
+        for (let c = 0; c < bad.length; c++) {
+            let sites = bad[c].room.lookForAtArea(LOOK_TERRAIN, bad[c].pos.y - 2, bad[c].pos.x - 2, bad[c].pos.y + 2, bad[c].pos.x + 2, true);
+            for (let key in sites) {
+                let position = new RoomPosition(sites[key].x, sites[key].y, room.name);
+                if (!position.checkForWall()) {
+                    matrix.set(position.x, position.y, 254)
+                }
+            }
+        }
+    }
     return matrix;
 }
 

@@ -8,14 +8,13 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     if (creep.tryToBoost(['upgrade'])) return;
     //INITIAL CHECKS
-    if (creep.borderCheck()) return;
     // Travel
     if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 15});
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     let terminal = creep.room.terminal;
     if (creep.carry.energy === 0) creep.memory.working = undefined;
-    if (creep.isFull) creep.memory.working = true;
+    if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.destination].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.destination].controller, {range: 3});
         if (container && creep.pos.getRangeTo(container) <= 1 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);

@@ -8,18 +8,14 @@ let shib = require("shibBench");
 
 function role(creep) {
     let source;
-    creep.borderCheck();
     //Invader detection
-    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
+    if (creep.room.memory.responseNeeded || creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
-    //Check hauler status
-    if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else {
-        let container = Game.getObjectById(creep.memory.containerID);
         //Suicide and cache intel if room is reserved by someone else
         if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
             creep.room.cacheRoomIntel(true);
@@ -29,11 +25,15 @@ function role(creep) {
         if (creep.memory.source) {
             //Request pioneer if construction sites exist or repairs are needed
             if (Game.time % 50 === 0) {
+                let container = Game.getObjectById(creep.memory.containerID);
                 let lowRoad = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.6);
                 Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7) || lowRoad[0];
+                //Check hauler status
+                if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
             }
             //Make sure you're on the container
             if (creep.memory.containerID && !creep.memory.onContainer) {
+                let container = Game.getObjectById(creep.memory.containerID);
                 if (container && creep.pos.getRangeTo(container) > 0) {
                     return creep.shibMove(container, {range: 0});
                 } else if (container) {

@@ -9,7 +9,6 @@ function role(creep) {
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
-    creep.repairRoad();
     // Set harvester pairing
     if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
         let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && !c.memory.hauler)[0];
@@ -76,7 +75,7 @@ function role(creep) {
         }
     } else {
         // Check if ready to haul
-        if (creep.isFull) {
+        if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) {
             creep.memory.hauling = true;
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }

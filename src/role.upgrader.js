@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (!creep.carry.energy) delete creep.memory.working;
     if (creep.memory.working) if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3}); else return;
@@ -43,6 +40,4 @@ function role(creep) {
         let source = creep.pos.getClosestSource();
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'upgraderWorkers');
+};

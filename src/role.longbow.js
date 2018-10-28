@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
-    if (creep.borderCheck()) return;
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Border Patrol
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();

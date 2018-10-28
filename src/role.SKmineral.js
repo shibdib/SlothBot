@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     let source;
-    creep.borderCheck();
     let hostiles = creep.findClosestEnemy();
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     let lair = Game.getObjectById(creep.memory.lair);
@@ -20,7 +19,6 @@ function role(creep) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     }
     creep.memory.destinationReached = true;
-    creep.borderCheck();
     if (_.sum(creep.carry) === creep.carryCapacity || !creep.memory.harvesting) {
         delete creep.memory.harvesting;
         creep.memory.hauling = true;

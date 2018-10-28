@@ -43,7 +43,7 @@ Creep.prototype.scoutRoom = function () {
     let otherCreeps = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username));
     let armedHostiles = _.filter(this.room.creeps, (c) => !c.my && (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && !_.includes(FRIENDLIES, c.owner.username));
     let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits > 1000);
-    if ((totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local) && !coolDown) {
+    if ((totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) && !coolDown) {
         // If the room has no controller
         if (!controller) {
             cache[this.room.name] = {

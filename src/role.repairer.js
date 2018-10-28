@@ -15,13 +15,12 @@ function role(creep) {
     if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.suicide();
     if (creep.tryToBoost(['build'])) return;
     if (creep.wrongRoom()) return;
-    creep.repairRoad();
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
-    if (creep.isFull) creep.memory.working = true;
+    if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
     if (creep.memory.working === true) {
         creep.memory.source = undefined;
         if (!creep.memory.constructionSite || !Game.getObjectById(creep.memory.constructionSite)) {

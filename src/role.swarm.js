@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.borderCheck();
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
     // Escort

@@ -120,6 +120,7 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 };
 
 Creep.prototype.tryToBoost = function (boosts) {
+    if (this.memory.boostAttempt) return false;
     let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
     // Unboosting
     /**if (labs[0] && this.memory.boostAttempt && !this.memory.unboosted && this.ticksToLive <= 75) {
@@ -136,7 +137,6 @@ Creep.prototype.tryToBoost = function (boosts) {
         this.shibMove(labs[0]);
         return true;
     }**/
-    if (this.memory.boostAttempt) return false;
     if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
         let available = [];

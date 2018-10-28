@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.borderCheck();
     creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
         range: 18,
         offRoad: true

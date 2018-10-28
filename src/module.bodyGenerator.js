@@ -76,8 +76,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break
             } else {
                 carry = _.random(2 * level, 3 * level);
-                work = _.random(0, 1);
-                move = _.round((carry / 2)) + work;
+                move = _.round((carry / 2));
                 break;
             }
         case 'labTech':
@@ -292,16 +291,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'remoteHauler':
             carry = _.random(2 * level, 4 * level);
-            work = _.random(0, 1);
-            move = _.round((carry / 2)) + work;
+            move = _.round((carry / 2));
             if (3 < level < 6) {
                 carry = _.random(2 * level, 3 * level);
-                work = _.random(0, 1);
-                move = (carry + work) / 2;
+                move = (carry) / 2;
             } else if (level < 3) {
                 carry = 2;
                 move = 2;
-                work = 0;
                 break;
             }
             break;

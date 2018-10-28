@@ -10,8 +10,6 @@ const profiler = require('screeps-profiler');
  */
 function role(creep) {
     if (creep.tryToBoost(['harvest'])) return;
-    if (creep.renewalCheck(6)) return null;
-    if (creep.borderCheck()) return null;
     if (creep.wrongRoom()) return null;
     // Check if mineral depleted
     if (creep.memory.assignedMineral && Game.getObjectById(creep.memory.assignedMineral).mineralAmount === 0) {

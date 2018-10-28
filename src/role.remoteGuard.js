@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (creep.borderCheck()) return;
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     if (!creep.getActiveBodyparts(ATTACK) && !creep.getActiveBodyparts(RANGED_ATTACK)) return creep.goHomeAndHeal();
     // Squad leader

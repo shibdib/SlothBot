@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.say(ICONS.haul, true);
-    creep.repairRoad();
     if (_.sum(creep.carry) === 0) {
         delete creep.memory.storageDestination;
         creep.memory.hauling = false;

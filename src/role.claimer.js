@@ -9,7 +9,6 @@ function role(creep) {
     //Check if claim clear op
     if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move
-    creep.borderCheck();
     if (!creep.memory.destinationReached) {
         let destination = new RoomPosition(25, 25, creep.memory.destination, {range: 17});
         creep.shibMove(destination, {range: 17});

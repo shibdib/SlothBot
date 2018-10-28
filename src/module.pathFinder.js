@@ -10,7 +10,6 @@ const hostileMatrixCache = {};
 const skMatrixCache = {};
 
 function shibMove(creep, heading, options = {}) {
-    creep.borderCheck();
     _.defaults(options, {
         useCache: true,
         ignoreCreeps: true,
@@ -29,12 +28,15 @@ function shibMove(creep, heading, options = {}) {
         badRoom: undefined,
         returnIncomplete: false,
         stayInHub: false,
+        ignoreBorder: false
     });
+    if (!options.ignoreBorder) creep.borderCheck();
     if (creep.fatigue > 0) return creep.room.visual.circle(creep.pos, {
         fill: 'transparent',
         radius: 0.55,
         stroke: 'black'
     });
+    if (creep.memory.military) options.useCache = false;
     if (!heading instanceof RoomPosition) if (creep.room.name !== heading.room.name) return creep.shibMove(new RoomPosition(25, 25, heading.room.name), {range: 18});
     let origin = normalizePos(creep);
     let target = normalizePos(heading);

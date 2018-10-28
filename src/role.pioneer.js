@@ -6,8 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.borderCheck();
-    //Invader detection
     creep.repairRoad();
     if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
@@ -41,7 +39,7 @@ function role(creep) {
         creep.memory.task = undefined;
         creep.memory.hauling = false;
     }
-    if (creep.isFull) creep.memory.hauling = true;
+    if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.hauling = true;
     if (creep.memory.destinationReached) {
         let hostiles = creep.findClosestEnemy();
         if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();

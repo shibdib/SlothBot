@@ -12,7 +12,6 @@ module.exports.role = function (creep) {
     let haulers = _.filter(creep.room.creeps, (c) => (c.my && c.memory.role === 'hauler'));
     if (!haulers.length) return creep.memory.role = 'hauler';
     if (creep.wrongRoom()) return;
-    creep.repairRoad();
     if (creep.carry[RESOURCE_ENERGY] > 0) {
         let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
         if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);

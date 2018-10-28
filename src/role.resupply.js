@@ -15,7 +15,6 @@ function role(creep) {
         creep.memory.destinationReached = true;
     }
     //INITIAL CHECKS
-    creep.borderCheck();
     creep.wrongRoom();
     if (creep.carry.energy === 0) {
         creep.memory.hauling = false;
