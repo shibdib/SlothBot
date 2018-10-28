@@ -16,7 +16,9 @@ module.exports.overlordMind = function (room, roomLimit) {
     if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
     let storageEnergy = 0;
     if (room.storage) storageEnergy = room.storage.store[RESOURCE_ENERGY] || 0;
-    let energyInRoom = terminalEnergy + storageEnergy;
+    let containerEnergy = 0;
+    if (Game.getObjectById(room.memory.controllerContainer)) containerEnergy = Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] || 0;
+    let energyInRoom = terminalEnergy + storageEnergy + containerEnergy;
     room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT;
     room.memory.extremeEnergySurplus = energyInRoom >= ENERGY_AMOUNT * 2;
     room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT * 0.8;
