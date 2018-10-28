@@ -91,7 +91,7 @@ module.exports.processBuildQueue = function () {
                     })) {
                         case OK:
                             if (!topPriority.operation) log.i(spawn.room.name + ' Spawning a ' + role);
-                            if (topPriority.military) return delete Memory.militaryBuildQueue;
+                            if (topPriority.operation) return delete Memory.militaryBuildQueue;
                             if (!topPriority.buildCount) return delete spawn.room.memory.creepBuildQueue[role];
                             spawn.room.memory.creepBuildQueue[role].buildCount = topPriority.buildCount - 1;
                     }
