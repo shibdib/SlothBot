@@ -26,7 +26,8 @@ function role(creep) {
         }
         //Request pioneer if construction sites exist
         let container = Game.getObjectById(creep.memory.containerID);
-        Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7);
+        let lowRoad = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.6);
+        Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7) || lowRoad[0];
         //If source is set mine
         if (creep.memory.source) {
             //Make sure you're on the container
