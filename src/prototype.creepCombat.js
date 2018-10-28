@@ -233,8 +233,6 @@ Creep.prototype.waitRampart = function () {
 Creep.prototype.fightRampart = function () {
     let target = this.findClosestEnemy(false, true);
     if (!target || !target.pos || (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK))) return false;
-    let closestExit = target.pos.findClosestByRange(FIND_EXIT);
-    if (target.pos.getRangeTo(closestExit) > 2) return false;
     let position;
     if (this.memory.assignedRampart) position = Game.getObjectById(this.memory.assignedRampart);
     if (!this.memory.assignedRampart || (Game.time % 3 === 0)) {
@@ -242,7 +240,7 @@ Creep.prototype.fightRampart = function () {
         position = target.pos.findClosestByPath(this.room.structures,
             {filter: (r) => r.my && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() && !_.filter(this.room.creeps, (c) => c.memory && c.memory.assignedRampart === r.id && c.id !== this.id).length && (r.pos.lookFor(LOOK_CREEPS).length === 0 || (r.pos.x === this.pos.x && r.pos.y === this.pos.y))});
     }
-    if (!position || position.pos.getRangeTo(target) > 20) return false;
+    if (!position || position.pos.getRangeTo(target) > 25) return false;
     this.memory.assignedRampart = position.id;
     if (this.getActiveBodyparts(RANGED_ATTACK) && 1 < this.pos.getRangeTo(target) <= 3) {
         let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
