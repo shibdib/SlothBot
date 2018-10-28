@@ -116,7 +116,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     let cached;
     if (!target) return creep.moveRandom();
     let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
-    if (options.useCache && !options.checkPath) cached = getPath(creep, origin, target);
+    if (options.useCache && !options.checkPath && !creep.room.memory.responseNeeded) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
         pathInfo.findAttempt = undefined;
         creep.memory.badPathing = undefined;
