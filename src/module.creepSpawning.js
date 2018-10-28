@@ -529,7 +529,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Remote Response
         if (!_.includes(queue, 'remoteGuard')) {
             let remoteGuard = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteGuard');
-            if (remoteGuard.length < 3) {
+            if (remoteGuard.length < 2) {
                 queueCreep(room, PRIORITIES.remoteHarvester - 1, {
                     role: 'remoteGuard',
                     awaitingOrders: true,
