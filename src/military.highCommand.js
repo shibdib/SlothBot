@@ -66,14 +66,14 @@ function operationRequests() {
         }
     }
     // Pokes
-    let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke') || 0;
+    let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     if (pokeCount < 10) {
         let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
             ((r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget));
         if (enemyHarass.length) {
             for (let target of enemyHarass) {
                 if (Memory.targetRooms[target.name]) continue;
-                pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke') || 0;
+                pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
                 if (pokeCount >= 10) break;
                 let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
                 if (lastOperation !== 0 && lastOperation + _.random(1000, 5000) > Game.time) continue;
@@ -99,6 +99,7 @@ function manageAttacks() {
     if (_.size(Memory.targetRooms)) {
         totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
     }
+    let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let totalRooms = Memory.ownedRooms.length;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
@@ -120,6 +121,10 @@ function manageAttacks() {
         }
     }
     for (let key in Memory.targetRooms) {
+        if (pokeCount > 10 && Memory.targetRooms[key].type === 'poke') {
+            delete Memory.targetRooms[key];
+            continue;
+        }
         if (totalCount > surplusRooms * 3 && totalCount > totalRooms && Memory.targetRooms[key].priority !== 1 && Memory.targetRooms[key].type !== 'attack' && Memory.targetRooms[key].type !== 'poke' && !Memory.targetRooms[key].local) {
             delete Memory.targetRooms[key];
             totalCount--;
