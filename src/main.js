@@ -157,16 +157,16 @@ status = function (roomName = undefined, creep = false) {
             let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
             log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));
         }
-        if (Memory.targetRooms && Memory.targetRooms.length) {
+        if (Memory.targetRooms && _.size(Memory.targetRooms)) {
             log.e('--OPERATION INFO--');
             for (let key in Memory.targetRooms) {
                 let level = Memory.targetRooms[key].level || 1;
                 let type = Memory.targetRooms[key].type;
                 let priority = Memory.targetRooms[key].priority || 4;
                 if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
-                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead);
+                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key) + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead);
                 } else {
-                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key);
+                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key));
                 }
             }
         }

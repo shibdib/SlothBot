@@ -28,7 +28,7 @@ function operationRequests() {
     if (ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < _.round(totalRooms / 2)) {
         for (let ownedRoom of Memory.ownedRooms) {
             if (_.size(Memory.targetRooms) >= totalRooms) break;
-            let localTargets = _.filter(Memory.roomCache, (r) => Game.map.getRoomLinearDistance(r.name, ownedRoom.name) <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
+            let localTargets = _.filter(Memory.roomCache, (r) => Game.map.findRoute(r.name, ownedRoom.name).length <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
                 || (r.reservation && !_.includes(FRIENDLIES, r.reservation) && !_.includes(NO_AGGRESSION, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time));
             if (localTargets.length) {
                 let target = _.sample(localTargets);
