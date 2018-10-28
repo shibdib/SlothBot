@@ -345,7 +345,8 @@ module.exports.workerCreepQueue = function (room) {
     let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     if (level >= 3 && !_.includes(queue, 'waller') && tower.length) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        let amount = 2;
+        let amount = 1;
+        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length >= 5) amount = 2;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
         }
