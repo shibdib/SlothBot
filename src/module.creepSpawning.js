@@ -386,7 +386,7 @@ module.exports.workerCreepQueue = function (room) {
     //Explorer
     if (!_.includes(queue, 'explorer') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
         let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
-        if (explorers.length < 8 - level) {
+        if (explorers.length < (8 - level) / 2) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
@@ -400,7 +400,7 @@ module.exports.workerCreepQueue = function (room) {
     //Jerk
     if (!_.includes(queue, 'jerk') && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
         let jerks = _.filter(Game.creeps, (creep) => creep.memory.role === 'jerk' || creep.memory.role === 'explorer');
-        if (jerks.length < 8 - level) {
+        if (jerks.length < (8 - level) / 2) {
             queueCreep(room, PRIORITIES.jerk + jerks.length, {role: 'jerk'})
         }
     }
