@@ -31,17 +31,15 @@ function operationRequests() {
             let localTargets = _.filter(Memory.roomCache, (r) => Game.map.getRoomLinearDistance(r.name, ownedRoom.name) <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
                 || (r.reservation && !_.includes(FRIENDLIES, r.reservation) && !_.includes(NO_AGGRESSION, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time));
             if (localTargets.length) {
-                for (let target of localTargets) {
-                    if (_.size(Memory.targetRooms) >= totalRooms) break;
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[target.name] = {
-                        tick: tick,
-                        type: 'attack',
-                        local: true
-                    };
-                    Memory.targetRooms = cache;
-                }
+                let target = _.sample(localTargets);
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[target.name] = {
+                    tick: tick,
+                    type: 'attack',
+                    local: true
+                };
+                Memory.targetRooms = cache;
             }
         }
     }
@@ -51,8 +49,9 @@ function operationRequests() {
             ((r.reservation && _.includes(Memory._threatList, r.reservation.username)) || r.potentialTarget));
         if (enemyHarass.length) {
             for (let target of enemyHarass) {
-                let closestOwned = target.findClosestOwnedRoom();
-                let pathedRange = target.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
+                let targetRoom = Game.rooms[target.name];
+                let closestOwned = targetRoom.findClosestOwnedRoom();
+                let pathedRange = targetRoom.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
                 if (pathedRange > 15) {
                     Memory.roomCache[target.name].potentialTarget = undefined;
                     continue;

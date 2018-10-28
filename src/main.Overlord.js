@@ -7,10 +7,13 @@ let terminals = require('module.terminalController');
 let spawning = require('module.creepSpawning');
 
 module.exports.overlordMind = function (room, roomLimit) {
+    let roomTaskObject = taskCpuArray[room.name] || {};
+    let currentTask;
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 
     // Set Energy Needs
+    let cpu = Game.cpu.getUsed();
     log.d('Energy Status');
     let terminalEnergy = 0;
     if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
@@ -33,20 +36,29 @@ module.exports.overlordMind = function (room, roomLimit) {
         energyAvailableArray.push(totalEnergy);
     }
     roomEnergyArray[room.name] = energyAvailableArray;
+    currentTask = roomTaskObject['roomEnergyStatus'] || [];
+    if (currentTask.length > 50) currentTask.shift();
+    currentTask.push(Game.cpu.getUsed() - cpu);
+    roomTaskObject['roomEnergyStatus'] = currentTask;
+    shib.shibBench('roomEnergyStatus', cpu);
 
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;
 
     // Handle Defense
-    let cpu = Game.cpu.getUsed();
+    cpu = Game.cpu.getUsed();
     log.d('Defence Module');
     defense.controller(room);
+    currentTask = roomTaskObject['defenseController'] || [];
+    if (currentTask.length > 50) currentTask.shift();
+    currentTask.push(Game.cpu.getUsed() - cpu);
+    roomTaskObject['defenseController'] = currentTask;
     shib.shibBench('defenseController', cpu);
 
     //Build Room
     if (Game.time % 100 === 0 && cpuBucket >= 1000) {
+        cpu = Game.cpu.getUsed();
         log.d('Room Building Module');
-        let roomBuild = Game.cpu.getUsed();
         try {
             room.buildRoom();
         } catch (e) {
@@ -62,11 +74,16 @@ module.exports.overlordMind = function (room, roomLimit) {
                 building.notifyWhenAttacked(false);
             }
         }
-        shib.shibBench('roomBuild', roomBuild);
+        currentTask = roomTaskObject['roomBuild'] || [];
+        if (currentTask.length > 50) currentTask.shift();
+        currentTask.push(Game.cpu.getUsed() - cpu);
+        roomTaskObject['roomBuild'] = currentTask;
+        shib.shibBench('roomBuild', cpu);
     }
 
     // Manage creep spawning
     if (Game.time % 10 === 0 && cpuBucket >= 3000) {
+        cpu = Game.cpu.getUsed();
         log.d('Creep Queueing');
         try {
             let creepSpawn = Game.cpu.getUsed();
@@ -78,10 +95,16 @@ module.exports.overlordMind = function (room, roomLimit) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+        currentTask = roomTaskObject['creepSpawning'] || [];
+        if (currentTask.length > 50) currentTask.shift();
+        currentTask.push(Game.cpu.getUsed() - cpu);
+        roomTaskObject['creepSpawning'] = currentTask;
+        shib.shibBench('creepSpawning', cpu);
     }
 
     // Manage remote creep spawning
     if (Game.time % 50 === 0 && cpuBucket >= 7000 && room.controller.level >= 2 && !TEN_CPU) {
+        cpu = Game.cpu.getUsed();
         try {
             let remoteSpawn = Game.cpu.getUsed();
             spawning.remoteCreepQueue(room);
@@ -91,16 +114,27 @@ module.exports.overlordMind = function (room, roomLimit) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+        currentTask = roomTaskObject['remoteSpawn'] || [];
+        if (currentTask.length > 50) currentTask.shift();
+        currentTask.push(Game.cpu.getUsed() - cpu);
+        roomTaskObject['remoteSpawn'] = currentTask;
+        shib.shibBench('remoteSpawn', cpu);
     }
 
     // Manage creeps
     log.d('Manage Room Creeps');
+    cpu = Game.cpu.getUsed();
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
     // Worker minions
     for (let key in roomCreeps) {
         if (Game.cpu.getUsed() > cpuWindow) return;
         minionController(roomCreeps[key]);
     }
+    currentTask = roomTaskObject['minionController'] || [];
+    if (currentTask.length > 50) currentTask.shift();
+    currentTask.push(Game.cpu.getUsed() - cpu);
+    roomTaskObject['minionController'] = currentTask;
+    shib.shibBench('minionController', cpu);
 
     // Observer Control
     if (room.level === 8 && cpuBucket >= 8000) {
@@ -113,6 +147,10 @@ module.exports.overlordMind = function (room, roomLimit) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+        currentTask = roomTaskObject['observerControl'] || [];
+        if (currentTask.length > 50) currentTask.shift();
+        currentTask.push(Game.cpu.getUsed() - cpu);
+        roomTaskObject['observerControl'] = currentTask;
         shib.shibBench('observerControl', observerCpu);
     }
 
@@ -127,6 +165,10 @@ module.exports.overlordMind = function (room, roomLimit) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+        currentTask = roomTaskObject['linkControl'] || [];
+        if (currentTask.length > 50) currentTask.shift();
+        currentTask.push(Game.cpu.getUsed() - cpu);
+        roomTaskObject['linkControl'] = currentTask;
         shib.shibBench('linkControl', cpu);
     }
 
@@ -141,6 +183,10 @@ module.exports.overlordMind = function (room, roomLimit) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+        currentTask = roomTaskObject['terminalControl'] || [];
+        if (currentTask.length > 50) currentTask.shift();
+        currentTask.push(Game.cpu.getUsed() - cpu);
+        roomTaskObject['terminalControl'] = currentTask;
         shib.shibBench('terminalControl', cpu);
     }
 
@@ -155,8 +201,13 @@ module.exports.overlordMind = function (room, roomLimit) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+        currentTask = roomTaskObject['powerControl'] || [];
+        if (currentTask.length > 50) currentTask.shift();
+        currentTask.push(Game.cpu.getUsed() - cpu);
+        roomTaskObject['powerControl'] = currentTask;
         shib.shibBench('powerControl', cpu);
     }
+    taskCpuArray[room.name] = roomTaskObject;
 
     // Store Data
     log.d('Data Store');
@@ -174,7 +225,13 @@ module.exports.overlordMind = function (room, roomLimit) {
         cpuUsageArray.push(used);
         if (average(cpuUsageArray) > 20 && Game.time % 150 === 0) {
             log.e(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
-            Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray))
+            for (let key in taskCpuArray[room.name]) {
+                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(taskCpuArray[roomName][key]), 2));
+            }
+            Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
+            for (let key in taskCpuArray[room.name]) {
+                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(taskCpuArray[roomName][key]), 2));
+            }
         }
     }
     room.memory.averageCpu = _.round(average(cpuUsageArray), 2);

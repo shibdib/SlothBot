@@ -145,27 +145,41 @@ nukes = function (target) {
     }
 };
 
-status = function () {
-    log.e('---------------------------------------------------------------------------');
-    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + Game.creeps.length);
-    log.e('--ROOM INFO--');
-    for (let key in Memory.ownedRooms) {
-        let activeRoom = Memory.ownedRooms[key];
-        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
-        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy);
-    }
-    if (Memory.targetRooms && Memory.targetRooms.length) {
-        log.e('--OPERATION INFO--');
-        for (let key in Memory.targetRooms) {
-            let level = Memory.targetRooms[key].level || 1;
-            let type = Memory.targetRooms[key].type;
-            let priority = Memory.targetRooms[key].priority || 4;
-            if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
-                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead);
-            } else {
-                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key);
+status = function (roomName = undefined) {
+    if (!roomName) {
+        log.e('---------------------------------------------------------------------------');
+        log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + _.size(Game.creeps));
+        log.e('--ROOM INFO--');
+        for (let key in Memory.ownedRooms) {
+            let activeRoom = Memory.ownedRooms[key];
+            let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
+            log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy);
+        }
+        if (Memory.targetRooms && Memory.targetRooms.length) {
+            log.e('--OPERATION INFO--');
+            for (let key in Memory.targetRooms) {
+                let level = Memory.targetRooms[key].level || 1;
+                let type = Memory.targetRooms[key].type;
+                let priority = Memory.targetRooms[key].priority || 4;
+                if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
+                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead);
+                } else {
+                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key);
+                }
             }
         }
+        return log.e('---------------------------------------------------------------------------');
+    } else {
+        let activeRoom = Game.rooms[roomName];
+        if (!activeRoom) return log.e('No Data Found');
+        log.e('---------------------------------------------------------------------------');
+        log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + _.size(Game.creeps));
+        log.e('--ROOM INFO--');
+        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
+        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy);
+        log.e('--TASK CPU INFO--');
+        for (let key in taskCpuArray[roomName]) {
+            log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(taskCpuArray[roomName][key]), 2));
+        }
     }
-    return log.e('---------------------------------------------------------------------------');
 };
