@@ -28,7 +28,7 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.linkID && Game.time % 10 === 0 && Game.getObjectById(creep.memory.containerID).store[RESOURCE_ENERGY] > 10) creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+                if (creep.memory.linkID && Game.time % 5 === 0 && Game.getObjectById(creep.memory.containerID).store[RESOURCE_ENERGY] > 10) creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
                 if (creep.carry.energy === creep.carryCapacity) return depositEnergy(creep);
                 break;
         }
