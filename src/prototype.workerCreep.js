@@ -210,7 +210,7 @@ Creep.prototype.withdrawEnergy = function () {
         return null;
     } else {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
-        if (energyItem && ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0))) {
+        if (energyItem && ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0))) {
             switch (this.withdraw(energyItem, RESOURCE_ENERGY)) {
                 case OK:
                     this.memory.energyDestination = undefined;

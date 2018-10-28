@@ -93,7 +93,8 @@ module.exports.processBuildQueue = function () {
                                 log.i(spawn.room.name + ' Spawning a ' + role + ' [Op: ' + topPriority.operation + ' in ' + topPriority.targetRoom + ']');
                                 delete Memory.militaryBuildQueue;
                             }
-                            delete spawn.room.memory.creepBuildQueue[role];
+                            if (!topPriority.buildCount) return delete spawn.room.memory.creepBuildQueue[role];
+                            spawn.room.memory.creepBuildQueue[role].buildCount = topPriority.buildCount - 1;
                     }
                 }
             }
@@ -485,6 +486,7 @@ module.exports.remoteCreepQueue = function (room) {
     //Remotes
     let totalRemoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
     if (room.memory.remoteRooms && !room.memory.responseNeeded) {
+        let responseNeeded;
         for (let keys in room.memory.remoteRooms) {
             let remoteRoom = Game.rooms[room.memory.remoteRooms[keys]];
             if (room.shibRoute(room.memory.remoteRooms[keys]).length - 1 > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
@@ -493,6 +495,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded) || (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel || Memory.roomCache[room.memory.remoteRooms[keys]].hostiles))) roomThreat = true;
+            if (!responseNeeded) responseNeeded = Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel > 3;
             if (!roomThreat && !_.includes(queue, 'reserver') && level >= 4 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 if (reserver.length < 1) {
@@ -528,30 +531,44 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         // Remote Response
-        if (!_.includes(queue, 'remoteGuard')) {
-            let remoteGuard = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteGuard');
-            if (remoteGuard.length < 2) {
-                queueCreep(room, PRIORITIES.remoteHarvester - 1, {
-                    role: 'remoteGuard',
-                    awaitingOrders: true,
-                    military: true
-                })
+        if (responseNeeded) {
+            if (!_.includes(queue, 'remoteGuard')) {
+                let remoteGuard = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteGuard');
+                if (remoteGuard.length < 2) {
+                    queueCreep(room, PRIORITIES.remoteHarvester - 1, {
+                        role: 'remoteGuard',
+                        awaitingOrders: true,
+                        military: true,
+                        buildCount: 2 - remoteGuard.length
+                    })
+                }
             }
-        }
-        if (!_.includes(queue, 'healer')) {
-            let healer = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'healer');
-            if (healer.length < 1) {
-                queueCreep(room, PRIORITIES.remoteHarvester - 1, {
-                    role: 'healer',
-                    military: true
-                })
+            if (!_.includes(queue, 'healer')) {
+                let healer = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'healer');
+                if (healer.length < 1) {
+                    queueCreep(room, PRIORITIES.remoteHarvester - 1, {
+                        role: 'healer',
+                        military: true
+                    })
+                }
             }
         }
         if (!_.includes(queue, 'remoteMedic')) {
-            let remoteMedic = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteMedic');
-            if (remoteMedic.length < 1) {
+            let remoteMedic = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteMedic');
+            if (remoteMedic.length < _.round(Memory.ownedRooms.length / 2)) {
                 queueCreep(room, PRIORITIES.urgent, {
                     role: 'remoteMedic',
+                    military: true
+                })
+            }
+        }
+        // Border Patrol
+        if (level >= 4 && !_.includes(queue, 'longbow')) {
+            let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
+            if (borderPatrol.length < 2 || (borderPatrol[0] && borderPatrol[0].ticksToLive < 100 && borderPatrol.length < 3)) {
+                queueCreep(room, PRIORITIES.urgent, {
+                    role: 'longbow',
+                    operation: 'borderPatrol',
                     military: true
                 })
             }

@@ -22,3 +22,4 @@ require("operation.swarm");
 require("operation.swarmHarass");
 require("operation.rangers");
 require("operation.claimClear");
+require("operation.borderPatrol");

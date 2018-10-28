@@ -9,6 +9,8 @@ function role(creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
     if (creep.borderCheck()) return;
     if (creep.hits < creep.hitsMax) creep.heal(creep);
+    // Border Patrol
+    if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
     // Responder Mode
     if (creep.memory.responseTarget) {
         if (creep.memory.awaitingOrders) return creep.memory.responseTarget = undefined;
