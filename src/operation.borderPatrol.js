@@ -30,7 +30,7 @@ Creep.prototype.borderPatrol = function () {
             this.idleFor(5);
         }
     } else {
-        this.shibMove(squadLeader[0], {range: 0});
+        if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
         if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
             this.heal(squadLeader[0]);
         } else if (this.hits < this.hitsMax) {
