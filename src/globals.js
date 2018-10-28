@@ -113,6 +113,7 @@ let globals = function () {
     global.roomCpuArray = {};
     global.roomEnergyArray = {};
     global.taskCpuArray = {};
+    global.roomCreepCpuObject = {};
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"

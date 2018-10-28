@@ -281,6 +281,16 @@ function minionController(minion) {
             }
         }
         creepCpuArray[minion.name] = cpuUsageArray;
+        let roomCreepCpu = roomCreepCpuObject[minion.memory.overlord] || {};
+        cpuUsageArray = roomCreepCpu[minion.name] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
+        } else {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+        }
+        roomCreepCpu[minion.name] = cpuUsageArray;
+        roomCreepCpuObject[minion.memory.overlord] = roomCreepCpu;
         minion.room.visual.text(
             _.round(average(cpuUsageArray), 2),
             minion.pos.x,
