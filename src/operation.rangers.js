@@ -2,6 +2,7 @@ let highCommand = require('military.highCommand');
 
 Creep.prototype.rangersRoom = function () {
     let sentence = [ICONS.respond, 'SWAT', 'TEAM'];
+    highCommand.operationSustainability(this.room);
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
@@ -18,7 +19,7 @@ Creep.prototype.rangersRoom = function () {
         this.handleMilitaryCreep(false, false);
         threatManagement(this);
     } else {
-        this.shibMove(squadLeader[0], {range: 0});
+        if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
         if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
             this.heal(squadLeader[0]);
         } else if (this.hits < this.hitsMax) {
@@ -26,7 +27,6 @@ Creep.prototype.rangersRoom = function () {
         }
         this.attackInRange();
     }
-    highCommand.operationSustainability(this.room);
 };
 
 function threatManagement(creep) {

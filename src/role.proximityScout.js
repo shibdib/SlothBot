@@ -9,19 +9,16 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     creep.borderCheck();
     creep.room.cacheRoomIntel();
-    let sayings = ['Dont Mind Me', 'Beep Beep', 'Just Saying Hi', 'o/', ':D', ':)'];
-    creep.say(_.sample(sayings), true);
+    creep.room.invaderCheck();
+    let sayings = [creep.memory.overlord, 'PROXIMITY', 'INTRUSION', 'SENSOR'];
+    let word = Game.time % sayings.length;
+    creep.say(sayings[word], true);
     if (!creep.memory.destination) {
-        let adjacent = Game.map.describeExits(creep.pos.roomName);
-        let target = _.sample(adjacent);
-        if (!Game.map.isRoomAvailable(target) || Game.map.getRoomLinearDistance(target, creep.memory.overlord) > 4) return creep.say("??");
-        creep.memory.destination = target;
+        let remotes = Game.rooms[creep.memory.overlord].memory.remoteRooms;
+        creep.memory.destination = _.sample(remotes);
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
@@ -40,7 +37,6 @@ function role(creep) {
             }
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
-                allowHostile: true,
                 offRoad: true,
                 range: 23
             });
@@ -49,6 +45,4 @@ function role(creep) {
         creep.memory.destination = undefined;
         creep.memory.destinationReached = undefined;
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'explorerRole');
+};

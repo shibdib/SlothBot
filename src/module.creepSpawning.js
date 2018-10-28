@@ -384,6 +384,13 @@ module.exports.workerCreepQueue = function (room) {
             }
         }
     }
+    //Herald
+    if (!_.includes(queue, 'herald')) {
+        let herald = _.filter(roomCreeps, (creep) => creep.memory.role === 'herald');
+        if (!herald.length) {
+            queueCreep(room, PRIORITIES.explorer, {role: 'herald'})
+        }
+    }
     //Explorer
     if (!_.includes(queue, 'explorer') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
         let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
@@ -834,13 +841,13 @@ module.exports.militaryCreepQueue = function () {
         // Swarm
         if (Memory.targetRooms[key].type === 'swarm') {
             let swarm = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'swarm');
-            if (swarm.length < (60 * opLevel) + 10 && !_.includes(queue, 'swarm')) {
+            if (swarm.length < (120 * opLevel) + 10 && !_.includes(queue, 'swarm')) {
                 queueMilitaryCreep(priority, {
                     role: 'swarm',
                     targetRoom: key,
                     operation: 'swarm',
                     military: true,
-                    waitFor: 50 * opLevel,
+                    waitFor: 110 * opLevel,
                     staging: stagingRoom
                 })
             }

@@ -15,6 +15,7 @@ Creep.prototype.borderPatrol = function () {
             this.heal(this);
         }
         if (!this.handleMilitaryCreep(false, false)) {
+            this.memory.contactReport = undefined;
             if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
             // If on target, be available to respond
             this.memory.awaitingOrders = this.room.name === this.memory.responseTarget;
@@ -26,8 +27,11 @@ Creep.prototype.borderPatrol = function () {
                 this.memory.onTarget = undefined;
                 return this.say(this.memory.responseTarget);
             }
-            if (this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.responseTarget)) > 18) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17});
+            if (this.memory.responseTarget && this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.responseTarget)) > 18) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17});
             this.idleFor(5);
+        } else if (!this.memory.contactReport) {
+            log.a('BORDER ALERT: Enemy contact in {} moving to engage.'.format(this.room.name));
+            this.memory.contactReport = true;
         }
     } else {
         if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});

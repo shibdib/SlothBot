@@ -15,6 +15,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'proximityScout':
             move = 1;
             break;
+        case 'herald':
+            move = 1;
+            break;
         case 'jerk':
             if (_.random(0, 1) === 1) {
                 rangedAttack = 1
@@ -294,7 +297,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (3 < level < 6) {
                 carry = _.random(2 * level, 3 * level);
                 work = _.random(0, 1);
-                move = carry + work;
+                move = (carry + work) / 2;
             } else if (level < 3) {
                 carry = 2;
                 move = 2;

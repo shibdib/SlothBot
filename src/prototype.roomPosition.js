@@ -59,6 +59,10 @@ RoomPosition.prototype.checkForWall = function () {
     return Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) & TERRAIN_MASK_WALL > 0;
 };
 
+RoomPosition.prototype.checkForCreep = function () {
+    return _.filter(this.lookFor(LOOK_CREEPS))[0];
+};
+
 RoomPosition.prototype.checkForPlain = function () {
     return !Game.map.getRoomTerrain(this.roomName).get(this.x, this.y);
 };

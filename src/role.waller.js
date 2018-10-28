@@ -7,6 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (creep.tryToBoost(['build'])) return;
+    creep.say(ICONS.castle, true);
     //If short on harvesters become one
     let harvesters = _.filter(creep.room.creeps, (c) => (c.my && c.memory.role === 'stationaryHarvester'));
     if (harvesters.length < 2) return creep.memory.role = 'stationaryHarvester';

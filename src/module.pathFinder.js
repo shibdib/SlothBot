@@ -61,11 +61,11 @@ function shibMove(creep, heading, options = {}) {
         return creep.move(direction);
     }
     //Clear path if stuck
-    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .3) {
+    if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .2) {
         let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path) && c.memory.role !== 'stationaryHarvester')[0];
         if (bumpCreep) {
             bumpCreep.shibMove(creep, {range: 0});
-            bumpCreep.say('Traffic', true)
+            bumpCreep.say(ICONS.traffic, true)
         } else {
             delete pathInfo.path;
             pathInfo.pathPosTime = 0;

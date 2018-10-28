@@ -164,9 +164,8 @@ Creep.prototype.healAllyCreeps = function () {
 
 Creep.prototype.moveToHostileConstructionSites = function () {
     if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || this.room.controller.safeMode)) return false;
-    let constructionSite = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !s.pos.checkForRampart() && _.includes(Memory._threatList, s.owner.username)});
+    let constructionSite = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !s.pos.checkForRampart() && !_.includes(FRIENDLIES, s.owner.username)});
     if (constructionSite) {
-        this.say('TRAMPLE!!', true);
         if (constructionSite.pos.x === this.pos.x && constructionSite.pos.y === this.pos.y) return this.moveRandom();
         this.shibMove(constructionSite, {range: 0, ignoreCreeps: false});
         return true;

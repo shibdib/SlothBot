@@ -11,7 +11,7 @@ let globals = function () {
     global.MANUAL_FRIENDS = [];
 
     global.ATTACK_LOCALS = true;
-    global.LOCAL_SPHERE = 2; //Range that rooms consider local
+    global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
 
     global.FRIENDLIES = RawMemory.segments[2];
 
@@ -183,6 +183,7 @@ let globals = function () {
         , testFinished: "\uD83C\uDFC1" // for when scout has finished its test run
         , reaction: "\ud83d\udd2c"
         , haul: "\ud83d\ude9a"
+        , haul2: "\ud83d\ude9b"
         , respond: "\ud83d\ude93"
         , boost: "\ud83c\udccf"
         , nuke: "\u2622"
@@ -190,6 +191,8 @@ let globals = function () {
         , renew: "\u26fd"
         , greenCheck: "\u2705"
         , crossedSword: "\u2694"
+        , castle: "\ud83c\udff0"
+        , traffic: "\ud83d\udea6"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);

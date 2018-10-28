@@ -6,6 +6,8 @@ const profiler = require('screeps-profiler');
 
 function highCommand() {
     if (!Memory.targetRooms) Memory.targetRooms = {};
+    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+    if (maxLevel < 2) return;
     // Check for flags
     if (Game.time % 10 === 0) manualAttacks();
 
@@ -23,10 +25,10 @@ function operationRequests() {
     let totalRooms = Memory.ownedRooms.length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
-    if (ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < totalRooms) {
+    if (ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < _.round(totalRooms / 2)) {
         for (let ownedRoom of Memory.ownedRooms) {
             if (_.size(Memory.targetRooms) >= totalRooms) break;
-            let localTargets = _.filter(Memory.roomCache, (r) => Game.map.findRoute(r.name, ownedRoom.name).length <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
+            let localTargets = _.filter(Memory.roomCache, (r) => Game.map.getRoomLinearDistance(r.name, ownedRoom.name) <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
                 || (r.reservation && !_.includes(FRIENDLIES, r.reservation) && !_.includes(NO_AGGRESSION, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time));
             if (localTargets.length) {
                 for (let target of localTargets) {
@@ -43,23 +45,26 @@ function operationRequests() {
             }
         }
     }
-    if (totalCount < surplusRooms * 1.5) {
+    if (totalCount < surplusRooms || !totalCount) {
         // Harass Targets
-        for (let ownedRoom of Memory.ownedRooms) {
-            let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
-                ((r.reservation && _.includes(Memory._threatList, r.reservation.username)) || r.potentialTarget) &&
-                9 > Game.map.findRoute(r.name, ownedRoom.name).length > 3);
-            if (enemyHarass.length) {
-                for (let target of enemyHarass) {
-                    if (_.size(Memory.targetRooms) >= surplusRooms * 3 && _.size(Memory.targetRooms) >= totalRooms) break;
-                    let cache = Memory.targetRooms || {};
-                    let tick = Game.time;
-                    cache[target.name] = {
-                        tick: tick,
-                        type: 'attack'
-                    };
-                    Memory.targetRooms = cache;
+        let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
+            ((r.reservation && _.includes(Memory._threatList, r.reservation.username)) || r.potentialTarget));
+        if (enemyHarass.length) {
+            for (let target of enemyHarass) {
+                let closestOwned = target.findClosestOwnedRoom();
+                let pathedRange = target.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
+                if (pathedRange > 15) {
+                    Memory.roomCache[target.name].potentialTarget = undefined;
+                    continue;
                 }
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[target.name] = {
+                    tick: tick,
+                    type: 'attack'
+                };
+                Memory.targetRooms = cache;
+                break;
             }
         }
     }

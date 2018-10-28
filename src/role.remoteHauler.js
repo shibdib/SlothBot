@@ -6,7 +6,7 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.say(ICONS.haul, true);
+    creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
     creep.repairRoad();
