@@ -20,6 +20,18 @@ module.exports.loop = function() {
         //Logging level
         Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
+        log.d('Name Set');
+        // Set Name
+        if (!global.USERNAME) {
+            for (let key in Game.spawns) {
+                global.USERNAME = Game.spawns[key].owner.username;
+                break;
+            }
+        }
+
+        log.d('Owned Rooms Declared');
+        Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === USERNAME));
+
         // Get Tick Length
         log.d('Getting Tick Length');
         let d = new Date();
@@ -34,6 +46,9 @@ module.exports.loop = function() {
             tickLengthArray.push(tickLength)
         }
         Memory.tickLength = average(tickLengthArray);
+
+        //Routine status
+        if (Game.time % 100 === 0) status();
 
         //Update allies
         log.d('Updating LOAN List');
@@ -149,10 +164,11 @@ status = function (roomName = undefined, creep = false) {
     if (!roomName) {
         log.e('---------------------------------------------------------------------------');
         log.e('--GLOBAL INFO--');
-        log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + _.size(Game.creeps));
+        log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + _.size(Game.creeps) + ' | Likely Next Claim - ' + _.max(_.filter(Memory.roomCache, (r) => r.claimWorthy), 'claimValue').name);
         log.e('--ROOM INFO--');
         for (let key in Memory.ownedRooms) {
             let activeRoom = Memory.ownedRooms[key];
+            if (!activeRoom.controller) continue;
             let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
             let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
             log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));

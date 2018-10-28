@@ -9,17 +9,6 @@ let hud = require('module.hud');
 let shib = require("shibBench");
 
 function mind() {
-    log.d('Name Set');
-    // Set Name
-    if (!global.USERNAME) {
-        for (let key in Game.spawns) {
-            global.USERNAME = Game.spawns[key].owner.username;
-            break;
-        }
-    }
-
-    log.d('Owned Rooms Declared');
-    Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === USERNAME));
     let cpuBucket = Game.cpu.bucket;
 
     let cpu;

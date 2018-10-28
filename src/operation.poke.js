@@ -28,7 +28,7 @@ function threatManagement(creep) {
     let user;
     if (creep.room.controller.owner) user = creep.room.controller.owner.username;
     if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
-    if (!user) return;
+    if (!user || _.includes(FRIENDLIES, user)) return;
     let cache = Memory._badBoyList || {};
     let threatRating = 50;
     if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];
