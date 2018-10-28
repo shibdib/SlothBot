@@ -12,6 +12,7 @@ let globals = function () {
 
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
+    global.POKE_ATTACKS = true;
 
     global.FRIENDLIES = RawMemory.segments[2];
 

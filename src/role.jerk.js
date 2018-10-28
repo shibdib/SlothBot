@@ -7,6 +7,7 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     creep.room.cacheRoomIntel();
+    if (creep.memory.operation === 'poke') return creep.pokeRoom();
     let sentence = ['Just', 'Here', 'Annoying', 'You'];
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);

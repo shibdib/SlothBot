@@ -15,23 +15,25 @@ function highCommand() {
     if (Game.time % 50 === 0) manageAttacks();
 
     // Request scouting for new operations
-    if (Game.time % 500 === 0) operationRequests();
+    if (Game.time % 100 === 0) operationRequests();
 }
 
 module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
 
 function operationRequests() {
     let totalCount = _.size(Memory.targetRooms) || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke') || 0;
     let totalRooms = Memory.ownedRooms.length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
-    if (ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCount < _.round(totalRooms / 2)) {
+    if (ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCountFiltered < _.round(totalRooms / 2)) {
         for (let ownedRoom of Memory.ownedRooms) {
             if (_.size(Memory.targetRooms) >= totalRooms) break;
             let localTargets = _.filter(Memory.roomCache, (r) => Game.map.findRoute(r.name, ownedRoom.name).length <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
                 || (r.reservation && !_.includes(FRIENDLIES, r.reservation) && !_.includes(NO_AGGRESSION, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time));
             if (localTargets.length) {
                 let target = _.sample(localTargets);
+                if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
                 cache[target.name] = {
@@ -43,12 +45,13 @@ function operationRequests() {
             }
         }
     }
-    if (totalCount < surplusRooms || !totalCount) {
-        // Harass Targets
+    // Harass Targets
+    if (totalCountFiltered < surplusRooms || !totalCountFiltered) {
         let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
-            ((r.reservation && !_.includes(Memory.FRIENDLIES, r.reservation)) || r.potentialTarget));
+            ((r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget));
         if (enemyHarass.length) {
             for (let target of enemyHarass) {
+                if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
                 let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
                 if (lastOperation !== 0 && lastOperation + 2000 > Game.time) continue;
                 let cache = Memory.targetRooms || {};
@@ -59,6 +62,31 @@ function operationRequests() {
                 };
                 Memory.targetRooms = cache;
                 break;
+            }
+        }
+    }
+    // Pokes
+    let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke') || 0;
+    if (pokeCount < 10) {
+        let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
+            ((r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget));
+        if (enemyHarass.length) {
+            for (let target of enemyHarass) {
+                if (Memory.targetRooms[target.name]) continue;
+                pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke') || 0;
+                if (pokeCount >= 10) break;
+                let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
+                if (lastOperation !== 0 && lastOperation + _.random(1000, 5000) > Game.time) continue;
+                Memory.roomCache[target.name].lastPoke = Game.time;
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[target.name] = {
+                    tick: tick,
+                    type: 'poke',
+                    level: 1,
+                    priority: 4
+                };
+                Memory.targetRooms = cache;
             }
         }
     }
@@ -92,7 +120,7 @@ function manageAttacks() {
         }
     }
     for (let key in Memory.targetRooms) {
-        if (totalCount > surplusRooms * 3 && totalCount > totalRooms && Memory.targetRooms[key].priority !== 1 && Memory.targetRooms[key].type !== 'attack' && !Memory.targetRooms[key].local) {
+        if (totalCount > surplusRooms * 3 && totalCount > totalRooms && Memory.targetRooms[key].priority !== 1 && Memory.targetRooms[key].type !== 'attack' && Memory.targetRooms[key].type !== 'poke' && !Memory.targetRooms[key].local) {
             delete Memory.targetRooms[key];
             totalCount--;
             continue;

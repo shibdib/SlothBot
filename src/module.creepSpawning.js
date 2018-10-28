@@ -286,11 +286,12 @@ module.exports.workerCreepQueue = function (room) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let priority = PRIORITIES.upgrader;
         if (upgraders.length && level >= 2) priority = priority + upgraders.length;
-        let number = 1;
+        let number = 2;
         let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
         if (room.controller.level < 8 && room.memory.energySurplus) number = 2;
         if (room.controller.level < 8 && room.memory.extremeEnergySurplus) number = 3;
-        if (room.controller.level < 5 && !importantBuilds) number = _.round((8 - level) / 2);
+        if (room.controller.level < 4 && !importantBuilds) number = _.round((8 - level) / 2);
+        if (room.controller.level > 6) number = 1;
         //If room is about to downgrade get a creep out asap
         let reboot;
         if (level !== room.controller.level) number = 1;
@@ -876,6 +877,18 @@ module.exports.militaryCreepQueue = function () {
                     military: true,
                     waitFor: 2,
                     staging: stagingRoom
+                })
+            }
+        }
+        // Pokes
+        if (Memory.targetRooms[key].type === 'poke') {
+            let jerk = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'jerk');
+            if (jerk.length < 1 && !_.includes(queue, 'jerk')) {
+                queueMilitaryCreep(priority, {
+                    role: 'jerk',
+                    targetRoom: key,
+                    operation: 'poke',
+                    military: true
                 })
             }
         }

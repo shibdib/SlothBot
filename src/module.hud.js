@@ -96,6 +96,7 @@ module.exports.hud = function () {
                 {align: 'left', opacity: 0.8}
             );
         }
+        if (type === 'poke') continue;
         new RoomVisual().text(
             ICONS.crossedSword + ' ACTIVE OPERATIONS ' + ICONS.crossedSword,
             1,
