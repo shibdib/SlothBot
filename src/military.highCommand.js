@@ -57,7 +57,7 @@ function operationRequests() {
                     tick: tick,
                     type: 'attack'
                 };
-                Memory.targetRooms = cache;
+                //Memory.targetRooms = cache;
                 break;
             }
         }
