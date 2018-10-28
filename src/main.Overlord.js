@@ -22,6 +22,17 @@ module.exports.overlordMind = function (room, roomLimit) {
     room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT;
     room.memory.extremeEnergySurplus = energyInRoom >= ENERGY_AMOUNT * 2;
     room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT * 0.8;
+    let otherContainers = 0;
+    _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY]).forEach((container) => otherContainers + container.store[RESOURCE_ENERGY]);
+    let totalEnergy = energyInRoom + otherContainers;
+    let energyAvailableArray = roomEnergyArray[room.name] || [];
+    if (energyAvailableArray.length < 50) {
+        energyAvailableArray.push(totalEnergy)
+    } else {
+        energyAvailableArray.shift();
+        energyAvailableArray.push(totalEnergy);
+    }
+    roomEnergyArray[room.name] = energyAvailableArray;
 
     // Set CPU windows
     let cpuWindow = Game.cpu.getUsed() + roomLimit;

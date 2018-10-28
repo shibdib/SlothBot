@@ -16,7 +16,6 @@ Creep.prototype.rangersRoom = function () {
             this.heal(this);
         }
         if (this.room.name !== this.memory.targetRoom && !this.handleMilitaryCreep(false, false)) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
-        this.handleMilitaryCreep(false, false);
         threatManagement(this);
     } else {
         if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});

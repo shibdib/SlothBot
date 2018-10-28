@@ -102,12 +102,21 @@ module.exports.hud = function () {
             34,
             {align: 'left', opacity: 0.5, color: '#ff0000'}
         );
-        new RoomVisual().text(
-            ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' in Room ' + key,
-            1,
-            35 + opCount,
-            {align: 'left', opacity: 0.5}
-        );
+        if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
+            new RoomVisual().text(
+                _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' in Room ' + key + ' Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead,
+                1,
+                35 + opCount,
+                {align: 'left', opacity: 0.5}
+            );
+        } else {
+            new RoomVisual().text(
+                _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' in Room ' + key,
+                1,
+                35 + opCount,
+                {align: 'left', opacity: 0.5}
+            );
+        }
         opCount++;
     }
     for (let key in Memory.ownedRooms) {

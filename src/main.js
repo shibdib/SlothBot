@@ -8,6 +8,9 @@ let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
 let shib = require("shibBench");
 const tickLengthArray = [];
+const lastGlobal = Memory.lastGlobalReset || Game.time;
+log.e('Global Reset - Last reset occured ' + (Game.time - lastGlobal) + ' ticks ago.');
+Memory.lastGlobalReset = Game.time;
 
 module.exports.loop = function() {
     profiler.wrap(function () {
@@ -142,11 +145,27 @@ nukes = function (target) {
     }
 };
 
-roomCpu = function () {
+status = function () {
     log.e('---------------------------------------------------------------------------');
+    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (Game.gcl.progress) + '/' + (Game.gcl.progressTotal) + ' | Creep Count - ' + Game.creeps.length);
+    log.e('--ROOM INFO--');
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
-        log.e(activeRoom.name + 'CPU Usage: ' + _.round(average(activeRoom.memory.cpuUsageArray), 2));
+        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
+        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy);
     }
-    log.e('---------------------------------------------------------------------------');
+    if (Memory.targetRooms) {
+        log.e('--OPERATION INFO--');
+        for (let key in Memory.targetRooms) {
+            let level = Memory.targetRooms[key].level || 1;
+            let type = Memory.targetRooms[key].type;
+            let priority = Memory.targetRooms[key].priority || 4;
+            if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
+                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead);
+            } else {
+                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + key);
+            }
+        }
+    }
+    return log.e('---------------------------------------------------------------------------');
 };

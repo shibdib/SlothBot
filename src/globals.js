@@ -111,6 +111,7 @@ let globals = function () {
     //Cache stuff
     global.creepCpuArray = {};
     global.roomCpuArray = {};
+    global.roomEnergyArray = {};
 
     global.ICONS = {
         [STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
@@ -482,6 +483,24 @@ let globals = function () {
             return 8
         }
     }
+
+    global.roomLink = function (roomArg, text = undefined, select = true) {
+        let roomName;
+        let id = roomArg.id;
+        if (roomArg instanceof Room) {
+            roomName = roomArg.name;
+        } else if (roomArg.pos !== undefined) {
+            roomName = roomArg.pos.roomName;
+        } else if (roomArg.roomName !== undefined) {
+            roomName = roomArg.roomName;
+        } else if (typeof roomArg === 'string') {
+            roomName = roomArg;
+        } else {
+            console.log(`Invalid parameter to roomLink global function: ${roomArg} of type ${typeof roomArg}`);
+        }
+        text = text || (id ? roomArg : roomName);
+        return `<a href="#!/room/${Game.shard.name}/${roomName}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
+    };
 };
 
 module.exports = globals;
