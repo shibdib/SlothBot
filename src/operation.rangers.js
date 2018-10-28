@@ -7,7 +7,7 @@ Creep.prototype.rangersRoom = function () {
     this.say(sentence[word], true);
     if (this.borderCheck()) return;
     let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
-    if (!squadLeader.length) this.memory.squadLeader = true;
+    if (!squadLeader.length) return this.memory.squadLeader = true;
     if (this.memory.squadLeader && !this.handleMilitaryCreep(false, false)) {
         let squadMember = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && !c.memory.squadLeader);
         if (!squadMember.length || (this.pos.getRangeTo(squadMember[0]) > 1 && !this.borderCheck())) return this.idleFor(3);
