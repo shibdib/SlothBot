@@ -98,7 +98,7 @@ function harvestDepositLink(creep) {
     creep.memory.linkAttempt = true;
     if (!creep.room.memory.controllerLink && !creep.room.memory.storageLink) return;
     let source = Game.getObjectById(creep.memory.source);
-    let link = _.filter(source.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
+    let link = _.filter(source.pos.findInRange(creep.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
