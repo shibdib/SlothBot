@@ -46,7 +46,7 @@ function operationRequests() {
     if (totalCount < surplusRooms || !totalCount) {
         // Harass Targets
         let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
-            ((r.reservation && _.includes(Memory._threatList, r.reservation.username)) || r.potentialTarget));
+            ((r.reservation && !_.includes(Memory.FRIENDLIES, r.reservation.username)) || r.potentialTarget));
         if (enemyHarass.length) {
             for (let target of enemyHarass) {
                 let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
