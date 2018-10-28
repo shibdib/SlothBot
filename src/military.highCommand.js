@@ -179,14 +179,12 @@ module.exports.operationSustainability = function (room) {
     let enemyDead = operation.enemyDead || 0;
     let trackedEnemy = operation.trackedEnemy || [];
     let enemyTombstones = _.filter(room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username));
-    let enemyKilled = operation.lastEnemyKilled || Game.time;
     for (let tombstone of enemyTombstones) {
         if (_.includes(trackedEnemy, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
-        enemyKilled = Game.time;
+        operation.lastEnemyKilled = Game.time;
         enemyDead = enemyDead + UNIT_COST(tombstone.creep.body);
         trackedEnemy.push(tombstone.id);
     }
-    operation.lastEnemyKilled = enemyKilled;
     operation.enemyDead = enemyDead;
     operation.friendlyDead = friendlyDead;
     operation.trackedEnemy = trackedEnemy;
