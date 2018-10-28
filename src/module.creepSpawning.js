@@ -88,11 +88,8 @@ module.exports.processBuildQueue = function () {
                         }
                     })) {
                         case OK:
-                            if (!topPriority.military) log.i(spawn.room.name + ' Spawning a ' + role);
-                            if (topPriority.military && topPriority.operation) {
-                                log.i(spawn.room.name + ' Spawning a ' + role + ' [Op: ' + topPriority.operation + ' in ' + topPriority.targetRoom + ']');
-                                delete Memory.militaryBuildQueue;
-                            }
+                            if (!topPriority.operation) log.i(spawn.room.name + ' Spawning a ' + role);
+                            if (topPriority.military) return delete Memory.militaryBuildQueue;
                             if (!topPriority.buildCount) return delete spawn.room.memory.creepBuildQueue[role];
                             spawn.room.memory.creepBuildQueue[role].buildCount = topPriority.buildCount - 1;
                     }
