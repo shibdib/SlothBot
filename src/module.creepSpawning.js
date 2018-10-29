@@ -511,7 +511,9 @@ module.exports.remoteCreepQueue = function (room) {
             if (roomThreat) continue;
             if (!_.includes(queue, 'reserver') && level >= 4 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
-                if (reserver.length < 1) {
+                let number = 1;
+                if (level < 6) number = 2;
+                if (reserver.length < number) {
                     let priority = PRIORITIES.remoteHarvester + 1;
                     if (room.memory.energySurplus) priority = PRIORITIES.remoteHarvester;
                     queueCreep(room, priority, {
