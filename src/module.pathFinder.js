@@ -283,6 +283,10 @@ function findRoute(origin, destination, options = {}) {
                 }
             }
             if (isHighway && options.preferHighway) return 1.5;
+            // Check for manual flagged rooms
+            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
+                return 255;
+            }
             // Friendly Rooms
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 if ((Memory.roomCache[roomName].owner && _.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username) && !Memory.roomCache[roomName].abandoned)
@@ -303,10 +307,6 @@ function findRoute(origin, destination, options = {}) {
                     || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.reservation && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.reservation.username))) {
                     return 75;
                 }
-            }
-            // Check for manual flagged rooms
-            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
-                return 255;
             }
             // Unknown rooms have a slightly higher weight
             if (Memory.roomCache && Memory.roomCache[roomName]) return 8;

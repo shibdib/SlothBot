@@ -63,7 +63,7 @@ let globals = function () {
         remoteHarvester: 3,
         remoteHauler: 3,
         remoteUpgrader: 5,
-        pioneer: 2,
+        pioneer: 4,
         remoteResponse: 5,
         reserver: 5,
         // Power

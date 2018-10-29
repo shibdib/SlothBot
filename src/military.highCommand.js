@@ -177,7 +177,7 @@ module.exports.operationSustainability = function (room) {
     }
     let friendlyForces = _.filter(room.creeps, (c) => c.memory && c.memory.military);
     let enemyForces = _.filter(room.creeps, (c) => !c.memory);
-    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.20 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
+    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.14 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
         friendlyDead = friendlyDead + UNIT_COST(friendlyForces[0].body);
         trackedFriendly.push(friendlyForces[0].id);
     }
@@ -195,7 +195,8 @@ module.exports.operationSustainability = function (room) {
     operation.trackedEnemy = trackedEnemy;
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 500 >= Game.time && (operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time)) {
+    if (operation.tick + 500 >= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain') ||
+        operation.type === 'drain' && operation.trackedFriendly.length >= 10) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
         delete Memory.targetRooms[room.name];
@@ -441,3 +442,19 @@ function nukeFlag(flag) {
         flag.remove();
     }
 }
+
+module.exports.threatManagement = function (creep) {
+    if (!creep.room.controller) return;
+    let user;
+    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
+    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
+    if (!user || (_.includes(FRIENDLIES, user) && !_.includes(Memory._threatList, user))) return;
+    let cache = Memory._badBoyList || {};
+    let threatRating = 50;
+    if (cache[user] && (cache[user]['threatRating'] > 50 || _.includes(FRIENDLIES, user))) threatRating = cache[user]['threatRating'];
+    cache[user] = {
+        threatRating: threatRating,
+        lastAction: Game.time,
+    };
+    Memory._badBoyList = cache;
+};

@@ -174,6 +174,8 @@ Creep.prototype.moveToHostileConstructionSites = function () {
 };
 
 Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, unArmedFirst = false) {
+    // Flee home if you have no parts
+    if (!this.getActiveBodyparts(HEAL) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     let hostile;
     if (unArmedFirst) hostile = this.findClosestUnarmedEnemy();
     if (!hostile) hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst);
@@ -320,7 +322,7 @@ Creep.prototype.fightRanged = function (target) {
 Creep.prototype.attackInRange = function () {
     let hostile = this.findClosestEnemy(false);
     let range = this.pos.getRangeTo(hostile);
-    let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
+    let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     if (range <= 3) {
         if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue) {
             this.kite();
@@ -333,7 +335,7 @@ Creep.prototype.attackInRange = function () {
         }
         return true;
     } else {
-        let opportunity = _.min(_.filter(this.pos.findInRange(FIND_CREEPS, 3), (c) => _.includes(FRIENDLIES, c.owner.username) === false), 'hits');
+        let opportunity = _.min(_.filter(this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'})), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
         if (targets.length > 1) this.rangedMassAttack();
     }
@@ -662,9 +664,9 @@ Creep.prototype.retreat = function (fleeRange = 7) {
 };
 
 Creep.prototype.borderHump = function () {
-    if (this.hits < this.hitsMax * 0.8 && this.room.name === this.memory.targetRoom) {
+    if (this.hits < this.hitsMax * 0.9 && !this.getActiveBodyparts(TOUGH) && this.room.name === this.memory.targetRoom) {
         let exit = this.pos.findClosestByRange(FIND_EXIT);
-        return this.shibMove(exit, {ignoreCreeps: false});
+        return this.shibMove(exit, {ignoreCreeps: false, range: 0});
     } else if (this.hits === this.hitsMax && this.room.name === this.memory.targetRoom) {
         this.borderCheck();
         this.heal(this);

@@ -397,6 +397,8 @@ function buildWalls(room, structures) {
         shib.shibBench('wallBuildFindBunker', cpu);
     }
     cpu = Game.cpu.getUsed();
+    let tower = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
+    if (!tower.length) return;
     for (let location of room.memory.bunkerPos) {
         let rampPos = new RoomPosition(location.x, location.y, room.name);
         if (rampPos && !rampPos.checkIfOutOfBounds()) {

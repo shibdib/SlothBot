@@ -6,7 +6,7 @@ Creep.prototype.swarmHarassRoom = function () {
         let sentence = ['Swarm', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
-        threatManagement(this);
+        highCommand.threatManagement(this);
         highCommand.operationSustainability(this.room);
         if (Memory.targetRooms[this.memory.targetRoom]) {
             let hostile = this.findClosestEnemy();
@@ -19,19 +19,3 @@ Creep.prototype.swarmHarassRoom = function () {
         this.handleMilitaryCreep(true);
     }
 };
-
-function threatManagement(creep) {
-    if (!creep.room.controller) return;
-    let user;
-    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
-    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
-    if (!user) return;
-    let cache = Memory._badBoyList || {};
-    let threatRating = 50;
-    if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];
-    cache[user] = {
-        threatRating: threatRating,
-        lastAction: Game.time,
-    };
-    Memory._badBoyList = cache;
-}

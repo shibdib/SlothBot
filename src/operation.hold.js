@@ -21,7 +21,7 @@ Creep.prototype.holdRoom = function () {
             if (!this.room.controller.owner || this.room.controller.safeMode || !Memory.targetRooms[this.room.name]) delete Memory.targetRooms[this.room.name];
             // Request unClaimer if room level is too high
             if (Memory.targetRooms[this.room.name]) Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive;
-            threatManagement(this);
+            highCommand.threatManagement(this);
         } else if (!this.memory.squadLeader) {
             if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
             if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
@@ -40,19 +40,3 @@ Creep.prototype.holdRoom = function () {
         }
     }
 };
-
-function threatManagement(creep) {
-    if (!creep.room.controller) return;
-    let user;
-    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
-    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
-    if (!user) return;
-    let cache = Memory._badBoyList || {};
-    let threatRating = 50;
-    if (cache[user] && cache[user]['threatRating'] > 50) threatRating = cache[user]['threatRating'];
-    cache[user] = {
-        threatRating: threatRating,
-        lastAction: Game.time,
-    };
-    Memory._badBoyList = cache;
-}

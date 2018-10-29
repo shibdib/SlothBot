@@ -17,7 +17,7 @@ function role(creep) {
                     creep.signController(creep.room.controller, _.sample(signs));
                     creep.memory.signed = true;
                 }
-                if (creep.ticksToLive <= 50) {
+                if (creep.ticksToLive <= 3) {
                     let ticks;
                     if (creep.room.controller.reservation) {
                         ticks = creep.room.controller.reservation['ticksToEnd'] || 0;
