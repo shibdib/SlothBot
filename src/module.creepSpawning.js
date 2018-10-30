@@ -582,7 +582,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (level >= 4 && !_.includes(queue, 'longbow')) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
             if (borderPatrol.length < 2 || (borderPatrol[0] && borderPatrol[0].ticksToLive < 100 && borderPatrol.length < 3)) {
-                queueCreep(room, PRIORITIES.urgent, {
+                queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'longbow',
                     operation: 'borderPatrol',
                     military: true

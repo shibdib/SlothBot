@@ -60,12 +60,13 @@ let globals = function () {
         hauler: 2,
         // Remotes
         remoteUtility: 6,
-        remoteHarvester: 3,
-        remoteHauler: 3,
+        remoteHarvester: 4,
+        remoteHauler: 4,
         remoteUpgrader: 5,
-        pioneer: 4,
+        pioneer: 5,
         remoteResponse: 5,
-        reserver: 5,
+        reserver: 6,
+        borderPatrol: 3,
         // Power
         Power: 5,
         // SK

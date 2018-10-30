@@ -28,7 +28,7 @@ function controller(room) {
     if (Game.time % 5 === 0) unsavableCheck(room);
 
     //TODO: ramparts up unless ally in room and no enemies near him
-    //rampartManager(room, structures);
+    rampartManager(room, structures);
 
     // Early Warning System
     //earlyWarning(room);
@@ -90,26 +90,15 @@ module.exports.controller = profiler.registerFN(controller, 'defenseController')
 //Functions
 
 function rampartManager(room, structures) {
-    let ramparts = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);
     let allies = _.filter(room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
+    if (!allies.length) return;
+    let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+    let ramparts = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 2 && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 1);
     if (ramparts.length) {
-        if (room.memory.responseNeeded) {
-            for (let key in ramparts) {
-                let rampart = ramparts[key];
-                rampart.setPublic(false)
-            }
-        }
-        if (allies) {
-            let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-            for (let key in ramparts) {
-                let rampart = ramparts[key];
-                if (rampart.pos.findInRange(allies, 4).length && !rampart.pos.findInRange(enemies, 6).length) {
-                    rampart.setPublic(true)
-                } else {
-                    rampart.setPublic(false)
-                }
-            }
-        }
+        ramparts.forEach((rampart) => rampart.setPublic(true))
+    } else {
+        let ramparts = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);
+        ramparts.forEach((rampart) => rampart.setPublic(false))
     }
 }
 
