@@ -8,6 +8,8 @@ const structureMatrixCache = {};
 const creepMatrixCache = {};
 const hostileMatrixCache = {};
 const skMatrixCache = {};
+let routeCache = {};
+let pathCache = {};
 
 function shibMove(creep, heading, options = {}) {
     _.defaults(options, {
@@ -248,7 +250,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 function findRoute(origin, destination, options = {}) {
     let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 7;
     let roomDistance = Game.map.findRoute(origin, destination).length;
-    let highwayBias = 0.8;
     let route;
     if (options.useCache) route = getRoute(origin, destination);
     if (route) return route;
@@ -282,36 +283,31 @@ function findRoute(origin, destination, options = {}) {
                     return 4;
                 }
             }
-            if (isHighway && options.preferHighway) return 1.5;
             // Check for manual flagged rooms
-            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) {
-                return 255;
-            }
-            // Friendly Rooms
+            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
-                if ((Memory.roomCache[roomName].owner && _.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username) && !Memory.roomCache[roomName].abandoned)
-                    || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && _.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
+                // Friendly Owned Rooms
+                if (Memory.roomCache[roomName].owner && _.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username)) {
                     return 1;
                 }
-            }
-            // Avoid rooms owned by others
-            if (Memory.roomCache && Memory.roomCache[roomName]) {
-                if ((Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username) && !Memory.roomCache[roomName].abandoned)
-                    || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.owner && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.owner.username))) {
-                    return 200;
+                // Friendly Reserved Rooms
+                if (Memory.roomCache[roomName].reservation && _.includes(FRIENDLIES, Memory.roomCache[roomName].reservation)) {
+                    return 1;
                 }
-            }
-            // Avoid rooms reserved by others
-            if (Memory.roomCache && Memory.roomCache[roomName]) {
-                if ((Memory.roomCache[roomName].reservation && (!_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation.username) || Memory.roomCache[roomName].potentialTarget))
-                    || (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.reservation && !_.includes(FRIENDLIES, Game.rooms[roomName].controller.reservation.username))) {
-                    return 75;
+                // Avoid rooms owned by others
+                if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username) && !Memory.roomCache[roomName].abandoned) {
+                    if (Memory.roomCache[roomName].towers) return 254; else return 15;
                 }
-            }
+                // Avoid rooms reserved by others
+                if (Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation)) {
+                    return 10;
+                }
+            } else
             // Unknown rooms have a slightly higher weight
-            if (Memory.roomCache && !Memory.roomCache[roomName]) return 7;
-            if (isHighway) return 1.7;
-            return 2.2;
+            if (!Memory.roomCache[roomName]) return 7;
+            if (isHighway && options.preferHighway) return 1.5;
+            if (isHighway) return 2;
+            return 2.5;
         }
     });
     let path = undefined;
@@ -525,7 +521,7 @@ function positionAtDirection(origin, direction) {
 
 function cacheRoute(from, to, route) {
     let key = from + '_' + to;
-    let cache = Memory.routeCache || {};
+    let cache = routeCache;
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -533,16 +529,17 @@ function cacheRoute(from, to, route) {
         uses: 1,
         tick: tick
     };
-    Memory.routeCache = cache;
+    routeCache = cache;
 }
 
 function getRoute(from, to) {
-    let cache = Memory.routeCache;
+    if (Memory.routeCache) delete Memory.routeCache;
+    let cache = routeCache;
     if (cache) {
         let cachedRoute = cache[from + '_' + to];
         if (cachedRoute) {
             cachedRoute.uses += 1;
-            Memory.routeCache = cache;
+            routeCache = cache;
             return JSON.parse(cachedRoute.route);
         }
     } else {
@@ -554,7 +551,7 @@ function cachePath(creep, from, to, path) {
     //Don't store short paths
     if (path.length < 5) return;
     let key = getPathKey(from, to);
-    let cache = Memory.pathCache || {};
+    let cache = pathCache;
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -562,16 +559,17 @@ function cachePath(creep, from, to, path) {
         uses: 1,
         tick: tick
     };
-    Memory.pathCache = cache;
+    pathCache = cache;
 }
 
 function getPath(creep, from, to) {
-    let cache = Memory.pathCache;
+    if (Memory.pathCache) delete Memory.pathCache;
+    let cache = pathCache;
     if (!cache) return null;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {
         cachedPath.uses += 1;
-        Memory.pathCache = cache;
+        pathCache = cache;
         return cachedPath.path;
     } else {
         return null;
