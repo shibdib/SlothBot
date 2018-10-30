@@ -3,7 +3,7 @@ let shib = require("shibBench");
 module.exports.claimNewRoom = function (room) {
     let cpu = Game.cpu.getUsed();
     // Don't expand if attacked recently
-    if (this.memory.lastPlayerAttack && this.memory.lastPlayerAttack + 2500 >= Game.time) return;
+    if (room.memory.lastPlayerAttack && room.memory.lastPlayerAttack + 2500 >= Game.time) return;
     let avoidRooms = _.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner.username));
     let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && r.name !== room.name);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
