@@ -1,7 +1,7 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.holdRoom = function () {
-    let sentence = ['Area', 'Denial', 'In', 'Progress'];
+    let sentence = ['This', 'Rooms', 'Has', 'Been', 'Marked', 'For', 'Other', 'Other', 'Uses', 'Please', 'Abandon'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);

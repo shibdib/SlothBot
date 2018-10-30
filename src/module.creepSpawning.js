@@ -23,7 +23,7 @@ module.exports.processBuildQueue = function () {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
                 if (level >= 2) {
-                    queue = _.sortBy(Object.assign({}, spawn.room.memory.creepBuildQueue, Memory.militaryBuildQueue), 'importance');
+                    queue = _.sortBy(Object.assign({}, Memory.militaryBuildQueue, spawn.room.memory.creepBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
                 }
@@ -43,7 +43,6 @@ module.exports.processBuildQueue = function () {
                     }
                     if (body && body.length && global.UNIT_COST(body) <= spawn.room.energyCapacityAvailable) break;
                 }
-                if (!body || !body.length) continue;
                 let cost = global.UNIT_COST(body);
                 if (cost > spawn.room.energyAvailable) {
                     spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
@@ -305,7 +304,7 @@ module.exports.workerCreepQueue = function (room) {
     //Worker
     if (!_.includes(queue, 'worker') && !room.memory.responseNeeded) {
         let amount = 0;
-        if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) amount = 3;
+        if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) amount = 2;
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
@@ -867,6 +866,20 @@ module.exports.militaryCreepQueue = function () {
                     targetRoom: key,
                     operation: 'poke',
                     military: true
+                })
+            }
+        }
+        // Guard
+        if (Memory.targetRooms[key].type === 'guard') {
+            let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'guard');
+            if (rangers.length < 2 && !_.includes(queue, 'longbow')) {
+                queueMilitaryCreep(priority, {
+                    role: 'longbow',
+                    targetRoom: key,
+                    operation: 'guard',
+                    military: true,
+                    waitFor: 2,
+                    staging: stagingRoom
                 })
             }
         }
