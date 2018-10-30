@@ -330,7 +330,7 @@ module.exports.workerCreepQueue = function (room) {
         let amount = 1;
         if (2 < level < 5) amount = 2;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-        if ((hauler[0].ticksToLive < 250 && hauler.length <= amount) || hauler.length < amount) {
+        if ((hauler[0].ticksToLive < 250 && hauler.length < amount + 1) || hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
         }
     }
