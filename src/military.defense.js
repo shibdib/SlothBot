@@ -91,14 +91,16 @@ module.exports.controller = profiler.registerFN(controller, 'defenseController')
 
 function rampartManager(room, structures) {
     let allies = _.filter(room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my);
-    if (!allies.length) return;
-    let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-    let ramparts = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 2 && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 1);
-    if (ramparts.length) {
-        ramparts.forEach((rampart) => rampart.setPublic(true))
+    // Check if allies are in the room
+    if (allies.length) {
+        let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+        // Open ramparts
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 1 && (!enemies.length || s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2)).forEach((rampart) => rampart.setPublic(true));
+        // Close ramparts
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && (s.pos.getRangeTo(s.pos.findClosestByRange(allies)) > 1 || (enemies.length && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2))).forEach((rampart) => rampart.setPublic(false));
     } else {
-        let ramparts = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART);
-        ramparts.forEach((rampart) => rampart.setPublic(false))
+        // Close public ones
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
     }
 }
 
