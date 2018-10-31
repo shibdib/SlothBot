@@ -1,14 +1,15 @@
 let highCommand = require('military.highCommand');
 
-Creep.prototype.rangersRoom = function () {
-    let sentence = [ICONS.respond, 'SWAT', 'TEAM'];
+Creep.prototype.conscriptsRoom = function () {
+    let sentence = ['CREEP', 'WAVE'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
     if (!squadLeader.length) return this.memory.squadLeader = true;
     if (this.memory.squadLeader && !this.handleMilitaryCreep(false, false)) {
-        let squadMember = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && !c.memory.squadLeader);
-        if (!squadMember.length || (this.pos.getRangeTo(squadMember[0]) > 1 && !this.borderCheck())) return this.idleFor(1);
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && !c.memory.squadLeader);
+        if ((!squadMember.length < this.memory.waitFor && !this.memory.opStarted) || (this.pos.getRangeTo(squadMember[0]) > 1 && !this.borderCheck())) return this.idleFor(1);
+        this.memory.opStarted = true;
         if (this.hits === this.hitsMax && squadMember[0].hits < squadMember[0].hitsMax) {
             this.heal(squadMember[0]);
         } else if (this.hits < this.hitsMax) {
@@ -37,7 +38,5 @@ function levelManager(creep) {
         Memory.targetRooms[creep.memory.targetRoom].level = 2;
     } else if (enemyCreeps.length) {
         Memory.targetRooms[creep.memory.targetRoom].level = 1;
-    } else {
-        Memory.targetRooms[creep.memory.targetRoom].level = 0;
     }
 }

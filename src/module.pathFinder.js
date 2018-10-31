@@ -305,9 +305,9 @@ function findRoute(origin, destination, options = {}) {
             } else
             // Unknown rooms have a slightly higher weight
             if (!Memory.roomCache[roomName]) return 7;
-            if (isHighway && options.preferHighway) return 1.5;
-            if (isHighway) return 2;
-            return 2.5;
+            if (isHighway && options.preferHighway) return 1.25;
+            if (isHighway) return 1.5;
+            return 2.25;
         }
     });
     let path = undefined;

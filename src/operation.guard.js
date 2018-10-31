@@ -1,3 +1,5 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.guardRoom = function () {
     let sentence = ['Security', 'Guard', 'For', this.memory.targetRoom];
     let word = Game.time % sentence.length;
@@ -13,6 +15,7 @@ Creep.prototype.guardRoom = function () {
             this.heal(this);
         }
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+        levelManager(this);
         highCommand.threatManagement(this);
     } else if (!this.memory.squadLeader) {
         if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
@@ -24,3 +27,16 @@ Creep.prototype.guardRoom = function () {
         this.attackInRange();
     }
 };
+
+function levelManager(creep) {
+    if (!Memory.targetRooms[creep.memory.targetRoom]) return;
+    let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+    let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+    if (armedEnemies.length) {
+        Memory.targetRooms[creep.memory.targetRoom].level = 2;
+    } else if (enemyCreeps.length) {
+        Memory.targetRooms[creep.memory.targetRoom].level = 1;
+    } else {
+        Memory.targetRooms[creep.memory.targetRoom].level = 0;
+    }
+}

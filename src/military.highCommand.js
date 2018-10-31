@@ -419,6 +419,20 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
+        if (_.startsWith(name, 'conscripts')) {
+            let cache = Memory.targetRooms || {};
+            let level = name.match(/\d+$/)[0] || 1;
+            let priority = 1;
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'conscripts',
+                level: level,
+                priority: Number(priority)
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
         if (_.startsWith(name, 'nuke')) {
             let cache = Memory.targetRooms || {};
             let level = name.match(/\d+$/)[0] || 1;

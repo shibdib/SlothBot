@@ -22,7 +22,8 @@ module.exports.processBuildQueue = function () {
         if (!spawn.spawning) {
             if (spawn.room.memory.creepBuildQueue || Memory.militaryBuildQueue) {
                 let queue;
-                if (level >= 2) {
+                let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+                if (!spawn.room.memory.responseNeeded && level >= 2 && maxLevel === level) {
                     queue = _.sortBy(Object.assign({}, Memory.militaryBuildQueue, spawn.room.memory.creepBuildQueue), 'importance');
                 } else {
                     queue = _.sortBy(spawn.room.memory.creepBuildQueue, 'importance')
@@ -393,9 +394,9 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Explorer
-    if (!_.includes(queue, 'explorer') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
-        let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
-        if (explorers.length < (8 - level) / 2) {
+    if (!_.includes(queue, 'explorer') && !TEN_CPU && !room.memory.responseNeeded) {
+        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
+        if (explorers.length < 5) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
@@ -851,14 +852,32 @@ module.exports.militaryCreepQueue = function () {
         }
         // Rangers
         if (Memory.targetRooms[key].type === 'rangers') {
+            let number = 2;
+            if (opLevel > 1) number = 3;
             let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
-            if (rangers.length < 2 && !_.includes(queue, 'longbow')) {
+            if (rangers.length < number && !_.includes(queue, 'longbow')) {
                 queueMilitaryCreep(priority, {
                     role: 'longbow',
                     targetRoom: key,
                     operation: 'rangers',
                     military: true,
                     waitFor: 2,
+                    staging: stagingRoom
+                })
+            }
+        }
+        // Rangers
+        if (Memory.targetRooms[key].type === 'conscripts') {
+            let number = 10;
+            if (opLevel > 1) number = 20;
+            let conscripts = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'conscript');
+            if (conscripts.length < number + 2 && !_.includes(queue, 'conscript')) {
+                queueMilitaryCreep(priority, {
+                    role: 'conscript',
+                    targetRoom: key,
+                    operation: 'conscripts',
+                    military: true,
+                    waitFor: number,
                     staging: stagingRoom
                 })
             }
@@ -877,15 +896,13 @@ module.exports.militaryCreepQueue = function () {
         }
         // Guard
         if (Memory.targetRooms[key].type === 'guard') {
-            let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'guard');
+            let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
             if (rangers.length < 2 && !_.includes(queue, 'longbow')) {
                 queueMilitaryCreep(priority, {
                     role: 'longbow',
                     targetRoom: key,
                     operation: 'guard',
-                    military: true,
-                    waitFor: 2,
-                    staging: stagingRoom
+                    military: true
                 })
             }
         }

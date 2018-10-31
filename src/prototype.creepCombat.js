@@ -277,7 +277,7 @@ Creep.prototype.fightRanged = function (target) {
     if (range <= 3) {
         if (hostile instanceof Creep) {
             this.memory.lastRange = range;
-            if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue) {
+            if (range <= 3 && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER > this.getActiveBodyparts(HEAL) * HEAL_POWER) && !hostile.fatigue) {
                 this.kite();
             }
             if (targets.length > 1 && !allies.length) {
@@ -321,7 +321,7 @@ Creep.prototype.attackInRange = function () {
     let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username)});
     if (range <= 3) {
-        if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue && !this.memory.squadLeader) {
+        if (range <= 3 && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER > this.getActiveBodyparts(HEAL) * HEAL_POWER) && !hostile.fatigue) {
             this.kite();
         }
         if (targets.length > 1 && !allies.length) {

@@ -11,7 +11,7 @@ function role(creep) {
     if (creep.wrongRoom()) return null;
     creep.say(ICONS.haul, true);
     // Special Tasks
-    if (Game.time % 5 === 0 && (creep.memory.nuclearEngineer || creep.memory.terminalWorker || nuclearEngineer(creep) || terminalWorker(creep))) return;
+    if (nuclearEngineer(creep) || terminalWorker(creep)) return;
     // If hauling do things
     if (creep.memory.hauling) {
         if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
@@ -71,7 +71,7 @@ function checkForLoot(creep) {
                 case OK:
                     break;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(tombstones[0]);
+                    creep.shibMove(tombstones[0], {range: 1});
                     break;
             }
         }
@@ -83,7 +83,7 @@ function checkForLoot(creep) {
             case OK:
                 break;
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(dropped[0]);
+                creep.shibMove(dropped[0], {range: 1});
                 break;
         }
         return true;
@@ -96,7 +96,7 @@ function checkForLoot(creep) {
                 case OK:
                     break;
                 case ERR_NOT_IN_RANGE:
-                    creep.shibMove(extractorContainer);
+                    creep.shibMove(extractorContainer, {range: 1});
                     break;
             }
         }

@@ -216,6 +216,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
             move = 1;
             break;
+        case 'conscript':
+            heal = 2;
+            rangedAttack = 1;
+            move = 3;
+            break;
         case 'deconstructor':
             if (level < 6) break;
             work = 1 * level;
