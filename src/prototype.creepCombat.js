@@ -140,16 +140,10 @@ Creep.prototype.healMyCreeps = function () {
 };
 
 Creep.prototype.healAllyCreeps = function () {
-    let allyCreeps = this.room.find(this.room.creeps, {
-        filter: function (object) {
-            if (object.hits === object.hitsMax) {
-                return false;
-            }
-            return _.includes(FRIENDLIES, object.owner.username) === true;
-        }
-    });
+
+    let allyCreeps = _.filter(this.room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && c.hits < c.hitsMax);
     if (allyCreeps.length > 0) {
-        this.say('heal ally', true);
+        this.say('Medic Here', true);
         this.moveTo(allyCreeps[0]);
         let range = this.pos.getRangeTo(allyCreeps[0]);
         if (range <= 1) {
@@ -278,13 +272,14 @@ Creep.prototype.fightRanged = function (target) {
     let range = this.pos.getRangeTo(hostile);
     let lastRange = this.memory.lastRange || range;
     let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
+    let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username)});
     if (range <= 3) {
         if (hostile instanceof Creep) {
             this.memory.lastRange = range;
             if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue) {
                 this.kite();
             }
-            if (targets.length > 1) {
+            if (targets.length > 1 && !allies.length) {
                 this.rangedMassAttack();
             } else {
                 if (range <= 1) this.rangedMassAttack();
@@ -296,7 +291,7 @@ Creep.prototype.fightRanged = function (target) {
                 });
             }
         } else {
-            if (range <= 1) this.rangedMassAttack();
+            if (range <= 1 && !allies.length) this.rangedMassAttack();
             if (range > 1) this.rangedAttack(target);
             if (range > 1) this.shibMove(target, {
                 ignoreCreeps: false,
@@ -308,7 +303,7 @@ Creep.prototype.fightRanged = function (target) {
     } else {
         let opportunity = _.min(_.filter(this.pos.findInRange(FIND_CREEPS, 3), (c) => _.includes(FRIENDLIES, c.owner.username) === false), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
-        if (targets.length > 1) this.rangedMassAttack();
+        if (targets.length > 1 && !allies.length) this.rangedMassAttack();
         if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
             this.shibMove(target, {ignoreCreeps: false, range: 3, ignoreRoads: true});
         } else {
@@ -323,11 +318,12 @@ Creep.prototype.attackInRange = function () {
     let hostile = this.findClosestEnemy(false);
     let range = this.pos.getRangeTo(hostile);
     let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
+    let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username)});
     if (range <= 3) {
-        if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue) {
+        if (range <= 3 && hostile.getActiveBodyparts(ATTACK) && !hostile.fatigue && !this.memory.squadLeader) {
             this.kite();
         }
-        if (targets.length > 1) {
+        if (targets.length > 1 && !allies.length) {
             this.rangedMassAttack();
         } else {
             if (range <= 1) this.rangedMassAttack();
@@ -337,7 +333,7 @@ Creep.prototype.attackInRange = function () {
     } else {
         let opportunity = _.min(_.filter(this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'})), 'hits');
         if (opportunity) this.rangedAttack(opportunity);
-        if (targets.length > 1) this.rangedMassAttack();
+        if (targets.length > 1 && !allies.length) this.rangedMassAttack();
     }
 };
 
@@ -664,13 +660,17 @@ Creep.prototype.retreat = function (fleeRange = 7) {
 };
 
 Creep.prototype.borderHump = function () {
+    let damagedDrainer = _.min(_.filter(this.room.creeps, (creep) => creep.memory && creep.memory.role === 'drainer' && creep.id !== this.id && this.pos.getRangeTo(creep) <= 5 && creep.hits < creep.hitsMax), 'hits');
     if (this.hits < this.hitsMax * 0.9 && !this.getActiveBodyparts(TOUGH) && this.room.name === this.memory.targetRoom) {
         let exit = this.pos.findClosestByRange(FIND_EXIT);
         return this.shibMove(exit, {ignoreCreeps: false, range: 0});
+    } else if (damagedDrainer.id) {
+        this.heal(damagedDrainer);
+        this.shibMove(damagedDrainer, {range: 1})
     } else if (this.hits === this.hitsMax && this.room.name === this.memory.targetRoom) {
         this.borderCheck();
         this.heal(this);
-        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23})
+        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 5})
     } else if (this.hits < this.hitsMax && this.room.name !== this.memory.targetRoom) {
         this.borderCheck();
         this.heal(this);

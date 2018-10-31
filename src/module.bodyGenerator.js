@@ -262,6 +262,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             carry = _.round((1 * level) / 3) || 1;
             move = work + carry;
             break;
+        case 'fuelTruck':
+            carry = 20;
+            move = 20;
+            break;
         case 'remoteUpgrader':
             if (level < 6) return;
             work = level * 2;
@@ -279,7 +283,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = 1;
                 move = 2;
                 break;
-            } else if (3 < level < 5) {
+            } else if (level < 5) {
                 work = _.round(0.5 * level);
                 carry = 1;
                 move = 2;
@@ -291,15 +295,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            carry = _.random(2 * level, 4 * level);
-            move = _.round((carry / 2));
-            if (3 < level < 6) {
-                carry = _.random(2 * level, 3 * level);
-                move = (carry) / 2;
-            } else if (level < 3) {
+            if (level < 3) {
                 carry = 2;
                 move = 2;
-                break;
+            } else if (level < 6) {
+                carry = _.random(2 * level, 3 * level);
+                move = (carry) / 2;
+            } else {
+                carry = _.random(2 * level, 4 * level);
+                move = _.round((carry / 2));
             }
             break;
         case 'SKattacker':

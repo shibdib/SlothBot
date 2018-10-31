@@ -55,10 +55,8 @@ function role(creep) {
                     case ERR_RCL_NOT_ENOUGH:
                         delete creep.memory.constructionSite;
                 }
-            } else if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(Game.rooms[creep.memory.overlord].controller);
-                creep.memory.constructionSite = undefined;
-                creep.memory.task = undefined;
+            } else {
+                creep.recycleCreep();
             }
         }
     } else {

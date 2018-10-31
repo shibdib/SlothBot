@@ -8,14 +8,8 @@ const profiler = require('screeps-profiler');
 module.exports.role = function (creep) {
     //INITIAL CHECKS
     creep.say(ICONS.reaction, true);
-    //If short on harvesters become one
-    let haulers = _.filter(creep.room.creeps, (c) => (c.my && c.memory.role === 'hauler'));
-    if (!haulers.length) return creep.memory.role = 'hauler';
-    if (creep.wrongRoom()) return;
-    if (creep.carry[RESOURCE_ENERGY] > 0) {
-        let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
-        if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
-    }
+    //If creep needs boosts do that first
+    if (boostDelivery(creep)) return;
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
     if (droppedResources(creep)) return;
@@ -63,7 +57,7 @@ module.exports.role = function (creep) {
                     return true;
             }
         }
-    } else if (checkForLoot(creep)) {
+    } else if (checkForLoot(creep) || boostDelivery(creep)) {
 
     } else if (creep.pos.getRangeTo(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
@@ -208,6 +202,83 @@ function supplyLab(creep) {
     }
 }
 
+function boostDelivery(creep) {
+    if (creep.room.controller.level < 6 || !_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0]) return false;
+    let lab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active === true && s.memory.neededBoost)[0];
+    if (!lab) return delete creep.memory.labTech;
+    //Make sure creep needing boost exists
+    let boostCreep = _.filter(creep.room.creeps, (c) => c.memory && c.memory.boostLab === lab.id)[0];
+    if (!boostCreep) {
+        delete lab.memory;
+        return delete creep.memory.labTech
+    }
+    let terminal = creep.room.terminal;
+    let storage = creep.room.storage;
+    creep.say(ICONS.boost, true);
+    if (creep.carry[lab.memory.neededBoost] === _.sum(creep.carry)) {
+        switch (creep.transfer(lab, lab.memory.neededBoost)) {
+            case OK:
+                return delete creep.memory.labTech;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(lab, {ignoreCreeps: false});
+                creep.memory.labTech = true;
+                return true;
+        }
+    } else if (_.sum(creep.carry) > creep.carry[lab.memory.neededBoost]) {
+        for (let resourceType in creep.carry) {
+            if (resourceType === lab.memory.neededBoost) continue;
+            switch (creep.transfer(terminal, resourceType)) {
+                case OK:
+                    creep.memory.labTech = true;
+                    return true;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(terminal);
+                    creep.memory.labTech = true;
+                    return true;
+            }
+        }
+    }
+    if (lab.mineralType && lab.mineralType !== lab.memory.neededBoost) {
+        switch (creep.withdraw(lab, lab.mineralType)) {
+            case OK:
+                creep.memory.labTech = true;
+                return true;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(lab);
+                creep.memory.labTech = true;
+                return true;
+        }
+    } else {
+        if (!creep.memory.itemStorage) {
+            if (storage.store[lab.memory.neededBoost] > 0) {
+                creep.memory.labTech = true;
+                creep.memory.itemStorage = storage.id;
+                return true;
+            } else if (terminal.store[lab.memory.neededBoost] > 0) {
+                creep.memory.labTech = true;
+                creep.memory.itemStorage = terminal.id;
+                return true;
+            } else {
+                delete creep.memory.labTech;
+                delete creep.memory.itemStorage;
+            }
+        } else {
+            switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), lab.memory.neededBoost)) {
+                case OK:
+                    delete creep.memory.itemStorage;
+                    return true;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
+                    creep.memory.labTech = true;
+                    return true;
+                case ERR_NOT_ENOUGH_RESOURCES:
+                    delete creep.memory.itemStorage;
+                    return true;
+            }
+        }
+    }
+}
+
 function droppedResources(creep) {
     let tombstone = creep.room.find(FIND_TOMBSTONES, {filter: (r) => _.sum(r.store) > r.store[RESOURCE_ENERGY] || (!r.store[RESOURCE_ENERGY] && _.sum(r.store) > 0)})[0];
     let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
@@ -257,48 +328,5 @@ function droppedResources(creep) {
         }
     } else {
         return false;
-    }
-}
-
-// Check for loot
-function checkForLoot(creep) {
-    if (!creep.room.storage) return false;
-    let tombstones = _.filter(creep.room.tombstones, (s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
-    if (tombstones.length) {
-        for (let resourceType in tombstones[0].store) {
-            switch (creep.withdraw(tombstones[0], resourceType)) {
-                case OK:
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(tombstones[0]);
-                    break;
-            }
-        }
-        return true;
-    }
-    let dropped = _.filter(FIND_DROPPED_RESOURCES, (s) => s.amount > 250);
-    if (dropped.length) {
-        switch (creep.pickup(dropped[0])) {
-            case OK:
-                break;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(dropped[0]);
-                break;
-        }
-        return true;
-    }
-    let giftContainers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] === 0 && _.sum(s.store) >= 250);
-    if (giftContainers.length) {
-        for (let resourceType in giftContainers[0].store) {
-            switch (creep.withdraw(giftContainers[0], resourceType)) {
-                case OK:
-                    break;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(giftContainers[0]);
-                    break;
-            }
-        }
-        creep.say('GIFT!', true);
-        return true;
     }
 }

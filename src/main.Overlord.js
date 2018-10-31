@@ -249,6 +249,8 @@ function minionController(minion) {
     if (minion.spawning) return minion.notifyWhenAttacked(false);
     // If idle sleep
     if (minion.idle) return;
+    // If minion has been flagged to recycle do so
+    if (minion.memory.recycle) return minion.recycleCreep();
     // Chance based CPU saving
     let cpuUsed = Game.cpu.getUsed();
     if ((cpuUsed >= Game.cpu.limit && Math.random() > 0.7) || (cpuUsed >= Game.cpu.limit * 0.9 && Math.random() > 0.9)) return minion.say('CPU');

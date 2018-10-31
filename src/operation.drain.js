@@ -4,8 +4,11 @@ Creep.prototype.drainRoom = function () {
     let sentence = ['Gimme', 'That', 'Energy', 'Please'];
     let word = Game.time % sentence.length;
     if (this.room.name === this.memory.targetRoom) {
+        this.say(sentence[word], true);
         let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy >= 10);
         if (!towers.length) {
+            let enemyCreeps = _.filter(this.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+            let type = 'clean';
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.pos.roomName] = {
@@ -14,9 +17,11 @@ Creep.prototype.drainRoom = function () {
                 level: 1
             };
             Memory.targetRooms = cache;
-            let towerTarget = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-            if (this.getActiveBodyparts(WORK) && this.dismantle(towerTarget[0]) === ERR_NOT_IN_RANGE) this.shibMove(towerTarget[0])
-            if (this.getActiveBodyparts(ATTACK) && this.attack(towerTarget[0]) === ERR_NOT_IN_RANGE) this.shibMove(towerTarget[0])
+            let target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)}) || this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER)});
+            if (target) {
+                if (this.getActiveBodyparts(WORK) && this.dismantle(target) === ERR_NOT_IN_RANGE) this.shibMove(target)
+                if (this.getActiveBodyparts(ATTACK) && this.attack(target) === ERR_NOT_IN_RANGE) this.shibMove(target)
+            }
         } else {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
@@ -30,7 +35,6 @@ Creep.prototype.drainRoom = function () {
         highCommand.operationSustainability(this.room);
         highCommand.threatManagement(this);
     }
-    this.say(sentence[word], true);
     if (this.room.name === this.memory.targetRoom || this.hits < this.hitsMax) this.heal(this);
     this.borderHump();
 };

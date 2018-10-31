@@ -151,6 +151,8 @@ function mind() {
 function minionController(minion) {
     // If spawning disable notifications
     if (minion.spawning) return minion.notifyWhenAttacked(false);
+    // If minion has been flagged to recycle do so
+    if (minion.memory.recycle) return minion.recycleCreep();
     // If idle sleep
     if (minion.idle) return;
     // Report damage if hits are low

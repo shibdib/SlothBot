@@ -39,57 +39,77 @@ Creep.prototype.idleFor = function (ticks = 0) {
 Creep.prototype.borderCheck = function () {
     if (this.pos.x === 0 || this.pos.y === 0 || this.pos.x === 49 || this.pos.y === 49) {
         if (this.pos.x === 0 && this.pos.y === 0) {
-            this.move(BOTTOM_RIGHT);
+            return this.move(BOTTOM_RIGHT);
         }
         else if (this.pos.x === 0 && this.pos.y === 49) {
-            this.move(TOP_RIGHT);
+            return this.move(TOP_RIGHT);
         }
         else if (this.pos.x === 49 && this.pos.y === 0) {
-            this.move(BOTTOM_LEFT);
+            return this.move(BOTTOM_LEFT);
         }
         else if (this.pos.x === 49 && this.pos.y === 49) {
-            this.move(TOP_LEFT);
+            return this.move(TOP_LEFT);
         }
-        else if (this.pos.x === 49) {
-            if (Math.random() < .33) {
-                this.move(LEFT)
-            } else if (Math.random() < .33) {
-                this.move(TOP_LEFT)
-            } else {
-                this.move(BOTTOM_LEFT)
+        let pos;
+        if (this.pos.x === 49) {
+            pos = positionAtDirection(this.pos, LEFT);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(LEFT)
             }
+            pos = positionAtDirection(this.pos, TOP_LEFT);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(TOP_LEFT)
+            }
+            return this.move(BOTTOM_LEFT)
         }
         else if (this.pos.x === 0) {
-            if (Math.random() < .33) {
-                this.move(RIGHT)
-            } else if (Math.random() < .33) {
-                this.move(TOP_RIGHT)
-            } else {
-                this.move(BOTTOM_RIGHT)
+            pos = positionAtDirection(this.pos, RIGHT);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(RIGHT)
             }
+            pos = positionAtDirection(this.pos, TOP_RIGHT);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(TOP_RIGHT)
+            }
+            return this.move(BOTTOM_RIGHT)
         }
         else if (this.pos.y === 0) {
-            if (Math.random() < .33) {
-                this.move(BOTTOM)
-            } else if (Math.random() < .33) {
-                this.move(BOTTOM_RIGHT)
-            } else {
-                this.move(BOTTOM_LEFT)
+            pos = positionAtDirection(this.pos, BOTTOM);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(BOTTOM)
             }
+            pos = positionAtDirection(this.pos, BOTTOM_RIGHT);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(BOTTOM_RIGHT)
+            }
+            return this.move(BOTTOM_LEFT)
         }
         else if (this.pos.y === 49) {
-            if (Math.random() < .33) {
-                this.move(TOP)
-            } else if (Math.random() < .33) {
-                this.move(TOP_RIGHT)
-            } else {
-                this.move(TOP_LEFT)
+            pos = positionAtDirection(this.pos, TOP);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(TOP)
             }
+            pos = positionAtDirection(this.pos, TOP_RIGHT);
+            if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
+                return this.move(TOP_RIGHT)
+            }
+            return this.move(TOP_LEFT)
         }
         return true;
     }
     return false;
 };
+
+function positionAtDirection(origin, direction) {
+    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
+    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
+    let x = origin.x + offsetX[direction];
+    let y = origin.y + offsetY[direction];
+    if (x > 49 || x < 0 || y > 49 || y < 0 || !x || !y) {
+        return;
+    }
+    return new RoomPosition(x, y, origin.roomName);
+}
 
 Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000, force = false) {
     if (Game.rooms[this.memory.overlord].controller.level >= level && (this.ticksToLive < cutoff || this.memory.renewing) && Game.rooms[this.memory.overlord].energyAvailable >= Game.rooms[this.memory.overlord].energyCapacity * 0.5) {
@@ -373,6 +393,18 @@ Creep.prototype.repairRoad = function () {
     if (this.carry[RESOURCE_ENERGY] < 10 || this.getActiveBodyparts(WORK) === 0) return;
     let road = this.pos.lookFor(LOOK_STRUCTURES);
     if (road.length > 0 && road[0].hits < road[0].hitsMax) this.repair(road[0]);
+};
+
+//Find spawn and recycle
+Creep.prototype.recycleCreep = function () {
+    if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
+    let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
+    switch (spawn[0].recycleCreep(this)) {
+        case OK:
+            break;
+        case ERR_NOT_IN_RANGE:
+            return this.shibMove(spawn[0]);
+    }
 };
 
 Object.defineProperty(Creep.prototype, 'isFull', {

@@ -17,10 +17,10 @@ Creep.prototype.borderPatrol = function () {
         this.memory.contactReport = undefined;
         if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
         // If on target, be available to respond
-        this.memory.awaitingOrders = this.room.name === this.memory.responseTarget;
+        this.memory.awaitingOrders = this.room.name === this.memory.responseTarget && !this.room.memory.responseNeeded;
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
         // Idle in target rooms for 20 ticks
-        if (!this.memory.responseTarget || this.memory.onTarget + 20 <= Game.time) {
+        if ((!this.memory.responseTarget || this.memory.onTarget + 20 <= Game.time) && !this.room.memory.responseNeeded) {
             let remotes = Game.rooms[this.memory.overlord].memory.remoteRooms;
             this.memory.responseTarget = _.sample(remotes);
             this.memory.onTarget = undefined;

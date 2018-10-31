@@ -163,6 +163,8 @@ module.exports.operationSustainability = function (room) {
             type: 'pending',
             dDay: tick + room.controller.safeMode,
         };
+        // Set no longer needed creeps to go recycle
+        _.filter(Game.creeps, (c) => c.my && c.memory.targetRoom && c.memory.targetRoom === room.name).forEach((c) => c.memory.recycle = true);
         return Memory.targetRooms = cache;
     }
     let operation = Memory.targetRooms[room.name];
@@ -196,7 +198,7 @@ module.exports.operationSustainability = function (room) {
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
     if (operation.tick + 500 >= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain') ||
-        operation.type === 'drain' && operation.trackedFriendly.length >= 10) {
+        operation.type === 'drain' && operation.trackedFriendly.length >= 4) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
         delete Memory.targetRooms[room.name];

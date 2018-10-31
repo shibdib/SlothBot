@@ -52,21 +52,24 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        worker: 3,
-        waller: 4,
+        worker: 6,
+        waller: 7,
         upgrader: 3,
-        mineralHarvester: 3,
+        mineralHarvester: 8,
+        repairer: 6,
         // Haulers
         hauler: 2,
         // Remotes
         remoteUtility: 6,
-        remoteHarvester: 4,
-        remoteHauler: 4,
-        remoteUpgrader: 5,
-        pioneer: 5,
+        remoteHarvester: 5,
+        remoteHauler: 5,
+        remoteUpgrader: 6,
+        remotePioneer: 6,
+        assistPioneer: 4,
+        fuelTruck: 4,
         remoteResponse: 5,
         reserver: 6,
-        borderPatrol: 3,
+        borderPatrol: 5,
         // Power
         Power: 5,
         // SK
@@ -75,10 +78,10 @@ let globals = function () {
         SKsupport: 6,
         SKhauler: 6,
         // Military
-        urgent: 5,
-        high: 6,
-        medium: 8,
-        secondary: 10,
+        urgent: 4,
+        high: 9,
+        medium: 10,
+        secondary: 11,
         siege: 6,
         harass: 3,
         hold: 4,
