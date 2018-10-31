@@ -16,7 +16,7 @@ let globals = function () {
 
     global.FRIENDLIES = RawMemory.segments[2];
 
-    global.TEN_CPU = Game.cpu.limit === 10;
+    global.TEN_CPU = Game.cpu.limit === 20;
 
     //Signing
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];
