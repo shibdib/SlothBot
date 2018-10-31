@@ -6,7 +6,6 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (creep.tryToBoost(['upgrade'])) return;
     //ANNOUNCE
     let signs = OWNED_ROOM_SIGNS;
     if (creep.memory.inPlace) {

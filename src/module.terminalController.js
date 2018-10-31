@@ -69,8 +69,9 @@ function fillBuyOrders(terminal, globalOrders) {
             let onHand = terminal.store[resourceType];
             let sellOffAmount = SELL_OFF_AMOUNT * 2;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = SELL_OFF_AMOUNT * 5;
+            if (Game.market.credits < 25000) sellOffAmount = 0;
             if (onHand >= sellOffAmount) {
-                let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.5;
+                let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.2;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(sellableAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');

@@ -127,8 +127,9 @@ Creep.prototype.healMyCreeps = function () {
         }
     });
     if (myCreeps.length > 0) {
-        this.say('Medic Here', true);
-        this.moveTo(myCreeps[0]);
+        this.say(ICONS.hospital, true);
+        this.shibMove(myCreeps[0]);
+        if (!myCreeps[0].memory.military) myCreeps[0].shibMove(this);
         if (this.pos.getRangeTo(myCreeps[0]) <= 1) {
             this.heal(myCreeps[0]);
         } else {
@@ -143,8 +144,8 @@ Creep.prototype.healAllyCreeps = function () {
 
     let allyCreeps = _.filter(this.room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && c.hits < c.hitsMax);
     if (allyCreeps.length > 0) {
-        this.say('Medic Here', true);
-        this.moveTo(allyCreeps[0]);
+        this.say(ICONS.hospital, true);
+        this.shibMove(allyCreeps[0]);
         let range = this.pos.getRangeTo(allyCreeps[0]);
         if (range <= 1) {
             this.heal(allyCreeps[0]);

@@ -141,7 +141,7 @@ Creep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 1000,
 
 Creep.prototype.tryToBoost = function (boosts) {
     if (this.memory.boostAttempt) return false;
-    let labs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active);
+    if (!this.room.memory.boostLab) return this.memory.boostAttempt = true;
     // Unboosting
     /**if (labs[0] && this.memory.boostAttempt && !this.memory.unboosted && this.ticksToLive <= 75) {
         switch (labs[0].unboostCreep(this)) {
@@ -157,7 +157,6 @@ Creep.prototype.tryToBoost = function (boosts) {
         this.shibMove(labs[0]);
         return true;
     }**/
-    if ((!labs[0] || this.memory.boostAttempt) && !this.memory.boostLab) return this.memory.boostAttempt = true;
     if (!this.memory.requestedBoosts) {
         let available = [];
         let boostNeeded;
@@ -276,13 +275,13 @@ Creep.prototype.tryToBoost = function (boosts) {
         this.memory.requestedBoosts = available;
     } else {
         if (!this.memory.requestedBoosts.length || this.ticksToLive < 750) {
-            this.memory.requestedBoosts = undefined;
-            this.memory.boostLab = undefined;
-            this.memory.boostNeeded = undefined;
             let lab = Game.getObjectById(this.memory.boostLab);
             if (lab) {
                 lab.memory = undefined;
             }
+            this.memory.requestedBoosts = undefined;
+            this.memory.boostLab = undefined;
+            this.memory.boostNeeded = undefined;
             return this.memory.boostAttempt = true;
         }
         for (let key in this.memory.requestedBoosts) {
@@ -299,36 +298,21 @@ Creep.prototype.tryToBoost = function (boosts) {
             }
             if (!this.memory.boostLab) {
                 let filledLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === this.memory.requestedBoosts[key] && s.energy > 0)[0];
-                let hub = new RoomPosition(this.room.memory.extensionHub.x, this.room.memory.extensionHub.y, this.room.name);
-                let innerLab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(hub) < 9)[0];
-                if (innerLab) {
-                    if (innerLab.memory.active) return this.idleFor(15);
-                    this.memory.boostLab = innerLab.id;
-                    innerLab.memory.neededBoost = this.memory.requestedBoosts[key];
-                    innerLab.memory.active = true;
-                    innerLab.memory.requested = Game.time;
-                } else if (filledLab) {
+                let innerLab = Game.getObjectById(this.room.memory.boostLab);
+                if (filledLab) {
+                    if (filledLab.memory.neededBoost && filledLab.memory.neededBoost !== this.memory.requestedBoosts[key]) return;
                     this.memory.boostLab = filledLab.id;
                     filledLab.memory.neededBoost = this.memory.requestedBoosts[key];
                     filledLab.memory.active = true;
                     filledLab.memory.requested = Game.time;
+                } else if (innerLab) {
+                    if (innerLab.memory.neededBoost && innerLab.memory.neededBoost !== this.memory.requestedBoosts[key]) return;
+                    this.memory.boostLab = innerLab.id;
+                    innerLab.memory.neededBoost = this.memory.requestedBoosts[key];
+                    innerLab.memory.active = true;
+                    innerLab.memory.requested = Game.time;
                 } else {
-                    let availableLab = shuffle(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.energy > 0))[0];
-                    if (availableLab) {
-                        this.memory.boostLab = availableLab.id;
-                        availableLab.memory.neededBoost = this.memory.requestedBoosts[key];
-                        availableLab.memory.active = true;
-                        availableLab.memory.requested = Game.time;
-                    } else {
-                        this.memory.requestedBoosts = undefined;
-                        this.memory.boostLab = undefined;
-                        this.memory.boostNeeded = undefined;
-                        let lab = Game.getObjectById(this.memory.boostLab);
-                        if (lab) {
-                            lab.memory = undefined;
-                        }
-                        return this.memory.boostAttempt = true;
-                    }
+                    return this.memory.boostAttempt = true;
                 }
             }
             let lab = Game.getObjectById(this.memory.boostLab);

@@ -7,13 +7,14 @@ Creep.prototype.scoutRoom = function () {
     // If room is no longer a target
     if (!Memory.targetRooms[this.room.name]) return this.suicide();
     // Operation cooldown per room
-    let coolDown = false;
-    if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].lastOperation && Memory.roomCache[this.room.name].lastOperation + 2000 > Game.time) coolDown = true;
+    if (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].manual && Memory.roomCache[this.room.name].lastOperation && Memory.roomCache[this.room.name].lastOperation + 2000 > Game.time) {
+        delete Memory.targetRooms[this.room.name];
+        log.a(this.room.name + ' is on an attack cooldown, no operation planned.');
+        return this.suicide();
+    }
     // Get current operations
     let totalCount = 0;
-    if (_.size(Memory.targetRooms)) {
-        totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
-    }
+    if (_.size(Memory.targetRooms)) totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
     // Get available rooms
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
@@ -28,22 +29,14 @@ Creep.prototype.scoutRoom = function () {
     let closestOwned = this.room.findClosestOwnedRoom();
     let pathedRange = this.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
     let priority = 4;
-    if (range <= 2) {
-        priority = 1;
-    } else if (range <= 3 && pathedRange <= 3) {
-        priority = 2;
-    } else if (pathedRange <= 6) {
-        priority = 3;
-    } else {
-        priority = 4;
-    }
+    if (range <= 2) priority = 1; else if (range <= 3 && pathedRange <= 3) priority = 2; else if (pathedRange <= 6) priority = 3; else priority = 4;
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
     let otherCreeps = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username));
     let armedHostiles = _.filter(this.room.creeps, (c) => !c.my && (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && !_.includes(FRIENDLIES, c.owner.username));
     let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits > 1000);
-    if ((totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) && !coolDown) {
+    if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) {
         // If the room has no controller
         if (!controller) {
             cache[this.room.name] = {

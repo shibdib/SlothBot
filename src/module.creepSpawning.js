@@ -568,16 +568,6 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
         }
-        if (!_.includes(queue, 'remoteMedic')) {
-            let needsHeals = _.filter(Game.creeps, (c) => c.memory && c.memory.healsPlease && !c.memory.healsInbound && c.memory.overlord === room.name);
-            let remoteMedic = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteMedic');
-            if (needsHeals.length && remoteMedic.length < _.round(Memory.ownedRooms.length / 2)) {
-                queueCreep(room, PRIORITIES.urgent, {
-                    role: 'remoteMedic',
-                    military: true
-                })
-            }
-        }
         // Border Patrol
         if (level >= 4 && !_.includes(queue, 'longbow')) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');

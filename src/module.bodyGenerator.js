@@ -39,10 +39,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work + carry;
             break;
         case 'waller':
-            let multi = 1;
-            if (room.memory.energySurplus) multi = 2;
-            if (room.memory.extremeEnergySurplus) multi = 3;
-            work = (multi * level) - 1;
+            work = level;
             carry = level;
             if (level === 8) {
                 work = 15;

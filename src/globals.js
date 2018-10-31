@@ -55,7 +55,7 @@ let globals = function () {
         worker: 6,
         waller: 5,
         upgrader: 3,
-        mineralHarvester: 8,
+        mineralHarvester: 5,
         repairer: 6,
         // Haulers
         hauler: 2,
@@ -202,6 +202,7 @@ let globals = function () {
         , castle: "\ud83c\udff0"
         , traffic: "\ud83d\udea6"
         , border: "\ud83d\udec2"
+        , hospital: "\ud83c\udfe5"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
