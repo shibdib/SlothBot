@@ -53,7 +53,7 @@ let globals = function () {
         stationaryHarvester: 1,
         // Workers
         worker: 6,
-        waller: 7,
+        waller: 5,
         upgrader: 3,
         mineralHarvester: 8,
         repairer: 6,
@@ -201,6 +201,7 @@ let globals = function () {
         , crossedSword: "\u2694"
         , castle: "\ud83c\udff0"
         , traffic: "\ud83d\udea6"
+        , border: "\ud83d\udec2"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);

@@ -23,6 +23,7 @@ Room.prototype.buildRoom = function () {
     if (!spawn.length) {
         buildTowers(this, structures);
         rebuildSpawn(this, structures);
+        return;
     }
     // Clean bad roads
     if (Game.time % 500 === 0) {
@@ -760,14 +761,8 @@ function buildRoad(position, room) {
 function rebuildSpawn(room) {
     if (!room.memory.extensionHub || !room.memory.extensionHub.x) return findExtensionHub(room);
     let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-    if (_.filter(hub.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART).length) {
+    if (!hub.checkForConstructionSites()) {
         switch (hub.createConstructionSite(STRUCTURE_SPAWN)) {
-            case OK:
-                break;
-            case ERR_RCL_NOT_ENOUGH:
-        }
-    } else {
-        switch (hub.createConstructionSite(STRUCTURE_RAMPART)) {
             case OK:
                 break;
             case ERR_RCL_NOT_ENOUGH:

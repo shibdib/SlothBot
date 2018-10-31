@@ -1,5 +1,5 @@
 Creep.prototype.borderPatrol = function () {
-    let sentence = [ICONS.respond, 'Border', 'Patrol'];
+    let sentence = [ICONS.border, 'Border', 'Patrol'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
