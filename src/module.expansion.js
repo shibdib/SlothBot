@@ -2,6 +2,9 @@ let shib = require("shibBench");
 
 module.exports.claimNewRoom = function (room) {
     let cpu = Game.cpu.getUsed();
+    let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
+    // Don't expand if there's a low level room needing to be built up
+    if (minLevel < 4) return;
     // Don't expand if attacked recently
     if (room.memory.lastPlayerAttack && room.memory.lastPlayerAttack + 2500 >= Game.time) return;
     let avoidRooms = _.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner.username));

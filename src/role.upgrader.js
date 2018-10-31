@@ -16,6 +16,7 @@ module.exports.role = function (creep) {
         creep.withdrawEnergy();
     } else if (creep.room.memory.controllerContainer) {
         let container = Game.getObjectById(creep.room.memory.controllerContainer);
+        if (!container) return delete creep.room.memory.controllerContainer;
         if (container.store[RESOURCE_ENERGY] > 0) {
             switch (creep.withdraw(container, RESOURCE_ENERGY)) {
                 case OK:

@@ -297,7 +297,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            if (level < 3) {
+            if (level < 4) {
                 carry = 2;
                 move = 2;
             } else if (level < 6) {
