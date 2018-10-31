@@ -15,7 +15,7 @@ function role(creep) {
     // If hauling do things
     if (creep.memory.hauling) {
         if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) {
-            let storage = creep.room.storage;
+            let storage = creep.room.terminal || creep.room.storage;
             for (let resourceType in creep.carry) {
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
