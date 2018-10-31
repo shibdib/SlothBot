@@ -57,7 +57,7 @@ module.exports.role = function (creep) {
                     return true;
             }
         }
-    } else if (checkForLoot(creep) || boostDelivery(creep)) {
+    } else if (boostDelivery(creep)) {
 
     } else if (creep.pos.getRangeTo(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
