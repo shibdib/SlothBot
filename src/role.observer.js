@@ -26,7 +26,7 @@ module.exports.role = function (creep) {
 };
 
 function levelManager(creep) {
-    let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+    let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.body.length > 1);
     let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (armedEnemies.length) {
         Memory.targetRooms[creep.memory.targetRoom].level = 2;

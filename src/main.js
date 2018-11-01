@@ -176,8 +176,9 @@ status = function (roomName = undefined, creep = false) {
         if (Memory.targetRooms && _.size(Memory.targetRooms)) {
             log.e('--OPERATION INFO--');
             for (let key in Memory.targetRooms) {
-                let level = Memory.targetRooms[key].level || 1;
+                let level = Memory.targetRooms[key].level;
                 let type = Memory.targetRooms[key].type;
+                if (type === 'poke') continue;
                 let priority = Memory.targetRooms[key].priority || 4;
                 if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
                     log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key) + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead);
@@ -185,6 +186,8 @@ status = function (roomName = undefined, creep = false) {
                     log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key));
                 }
             }
+            let pokes = _.filter(Memory.targetRooms, (t) => t.type === 'poke');
+            if (pokes.length) log.e('Active Poke Count - ' + pokes.length);
         }
         let borderPatrolLeaders = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
         if (borderPatrolLeaders.length) {

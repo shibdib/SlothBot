@@ -510,6 +510,7 @@ module.exports.remoteCreepQueue = function (room) {
     if (room.memory.remoteRooms && !room.memory.responseNeeded) {
         let responseNeeded;
         for (let keys in room.memory.remoteRooms) {
+            if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, room.memory.remoteRooms[keys])) continue;
             let remoteRoom = Game.rooms[room.memory.remoteRooms[keys]];
             if (room.shibRoute(room.memory.remoteRooms[keys]).length - 1 > range || checkIfSK(room.memory.remoteRooms[keys])) continue;
             if (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].reservation && Memory.roomCache[room.memory.remoteRooms[keys]].reservation !== USERNAME)) continue;

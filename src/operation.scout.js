@@ -89,8 +89,17 @@ Creep.prototype.scoutRoom = function () {
             } else {
                 // If we dont have any level 8 rooms
                 if (maxLevel < 8) {
+                    // If there's one tower send in the conscripts
+                    if (towers.length < 2) {
+                        cache[this.room.name] = {
+                            tick: tick,
+                            type: 'conscripts',
+                            level: 1,
+                            priority: priority
+                        };
+                    }
                     // If there's no active guards, no ramparts, and we have enough rooms swarm
-                    if (towers.length <= 2 && !armedHostiles.length && !ramparts.length && Memory.ownedRooms.length >= 2) {
+                    else if (towers.length <= 2 && !armedHostiles.length && !ramparts.length && Memory.ownedRooms.length >= 2) {
                         cache[this.room.name] = {
                             tick: tick,
                             type: 'swarm',

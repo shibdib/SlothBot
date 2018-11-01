@@ -28,7 +28,7 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.linkID && Game.time % 3 === 0 && Game.getObjectById(creep.memory.containerID).store[RESOURCE_ENERGY] > 10) creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+                if (creep.memory.containerID && creep.memory.linkID && Game.time % 3 === 0 && Game.getObjectById(creep.memory.containerID).store[RESOURCE_ENERGY] > 10) creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
                 if (creep.carry.energy === creep.carryCapacity) return depositEnergy(creep);
                 break;
         }
@@ -107,8 +107,8 @@ function harvestDepositLink(creep) {
             return link.id;
         }
     } else {
-        let storageLink = Game.getObjectById(creep.memory.storageLink);
-        if (creep.pos.getRangeTo(storageLink) <= 6) return;
+        let storageLink = Game.getObjectById(creep.room.memory.storageLink);
+        if (creep.pos.getRangeTo(storageLink) <= 6 && (!creep.room.memory.storageLink || !creep.room.memory.controllerLink)) return;
         let container = Game.getObjectById(creep.memory.containerID);
         let inBuild = _.filter(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!inBuild && container) {

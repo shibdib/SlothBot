@@ -94,14 +94,7 @@ function operationRequests() {
 
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
-    // Get available rooms
-    let totalCount;
-    if (_.size(Memory.targetRooms)) {
-        totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
-    }
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-    let totalRooms = Memory.ownedRooms.length;
-    let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
     if (sieges.length) {
         let activeSiege = _.filter(sieges, (t) => t.activeSiege)[0];
@@ -120,26 +113,52 @@ function manageAttacks() {
             newActive.tick = Game.time;
         }
     }
+    if (!Memory.targetRooms) Memory.targetRooms = {};
     for (let key in Memory.targetRooms) {
-        if (pokeCount > 10 && Memory.targetRooms[key].type === 'poke') {
+        let type = Memory.targetRooms[key].type;
+        // Special Conditions
+        switch (type) {
+            // Manage Pokes
+            case 'poke':
+                if (pokeCount > 10) delete Memory.targetRooms[key];
+                continue;
+            // Manage Holds
+            case 'hold':
+                continue;
+            // Manage Nukes
+            case 'nukes':
+                continue;
+            // Manage Pending
+            case 'pending':
+                if (Memory.targetRooms[key].dDay - 50 <= Game.time) {
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[key] = {
+                        tick: tick,
+                        type: 'attack',
+                        level: 1,
+                        dDay: undefined
+                    };
+                    Memory.targetRooms = cache;
+                }
+                continue;
+            // Manage Guard
+            case 'guard':
+                continue;
+        }
+        // Cancel stale ops with no kills
+        if (Memory.targetRooms[key].tick + 3000 < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
             delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + key + ' as it has gone stale.');
             continue;
         }
-        if (Game.cpu.bucket < 7500 || (Memory.targetRooms[key].tick + 5000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending' && Memory.targetRooms[key].type !== 'guard')) {
+        // Cancel once active stale ops who hasn't killed in 1 creep lifetime
+        if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + 1500 < Game.time) {
             delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + key + ' as it has gone stale.');
             continue;
         }
-        if (Memory.targetRooms[key].dDay && Memory.targetRooms[key].dDay - 150 <= Game.time) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[key] = {
-                tick: tick,
-                type: 'attack',
-                level: 1,
-                dDay: undefined
-            };
-            Memory.targetRooms = cache;
-        }
+        // Delete wave based rooms at the threshold
         if (Memory.targetRooms[key].waves) {
             if (Memory.targetRooms[key].waves >= 3) {
                 delete Memory.targetRooms[key];
@@ -192,7 +211,7 @@ module.exports.operationSustainability = function (room) {
     operation.trackedEnemy = trackedEnemy;
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 500 >= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain') ||
+    if (operation.tick + 500 >= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard') ||
         operation.type === 'drain' && operation.trackedFriendly.length >= 4) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
@@ -219,13 +238,30 @@ function manualAttacks() {
             cache.push(Game.flags[name].pos.roomName);
             Memory.avoidRooms = cache;
             Game.flags[name].remove();
+            log.e(Game.flags[name].pos.roomName + ' will be avoided.')
         }
-        //Remove bad room flag
+        //Bad remote
+        if (_.startsWith(name, 'remote')) {
+            let cache = Memory.avoidRemotes || [];
+            cache.push(Game.flags[name].pos.roomName);
+            Memory.avoidRemotes = cache;
+            Game.flags[name].remove();
+            log.e(Game.flags[name].pos.roomName + ' will be avoided.')
+        }
+        //Remove bad room/remote flag
         if (_.startsWith(name, 'remove')) {
-            if (Memory.avoidRooms) {
+            if (Memory.avoidRooms && _.includes(Memory.avoidRooms, Game.flags[name].pos.roomName)) {
                 let cache = Memory.avoidRooms;
                 cache = _.filter(cache, (r) => r !== Game.flags[name].pos.roomName);
                 Memory.avoidRooms = cache;
+                log.e(Game.flags[name].pos.roomName + ' will no longer be avoided.')
+            } else if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, Game.flags[name].pos.roomName)) {
+                let cache = Memory.avoidRemotes;
+                cache = _.filter(cache, (r) => r !== Game.flags[name].pos.roomName);
+                Memory.avoidRemotes = cache;
+                log.e(Game.flags[name].pos.roomName + ' will no longer be avoided.')
+            } else {
+                log.e(Game.flags[name].pos.roomName + ' is not on any avoid lists.')
             }
             Game.flags[name].remove();
         }
