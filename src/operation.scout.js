@@ -14,7 +14,7 @@ Creep.prototype.scoutRoom = function () {
     }
     // Get current operations
     let totalCount = 0;
-    if (_.size(Memory.targetRooms)) totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack'));
+    if (_.size(Memory.targetRooms)) totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack' && t.type !== 'pending' && t.type !== 'poke' && t.type !== 'guard'));
     // Get available rooms
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
@@ -39,13 +39,24 @@ Creep.prototype.scoutRoom = function () {
     if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) {
         // If the room has no controller
         if (!controller) {
-            cache[this.room.name] = {
-                tick: tick,
-                type: 'harass',
-                level: 1,
-                priority: priority,
-                annoy: true
-            };
+            // Use rangers if available
+            if (maxLevel >= 4) {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'rangers',
+                    level: 1,
+                    priority: priority
+                };
+                // Otherwise use old harass
+            } else {
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: 'harass',
+                    level: 1,
+                    priority: priority,
+                    annoy: true
+                };
+            }
             // If the room is in safemode queue up another scout
         } else if (controller.owner && controller.safeMode) {
             cache[this.room.name] = {

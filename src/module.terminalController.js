@@ -38,11 +38,7 @@ function terminalControl(room) {
         if (supplyReactionRoom(terminal)) return;
         if (balanceBoosts(terminal)) return;
 
-        //extend old orders first
-        //extendSellOrders(terminal, myOrders);
-
-        //Try to put up a sell, otherwise fill buy
-        //placeSellOrders(terminal, globalOrders, myOrders);
+        //fill buy
         if (fillBuyOrders(terminal, globalOrders)) return;
 
         //Extend/Place buy orders if we have enough buffer cash
@@ -56,7 +52,7 @@ function terminalControl(room) {
         if (placeSellOrders(terminal, globalOrders, myOrders)) return;
 
         //Use extra creds to buy needed items for boosts
-        if (!terminal.cooldown && room.memory.reactionRoom && Game.market.credits > 20000) onDemandReactionOrders(terminal, globalOrders);
+        if (onDemandReactionOrders(terminal, globalOrders)) return;
     }
 }
 
@@ -72,6 +68,7 @@ function fillBuyOrders(terminal, globalOrders) {
             if (Game.market.credits < 25000) sellOffAmount = 0;
             if (onHand >= sellOffAmount) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.2;
+                if (!sellableAmount || sellableAmount < 0) continue;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(sellableAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
@@ -87,6 +84,7 @@ function fillBuyOrders(terminal, globalOrders) {
                     }
                     return true;
                 } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
+                    console.log(2)
                     switch (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName)) {
                         case OK:
                             log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
@@ -313,14 +311,14 @@ function onDemandReactionOrders(terminal, globalOrders) {
             if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
             let minerals = terminal.room.mineral[0];
-            if ((minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) || stored >= reactionAmount) continue;
-            if (terminal.store[reactionNeeds[i]] < reactionAmount * 0.5 || !terminal.store[reactionNeeds[i]]) {
+            if (minerals.resourceType === reactionNeeds[i] || stored >= reactionAmount) continue;
+            if (!terminal.store[reactionNeeds[i]] || terminal.store[reactionNeeds[i]] < reactionAmount * 0.5) {
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
                     order.type === ORDER_SELL && order.remainingAmount >= reactionAmount * 2 && order.roomName !== terminal.pos.roomName &&
                     Game.market.calcTransactionCost(reactionAmount * 2, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
                 if (sellOrder.id) {
-                    if (Game.market.deal(sellOrder.id, reactionAmount * 2, terminal.pos.roomName) === OK) {
-                        log.w(" MARKET: Bought " + reactionAmount * 2 + " " + reactionNeeds[i] + " for " + sellOrder.price * reactionAmount * 2 + " credits");
+                    if (Game.market.deal(sellOrder.id, reactionAmount, terminal.pos.roomName) === OK) {
+                        log.w(" MARKET: Bought " + reactionAmount + " " + reactionNeeds[i] + " for " + sellOrder.price * reactionAmount + " credits");
                         return true;
                     }
                 }

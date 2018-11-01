@@ -569,7 +569,7 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         // Border Patrol
-        if (level >= 4 && !_.includes(queue, 'longbow')) {
+        if (level >= 3 && !_.includes(queue, 'longbow')) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
             if (borderPatrol.length < 2 || (borderPatrol[0] && borderPatrol[0].ticksToLive < 100 && borderPatrol.length < 3)) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
@@ -633,7 +633,7 @@ module.exports.militaryCreepQueue = function () {
     // Targets
     for (let key in shuffle(Memory.targetRooms)) {
         let stagingRoom;
-        let opLevel = Memory.targetRooms[key].level;
+        let opLevel = Number(Memory.targetRooms[key].level);
         let escort = Memory.targetRooms[key].escort;
         let priority = Memory.targetRooms[key].priority || 4;
         switch (priority) {

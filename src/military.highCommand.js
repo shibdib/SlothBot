@@ -22,7 +22,7 @@ module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
 
 function operationRequests() {
     let totalCount = _.size(Memory.targetRooms) || 0;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke') || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard') || 0;
     let totalRooms = Memory.ownedRooms.length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
@@ -125,12 +125,7 @@ function manageAttacks() {
             delete Memory.targetRooms[key];
             continue;
         }
-        if (totalCount > surplusRooms * 3 && totalCount > totalRooms && Memory.targetRooms[key].priority !== 1 && Memory.targetRooms[key].type !== 'attack' && Memory.targetRooms[key].type !== 'poke' && !Memory.targetRooms[key].local) {
-            delete Memory.targetRooms[key];
-            totalCount--;
-            continue;
-        }
-        if (Game.cpu.bucket < 7500 || (Memory.targetRooms[key].tick + 5000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending')) {
+        if (Game.cpu.bucket < 7500 || (Memory.targetRooms[key].tick + 5000 < Game.time && Memory.targetRooms[key].type !== 'hold' && Memory.targetRooms[key].type !== 'nuke' && Memory.targetRooms[key].type !== 'pending' && Memory.targetRooms[key].type !== 'guard')) {
             delete Memory.targetRooms[key];
             continue;
         }
