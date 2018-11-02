@@ -458,19 +458,15 @@ Creep.prototype.getEnergy = function (range = 250, hauler = false) {
         }
     }
     //Dropped
-    if (this.room.controller.level < 8) {
-        let dropped = _.sortBy(this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_ENERGY && r.amount >= this.carryCapacity && !r.pos.checkForImpassible()}), 'amount');
-        if (dropped.length) {
-            dropped = dropped[dropped.length - 1];
-            let weight = 0.3;
-            let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === dropped.id && c.id !== this.id).length;
-            let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
-            energy.push({
-                id: dropped.id,
-                distWeighted: droppedDistWeighted,
-                harvest: false
-            });
-        }
+    let dropped = this.pos.findClosestByPath(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
+    if (dropped) {
+        let weight = 0.5;
+        let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
+        energy.push({
+            id: dropped.id,
+            distWeighted: droppedDistWeighted,
+            harvest: false
+        });
     }
 
     let sorted = _.min(energy, 'distWeighted');

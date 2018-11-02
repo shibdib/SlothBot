@@ -13,6 +13,8 @@ log.e('Global Reset - Last reset occured ' + (Game.time - lastGlobal) + ' ticks 
 Memory.lastGlobalReset = Game.time;
 
 module.exports.loop = function() {
+    stats.lastTime = false;
+    stats.reset();
     profiler.wrap(function () {
         log.d('Initiating Tick');
         let mainCpu = Game.cpu.getUsed();
@@ -84,6 +86,10 @@ module.exports.loop = function() {
         shib.shibBench('Total', mainCpu);
         shib.processBench();
     });
+    // Simple stats
+    stats.addSimpleStat('totalCreepCount', _.size(Game.creeps)); // Creep Count
+    stats.addSimpleStat('militaryCreepCount', _.size(_.filter(Game.creeps, (r) => r.memory.military))); // Creep Count
+    stats.commit();
 };
 
 requestBench = function (ticks, notify = false) {

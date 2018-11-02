@@ -309,7 +309,8 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'attack',
-                manual: true
+                manual: true,
+                priority: 1
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();
@@ -334,7 +335,8 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'scout',
-                manual: true
+                manual: true,
+                priority: 1
             };
             Memory.targetRooms = cache;
             Game.flags[name].remove();

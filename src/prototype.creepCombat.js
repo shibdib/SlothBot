@@ -277,7 +277,7 @@ Creep.prototype.fightRanged = function (target) {
     if (range <= 3) {
         if (hostile instanceof Creep) {
             this.memory.lastRange = range;
-            if (range <= 3 && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER > this.getActiveBodyparts(HEAL) * HEAL_POWER) && !hostile.fatigue) {
+            if (range <= 3 && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER > this.getActiveBodyparts(HEAL) * HEAL_POWER * 0.8) && !hostile.fatigue) {
                 this.kite();
             }
             if (targets.length > 1 && !allies.length) {
@@ -371,7 +371,7 @@ Creep.prototype.moveToStaging = function () {
     } else {
         let route = this.shibRoute(this.memory.targetRoom);
         let routeLength = route.length;
-        if (routeLength <= 6) {
+        if (routeLength <= 5) {
             this.memory.stagingRoom = this.memory.overlord;
             this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 19});
             return true;

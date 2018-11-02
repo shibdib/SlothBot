@@ -510,6 +510,8 @@ let globals = function () {
         text = text || (id ? roomArg : roomName);
         return `<a href="#!/room/${Game.shard.name}/${roomName}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
     };
+
+    global.stats = require('stats');
 };
 
 module.exports = globals;

@@ -126,9 +126,9 @@ module.exports.hud = function () {
         if (!room) continue;
         //GCL
         let lastTickProgress = Memory.lastTickProgress || 0;
-        Memory.lastTickProgress = Game.gcl.progress;
         Memory.gclProgressArray = Memory.gclProgressArray || [];
         let progressPerTick = Game.gcl.progress - lastTickProgress;
+        stats.addSimpleStat('gclTickProgress', _.size(progressPerTick)); // Creep Count
         let paused = '';
         if (progressPerTick > 0) {
             if (Memory.gclProgressArray.length < 250) {

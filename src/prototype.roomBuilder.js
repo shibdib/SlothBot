@@ -662,14 +662,12 @@ function buildTowers(room, structures) {
 }
 
 function buildRoads(room, structures) {
-    if (room.controller.level < 4 || _.size(Game.constructionSites) >= 75) return;
     let spawner = shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
     for (let source of room.sources) {
         buildRoadAround(room, source.pos);
         buildRoadFromTo(room, spawner, source);
     }
     buildRoadAround(room, spawner.pos);
-    if (room.controller.level < 4 || _.size(Game.constructionSites) >= 75) return;
     let mineral = room.mineral[0];
     let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     for (let extension of extensions) {
@@ -754,8 +752,12 @@ function buildRoadAround(room, position) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForImpassible() || _.size(room.constructionSites) >= 10) return;
-    position.createConstructionSite(STRUCTURE_ROAD);
+    if (position.checkForRoad() || position.checkForImpassible() || _.size(room.constructionSites) >= 10) return;
+    if (room.controller.level < 5) {
+        if (position.checkForSwamp()) position.createConstructionSite(STRUCTURE_ROAD);
+    } else {
+        position.createConstructionSite(STRUCTURE_ROAD);
+    }
 }
 
 function rebuildSpawn(room) {

@@ -32,7 +32,7 @@ function shibMove(creep, heading, options = {}) {
         stayInHub: false,
         ignoreBorder: false
     });
-    if (!options.ignoreBorder) creep.borderCheck();
+    if (!options.ignoreBorder) if (creep.borderCheck()) return;
     if (creep.fatigue > 0) return creep.room.visual.circle(creep.pos, {
         fill: 'transparent',
         radius: 0.55,

@@ -8,16 +8,16 @@ Creep.prototype.conscriptsRoom = function () {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'conscripts' && c.memory.squadLeader);
         if (!squadLeader.length) return this.memory.squadLeader = true;
         let squadMember = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'conscripts' && !c.memory.squadLeader);
-        if (this.memory.squadLeader && squadMember.length && this.pos.findInRange(squadMember, 1).length < 3) return this.attackInRange();
+        if (this.memory.squadLeader && squadMember.length && (this.room.name === this.memory.targetRoom || Game.map.getRoomLinearDistance(this.room.name, this.memory.targetRoom) === 1) && this.pos.findInRange(squadMember, 1).length < 2) return this.attackInRange();
         if (this.memory.squadLeader && !this.handleMilitaryCreep(false, false)) {
+            this.say('FOLLOW ME', true);
             if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
             levelManager(this);
             highCommand.operationSustainability(this.room);
             highCommand.threatManagement(this);
         } else if (!this.memory.squadLeader) {
             if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {
-                range: 1,
-                ignoreCreeps: false
+                range: 1, ignoreCreeps: false
             }); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
             let squadMember = _.min(this.pos.findInRange(_.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'conscripts' && c.id !== this.id && c.hits < c.hitsMax), 3), 'hits');
             if (this.hits === this.hitsMax && squadMember.id) {
