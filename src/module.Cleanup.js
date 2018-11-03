@@ -2,7 +2,7 @@ const profiler = require('screeps-profiler');
 
 function cleanup() {
 //CLEANUP
-    if (Game.time % 50 === 0) {
+    if (Game.time % 25 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         //cleanPathCacheByAge();
         cleanDistanceCacheByUsage();
@@ -101,7 +101,7 @@ function cleanDistanceCacheByAge() {
 function cleanDistanceCacheByUsage() {
     if (Memory._distanceCache && _.size(Memory._distanceCache) > 2000) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory._distanceCache, 'uses');
-        let overage = (_.size(Memory._distanceCache) - 500) + 150;
+        let overage = (_.size(Memory._distanceCache) - 2000) + 250;
         log.i('Cleaning Distance cache (Over max size by ' + overage + ')...');
         Memory._distanceCache = _.slice(sorted, overage, _.size(Memory._distanceCache));
     }
