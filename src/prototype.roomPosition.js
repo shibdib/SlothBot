@@ -138,31 +138,20 @@ RoomPosition.prototype.rangeToTarget = function (target) {
 function cacheTargetDistance(origin, target) {
     let key, cache;
     if (target instanceof RoomPosition) key = getPathKey(origin, target); else key = getPathKey(origin, target.pos);
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._distanceCache || {}; else cache = distanceCache;
-    try {
-        cache = JSON.parse(cache);
-    } catch (e) {
-        return delete Memory._distanceCache;
-    }
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = JSON.parse(Memory._distanceCache) || {}; else cache = JSON.parse(distanceCache);
     let distance = origin.getRangeTo(target);
     cache[key] = {
         distance: distance,
         uses: 1,
         tick: Game.time
     };
-    let cleanCache = JSON.stringify(cache);
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._distanceCache = cleanCache; else distanceCache = cleanCache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._distanceCache = JSON.stringify(cache); else distanceCache = JSON.stringify(cache);
     return distance;
 }
 
 function getCachedTargetDistance(origin, target) {
     let cache;
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._distanceCache || {}; else cache = distanceCache;
-    try {
-        cache = JSON.parse(cache);
-    } catch (e) {
-        return delete Memory._distanceCache;
-    }
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = JSON.parse(Memory._distanceCache) || {}; else cache = JSON.parse(distanceCache);
     if (cache) {
         let cachedDistance;
         if (target instanceof RoomPosition) cachedDistance = cache[getPathKey(origin, target)]; else cachedDistance = cache[getPathKey(origin, target.pos)];
