@@ -99,7 +99,14 @@ function cleanDistanceCacheByAge() {
 }
 
 function cleanDistanceCacheByUsage() {
-    if (Memory._distanceCache && _.size(Memory._distanceCache) > 2000) { //1500 entries ~= 100kB
+    if (Memory._distanceCache) { //1500 entries ~= 100kB
+        let cache;
+        try {
+            cache = JSON.parse(Memory._distanceCache);
+        } catch (e) {
+            return delete Memory._distanceCache;
+        }
+        if (_.size(cache) < 5000) return;
         let sorted = _.sortBy(Memory._distanceCache, 'uses');
         let overage = (_.size(Memory._distanceCache) - 2000) + 250;
         log.i('Cleaning Distance cache (Over max size by ' + overage + ')...');
