@@ -136,9 +136,9 @@ RoomPosition.prototype.rangeToTarget = function (target) {
 };
 
 function cacheTargetDistance(origin, target) {
-    let key;
+    let key, cache;
     if (target instanceof RoomPosition) key = getPathKey(origin, target); else key = getPathKey(origin, target.pos);
-    let cache = distanceCache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._distanceCache || {}; else cache = distanceCache;
     if (cache instanceof Array) cache = {};
     let distance = origin.getRangeTo(target);
     cache[key] = {
@@ -146,7 +146,7 @@ function cacheTargetDistance(origin, target) {
         uses: 1,
         tick: Game.time
     };
-    distanceCache = cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') distanceCache = cache; else Memory._distanceCache = cache;
     return distance;
 }
 
