@@ -102,6 +102,7 @@ class InfluxDB {
         this.addStat('market', {}, {
             credits: Game.market.credits
         });
+        this.addSimpleStat('tickRate', Memory.tickLength);
         _.each(Game.rooms, room => {
             let {controller, storage, terminal} = room
             if (!controller || !controller.my) return
