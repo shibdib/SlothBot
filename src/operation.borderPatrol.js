@@ -50,5 +50,5 @@ Creep.prototype.borderPatrol = function () {
 
 function remoteManager(creep) {
     // Remove remote if reserved by someone else
-    if (creep.room.controller && creep.room.controller.reservation && !_.includes(FRIENDLIES, creep.room.controller.reservation.username)) Game.rooms[this.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[this.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
+    if (creep.room.controller && creep.room.controller.reservation && !_.includes(FRIENDLIES, creep.room.controller.reservation.username)) Game.rooms[creep.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[creep.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
 }
