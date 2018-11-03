@@ -146,7 +146,7 @@ function cacheTargetDistance(origin, target) {
         uses: 1,
         tick: Game.time
     };
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') distanceCache = cache; else Memory._distanceCache = cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._distanceCache = cache; else distanceCache = cache;
     return distance;
 }
 
