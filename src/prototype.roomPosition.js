@@ -146,12 +146,15 @@ function cacheTargetDistance(origin, target) {
         uses: 1,
         tick: Game.time
     };
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._distanceCache = cache; else distanceCache = cache;
+    let cleanCache = JSON.stringify(cache);
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._distanceCache = cleanCache; else distanceCache = cleanCache;
     return distance;
 }
 
 function getCachedTargetDistance(origin, target) {
-    let cache = distanceCache;
+    let cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._distanceCache || {}; else cache = distanceCache;
+    cache = JSON.parse(cache);
     if (cache) {
         let cachedDistance;
         if (target instanceof RoomPosition) cachedDistance = cache[getPathKey(origin, target)]; else cachedDistance = cache[getPathKey(origin, target.pos)];
