@@ -2,10 +2,6 @@ const profiler = require('screeps-profiler');
 
 function cleanup() {
 //CLEANUP
-    // Remove old mem caches
-    delete Memory.pathCache
-    delete Memory.routeCache
-    delete Memory.distanceCache
     if (Game.time % 50 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         //cleanPathCacheByAge();
