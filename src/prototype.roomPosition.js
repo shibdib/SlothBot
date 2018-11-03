@@ -3,7 +3,7 @@
  */
 'use strict';
 
-let distanceCache = {};
+let distanceCache = JSON.stringify({});
 
 RoomPosition.prototype.checkIfOutOfBounds = function () {
     return this.x > 48 || this.x < 1 || this.y > 48 || this.y < 1;
@@ -138,7 +138,9 @@ RoomPosition.prototype.rangeToTarget = function (target) {
 function cacheTargetDistance(origin, target) {
     let key, cache;
     if (target instanceof RoomPosition) key = getPathKey(origin, target); else key = getPathKey(origin, target.pos);
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = JSON.parse(Memory._distanceCache) || {}; else cache = JSON.parse(distanceCache);
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') {
+        if (Memory._distanceCache) cache = JSON.parse(Memory._distanceCache); else cache = {};
+    } else cache = JSON.parse(distanceCache);
     let distance = origin.getRangeTo(target);
     cache[key] = {
         distance: distance,
@@ -151,7 +153,9 @@ function cacheTargetDistance(origin, target) {
 
 function getCachedTargetDistance(origin, target) {
     let cache;
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = JSON.parse(Memory._distanceCache) || {}; else cache = JSON.parse(distanceCache);
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') {
+        if (Memory._distanceCache) cache = JSON.parse(Memory._distanceCache); else cache = {};
+    } else cache = JSON.parse(distanceCache);
     if (cache) {
         let cachedDistance;
         if (target instanceof RoomPosition) cachedDistance = cache[getPathKey(origin, target)]; else cachedDistance = cache[getPathKey(origin, target.pos)];
