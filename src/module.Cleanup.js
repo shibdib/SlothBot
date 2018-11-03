@@ -5,13 +5,16 @@ function cleanup() {
     if (Game.time % 50 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
         //cleanPathCacheByAge();
-        cleanDistanceCacheByAge();
+        cleanDistanceCacheByUsage();
         cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanRoomIntel();
     }
-    if (Game.time % EST_TICKS_PER_DAY === 0) delete Memory._pathCache;
+    if (Game.time % EST_TICKS_PER_DAY === 0) {
+        delete Memory._pathCache;
+        delete Memory._distanceCache;
+    }
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             delete Memory.creeps[name];
@@ -57,9 +60,9 @@ function cleanPathCacheByAge() {
 }
 
 function cleanRouteCacheByUsage() {
-    if (Memory._routeCache && _.size(Memory._routeCache) > 100) { //1500 entries ~= 100kB
+    if (Memory._routeCache && _.size(Memory._routeCache) > 500) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory._routeCache, 'uses');
-        let overage = (_.size(Memory._routeCache) - 100) + 10;
+        let overage = (_.size(Memory._routeCache) - 500) + 75;
         log.i('Cleaning Route cache (Over max size by ' + overage + ')...');
         Memory._routeCache = _.slice(sorted, overage, _.size(Memory._routeCache));
     }
@@ -70,7 +73,7 @@ function cleanRouteCacheByAge() {
         let originalCount = Memory._routeCache.length;
         let cache = Memory._routeCache;
         for (let key in cache) {
-            if (cache[key].tick + 4500 < Game.time) {
+            if (cache[key].tick + 10000 < Game.time) {
                 delete cache[key];
             }
         }
@@ -96,11 +99,11 @@ function cleanDistanceCacheByAge() {
 }
 
 function cleanDistanceCacheByUsage() {
-    if (Memory.distanceCache && _.size(Memory.distanceCache) > 400) { //1500 entries ~= 100kB
-        let sorted = _.sortBy(Memory.distanceCache, 'uses');
-        let overage = (_.size(Memory.distanceCache) - 400) + 100;
-        log.i('Cleaning Distance cache (Over max size by '+overage+')...');
-        Memory.distanceCache = _.slice(sorted, overage, _.size(Memory.distanceCache));
+    if (Memory._distanceCache && _.size(Memory._distanceCache) > 2000) { //1500 entries ~= 100kB
+        let sorted = _.sortBy(Memory._distanceCache, 'uses');
+        let overage = (_.size(Memory._distanceCache) - 500) + 150;
+        log.i('Cleaning Distance cache (Over max size by ' + overage + ')...');
+        Memory._distanceCache = _.slice(sorted, overage, _.size(Memory._distanceCache));
     }
 }
 
