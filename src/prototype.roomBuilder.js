@@ -114,12 +114,12 @@ function buildExtensions(room) {
             x = _.sample([x, -x]);
             y = _.sample([y, -y]);
             let pos = new RoomPosition(hub.x + x, hub.y + y, hub.roomName);
-            if (pos.checkIfOutOfBounds() || pos.checkForAllStructure().length > 0 || pos.checkForRoad() || pos.getRangeTo(hub) < 2 || pos.x === hub.x || pos.y === hub.y
+            if (pos.checkIfOutOfBounds() || pos.checkForAllStructure().length > 0 || pos.checkForRoad() || pos.rangeToTarget(hub) < 2 || pos.x === hub.x || pos.y === hub.y
                 || !room.findPath(pos, hub, {range: 1}) || room.findPath(pos, hub, {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 8 || pos.getRangeTo(pos.findClosestByRange(FIND_EXIT)) < 4) continue;
+                }).length > 8 || pos.rangeToTarget(pos.findClosestByRange(FIND_EXIT)) < 4) continue;
             switch (pos.createConstructionSite(STRUCTURE_EXTENSION)) {
                 case OK:
                     if (_.filter(pos.findInRange(FIND_STRUCTURES, 1), (s) => s.structureType === STRUCTURE_ROAD).length > 0) continue;
@@ -186,7 +186,7 @@ function findExtensionHub(room) {
                 wall = true;
                 break;
             }
-            if (pos.getRangeTo(closestStructure) >= 4 && !wall) {
+            if (pos.rangeToTarget(closestStructure) >= 4 && !wall) {
                 room.memory.extensionHub = {};
                 room.memory.extensionHub.x = pos.x;
                 room.memory.extensionHub.y = pos.y;
@@ -241,7 +241,7 @@ function buildMineralContainer(room, structures) {
             let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
             for (let key in containerSpots) {
                 let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
-                if (position && position.getRangeTo(extractor) === 1) {
+                if (position && position.rangeToTarget(extractor) === 1) {
                     if (!position.checkForImpassible()) {
                         position.createConstructionSite(STRUCTURE_CONTAINER);
                         break;
@@ -262,7 +262,7 @@ function buildWalls(room, structures) {
         for (let store of _.filter(structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
-        for (let store of _.filter(structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(hub) >= 8)) {
+        for (let store of _.filter(structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.rangeToTarget(hub) >= 8)) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
@@ -270,7 +270,7 @@ function buildWalls(room, structures) {
     if (!room.memory.bunkerComplete) {
         cpu = Game.cpu.getUsed();
         let exits = room.find(FIND_EXIT);
-        let closestExitRange = hub.getRangeTo(hub.findClosestByPath(exits));
+        let closestExitRange = hub.rangeToTarget(hub.findClosestByPath(exits));
         let buildRange = 7;
         if (closestExitRange < 9) buildRange = closestExitRange - 2;
         let neighboring = Game.map.describeExits(room.name);
@@ -445,7 +445,7 @@ function buildStorage(room) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
+                }).length > 7 || position.rangeToTarget(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_STORAGE);
         }
     }
@@ -468,7 +468,7 @@ function buildTerminal(room) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
+                }).length > 7 || position.rangeToTarget(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_TERMINAL);
         }
     }
@@ -491,7 +491,7 @@ function buildObserver(room, structures) {
         let safeZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, hub.y - 4, hub.x - 4, hub.y + 4, hub.x + 4, true));
         for (let key in safeZone) {
             let position = new RoomPosition(safeZone[key].x, safeZone[key].y, room.name);
-            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
+            if (position.checkIfOutOfBounds() || position.checkForAllStructure().length > 0 || position.rangeToTarget(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_OBSERVER);
         }
     }
@@ -513,7 +513,7 @@ function buildNuker(room, structures) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
+                }).length > 7 || position.rangeToTarget(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_NUKER);
         }
     }
@@ -535,7 +535,7 @@ function buildPowerSpawn(room, structures) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
+                }).length > 7 || position.rangeToTarget(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_POWER_SPAWN);
         }
     }
@@ -557,7 +557,7 @@ function buildSpawn(room, structures) {
                     range: 1,
                     ignoreDestructibleStructures: true,
                     ignoreCreeps: true
-                }).length > 7 || position.getRangeTo(position.findClosestByRange(FIND_EXIT)) < 5) continue;
+                }).length > 7 || position.rangeToTarget(position.findClosestByRange(FIND_EXIT)) < 5) continue;
             position.createConstructionSite(STRUCTURE_SPAWN);
         }
     }
@@ -567,9 +567,9 @@ function buildLabs(room, structures) {
     if (room.controller.level < 6) return;
     let terminal = room.terminal;
     if (room.controller.level >= 7 && (!room.memory.boostLab || !Game.getObjectById(room.memory.boostLab))) {
-        let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(terminal) === 1)[0];
+        let lab = _.filter(structures, (s) => s.structureType === STRUCTURE_LAB && s.pos.rangeToTarget(terminal) === 1)[0];
         if (lab) return room.memory.boostLab = lab.id;
-        let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB && s.pos.getRangeTo(terminal) === 1);
+        let sites = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB && s.pos.rangeToTarget(terminal) === 1);
         if (!sites.length) {
             let terminalZone = shuffle(room.lookForAtArea(LOOK_TERRAIN, terminal.pos.y - 1, terminal.pos.x - 1, terminal.pos.y + 1, terminal.pos.x + 1, true));
             for (let key in terminalZone) {

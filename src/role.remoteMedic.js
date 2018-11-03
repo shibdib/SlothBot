@@ -35,7 +35,7 @@ function role(creep) {
         } else if (creep.pos.checkForRoad()) {
             creep.moveRandom();
         } else {
-            if (creep.pos.getRangeTo(new RoomPosition(25, 25, creep.room.name)) > 20) creep.shibMove(new RoomPosition(25, 25, creep.room.name), {range: 18});
+            if (creep.pos.rangeToTarget(new RoomPosition(25, 25, creep.room.name)) > 20) creep.shibMove(new RoomPosition(25, 25, creep.room.name), {range: 18});
             creep.idleFor(15)
         }
     }

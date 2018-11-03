@@ -1,5 +1,4 @@
 module.exports.hud = function () {
-    let opCount = 0;
     for (let key in Memory.targetRooms) {
         let level = Memory.targetRooms[key].level || 1;
         let type = Memory.targetRooms[key].type;
@@ -25,99 +24,77 @@ module.exports.hud = function () {
                 2,
                 {align: 'left', opacity: 0.8, color: '#ff0000'}
             );
-        }
-        if (type === 'siege' && !Memory.targetRooms[key].activeSiege) {
-            new RoomVisual(key).text(
-                'QUEUED SIEGE',
-                1,
-                2,
-                {align: 'left', opacity: 0.8, color: '#0b18ff'}
-            );
-        }
-        if (!stagingRoom) {
-            new RoomVisual(key).text(
-                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority,
-                1,
-                3,
-                {align: 'left', opacity: 0.8}
-            );
-        } else {
-            new RoomVisual(key).text(
-                ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' - Staging From ' + stagingRoom,
-                1,
-                3,
-                {align: 'left', opacity: 0.8}
-            );
-        }
-        if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
-            new RoomVisual(key).text(
-                'Enemy Kills/Energy - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' Friendly Losses/Energy - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead,
-                1,
-                0,
-                {align: 'left', opacity: 0.8, color: '#ff0000'}
-            );
-        }
-        let creeps = _.filter(Game.creeps, (c) => c.memory.targetRoom === key);
-        let y = 0;
-        if (type !== 'swarm') {
-            for (let creep in creeps) {
-                if (creeps[creep].room.name !== key) {
-                    let roomDistance = Game.map.findRoute(creeps[creep].room.name, key).length;
-                    let pathLength = 49;
-                    if (creeps[creep].memory._shibMove && creeps[creep].memory._shibMove.path) pathLength = creeps[creep].memory._shibMove.path.length;
-                    let secondsToArrive = (roomDistance * 49) * Memory.tickLength;
-                    let displayTime;
-                    if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
-                    if (secondsToArrive >= 86400) displayTime = _.round(secondsToArrive / 86400, 2) + ' Days';
-                    if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = _.round(secondsToArrive / 3600, 2) + ' Hours';
-                    if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = _.round(secondsToArrive / 60, 2) + ' Minutes';
-                    new RoomVisual(key).text(
-                        creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + displayTime,
-                        1,
-                        4 + y,
-                        {align: 'left', opacity: 0.8}
-                    );
-                } else {
-                    new RoomVisual(key).text(
-                        creeps[creep].name + ' Is On Scene. ' + creeps[creep].hits + '/' + creeps[creep].hitsMax + ' hp',
-                        1,
-                        4 + y,
-                        {align: 'left', opacity: 0.8}
-                    );
-                }
-                y++;
+
+            if (type === 'siege' && !Memory.targetRooms[key].activeSiege) {
+                new RoomVisual(key).text(
+                    'QUEUED SIEGE',
+                    1,
+                    2,
+                    {align: 'left', opacity: 0.8, color: '#0b18ff'}
+                );
             }
-        } else {
-            new RoomVisual(key).text(
-                creeps.length + ' Swarm creeps inbound.',
-                1,
-                4 + y,
-                {align: 'left', opacity: 0.8}
-            );
+            if (!stagingRoom) {
+                new RoomVisual(key).text(
+                    ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority,
+                    1,
+                    3,
+                    {align: 'left', opacity: 0.8}
+                );
+            } else {
+                new RoomVisual(key).text(
+                    ICONS.crossedSword + ' Operation Type: ' + _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' - Staging From ' + stagingRoom,
+                    1,
+                    3,
+                    {align: 'left', opacity: 0.8}
+                );
+            }
+            if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
+                new RoomVisual(key).text(
+                    'Enemy Kills/Energy - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' Friendly Losses/Energy - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead,
+                    1,
+                    0,
+                    {align: 'left', opacity: 0.8, color: '#ff0000'}
+                );
+            }
+            let creeps = _.filter(Game.creeps, (c) => c.memory.targetRoom === key);
+            let y = 0;
+            if (type !== 'swarm') {
+                for (let creep in creeps) {
+                    if (creeps[creep].room.name !== key) {
+                        let roomDistance = Game.map.findRoute(creeps[creep].room.name, key).length;
+                        let pathLength = 49;
+                        if (creeps[creep].memory._shibMove && creeps[creep].memory._shibMove.path) pathLength = creeps[creep].memory._shibMove.path.length;
+                        let secondsToArrive = (roomDistance * 49) * Memory.tickLength;
+                        let displayTime;
+                        if (secondsToArrive < 60) displayTime = secondsToArrive + ' Seconds';
+                        if (secondsToArrive >= 86400) displayTime = _.round(secondsToArrive / 86400, 2) + ' Days';
+                        if (secondsToArrive < 86400 && secondsToArrive >= 3600) displayTime = _.round(secondsToArrive / 3600, 2) + ' Hours';
+                        if (secondsToArrive > 60 && secondsToArrive < 3600) displayTime = _.round(secondsToArrive / 60, 2) + ' Minutes';
+                        new RoomVisual(key).text(
+                            creeps[creep].name + ' Is ' + roomDistance + ' rooms away. Currently in ' + creeps[creep].room.name + '. With ' + creeps[creep].ticksToLive + ' ticks to live. It should arrive in appx. ' + displayTime,
+                            1,
+                            4 + y,
+                            {align: 'left', opacity: 0.8}
+                        );
+                    } else {
+                        new RoomVisual(key).text(
+                            creeps[creep].name + ' Is On Scene. ' + creeps[creep].hits + '/' + creeps[creep].hitsMax + ' hp',
+                            1,
+                            4 + y,
+                            {align: 'left', opacity: 0.8}
+                        );
+                    }
+                    y++;
+                }
+            } else {
+                new RoomVisual(key).text(
+                    creeps.length + ' Swarm creeps inbound.',
+                    1,
+                    4 + y,
+                    {align: 'left', opacity: 0.8}
+                );
+            }
         }
-        if (type === 'poke' || type === 'scout' || type === 'attack') continue;
-        new RoomVisual().text(
-            ICONS.crossedSword + ' ACTIVE OPERATIONS ' + ICONS.crossedSword,
-            1,
-            34,
-            {align: 'left', opacity: 0.5, color: '#ff0000'}
-        );
-        if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
-            new RoomVisual().text(
-                _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' in Room ' + key + ' Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead,
-                1,
-                35 + opCount,
-                {align: 'left', opacity: 0.5}
-            );
-        } else {
-            new RoomVisual().text(
-                _.capitalize(type) + ' Level - ' + level + ' Priority - ' + priority + ' in Room ' + key,
-                1,
-                35 + opCount,
-                {align: 'left', opacity: 0.5}
-            );
-        }
-        opCount++;
     }
     for (let key in Memory.ownedRooms) {
         let name = Memory.ownedRooms[key].name;

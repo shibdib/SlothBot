@@ -39,40 +39,37 @@ function role(creep) {
                             break;
                     }
                 }
-            } else if (!creep.findEssentials()) creep.findStorage()
+            } else if (!creep.findEssentials() && !creep.findStorage() && !creep.findSpawnsExtensions()) creep.idleFor(5)
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
     } else {
         // Check if ready to haul
-        if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) {
-            creep.memory.hauling = true;
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
-        }
+        if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.hauling = true;
         // Set Harvester and move to them if not nearby
         let pairedHarvester = Game.getObjectById(creep.memory.harvester);
         // Handle Moving
         if (creep.room.name !== pairedHarvester.room.name) {
-            return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 23, offRoad: true});
-        } else if (creep.pos.getRangeTo(pairedHarvester) > 1) {
-            return creep.shibMove(pairedHarvester, {range: 1, offRoad: true});
+            return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 22, offRoad: true});
         } else {
-            let container = Game.getObjectById(pairedHarvester.memory.containerID) || undefined;
-            if (container && _.sum(container.store) > creep.carryCapacity * 0.7) {
-                for (const resourceType in container.store) {
-                    if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(container);
+            if (pairedHarvester.memory.containerID) {
+                let container = Game.getObjectById(pairedHarvester.memory.containerID);
+                if (_.sum(container.store) > creep.carryCapacity * 0.7) {
+                    for (const resourceType in container.store) {
+                        if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
+                            creep.shibMove(container);
+                        }
                     }
+                } else {
+                    if (!creep.shibMove(pairedHarvester)) creep.idleFor(10);
                 }
-            } else if (pairedHarvester.pos.findInRange(FIND_DROPPED_RESOURCES, 3, {filter: (s) => s.amount > creep.carryCapacity * 0.7}).length > 0) {
-                let dropped = pairedHarvester.pos.findInRange(FIND_DROPPED_RESOURCES, 3, {filter: (s) => s.amount > creep.carryCapacity * 0.7})[0];
-                for (const resourceType in dropped) {
-                    if (creep.pickup(dropped, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(dropped);
-                    }
+            } else if (pairedHarvester.pos.lookFor(FIND_DROPPED_RESOURCES)[0]) {
+                let dropped = pairedHarvester.pos.lookFor(FIND_DROPPED_RESOURCES)[0];
+                if (creep.pickup(dropped) === ERR_NOT_IN_RANGE) {
+                    creep.shibMove(dropped);
                 }
             } else {
-                creep.idleFor(10);
+                return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 22, offRoad: true});
             }
         }
     }

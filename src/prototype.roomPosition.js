@@ -3,6 +3,8 @@
  */
 'use strict';
 
+let distanceCache = {};
+
 RoomPosition.prototype.checkIfOutOfBounds = function () {
     return this.x > 48 || this.x < 1 || this.y > 48 || this.y < 1;
 };
@@ -127,14 +129,16 @@ RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
 };
 
 RoomPosition.prototype.rangeToTarget = function (target) {
+    if (!target) return;
     let cached = getCachedTargetDistance(this, target);
     if (cached) return cached;
     return cacheTargetDistance(this, target);
 };
 
 function cacheTargetDistance(origin, target) {
-    let key = getPathKey(origin, target.pos);
-    let cache = Memory.distanceCache || {};
+    let key;
+    if (target instanceof RoomPosition) key = getPathKey(origin, target); else key = getPathKey(origin, target.pos);
+    let cache = distanceCache;
     if (cache instanceof Array) cache = {};
     let distance = origin.getRangeTo(target);
     cache[key] = {
@@ -142,19 +146,21 @@ function cacheTargetDistance(origin, target) {
         uses: 1,
         tick: Game.time
     };
-    Memory.distanceCache = cache;
+    distanceCache = cache;
     return distance;
 }
 
 function getCachedTargetDistance(origin, target) {
-    let cache = Memory.distanceCache;
+    let cache = distanceCache;
     if (cache) {
-        let cachedDistance = cache[getPathKey(origin, target.pos)];
+        let cachedDistance;
+        if (target instanceof RoomPosition) cachedDistance = cache[getPathKey(origin, target)]; else cachedDistance = cache[getPathKey(origin, target.pos)];
         if (cachedDistance) {
             cachedDistance.uses += 1;
-            Memory.distanceCache = cache;
+            distanceCache = cache;
             return cachedDistance.distance;
         }
+        return null;
     } else {
         return null;
     }

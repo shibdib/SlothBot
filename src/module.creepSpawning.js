@@ -16,10 +16,18 @@ module.exports.processBuildQueue = function () {
         let level = getLevel(spawn.room);
         if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
         let oldest = _.min(roomQueue[spawn.room.name], 'cached');
-        if (oldest.priority > 3 && oldest.cached + 500 < Game.time) {
-            log.a(spawn.room.name + ' Re-prioritizing creep queue, ' + oldest.role + ' is now priority ' + _.round(oldest.priority / 2));
+        if (oldest.priority > 3 && oldest.cached + 100 < Game.time) {
+            log.a(spawn.room.name + ' Re-prioritizing creep queue, ' + oldest.role + ' is now priority ' + (oldest.priority - 1));
             roomQueue[spawn.room.name][oldest.role].cached = Game.time;
-            roomQueue[spawn.room.name][oldest.role].priority = _.round(oldest.priority / 2);
+            roomQueue[spawn.room.name][oldest.role].priority = oldest.priority - 1;
+        }
+        if (militaryQueue) {
+            let oldest = _.min(militaryQueue, 'cached');
+            if (oldest.priority > 3 && oldest.cached + 100 < Game.time) {
+                log.a('Re-prioritizing military creep queue, ' + oldest.role + ' is now priority ' + (oldest.priority - 1));
+                roomQueue[spawn.room.name][oldest.role].cached = Game.time;
+                roomQueue[spawn.room.name][oldest.role].priority = oldest.priority - 1;
+            }
         }
         if (!spawn.spawning) {
             if (roomQueue[spawn.room.name] || militaryQueue) {
@@ -266,6 +274,7 @@ function roomStartup(room, roomCreeps) {
 }
 
 module.exports.workerCreepQueue = function (room) {
+    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
     let queue = roomQueue[room.name];
     let queueTracker = lastQueue[room.name] || {};
     let level = getLevel(room);
@@ -416,7 +425,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Jerk
-    if (!_.includes(queue, 'jerk') && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
+    if (maxLevel < 5 && !_.includes(queue, 'jerk') && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
         let jerks = _.filter(Game.creeps, (creep) => creep.memory.role === 'jerk' || creep.memory.role === 'explorer');
         if (jerks.length < (8 - level) / 2) {
             queueCreep(room, PRIORITIES.jerk + jerks.length, {role: 'jerk'})
@@ -661,7 +670,7 @@ module.exports.militaryCreepQueue = function () {
                 break;
         }
         //Number fatigue
-        if (_.size(Memory.targetRooms) > _.size(Memory.ownedRooms)) priority += _.round(((_.size(Memory.targetRooms) + 1) - _.size(Memory.ownedRooms)) / 2);
+        if (_.size(Memory.targetRooms) > _.size(Memory.ownedRooms)) priority += 1;
         for (let staging in Memory.stagingRooms) {
             if (Game.map.getRoomLinearDistance(staging, key) === 1) {
                 stagingRoom = staging;
@@ -671,7 +680,7 @@ module.exports.militaryCreepQueue = function () {
         if (opLevel === 0) {
             let observer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'observer');
             if ((observer.length < 1 || (observer[0] && observer[0].ticksToLive <= 500 && observer.length < 2)) && !_.includes(queue, 'observer')) {
-                queueMilitaryCreep(PRIORITIES.urgent, {
+                queueMilitaryCreep(PRIORITIES.priority, {
                     role: 'observer',
                     targetRoom: key,
                     military: true
@@ -684,7 +693,7 @@ module.exports.militaryCreepQueue = function () {
             let totalScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');
             let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
             if (totalScout.length < 3 && !scout.length && !_.includes(queue, 'scout')) {
-                queueMilitaryCreep(2, {role: 'scout', targetRoom: key, military: true})
+                queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
             }
         }
         // Hold
@@ -897,7 +906,7 @@ module.exports.militaryCreepQueue = function () {
         if (Memory.targetRooms[key].type === 'poke') {
             let jerk = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'jerk');
             if (jerk.length < 1 && !_.includes(queue, 'jerk')) {
-                queueMilitaryCreep(PRIORITIES.secondary + 1, {
+                queueMilitaryCreep(priority, {
                     role: 'jerk',
                     targetRoom: key,
                     operation: 'poke',
@@ -909,7 +918,7 @@ module.exports.militaryCreepQueue = function () {
         if (Memory.targetRooms[key].type === 'guard') {
             let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
             if (rangers.length < 2 && !_.includes(queue, 'longbow')) {
-                queueMilitaryCreep(priority, {
+                queueMilitaryCreep(PRIORITIES.priority, {
                     role: 'longbow',
                     targetRoom: key,
                     operation: 'guard',

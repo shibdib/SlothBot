@@ -12,6 +12,7 @@ let routeCache = {};
 let pathCache = {};
 
 function shibMove(creep, heading, options = {}) {
+    let pathingStart = Game.cpu.getUsed();
     _.defaults(options, {
         useCache: true,
         ignoreCreeps: true,
@@ -38,13 +39,23 @@ function shibMove(creep, heading, options = {}) {
         radius: 0.55,
         stroke: 'black'
     });
+    // Check if target reached or within 1
+    let rangeToDestination = creep.pos.rangeToTarget(heading);
+    if (rangeToDestination <= options.range) {
+        creep.memory._shibMove = undefined;
+        shib.shibBench('pathfinding', pathingStart);
+        return false;
+    } else if (rangeToDestination === 1) {
+        let direction = creep.pos.getDirectionTo(heading);
+        shib.shibBench('pathfinding', pathingStart);
+        return creep.move(direction);
+    }
     if (creep.memory.military) options.useCache = false;
     if (!heading instanceof RoomPosition) if (creep.room.name !== heading.room.name) return creep.shibMove(new RoomPosition(25, 25, heading.room.name), {range: 18});
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     // Make sure origin and target are good
     if (!origin || !target) return;
-    let pathingStart = Game.cpu.getUsed();
     updateRoomStatus(creep.room);
     if (!creep.memory._shibMove || Math.random() > options.repathChance || options.forceRepath || (creep.memory._shibMove.path && (creep.memory._shibMove.path.length < 1 || !creep.memory._shibMove.path))) creep.memory._shibMove = {};
     if (creep.memory._shibMove && ((creep.memory._shibMove.path && creep.memory._shibMove.path.length < 1) || !creep.memory._shibMove.path)) creep.memory._shibMove = {};
@@ -53,17 +64,6 @@ function shibMove(creep, heading, options = {}) {
     // Set var
     let pathInfo = creep.memory._shibMove;
     pathInfo.targetRoom = targetRoom(heading);
-    // Check if target reached or within 1
-    let rangeToDestination = creep.pos.getRangeTo(heading);
-    if (rangeToDestination <= options.range) {
-        creep.memory._shibMove = undefined;
-        shib.shibBench('pathfinding', pathingStart);
-        return OK;
-    } else if (rangeToDestination === 1) {
-        let direction = creep.pos.getDirectionTo(heading);
-        shib.shibBench('pathfinding', pathingStart);
-        return creep.move(direction);
-    }
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK && Math.random() > .2) {
         let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path) && c.memory.role !== 'stationaryHarvester')[0];
@@ -235,14 +235,14 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         creep.memory._shibMove = pathInfo;
         switch (creep.move(nextDirection)) {
             case OK:
-                return;
+                return true;
             case ERR_TIRED:
-                return;
+                return true;
             case ERR_NO_BODYPART:
-                return;
+                return false;
             case ERR_BUSY:
                 creep.idleFor(10);
-                return;
+                return false;
         }
     }
 }

@@ -158,7 +158,7 @@ function findExtensionHub(room) {
             wall = true;
             break;
         }
-        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
+        if (pos.rangeToTarget(closestStructure) >= 4 && wall === false) {
             room.memory.extensionHub = {};
             room.memory.extensionHub.x = pos.x;
             room.memory.extensionHub.y = pos.y;

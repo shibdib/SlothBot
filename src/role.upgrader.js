@@ -10,7 +10,7 @@ module.exports.role = function (creep) {
     if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
     if (!creep.memory.onContainer) {
         let container = Game.getObjectById(creep.room.memory.controllerContainer);
-        if (container && !container.pos.checkForCreep() && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
+        if (container && !container.pos.checkForCreep() && creep.pos.rangeToTarget(container) > 0) return creep.shibMove(container, {range: 0});
     } else creep.memory.onContainer = true;
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();

@@ -3,42 +3,47 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
-    let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
-    if (!squadLeader.length) return this.memory.squadLeader = true;
+    if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
+        if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
+    }
     // Handle squad leader
-    if (this.room.name === this.memory.responseTarget) remoteManager(this);
-    if (this.memory.squadLeader && !this.handleMilitaryCreep(false, false)) {
-        let squadMember = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && !c.memory.squadLeader);
-        if (!squadMember.length || (this.pos.getRangeTo(squadMember[0]) > 1 && !this.borderCheck())) return this.idleFor(3);
-        if (squadMember[0] && this.hits === this.hitsMax && squadMember[0].hits < squadMember[0].hitsMax) {
-            this.heal(squadMember[0]);
-        } else if (this.hits < this.hitsMax) {
-            this.heal(this);
-        }
-        this.memory.contactReport = undefined;
+    if (this.memory.squadLeader) {
+        // Handle removing bad remotes
+        if (this.room.name === this.memory.responseTarget) remoteManager(this);
+        // If military action required do that
+        if (this.handleMilitaryCreep(false, false)) return;
+        // Handle border
+        if (this.borderCheck()) return;
+        // Check for squad
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
+        if (!squadMember.length || this.pos.rangeToTarget(squadMember[0]) > 1) return this.idleFor(1);
+        // Heal squad
+        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.rangeToTarget(this) === 1);
+        if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
+        // Move to response room if needed
         if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
         // If on target, be available to respond
-        this.memory.awaitingOrders = this.room.name === this.memory.responseTarget && !this.room.memory.responseNeeded;
+        this.memory.awaitingOrders = this.room.name === this.memory.responseTarget;
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
         // Idle in target rooms for 20 ticks
-        if ((!this.memory.responseTarget || this.memory.onTarget + 20 <= Game.time) && !this.room.memory.responseNeeded) {
-            let remotes = Game.rooms[this.memory.overlord].memory.remoteRooms;
+        if (!this.memory.responseTarget || this.memory.onTarget + _.random(5, 20) <= Game.time) {
+            if (!this.memory.remotes) this.memory.remotes = JSON.stringify(Game.rooms[this.memory.overlord].memory.remoteRooms);
+            let remotes = JSON.parse(this.memory.remotes);
             this.memory.responseTarget = _.sample(remotes);
             this.memory.onTarget = undefined;
             return this.say(this.memory.responseTarget);
         }
-        if (this.memory.responseTarget && this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.responseTarget)) > 18) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17});
-        this.idleFor(5);
-    } else if (this.memory.squadLeader && !this.memory.contactReport) {
-        log.a('BORDER ALERT: Enemy contact in ' + this.room.name + ' moving to engage.');
-        this.memory.contactReport = true;
-    } else if (!this.memory.squadLeader) {
-        if (this.room.name === squadLeader[0].room.name) this.shibMove(squadLeader[0], {range: 0}); else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
-        if (this.hits === this.hitsMax && squadLeader[0].hits < squadLeader[0].hitsMax) {
-            this.heal(squadLeader[0]);
-        } else if (this.hits < this.hitsMax) {
-            this.heal(this);
-        }
+        if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17})) return this.idleFor(5);
+    } else {
+        // Set leader and move to them
+        let leader = Game.getObjectById(this.memory.leader);
+        if (this.room.name === leader.room.name) this.shibMove(leader, {range: 0}); else this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
+        // Heal squadmates
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
+        // Heal squad
+        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.rangeToTarget(this) === 1);
+        if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
         this.attackInRange();
     }
 };

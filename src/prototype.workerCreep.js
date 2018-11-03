@@ -173,7 +173,7 @@ Creep.prototype.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFun
 containerBuilding = function () {
     let site = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site !== null && site !== undefined) {
-        if (this.pos.getRangeTo(site) <= 1) {
+        if (this.pos.rangeToTarget(site) <= 1) {
             return site.id;
         }
     }
@@ -183,9 +183,9 @@ Creep.prototype.containerBuilding = profiler.registerFN(containerBuilding, 'cont
 harvestDepositContainer = function () {
     let container = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (container) {
-        if (this.pos.getRangeTo(container) <= 1) {
+        if (this.pos.rangeToTarget(container) <= 1) {
             return container.id;
-        } else if (this.pos.getRangeTo(container) <= 3) {
+        } else if (this.pos.rangeToTarget(container) <= 3) {
             this.shibMove(container);
             return container.id;
         }

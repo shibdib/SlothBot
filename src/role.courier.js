@@ -96,7 +96,7 @@ function checkForLoot(creep) {
     }
     if (creep.room.controller.level >= 6) {
         let extractorContainer = Game.getObjectById(creep.room.memory.extractorContainer);
-        if (!extractorContainer || _.sum(extractorContainer.store) < extractorContainer.storeCapacity * 0.7) return;
+        if (!extractorContainer || _.sum(extractorContainer.store) < extractorContainer.storeCapacity * 0.2) return;
         for (let resourceType in extractorContainer.store) {
             switch (creep.withdraw(extractorContainer, resourceType)) {
                 case OK:

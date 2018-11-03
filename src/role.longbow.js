@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Border Patrol
@@ -26,6 +23,8 @@ function role(creep) {
             return findDefensivePosition(creep, creep);
         }
     } else if (creep.memory.operation) {
+        // Recycle old creeps
+        if (creep.memory.targetRoom && !Memory.targetRooms[creep.memory.targetRoom]) return creep.memory.recycle = true;
         // Harass
         if (creep.memory.operation === 'harass') creep.harassRoom();
         // Escort
@@ -42,9 +41,7 @@ function role(creep) {
             creep.idleFor(5)
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'longbow');
+};
 
 function findDefensivePosition(creep, target) {
     if (target) {

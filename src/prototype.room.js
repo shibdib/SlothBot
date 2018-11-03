@@ -233,8 +233,8 @@ Object.defineProperty(StructureLab.prototype, 'memory', {
 });
 
 Room.prototype.cacheRoomIntel = function (force = false) {
-    if (this.memory.lastIntelCache > Game.time - 500 && !force) return;
-    this.memory.lastIntelCache = Game.time;
+    if (!force && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastIntelCache + 1501 > Game.time) return;
+    urgentMilitary(this);
     let room = Game.rooms[this.name];
     let owner, reservation, reservationTick, level, hostiles, nonCombats, sk, towers, claimValue, claimWorthy,
         needsCleaning, power, abandoned;
@@ -264,7 +264,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2 && !barriers) {
                 let sourceDist = 0;
                 for (let source in sources) {
-                    let range = sources[source].pos.getRangeTo(room.controller);
+                    let range = sources[source].pos.rangeToTarget(room.controller);
                     sourceDist = sourceDist + range;
                 }
                 claimValue = 250 - sourceDist;
@@ -310,6 +310,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             potentialTarget: potentialTarget
         };
         Memory.roomCache = cache;
+        Memory.roomCache[this.name].lastIntelCache = Game.time;
         if (power.length && power[0].ticksToDecay >= 2500) {
             for (let key in Memory.ownedRooms) {
                 if (Game.map.findRoute(Memory.ownedRooms[key].name, room.name).length <= 6) {
@@ -368,10 +369,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
-    if (this.memory.lastInvaderCheck + 10 >= Game.time) return;
-    this.memory.lastInvaderCheck = Game.time;
+    if (Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 25 > Game.time) return;
     if (!Memory.roomCache) Memory.roomCache = {};
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
+    Memory.roomCache[this.name].lastInvaderCheck = Game.time;
     let sk;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
     let closestRoomRange = this.findClosestOwnedRoom(true);
@@ -474,6 +475,45 @@ Room.prototype.invaderCheck = function () {
     }
     return false;
 };
+
+function urgentMilitary(room) {
+    let sendScout, ownerType;
+    // Friendly rooms
+    if (room.controller) ownerType = room.controller.owner || room.controller.reservation || undefined;
+    if (ownerType && _.includes(FRIENDLIES, ownerType.username)) return;
+    let range = room.findClosestOwnedRoom(true);
+    // Operation cooldown per room
+    if (Memory.roomCache[room.name] && !Memory.roomCache[room.name].manual && Memory.roomCache[room.name].lastOperation && Memory.roomCache[room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
+        return
+    }
+    // Already a target or too far
+    if (Memory.targetRooms[room.name] || range > 10) return;
+    let otherCreeps = _.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.body.length > 1);
+    let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(s.store) > 0);
+    if (room.controller) {
+        // If neutral/hostile owned room
+        if (room.controller.owner && !_.includes(FRIENDLIES, room.controller.owner.username) && (room.controller.level < 3 || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length)) {
+            sendScout = true;
+        }
+        // If unowned but lootable
+        if (!room.controller.owner && lootStructures.length) {
+            sendScout = true;
+        }
+    }
+    // If other creeps and nearby
+    if (otherCreeps.length && range <= LOCAL_SPHERE + 2) {
+        sendScout = true;
+    }
+    if (sendScout) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[room.name] = {
+            tick: tick,
+            type: 'scout',
+        };
+        Memory.targetRooms = cache;
+    }
+}
 
 Room.prototype.handleNukeAttack = function () {
     let nukes = this.find(FIND_NUKES);

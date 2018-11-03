@@ -8,12 +8,13 @@ Creep.prototype.scoutRoom = function () {
     });
     this.room.cacheRoomIntel(true);
     // If room is no longer a target
-    if (!Memory.targetRooms[this.room.name]) return this.suicide();
+    if (!Memory.targetRooms[this.room.name]) return this.memory.recycle = true;
     // Operation cooldown per room
     if (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].manual && Memory.roomCache[this.room.name].lastOperation && Memory.roomCache[this.room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
         delete Memory.targetRooms[this.room.name];
-        return this.suicide();
+        return this.memory.recycle = true;
     }
+    Memory.roomCache[this.room.name].lastOperation = Game.time;
     // Get current operations
     let totalCount = 0;
     if (_.size(Memory.targetRooms)) totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack' && t.type !== 'pending' && t.type !== 'poke' && t.type !== 'guard'));
@@ -25,13 +26,11 @@ Creep.prototype.scoutRoom = function () {
     let countableStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTAINER);
     let lootStructures = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(s.store) > 0);
     let controller = this.room.controller;
-    if (controller && controller.owner && controller.owner.username === MY_USERNAME) return this.suicide();
+    if (controller && controller.owner && controller.owner.username === MY_USERNAME) return this.memory.recycle = true;
     // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
-    let closestOwned = this.room.findClosestOwnedRoom();
-    let pathedRange = this.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
     let priority = 4;
-    if (range <= 2) priority = 1; else if (range <= 3 && pathedRange <= 3) priority = 2; else if (pathedRange <= 5) priority = 3; else priority = 4;
+    if (range === 1) priority = 1; else if (range <= 3) priority = 2; else if (range <= 5) priority = 3; else priority = 4;
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
@@ -47,7 +46,7 @@ Creep.prototype.scoutRoom = function () {
                 cache[this.room.name] = {
                     tick: tick,
                     type: 'rangers',
-                    level: 1,
+                    level: 0,
                     priority: priority
                 };
                 // Otherwise use old harass
@@ -81,13 +80,10 @@ Creep.prototype.scoutRoom = function () {
                     };
                     // Otherwise try to hold the room
                 } else {
-                    let level = 0;
-                    if (otherCreeps.length) level = 1;
-                    if (armedHostiles.length) level = 2;
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'hold',
-                        level: level,
+                        level: 0,
                         priority: 1
                     };
                 }
@@ -150,7 +146,7 @@ Creep.prototype.scoutRoom = function () {
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'rangers',
-                        level: 1,
+                        level: 0,
                         priority: priority
                     };
                     // Otherwise use old harass
@@ -190,7 +186,6 @@ Creep.prototype.scoutRoom = function () {
     } else {
         delete Memory.targetRooms[this.room.name];
     }
-    Memory.roomCache[this.room.name].lastOperation = Game.time;
     Memory.targetRooms = cache;
-    return this.suicide();
+    return this.memory.recycle = true;
 };
