@@ -11,7 +11,7 @@ function cleanup() {
         cleanConstructionSites();
         cleanRoomIntel();
     }
-    if (Game.time % EST_TICKS_PER_DAY === 0) delete Memory.pathCache;
+    if (Game.time % EST_TICKS_PER_DAY === 0) delete Memory._pathCache;
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             delete Memory.creeps[name];
@@ -31,12 +31,12 @@ function cleanup() {
 module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
 
 function cleanPathCacheByUsage() {
-    if (Memory.pathCache) { //1500 entries ~= 100kB
-        if (_.size(Memory.pathCache) > 1000) {
-            let sorted = _.sortBy(Memory.pathCache, 'uses');
-            let overage = (_.size(Memory.pathCache) - 1000) + 100;
+    if (Memory._pathCache) { //1500 entries ~= 100kB
+        if (_.size(Memory._pathCache) > 1000) {
+            let sorted = _.sortBy(Memory._pathCache, 'uses');
+            let overage = (_.size(Memory._pathCache) - 1000) + 100;
             log.i('Cleaning Path cache (Over max size by ' + overage + ')...');
-            Memory.pathCache = _.slice(sorted, overage, _.size(Memory.pathCache));
+            Memory._pathCache = _.slice(sorted, overage, _.size(Memory._pathCache));
         }
     }
 }
@@ -57,18 +57,18 @@ function cleanPathCacheByAge() {
 }
 
 function cleanRouteCacheByUsage() {
-    if (Memory.routeCache && _.size(Memory.routeCache) > 100) { //1500 entries ~= 100kB
-        let sorted = _.sortBy(Memory.routeCache, 'uses');
-        let overage = (_.size(Memory.routeCache) - 100) + 10;
+    if (Memory._routeCache && _.size(Memory._routeCache) > 100) { //1500 entries ~= 100kB
+        let sorted = _.sortBy(Memory._routeCache, 'uses');
+        let overage = (_.size(Memory._routeCache) - 100) + 10;
         log.i('Cleaning Route cache (Over max size by ' + overage + ')...');
-        Memory.routeCache = _.slice(sorted, overage, _.size(Memory.routeCache));
+        Memory._routeCache = _.slice(sorted, overage, _.size(Memory._routeCache));
     }
 }
 
 function cleanRouteCacheByAge() {
-    if (Memory.routeCache) { //1500 entries ~= 100kB
-        let originalCount = Memory.routeCache.length;
-        let cache = Memory.routeCache;
+    if (Memory._routeCache) { //1500 entries ~= 100kB
+        let originalCount = Memory._routeCache.length;
+        let cache = Memory._routeCache;
         for (let key in cache) {
             if (cache[key].tick + 4500 < Game.time) {
                 delete cache[key];
@@ -76,14 +76,14 @@ function cleanRouteCacheByAge() {
         }
         let prunedCount = originalCount - cache.length;
         if (prunedCount) log.i('Cleaning Route cache (Removed ' + prunedCount + ' old routes.)');
-        Memory.routeCache = cache;
+        Memory._routeCache = cache;
     }
 }
 
 function cleanDistanceCacheByAge() {
-    if (Memory.distanceCache) { //1500 entries ~= 100kB
-        let originalCount = Memory.distanceCache.length;
-        let cache = Memory.distanceCache;
+    if (Memory._distanceCache) { //1500 entries ~= 100kB
+        let originalCount = Memory._distanceCache.length;
+        let cache = Memory._distanceCache;
         for (let key in cache) {
             if (cache[key].tick + 100 < Game.time) {
                 delete cache[key];
@@ -91,7 +91,7 @@ function cleanDistanceCacheByAge() {
         }
         let prunedCount = originalCount - cache.length;
         if (prunedCount) log.i('Cleaning Distance cache (Removed ' + prunedCount + ' old routes.)');
-        Memory.distanceCache = cache;
+        Memory._distanceCache = cache;
     }
 }
 

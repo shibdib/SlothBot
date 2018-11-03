@@ -521,7 +521,8 @@ function positionAtDirection(origin, direction) {
 
 function cacheRoute(from, to, route) {
     let key = from + '_' + to;
-    let cache = routeCache;
+    let cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._routeCache || {}; else cache = routeCache;
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -529,12 +530,12 @@ function cacheRoute(from, to, route) {
         uses: 1,
         tick: tick
     };
-    routeCache = cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._routeCache = cache; else routeCache = cache;
 }
 
 function getRoute(from, to) {
-    if (Memory.routeCache) delete Memory.routeCache;
-    let cache = routeCache;
+    let cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._routeCache || {}; else cache = routeCache;
     if (cache) {
         let cachedRoute = cache[from + '_' + to];
         if (cachedRoute) {
@@ -551,7 +552,8 @@ function cachePath(creep, from, to, path) {
     //Don't store short paths
     if (path.length < 5) return;
     let key = getPathKey(from, to);
-    let cache = pathCache;
+    let cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -559,12 +561,12 @@ function cachePath(creep, from, to, path) {
         uses: 1,
         tick: tick
     };
-    pathCache = cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._pathCache = cache; else pathCache = cache;
 }
 
 function getPath(creep, from, to) {
-    if (Memory.pathCache) delete Memory.pathCache;
-    let cache = pathCache;
+    let cache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
     if (!cache) return null;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {
