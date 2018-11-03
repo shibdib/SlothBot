@@ -70,15 +70,9 @@ function mind() {
     let overlordCount = Memory.ownedRooms.length;
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
-        let cpuUsed = Game.cpu.getUsed();
-        let cpuLimit = Game.cpu.limit - cpuUsed;
-        let cpuTickLimit = Game.cpu.tickLimit - cpuUsed;
-        let roomLimit = cpuLimit / (overlordCount - processed);
-        if (cpuBucket < 10000) roomLimit = (cpuLimit * 0.9) / (overlordCount - processed);
-        if (cpuBucket > 7500) roomLimit = cpuTickLimit / (overlordCount - processed);
         log.d('Overlord For ' + activeRoom.name);
         try {
-            overlord.overlordMind(activeRoom, roomLimit);
+            overlord.overlordMind(activeRoom);
         } catch (e) {
             log.e('Overlord Module experienced an error');
             log.e(e.stack);

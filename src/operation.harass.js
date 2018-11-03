@@ -7,9 +7,9 @@ Creep.prototype.harassRoom = function () {
             this.memory.operation = undefined;
             return;
         }
+        if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
         highCommand.threatManagement(this);
-        highCommand.operationSustainability(this.room);
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);

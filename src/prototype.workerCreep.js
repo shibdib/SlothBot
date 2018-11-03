@@ -268,538 +268,207 @@ Creep.prototype.withdrawEnergy = function () {
     }
 };
 
-Creep.prototype.findEnergy = function (range = 250, hauler = false) {
-    let energy = [];
-    //Container
-    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= 100);
-    if (container.length > 0) {
-        let containers = [];
-        for (let i = 0; i < container.length; i++) {
-            const object = container[i];
-            if (object && object.pos.rangeToTarget(this) <= range) {
-                let weight = 1.3;
-                if (object.id === this.room.memory.controllerContainer) continue;
-                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
-                if (numberOfUsers > object.store[RESOURCE_ENERGY] / 150) continue;
-                if (object.store[RESOURCE_ENERGY] > 1500) weight = 1;
-                const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-                containers.push({
-                    id: container[i].id,
-                    distWeighted: containerDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestContainer = _.min(containers, 'distWeighted');
-        energy.push({
-            id: bestContainer.id,
-            distWeighted: bestContainer.distWeighted,
-            harvest: false
-        });
-    }
-    //Storage
-    let sStorage = this.room.storage;
-    if (sStorage && sStorage.pos.rangeToTarget(this) <= range && sStorage.store[RESOURCE_ENERGY] > this.carryCapacity) {
-        let weight = 1;
-        if (this.room.memory.energySurplus) weight = 0.4;
-        if (this.room.memory.responseNeeded || this.room.memory.extremeEnergySurplus) weight = 0.1;
-        const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
-        energy.push({
-            id: sStorage.id,
-            distWeighted: storageDistWeighted,
-            harvest: false
-        });
-    }
-    //Terminal
+Creep.prototype.findEnergy = function () {
+    // Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= 20000 && terminal.pos.rangeToTarget(this) <= range) {
-        let weight = 0.3;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id && c.id !== this.id).length;
-        if (terminal.store[RESOURCE_ENERGY] <= ENERGY_AMOUNT * 0.5) weight = 0.2;
-        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
-        energy.push({
-            id: terminal.id,
-            distWeighted: terminalDistWeighted,
-            harvest: false
-        });
+    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000) {
+        this.memory.energyDestination = terminal.id;
+        return true;
     }
-    //Take straight from harvesters at low level
-    if (!this.room.controller || this.room.controller.level <= 2) {
-        let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
-        if (harvester) {
-            let weight = 0.3;
-            const harvesterDistWeighted = _.round(harvester.pos.rangeToTarget(this) * weight, 0) + 1;
-            energy.push({
-                id: harvester.id,
-                distWeighted: harvesterDistWeighted,
-                harvest: false
-            });
-        }
+    // Storage
+    let storage = this.room.storage;
+    if (storage && this.room.memory.energySurplus) {
+        this.memory.energyDestination = storage.id;
+        return true;
+    }
+    // Links
+    let storageLink = Game.getObjectById(this.room.memory.storageLink);
+    if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {
+        this.memory.energyDestination = storageLink.id;
+        return true;
+    }
+    //Dropped
+    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length});
+    if (dropped) {
+        this.memory.energyDestination = dropped.id;
+        return true;
+    }
+    // Container
+    let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
+    if (container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
+        this.memory.energyDestination = container.id;
+        return true;
     }
     //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
     if (!this.room.controller || this.room.controller.level <= 3) {
-        let hauler = shuffle(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.carry[RESOURCE_ENERGY] > 0))[0];
+        let hauler = _.sample(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.carry[RESOURCE_ENERGY] > 0))[0];
         if (hauler) {
-            let weight = 0.3;
-            const haulerDistWeighted = _.round(hauler.pos.rangeToTarget(this) * weight, 0) + 1;
-            energy.push({
-                id: hauler.id,
-                distWeighted: haulerDistWeighted,
-                harvest: false
-            });
+            this.memory.energyDestination = hauler.id;
+            return true;
         }
-    }
-    //Dropped
-    let dropped = this.pos.findClosestByPath(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
-    if (dropped) {
-        let weight = 0.5;
-        let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
-        energy.push({
-            id: dropped.id,
-            distWeighted: droppedDistWeighted,
-            harvest: false
-        });
-    }
-
-    let sorted = _.min(energy, 'distWeighted');
-
-    if (sorted) {
-        if (sorted.harvest === false) {
-            let energyItem = Game.getObjectById(sorted.id);
-            if (energyItem) {
-                this.memory.energyDestination = energyItem.id;
-            } else {
-                this.memory.energyDestination = undefined;
-                return null;
-            }
-        }
-    } else {
-        this.memory.energyDestination = undefined;
-    }
-};
-
-Creep.prototype.getEnergy = function (range = 250, hauler = false) {
-    let energy = [];
-    //Container
-    let container = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= 100);
-    if (container.length > 0) {
-        let containers = [];
-        for (let i = 0; i < container.length; i++) {
-            const object = container[i];
-            if (object && object.pos.rangeToTarget(this) <= range) {
-                let weight = 0.5;
-                if (object.id === this.room.memory.controllerContainer) continue;
-                let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id && c.id !== this.id).length;
-                if (numberOfUsers > object.store[RESOURCE_ENERGY] / this.carryCapacity) continue;
-                if (object.store[RESOURCE_ENERGY] > 1700) weight = 0.2;
-                const containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-                containers.push({
-                    id: container[i].id,
-                    distWeighted: containerDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        let bestContainer = _.min(containers, 'distWeighted');
-        energy.push({
-            id: bestContainer.id,
-            distWeighted: bestContainer.distWeighted,
-            harvest: false
-        });
-    }
-    //Links
-    let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    if (storageLink && storageLink.energy > 0) {
-        let weight = 1;
-        if (storageLink.energy > 500) weight = 0.2;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === storageLink.id && c.id !== this.id).length;
-        const storageLinkDistWeighted = _.round(storageLink.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
-        energy.push({
-            id: storageLink.id,
-            distWeighted: storageLinkDistWeighted,
-            harvest: false
-        });
-    }
-    //Terminal
-    let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] >= 12000 || this.room.memory.responseNeeded)) {
-        let weight = 0.3;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === terminal.id && c.id !== this.id).length;
-        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * weight, 0) + 1 + (numberOfUsers / 2);
-        energy.push({
-            id: terminal.id,
-            distWeighted: terminalDistWeighted,
-            harvest: false
-        });
-    }
-    //Storage
-    let sStorage = this.room.storage;
-    if ((this.room.memory.responseNeeded || this.room.memory.energySurplus) && sStorage && sStorage.store[RESOURCE_ENERGY]) {
-        let weight = 50;
-        if (this.room.memory.responseNeeded || this.room.memory.extremeEnergySurplus) weight = 0.1;
-        const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
-        energy.push({
-            id: sStorage.id,
-            distWeighted: storageDistWeighted,
-            harvest: false
-        });
-    }
-    //Take straight from harvesters at low level
-    if (this.room.controller.level < 5) {
-        let harvester = shuffle(_.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester' && c.carry[RESOURCE_ENERGY] > 25))[0];
-        if (harvester) {
-            let weight = 0.6;
-            const harvesterDistWeighted = _.round(harvester.pos.rangeToTarget(this) * weight, 0) + 1;
-            energy.push({
-                id: harvester.id,
-                distWeighted: harvesterDistWeighted,
-                harvest: false
-            });
-        }
-    }
-    //Dropped
-    let dropped = this.pos.findClosestByPath(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
-    if (dropped) {
-        let weight = 0.5;
-        let droppedDistWeighted = _.round(dropped.pos.rangeToTarget(this) * weight, 0) + 1;
-        energy.push({
-            id: dropped.id,
-            distWeighted: droppedDistWeighted,
-            harvest: false
-        });
-    }
-
-    let sorted = _.min(energy, 'distWeighted');
-
-    if (sorted) {
-        if (sorted.harvest === false) {
-            let energyItem = Game.getObjectById(sorted.id);
-            if (energyItem) {
-                this.memory.energyDestination = energyItem.id;
-            }
-        }
-        return true;
-    } else {
-        if (this.pos.checkForRoad()) {
-            this.moveRandom();
-        } else {
-            this.idleFor(15);
-        }
-        return undefined;
-    }
-};
-
-Creep.prototype.findStorage = function () {
-    let storage = [];
-    let haulingEnergy;
-    if (this.carry[RESOURCE_ENERGY] === _.sum(this.carry)) haulingEnergy = true;
-    //Storage
-    let sStorage = this.room.storage;
-    if (sStorage) {
-        let weight;
-        weight = 0.05;
-        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) weight = 0.3;
-        const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
-        storage.push({
-            id: sStorage.id,
-            distWeighted: storageDistWeighted,
-            harvest: false
-        });
-    }
-    //Tower
-    let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let harvester = _.filter(this.room.creeps, (h) => h.my && h.memory.assignedSpawn === this.memory.assignedSpawn && h.memory.role === 'stationaryHarvester');
-    if (tower.length > 0 && harvester.length >= 2 && haulingEnergy) {
-        let towers = [];
-        for (let i = 0; i < tower.length; i++) {
-            const object = tower[i];
-            if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
-                if (object.room.memory.responseNeeded === true) {
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.3, 0);
-                    towers.push({
-                        id: tower[i].id,
-                        distWeighted: towerDistWeighted,
-                        harvest: false
-                    });
-                } else {
-                    const towerAmountWeighted = 1.01 - (object.energy / object.energyCapacity);
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 1.2, 0) + 1 - towerAmountWeighted;
-                    towers.push({
-                        id: tower[i].id,
-                        distWeighted: towerDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
-        }
-        let bestTower = _.min(towers, 'distWeighted');
-        storage.push({
-            id: bestTower.id,
-            distWeighted: bestTower.distWeighted,
-            harvest: false
-        });
-    }
-    //Links
-    let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (controllerLink && haulingEnergy && !this.room.memory.responseNeeded) {
-        let linkDistWeighted;
-        const object = controllerLink;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && object.energy < object.energyCapacity / 2 && numberOfUsers === 0) {
-            linkDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
-        }
-        storage.push({
-            id: controllerLink.id,
-            distWeighted: linkDistWeighted,
-            harvest: false
-        });
-    }
-    //Terminal
-    let terminal = this.room.terminal;
-    if (terminal && !this.room.memory.responseNeeded) {
-        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.9, 0) + 1;
-        storage.push({
-            id: terminal.id,
-            distWeighted: terminalDistWeighted,
-            harvest: false
-        });
-    }
-    //Worker Deliveries
-    let workers = _.filter(this.room.creeps, (h) => h.my && h.memory.overlord === this.room.name && (h.memory.role === 'worker' && h.memory.deliveryRequestTime > Game.time - 10 && !h.memory.deliveryIncoming));
-    if (workers.length > 0 && this.ticksToLive > 30 && !this.room.memory.responseNeeded && haulingEnergy) {
-        let workerWeighted;
-        const object = workers[0];
-        if (object) {
-            workerWeighted = _.round(object.pos.rangeToTarget(this) * 0.2, 0) + 1;
-        }
-        storage.push({
-            id: object.id,
-            distWeighted: workerWeighted,
-            harvest: false
-        });
-    }
-    //Sort
-    let sorted = _.min(storage, 'distWeighted');
-    if (sorted) {
-        let storageItem = Game.getObjectById(sorted.id);
-        if (storageItem) {
-            if (this.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                if (storageItem.memory) {
-                    storageItem.memory.deliveryIncoming = true;
-                }
-                this.memory.storageDestination = storageItem.id;
-                this.shibMove(storageItem);
-                return true;
-            }
-        }
-        return false;
     }
     return false;
 };
 
-Creep.prototype.findEssentials = function () {
-    let storage = [];
-    let roomSpawnQueue = this.room.memory.creepBuildQueue;
+Creep.prototype.getEnergy = function () {
+    // Links
+    let storageLink = Game.getObjectById(this.room.memory.storageLink);
+    if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {
+        this.memory.energyDestination = storageLink.id;
+        return true;
+    }
+    // Terminal
+    let terminal = this.room.terminal;
+    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000) {
+        this.memory.energyDestination = terminal.id;
+        return true;
+    }
+    // Storage
+    let storage = this.room.storage;
+    if (storage && this.room.memory.energySurplus) {
+        this.memory.energyDestination = storage.id;
+        return true;
+    }
+    // Container
+    let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
+    if (container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
+        this.memory.energyDestination = container.id;
+        return true;
+    }
+    //Dropped
+    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length});
+    if (dropped) {
+        this.memory.energyDestination = dropped.id;
+        return true;
+    }
+    return false;
+};
+
+// Hauler essential storage
+Creep.prototype.findSpawnsExtensions = function () {
     //Spawn
-    let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
-    if (spawn.length > 0) {
-        let spawns = [];
-        for (let i = 0; i < spawn.length; i++) {
-            const object = spawn[i];
-            if (object) {
-                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 1) {
-                    continue;
-                }
-                const spawnDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
-                spawns.push({
-                    id: spawn[i].id,
-                    distWeighted: spawnDistWeighted,
-                    harvest: false
-                });
+    if (this.memory.spawns) {
+        let rawSpawn = _.shuffle(JSON.parse(this.memory.spawns));
+        for (let i = 0; i < rawSpawn.length; i++) {
+            let spawn = Game.getObjectById(rawSpawn[i]);
+            if (spawn.energy < spawn.energyCapacity) {
+                this.memory.storageDestination = spawn.id;
+                return true;
             }
         }
-        let bestSpawn = _.min(spawns, 'distWeighted');
-        storage.push({
-            id: bestSpawn.id,
-            distWeighted: bestSpawn.distWeighted,
-            harvest: false
-        });
+    } else {
+        let spawn = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN), 'id');
+        if (spawn.length) this.memory.spawns = JSON.stringify(spawn);
     }
     //Extension
-    let extension = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
-    if (extension.length > 0) {
-        let extensions = [];
-        for (let i = 0; i < extension.length; i++) {
-            const object = extension[i];
-            if (object) {
-                if (object.energy === object.energyCapacity || _.filter(Game.creeps, (c) => c.memory.storageDestination === object.id).length > 0) {
-                    continue;
-                }
-                const extensionDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.4, 0) + 1;
-                extensions.push({
-                    id: extension[i].id,
-                    distWeighted: extensionDistWeighted,
-                    harvest: false
-                });
+    if (this.memory.extensions) {
+        let rawExtension = _.shuffle(JSON.parse(this.memory.extensions));
+        for (let i = 0; i < rawExtension.length; i++) {
+            let extension = Game.getObjectById(rawExtension[i]);
+            if (extension.energy < extension.energyCapacity) {
+                this.memory.storageDestination = extension.id;
+                return true;
             }
         }
-        let bestExtension = _.min(extensions, 'distWeighted');
-        storage.push({
-            id: bestExtension.id,
-            distWeighted: bestExtension.distWeighted,
-            harvest: false
-        });
+    } else {
+        let extension = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION), 'id');
+        if (extension.length) this.memory.extensions = JSON.stringify(extension);
     }
-    /**
-     //Storage
-     let sStorage = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_STORAGE)[0];
-     if (sStorage) {
-        if (sStorage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
-            let weight = 0.05;
-            const storageDistWeighted = _.round(sStorage.pos.rangeToTarget(this) * weight, 0) + 1;
-            storage.push({
-                id: sStorage.id,
-                distWeighted: storageDistWeighted,
-                harvest: false
-            });
-        }
-    }
-     **/
-        //Tower
-    let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER);
-    if (tower.length > 0 && !_.includes(roomSpawnQueue, 'responder') && !_.includes(roomSpawnQueue, 'longbow')) {
-        let towers = [];
-        for (let i = 0; i < tower.length; i++) {
-            const object = tower[i];
-            if (object && object.energy < object.energyCapacity && object.pos.getRangeTo(this) > 1) {
-                if (object.room.memory.responseNeeded === true && object.energy < object.energyCapacity * 0.85) {
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.1, 0);
-                    towers.push({
-                        id: tower[i].id,
-                        distWeighted: towerDistWeighted,
-                        harvest: false
-                    });
-                } else if (object.energy < object.energyCapacity / 2) {
-                    const towerDistWeighted = _.round(object.pos.rangeToTarget(this) * 0.25, 0);
-                    towers.push({
-                        id: tower[i].id,
-                        distWeighted: towerDistWeighted,
-                        harvest: false
-                    });
-                }
-            }
-        }
-        let bestTower = _.min(towers, 'distWeighted');
-        storage.push({
-            id: bestTower.id,
-            distWeighted: bestTower.distWeighted,
-            harvest: false
-        });
-    }
+    return false;
+};
+
+// Basic storage
+Creep.prototype.findStorage = function () {
     //Terminal
     let terminal = this.room.terminal;
     if (terminal && terminal.store[RESOURCE_ENERGY] < 5000) {
-        const terminalDistWeighted = _.round(terminal.pos.rangeToTarget(this) * 0.1, 0) + 1;
-        storage.push({
-            id: terminal.id,
-            distWeighted: terminalDistWeighted,
-            harvest: false
-        });
+        this.memory.storageDestination = terminal.id;
+        return true;
     }
-        //Controller Container
+    //Controller
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && controllerContainer.pos.rangeToTarget(this) > 1 && Math.random() > 0.3) {
-        let containerDistWeighted;
-        const object = controllerContainer;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && !numberOfUsers) {
-            let weight = 0.75;
-            if (this.room.energyAvailable > this.room.energyCapacityAvailable * 0.95 && !this.room.memory.responseNeeded) weight = 0.3;
-            containerDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-        }
-        storage.push({
-            id: controllerContainer.id,
-            distWeighted: containerDistWeighted,
-            harvest: false
-        });
+    if (Math.random() > 0.5 && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+        this.memory.storageDestination = controllerContainer.id;
+        return true;
     }
-    /**
-     //Storage Link
-     let storageLink = Game.getObjectById(this.room.memory.storageLink);
-     let controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-     if (storageLink && controllerLink && !this.room.memory.responseNeeded && controllerLink.energy < 250) {
-        let storageLinkDistWeighted;
-        const object = storageLink;
-        let numberOfUsers = _.filter(Game.creeps, (c) => c.memory.energyDestination === object.id).length;
-        if (object && numberOfUsers === 0) {
-            let weight = 0.5;
-            storageLinkDistWeighted = _.round(object.pos.rangeToTarget(this) * weight, 0) + 1;
-        }
-        storage.push({
-            id: storageLink.id,
-            distWeighted: storageLinkDistWeighted,
-            harvest: false
-        });
-    }**/
-        //Nuker
-    let nuker = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
-    if (nuker) {
-        if (nuker.pos.getRangeTo(this) > 1) {
-            const nukerDistWeighted = _.round(nuker.pos.rangeToTarget(this) * 0.1, 0) + 1;
-            storage.push({
-                id: nuker.id,
-                distWeighted: nukerDistWeighted,
-                harvest: false
-            });
-        }
+    //Storage
+    let storage = this.room.storage;
+    if (storage) {
+        this.memory.storageDestination = storage.id;
+        return true;
     }
-    //Sort
-    let sorted = _.min(storage, 'distWeighted');
-    if (sorted) {
-        let storageItem = Game.getObjectById(sorted.id);
-        if (storageItem) {
-            if (this.transfer(storageItem, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                if (storageItem.memory) {
-                    storageItem.memory.deliveryIncoming = true;
-                }
-                this.memory.storageDestination = storageItem.id;
-                this.shibMove(storageItem);
-            }
+    return false;
+};
+
+// Essential buildings
+Creep.prototype.findEssentials = function () {
+    //Tower
+    if (this.room.memory.responseNeeded) {
+        let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.85});
+        if (tower) {
+            this.memory.storageDestination = tower.id;
             return true;
-        } else {
-            return false;
         }
     } else {
+        let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5});
+        if (tower) {
+            this.memory.storageDestination = tower.id;
+            return true;
+        }
+    }
+    //Labs
+    let lab = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity});
+    if (lab) {
+        this.memory.storageDestination = lab.id;
+        return true;
+    }
+    //Nuke
+    let nuke = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity});
+    if (nuke) {
+        this.memory.storageDestination = nuke.id;
+        return true;
+    }
+    //Top off towers
+    let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9});
+    if (this.room.memory.energySurplus && Math.random() > 0.7 && tower) {
+        this.memory.storageDestination = tower.id;
+        return true;
+    }
+    return false;
+};
+
+// Delivery management
+Creep.prototype.requestDelivery = function () {
+    let courier = _.filter(this.room.creeps, (creep) => creep.my && creep.memory.role === 'courier');
+    if (!courier.length || this.ticksToLive < 50) return false;
+    // Delivery timeout
+    if (this.memory.deliveryTick && this.memory.deliveryTick + _.random(15, 25) < Game.time) {
+        delete this.memory.deliveryTick;
+        delete this.memory.deliveryRequested;
         return false;
+    } else if (!this.memory.deliveryRequested) {
+        this.memory.deliveryTick = Game.time;
+        this.memory.deliveryRequested = true;
+        if (!courier[0].memory.storageDestination) courier[0].memory.storageDestination = this.id;
+        return true;
+    } else if (this.pos.checkForRoad()) {
+        this.moveRandom();
+        return true;
+    } else {
+        this.idleFor(5);
+        return true;
     }
 };
 
-findDeliveries = function () {
+Creep.prototype.findDeliveries = function () {
     //Deliveries
-    let deliver = _.filter(Game.creeps, (c) => c.memory.deliveryRequested === true && !c.memory.deliveryIncoming && c.pos.roomName === this.pos.roomName);
-    if (deliver.length > 0) {
-        let deliveries = [];
-        for (let i = 0; i < deliver.length; i++) {
-            if (deliver[i].pos.getRangeTo(this) > 1) {
-                if (this.carry[RESOURCE_ENERGY] < deliver.carryCapacity - _.sum(deliver.carry)) {
-                    continue;
-                }
-                const deliverDistWeighted = _.round(deliver[i].pos.rangeToTarget(this) * 0.3, 0) + 1;
-                deliveries.push({
-                    id: deliver[i].id,
-                    distWeighted: deliverDistWeighted,
-                    harvest: false
-                });
-            }
-        }
-        if (Game.getObjectById(_.min(deliveries, 'distWeighted').id)) {
-            this.memory.storageDestination = _.min(deliveries, 'distWeighted').id;
-            Game.getObjectById(_.min(deliveries, 'distWeighted').id).memory.deliveryIncoming = true;
-            return true;
-        }
+    let deliver = _.sample(_.filter(this.room.creeps, (c) => c.my && c.memory.deliveryRequested && !c.memory.deliveryIncoming));
+    if (deliver) {
+        this.memory.storageDestination = deliver.id;
+        deliver.memory.deliveryIncoming = true;
+        return true;
     }
 };
-Creep.prototype.findDeliveries = profiler.registerFN(findDeliveries, 'findDeliveriesCreepFunctions');
 
 /**
  * Globally patch creep actions to log error codes.

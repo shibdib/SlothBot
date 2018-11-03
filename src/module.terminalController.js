@@ -211,6 +211,37 @@ function extendBuyOrders(terminal, globalOrders, myOrders) {
 }
 
 function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
+    // Buy energy when needed
+    if (energyInRoom < energyAmount / 2 || !terminal.store[RESOURCE_ENERGY]) {
+        for (let key in myOrders) {
+            if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
+                let currentSupply;
+                if (isNaN(terminal.store[RESOURCE_ENERGY]) === true) {
+                    currentSupply = myOrders[key].remainingAmount;
+                } else {
+                    currentSupply = terminal.store[RESOURCE_ENERGY] + myOrders[key].remainingAmount;
+                }
+                if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
+                    if (Game.market.credits * 0.1 > (energyAmount - (currentSupply + myOrders[key].remainingAmount)) * myOrders[key].price) {
+                        if (Game.market.extendOrder(myOrders[key].id, energyAmount - currentSupply) === OK) {
+                            log.w(" MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - currentSupply);
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+        let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+            order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
+        let price = 0.001;
+        if (buyOrder.id) price = buyOrder.price + 0.001;
+        if (Game.market.credits * 0.1 > energyAmount * price) {
+            if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, price + 0.001, energyAmount, terminal.pos.roomName) === OK) {
+                log.w(" MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (price + 0.001));
+                return true;
+            }
+        }
+    }
     resource:
         for (let i = 0; i < tradeTargets.length; i++) {
             if (terminal.store[tradeTargets[i]] < tradeAmount || !terminal.store[tradeTargets[i]] && Game.market.credits > 100) {
@@ -233,36 +264,6 @@ function placeBuyOrders(terminal, globalOrders, myOrders, energyInRoom) {
                 }
             }
         }
-    if (energyInRoom < energyAmount / 2 || !terminal.store[RESOURCE_ENERGY]) {
-        for (let key in myOrders) {
-            if (myOrders[key].resourceType === RESOURCE_ENERGY && myOrders[key].type === ORDER_BUY) {
-                let currentSupply;
-                if (isNaN(terminal.store[RESOURCE_ENERGY]) === true) {
-                    currentSupply = myOrders[key].remainingAmount;
-                } else {
-                    currentSupply = terminal.store[RESOURCE_ENERGY] + myOrders[key].remainingAmount;
-                }
-                if (myOrders[key].remainingAmount < (energyAmount - currentSupply)) {
-                    if (Game.market.credits * 0.1 > (energyAmount - (currentSupply + myOrders[key].remainingAmount)) * myOrders[key].price) {
-                        if (Game.market.extendOrder(myOrders[key].id, energyAmount - currentSupply) === OK) {
-                            log.w(" MARKET: Extended energy buy order " + myOrders[key].id + " an additional " + myOrders[key].remainingAmount - currentSupply);
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
-            order.type === ORDER_BUY && order.remainingAmount >= energyAmount / 2 && order.roomName !== terminal.pos.roomName), "price");
-        if (buyOrder.id) {
-            if (Game.market.credits * 0.1 > energyAmount * buyOrder.price) {
-                if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyOrder.price + 0.001, energyAmount, terminal.pos.roomName) === OK) {
-                    log.w(" MARKET: New Buy Order: " + RESOURCE_ENERGY + " at/per " + (buyOrder.price + 0.001));
-                    return true;
-                }
-            }
-        }
-    }
 }
 
 function placeReactionOrders(terminal, globalOrders, myOrders) {

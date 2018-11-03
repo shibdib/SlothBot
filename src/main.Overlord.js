@@ -6,7 +6,7 @@ let links = require('module.linkController');
 let terminals = require('module.terminalController');
 let spawning = require('module.creepSpawning');
 
-module.exports.overlordMind = function (room, roomLimit) {
+module.exports.overlordMind = function (room) {
     let roomTaskObject = taskCpuArray[room.name] || {};
     let currentTask;
     let mindStart = Game.cpu.getUsed();
@@ -41,9 +41,6 @@ module.exports.overlordMind = function (room, roomLimit) {
     currentTask.push(Game.cpu.getUsed() - cpu);
     roomTaskObject['roomEnergyStatus'] = currentTask;
     shib.shibBench('roomEnergyStatus', cpu);
-
-    // Set CPU windows
-    let cpuWindow = Game.cpu.getUsed() + roomLimit;
 
     // Handle Defense
     cpu = Game.cpu.getUsed();
@@ -127,7 +124,6 @@ module.exports.overlordMind = function (room, roomLimit) {
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
     // Worker minions
     for (let key in roomCreeps) {
-        if (Game.cpu.getUsed() > cpuWindow) return;
         minionController(roomCreeps[key]);
     }
     currentTask = roomTaskObject['minionController'] || [];
@@ -253,8 +249,11 @@ function minionController(minion) {
     if (minion.memory.recycle) return minion.recycleCreep();
     // Chance based CPU saving
     let cpuUsed = Game.cpu.getUsed();
-    if ((cpuUsed >= Game.cpu.limit && Math.random() > 0.7) || (cpuUsed >= Game.cpu.limit * 0.9 && Math.random() > 0.9)) return minion.say('CPU');
-    if (Game.cpu.bucket < 10000 && cpuUsed >= Game.cpu.limit && Math.random() > Game.cpu.bucket / 10000) return minion.say('BUCKET');
+    if (Game.cpu.bucket < 10000) {
+        if ((cpuUsed >= Game.cpu.limit && Math.random() > 0.5) || Math.random() > 0.9) return minion.say('CPU'); else {
+            if (Math.random() > Game.cpu.bucket / 10000) return minion.say('BUCKET');
+        }
+    }
     // Report damage if hits are low
     if (minion.hits < minion.hitsMax) minion.reportDamage();
     // Report intel chance

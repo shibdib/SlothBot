@@ -273,7 +273,7 @@ Creep.prototype.fightRanged = function (target) {
     let range = this.pos.getRangeTo(hostile);
     let lastRange = this.memory.lastRange || range;
     let targets = this.pos.findInRange(this.room.creeps, 2, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
-    let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username)});
+    let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my});
     if (range <= 3) {
         if (hostile instanceof Creep) {
             this.memory.lastRange = range;
@@ -283,7 +283,7 @@ Creep.prototype.fightRanged = function (target) {
             if (targets.length > 1 && !allies.length) {
                 this.rangedMassAttack();
             } else {
-                if (range <= 1) this.rangedMassAttack();
+                if (range <= 1 && !allies.length) this.rangedMassAttack();
                 if (range > 1) this.rangedAttack(target);
                 if (!target.getActiveBodyparts(ATTACK)) this.shibMove(target, {
                     ignoreCreeps: false,
@@ -319,15 +319,15 @@ Creep.prototype.attackInRange = function () {
     let hostile = this.findClosestEnemy(false);
     let range = this.pos.getRangeTo(hostile);
     let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
-    let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username)});
+    let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my});
     if (range <= 3) {
-        if (range <= 3 && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER > this.getActiveBodyparts(HEAL) * HEAL_POWER) && !hostile.fatigue) {
+        if (hostile instanceof Creep && range <= 2 && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER > this.getActiveBodyparts(HEAL) * HEAL_POWER) && !hostile.fatigue) {
             this.kite();
         }
         if (targets.length > 1 && !allies.length) {
             this.rangedMassAttack();
         } else {
-            if (range <= 1) this.rangedMassAttack();
+            if (range <= 1 && !allies.length) this.rangedMassAttack();
             if (range > 1) this.rangedAttack(hostile);
         }
         return true;

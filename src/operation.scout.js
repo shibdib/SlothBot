@@ -1,4 +1,7 @@
 Creep.prototype.scoutRoom = function () {
+    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', this.memory.targetRoom];
+    let word = Game.time % sentence.length;
+    this.say(sentence[word], true);
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
         range: 23,
         offRoad: true
@@ -7,9 +10,8 @@ Creep.prototype.scoutRoom = function () {
     // If room is no longer a target
     if (!Memory.targetRooms[this.room.name]) return this.suicide();
     // Operation cooldown per room
-    if (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].manual && Memory.roomCache[this.room.name].lastOperation && Memory.roomCache[this.room.name].lastOperation + 2000 > Game.time) {
+    if (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].manual && Memory.roomCache[this.room.name].lastOperation && Memory.roomCache[this.room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
         delete Memory.targetRooms[this.room.name];
-        log.a(this.room.name + ' is on an attack cooldown, no operation planned.');
         return this.suicide();
     }
     // Get current operations
@@ -29,14 +31,15 @@ Creep.prototype.scoutRoom = function () {
     let closestOwned = this.room.findClosestOwnedRoom();
     let pathedRange = this.shibRoute(new RoomPosition(25, 25, closestOwned).roomName).length - 1;
     let priority = 4;
-    if (range <= 2) priority = 1; else if (range <= 3 && pathedRange <= 3) priority = 2; else if (pathedRange <= 6) priority = 3; else priority = 4;
+    if (range <= 2) priority = 1; else if (range <= 3 && pathedRange <= 3) priority = 2; else if (pathedRange <= 5) priority = 3; else priority = 4;
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
-    let otherCreeps = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username));
-    let armedHostiles = _.filter(this.room.creeps, (c) => !c.my && (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && !_.includes(FRIENDLIES, c.owner.username));
+    let otherCreeps = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper');
+    let armedHostiles = _.filter(otherCreeps, (c) => !c.my && (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && !_.includes(FRIENDLIES, c.owner.username));
     let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits > 1000);
     if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) {
+        delete Memory.targetRooms[this.room.name];
         // If the room has no controller
         if (!controller) {
             // Use rangers if available
@@ -78,10 +81,13 @@ Creep.prototype.scoutRoom = function () {
                     };
                     // Otherwise try to hold the room
                 } else {
+                    let level = 0;
+                    if (otherCreeps.length) level = 1;
+                    if (armedHostiles.length) level = 2;
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'hold',
-                        level: 2,
+                        level: level,
                         priority: 1
                     };
                 }
@@ -129,6 +135,16 @@ Creep.prototype.scoutRoom = function () {
         } else if (!controller.owner) {
             // If other creeps are present
             if (otherCreeps.length) {
+                // If far away set it as a poke
+                if (priority >= 4) {
+                    cache[this.room.name] = {
+                        tick: tick,
+                        type: 'poke',
+                        level: 1,
+                        priority: priority
+                    };
+                    // Otherwise use old harass
+                } else
                 // Use rangers if available
                 if (maxLevel >= 4) {
                     cache[this.room.name] = {

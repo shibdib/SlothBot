@@ -6,6 +6,7 @@ Creep.prototype.borderPatrol = function () {
     let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
     if (!squadLeader.length) return this.memory.squadLeader = true;
     // Handle squad leader
+    if (this.room.name === this.memory.responseTarget) remoteManager(this);
     if (this.memory.squadLeader && !this.handleMilitaryCreep(false, false)) {
         let squadMember = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && !c.memory.squadLeader);
         if (!squadMember.length || (this.pos.getRangeTo(squadMember[0]) > 1 && !this.borderCheck())) return this.idleFor(3);
@@ -41,3 +42,8 @@ Creep.prototype.borderPatrol = function () {
         this.attackInRange();
     }
 };
+
+function remoteManager(creep) {
+    // Remove remote if reserved by someone else
+    if (creep.room.controller && creep.room.controller.reservation && !_.includes(FRIENDLIES, creep.room.controller.reservation.username)) Game.rooms[this.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[this.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
+}

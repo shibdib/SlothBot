@@ -11,10 +11,8 @@ let militaryQueue = {};
 
 module.exports.processBuildQueue = function () {
     let spawns = Game.spawns;
-    if (Memory.militaryBuildQueue) delete Memory.militaryBuildQueue;
     for (let key in spawns) {
         let spawn = spawns[key];
-        if (spawn.room.memory.creepBuildQueue) delete spawn.room.memory.creepBuildQueue;
         let level = getLevel(spawn.room);
         if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
         let oldest = _.min(roomQueue[spawn.room.name], 'cached');
@@ -27,7 +25,7 @@ module.exports.processBuildQueue = function () {
             if (roomQueue[spawn.room.name] || militaryQueue) {
                 let queue;
                 let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-                if (!spawn.room.memory.responseNeeded && level >= 2 && maxLevel === level) {
+                if (!spawn.room.memory.responseNeeded && level >= 2 && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
                     queue = _.sortBy(Object.assign({}, militaryQueue, roomQueue[spawn.room.name]), 'importance');
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'importance')
@@ -96,9 +94,9 @@ module.exports.processBuildQueue = function () {
                     })) {
                         case OK:
                             if (!topPriority.operation) log.i(spawn.room.name + ' Spawning a ' + role);
-                            if (topPriority.military) delete militaryQueue[role];
-                            if (!topPriority.buildCount) return delete roomQueue[spawn.room.name][role];
-                            roomQueue[spawn.room.name][role].buildCount = topPriority.buildCount - 1;
+                            if (topPriority.military && militaryQueue) delete militaryQueue[role];
+                            if (topPriority.buildCount && roomQueue[spawn.room.name][role]) return roomQueue[spawn.room.name][role].buildCount = topPriority.buildCount - 1;
+                            if (roomQueue[spawn.room.name]) delete roomQueue[spawn.room.name][role];
                     }
                 }
             }
@@ -279,7 +277,7 @@ module.exports.workerCreepQueue = function (room) {
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
-        delete room.memory.creepBuildQueue;
+        delete roomQueue[room.name];
         return queueCreep(room, -1, {role: 'stationaryHarvester', reboot: true});
     }
     if (!_.includes(queue, 'stationaryHarvester')) {
@@ -327,7 +325,7 @@ module.exports.workerCreepQueue = function (room) {
     //Haulers
     let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
     if (hauler.length === 0) {
-        delete room.memory.creepBuildQueue;
+        delete roomQueue[room.name];
         return queueCreep(room, -1, {role: 'hauler', reboot: true});
     }
     if (!_.includes(queue, 'hauler')) {
@@ -336,6 +334,13 @@ module.exports.workerCreepQueue = function (room) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if ((hauler[0].ticksToLive < 250 && hauler.length < amount + 1) || hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
+        }
+    }
+    if (!_.includes(queue, 'courier')) {
+        let amount = 1;
+        let courier = _.filter(roomCreeps, (creep) => (creep.memory.role === 'courier'));
+        if (courier.length < amount) {
+            queueCreep(room, PRIORITIES.hauler, {role: 'courier'})
         }
     }
     //LabTech
@@ -655,6 +660,8 @@ module.exports.militaryCreepQueue = function () {
                 priority = PRIORITIES.urgent;
                 break;
         }
+        //Number fatigue
+        if (_.size(Memory.targetRooms) > _.size(Memory.ownedRooms)) priority += _.round(((_.size(Memory.targetRooms) + 1) - _.size(Memory.ownedRooms)) / 2);
         for (let staging in Memory.stagingRooms) {
             if (Game.map.getRoomLinearDistance(staging, key) === 1) {
                 stagingRoom = staging;
@@ -673,7 +680,7 @@ module.exports.militaryCreepQueue = function () {
             continue;
         }
         //Room Scouting
-        if (Memory.targetRooms[key].type === 'attack') {
+        if (Memory.targetRooms[key].type === 'attack' || Memory.targetRooms[key].type === 'scout') {
             let totalScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');
             let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
             if (totalScout.length < 3 && !scout.length && !_.includes(queue, 'scout')) {

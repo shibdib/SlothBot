@@ -1,3 +1,5 @@
+let highCommand = require('military.highCommand');
+
 Creep.prototype.robbery = function () {
     let sentence = ['#overlords', 'Thanks', 'For', 'The', 'Stuff', this.memory.targetRoom];
     let word = Game.time % sentence.length;
@@ -13,6 +15,7 @@ Creep.prototype.robbery = function () {
         offRoad: true
     });
     if (this.room.name === this.memory.targetRoom && (!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) {
+        highCommand.operationSustainability(this.room);
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #Overlord-Bot')) {
             case OK:
                 break;

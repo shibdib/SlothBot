@@ -6,7 +6,8 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    //Invader detection
+    if (creep.room.memory.responseNeeded || creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.reservationTarget) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
     } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation.username === USERNAME)) {

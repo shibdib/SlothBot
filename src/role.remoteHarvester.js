@@ -9,7 +9,7 @@ let shib = require("shibBench");
 function role(creep) {
     let source;
     //Invader detection
-    if (creep.room.memory.responseNeeded || creep.room.invaderCheck() || creep.hits < creep.hitsMax) creep.goHomeAndHeal();
+    if (creep.room.memory.responseNeeded || creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     //Initial move

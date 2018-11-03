@@ -13,6 +13,7 @@ let globals = function () {
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = true;
+    global.ATTACK_COOLDOWN = 2500; //Time between attacks on a room
 
     global.FRIENDLIES = RawMemory.segments[2];
 
@@ -22,6 +23,7 @@ let globals = function () {
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];
     global.RESERVE_ROOM_SIGNS = ["~~Reserved Territory of an #overlords member~~", "~~This is a restricted area, violators will be attacked #overlords~~", "~~#overlords Exclusion Zone~~", "~~#overlords Reserved Room~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER~~"];
     global.EXPLORED_ROOM_SIGNS = ["#overlords were here.", "#overlords have collected intel from this room. We Know.", "Spawn More #Overlord-Bot's", "All your rooms belong to #overlords"];
+    global.ATTACK_ROOM_SIGNS = ["~~Overlords is your daddy~~", "~~This room was declared unnecessary by overlords~~", "~~#overlords wasteland~~"];
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
@@ -203,6 +205,7 @@ let globals = function () {
         , traffic: "\ud83d\udea6"
         , border: "\ud83d\udec2"
         , hospital: "\ud83c\udfe5"
+        , courier: "\ud83d\ude90"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
@@ -226,6 +229,7 @@ let globals = function () {
             case RESOURCE_ZYNTHIUM_KEANITE:
             case RESOURCE_UTRIUM_LEMERGITE:
                 return 100; // 10^2
+            case RESOURCE_GHODIUM:
             case RESOURCE_UTRIUM_HYDRIDE:
             case RESOURCE_UTRIUM_OXIDE:
             case RESOURCE_KEANIUM_HYDRIDE:

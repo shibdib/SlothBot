@@ -4,7 +4,6 @@ module.exports.hud = function () {
         let level = Memory.targetRooms[key].level || 1;
         let type = Memory.targetRooms[key].type;
         let priority = Memory.targetRooms[key].priority || 4;
-        if (Memory.targetRooms[key].type === 'attack') type = 'Scout';
         let stagingRoom;
         for (let staging in Memory.stagingRooms) {
             if (Game.map.getRoomLinearDistance(staging, key) === 1) {
@@ -96,7 +95,7 @@ module.exports.hud = function () {
                 {align: 'left', opacity: 0.8}
             );
         }
-        if (type === 'poke') continue;
+        if (type === 'poke' || type === 'scout' || type === 'attack') continue;
         new RoomVisual().text(
             ICONS.crossedSword + ' ACTIVE OPERATIONS ' + ICONS.crossedSword,
             1,

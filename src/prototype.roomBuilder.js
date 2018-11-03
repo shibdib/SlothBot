@@ -752,7 +752,7 @@ function buildRoadAround(room, position) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForRoad() || position.checkForImpassible() || _.size(room.constructionSites) >= 10) return;
+    if (position.checkForRoad() || position.checkForImpassible() || _.size(room.find(FIND_CONSTRUCTION_SITES)) >= 10) return;
     if (room.controller.level < 5) {
         if (position.checkForSwamp()) position.createConstructionSite(STRUCTURE_ROAD);
     } else {
