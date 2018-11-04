@@ -425,7 +425,7 @@ function addSksToMatrix(room, matrix) {
         if (sk.length > 0) {
             for (let c = 0; c < sk.length; c++) {
                 matrix.set(sk[c].pos.x, sk[c].pos.y, 0xff);
-                let sites = sk[c].room.lookForAtArea(LOOK_TERRAIN, sk[c].pos.y - 4, sk[c].pos.x - 4, sk[c].pos.y + 4, sk[c].pos.x + 4, true);
+                let sites = sk[c].room.lookForAtArea(LOOK_TERRAIN, sk[c].pos.y - 5, sk[c].pos.x - 5, sk[c].pos.y + 5, sk[c].pos.x + 5, true);
                 for (let key in sites) {
                     let position = new RoomPosition(sites[key].x, sites[key].y, room.name);
                     if (!position.checkForWall()) {

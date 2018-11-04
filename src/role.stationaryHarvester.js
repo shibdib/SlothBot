@@ -69,6 +69,8 @@ function depositEnergy(creep) {
         if (_.sum(container.store) !== container.storeCapacity) {
             creep.transfer(container, RESOURCE_ENERGY);
             creep.memory.linkDrop = true;
+        } else if (container.hits < container.hitsMax) {
+            creep.repair(container);
         } else {
             creep.idleFor(15);
         }
