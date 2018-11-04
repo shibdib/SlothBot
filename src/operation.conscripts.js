@@ -16,14 +16,14 @@ Creep.prototype.conscriptsRoom = function () {
             levelManager(this);
             highCommand.threatManagement(this);
         } else if (!this.memory.squadLeader) {
-            if (this.room.name === squadLeader[0].room.name && this.pos.rangeToTarget(squadLeader[0]) > 0) {
+            if (this.room.name === squadLeader[0].room.name && this.pos.getRangeTo(squadLeader[0]) > 0) {
                 this.shibMove(squadLeader[0], {range: 1, ignoreCreeps: false});
             } else if (this.room.name === squadLeader[0].room.name) {
                 this.shibMove(squadLeader[0], {range: 0});
             } else this.shibMove(new RoomPosition(25, 25, squadLeader[0].room.name), {range: 17});
             let squadMember = _.min(this.pos.findInRange(_.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'conscripts' && c.id !== this.id && c.hits < c.hitsMax), 3), 'hits');
             if (this.hits === this.hitsMax && squadMember.id) {
-                if (this.pos.rangeToTarget(squadMember) === 1) this.heal(squadMember); else if (Math.random() > 0.5) this.rangedHeal(squadMember);
+                if (this.pos.getRangeTo(squadMember) === 1) this.heal(squadMember); else if (Math.random() > 0.5) this.rangedHeal(squadMember);
             } else if (this.hits < this.hitsMax) {
                 this.heal(this);
             }

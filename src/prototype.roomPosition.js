@@ -130,6 +130,11 @@ RoomPosition.prototype.buildRoomPosition = function (direction, distance) {
 
 RoomPosition.prototype.rangeToTarget = function (target) {
     if (!target) return;
+    // Distance cache fails hard on MMO
+    delete Memory._distanceCache;
+    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') {
+        return this.getRangeTo(target);
+    }
     let cached = getCachedTargetDistance(this, target);
     if (cached) return cached;
     return cacheTargetDistance(this, target);
@@ -150,11 +155,7 @@ function cacheTargetDistance(origin, target) {
 }
 
 function getCachedTargetDistance(origin, target) {
-    let cache;
-    delete Memory._distanceCache;
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') {
-        return origin.getRangeTo(target);
-    } else cache = distanceCache;
+    let cache = distanceCache;
     if (cache) {
         let cachedDistance;
         if (target instanceof RoomPosition) cachedDistance = cache[getPathKey(origin, target)]; else cachedDistance = cache[getPathKey(origin, target.pos)];

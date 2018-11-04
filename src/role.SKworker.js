@@ -8,9 +8,9 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     let source;
     let hostiles = creep.findClosestEnemy();
-    if (hostiles && creep.pos.rangeToTarget(hostiles) <= 4) return creep.retreat();
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     let lair = Game.getObjectById(creep.memory.lair);
-    if (lair && creep.pos.rangeToTarget(lair) <= 6 && lair.ticksToSpawn <= 10) return creep.flee(lair);
+    if (lair && creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 10) return creep.flee(lair);
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
@@ -28,7 +28,7 @@ function role(creep) {
             if (!source || source.pos.roomName !== creep.pos.roomName) return delete creep.memory.source;
             if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
             if (source.energy === 0) {
-                if (lair && creep.pos.rangeToTarget(lair) <= 6) return creep.flee(lair);
+                if (lair && creep.pos.getRangeTo(lair) <= 6) return creep.flee(lair);
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
                 switch (creep.harvest(source)) {
@@ -65,7 +65,7 @@ function SKdeposit(creep) {
     if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (container.pos.rangeToTarget(Game.getObjectById(creep.memory.source)) > 2) {
+            if (container.pos.getRangeTo(Game.getObjectById(creep.memory.source)) > 2) {
                 delete creep.memory.containerID;
                 return;
             }
@@ -85,7 +85,7 @@ function SKdeposit(creep) {
                         break;
                 }
             } else if (_.sum(container.store) !== container.storeCapacity) {
-                if (creep.pos.rangeToTarget(container) > 0) return creep.shibMove(container, {range: 0});
+                if (creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
                 for (const resourceType in creep.carry) {
                     if (creep.transfer(container, resourceType) === ERR_NOT_IN_RANGE) {
                         creep.shibMove(container, {range: 0});

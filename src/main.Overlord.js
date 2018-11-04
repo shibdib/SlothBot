@@ -316,7 +316,7 @@ function cleanQueue(room) {
 function requestBuilders(room) {
     let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military);
-    if (!spawns.length || roomCreeps.length < 4 || getLevel(room) !== room.controller.level) {
+    if (!spawns.length || roomCreeps.length < 4 || getLevel(room) !== room.controller.level || _.size(room.constructionSites) > 10) {
         room.memory.buildersNeeded = true;
     } else {
         room.memory.buildersNeeded = undefined;

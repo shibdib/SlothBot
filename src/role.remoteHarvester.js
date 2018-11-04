@@ -34,7 +34,7 @@ function role(creep) {
             //Make sure you're on the container
             if (creep.memory.containerID && !creep.memory.onContainer) {
                 let container = Game.getObjectById(creep.memory.containerID);
-                if (container && creep.pos.rangeToTarget(container) > 0) {
+                if (container && creep.pos.getRangeTo(container) > 0) {
                     return creep.shibMove(container, {range: 0});
                 } else if (container) {
                     creep.memory.onContainer = true;
@@ -167,12 +167,12 @@ function buildRoad(position, room) {
 }
 
 function harvestDepositContainer(source, creep) {
-    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.rangeToTarget(source) === 1});
+    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
     if (container) {
         return container.id;
     } else {
         let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (!site && creep.pos.rangeToTarget(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        if (!site && creep.pos.getRangeTo(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
         if (site && Game.rooms[creep.memory.overlord].controller.level >= 5) creep.build(site);
     }
 }

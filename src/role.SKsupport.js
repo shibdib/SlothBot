@@ -35,7 +35,7 @@ function role(creep) {
     if (SKAttacker.length === 0) {
         if (creep.hits < creep.hitsMax) creep.heal(creep);
         let hostiles = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (hostiles && creep.pos.rangeToTarget(hostiles) <= 4) {
+        if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) {
             creep.retreat();
         }
     } else {
@@ -48,7 +48,7 @@ function role(creep) {
                     creep.shibMove(SKAttacker[0], {ignoreCreeps: false});
                     if (creep.hits < creep.hitsMax) {
                         creep.heal(creep);
-                    } else if (creep.pos.rangeToTarget(SKAttacker[0]) <= 3) {
+                    } else if (creep.pos.getRangeTo(SKAttacker[0]) <= 3) {
                         creep.rangedHeal(SKAttacker[0]);
                     }
                     break;

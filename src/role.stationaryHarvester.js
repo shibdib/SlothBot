@@ -13,7 +13,7 @@ function role(creep) {
         //Make sure you're on the container
         if (!creep.memory.onContainer && creep.memory.containerID) {
             let container = Game.getObjectById(creep.memory.containerID);
-            if (container && creep.pos.rangeToTarget(container) > 0) {
+            if (container && creep.pos.getRangeTo(container) > 0) {
                 return creep.shibMove(container, {range: 0});
             } else if (container) {
                 creep.memory.onContainer = true;
@@ -36,7 +36,7 @@ function role(creep) {
         if (!creep.findSource()) {
             let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester'), 'ticksToLive');
             creep.shibMove(oldestHarvester);
-            if (creep.pos.rangeToTarget(oldestHarvester) <= 2) {
+            if (creep.pos.getRangeTo(oldestHarvester) <= 2) {
                 if (oldestHarvester.ticksToLive < 50) {
                     oldestHarvester.suicide()
                 } else {
@@ -78,7 +78,7 @@ function depositEnergy(creep) {
 function extensionFinder(creep) {
     creep.memory.extensionsFound = true;
     let container = Game.getObjectById(creep.memory.containerID);
-    let extension = _.pluck(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.rangeToTarget(container) === 1), 'id');
+    let extension = _.pluck(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(container) === 1), 'id');
     if (extension.length) creep.memory.extensions = JSON.stringify(extension);
 }
 
@@ -100,15 +100,15 @@ function harvestDepositLink(creep) {
     let source = Game.getObjectById(creep.memory.source);
     let link = _.filter(source.pos.findInRange(creep.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
-        if (creep.pos.rangeToTarget(link) <= 1) {
+        if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
-        } else if (creep.pos.rangeToTarget(link) <= 3) {
+        } else if (creep.pos.getRangeTo(link) <= 3) {
             creep.shibMove(link);
             return link.id;
         }
     } else {
         let storageLink = Game.getObjectById(creep.room.memory.storageLink);
-        if (creep.pos.rangeToTarget(storageLink) <= 6 && (!creep.room.memory.storageLink || !creep.room.memory.controllerLink)) return;
+        if (creep.pos.getRangeTo(storageLink) <= 6 && (!creep.room.memory.storageLink || !creep.room.memory.controllerLink)) return;
         let container = Game.getObjectById(creep.memory.containerID);
         let inBuild = _.filter(source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!inBuild && container) {
@@ -127,19 +127,19 @@ function harvestDepositLink(creep) {
 
 function harvestDepositContainer(source, creep) {
     creep.memory.containerAttempt = true;
-    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.rangeToTarget(source) === 1});
+    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
     if (container) {
         return container.id;
     } else {
         let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (!site && creep.pos.rangeToTarget(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        if (!site && creep.pos.getRangeTo(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
     }
 }
 
 function extensionBuilder(creep) {
     let container = Game.getObjectById(creep.memory.containerID);
     let inBuild = Game.getObjectById(creep.containerBuilding());
-    if ((container && creep.pos.rangeToTarget(container) > 0) || (inBuild && creep.pos.rangeToTarget(inBuild) > 0)) {
+    if ((container && creep.pos.getRangeTo(container) > 0) || (inBuild && creep.pos.getRangeTo(inBuild) > 0)) {
         let moveTo = container || inBuild;
         return creep.shibMove(moveTo, {range: 0});
     } else if (container || inBuild) {

@@ -17,9 +17,9 @@ Creep.prototype.borderPatrol = function () {
         if (this.borderCheck()) return;
         // Check for squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
-        if (!squadMember.length || this.pos.rangeToTarget(squadMember[0]) > 1) return this.idleFor(1);
+        if (!squadMember.length || this.pos.getRangeTo(squadMember[0]) > 1) return this.idleFor(1);
         // Heal squad
-        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.rangeToTarget(this) === 1);
+        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
         // Move to response room if needed
         if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
@@ -42,7 +42,7 @@ Creep.prototype.borderPatrol = function () {
         // Heal squadmates
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
         // Heal squad
-        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.rangeToTarget(this) === 1);
+        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
         this.attackInRange();
     }

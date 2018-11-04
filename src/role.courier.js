@@ -57,6 +57,8 @@ module.exports.role = function (creep) {
             }
         } else if (creep.pos.checkForRoad()) {
             creep.moveRandom();
+        } else if (!creep.isFull) {
+            delete creep.memory.hauling
         } else {
             return creep.idleFor(5);
         }

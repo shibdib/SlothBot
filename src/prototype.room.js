@@ -264,7 +264,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2 && !barriers) {
                 let sourceDist = 0;
                 for (let source in sources) {
-                    let range = sources[source].pos.rangeToTarget(room.controller);
+                    let range = sources[source].pos.getRangeTo(room.controller);
                     sourceDist = sourceDist + range;
                 }
                 claimValue = 250 - sourceDist;

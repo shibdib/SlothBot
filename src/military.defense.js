@@ -95,9 +95,9 @@ function rampartManager(room, structures) {
     if (allies.length) {
         let enemies = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
         // Open ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic && !s.pos.checkForObstacleStructure() && s.pos.rangeToTarget(s.pos.findClosestByRange(allies)) <= 1 && (!enemies.length || s.pos.rangeToTarget(s.pos.findClosestByRange(enemies)) > 2)).forEach((rampart) => rampart.setPublic(true));
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic && !s.pos.checkForObstacleStructure() && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 1 && (!enemies.length || s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2)).forEach((rampart) => rampart.setPublic(true));
         // Close ramparts
-        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && (s.pos.rangeToTarget(s.pos.findClosestByRange(allies)) > 1 || (enemies.length && s.pos.rangeToTarget(s.pos.findClosestByRange(enemies)) <= 2))).forEach((rampart) => rampart.setPublic(false));
+        _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && (s.pos.getRangeTo(s.pos.findClosestByRange(allies)) > 1 || (enemies.length && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2))).forEach((rampart) => rampart.setPublic(false));
     } else {
         // Close public ones
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
@@ -112,8 +112,8 @@ function safeModeManager(room) {
     } else {
         let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
         let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
-        let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.rangeToTarget(c.pos.findClosestByRange(FIND_MY_SPAWNS)) < 8);
-        if (enemyMilitary.length && !alliedMilitary.length && hub.rangeToTarget(hub.findClosestByPath(enemyMilitary)) < 9) {
+        let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_MY_SPAWNS)) < 8);
+        if (enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByPath(enemyMilitary)) < 9) {
             return room.controller.activateSafeMode();
         }
     }
