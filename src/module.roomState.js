@@ -57,7 +57,7 @@ module.exports.setRoomState = function (room) {
             log.a(room.name + ' has been classified as a struggling economically room.')
         } else
         // Budding State
-        if (averageIncome > 50 && room.memory.energySurplus && !room.memory.extremeEnergySurplus) {
+        if (averageIncome > 30 && room.memory.energySurplus && !room.memory.extremeEnergySurplus) {
             room.memory.state = 2;
             log.a(room.name + ' has been classified as a prospering room.')
         } else
@@ -67,7 +67,7 @@ module.exports.setRoomState = function (room) {
             log.a(room.name + ' has been classified as a faltering rich room.')
         } else
         // Rich State
-        if (averageIncome > 50 && room.memory.extremeEnergySurplus) {
+        if (averageIncome > 30 && room.memory.extremeEnergySurplus) {
             room.memory.state = 4;
             log.a(room.name + ' has been classified as a rich room.')
         }

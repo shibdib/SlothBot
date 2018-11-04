@@ -236,10 +236,12 @@ function minionController(minion) {
     // Report damage if hits are low
     if (minion.hits < minion.hitsMax) minion.reportDamage();
     // Report intel chance
-    if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
+    if (minion.room.name !== minion.memory.overlord && Math.random() > 0.75) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel();
     }
+    // Handle border
+    if (minion.borderCheck()) return;
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
@@ -247,7 +249,6 @@ function minionController(minion) {
     let creepRole = require('role.' + memoryRole);
     // Run role and log CPU
     try {
-        if (minion.borderCheck()) return;
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - cpuUsed;
         let cpuUsageArray = creepCpuArray[minion.name] || [];

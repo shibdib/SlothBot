@@ -37,59 +37,62 @@ Creep.prototype.idleFor = function (ticks = 0) {
 };
 
 Creep.prototype.borderCheck = function () {
-    if (this.pos.x === 0 || this.pos.y === 0 || this.pos.x === 49 || this.pos.y === 49) {
-        if (this.pos.x === 0 && this.pos.y === 0) {
+    let thisPos = this.pos;
+    let x = thisPos.x;
+    let y = thisPos.y;
+    if (x === 0 || y === 0 || x === 49 || y === 49) {
+        if (x === 0 && y === 0) {
             return this.move(BOTTOM_RIGHT);
         }
-        else if (this.pos.x === 0 && this.pos.y === 49) {
+        else if (x === 0 && y === 49) {
             return this.move(TOP_RIGHT);
         }
-        else if (this.pos.x === 49 && this.pos.y === 0) {
+        else if (x === 49 && y === 0) {
             return this.move(BOTTOM_LEFT);
         }
-        else if (this.pos.x === 49 && this.pos.y === 49) {
+        else if (x === 49 && y === 49) {
             return this.move(TOP_LEFT);
         }
         let pos;
-        if (this.pos.x === 49) {
-            pos = positionAtDirection(this.pos, LEFT);
+        if (x === 49) {
+            pos = positionAtDirection(thisPos, LEFT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(LEFT)
             }
-            pos = positionAtDirection(this.pos, TOP_LEFT);
+            pos = positionAtDirection(thisPos, TOP_LEFT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(TOP_LEFT)
             }
             return this.move(BOTTOM_LEFT)
         }
-        else if (this.pos.x === 0) {
-            pos = positionAtDirection(this.pos, RIGHT);
+        else if (x === 0) {
+            pos = positionAtDirection(thisPos, RIGHT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(RIGHT)
             }
-            pos = positionAtDirection(this.pos, TOP_RIGHT);
+            pos = positionAtDirection(thisPos, TOP_RIGHT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(TOP_RIGHT)
             }
             return this.move(BOTTOM_RIGHT)
         }
-        else if (this.pos.y === 0) {
-            pos = positionAtDirection(this.pos, BOTTOM);
+        else if (y === 0) {
+            pos = positionAtDirection(thisPos, BOTTOM);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(BOTTOM)
             }
-            pos = positionAtDirection(this.pos, BOTTOM_RIGHT);
+            pos = positionAtDirection(thisPos, BOTTOM_RIGHT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(BOTTOM_RIGHT)
             }
             return this.move(BOTTOM_LEFT)
         }
-        else if (this.pos.y === 49) {
-            pos = positionAtDirection(this.pos, TOP);
+        else if (y === 49) {
+            pos = positionAtDirection(thisPos, TOP);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(TOP)
             }
-            pos = positionAtDirection(this.pos, TOP_RIGHT);
+            pos = positionAtDirection(thisPos, TOP_RIGHT);
             if (!pos.checkForWall() && !pos.checkForCreep() && !pos.checkForObstacleStructure()) {
                 return this.move(TOP_RIGHT)
             }

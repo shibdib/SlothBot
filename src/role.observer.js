@@ -4,10 +4,10 @@
 let highCommand = require('military.highCommand');
 
 module.exports.role = function (creep) {
-    creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {range: 23});
     let sentence = [MY_USERNAME, 'Is', 'Watching', 'This', 'Room'];
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);
+    if (creep.room.name !== creep.memory.targetRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {range: 23});
     highCommand.operationSustainability(creep.room);
     levelManager(creep);
     //If no longer needed, cache intel and recycle
@@ -17,9 +17,6 @@ module.exports.role = function (creep) {
     }
     //Type specific stuff
     switch (Memory.targetRooms[creep.room.name].type) {
-        case undefined:
-            creep.memory.recycle = true;
-            break;
         case 'hold':
             // HOLD - Clear target if room is no longer owned
             if (!creep.room.controller.owner || creep.room.controller.safeMode || !Memory.targetRooms[creep.room.name]) delete Memory.targetRooms[creep.room.name];
