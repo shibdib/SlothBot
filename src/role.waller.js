@@ -38,8 +38,8 @@ function role(creep) {
                 creep.memory.currentTarget = barrier.id;
                 if (barrier.hits < 250000) {
                     creep.memory.targetHits = 270000;
-                } else if (barrier.hits < 250000 * creep.room.controller.level) {
-                    creep.memory.targetHits = 260000 * creep.room.controller.level;
+                } else if (barrier.hits < 150000 * creep.room.controller.level) {
+                    creep.memory.targetHits = 155000 * creep.room.controller.level;
                 } else if (creep.room.memory.energySurplus) {
                     creep.memory.targetHits = barrier.hits + 250000;
                 } else {

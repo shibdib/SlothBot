@@ -338,6 +338,8 @@ Creep.prototype.fightRanged = function (target) {
 
 Creep.prototype.attackInRange = function () {
     let hostile = this.findClosestEnemy(false);
+    let injured = _.min(this.pos.findInRange(_.filter(this.room.creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)), 3), 'hits');
+    if (injured && this.getActiveBodyparts(HEAL) && this.hits === this.hitsMax && this.pos.getRangeTo(hostile) > 3) this.rangedHeal(injured);
     let range = this.pos.getRangeTo(hostile);
     let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my});
@@ -742,7 +744,7 @@ function addCreepsToMatrix(room, matrix) {
 }
 
 Creep.prototype.goHomeAndHeal = function () {
-    this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
+    this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
 };
 
 Creep.prototype.templarCombat = function () {

@@ -9,6 +9,8 @@ function role(creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack', 'heal']);
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Harass
+    if (creep.memory.operation && creep.memory.operation === 'borderPatrol') creep.borderPatrol();
+    // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
     // Escort
     if (creep.memory.operation && creep.memory.operation === 'guard') creep.guardRoom();

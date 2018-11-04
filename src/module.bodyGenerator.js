@@ -44,10 +44,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level === 8) {
                 work = 15;
                 carry = 10;
-            }
-            if (level <= 4) {
+            } else if (level <= 4) {
                 work = level;
                 carry = level;
+            }
+            if (room.memory.state < 2 && room.memory.state !== -1) {
+                work = 2;
+                carry = 2;
             }
             move = _.round((work + carry) / 2);
             break;
@@ -58,9 +61,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = work + carry;
                 break;
             } else {
-                let multi = 2;
-                if (room.memory.energySurplus) multi = 2.5;
-                if (room.memory.extremeEnergySurplus) multi = 3;
+                let multi = 1.25;
+                if (room.memory.state > 1) multi = 2.5;
+                if (room.memory.state > 2) multi = 3;
                 if (level < 4) multi = 1;
                 work = _.round((multi * level) + 1);
                 carry = 1;

@@ -4,7 +4,7 @@
 let highCommand = require('military.highCommand');
 
 module.exports.role = function (creep) {
-    if (creep.room.name !== creep.memory.targetRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {range: 22});
+    creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {range: 23});
     let sentence = [MY_USERNAME, 'Is', 'Watching', 'This', 'Room'];
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);

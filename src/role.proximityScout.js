@@ -22,6 +22,7 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
+            remoteManager(creep);
             if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) &&
                 !creep.room.controller.owner && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
                 let signs = EXPLORED_ROOM_SIGNS;
@@ -46,3 +47,10 @@ module.exports.role = function (creep) {
         creep.memory.destinationReached = undefined;
     }
 };
+
+function remoteManager(creep) {
+    // Remove remote if reserved by someone else
+    if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME) Game.rooms[creep.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[creep.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
+    // Remove remote if owned by someone else
+    if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) Game.rooms[creep.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[creep.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
+}

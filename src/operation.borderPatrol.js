@@ -17,7 +17,8 @@ Creep.prototype.borderPatrol = function () {
         if (this.borderCheck()) return;
         // Check for squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
-        if (!squadMember.length || this.pos.getRangeTo(squadMember[0]) > 1) return this.idleFor(1);
+        if (!squadMember.length) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
+        if (this.pos.getRangeTo(this.pos.findClosestByRange(squadMember)) > 1) return this.idleFor(1);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
@@ -38,17 +39,22 @@ Creep.prototype.borderPatrol = function () {
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);
-        if (this.room.name === leader.room.name) this.shibMove(leader, {range: 0}); else this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
+        if (this.room.name === leader.room.name) this.shibMove(leader, {
+            range: 0,
+            ignoreRoads: true
+        }); else this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
         // Heal squadmates
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
-        this.attackInRange();
+        if (this.memory.role === 'longbow') this.attackInRange(); else this.handleMilitaryCreep(false, false);
     }
 };
 
 function remoteManager(creep) {
     // Remove remote if reserved by someone else
-    if (creep.room.controller && creep.room.controller.reservation && !_.includes(FRIENDLIES, creep.room.controller.reservation.username)) Game.rooms[creep.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[creep.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
+    if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME) Game.rooms[creep.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[creep.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
+    // Remove remote if owned by someone else
+    if (creep.room.controller && creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) Game.rooms[creep.memory.overlord].memory.remoteRooms = _.filter(Game.rooms[creep.memory.overlord].memory.remoteRooms, (r) => r !== creep.room.name);
 }

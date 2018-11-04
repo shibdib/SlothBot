@@ -284,7 +284,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && this.room.memory.energySurplus) {
+    if (storage && this.room.memory.state > 0) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -394,7 +394,7 @@ Creep.prototype.findStorage = function () {
     }
     //Controller
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (Math.random() > 0.5 && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+    if (Math.random() > 0.5 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
