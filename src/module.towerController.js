@@ -60,13 +60,8 @@ function towerControl(room) {
                 }
             } else if (unArmedHostile.length) {
                 tower.attack(_.sample(unArmedHostile));
-            } else if (tower.energy > tower.energyCapacity * 0.65) {
-                let creeps = tower.room.creeps;
+            } else if (tower.energy > tower.energyCapacity * 0.75 && (tower.room.memory.state > 1 || tower.room.memory.state === -1)) {
                 let structures = tower.room.structures;
-                let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
-                if (woundedCreep.length > 0) {
-                    tower.heal(woundedCreep[0]);
-                }
                 let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1500);
                 if (barriers.length > 0) {
                     tower.repair(barriers[0]);
@@ -79,12 +74,8 @@ function towerControl(room) {
                 }
                 let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
                 tower.repair(lowestRampart);
-            } else if (tower.energy > tower.energyCapacity * 0.45) {
-                let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1500);
-                if (barriers.length > 0) {
-                    tower.repair(barriers[0]);
-                    continue;
-                }
+            }
+            if (tower.energy > tower.energyCapacity * 0.25) {
                 let creeps = tower.room.creeps;
                 let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
                 if (woundedCreep.length > 0) {

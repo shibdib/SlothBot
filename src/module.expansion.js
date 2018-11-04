@@ -1,16 +1,10 @@
 let shib = require("shibBench");
 
-module.exports.claimNewRoom = function (room) {
+module.exports.claimNewRoom = function () {
     let cpu = Game.cpu.getUsed();
-    let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
-    // Don't expand if there's a low level room needing to be built up
-    if (minLevel < 4) return;
-    // Don't expand if attacked recently
-    if (room.memory.lastPlayerAttack && room.memory.lastPlayerAttack + 2500 >= Game.time) return;
     let avoidRooms = _.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner.username));
-    let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && r.name !== room.name);
+    let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && !r.owner);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
-    delete room.memory.claimTarget;
     if (worthyRooms.length > 0) {
         let possibles = {};
         loop1:
@@ -25,12 +19,14 @@ module.exports.claimNewRoom = function (room) {
                 }
                 possibles[key] = worthyRooms[key];
             }
-        room.memory.claimTarget = _.max(possibles, 'claimValue').name;
-        if (room.memory.claimTarget) {
-            delete Memory.roomCache[room.memory.claimTarget].claimWorthy;
+        let claimTarget = _.max(possibles, 'claimValue').name;
+        if (claimTarget) {
+            delete Memory.roomCache[claimTarget].claimWorthy;
+            let closestRoom = Game.rooms[claimTarget].findClosestOwnedRoom();
+            Game.rooms[closestRoom].memory.claimTarget = claimTarget;
             Memory.lastExpansion = Game.time;
-            log.i(room.memory.claimTarget + ' - Has been marked for claiming by ' + room.name);
-            Game.notify(room.memory.claimTarget + ' - Has been marked for claiming by ' + room.name)
+            log.i(claimTarget + ' - Has been marked for claiming');
+            Game.notify(claimTarget + ' - Has been marked for claiming');
         }
     }
     shib.shibBench('roomClaiming', cpu);

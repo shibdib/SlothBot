@@ -38,7 +38,7 @@ let globals = function () {
         RESOURCE_CATALYZED_GHODIUM_ACID];
 
     global.TRADE_AMOUNT = 5000;
-    global.ENERGY_AMOUNT = 45000;
+    global.ENERGY_AMOUNT = 25000;
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 10000;
     global.BOOST_AMOUNT = 10000;
@@ -81,7 +81,7 @@ let globals = function () {
         SKhauler: 6,
         // Military
         priority: 4,
-        urgent: 8,
+        urgent: 5,
         high: 9,
         medium: 10,
         secondary: 11,

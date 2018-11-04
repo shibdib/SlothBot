@@ -5,6 +5,7 @@ let defense = require('military.defense');
 let links = require('module.linkController');
 let terminals = require('module.terminalController');
 let spawning = require('module.creepSpawning');
+let state = require('module.roomState');
 
 module.exports.overlordMind = function (room) {
     let roomTaskObject = taskCpuArray[room.name] || {};
@@ -12,35 +13,13 @@ module.exports.overlordMind = function (room) {
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 
-    // Set Energy Needs
+    // Set room state
     let cpu = Game.cpu.getUsed();
-    log.d('Energy Status');
-    let terminalEnergy = 0;
-    if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
-    let storageEnergy = 0;
-    if (room.storage) storageEnergy = room.storage.store[RESOURCE_ENERGY] || 0;
-    let containerEnergy = 0;
-    if (Game.getObjectById(room.memory.controllerContainer)) containerEnergy = Game.getObjectById(room.memory.controllerContainer).store[RESOURCE_ENERGY] || 0;
-    let energyInRoom = terminalEnergy + storageEnergy + containerEnergy;
-    room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT;
-    room.memory.extremeEnergySurplus = energyInRoom >= ENERGY_AMOUNT * 2;
-    room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT * 0.8;
-    let otherContainers = 0;
-    _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY]).forEach((container) => otherContainers + container.store[RESOURCE_ENERGY]);
-    let totalEnergy = energyInRoom + otherContainers;
-    let energyAvailableArray = roomEnergyArray[room.name] || [];
-    if (energyAvailableArray.length < 50) {
-        energyAvailableArray.push(totalEnergy)
-    } else {
-        energyAvailableArray.shift();
-        energyAvailableArray.push(totalEnergy);
-    }
-    roomEnergyArray[room.name] = energyAvailableArray;
+    state.setRoomState(room);
     currentTask = roomTaskObject['roomEnergyStatus'] || [];
     if (currentTask.length > 50) currentTask.shift();
     currentTask.push(Game.cpu.getUsed() - cpu);
     roomTaskObject['roomEnergyStatus'] = currentTask;
-    shib.shibBench('roomEnergyStatus', cpu);
 
     // Handle Defense
     cpu = Game.cpu.getUsed();

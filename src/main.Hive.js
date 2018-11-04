@@ -66,8 +66,6 @@ function mind() {
     // Process Overlords
     log.d('Overlords Processed');
     let processed = 0;
-    let activeClaim;
-    let overlordCount = Memory.ownedRooms.length;
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
         log.d('Overlord For ' + activeRoom.name);
@@ -78,22 +76,24 @@ function mind() {
             log.e(e.stack);
             Game.notify(e.stack);
         }
+        processed++;
+    }
 
-        //Expansion Manager
-        if (activeRoom.controller.level >= 4 && cpuBucket === 10000 && Game.time % 150 === 0) {
+    //Expansion Manager
+    if (Game.time % 150 === 0) {
+        let overlordCount = Memory.ownedRooms.length;
+        let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+        let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
+        if (maxLevel >= 4 && minLevel >= 4 && cpuBucket === 10000) {
             let maxRooms = _.round(Game.cpu.limit / 15);
-            if (TEN_CPU) {
-                maxRooms = 2;
-            }
+            if (TEN_CPU) maxRooms = 2;
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
             let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
-            if (needyRoom.length < 3 && !safemode.length && !claimAttempt.length
-                && Game.gcl.level > overlordCount && !activeClaim && overlordCount < maxRooms
-            ) {
+            if (!needyRoom.length && !safemode.length && !claimAttempt.length && Game.gcl.level - 2 > overlordCount && overlordCount < maxRooms) {
                 log.d('Expansion Module');
                 try {
-                    expansion.claimNewRoom(activeRoom);
+                    expansion.claimNewRoom();
                 } catch (e) {
                     log.e('Expansion Module experienced an error');
                     log.e(e.stack);
@@ -101,8 +101,8 @@ function mind() {
                 }
             }
         }
-        processed++;
     }
+
     //Non room specific creep spawning
     if (Game.time % 3 === 0) {
         cpu = Game.cpu.getUsed();

@@ -67,6 +67,13 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_LINK);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -301,7 +308,7 @@ Creep.prototype.findEnergy = function () {
     }
     //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
     if (!this.room.controller || this.room.controller.level <= 3) {
-        let hauler = _.sample(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.carry[RESOURCE_ENERGY] > 0))[0];
+        let hauler = _.sample(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.carry[RESOURCE_ENERGY] > 0));
         if (hauler) {
             this.memory.energyDestination = hauler.id;
             return true;

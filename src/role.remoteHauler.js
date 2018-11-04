@@ -54,7 +54,7 @@ function role(creep) {
         } else {
             if (pairedHarvester.memory.containerID) {
                 let container = Game.getObjectById(pairedHarvester.memory.containerID);
-                if (_.sum(container.store) > creep.carryCapacity * 0.7) {
+                if (container && _.sum(container.store) > creep.carryCapacity * 0.7) {
                     for (const resourceType in container.store) {
                         if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
                             creep.shibMove(container);

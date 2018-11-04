@@ -33,7 +33,7 @@ module.exports.processBuildQueue = function () {
             if (roomQueue[spawn.room.name] || militaryQueue) {
                 let queue;
                 let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-                if (!spawn.room.memory.responseNeeded && level >= 2 && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
+                if (!spawn.room.memory.responseNeeded && level >= 2 && _.inRange(level, maxLevel - 1, maxLevel + 1) && spawn.room.memory.state > 1) {
                     queue = _.sortBy(Object.assign({}, militaryQueue, roomQueue[spawn.room.name]), 'importance');
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'importance')
@@ -306,7 +306,7 @@ module.exports.workerCreepQueue = function (room) {
         if (room.controller.level < 4 && !importantBuilds) number = _.round((8 - level) / 2);
         //If room is about to downgrade get a creep out asap
         let reboot;
-        if (level !== room.controller.level) number = 1;
+        if (level !== room.controller.level || room.memory.state < 3) number = 1;
         if (room.controller.ticksToDowngrade <= 1500) reboot = true;
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
             queueCreep(room, priority + (upgraders.length * 2), {role: 'upgrader', reboot: reboot})
@@ -353,7 +353,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //LabTech
-    if (level >= 6 && !_.includes(queue, 'labTech') && room.memory.reactionRoom && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) {
+    if (level >= 6 && room.memory.state > 0 && !_.includes(queue, 'labTech') && room.memory.reactionRoom && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) {
         let amount = 1;
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (labTech.length < amount) {
@@ -366,13 +366,13 @@ module.exports.workerCreepQueue = function (room) {
     if (level >= 3 && !_.includes(queue, 'waller') && tower.length) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
-        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length >= 5) amount = 2;
+        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length >= 5 && room.memory.state > 1) amount = 2;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
         }
     }
     //Mineral Harvester
-    if (level >= 6 && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !room.memory.responseNeeded && room.constructionSites.length === 0) {
+    if (level >= 6 && room.memory.state > 1 && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !room.memory.responseNeeded && room.constructionSites.length === 0) {
         let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
         let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
         if (mineralHarvesters.length < 1 && extractor && room.mineral[0].mineralAmount > 0) {
@@ -411,7 +411,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Explorer
-    if (!_.includes(queue, 'explorer') && !TEN_CPU && !room.memory.responseNeeded) {
+    if (!_.includes(queue, 'explorer') && room.memory.state > 0 && !TEN_CPU && !room.memory.responseNeeded) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
         if (explorers.length < 5) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
@@ -425,7 +425,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Jerk
-    if (maxLevel < 5 && !_.includes(queue, 'jerk') && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
+    if (maxLevel < 5 && !_.includes(queue, 'jerk') && room.memory.state > 1 && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
         let jerks = _.filter(Game.creeps, (creep) => creep.memory.role === 'jerk' || creep.memory.role === 'explorer');
         if (jerks.length < (8 - level) / 2) {
             queueCreep(room, PRIORITIES.jerk + jerks.length, {role: 'jerk'})
@@ -450,7 +450,7 @@ module.exports.workerCreepQueue = function (room) {
     }
     // Assist room
     let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
-    if (needyRoom && !room.memory.responseNeeded) {
+    if (needyRoom && room.memory.state > 0 && !room.memory.responseNeeded) {
         if (!_.includes(queue, 'pioneer') && (!queueTracker['pioneer'] || queueTracker['pioneer'] + 200 <= Game.time)) {
             let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && (creep.memory.role === 'pioneer' || creep.memory.role === 'worker'));
             if (pioneers.length < 5) {
@@ -461,7 +461,7 @@ module.exports.workerCreepQueue = function (room) {
                 queueTracker['pioneer'] = Game.time;
             }
         }
-        if (!_.includes(queue, 'fuelTruck') && level >= 6 && room.storage && room.storage.store[RESOURCE_ENERGY] > 2000 && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 200 <= Game.time)) {
+        if (!_.includes(queue, 'fuelTruck') && level >= 6 && room.storage && room.memory.state > 1 && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 200 <= Game.time)) {
             let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && (creep.memory.role === 'pioneer' || creep.memory.role === 'worker'));
             let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'fuelTruck');
             if (fuelTruck.length < 1 && pioneers.length > 1) {
@@ -487,7 +487,7 @@ module.exports.workerCreepQueue = function (room) {
     }
     // Power Level
     let upgradeAssist = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.controller.level + 1 < level))[0];
-    if (upgradeAssist && room.memory.energySurplus && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
+    if (upgradeAssist && room.memory.state > 1 && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
         let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
         if (remoteUpgraders.length < 2) {
             queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
@@ -569,7 +569,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);
                 let number = 1;
                 if (level < 6) number = 2;
-                if (reserver.length < number) {
+                if (reserver.length < number && room.memory.state > 1) {
                     let priority = PRIORITIES.remoteHarvester + 1;
                     if (room.memory.energySurplus) priority = PRIORITIES.remoteHarvester;
                     queueCreep(room, priority, {
@@ -636,7 +636,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     //Power Mining
-    if (level >= 7 && !TEN_CPU && room.memory.powerRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+    if (level >= 7 && room.memory.state > 2 && !TEN_CPU && room.memory.powerRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         for (let key in room.memory.powerRooms) {
             let powerRoom = room.memory.powerRooms[key];
             if ((powerRoom.decayOn <= Game.time + 2000 && powerRoom.hits === 2000000) || powerRoom.decayOn < Game.time) {

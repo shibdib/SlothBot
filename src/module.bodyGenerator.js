@@ -315,7 +315,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = _.random(2 * level, 3 * level);
                 move = (carry) / 2;
             } else {
-                carry = _.random(2 * level, 4 * level);
+                carry = _.random(3 * level, 5 * level);
                 move = _.round((carry / 2));
             }
             break;
