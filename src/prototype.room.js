@@ -237,7 +237,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let owner, reservation, reservationTick, level, hostiles, nonCombats, sk, towers, claimValue, claimWorthy,
-        needsCleaning, power, abandoned;
+        needsCleaning, power, abandoned, portal;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
@@ -249,6 +249,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
         towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
+        portal = _.filter(room.structures, (e) => e.structureType === STRUCTURE_PORTAL);
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         let minerals = room.mineral;
         if (room.controller) {

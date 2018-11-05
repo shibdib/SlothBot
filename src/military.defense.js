@@ -162,6 +162,7 @@ function unsavableCheck(room) {
             let hostileOwners = [];
             for (let hostile of hostiles) hostileOwners.push(hostile.owner.username)
             abandonOverrun(room);
+            room.cacheRoomIntel(true);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString());
             Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString());

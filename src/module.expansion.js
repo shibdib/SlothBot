@@ -2,7 +2,7 @@ let shib = require("shibBench");
 
 module.exports.claimNewRoom = function () {
     let cpu = Game.cpu.getUsed();
-    let avoidRooms = _.filter(Memory.roomCache, (r) => r.owner && _.includes(FRIENDLIES, r.owner.username));
+    let avoidRooms = _.filter(Memory.roomCache, (r) => r.owner);
     let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && !r.owner);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     if (worthyRooms.length > 0) {
@@ -13,7 +13,7 @@ module.exports.claimNewRoom = function () {
                 for (let key in avoidRooms) {
                     let name = avoidRooms[key].name;
                     let distance = Game.map.findRoute(worthyName, name).length;
-                    if (distance < 3 || distance > 10 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my) || (Memory.noClaim && _.includes(Memory.noClaim, worthyName))) {
+                    if (distance < 2 || distance > 10 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my) || (Memory.noClaim && _.includes(Memory.noClaim, worthyName))) {
                         continue loop1;
                     }
                 }

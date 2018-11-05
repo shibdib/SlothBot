@@ -15,7 +15,7 @@ function role(creep) {
         if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     } else {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
-        creep.cacheRoomIntel();
+        creep.room.cacheRoomIntel();
         if (creep.room.controller) {
             if (!creep.memory.signed) {
                 switch (creep.signController(creep.room.controller, "#Overlord-Bot Hive")) {
