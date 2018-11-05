@@ -6,6 +6,7 @@ let links = require('module.linkController');
 let terminals = require('module.terminalController');
 let spawning = require('module.creepSpawning');
 let state = require('module.roomState');
+let planner = require('module.roomPlanner');
 
 module.exports.overlordMind = function (room) {
     let roomTaskObject = taskCpuArray[room.name] || {};
@@ -32,15 +33,25 @@ module.exports.overlordMind = function (room) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (Game.time % 100 === 0 && cpuBucket >= 1000) {
+    if (Game.time % 5 === 0 && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
         log.d('Room Building Module');
-        try {
-            room.buildRoom();
-        } catch (e) {
-            log.e('Room Building for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
+        if (room.memory.extensionHub) {
+            try {
+                room.buildRoom();
+            } catch (e) {
+                log.e('Room Building for room ' + room.name + ' experienced an error');
+                log.e(e.stack);
+                Game.notify(e.stack);
+            }
+        } else {
+            try {
+                planner.buildRoom(room);
+            } catch (e) {
+                log.e('Room Building for room ' + room.name + ' experienced an error');
+                log.e(e.stack);
+                Game.notify(e.stack);
+            }
         }
         // Request builders
         requestBuilders(room);

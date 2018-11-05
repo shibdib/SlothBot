@@ -516,6 +516,10 @@ let globals = function () {
         return `<a href="#!/room/${Game.shard.name}/${roomName}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
     };
 
+    global.getRandomInt = function (min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+    };
+
     global.stats = require('stats');
 };
 

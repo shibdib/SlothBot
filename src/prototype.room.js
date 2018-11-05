@@ -233,11 +233,11 @@ Object.defineProperty(StructureLab.prototype, 'memory', {
 });
 
 Room.prototype.cacheRoomIntel = function (force = false) {
-    if (!force && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastIntelCache + 1501 > Game.time) return;
+    if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastIntelCache + 1501 > Game.time) return;
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let owner, reservation, reservationTick, level, hostiles, nonCombats, sk, towers, claimValue, claimWorthy,
-        needsCleaning, power, abandoned, portal;
+        needsCleaning, power, abandoned, portal, hub;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
@@ -262,7 +262,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             // Handle claim targets
             let closestRoom = this.findClosestOwnedRoom(true);
             let safemodeCooldown = this.controller.safeModeCooldown;
-            if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2 && !barriers) {
+            if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2 && !barriers && findHub(room)) {
                 let sourceDist = 0;
                 for (let source in sources) {
                     let range = sources[source].pos.getRangeTo(room.controller);
@@ -289,7 +289,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (!owner && nonCombats.length >= 2) potentialTarget = true;
         if (owner && !spawns) abandoned = true;
         let key = room.name;
-        if (Memory.roomCache[key]) Memory.roomCache[key] = undefined;
+        if (Memory.roomCache && Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
             cached: Game.time,
             name: room.name,
@@ -308,7 +308,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             claimValue: claimValue,
             claimWorthy: claimWorthy,
             needsCleaning: needsCleaning,
-            potentialTarget: potentialTarget
+            potentialTarget: potentialTarget,
+            hub: hub
         };
         Memory.roomCache = cache;
         Memory.roomCache[this.name].lastIntelCache = Game.time;
@@ -513,6 +514,34 @@ function urgentMilitary(room) {
             type: 'scout',
         };
         Memory.targetRooms = cache;
+    }
+}
+
+function findHub(room) {
+    if (room.memory.hub) {
+        return true;
+    }
+    for (let i = 1; i < 1000; i++) {
+        let searched = [];
+        let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
+        let clean = pos.x + '.' + pos.y;
+        if (!_.includes(searched, clean)) {
+            searched.push(clean);
+            let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
+            let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 6, pos.x + 5, true);
+            let wall = false;
+            for (let key in terrain) {
+                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
+                if (!position.checkForWall()) {
+                    continue;
+                }
+                wall = true;
+                break;
+            }
+            if (pos.getRangeTo(closestStructure) >= 4 && !wall) {
+                return true;
+            }
+        }
     }
 }
 
