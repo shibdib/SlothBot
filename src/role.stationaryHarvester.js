@@ -28,7 +28,7 @@ function role(creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.containerID && creep.memory.linkID && Game.time % 3 === 0 && Game.getObjectById(creep.memory.containerID).store[RESOURCE_ENERGY] > 10) creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+                if (creep.memory.containerID && Game.getObjectById(creep.memory.containerID) && creep.memory.linkID && Game.time % 3 === 0 && Game.getObjectById(creep.memory.containerID).store[RESOURCE_ENERGY] > 10) creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
                 if (creep.carry.energy === creep.carryCapacity) return depositEnergy(creep);
                 break;
         }
@@ -57,7 +57,7 @@ function depositEnergy(creep) {
     //Check if there is extensions
     if (!creep.memory.extensionsFound) extensionFinder(creep);
     //Fill extensions if you have any stored
-    if (creep.memory.extensions && extensionFiller(creep)) {
+    if (creep.room.memory.extensionHub && creep.memory.extensions && extensionFiller(creep)) {
         return;
     } else if (creep.memory.linkID) {
         let link = Game.getObjectById(creep.memory.linkID);
@@ -66,6 +66,7 @@ function depositEnergy(creep) {
         creep.memory.linkID = harvestDepositLink(creep)
     } else if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
+        if (!container) return creep.memory.containerID = undefined;
         if (_.sum(container.store) !== container.storeCapacity) {
             creep.transfer(container, RESOURCE_ENERGY);
             creep.memory.linkDrop = true;

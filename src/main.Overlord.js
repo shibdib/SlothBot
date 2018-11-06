@@ -36,6 +36,8 @@ module.exports.overlordMind = function (room) {
     if (Game.time % 100 === 0 && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
         log.d('Room Building Module');
+        // Request builders
+        requestBuilders(room);
         if (room.memory.extensionHub) {
             try {
                 bunkerConversion(room);
@@ -54,8 +56,6 @@ module.exports.overlordMind = function (room) {
                 Game.notify(e.stack);
             }
         }
-        // Request builders
-        requestBuilders(room);
         // Silence Alerts
         if (Game.time % 500 === 0) {
             for (let building of room.structures) {
@@ -335,4 +335,18 @@ abandonRoom = function (room) {
 
 function bunkerConversion(room) {
     if (!room.memory.readyToConvert && planner.hubCheck(room)) room.memory.readyToConvert = true; else if (room.memory.newHubSearch >= 5000) room.memory.notConvertable = true;
+    let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
+    let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
+    if (!room.memory.readyToConvert || needyRoom.length || safemode.length || _.size(Game.constructionSites) > 50 || !room.memory.bunkerHub) return;
+    room.memory.buildersNeeded = true;
+    delete room.memory.extensionHub;
+    delete room.memory.bunkerComplete;
+    delete room.memory.bunkerPos;
+    for (let key in room.structures) {
+        room.structures[key].destroy();
+    }
+    for (let key in room.constructionSites) {
+        room.constructionSites[key].remove();
+    }
+    planner.buildRoom(room);
 }

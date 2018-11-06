@@ -382,6 +382,7 @@ Creep.prototype.findSpawnsExtensions = function () {
         let rawSpawn = _.shuffle(JSON.parse(this.memory.spawns));
         for (let i = 0; i < rawSpawn.length; i++) {
             let spawn = Game.getObjectById(rawSpawn[i]);
+            if (!spawn) return this.memory.spawns = undefined;
             if (spawn.energy < spawn.energyCapacity) {
                 this.memory.storageDestination = spawn.id;
                 return true;
@@ -396,6 +397,7 @@ Creep.prototype.findSpawnsExtensions = function () {
         let rawExtension = _.shuffle(JSON.parse(this.memory.extensions));
         for (let i = 0; i < rawExtension.length; i++) {
             let extension = Game.getObjectById(rawExtension[i]);
+            if (!extension) return this.memory.spawns = undefined;
             if (extension.energy < extension.energyCapacity) {
                 this.memory.storageDestination = extension.id;
                 return true;
