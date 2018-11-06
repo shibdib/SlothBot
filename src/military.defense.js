@@ -60,24 +60,10 @@ function controller(room) {
 
     // Request assistance
     if (room.memory.responseNeeded) {
-        let playerHostile = _.filter(creeps, (c) => (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && _.includes(FRIENDLIES, c.owner.username) === false && c.owner.username !== 'Invader')[0];
-        let tower = _.max(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER), 'energy');
+        let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy >= 10);
         let responders = _.filter(creeps, (c) => c.memory && c.memory.role === 'responder' && c.memory.overlord === room.name);
-        if (((tower.energy < 10 && !responders.length) || !tower || playerHostile || room.memory.threatLevel >= 4) && !room.controller.safeMode) {
+        if (((!towers.length && !responders.length) || room.memory.threatLevel >= 4) && !room.controller.safeMode) {
             room.memory.requestingSupport = true;
-        }
-    } else {
-        // Send assistance
-        if (!room.memory.requestingSupport && room.controller.level > 4) {
-            let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.requestingSupport && Game.map.findRoute(room.name, r.name).length < 9)[0];
-            if (needyRoom) {
-                if (room.memory.sendingResponse !== needyRoom.name) {
-                    room.memory.sendingResponse = needyRoom.name;
-                    log.a(room.name + ' is sending remote responders to ' + needyRoom.name);
-                }
-            } else {
-                delete room.memory.sendingResponse;
-            }
         }
     }
 
@@ -105,15 +91,20 @@ function rampartManager(room, structures) {
 }
 
 function safeModeManager(room) {
-    if (room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !room.memory.extensionHub) return;
+    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+    if (room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !_.inRange(room.controller.level, maxLevel - 1, maxLevel + 1)) return;
     if (room.controller.level < 3) {
         let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 2));
         if (enemyMilitary.length) return room.controller.activateSafeMode();
     } else {
-        let hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let hub;
+        if (room.memory.bunkerHub) hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name); else if (room.memory.extensionHub) hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
+        let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy >= 10);
         let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
-        let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3) && c.pos.getRangeTo(c.pos.findClosestByRange(FIND_MY_SPAWNS)) < 8);
-        if (enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByPath(enemyMilitary)) < 9) {
+        let enemyMilitary = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) >= 2 || c.getActiveBodyparts(RANGED_ATTACK) >= 2 || c.getActiveBodyparts(WORK) >= 5);
+        if (!towers.length && enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByRange(enemyMilitary)) <= 5) {
+            log.a(roomLink(room.name) + ' has entered safemode with ' + enemyMilitary.length + ' attackers in the room, at least one of them is from ' + enemyMilitary[0].owner.username);
+            Game.notify(roomLink(room.name) + ' has entered safemode with ' + enemyMilitary.length + ' attackers in the room, at least one of them is from ' + enemyMilitary[0].owner.username);
             return room.controller.activateSafeMode();
         }
     }
@@ -138,7 +129,7 @@ function manageResponseForces() {
             }
         }
     } else {
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;

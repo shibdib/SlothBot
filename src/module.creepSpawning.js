@@ -338,13 +338,19 @@ module.exports.workerCreepQueue = function (room) {
     }
     if (!_.includes(queue, 'hauler')) {
         let amount = 1;
-        if (level < 5) amount = 2;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-        if ((hauler[0].ticksToLive < 250 && hauler.length < amount + 1) || hauler.length < amount) {
+        if ((hauler[0] && hauler[0].ticksToLive < 250 && hauler.length < amount + 1) || hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
         }
     }
-    if (!_.includes(queue, 'courier')) {
+    if (room.memory.hubContainer && !_.includes(queue, 'filler')) {
+        let amount = 1;
+        let filler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'filler'));
+        if ((filler[0] && filler[0].ticksToLive < 250 && filler.length < amount + 1) || filler.length < amount) {
+            queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
+        }
+    }
+    if (level >= 3 && !_.includes(queue, 'courier')) {
         let amount = 1;
         let courier = _.filter(roomCreeps, (creep) => (creep.memory.role === 'courier'));
         if (courier.length < amount) {

@@ -90,6 +90,16 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 3;
                 break;
             }
+        case 'filler':
+            if (level < 5) {
+                carry = 2;
+                move = 2;
+                break
+            } else {
+                carry = 6;
+                move = 3;
+                break;
+            }
         case 'labTech':
             carry = _.round(1.7 * level);
             move = _.round(carry / 2);

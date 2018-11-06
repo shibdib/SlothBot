@@ -38,6 +38,7 @@ module.exports.overlordMind = function (room) {
         log.d('Room Building Module');
         if (room.memory.extensionHub) {
             try {
+                bunkerConversion(room);
                 room.buildRoom();
             } catch (e) {
                 log.e('Room Building for room ' + room.name + ' experienced an error');
@@ -331,3 +332,7 @@ abandonRoom = function (room) {
     delete Game.rooms[room].memory;
     Game.rooms[room].controller.unclaim();
 };
+
+function bunkerConversion(room) {
+    if (!room.memory.readyToConvert && planner.findHub(room)) room.memory.readyToConvert = true;
+}

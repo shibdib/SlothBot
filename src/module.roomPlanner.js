@@ -5,6 +5,9 @@ module.exports.buildRoom = function (room) {
     if (_.size(room.memory.layout) && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
     layoutRoom(room);
 };
+module.exports.findHub = function (room) {
+    return findHub(room)
+};
 
 function layoutRoom(room) {
     if (!_.size(room.memory.bunkerHub)) return findHub(room);
@@ -58,19 +61,20 @@ function buildFromLayout(room) {
     // Hub
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     if (level >= 5) {
+        delete room.memory.hubContainer;
         if (hub.checkForAllStructure()[0]) {
-            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) return room.memory.hubLink = hub.checkForAllStructure()[0].id;
+            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
             if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
         }
         if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
     } else {
         if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) {
-            return room.memory.hubContainer = hub.checkForAllStructure()[0].id;
+            room.memory.hubContainer = hub.checkForAllStructure()[0].id;
         }
         if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
     }
     // Ramparts on buildings
-    if (level >= 5) {
+    if (level >= 7) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
@@ -78,9 +82,10 @@ function buildFromLayout(room) {
     // Roads
     if (!_.size(room.constructionSites)) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
+        console.log(filter)
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
-            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall()) pos.createConstructionSite(STRUCTURE_ROAD);
+            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall() && !pos.checkForRoad()) pos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
     // Controller
@@ -126,7 +131,7 @@ function findHub(room) {
         room.memory.bunkerHub = {};
         room.memory.bunkerHub.x = spawn.pos.x;
         room.memory.bunkerHub.y = spawn.pos.y - 1;
-        return;
+        return true;
     }
     for (let i = 1; i < 1000; i++) {
         let searched = [];
@@ -161,6 +166,7 @@ function findHub(room) {
                 room.memory.bunkerHub.y = pos.y;
                 room.memory.hubSearch = undefined;
                 layoutRoom(room);
+                return true;
             }
         }
     }
