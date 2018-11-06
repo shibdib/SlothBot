@@ -334,7 +334,7 @@ abandonRoom = function (room) {
 };
 
 function bunkerConversion(room) {
-    if (!room.memory.readyToConvert && planner.hubCheck(room)) room.memory.readyToConvert = true; else if (room.memory.newHubSearch >= 5000) room.memory.notConvertable = true;
+    if (!room.memory.readyToConvert && !room.memory.bunkerHub && planner.hubCheck(room)) room.memory.readyToConvert = true; else if (room.memory.newHubSearch >= 5000) room.memory.notConvertable = true;
     let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
     let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
     if (!room.memory.readyToConvert || needyRoom.length || safemode.length || _.size(Game.constructionSites) > 50 || !room.memory.bunkerHub) return;
