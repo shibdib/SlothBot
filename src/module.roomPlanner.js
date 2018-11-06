@@ -2,7 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 module.exports.buildRoom = function (room) {
-    if (_.size(room.memory.layout) && room.memory.layoutVersion === 1.1 && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
+    if (_.size(room.memory.layout) && room.memory.layoutVersion === 1.2 && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
     layoutRoom(room);
 };
 module.exports.hubCheck = function (room) {
@@ -27,7 +27,7 @@ function layoutRoom(room) {
         }
     }
     room.memory.layout = JSON.stringify(layout);
-    room.memory.layoutVersion = 1.1;
+    room.memory.layoutVersion = 1.2;
 }
 
 function buildFromLayout(room) {
@@ -83,7 +83,6 @@ function buildFromLayout(room) {
     // Roads
     if (room.controller.level >= 3 && !_.size(room.constructionSites)) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
-        console.log(filter)
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall() && !pos.checkForRoad()) pos.createConstructionSite(STRUCTURE_ROAD);
@@ -252,7 +251,7 @@ let template = [
             "x": 18,
             "y": 18
         }, {"x": 11, "y": 19}, {"x": 13, "y": 19}, {"x": 17, "y": 19}, {"x": 19, "y": 19}, {"x": 18, "y": 14},
-            {"x": 19, "y": 13}, {"x": 20, "y": 11}]
+            {"x": 19, "y": 13}, {"x": 20, "y": 12}]
     },
     {
         "type": STRUCTURE_EXTENSION,

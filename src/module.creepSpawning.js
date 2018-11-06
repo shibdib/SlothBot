@@ -512,9 +512,9 @@ module.exports.remoteCreepQueue = function (room) {
     let sources = 0;
     let queueTracker = lastQueue[room.name] || {};
     // Set harvester target
-    let harvesterTarget = 11;
-    //if (room.memory.energySurplus) harvesterTarget = 6;
-    //if (room.memory.extremeEnergySurplus) harvesterTarget = 5;
+    let harvesterTarget = 7;
+    if (room.memory.state >= 2) harvesterTarget = 5;
+    if (room.memory.state >= 4) harvesterTarget = 3;
     if (!room.memory.remoteRange || Game.time % 200 === 0) {
         range:
             for (range = 1; range < 6; range++) {
