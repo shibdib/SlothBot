@@ -5,7 +5,7 @@ module.exports.buildRoom = function (room) {
     if (_.size(room.memory.layout) && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
     layoutRoom(room);
 };
-module.exports.findHub = function (room) {
+module.exports.hubCheck = function (room) {
     return findHub(room)
 };
 
@@ -125,9 +125,9 @@ function buildFromLayout(room) {
 }
 
 function findHub(room) {
-    if (room.memory.extensionHub || _.size(room.memory.bunkerHub)) return;
+    if (_.size(room.memory.bunkerHub)) return;
     let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
-    if (spawn) {
+    if (spawn && room.controller.level === 1) {
         room.memory.bunkerHub = {};
         room.memory.bunkerHub.x = spawn.pos.x;
         room.memory.bunkerHub.y = spawn.pos.y - 1;
@@ -135,8 +135,8 @@ function findHub(room) {
     }
     for (let i = 1; i < 1000; i++) {
         let searched = [];
-        let hubSearch = room.memory.hubSearch || 0;
-        if (hubSearch >= 1000) {
+        let hubSearch = room.memory.newHubSearch || 0;
+        if (hubSearch >= 15000) {
             //abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
@@ -147,10 +147,10 @@ function findHub(room) {
         let clean = pos.x + '.' + pos.y;
         if (!_.includes(searched, clean)) {
             searched.push(clean);
-            room.memory.hubSearch = hubSearch + 1;
+            room.memory.newHubSearch = hubSearch + 1;
             let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
             let closestSource = pos.findClosestByRange(FIND_SOURCES);
-            let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 6, pos.y + 6, pos.x + 6, true);
+            let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 4, pos.x + 5, true);
             let wall = false;
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
