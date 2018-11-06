@@ -31,18 +31,19 @@ function buildFromLayout(room) {
     let layout = JSON.parse(room.memory.layout);
     // Build preset layout
     if (level === 8) {
-        for (let structure of layout) {
+        let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_ROAD);
+        for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     } else if (level < 8 && level >= 6) {
-        let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER);
+        let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     } else if (level < 6 && level > 3) {
-        let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL);
+        let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
@@ -54,10 +55,66 @@ function buildFromLayout(room) {
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     }
+    // Hub
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    if (level >= 5) {
+        if (hub.checkForAllStructure()[0]) {
+            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) return room.memory.hubLink = hub.checkForAllStructure()[0].id;
+            if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
+        }
+        if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
+    } else {
+        if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) {
+            return room.memory.hubContainer = hub.checkForAllStructure()[0].id;
+        }
+        if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
+    }
     // Ramparts on buildings
     if (level >= 5) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
+        }
+    }
+    // Roads
+    if (!_.size(room.constructionSites)) {
+        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
+        for (let structure of filter) {
+            let pos = new RoomPosition(structure.x, structure.y, room.name);
+            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(STRUCTURE_ROAD);
+        }
+    }
+    // Controller
+    let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
+    if (!controllerContainer) {
+        controllerContainer = _.filter(room.controller.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+        if (!controllerContainer) {
+            let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+            if (!controllerBuild) {
+                for (let xOff = -1; xOff <= 1; xOff++) {
+                    for (let yOff = -1; yOff <= 1; yOff++) {
+                        if (xOff !== 0 || yOff !== 0) {
+                            let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
+                            if (!pos.checkForImpassible()) return pos.createConstructionSite(STRUCTURE_CONTAINER);
+                        }
+                    }
+                }
+            }
+        } else {
+            room.memory.controllerContainer = controllerContainer.id;
+        }
+    } else if (room.level >= 6) {
+        let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
+        if (!controllerLink) {
+            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
+            for (let key in zoneTerrain) {
+                if (_.filter(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
+                let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
+                if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
+                position.createConstructionSite(STRUCTURE_LINK);
+                break;
+            }
+        } else {
+            room.memory.controllerLink = controllerLink.id;
         }
     }
 }

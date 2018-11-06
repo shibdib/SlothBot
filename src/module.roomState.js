@@ -40,37 +40,45 @@ module.exports.setRoomState = function (room) {
     // Set room state
     if (!room.memory.lastStateChange || (room.memory.lastStateChange + 3000) < Game.time) {
         room.memory.lastStateChange = Game.time;
+        let oldState = room.memory.state || 0;
+        let news;
         let averageIncome = _.round(average(room.memory.energyIncomeArray), 0);
         // Special Case (Turtler)
         if (room.controller.level >= 4 && (!room.memory.remoteRooms || !room.memory.remoteRooms.length || room.memory.shellShock)) {
             room.memory.state = -1;
-            //log.a(room.name + ' has been classified as a turtle centric room.')
+            news = room.name + ' has been classified as a turtle centric room.';
+        } else
+        // Special Case (Low)
+        if (room.controller.level < 3) {
+            room.memory.state = 4;
+            news = room.name + ' has been classified as a low level room.';
         } else
         // Needs Energy
         if (averageIncome < 10 && !room.memory.energySurplus) {
             room.memory.state = 0;
-            //log.a(room.name + ' has been classified as a energy starved room.')
+            news = room.name + ' has been classified as a energy starved room.';
         } else
         // Middling State
         if (averageIncome < 10 && room.memory.energySurplus && !room.memory.extremeEnergySurplus) {
             room.memory.state = 1;
-            //log.a(room.name + ' has been classified as a struggling economically room.')
+            news = room.name + ' has been classified as a struggling economically room.';
         } else
         // Budding State
         if (averageIncome > 30 && room.memory.energySurplus && !room.memory.extremeEnergySurplus) {
             room.memory.state = 2;
-            //log.a(room.name + ' has been classified as a prospering room.')
+            news = room.name + ' has been classified as a prospering room.';
         } else
         // Faltering State
         if (averageIncome < 10 && room.memory.extremeEnergySurplus) {
             room.memory.state = 3;
-            //log.a(room.name + ' has been classified as a faltering rich room.')
+            news = room.name + ' has been classified as a faltering rich room.';
         } else
         // Rich State
         if (averageIncome > 30 && room.memory.extremeEnergySurplus) {
             room.memory.state = 4;
-            //log.a(room.name + ' has been classified as a rich room.')
+            news = room.name + ' has been classified as a rich room.';
         }
+        if (oldState !== room.memory.state) log.a(news);
     }
     shib.shibBench('roomEnergyStatus', cpu);
 };

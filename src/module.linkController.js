@@ -6,16 +6,11 @@ const profiler = require('screeps-profiler');
 
 function linkControl(room) {
     let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.storageLink && s.id !== s.room.memory.controllerLink && s.cooldown === 0);
-    let storageLink = Game.getObjectById(room.memory.storageLink);
+    let storageLink = Game.getObjectById(room.memory.storageLink) || Game.getObjectById(room.memory.hubLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
-    if (!storageLink) delete room.memory.storageLink;
     if (!controllerLink) delete room.memory.controllerLink;
     for (let link of links) {
-        if (!storageLink || !controllerLink) {
-            if (_.filter(link.pos.findInRange(room.structures, 3), (s) => s.structureType === STRUCTURE_STORAGE).length > 0) {
-                link.room.memory.storageLink = link.id;
-                continue;
-            }
+        if (!controllerLink) {
             if (_.filter(link.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_CONTROLLER).length > 0) {
                 link.room.memory.controllerLink = link.id;
                 continue;
