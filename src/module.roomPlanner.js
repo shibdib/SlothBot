@@ -2,7 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 module.exports.buildRoom = function (room) {
-    if (_.size(room.memory.layout)) return buildFromLayout(room);
+    if (_.size(room.memory.layout) && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
     layoutRoom(room);
 };
 
@@ -42,7 +42,7 @@ function buildFromLayout(room) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
-    } else if (level < 6 && level > 3) {
+    } else if (level < 6 && level >= 3) {
         let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
@@ -80,7 +80,7 @@ function buildFromLayout(room) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
-            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(STRUCTURE_ROAD);
+            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall()) pos.createConstructionSite(STRUCTURE_ROAD);
         }
     }
     // Controller
@@ -145,7 +145,7 @@ function findHub(room) {
             room.memory.hubSearch = hubSearch + 1;
             let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
             let closestSource = pos.findClosestByRange(FIND_SOURCES);
-            let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 6, pos.x + 5, true);
+            let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 6, pos.y + 6, pos.x + 6, true);
             let wall = false;
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);

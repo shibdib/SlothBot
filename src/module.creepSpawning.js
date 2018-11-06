@@ -230,7 +230,7 @@ function roomStartup(room, roomCreeps) {
     let number = 0;
     if (level !== room.controller.level) number = 5;
     if (worker.length < number) {
-        queueCreep(room, 4 + (worker.length / 2), {role: 'worker'})
+        queueCreep(room, 4, {role: 'worker'})
     }
     let upgrader = _.filter(roomCreeps, (creep) => (creep.memory.role === 'upgrader'));
     number = 3 * level;
@@ -604,7 +604,9 @@ module.exports.remoteCreepQueue = function (room) {
         // Border Patrol
         if (level >= 3) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
-            if (!_.includes(queue, 'longbow') && borderPatrol.length < 2) {
+            let count = 1;
+            if (responseNeeded) count = 2;
+            if (!_.includes(queue, 'longbow') && borderPatrol.length < count) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'longbow',
                     operation: 'borderPatrol',
