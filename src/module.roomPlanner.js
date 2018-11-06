@@ -2,7 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 module.exports.buildRoom = function (room) {
-    if (_.size(room.memory.layout) && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
+    if (_.size(room.memory.layout) && room.memory.layoutVersion === 1.1 && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
     layoutRoom(room);
 };
 module.exports.hubCheck = function (room) {
@@ -27,6 +27,7 @@ function layoutRoom(room) {
         }
     }
     room.memory.layout = JSON.stringify(layout);
+    room.memory.layoutVersion = 1.1;
 }
 
 function buildFromLayout(room) {
@@ -80,7 +81,7 @@ function buildFromLayout(room) {
         }
     }
     // Roads
-    if (!_.size(room.constructionSites)) {
+    if (room.controller.level >= 3 && !_.size(room.constructionSites)) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
         console.log(filter)
         for (let structure of filter) {
@@ -107,7 +108,7 @@ function buildFromLayout(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (room.level >= 6) {
+    } else if (room.controller.level >= 6) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
@@ -250,7 +251,8 @@ let template = [
         }, {"x": 17, "y": 17}, {"x": 18, "y": 17}, {"x": 12, "y": 18}, {"x": 14, "y": 18}, {"x": 16, "y": 18}, {
             "x": 18,
             "y": 18
-        }, {"x": 11, "y": 19}, {"x": 13, "y": 19}, {"x": 17, "y": 19}, {"x": 19, "y": 19}]
+        }, {"x": 11, "y": 19}, {"x": 13, "y": 19}, {"x": 17, "y": 19}, {"x": 19, "y": 19}, {"x": 18, "y": 14},
+            {"x": 19, "y": 13}, {"x": 20, "y": 11}]
     },
     {
         "type": STRUCTURE_EXTENSION,
