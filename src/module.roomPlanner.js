@@ -137,7 +137,7 @@ function findHub(room) {
         let searched = [];
         let hubSearch = room.memory.hubSearch || 0;
         if (hubSearch >= 1000) {
-            abandonRoom(room.name);
+            //abandonRoom(room.name);
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
             Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
