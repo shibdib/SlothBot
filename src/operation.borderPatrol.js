@@ -11,6 +11,13 @@ Creep.prototype.borderPatrol = function () {
     if (this.memory.squadLeader) {
         // Handle removing bad remotes
         if (this.room.name === this.memory.responseTarget) remoteManager(this);
+        // Run from unwinnable fights
+        if (!this.canIWin()) {
+            this.attackInRange();
+            this.say('RUN!', true);
+            delete this.memory.responseTarget;
+            return this.goHomeAndHeal();
+        }
         // If military action required do that
         if (this.handleMilitaryCreep(false, false)) return;
         // Handle border
@@ -18,7 +25,7 @@ Creep.prototype.borderPatrol = function () {
         // Check for squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
         if (!squadMember.length) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
-        if (this.pos.getRangeTo(this.pos.findClosestByRange(squadMember)) > 1) return this.idleFor(1);
+        if (this.pos.findInRange(squadMember, 3).length < squadMember.length) return this.idleFor(1);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
@@ -48,7 +55,7 @@ Creep.prototype.borderPatrol = function () {
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
-        if (this.memory.role === 'longbow') this.attackInRange(); else this.handleMilitaryCreep(false, false);
+        if (this.memory.role === 'longbow') this.attackInRange(); else if (this.canIWin()) this.handleMilitaryCreep(false, false);
     }
 };
 

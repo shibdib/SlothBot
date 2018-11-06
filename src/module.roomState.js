@@ -42,7 +42,7 @@ module.exports.setRoomState = function (room) {
         room.memory.lastStateChange = Game.time;
         let averageIncome = _.round(average(room.memory.energyIncomeArray), 0);
         // Special Case (Turtler)
-        if (!room.memory.remoteRooms || !room.memory.remoteRooms.length || room.memory.shellShock) {
+        if (room.controller.level >= 4 && (!room.memory.remoteRooms || !room.memory.remoteRooms.length || room.memory.shellShock)) {
             room.memory.state = -1;
             //log.a(room.name + ' has been classified as a turtle centric room.')
         } else

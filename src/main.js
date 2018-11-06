@@ -175,7 +175,7 @@ status = function (roomName = undefined, creep = false) {
         for (let key in Memory.ownedRooms) {
             let activeRoom = Memory.ownedRooms[key];
             if (!activeRoom.controller) continue;
-            let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
+            let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
             let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
             log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(activeRoom.memory.energyIncomeArray), 0) + ' | Energy Positive - ' + _.capitalize(activeRoom.memory.energyPositive) + ' | Creep Count: ' + _.size(roomCreeps));
         }

@@ -38,8 +38,10 @@ function shibMove(creep, heading, options = {}) {
         radius: 0.55,
         stroke: 'black'
     });
-    // Check if target reached or within 1
     let rangeToDestination = creep.pos.getRangeTo(heading);
+    // CPU Saver for moving to 0 on creeps
+    if (heading instanceof Creep && options.range === 0 && rangeToDestination > 2) options.range = 1;
+    // Check if target reached or within 1
     if (rangeToDestination <= options.range) {
         creep.memory._shibMove = undefined;
         shib.shibBench('pathfinding', pathingStart);

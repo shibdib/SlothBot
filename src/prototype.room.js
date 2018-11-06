@@ -147,9 +147,20 @@ Object.defineProperty(Room.prototype, 'creeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = this.find(FIND_HOSTILE_CREEPS);
+            this._Hostilecreeps = _.filter(this.creeps, (c) => (!c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader')));
         }
         return this._Hostilecreeps;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'friendlyCreeps', {
+    get: function () {
+        if (!this._friendlyCreeps) {
+            this._friendlyCreeps = _.filter(this.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !_.includes(Memory._threatList, c.owner.username));
+        }
+        return this._friendlyCreeps;
     },
     enumerable: false,
     configurable: true
@@ -371,7 +382,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
-    if (Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 25 > Game.time) return;
+    if (Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time) return;
     if (!Memory.roomCache) Memory.roomCache = {};
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     Memory.roomCache[this.name].lastInvaderCheck = Game.time;

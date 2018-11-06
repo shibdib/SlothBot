@@ -2,13 +2,13 @@
  * Created by rober on 5/16/2017.
  */
 module.exports.buildRoom = function (room) {
-    if (_.size(room.memory.layout)) return buildRoom(room);
+    if (_.size(room.memory.layout)) return buildFromLayout(room);
     layoutRoom(room);
 };
 
 function layoutRoom(room) {
-    if (!room.memory.hub) return findHub(room);
-    let hub = new RoomPosition(room.memory.hub.x, room.memory.hub.y, room.name);
+    if (!_.size(room.memory.bunkerHub)) return findHub(room);
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     let xOffset = difference(hub.x, 15);
     if (hub.x < 15) xOffset *= -1;
     let yOffset = difference(hub.y, 16);
@@ -26,7 +26,7 @@ function layoutRoom(room) {
     room.memory.layout = JSON.stringify(layout);
 }
 
-function buildRoom(room) {
+function buildFromLayout(room) {
     let level = room.controller.level;
     let layout = JSON.parse(room.memory.layout);
     // Build preset layout
@@ -63,18 +63,12 @@ function buildRoom(room) {
 }
 
 function findHub(room) {
-    if (room.memory.extensionHub || room.memory.hub) return;
-    if (Memory.roomCache && Memory.roomCache[room.name] && Memory.roomCache[room.name].hub) {
-        room.memory.hub = {};
-        room.memory.hub.x = Memory.roomCache[room.name].hub.x;
-        room.memory.hub.y = Memory.roomCache[room.name].hub.y;
-        return;
-    }
+    if (room.memory.extensionHub || _.size(room.memory.bunkerHub)) return;
     let spawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
     if (spawn) {
-        room.memory.hub = {};
-        room.memory.hub.x = spawn.pos.x;
-        room.memory.hub.y = spawn.pos.y - 1;
+        room.memory.bunkerHub = {};
+        room.memory.bunkerHub.x = spawn.pos.x;
+        room.memory.bunkerHub.y = spawn.pos.y - 1;
         return;
     }
     for (let i = 1; i < 1000; i++) {
@@ -105,9 +99,9 @@ function findHub(room) {
                 break;
             }
             if (pos.getRangeTo(closestStructure) >= 2 && !wall && pos.getRangeTo(closestSource) >= 2) {
-                room.memory.hub = {};
-                room.memory.hub.x = pos.x;
-                room.memory.hub.y = pos.y;
+                room.memory.bunkerHub = {};
+                room.memory.bunkerHub.x = pos.x;
+                room.memory.bunkerHub.y = pos.y;
                 room.memory.hubSearch = undefined;
                 layoutRoom(room);
             }

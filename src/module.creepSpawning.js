@@ -306,7 +306,7 @@ module.exports.workerCreepQueue = function (room) {
         if (room.controller.level < 4 && !importantBuilds) number = _.round((8 - level) / 2);
         //If room is about to downgrade get a creep out asap
         let reboot;
-        if (level !== room.controller.level || room.memory.state < 3) number = 1;
+        if (level !== room.controller.level || (room.controller.level >= 4 && room.memory.state < 3)) number = 1;
         if (room.controller.ticksToDowngrade <= 1500) reboot = true;
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
             queueCreep(room, priority + (upgraders.length * 2), {role: 'upgrader', reboot: reboot})
@@ -411,14 +411,14 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Explorer
-    if (!_.includes(queue, 'explorer') && room.memory.state > 0 && !TEN_CPU && !room.memory.responseNeeded) {
+    if (!_.includes(queue, 'explorer') && !TEN_CPU && !room.memory.responseNeeded) {
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
         if (explorers.length < 5) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
     //ProximityScout
-    if (!_.includes(queue, 'proximityScout') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
+    if (room.memory.remoteRooms && room.memory.remoteRooms.length && !_.includes(queue, 'proximityScout') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {
         let proximityScouts = _.filter(roomCreeps, (creep) => creep.memory.role === 'proximityScout');
         if (proximityScouts.length < 1) {
             queueCreep(room, PRIORITIES.explorer + proximityScouts.length, {role: 'proximityScout'})

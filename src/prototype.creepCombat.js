@@ -12,10 +12,9 @@ Creep.prototype.findClosestSourceKeeper = function () {
 };
 
 Creep.prototype.findClosestUnarmedEnemy = function () {
-    let enemy, filter;
+    let enemy;
     let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
-    filter = {filter: (c) => (!c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader') && c.owner.username !== 'Source Keeper')};
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.creeps, filter); else enemy = this.pos.findClosestByPath(this.room.creeps, filter);
+    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps); else enemy = this.pos.findClosestByPath(this.room.creeps);
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         this.memory.target = enemy.id;
@@ -38,8 +37,8 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
         }
     }
     // Find armed creeps to kill
-    filter = {filter: (c) => (!c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader') && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && c.owner.username !== 'Source Keeper')};
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.creeps, filter); else enemy = this.pos.findClosestByPath(this.room.creeps, filter);
+    filter = {filter: (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) && (ignoreBorder || (c.pos.x < 48 && c.pos.x > 1 && c.pos.y < 48 && c.pos.y > 1)) && c.owner.username !== 'Source Keeper'};
+    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         this.memory.target = enemy.id;
@@ -773,6 +772,23 @@ Creep.prototype.templarCombat = function () {
     } else {
 
     }
+};
+
+Creep.prototype.canIWin = function () {
+    if (!this.room.hostileCreeps.length || this.room.name === this.memory.overlord) return true;
+    let hostileCombatParts = 0;
+    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0);
+    for (let i = 0; i < armedHostiles.length; i++) {
+        hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
+        hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
+    }
+    let alliedCombatParts = 0;
+    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0);
+    for (let i = 0; i < armedFriendlies.length; i++) {
+        alliedCombatParts += armedFriendlies[i].getActiveBodyparts(ATTACK);
+        alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);
+    }
+    return !hostileCombatParts || hostileCombatParts * 0.9 < alliedCombatParts;
 };
 
 function findDefensivePosition(creep, target) {
