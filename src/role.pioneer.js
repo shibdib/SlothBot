@@ -43,7 +43,7 @@ function role(creep) {
     if (creep.memory.destinationReached) {
         let pioneers = _.filter(creep.room.creeps, (s) => s.my && s.memory.role === 'pioneer');
         let stationaryHarvesters = _.filter(creep.room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester');
-        if (pioneers.length > 3 && stationaryHarvesters.length < 1) {
+        if (pioneers.length > 4 && stationaryHarvesters.length < 1) {
             creep.memory.role = 'stationaryHarvester';
             creep.memory.overlord = creep.room.name;
             return;
