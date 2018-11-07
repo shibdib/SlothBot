@@ -296,8 +296,6 @@ module.exports.workerCreepQueue = function (room) {
     //Upgrader
     if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
-        let priority = PRIORITIES.upgrader;
-        if (upgraders.length && level >= 2) priority = priority + upgraders.length;
         let number = 2;
         if (room.controller.level >= 6) number = 1;
         let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
@@ -308,7 +306,7 @@ module.exports.workerCreepQueue = function (room) {
         if (level !== room.controller.level || (room.controller.level >= 4 && room.memory.state < 3)) number = 1;
         if (room.controller.ticksToDowngrade <= 1500) reboot = true;
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
-            queueCreep(room, priority + (upgraders.length * 2), {role: 'upgrader', reboot: reboot})
+            queueCreep(room, PRIORITIES.upgrader, {role: 'upgrader', reboot: reboot})
         }
     }
     //Worker
@@ -339,14 +337,14 @@ module.exports.workerCreepQueue = function (room) {
     if (!_.includes(queue, 'hauler')) {
         let amount = 1;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-        if ((hauler[0] && hauler[0].ticksToLive < 250 && hauler.length < amount + 1) || hauler.length < amount) {
+        if ((hauler[0] && hauler[0].ticksToLive < 100 && hauler.length < amount + 1) || hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
         }
     }
     if (room.memory.hubContainer && !_.includes(queue, 'filler')) {
         let amount = 2;
         let filler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'filler'));
-        if ((filler[0] && filler[0].ticksToLive < 250 && filler.length < amount + 1) || filler.length < amount) {
+        if ((filler[0] && filler[0].ticksToLive < 100 && filler.length < amount + 1) || filler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
         }
     }
@@ -608,10 +606,9 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         // Border Patrol
-        if (level >= 3) {
+        if (level >= 3 && responseNeeded) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
-            let count = 1;
-            if (responseNeeded) count = 2;
+            let count = 2;
             if (!_.includes(queue, 'longbow') && borderPatrol.length < count) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'longbow',
@@ -619,7 +616,6 @@ module.exports.remoteCreepQueue = function (room) {
                     military: true
                 });
             }
-            ;
             let riotPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'attacker');
             if (!_.includes(queue, 'attacker') && !riotPatrol.length) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
