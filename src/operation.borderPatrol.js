@@ -3,7 +3,7 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
-    if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
+    if (!this.memory.squadLeader && !this.memory.leader) {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
@@ -42,18 +42,17 @@ Creep.prototype.borderPatrol = function () {
             this.memory.onTarget = undefined;
             return this.say(this.memory.responseTarget);
         }
-        if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17})) return this.idleFor(5);
+        if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17})) return this.idleFor(_.random(5, 20));
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);
+        if (!leader) return delete this.memory.leader;
         if (this.room.name === leader.room.name) this.shibMove(leader, {
             range: 0,
             ignoreRoads: true
         }); else this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
-        // Heal squadmates
-        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
         // Heal squad
-        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
+        let woundedSquad = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id && c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
         if (this.memory.role === 'longbow') this.attackInRange(); else if (this.canIWin()) this.handleMilitaryCreep(false, false);
     }

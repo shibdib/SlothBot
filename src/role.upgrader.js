@@ -5,7 +5,15 @@
 module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (!creep.carry.energy) delete creep.memory.working;
-    if (creep.memory.working) if (creep.upgradeController(Game.rooms[creep.memory.overlord].controller) === ERR_NOT_IN_RANGE) return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3}); else return;
+    if (creep.memory.working) {
+        switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
+            case OK:
+                delete creep.memory._shibMove;
+                return;
+            case ERR_NOT_IN_RANGE:
+                return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+        }
+    }
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) return creep.memory.working = true;
     if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
     if (!creep.memory.onContainer) {
@@ -14,6 +22,7 @@ module.exports.role = function (creep) {
     } else creep.memory.onContainer = true;
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
+        creep.upgradeController(Game.rooms[creep.memory.overlord].controller)
     } else if (creep.room.memory.controllerContainer) {
         let container = Game.getObjectById(creep.room.memory.controllerContainer);
         if (!container) return delete creep.room.memory.controllerContainer;

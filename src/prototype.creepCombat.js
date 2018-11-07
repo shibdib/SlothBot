@@ -25,6 +25,8 @@ Creep.prototype.findClosestUnarmedEnemy = function () {
 
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
     let enemy, filter;
+    let worthwhileStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR).length > 0;
+    if (!this.room.hostileCreeps.length && !worthwhileStructures) return;
     let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
     let hostileRoom = this.room.controller && this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username);
     // Towers die first
@@ -162,6 +164,9 @@ Creep.prototype.healAllyCreeps = function () {
 };
 
 Creep.prototype.moveToHostileConstructionSites = function () {
+    // No sites
+    if (!this.room.constructionSites.length) return false;
+    // Friendly room
     if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || this.room.controller.safeMode)) return false;
     let constructionSite = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !s.pos.checkForRampart() && !_.includes(FRIENDLIES, s.owner.username)});
     if (constructionSite) {
@@ -173,12 +178,13 @@ Creep.prototype.moveToHostileConstructionSites = function () {
 };
 
 Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, unArmedFirst = false) {
-    // Flee home if you have no parts
-    if (!this.getActiveBodyparts(HEAL) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     // Set target
     let hostile;
     if (unArmedFirst) hostile = this.findClosestUnarmedEnemy();
     if (!hostile) hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst);
+    let wounded = _.filter(this.room.friendlyCreeps, (c) => c.hits < c.hitsMax);
+    // Flee home if you have no parts
+    if (!this.getActiveBodyparts(HEAL) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     // If target fight
     if (hostile && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
         // Heal if needed
@@ -194,7 +200,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         if (injured && this.getActiveBodyparts(HEAL) && this.hits === this.hitsMax && this.pos.getRangeTo(hostile) > 3) this.rangedHeal(injured);
         return true;
         // If no target heal
-    } else if (this.getActiveBodyparts(HEAL)) {
+    } else if (wounded.length && this.getActiveBodyparts(HEAL)) {
         if (this.healMyCreeps()) return true;
         if (this.healAllyCreeps()) return true;
     }

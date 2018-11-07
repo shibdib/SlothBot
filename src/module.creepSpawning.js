@@ -302,7 +302,7 @@ module.exports.workerCreepQueue = function (room) {
         if (room.controller.level >= 6) number = 1;
         let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
         if (room.controller.level < 8 && room.memory.energySurplus) number = 2;
-        if (room.controller.level < 4 && !importantBuilds) number = _.round((10 - level) / 2);
+        if (room.controller.level < 4 && !importantBuilds) number = _.round((7 - level) / 2);
         //If room is about to downgrade get a creep out asap
         let reboot;
         if (level !== room.controller.level || (room.controller.level >= 4 && room.memory.state < 3)) number = 1;
@@ -344,14 +344,14 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     if (room.memory.hubContainer && !_.includes(queue, 'filler')) {
-        let amount = 1;
+        let amount = 2;
         let filler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < 250 && filler.length < amount + 1) || filler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
         }
     }
     if (level >= 3 && !_.includes(queue, 'courier')) {
-        let amount = 1;
+        let amount = 0;
         let courier = _.filter(roomCreeps, (creep) => (creep.memory.role === 'courier'));
         if (courier.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'courier'})

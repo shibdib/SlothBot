@@ -395,19 +395,18 @@ function getSKMatrix(room, matrix) {
 }
 
 function addHostilesToMatrix(room, matrix) {
-    let enemyCreeps = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
+    let enemyCreeps = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     for (let key in enemyCreeps) {
-        if (matrix.get(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y)) continue;
         matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 0xff);
-        let range = 6;
-        if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
+        let range = 8;
+        if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 4;
         let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
         for (let key in avoidZone) {
             let position = new RoomPosition(avoidZone[key].x, avoidZone[key].y, room.name);
             if (matrix.get(position.x, position.y)) continue;
             if (!position.checkForWall()) {
                 let inRange = position.findInRange(enemyCreeps, range);
-                matrix.set(position.x, position.y, 50 * inRange)
+                matrix.set(position.x, position.y, 40 * inRange)
             }
         }
     }

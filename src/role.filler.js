@@ -29,6 +29,6 @@ module.exports.role = function (creep) {
                     if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
                     break;
             }
-        } else creep.idleFor(5);
-    } else if (creep.memory.energyDestination || creep.getEnergy(true)) creep.withdrawEnergy(); else creep.idleFor(5);
+        } else creep.memory.recycle = true;
+    } else if (creep.memory.energyDestination || creep.fillerEnergy()) creep.withdrawEnergy(); else creep.idleFor(5);
 };
