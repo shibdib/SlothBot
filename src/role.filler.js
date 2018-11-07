@@ -13,6 +13,7 @@ module.exports.role = function (creep) {
         // Hub Container
         let hubContainer = Game.getObjectById(creep.room.memory.hubContainer);
         if (hubContainer) {
+            if (_.sum(hubContainer.store) === hubContainer.storeCapacity) return creep.idleFor(10);
             let storageItem = hubContainer;
             if (!storageItem) return delete creep.memory.storageDestination;
             switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
