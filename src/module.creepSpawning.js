@@ -572,6 +572,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (!responseNeeded && (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel) && Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel > 0) {
                 responseNeeded = true;
                 responseRoom = room.memory.remoteRooms[keys];
+                // If many hostiles or hostiles are players spawn more
                 if (Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel > 2 || Memory.roomCache[room.memory.remoteRooms[keys]].hostiles > 2) heavyResponse = true;
             }
             if (roomThreat) continue;
