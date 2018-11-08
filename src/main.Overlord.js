@@ -34,7 +34,7 @@ module.exports.overlordMind = function (room) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 10 === 0) && cpuBucket >= 1000) {
+    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 100 === 0) && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
         log.d('Room Building Module');
         // Request builders
@@ -336,10 +336,9 @@ abandonRoom = function (room) {
 };
 
 function bunkerConversion(room) {
+    if (room.memory.noBunkerPos) return;
     if (!room.memory.readyToConvert && !room.memory.bunkerHub && planner.hubCheck(room)) room.memory.readyToConvert = true; else if (room.memory.newHubSearch >= 5000) room.memory.notConvertable = true;
-    let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
-    let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
-    if (!room.memory.readyToConvert || needyRoom.length || safemode.length || _.size(Game.constructionSites) > 70 || !room.memory.bunkerHub) return;
+    if (!room.memory.readyToConvert || !_.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded).length || !_.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded).length || _.size(Game.constructionSites) > 70 || !room.memory.bunkerHub) return;
     room.memory.buildersNeeded = true;
     delete room.memory.extensionHub;
     delete room.memory.bunkerComplete;
