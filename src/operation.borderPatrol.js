@@ -25,7 +25,7 @@ Creep.prototype.borderPatrol = function () {
         // Check for squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id);
         if (!squadMember.length) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
-        if (this.pos.findInRange(squadMember, 3).length < squadMember.length) return this.idleFor(1);
+        if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
