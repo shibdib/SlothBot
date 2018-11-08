@@ -142,7 +142,12 @@ function findHub(room) {
         let searched = [];
         let hubSearch = room.memory.newHubSearch || 0;
         if (hubSearch >= 3000) {
-            //abandonRoom(room.name);
+            if (!room.memory.extensionHub) abandonRoom(room.name); else {
+                room.memory.noBunkerPos = true;
+                log.a(room.name + ' was unable to find a position for the new bunker.');
+                Game.notify(room.name + ' was unable to find a position for the new bunker.');
+                return false;
+            }
             Memory.roomCache[room.name].noClaim = true;
             log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
             Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
