@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     creep.repairRoad();
     if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
@@ -20,7 +17,6 @@ function role(creep) {
     }
     if (creep.memory.destinationReached && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0]) {
         if (creep.memory.initialBuilder && creep.room.controller.level >= 3) {
-            if (!creep.room.memory.extensionHub) findExtensionHub(creep.room);
             let supportRoom = _.filter(Game.rooms, (r) => r.memory && r.memory.assistingRoom === creep.room.name || r.memory.claimTarget === creep.room.name);
             log.a(creep.room.name + ' is now an active room and no longer needs support.');
             for (let key in supportRoom) {
@@ -133,39 +129,4 @@ function role(creep) {
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'pioneerRole');
-
-function findExtensionHub(room) {
-    for (let i = 1; i < 249; i++) {
-        let spawn = _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_SPAWN && s.my)[0];
-        if (spawn) {
-            room.memory.extensionHub = {};
-            room.memory.extensionHub.x = spawn.x;
-            room.memory.extensionHub.y = spawn.y;
-            return;
-        }
-        let pos = new RoomPosition(getRandomInt(11, 39), getRandomInt(11, 39), room.name);
-        let closestStructure = pos.findClosestByRange(room.structures);
-        let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 3, pos.x - 3, pos.y + 3, pos.x + 3, true);
-        let wall = false;
-        for (let key in terrain) {
-            let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-            if (!position.checkForWall()) {
-                continue;
-            }
-            wall = true;
-            break;
-        }
-        if (pos.getRangeTo(closestStructure) >= 4 && wall === false) {
-            room.memory.extensionHub = {};
-            room.memory.extensionHub.x = pos.x;
-            room.memory.extensionHub.y = pos.y;
-        }
-    }
-}
-
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
-}
+};
