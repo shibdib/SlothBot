@@ -19,7 +19,7 @@ Creep.prototype.borderPatrol = function () {
             return this.goHomeAndHeal();
         }
         // If military action required do that
-        if (this.handleMilitaryCreep(false, false)) return;
+        if (this.handleMilitaryCreep(false, true, false, false, true)) return;
         // Handle border
         if (this.borderCheck()) return;
         // Check for squad
@@ -42,6 +42,8 @@ Creep.prototype.borderPatrol = function () {
             this.memory.onTarget = undefined;
             return this.say(this.memory.responseTarget);
         }
+        this.healAllyCreeps();
+        this.healMyCreeps();
         if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17})) return this.idleFor(_.random(5, 20));
     } else {
         // Set leader and move to them
@@ -54,7 +56,7 @@ Creep.prototype.borderPatrol = function () {
         // Heal squad
         let woundedSquad = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id && c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
-        if (this.memory.role === 'longbow') this.attackInRange(); else if (this.canIWin()) this.handleMilitaryCreep(false, false);
+        if (this.memory.role === 'longbow') this.attackInRange(); else if (this.canIWin()) this.handleMilitaryCreep(false, true, false, false, true);
     }
 };
 

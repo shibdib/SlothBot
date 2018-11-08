@@ -177,7 +177,7 @@ Creep.prototype.moveToHostileConstructionSites = function () {
     return false;
 };
 
-Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, unArmedFirst = false) {
+Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true, ignoreBorder = false, unArmedFirst = false, noHeals = false) {
     // Set target
     let hostile;
     if (unArmedFirst) hostile = this.findClosestUnarmedEnemy();
@@ -200,7 +200,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         if (injured && this.getActiveBodyparts(HEAL) && this.hits === this.hitsMax && this.pos.getRangeTo(hostile) > 3) this.rangedHeal(injured);
         return true;
         // If no target heal
-    } else if (wounded.length && this.getActiveBodyparts(HEAL)) {
+    } else if (!noHeals && wounded.length && this.getActiveBodyparts(HEAL)) {
         if (this.healMyCreeps()) return true;
         if (this.healAllyCreeps()) return true;
     }
