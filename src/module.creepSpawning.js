@@ -567,7 +567,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[room.memory.remoteRooms[keys]] && Game.rooms[room.memory.remoteRooms[keys]].memory.responseNeeded) || (Memory.roomCache[room.memory.remoteRooms[keys]] && (Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel || Memory.roomCache[room.memory.remoteRooms[keys]].hostiles))) roomThreat = true;
-            if (!responseNeeded && (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel)) responseNeeded = Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel > 3;
+            if (!responseNeeded && (Memory.roomCache[room.memory.remoteRooms[keys]] && Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel)) responseNeeded = Memory.roomCache[room.memory.remoteRooms[keys]].threatLevel > 0;
             if (roomThreat) continue;
             if (!_.includes(queue, 'reserver') && level >= 4 && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === room.memory.remoteRooms[keys]);

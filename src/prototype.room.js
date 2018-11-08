@@ -389,7 +389,7 @@ Room.prototype.invaderCheck = function () {
     let sk;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
     let closestRoomRange = this.findClosestOwnedRoom(true);
-    if (((this.controller && this.controller.owner && !this.controller.my) || sk || (this.controller && this.controller.reservation && !this.controller.my)) || closestRoomRange >= 5) {
+    if (((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || closestRoomRange >= 5) {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;
@@ -397,7 +397,7 @@ Room.prototype.invaderCheck = function () {
         this.memory.threatLevel = undefined;
         return;
     }
-    let invader = _.filter(this.hostileCreeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Source Keeper' && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6));
+    let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6));
     if (invader.length > 0) {
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
         this.memory.responseNeeded = true;
@@ -406,8 +406,14 @@ Room.prototype.invaderCheck = function () {
             this.memory.numberOfHostiles = invader.length || 1;
         }
         // Determine threat
-        if ((invader.length === 1 && invader[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) this.memory.threatLevel = 1;
-        if (invader.length > 1 && invader[0].owner.username === 'Invader') this.memory.threatLevel = 2;
+        if ((invader.length === 1 && invader[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) {
+            this.memory.threatLevel = 1;
+            Memory.roomCache[this.name].threatLevel = 1;
+        }
+        if (invader.length > 1 && invader[0].owner.username === 'Invader') {
+            this.memory.threatLevel = 2;
+            Memory.roomCache[this.name].threatLevel = 2;
+        }
         if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
             this.memory.threatLevel = 3;
             this.memory.lastPlayerAttack = Game.time;
