@@ -34,7 +34,7 @@ module.exports.overlordMind = function (room) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 100 === 0) && cpuBucket >= 1000) {
+    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 5 === 0) && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
         log.d('Room Building Module');
         // Request builders

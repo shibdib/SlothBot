@@ -86,11 +86,55 @@ function buildFromLayout(room) {
         }
     }
     // Roads
-    if (room.controller.level >= 3 && !_.size(room.constructionSites) && level === extensionLevel) {
+    if (level >= 3 && !_.size(room.constructionSites) && level === extensionLevel) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall() && !pos.checkForRoad()) pos.createConstructionSite(STRUCTURE_ROAD);
+        }
+        if (level >= 4) {
+            let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
+            // Controller Road
+            buildRoadAround(room, room.controller.pos);
+            let container = Game.getObjectById(room.memory.controllerContainer);
+            if (container) {
+                buildRoadFromTo(room, spawn, container);
+            }
+            // Source Roads
+            for (let source of room.sources) {
+                buildRoadAround(room, source.pos);
+                buildRoadFromTo(room, spawn, source);
+            }
+            // Neighboring Roads
+            let neighboring = Game.map.describeExits(spawn.pos.roomName);
+            if (neighboring) {
+                if (neighboring['1']) {
+                    let exits = spawn.room.find(FIND_EXIT_TOP);
+                    let middle = _.round(exits.length / 2);
+                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                }
+                if (neighboring['3']) {
+                    let exits = spawn.room.find(FIND_EXIT_RIGHT);
+                    let middle = _.round(exits.length / 2);
+                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                }
+                if (neighboring['5']) {
+                    let exits = spawn.room.find(FIND_EXIT_BOTTOM);
+                    let middle = _.round(exits.length / 2);
+                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                }
+                if (neighboring['7']) {
+                    let exits = spawn.room.find(FIND_EXIT_LEFT);
+                    let middle = _.round(exits.length / 2);
+                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                }
+            }
+            // Mineral Roads
+            if (level >= 6) {
+                let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
+                buildRoadAround(room, mineral.pos);
+                buildRoadFromTo(room, spawn, mineral);
+            }
         }
     }
     // Controller
@@ -322,3 +366,83 @@ let protectedStructures = [
     STRUCTURE_LINK,
     STRUCTURE_LAB
 ];
+
+function buildRoadFromTo(room, start, end) {
+    let target;
+    if (end instanceof RoomPosition) target = end; else target = end.pos;
+    let path = getRoad(room, start.pos, target);
+    if (!path) {
+        path = start.pos.findPathTo(end, {
+            costCallback: function (roomName, costMatrix) {
+                for (let site of room.constructionSites) {
+                    if (site.structureType === STRUCTURE_ROAD) {
+                        costMatrix.set(site.pos.x, site.pos.y, 1);
+                    }
+                }
+            },
+            maxOps: 10000,
+            serialize: false,
+            ignoreCreeps: true,
+            maxRooms: 1,
+            ignoreRoads: false,
+            swampCost: 15,
+            plainCost: 15
+        });
+        if (path.length) return cacheRoad(room, start.pos, target, path); else return;
+    }
+    for (let point of JSON.parse(path)) {
+        let pos = new RoomPosition(point.x, point.y, room.name);
+        buildRoad(pos, room);
+    }
+}
+
+function buildRoadAround(room, position) {
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
+                buildRoad(pos, room);
+            }
+        }
+    }
+}
+
+function buildRoad(position, room) {
+    if (position.checkForRoad() || position.checkForImpassible() || _.size(room.find(FIND_CONSTRUCTION_SITES)) >= 10) return;
+    if (room.controller.level < 5) {
+        if (position.checkForSwamp()) position.createConstructionSite(STRUCTURE_ROAD);
+    } else {
+        position.createConstructionSite(STRUCTURE_ROAD);
+    }
+}
+
+function cacheRoad(room, from, to, path) {
+    let key = getPathKey(from, to);
+    let cache = room.memory._roadCache || {};
+    let tick = Game.time;
+    cache[key] = {
+        path: JSON.stringify(path),
+        tick: tick
+    };
+    room.memory._roadCache = cache;
+}
+
+function getRoad(room, from, to) {
+    let cache;
+    if (room.memory._roadCache && _.size(room.memory._roadCache)) cache = room.memory._roadCache; else return;
+    if (!cache) return null;
+    let cachedPath = cache[getPathKey(from, to)];
+    if (cachedPath) {
+        return cachedPath.path;
+    } else {
+        return null;
+    }
+}
+
+function getPathKey(from, to) {
+    return getPosKey(from) + '$' + getPosKey(to);
+}
+
+function getPosKey(pos) {
+    return pos.x + 'x' + pos.y;
+}

@@ -718,23 +718,29 @@ function getRandomInt(min, max) {
 }
 
 function buildRoadFromTo(room, start, end) {
-    let path = start.pos.findPathTo(end, {
-        costCallback: function (roomName, costMatrix) {
-            for (let site of room.constructionSites) {
-                if (site.structureType === STRUCTURE_ROAD) {
-                    costMatrix.set(site.pos.x, site.pos.y, 1);
+    let target;
+    if (end instanceof RoomPosition) target = end; else target = end.pos;
+    let path = getRoad(room, start.pos, target);
+    if (!path) {
+        path = start.pos.findPathTo(end, {
+            costCallback: function (roomName, costMatrix) {
+                for (let site of room.constructionSites) {
+                    if (site.structureType === STRUCTURE_ROAD) {
+                        costMatrix.set(site.pos.x, site.pos.y, 1);
+                    }
                 }
-            }
-        },
-        maxOps: 10000,
-        serialize: false,
-        ignoreCreeps: true,
-        maxRooms: 1,
-        ignoreRoads: false,
-        swampCost: 15,
-        plainCost: 15
-    });
-    for (let point of path) {
+            },
+            maxOps: 10000,
+            serialize: false,
+            ignoreCreeps: true,
+            maxRooms: 1,
+            ignoreRoads: false,
+            swampCost: 15,
+            plainCost: 15
+        });
+        if (path.length) return cacheRoad(room, start.pos, target, path); else return;
+    }
+    for (let point of JSON.parse(path)) {
         let pos = new RoomPosition(point.x, point.y, room.name);
         buildRoad(pos, room);
     }
@@ -758,6 +764,37 @@ function buildRoad(position, room) {
     } else {
         position.createConstructionSite(STRUCTURE_ROAD);
     }
+}
+
+function cacheRoad(room, from, to, path) {
+    let key = getPathKey(from, to);
+    let cache = room.memory._roadCache || {};
+    let tick = Game.time;
+    cache[key] = {
+        path: JSON.stringify(path),
+        tick: tick
+    };
+    room.memory._roadCache = cache;
+}
+
+function getRoad(room, from, to) {
+    let cache;
+    if (room.memory._roadCache && _.size(room.memory._roadCache)) cache = room.memory._roadCache; else return;
+    if (!cache) return null;
+    let cachedPath = cache[getPathKey(from, to)];
+    if (cachedPath) {
+        return cachedPath.path;
+    } else {
+        return null;
+    }
+}
+
+function getPathKey(from, to) {
+    return getPosKey(from) + '$' + getPosKey(to);
+}
+
+function getPosKey(pos) {
+    return pos.x + 'x' + pos.y;
 }
 
 function rebuildSpawn(room) {
