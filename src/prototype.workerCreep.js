@@ -276,6 +276,12 @@ Creep.prototype.withdrawEnergy = function () {
 };
 
 Creep.prototype.findEnergy = function () {
+    // Fuel Trucks
+    let fuelTrucks = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.carry[RESOURCE_ENERGY]);
+    if (fuelTrucks.length) {
+        this.memory.energyDestination = fuelTrucks[0].id;
+        return true;
+    }
     // Terminal
     let terminal = this.room.terminal;
     if (terminal && terminal.store[RESOURCE_ENERGY] > 6000) {
