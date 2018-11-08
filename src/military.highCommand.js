@@ -1,10 +1,8 @@
 /**
  * Created by rober on 5/16/2017.
  */
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
 
-function highCommand() {
+module.exports.highCommand = function () {
     if (!Memory.targetRooms) Memory.targetRooms = {};
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
     if (maxLevel < 2) return;
@@ -16,9 +14,26 @@ function highCommand() {
 
     // Request scouting for new operations
     if (Game.time % 100 === 0) operationRequests();
-}
 
-module.exports.highCommand = profiler.registerFN(highCommand, 'highCommand');
+    // Send help if needed
+    if (Memory._alliedRoomDefense) {
+        Memory._alliedRoomDefense.forEach((r) => queueHelp(r));
+    }
+};
+
+function queueHelp(roomName) {
+    let range = Game.rooms[roomName].room.findClosestOwnedRoom(true);
+    let cache = Memory.targetRooms || {};
+    if (range && range <= 15) {
+        cache[roomName] = {
+            tick: Game.time,
+            type: 'guard',
+            level: 1,
+            priority: 1
+        };
+    }
+    Memory.targetRooms = cache;
+}
 
 function operationRequests() {
     let totalCount = _.size(Memory.targetRooms) || 0;
