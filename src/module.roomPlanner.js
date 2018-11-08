@@ -153,7 +153,7 @@ function findHub(room) {
         if (!_.includes(searched, clean)) {
             searched.push(clean);
             room.memory.newHubSearch = hubSearch + 1;
-            let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
+            let controller = this.room.controller;
             let closestSource = pos.findClosestByRange(FIND_SOURCES);
             let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 4, pos.x + 5, true);
             let wall = false;
@@ -165,7 +165,7 @@ function findHub(room) {
                 wall = true;
                 break;
             }
-            if (pos.getRangeTo(closestStructure) >= 2 && !wall && pos.getRangeTo(closestSource) >= 2) {
+            if (pos.getRangeTo(controller) >= 2 && !wall && pos.getRangeTo(closestSource) >= 2) {
                 room.memory.bunkerHub = {};
                 room.memory.bunkerHub.x = pos.x;
                 room.memory.bunkerHub.y = pos.y;

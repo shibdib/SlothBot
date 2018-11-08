@@ -50,7 +50,6 @@ module.exports.overlordMind = function (room) {
             }
         } else {
             try {
-                console.log(room.name)
                 planner.buildRoom(room);
             } catch (e) {
                 log.e('Room Building for room ' + room.name + ' experienced an error');
