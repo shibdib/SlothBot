@@ -10,13 +10,13 @@ function controller(room) {
     let creeps = room.creeps;
     let structures = room.structures;
 
+    // Check for invaders and request help
+    room.invaderCheck();
+
     // Tower control
     let towerCpu = Game.cpu.getUsed();
     if (Game.time % 5 === 0 || room.memory.responseNeeded) towers.towerControl(room);
     shib.shibBench('towerController', towerCpu);
-
-    // Check for invaders and request help
-    room.invaderCheck();
 
     // Handle nuke defense
     if (Game.time % 100 === 0) room.handleNukeAttack();

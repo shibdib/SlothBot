@@ -319,8 +319,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             claimValue: claimValue,
             claimWorthy: claimWorthy,
             needsCleaning: needsCleaning,
-            potentialTarget: potentialTarget,
-            hub: hub
+            potentialTarget: potentialTarget
         };
         Memory.roomCache = cache;
         Memory.roomCache[this.name].lastIntelCache = Game.time;
@@ -382,14 +381,15 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
-    if (Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time) return;
+    if (Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 5 > Game.time) return;
     if (!Memory.roomCache) Memory.roomCache = {};
     if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
     Memory.roomCache[this.name].lastInvaderCheck = Game.time;
     let sk;
     if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
     let closestRoomRange = this.findClosestOwnedRoom(true);
-    if (((this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || sk || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || closestRoomRange >= 5) {
+    // No invader checks for hostile rooms
+    if ((sk || (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || closestRoomRange >= 5) {
         this.memory.numberOfHostiles = undefined;
         this.memory.responseNeeded = undefined;
         this.memory.alertEmail = undefined;
@@ -397,8 +397,9 @@ Room.prototype.invaderCheck = function () {
         this.memory.threatLevel = undefined;
         return;
     }
-    let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6));
+    let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
     if (invader.length > 0) {
+        let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6)
         if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
         this.memory.responseNeeded = true;
         this.memory.tickDetected = Game.time;
@@ -406,7 +407,7 @@ Room.prototype.invaderCheck = function () {
             this.memory.numberOfHostiles = invader.length || 1;
         }
         // Determine threat
-        if ((invader.length === 1 && invader[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) {
+        if ((invader.length === 1 && (invader[0].owner.username === 'Invader' || !armedInvader.length)) || (this.controller && this.controller.safeMode)) {
             this.memory.threatLevel = 1;
             Memory.roomCache[this.name].threatLevel = 1;
         }
@@ -473,7 +474,7 @@ Room.prototype.invaderCheck = function () {
         return invader.length > 0;
     }
     let waitOut = 25;
-    if (this.controller && this.controller.my && this.memory.threatLevel > 1) waitOut = 100;
+    if (this.memory.threatLevel > 3) waitOut = 100;
     if (this.memory.tickDetected < Game.time - waitOut || !this.memory.responseNeeded) {
         Memory.roomCache[this.name].threatLevel = undefined;
         let roomHeat = (this.memory.roomHeat - 0.5) || 0;
@@ -487,10 +488,6 @@ Room.prototype.invaderCheck = function () {
         this.memory.alertEmail = undefined;
         this.memory.requestingSupport = undefined;
         this.memory.threatLevel = undefined;
-        if (this.memory.creepBuildQueue) {
-            delete this.memory.creepBuildQueue['responder'];
-            if (this.memory.creepBuildQueue['longbow'] && this.memory.creepBuildQueue['longbow'].responseTarget === this.name) delete this.memory.creepBuildQueue['longbow'];
-        }
     }
     return false;
 };

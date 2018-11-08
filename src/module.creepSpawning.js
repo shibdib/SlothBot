@@ -286,7 +286,7 @@ module.exports.workerCreepQueue = function (room) {
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
         delete roomQueue[room.name];
-        return queueCreep(room, -1, {role: 'stationaryHarvester', reboot: true});
+        return queueCreep(room, 1, {role: 'stationaryHarvester', reboot: true});
     }
     if (!_.includes(queue, 'stationaryHarvester')) {
         if (harvesters.length < 2 || (harvesters[0].ticksToLive < 100 && harvesters.length < 3)) {

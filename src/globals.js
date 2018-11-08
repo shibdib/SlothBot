@@ -91,7 +91,7 @@ let globals = function () {
         raid: 8,
         clean: 8,
         swarm: 4,
-        scout: 2,
+        scout: 3,
         responder: 2,
         // Misc
         claimer: 3,
@@ -424,16 +424,15 @@ let globals = function () {
                 Memory.lastLOANtime = Game.time - 1001;
                 global.LOANlist = [];
             }
-
             if (Game.time >= (Memory.lastLOANtime + 1000)) {
                 RawMemory.setActiveForeignSegment(LOANuser, LOANsegment);
             }
-
             if ((Game.time >= (Memory.lastLOANtime + 1001)) && (typeof RawMemory.foreignSegment != "undefined") && (RawMemory.foreignSegment.username == LOANuser) && (RawMemory.foreignSegment.id == LOANsegment)) {
                 Memory.lastLOANtime = Game.time;
                 let allMyRooms = _.filter(Game.rooms, (aRoom) => (typeof aRoom.controller != "undefined") && aRoom.controller.my);
                 if (allMyRooms.length == 0) {
                     global.LOANlist = [];
+                    global.LOANlist.concat(MANUAL_FRIENDS);
                     return false;
                 }
                 let myUsername = allMyRooms[0].controller.owner.username;
@@ -444,6 +443,7 @@ let globals = function () {
                     for (let iL = (LOANdataKeys.length - 1); iL >= 0; iL--) {
                         if (LOANdata[LOANdataKeys[iL]].indexOf(myUsername) >= 0) {
                             global.LOANlist = LOANdata[LOANdataKeys[iL]];
+                            global.LOANlist.concat(MANUAL_FRIENDS);
                             return true;
                         }
                     }
@@ -453,6 +453,7 @@ let globals = function () {
             return true;
         } else {
             global.LOANlist = [];
+            global.LOANlist.concat(MANUAL_FRIENDS);
             return false;
         }
     };
