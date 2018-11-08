@@ -42,6 +42,7 @@ Creep.prototype.borderPatrol = function () {
             this.memory.onTarget = undefined;
             return this.say(this.memory.responseTarget);
         }
+        // Heal if waiting for orders
         this.healAllyCreeps();
         this.healMyCreeps();
         if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17})) return this.idleFor(_.random(5, 20));
