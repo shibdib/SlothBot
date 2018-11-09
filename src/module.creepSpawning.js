@@ -342,9 +342,9 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     if (room.memory.hubContainer && !_.includes(queue, 'filler')) {
-        let amount = 2;
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'filler'));
-        if ((filler[0] && filler[0].ticksToLive < 100 && filler.length < amount + 1) || filler.length < amount) {
+        if ((filler[0] && filler[0].ticksToLive < 100 && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
         }
     }
