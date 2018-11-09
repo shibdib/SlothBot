@@ -19,16 +19,34 @@ module.exports.highCommand = function () {
     if (Memory._alliedRoomDefense) {
         Memory._alliedRoomDefense.forEach((r) => queueHelp(r));
     }
+    if (Memory._alliedRoomAttack) {
+        Memory._alliedRoomAttack.forEach((r) => queueAllyAttack(r));
+    }
 };
 
 function queueHelp(roomName) {
-    let range = Game.rooms[roomName].room.findClosestOwnedRoom(true);
     let cache = Memory.targetRooms || {};
-    if (!cache[roomName] && range && range <= 15) {
+    if (!cache[roomName]) {
+        let op = 'scout';
+        if (Memory.roomCache[roomName]) op = 'guard';
         log.e('~~ALLY REQUESTING HELP~~ Guard Patrol Requested For ' + roomName);
         cache[roomName] = {
             tick: Game.time,
-            type: 'guard',
+            type: op,
+            level: 1,
+            priority: 1
+        };
+    }
+    Memory.targetRooms = cache;
+}
+
+function queueAllyAttack(roomName) {
+    let cache = Memory.targetRooms || {};
+    if (!cache[roomName]) {
+        log.e('~~ALLY REQUESTING ATTACK~~ Attack Requested For ' + roomName);
+        cache[roomName] = {
+            tick: Game.time,
+            type: 'scout',
             level: 1,
             priority: 1
         };
