@@ -5,12 +5,13 @@ let _ = require('lodash');
 const profiler = require('screeps-profiler');
 
 function towerControl(room) {
-    let creeps = room.creeps;
+    let creeps = room.friendlyCreeps;
+    let hostileCreeps = room.hostileCreeps;
     let structures = room.structures;
     let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let armedHostile = _.filter(creeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1) && !_.includes(FRIENDLIES, s.owner.username));
-    let healers = _.filter(creeps, (s) => (s.getActiveBodyparts(HEAL) >= 3) && !_.includes(FRIENDLIES, s.owner.username));
-    let unArmedHostile = _.filter(creeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK)) && !_.includes(FRIENDLIES, s.owner.username));
+    let armedHostile = _.filter(hostileCreeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1) && !_.includes(FRIENDLIES, s.owner.username));
+    let healers = _.filter(hostileCreeps, (s) => (s.getActiveBodyparts(HEAL) >= 3) && !_.includes(FRIENDLIES, s.owner.username));
+    let unArmedHostile = _.filter(hostileCreeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK)) && !_.includes(FRIENDLIES, s.owner.username));
     towers:
         for (let tower of towers) {
             if (tower.room.memory.responseNeeded === true) {
@@ -18,8 +19,8 @@ function towerControl(room) {
                 if (armedHostile.length || unArmedHostile.length) {
                     for (let i = 0; i < armedHostile.length; i++) {
                         let inRangeHealers = _.filter(healers, (s) => s.pos.getRangeTo(armedHostile[i]) === 1);
-                        let inRangeResponders = _.filter(creeps, (c) => c.my && c.getActiveBodyparts(ATTACK) && c.pos.getRangeTo(armedHostile[i]) === 1);
-                        let inRangeLongbows = _.filter(creeps, (c) => c.my && c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(armedHostile[i]) < 4);
+                        let inRangeResponders = _.filter(creeps, (c) => c.getActiveBodyparts(ATTACK) && c.pos.getRangeTo(armedHostile[i]) === 1);
+                        let inRangeLongbows = _.filter(creeps, (c) => c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(armedHostile[i]) < 4);
                         let inRangeAttackPower = 0;
                         for (let key in inRangeResponders) {
                             inRangeAttackPower = inRangeAttackPower + (inRangeResponders[key].getActiveBodyparts(ATTACK) * 30)
@@ -45,7 +46,7 @@ function towerControl(room) {
                         tower.attack(unArmedHostile[0]);
                     }
                 }
-                let headShot = _.filter(creeps, (c) => c.hits <= 150 * towers.length && _.includes(FRIENDLIES, c.owner.username) === false);
+                let headShot = _.filter(hostileCreeps, (c) => c.hits <= 150 * towers.length && _.includes(FRIENDLIES, c.owner.username) === false);
                 if (headShot.length > 0) {
                     tower.attack(headShot[0]);
                     continue;
@@ -54,7 +55,7 @@ function towerControl(room) {
                     tower.attack(healers[0]);
                     continue;
                 }
-                let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username) === true);
+                let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax);
                 if (woundedCreep.length > 0) {
                     tower.heal(woundedCreep[0]);
                 }
