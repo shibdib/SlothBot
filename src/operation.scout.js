@@ -26,7 +26,15 @@ Creep.prototype.scoutRoom = function () {
     let countableStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTAINER);
     let lootStructures = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(s.store) > 0);
     let controller = this.room.controller;
-    if (controller && controller.owner && controller.owner.username === MY_USERNAME) return this.memory.recycle = true;
+    // Handle Allied Stuff
+    let ally;
+    if (controller && (controller.owner || controller.reservation)) {
+        // Recycle if my owned room
+        if (controller.owner && controller.owner.username === MY_USERNAME) return this.memory.recycle;
+        // Defend ally rooms
+        if (controller.owner && _.filter(FRIENDLIES, controller.owner.username)) ally = true;
+        if (controller.reservation && _.filter(FRIENDLIES, controller.reservation.username)) ally = true;
+    }
     // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
     let priority = 4;
@@ -37,7 +45,15 @@ Creep.prototype.scoutRoom = function () {
     let otherCreeps = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper');
     let armedHostiles = _.filter(otherCreeps, (c) => !c.my && (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && !_.includes(FRIENDLIES, c.owner.username));
     let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits > 1000);
-    if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) {
+    // Guard ally rooms
+    if (ally) {
+        cache[this.room.name] = {
+            tick: tick,
+            type: 'guard',
+            level: 1,
+            priority: 1
+        };
+    } else if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) {
         delete Memory.targetRooms[this.room.name];
         // If the room has no controller
         if (!controller) {
