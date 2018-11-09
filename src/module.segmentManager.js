@@ -35,6 +35,23 @@ function segmentManager() {
         }
         if (helpRequested) Memory._alliedRoomDefense = defenseArray; else Memory._alliedRoomDefense = undefined;
     }
+    if (attackNeeded && attackNeeded.length && JSON.stringify(attackNeeded) !== RawMemory.segments[23]) RawMemory.segments[23] = JSON.stringify(attackNeeded);
+    // Set segment as public/active
+    RawMemory.setPublicSegments([23]);
+    RawMemory.setActiveSegments([23]);
+    // Every 33 ticks check to see if friends need help or not and if they do store them in Memory._alliedRoomDefense in array format
+    if (Game.time % 33 === 0 && LOANlist && LOANlist.length) {
+        let helpRequested;
+        let attackArray = Memory._alliedRoomAttack || [];
+        for (let user of LOANlist) {
+            let allianceUserAttack = RawMemory.setActiveForeignSegment(user, 23);
+            if (allianceUserAttack && JSON.parse(allianceUserAttack).length) {
+                helpRequested = true;
+                JSON.parse(allianceUserAttack).forEach((r) => attackArray.push(r));
+            }
+        }
+        if (helpRequested) Memory._alliedRoomAttack = attackArray; else Memory._alliedRoomAttack = undefined;
+    }
 }
 
 module.exports.segmentManager = profiler.registerFN(segmentManager, 'segmentManager');
