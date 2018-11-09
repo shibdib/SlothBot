@@ -25,7 +25,7 @@ function queueHelp(roomName) {
     let range = Game.rooms[roomName].room.findClosestOwnedRoom(true);
     let cache = Memory.targetRooms || {};
     if (!cache[roomName] && range && range <= 15) {
-        log.e('ALLY REQUESTING HELP - Guard Patrol Requested For ' + roomName);
+        log.e('~~ALLY REQUESTING HELP~~ Guard Patrol Requested For ' + roomName);
         cache[roomName] = {
             tick: Game.time,
             type: 'guard',
