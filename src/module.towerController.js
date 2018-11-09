@@ -9,9 +9,9 @@ function towerControl(room) {
     let hostileCreeps = room.hostileCreeps;
     let structures = room.structures;
     let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let armedHostile = _.filter(hostileCreeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1) && !_.includes(FRIENDLIES, s.owner.username));
+    let armedHostile = _.filter(hostileCreeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1));
     let healers = _.filter(hostileCreeps, (s) => (s.getActiveBodyparts(HEAL) >= 3) && !_.includes(FRIENDLIES, s.owner.username));
-    let unArmedHostile = _.filter(hostileCreeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK)) && !_.includes(FRIENDLIES, s.owner.username));
+    let unArmedHostile = _.filter(hostileCreeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK)));
     towers:
         for (let tower of towers) {
             if (tower.room.memory.responseNeeded === true) {

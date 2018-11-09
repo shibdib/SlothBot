@@ -5,8 +5,8 @@ function segmentManager() {
     let doNotAggressArray;
     if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name)) {
         doNotAggressArray = LOANlist;
-        doNotAggressArray.concat(MANUAL_FRIENDS);
-        doNotAggressArray.push(MY_USERNAME);
+        doNotAggressArray = doNotAggressArray.concat(MANUAL_FRIENDS);
+        doNotAggressArray = doNotAggressArray.push(MY_USERNAME);
     } else {
         doNotAggressArray = [MY_USERNAME];
         doNotAggressArray = doNotAggressArray.concat(MANUAL_FRIENDS)
