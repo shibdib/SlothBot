@@ -341,14 +341,14 @@ module.exports.workerCreepQueue = function (room) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
         }
     }
-    if (room.memory.hubContainer && !_.includes(queue, 'filler')) {
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID));
+    if (level < 7 && !_.includes(queue, 'filler')) {
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.onContainer && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < 100 && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
         }
     }
-    if (level >= 3 && !_.includes(queue, 'courier')) {
+    if (level >= 9 && !_.includes(queue, 'courier')) {
         let amount = 0;
         let courier = _.filter(roomCreeps, (creep) => (creep.memory.role === 'courier'));
         if (courier.length < amount) {
