@@ -64,11 +64,11 @@ function operationRequests() {
     let enemyHarass, targetLimit;
     if (HOSTILES.length) {
         targetLimit = (surplusRooms + 5) - totalCountFiltered;
-        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, user)
+        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, r.user)
             && !Memory.targetRooms[r.name] && !r.owner);
     } else {
         targetLimit = surplusRooms - totalCountFiltered;
-        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, user)
+        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, r.user)
             && !Memory.targetRooms[r.name] && !r.owner);
     }
     if (enemyHarass.length) {
@@ -93,10 +93,10 @@ function operationRequests() {
     if (pokeCount < 10) {
         let enemyHarass;
         if (HOSTILES.length) {
-            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, user)
+            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, r.user)
                 && !Memory.targetRooms[r.name] && !r.owner);
         } else {
-            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, user)
+            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, r.user)
                 && !Memory.targetRooms[r.name] && !r.owner);
         }
         if (enemyHarass.length) {
@@ -240,7 +240,7 @@ module.exports.operationSustainability = function (room) {
     operation.trackedEnemy = trackedEnemy;
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'scout' && operation.type !== 'attack') ||
+    if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold') ||
         (operation.type === 'drain' && (operation.trackedFriendly.length >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time)) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');

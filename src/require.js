@@ -10,6 +10,7 @@ require('module.pathFinder');
 
 // Operations
 require("operation.scout");
+require("operation.claimScout");
 require("operation.clean");
 require("operation.harass");
 require("operation.drain");

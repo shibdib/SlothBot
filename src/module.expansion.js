@@ -10,6 +10,7 @@ module.exports.claimNewRoom = function () {
         loop1:
             for (let key in worthyRooms) {
                 let worthyName = worthyRooms[key].name;
+                // Check if it's near any owned rooms
                 for (let key in avoidRooms) {
                     let name = avoidRooms[key].name;
                     let distance = Game.map.findRoute(worthyName, name).length;
@@ -17,16 +18,59 @@ module.exports.claimNewRoom = function () {
                         continue loop1;
                     }
                 }
+                // Make sure it has at least 3 local remote sources
+                let neighboring = Game.map.describeExits(worthyName);
+                let sourceCount = 0;
+                let noIntel = true;
+                if (neighboring) {
+                    if (neighboring['1']) {
+                        if (!Memory.roomCache[neighboring['1']]) {
+                            sourceCount++;
+                        } else if (!Memory.roomCache[neighboring['1']].user) {
+                            noIntel = false;
+                            sourceCount += Memory.roomCache[neighboring['1']].sources.length;
+                        }
+                    }
+                    if (neighboring['3']) {
+                        if (!Memory.roomCache[neighboring['3']]) {
+                            sourceCount++;
+                        } else if (!Memory.roomCache[neighboring['3']].user) {
+                            noIntel = false;
+                            sourceCount += Memory.roomCache[neighboring['3']].sources.length;
+                        }
+                    }
+                    if (neighboring['5']) {
+                        if (!Memory.roomCache[neighboring['5']]) {
+                            sourceCount++;
+                        } else if (!Memory.roomCache[neighboring['5']].user) {
+                            noIntel = false;
+                            sourceCount += Memory.roomCache[neighboring['5']].sources.length;
+                        }
+                    }
+                    if (neighboring['7']) {
+                        if (!Memory.roomCache[neighboring['7']]) {
+                            sourceCount++;
+                        } else if (!Memory.roomCache[neighboring['7']].user) {
+                            noIntel = false;
+                            sourceCount += Memory.roomCache[neighboring['7']].sources.length;
+                        }
+                    }
+                }
+                if (sourceCount < 3 || noIntel) continue;
                 possibles[key] = worthyRooms[key];
             }
         let claimTarget = _.max(possibles, 'claimValue').name;
         if (claimTarget) {
-            delete Memory.roomCache[claimTarget].claimWorthy;
-            let closestRoom = Game.rooms[claimTarget].findClosestOwnedRoom();
-            Game.rooms[closestRoom].memory.claimTarget = claimTarget;
-            Memory.lastExpansion = Game.time;
-            log.i(claimTarget + ' - Has been marked for claiming');
-            Game.notify(claimTarget + ' - Has been marked for claiming');
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'claimScout',
+                manual: true,
+                priority: 1,
+                claim: true
+            };
+            Memory.targetRooms = cache;
         }
     }
     shib.shibBench('roomClaiming', cpu);

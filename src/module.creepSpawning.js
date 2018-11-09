@@ -711,6 +711,13 @@ module.exports.militaryCreepQueue = function () {
             }
             continue;
         }
+        //Claim Scouting
+        if (Memory.targetRooms[key].type === 'claimScout') {
+            let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
+            if (!claimScout.length < 3 && !_.includes(queue, 'claimScout')) {
+                queueMilitaryCreep(PRIORITIES.priority, {role: 'claimScout', targetRoom: key})
+            }
+        }
         //Room Scouting
         if (Memory.targetRooms[key].type === 'attack' || Memory.targetRooms[key].type === 'scout') {
             let totalScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');

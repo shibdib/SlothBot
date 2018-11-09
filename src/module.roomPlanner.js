@@ -202,7 +202,7 @@ function findHub(room) {
         if (!_.includes(searched, clean)) {
             searched.push(clean);
             room.memory.newHubSearch = hubSearch + 1;
-            let controller = this.room.controller;
+            let controller = room.controller;
             let closestSource = pos.findClosestByRange(FIND_SOURCES);
             let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 4, pos.x + 5, true);
             let wall = false;
