@@ -6,7 +6,7 @@ let globals = function () {
 
     global.HOSTILES = ['weekOff'];
 
-    global.NO_AGGRESSION = ['x3mka'];
+    global.NO_AGGRESSION = ['helmut'];
 
     global.MANUAL_FRIENDS = [];
 
