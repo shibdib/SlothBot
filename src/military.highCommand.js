@@ -37,8 +37,7 @@ function queueHelp(roomName) {
 }
 
 function operationRequests() {
-    let totalCount = _.size(Memory.targetRooms) || 0;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard') || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout').length || 0;
     let totalRooms = Memory.ownedRooms.length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Local targets
@@ -62,30 +61,44 @@ function operationRequests() {
         }
     }
     // Harass Targets
-    if (totalCountFiltered < surplusRooms || !totalCountFiltered) {
-        let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
-            ((r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget));
-        if (enemyHarass.length) {
-            for (let target of enemyHarass) {
-                if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
-                let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-                if (lastOperation !== 0 && lastOperation + 2000 > Game.time) continue;
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[target.name] = {
-                    tick: tick,
-                    type: 'attack'
-                };
-                Memory.targetRooms = cache;
-                break;
-            }
+    let enemyHarass, targetLimit;
+    if (HOSTILES.length) {
+        targetLimit = (surplusRooms + 5) - totalCountFiltered;
+        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, user)
+            && !Memory.targetRooms[r.name] && !r.owner);
+    } else {
+        targetLimit = surplusRooms - totalCountFiltered;
+        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, user)
+            && !Memory.targetRooms[r.name] && !r.owner);
+    }
+    if (enemyHarass.length) {
+        for (let target of enemyHarass) {
+            if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
+            let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+            if (lastOperation !== 0 && lastOperation + 2000 > Game.time) continue;
+            if (totalCountFiltered >= targetLimit) break;
+            totalCountFiltered++;
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[target.name] = {
+                tick: tick,
+                type: 'attack'
+            };
+            Memory.targetRooms = cache;
+            break;
         }
     }
     // Pokes
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     if (pokeCount < 10) {
-        let enemyHarass = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 10000 && !Memory.targetRooms[r.name] &&
-            ((r.reservation && !_.includes(FRIENDLIES, r.reservation)) || r.potentialTarget));
+        let enemyHarass;
+        if (HOSTILES.length) {
+            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, user)
+                && !Memory.targetRooms[r.name] && !r.owner);
+        } else {
+            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, user)
+                && !Memory.targetRooms[r.name] && !r.owner);
+        }
         if (enemyHarass.length) {
             for (let target of enemyHarass) {
                 if (Memory.targetRooms[target.name]) continue;

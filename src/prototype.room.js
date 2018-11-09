@@ -248,7 +248,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let owner, reservation, reservationTick, level, hostiles, nonCombats, sk, towers, claimValue, claimWorthy,
-        needsCleaning, power, abandoned, portal, hub;
+        needsCleaning, power, abandoned, portal, user;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
@@ -299,6 +299,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let potentialTarget;
         if (!owner && nonCombats.length >= 2) potentialTarget = true;
         if (owner && !spawns) abandoned = true;
+        user = room.controller.owner || room.controller.reservation;
+        if (user) user = user.username; else if (_.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader')[0].owner.username;
         let key = room.name;
         if (Memory.roomCache && Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
@@ -319,7 +321,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             claimValue: claimValue,
             claimWorthy: claimWorthy,
             needsCleaning: needsCleaning,
-            potentialTarget: potentialTarget
+            potentialTarget: potentialTarget,
+            user: user
         };
         Memory.roomCache = cache;
         Memory.roomCache[this.name].lastIntelCache = Game.time;

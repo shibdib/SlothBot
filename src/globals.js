@@ -4,7 +4,7 @@ let globals = function () {
 
     global.log = new Log();
 
-    global.HOSTILES = [];
+    global.HOSTILES = ['weekOff'];
 
     global.NO_AGGRESSION = ['x3mka'];
 
