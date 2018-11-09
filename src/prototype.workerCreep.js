@@ -1,8 +1,8 @@
 const profiler = require('screeps-profiler');
 
 wrongRoom = function () {
-    if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 15});
+    if (Game.time % 25 === 0 && this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
+        this.memory.recycle = true;
         return true;
     }
 };
