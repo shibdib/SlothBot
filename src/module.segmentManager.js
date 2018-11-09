@@ -35,6 +35,7 @@ function segmentManager() {
         }
         if (helpRequested) Memory._alliedRoomDefense = defenseArray; else Memory._alliedRoomDefense = undefined;
     }
+    let attackNeeded;
     if (attackNeeded && attackNeeded.length && JSON.stringify(attackNeeded) !== RawMemory.segments[23]) RawMemory.segments[23] = JSON.stringify(attackNeeded);
     // Set segment as public/active
     RawMemory.setPublicSegments([23]);
