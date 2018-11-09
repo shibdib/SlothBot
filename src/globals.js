@@ -15,8 +15,6 @@ let globals = function () {
     global.POKE_ATTACKS = true;
     global.ATTACK_COOLDOWN = 2500; //Time between attacks on a room
 
-    global.FRIENDLIES = RawMemory.segments[2];
-
     global.TEN_CPU = Game.cpu.limit === 20;
 
     //Signing
