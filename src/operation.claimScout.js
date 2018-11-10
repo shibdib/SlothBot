@@ -3,7 +3,7 @@ Creep.prototype.claimScout = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // If room is no longer a target
-    if (!Memory.targetRooms[this.room.name]) return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle = true;
     // Cache intel
     this.room.cacheRoomIntel();
     // Travel to room

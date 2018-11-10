@@ -23,7 +23,7 @@ Creep.prototype.borderPatrol = function () {
         // Handle border
         if (this.borderCheck()) return;
         // Check for squad
-        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.id !== this.id);
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         if (!squadMember.length) return this.handleMilitaryCreep(false, false);
         if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         // Heal squad
@@ -53,7 +53,7 @@ Creep.prototype.borderPatrol = function () {
         if (this.room.name === leader.room.name) {
             let moveRange = 0;
             let ignore = true;
-            if (this.pos.x === 0 || this.pos.x === 49 || this.pos.y === 0 || this.pos.y === 49 || this.pos.getRangeTo(leader) > 1) {
+            if (this.pos.x === 0 || this.pos.x === 49 || this.pos.y === 0 || this.pos.y === 49 || this.pos.getRangeTo(leader) > 2) {
                 moveRange = 1;
                 ignore = false;
             }

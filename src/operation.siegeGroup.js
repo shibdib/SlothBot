@@ -25,7 +25,7 @@ Creep.prototype.siegeGroupRoom = function () {
         // Handle border
         if (this.borderCheck()) return;
         // Check for squad
-        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.id !== this.id);
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         if (!squadMember.length) return this.handleMilitaryCreep(false, false);
         if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         // If military action required do that
