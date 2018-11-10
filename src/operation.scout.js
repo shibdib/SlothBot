@@ -32,8 +32,8 @@ Creep.prototype.scoutRoom = function () {
         // Recycle if my owned room
         if (controller.owner && controller.owner.username === MY_USERNAME) return this.memory.recycle;
         // Defend ally rooms
-        if (controller.owner && _.filter(FRIENDLIES, controller.owner.username)) ally = true;
-        if (controller.reservation && _.filter(FRIENDLIES, controller.reservation.username)) ally = true;
+        if (controller.owner && _.includes(FRIENDLIES, controller.owner.username)) ally = true;
+        if (controller.reservation && _.includes(FRIENDLIES, controller.reservation.username)) ally = true;
     }
     // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
