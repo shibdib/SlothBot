@@ -63,12 +63,10 @@ module.exports.claimNewRoom = function () {
         if (claimTarget) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
-            cache[Game.flags[name].pos.roomName] = {
+            cache[claimTarget] = {
                 tick: tick,
                 type: 'claimScout',
-                manual: true,
-                priority: 1,
-                claim: true
+                priority: 1
             };
             Memory.targetRooms = cache;
         }

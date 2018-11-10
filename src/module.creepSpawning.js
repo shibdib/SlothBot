@@ -714,8 +714,8 @@ module.exports.militaryCreepQueue = function () {
         //Claim Scouting
         if (Memory.targetRooms[key].type === 'claimScout') {
             let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
-            if (!claimScout.length < 3 && !_.includes(queue, 'claimScout')) {
-                queueMilitaryCreep(PRIORITIES.priority, {role: 'claimScout', targetRoom: key})
+            if (!claimScout.length && !_.includes(queue, 'claimScout')) {
+                queueMilitaryCreep(PRIORITIES.priority, {role: 'claimScout', targetRoom: key, military: true})
             }
         }
         //Room Scouting

@@ -384,6 +384,7 @@ Creep.prototype.repairRoad = function () {
 
 //Find spawn and recycle
 Creep.prototype.recycleCreep = function () {
+    if (this.borderCheck()) return;
     if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
     let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
     if (!spawn.length) return;

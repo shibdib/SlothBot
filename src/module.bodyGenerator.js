@@ -9,6 +9,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'scout':
             move = 1;
             break;
+        case 'claimScout':
+            move = 1;
+            break;
         case 'observer':
             move = 1;
             break;
