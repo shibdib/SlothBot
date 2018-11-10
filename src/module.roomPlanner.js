@@ -173,6 +173,9 @@ function buildFromLayout(room) {
             room.memory.controllerLink = controllerLink.id;
         }
     }
+    // Cleanup
+    let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
+    if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
 }
 
 function findHub(room) {
