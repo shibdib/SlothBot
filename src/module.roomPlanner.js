@@ -131,9 +131,10 @@ function buildFromLayout(room) {
             }
             // Mineral Roads/Harvester
             if (level >= 6) {
+                let mineral = room.find(FIND_MINERALS)[0];
                 let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
-                if (!room.mineral.pos.checkForAllStructure().length && !room.mineral.pos.checkForConstructionSites()) room.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-                buildRoadAround(room, room.mineral.pos);
+                if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+                buildRoadAround(room, mineral.pos);
                 buildRoadFromTo(room, spawn, mineral);
             }
         }
