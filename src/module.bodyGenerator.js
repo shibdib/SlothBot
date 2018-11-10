@@ -55,7 +55,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = _.round((work + carry) / 2);
             break;
         case 'upgrader':
-            if (!room.memory.controllerContainer) {
+            if (!room.memory.controllerContainer || level < 4) {
                 work = level + 1;
                 carry = 1;
                 move = work + carry;
@@ -64,7 +64,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 let multi = 1.25;
                 if (room.memory.state > 1) multi = 2.5;
                 if (room.memory.state > 2) multi = 3;
-                if (level < 4) multi = 1;
                 work = _.round((multi * level) + 1);
                 carry = 1;
                 move = 2;

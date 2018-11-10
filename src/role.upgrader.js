@@ -16,16 +16,15 @@ module.exports.role = function (creep) {
     }
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) return creep.memory.working = true;
     if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
-    if (!creep.memory.onContainer) {
-        let container = Game.getObjectById(creep.room.memory.controllerContainer);
-        if (container && !container.pos.checkForCreep() && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
-    } else creep.memory.onContainer = true;
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
         creep.upgradeController(Game.rooms[creep.memory.overlord].controller)
-    } else if (creep.room.memory.controllerContainer) {
+    } else if (creep.room.memory.controllerContainer && (creep.room.controller.level >= 4 || Game.getObjectById(creep.room.memory.controllerContainer).store[RESOURCE_ENERGY])) {
         let container = Game.getObjectById(creep.room.memory.controllerContainer);
         if (!container) return delete creep.room.memory.controllerContainer;
+        if (!creep.memory.onContainer) {
+            if (container && !container.pos.checkForCreep() && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
+        } else creep.memory.onContainer = true;
         if (container.store[RESOURCE_ENERGY] > 0) {
             switch (creep.withdraw(container, RESOURCE_ENERGY)) {
                 case OK:
