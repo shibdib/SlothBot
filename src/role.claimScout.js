@@ -5,7 +5,7 @@
 const profiler = require('screeps-profiler');
 
 function role(creep) {
-    creep.scoutRoom();
+    creep.claimScout();
 }
 
 module.exports.role = profiler.registerFN(role, 'scoutRole');
