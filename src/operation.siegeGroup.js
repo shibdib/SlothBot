@@ -1,20 +1,27 @@
+/*
+ * Copyright (c) 2018.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
-Creep.prototype.rangersRoom = function () {
-    let sentence = [ICONS.respond, 'SWAT', 'TEAM'];
+Creep.prototype.siegeGroupRoom = function () {
+    let sentence = [ICONS.respond];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
     if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
-        if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.memory.squadLeader);
+        if (!squadLeader.length && this.memory.role === 'breacher') this.memory.squadLeader = true; else if (squadLeader.length) this.memory.leader = squadLeader[0].id;
     }
     // Handle squad leader
     if (this.memory.squadLeader) {
         // Sustainability
         if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
         highCommand.threatManagement(this);
-        levelManager(this);
+        //levelManager(this);
         // Handle border
         if (this.borderCheck()) return;
         // Check for squad
@@ -23,9 +30,8 @@ Creep.prototype.rangersRoom = function () {
         if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         // If military action required do that
         if (this.handleMilitaryCreep(false, false)) return;
-        // Heal squad
-        let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
-        if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
+        // Heal
+        if (this.hits < this.hitsMax) this.heal(this);
         // Move to response room if needed
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
         if (!this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 17})) return this.idleFor(5);
@@ -45,7 +51,7 @@ Creep.prototype.rangersRoom = function () {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
         }
         // Heal squadmates
-        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.id !== this.id);
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.id !== this.id);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);

@@ -755,6 +755,29 @@ module.exports.militaryCreepQueue = function () {
                 })
             }
         }
+        // Group Siege
+        if (Memory.targetRooms[key].type === 'siegeGroup') {
+            let siegeEngines = 1;
+            let healers = 2;
+            let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine' && creep.memory.operation === 'siegeGroup');
+            if ((siegeEngine.length < siegeEngines || (siegeEngine[0] && siegeEngine[0].ticksToLive <= 500 && siegeEngine.length < siegeEngines + 1)) && !_.includes(queue, 'siegeEngine')) {
+                queueMilitaryCreep(priority, {
+                    role: 'siegeEngine',
+                    targetRoom: key,
+                    operation: 'siegeGroup',
+                    military: true
+                })
+            }
+            let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer' && creep.memory.operation === 'siegeGroup');
+            if ((healer.length < healers || (healer[0] && healer[0].ticksToLive <= 125 && healer.length < healers + 1)) && !_.includes(queue, 'healer') && breacher.length) {
+                queueMilitaryCreep(priority, {
+                    role: 'healer',
+                    targetRoom: key,
+                    operation: 'siegeGroup',
+                    military: true
+                })
+            }
+        }
         // Clean
         if (Memory.targetRooms[key].type === 'clean') {
             let deconstructors = 1;

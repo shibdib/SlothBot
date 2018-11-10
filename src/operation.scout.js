@@ -105,8 +105,8 @@ Creep.prototype.scoutRoom = function () {
                 }
                 // If owned room has tower
             } else {
-                // If we dont have any level 8 rooms
-                if (maxLevel < 8) {
+                // If we dont have any level 6+ rooms
+                if (maxLevel < 6) {
                     // If there's one tower send in the conscripts
                     if (towers.length < 2) {
                         cache[this.room.name] = {
@@ -133,14 +133,23 @@ Creep.prototype.scoutRoom = function () {
                             priority: priority
                         };
                     }
-                    // If we do have level 8 rooms
+                    // If we do have level 6+ rooms
                 } else {
-                    cache[this.room.name] = {
-                        tick: tick,
-                        type: 'siege',
-                        level: towers.length,
-                        priority: priority
-                    };
+                    if (towers.length < 2) {
+                        cache[this.room.name] = {
+                            tick: tick,
+                            type: 'siegeGroup',
+                            level: 1,
+                            priority: priority
+                        };
+                    } else if (maxLevel === 8) {
+                        cache[this.room.name] = {
+                            tick: tick,
+                            type: 'siege',
+                            level: 1,
+                            priority: priority
+                        };
+                    }
                 }
             }
             // If the room is unowned

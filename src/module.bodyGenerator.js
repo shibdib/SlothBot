@@ -178,7 +178,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'healer':
             tough = 2;
             heal = level - 1;
-            if (level >= 5) heal = level;
+            if (level >= 5) heal = level + 1;
             if (level >= 7) heal = 15;
             move = tough + heal;
             break;
@@ -245,11 +245,20 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work;
             break;
         case 'siegeEngine':
-            if (level < 7) break;
-            tough = 10;
-            attack = 10;
-            rangedAttack = 5;
-            move = tough + attack + rangedAttack;
+            if (level >= 7) {
+                tough = 10;
+                attack = 10;
+                rangedAttack = 5;
+                move = tough + attack + rangedAttack;
+            } else {
+                tough = _.round(0.5 * level);
+                attack = _.round(0.5 * level);
+                if (level > 3) {
+                    attack = level + 1;
+                    rangedAttack = 1;
+                }
+                move = tough + attack + rangedAttack;
+            }
             break;
         case 'siegeHealer':
             if (level < 8) break;

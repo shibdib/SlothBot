@@ -7,9 +7,8 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['tough', 'attack', 'ranged']);
-    let alliedCreep = _.filter(creep.room.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner));
-    if (!creep.pos.findInRange(alliedCreep, 3)[0] && creep.getActiveBodyparts(RANGED_ATTACK) > 0) creep.rangedMassAttack();
-    creep.siegeRoom();
+    if (creep.memory.operation === 'siege') return creep.siegeRoom();
+    if (creep.memory.operation === 'siegeGroup') return creep.siegeGroupRoom();
 }
 
 module.exports.role = profiler.registerFN(role, 'siegeEngine');
