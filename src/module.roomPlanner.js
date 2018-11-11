@@ -230,6 +230,7 @@ function findHub(room) {
             let terrain;
             if (room.memory.typeSearch === 1) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 4, pos.x + 5, true);
             if (room.memory.typeSearch === 2) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 4, pos.x - 9, pos.y - 5, pos.x + 8, true);
+            if (room.memory.typeSearch === 3) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 5, pos.x - 9, pos.y - 5, pos.x + 9, true);
             let wall = false;
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
