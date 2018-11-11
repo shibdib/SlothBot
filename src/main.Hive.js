@@ -80,7 +80,7 @@ function mind() {
     }
 
     //Expansion Manager
-    if (Game.time % 150 === 0) {
+    if (Game.time % 50 === 0) {
         let overlordCount = Memory.ownedRooms.length;
         let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
         let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
