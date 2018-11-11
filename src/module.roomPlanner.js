@@ -29,6 +29,10 @@ function layoutRoom(room) {
         buildTemplate = template4;
         yVar = 25;
         xVar = 25;
+    } else if (room.memory.bunkerType === 5) {
+        buildTemplate = template5;
+        yVar = 25;
+        xVar = 25;
     }
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     let xOffset = difference(hub.x, xVar);
@@ -219,6 +223,10 @@ function findHub(room) {
                 room.memory.typeSearch = 4;
                 room.memory.newHubSearch = undefined;
                 return false;
+            } else if (room.memory.typeSearch === 4) {
+                room.memory.typeSearch = 5;
+                room.memory.newHubSearch = undefined;
+                return false;
             }
             if (!room.memory.extensionHub) abandonRoom(room.name); else {
                 room.memory.noBunkerPos = true;
@@ -243,6 +251,7 @@ function findHub(room) {
             if (room.memory.typeSearch === 2) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 4, pos.x - 9, pos.y - 5, pos.x + 8, true);
             if (room.memory.typeSearch === 3) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 5, pos.x - 9, pos.y - 5, pos.x + 9, true);
             if (room.memory.typeSearch === 4) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 7, pos.x - 10, pos.y + 7, pos.x + 10, true);
+            if (room.memory.typeSearch === 5) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 6, pos.x - 6, pos.y + 6, pos.x - 6, true);
             let wall = false;
             for (let key in terrain) {
                 let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
@@ -753,6 +762,106 @@ let template4 = [
         "type": STRUCTURE_STORAGE,
         "pos": [{"x": 27, "y": 27}]
     }, {"type": STRUCTURE_NUKER, "pos": [{"x": 33, "y": 33}]}
+];
+
+let template5 = [
+    {
+        "type": STRUCTURE_RAMPART,
+        "pos": [{"x": 22, "y": 18}, {"x": 23, "y": 18}, {"x": 24, "y": 18}, {"x": 25, "y": 18}, {
+            "x": 26,
+            "y": 18
+        }, {"x": 21, "y": 19}, {"x": 22, "y": 19}, {"x": 26, "y": 19}, {"x": 27, "y": 19}, {"x": 20, "y": 20}, {
+            "x": 21,
+            "y": 20
+        }, {"x": 27, "y": 20}, {"x": 28, "y": 20}, {"x": 19, "y": 21}, {"x": 20, "y": 21}, {"x": 28, "y": 21}, {
+            "x": 29,
+            "y": 21
+        }, {"x": 18, "y": 22}, {"x": 19, "y": 22}, {"x": 29, "y": 22}, {"x": 30, "y": 22}, {"x": 18, "y": 23}, {
+            "x": 30,
+            "y": 23
+        }, {"x": 31, "y": 23}, {"x": 18, "y": 24}, {"x": 31, "y": 24}, {"x": 32, "y": 24}, {"x": 18, "y": 25}, {
+            "x": 32,
+            "y": 25
+        }, {"x": 18, "y": 26}, {"x": 19, "y": 26}, {"x": 20, "y": 26}, {"x": 32, "y": 26}, {"x": 20, "y": 27}, {
+            "x": 21,
+            "y": 27
+        }, {"x": 32, "y": 27}, {"x": 21, "y": 28}, {"x": 31, "y": 28}, {"x": 32, "y": 28}, {"x": 21, "y": 29}, {
+            "x": 22,
+            "y": 29
+        }, {"x": 23, "y": 29}, {"x": 30, "y": 29}, {"x": 31, "y": 29}, {"x": 23, "y": 30}, {"x": 24, "y": 30}, {
+            "x": 29,
+            "y": 30
+        }, {"x": 30, "y": 30}, {"x": 24, "y": 31}, {"x": 28, "y": 31}, {"x": 29, "y": 31}, {"x": 24, "y": 32}, {
+            "x": 25,
+            "y": 32
+        }, {"x": 26, "y": 32}, {"x": 27, "y": 32}, {"x": 28, "y": 32}]
+    }, {
+        "type": STRUCTURE_EXTENSION,
+        "pos": [{"x": 23, "y": 19}, {"x": 24, "y": 19}, {"x": 25, "y": 19}, {"x": 22, "y": 20}, {
+            "x": 23,
+            "y": 20
+        }, {"x": 25, "y": 20}, {"x": 26, "y": 20}, {"x": 21, "y": 21}, {"x": 22, "y": 21}, {"x": 24, "y": 21}, {
+            "x": 26,
+            "y": 21
+        }, {"x": 27, "y": 21}, {"x": 20, "y": 22}, {"x": 21, "y": 22}, {"x": 23, "y": 22}, {"x": 25, "y": 22}, {
+            "x": 27,
+            "y": 22
+        }, {"x": 28, "y": 22}, {"x": 19, "y": 23}, {"x": 20, "y": 23}, {"x": 22, "y": 23}, {"x": 26, "y": 23}, {
+            "x": 28,
+            "y": 23
+        }, {"x": 29, "y": 23}, {"x": 19, "y": 24}, {"x": 21, "y": 24}, {"x": 27, "y": 24}, {"x": 29, "y": 24}, {
+            "x": 30,
+            "y": 24
+        }, {"x": 19, "y": 25}, {"x": 20, "y": 25}, {"x": 22, "y": 25}, {"x": 28, "y": 25}, {"x": 30, "y": 25}, {
+            "x": 31,
+            "y": 25
+        }, {"x": 21, "y": 26}, {"x": 23, "y": 26}, {"x": 29, "y": 26}, {"x": 31, "y": 26}, {"x": 22, "y": 27}, {
+            "x": 24,
+            "y": 27
+        }, {"x": 28, "y": 27}, {"x": 30, "y": 27}, {"x": 31, "y": 27}, {"x": 22, "y": 28}, {"x": 23, "y": 28}, {
+            "x": 25,
+            "y": 28
+        }, {"x": 27, "y": 28}, {"x": 29, "y": 28}, {"x": 30, "y": 28}, {"x": 24, "y": 29}, {"x": 26, "y": 29}, {
+            "x": 28,
+            "y": 29
+        }, {"x": 29, "y": 29}, {"x": 25, "y": 30}, {"x": 27, "y": 30}, {"x": 28, "y": 30}, {"x": 25, "y": 31}, {
+            "x": 26,
+            "y": 31
+        }, {"x": 27, "y": 31}]
+    }, {
+        "type": STRUCTURE_ROAD,
+        "pos": [{"x": 24, "y": 20}, {"x": 23, "y": 21}, {"x": 25, "y": 21}, {"x": 22, "y": 22}, {
+            "x": 24,
+            "y": 22
+        }, {"x": 26, "y": 22}, {"x": 21, "y": 23}, {"x": 27, "y": 23}, {"x": 20, "y": 24}, {"x": 22, "y": 24}, {
+            "x": 26,
+            "y": 24
+        }, {"x": 28, "y": 24}, {"x": 21, "y": 25}, {"x": 25, "y": 25}, {"x": 27, "y": 25}, {"x": 29, "y": 25}, {
+            "x": 22,
+            "y": 26
+        }, {"x": 24, "y": 26}, {"x": 28, "y": 26}, {"x": 30, "y": 26}, {"x": 23, "y": 27}, {"x": 25, "y": 27}, {
+            "x": 27,
+            "y": 27
+        }, {"x": 29, "y": 27}, {"x": 24, "y": 28}, {"x": 26, "y": 28}, {"x": 28, "y": 28}, {"x": 25, "y": 29}, {
+            "x": 27,
+            "y": 29
+        }, {"x": 26, "y": 30}]
+    }, {
+        "type": STRUCTURE_SPAWN,
+        "pos": [{"x": 26, "y": 25}, {"x": 25, "y": 26}, {"x": 26, "y": 26}]
+    }, {"type": STRUCTURE_OBSERVER, "pos": [{"x": 23, "y": 24}]}, {
+        "type": STRUCTURE_TERMINAL,
+        "pos": [{"x": 26, "y": 27}]
+    }, {
+        "type": STRUCTURE_TOWER,
+        "pos": [{"x": 23, "y": 23}, {"x": 25, "y": 23}, {"x": 24, "y": 24}, {"x": 25, "y": 24}, {
+            "x": 23,
+            "y": 25
+        }, {"x": 24, "y": 25}]
+    }, {"type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]}, {
+        "type": STRUCTURE_STORAGE,
+        "pos": [{"x": 27, "y": 26}]
+    }, {"type": STRUCTURE_NUKER, "pos": [{"x": 24, "y": 23}]}
 ];
 
 let protectedStructures = [
