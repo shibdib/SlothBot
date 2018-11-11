@@ -15,6 +15,7 @@ Creep.prototype.claimScout = function () {
     if (this.room.controller && !this.room.controller.owner && !this.room.controller.reservation && !this.findClosestEnemy()) {
         let closestRoom = this.room.findClosestOwnedRoom();
         Game.rooms[closestRoom].memory.claimTarget = this.room.name;
+        this.room.memory = undefined;
         Memory.lastExpansion = Game.time;
         log.i(this.room.name + ' - Has been marked for claiming');
         Game.notify(this.room.name + ' - Has been marked for claiming');
