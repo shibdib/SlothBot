@@ -78,7 +78,7 @@ function mind() {
         }
         processed++;
     }
-
+    
     //Expansion Manager
     if (Game.time % 150 === 0) {
         let overlordCount = Memory.ownedRooms.length;
