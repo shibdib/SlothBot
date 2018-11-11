@@ -14,7 +14,7 @@ module.exports.claimNewRoom = function () {
                 for (let key in avoidRooms) {
                     let name = avoidRooms[key].name;
                     let distance = Game.map.findRoute(worthyName, name).length;
-                    if (distance < 2 || distance > 10 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my) || (Memory.noClaim && _.includes(Memory.noClaim, worthyName))) {
+                    if (distance < 2 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my) || (Memory.noClaim && _.includes(Memory.noClaim, worthyName))) {
                         continue loop1;
                     }
                 }

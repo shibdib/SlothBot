@@ -11,8 +11,10 @@ Creep.prototype.claimScout = function () {
         range: 23,
         offRoad: true
     });
+    // Make sure it's not super far away
+    let range = this.room.findClosestOwnedRoom(true);
     // Determine if room is still suitable
-    if (this.room.controller && !this.room.controller.owner && !this.room.controller.reservation && !this.findClosestEnemy()) {
+    if (this.room.controller && !this.room.controller.owner && !this.room.controller.reservation && !this.findClosestEnemy() && range <= 10) {
         let closestRoom = this.room.findClosestOwnedRoom();
         Game.rooms[closestRoom].memory.claimTarget = this.room.name;
         this.room.memory = undefined;
