@@ -39,7 +39,10 @@ module.exports.overlordMind = function (room) {
         log.d('Room Building Module');
         // Request builders
         requestBuilders(room);
-        if (room.memory.extensionHub || room.memory.noBunkerPos) {
+        // Fix broken
+        if (room.memory.bunkerHub && room.memory.extensionHub) room.memory.extensionHub = undefined;
+        // Backwards compatible
+        if (room.memory.extensionHub) {
             try {
                 bunkerConversion(room);
                 room.buildRoom();
