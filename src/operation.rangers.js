@@ -44,7 +44,7 @@ Creep.prototype.rangersRoom = function () {
         } else {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
         }
-        // Heal squadmates
+        // Heal squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.id !== this.id);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
