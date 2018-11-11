@@ -99,7 +99,7 @@ function cleanDistanceCacheByAge() {
 }
 
 function cleanDistanceCacheByUsage() {
-    if (Memory._distanceCache) { //1500 entries ~= 100kB
+    if (Memory._distanceCache) {  //1500 entries ~= 100kB
         let cache;
         try {
             cache = JSON.parse(Memory._distanceCache);
