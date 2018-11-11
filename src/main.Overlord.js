@@ -339,7 +339,7 @@ abandonRoom = function (room) {
 };
 
 function bunkerConversion(room) {
-    if (room.memory.noBunkerPos) return;
+    //if (room.memory.noBunkerPos) return;
     if (!room.memory.readyToConvert && !room.memory.bunkerHub && planner.hubCheck(room)) room.memory.readyToConvert = true; else if (room.memory.newHubSearch >= 5000) room.memory.notConvertable = true;
     if (!room.memory.readyToConvert || !_.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded).length || !_.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded).length || _.size(Game.constructionSites) > 70 || !room.memory.bunkerHub) return;
     room.memory.buildersNeeded = true;
@@ -347,7 +347,7 @@ function bunkerConversion(room) {
     delete room.memory.bunkerComplete;
     delete room.memory.bunkerPos;
     for (let key in room.structures) {
-        room.structures[key].destroy();
+        if (room.structures[key].structureType !== STRUCTURE_CONTAINER || room.structures[key].structureType !== STRUCTURE_STORAGE) room.structures[key].destroy();
     }
     for (let key in room.constructionSites) {
         room.constructionSites[key].remove();
