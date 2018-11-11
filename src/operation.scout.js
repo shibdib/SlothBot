@@ -15,11 +15,6 @@ Creep.prototype.scoutRoom = function () {
         return this.memory.recycle = true;
     }
     Memory.roomCache[this.room.name].lastOperation = Game.time;
-    // Get current operations
-    let totalCount = 0;
-    if (_.size(Memory.targetRooms)) totalCount = _.size(_.filter(Memory.targetRooms, (t) => t.type !== 'attack' && t.type !== 'pending' && t.type !== 'poke' && t.type !== 'guard'));
-    // Get available rooms
-    let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
     // Get room details
     let towers = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive());
@@ -53,7 +48,7 @@ Creep.prototype.scoutRoom = function () {
             level: 1,
             priority: 1
         };
-    } else if (totalCount < surplusRooms || priority === 1 || Memory.targetRooms[this.room.name].local || !totalCount) {
+    } else {
         delete Memory.targetRooms[this.room.name];
         // If the room has no controller
         if (!controller) {

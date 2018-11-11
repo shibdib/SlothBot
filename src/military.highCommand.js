@@ -82,13 +82,10 @@ function operationRequests() {
     let enemyHarass, targetLimit;
     if (HOSTILES.length) {
         targetLimit = (surplusRooms + 5) - totalCountFiltered;
-        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, r.user)
-            && !Memory.targetRooms[r.name]);
-        console.log(JSON.stringify(enemyHarass))
+        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && _.includes(HOSTILES, r.user) && !Memory.targetRooms[r.name]);
     } else {
         targetLimit = surplusRooms - totalCountFiltered;
-        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, r.user)
-            && !Memory.targetRooms[r.name] && !r.owner);
+        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.owner);
     }
     if (enemyHarass.length) {
         for (let target of enemyHarass) {
