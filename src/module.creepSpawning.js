@@ -220,7 +220,7 @@ function roomStartup(room, roomCreeps) {
     let queue = roomQueue[room.name];
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length < 2) {
-        queueCreep(room, 2 + (harvesters.length * 2), {role: 'stationaryHarvester'})
+        queueCreep(room, 2, {role: 'stationaryHarvester'})
     }
     let pawn = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
     if (pawn.length < 1) {

@@ -12,25 +12,25 @@ module.exports.hubCheck = function (room) {
 
 function layoutRoom(room) {
     if (!_.size(room.memory.bunkerHub)) return findHub(room);
-    if (!room.memory.bunkerType) room.memory.bunkerType = 1;
+    if (!room.memory.bunkerVersion) room.memory.bunkerType = 1;
     let yVar, xVar, buildTemplate;
-    if (room.memory.bunkerType === 1) {
+    if (room.memory.bunkerVersion === 1) {
         buildTemplate = template;
         yVar = 16;
         xVar = 15;
-    } else if (room.memory.bunkerType === 2) {
+    } else if (room.memory.bunkerVersion === 2) {
         buildTemplate = template2;
         yVar = 25;
         xVar = 25;
-    } else if (room.memory.bunkerType === 3) {
+    } else if (room.memory.bunkerVersion === 3) {
         buildTemplate = template3;
         yVar = 25;
         xVar = 25;
-    } else if (room.memory.bunkerType === 4) {
+    } else if (room.memory.bunkerVersion === 4) {
         buildTemplate = template4;
         yVar = 25;
         xVar = 25;
-    } else if (room.memory.bunkerType === 5) {
+    } else if (room.memory.bunkerVersion === 5) {
         buildTemplate = template5;
         yVar = 25;
         xVar = 25;
@@ -55,7 +55,7 @@ function layoutRoom(room) {
 }
 
 function buildFromLayout(room) {
-    if (!room.memory.bunkerType) room.memory.bunkerType = 1;
+    if (!room.memory.bunkerVersion) room.memory.bunkerVersion = 1;
     let level = room.controller.level;
     let layout = JSON.parse(room.memory.layout);
     let extensionLevel = getLevel(room);
@@ -207,29 +207,41 @@ function buildFromLayout(room) {
 
 function findHub(room) {
     if (room.memory.bunkerHub) return;
+    let pos;
     if (!room.memory.typeSearch) room.memory.typeSearch = 1;
     let spawn = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN)[0];
     primary:
-        for (let i = 1; i < 1000; i++) {
+        for (let i = 1; i < 2000; i++) {
             let searched = [];
             let hubSearch = room.memory.newHubSearch || 0;
-            if (hubSearch >= layouts.layoutArray.length * 1000) {
-                abandonRoom(room.name);
+            if (hubSearch >= layouts.layoutArray.length * 2500) {
+                //abandonRoom(room.name);
                 Memory.roomCache[room.name].noClaim = true;
                 log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
                 Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
                 return;
             }
-            let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
-            if (spawn) pos = new RoomPosition(spawn.pos.x, spawn.pos.y, room.name);
-            let clean = pos.x + '.' + pos.y;
-            if (!_.includes(searched, clean)) {
-                searched.push(clean);
-                room.memory.newHubSearch = hubSearch + 1;
-                let controller = room.controller;
-                let closestSource = pos.findClosestByRange(FIND_SOURCES);
-                let buildTemplate = _.sample(layouts.layoutArray);
-                let layoutVersion = buildTemplate[0]['layout'];
+            let buildTemplate = _.sample(layouts.layoutArray);
+            let layoutVersion = buildTemplate[0]['layout'];
+            let xOffset, yOffset, spawnCheck;
+            if (spawn) {
+                let spawnPos;
+                spawnCheck = true;
+                for (let type of buildTemplate) {
+                    if (type.type !== STRUCTURE_SPAWN) continue;
+                    spawnPos = type.pos[0];
+                }
+                pos = new RoomPosition(spawn.pos.x, spawn.pos.y, room.name);
+                let yVar, xVar;
+                yVar = spawnPos.y;
+                xVar = spawnPos.x;
+                xOffset = difference(pos.x, xVar);
+                if (pos.x < xVar) xOffset *= -1;
+                yOffset = difference(pos.y, yVar);
+                if (pos.y < yVar) yOffset *= -1;
+                pos = new RoomPosition(spawn.pos.x + xOffset, spawn.pos.y + yOffset, room.name);
+            } else {
+                pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
                 let yVar, xVar;
                 if (layoutVersion === 1) {
                     yVar = 16;
@@ -238,10 +250,17 @@ function findHub(room) {
                     yVar = 25;
                     xVar = 25;
                 }
-                let xOffset = difference(pos.x, xVar);
+                xOffset = difference(pos.x, xVar);
                 if (pos.x < xVar) xOffset *= -1;
-                let yOffset = difference(pos.y, yVar);
+                yOffset = difference(pos.y, yVar);
                 if (pos.y < yVar) yOffset *= -1;
+            }
+            let clean = pos.x + '.' + pos.y;
+            if (!_.includes(searched, clean)) {
+                searched.push(clean);
+                room.memory.newHubSearch = hubSearch + 1;
+                let controller = room.controller;
+                let closestSource = pos.findClosestByRange(FIND_SOURCES);
                 let layout = [];
                 for (let type of buildTemplate) {
                     if (type.type === STRUCTURE_RAMPART) continue;
@@ -251,14 +270,15 @@ function findHub(room) {
                         structure.x = s.x + xOffset;
                         structure.y = s.y + yOffset;
                         let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                        if (structurePos.checkIfOutOfBounds() || structurePos.checkForImpassible() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2) continue primary;
+                        if (structurePos.checkIfOutOfBounds() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2 || (structurePos.checkForImpassible() && (!spawnCheck || (structure.structureType === STRUCTURE_SPAWN && !_.filter(structurePos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_SPAWN)[0])))) {
+                            continue primary;
+                        }
                         layout.push(structure);
                     }
                 }
                 room.memory.bunkerHub = {};
                 room.memory.bunkerHub.x = pos.x;
                 room.memory.bunkerHub.y = pos.y;
-                room.memory.bunkerType = room.memory.typeSearch;
                 room.memory.hubSearch = undefined;
                 room.memory.layout = JSON.stringify(layout);
                 room.memory.layoutVersion = LAYOUT_VERSION;
