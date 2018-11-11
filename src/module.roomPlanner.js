@@ -211,7 +211,7 @@ function findHub(room) {
         let searched = [];
         let hubSearch = room.memory.newHubSearch || 0;
         if (hubSearch >= 3000) {
-            if (room.memory.typeSearch === 1) {
+            /**if (room.memory.typeSearch === 1) {
                 room.memory.typeSearch = 2;
                 room.memory.newHubSearch = undefined;
                 return false;
@@ -227,7 +227,7 @@ function findHub(room) {
                 room.memory.typeSearch = 5;
                 room.memory.newHubSearch = undefined;
                 return false;
-            }
+            }**/
             if (!room.memory.extensionHub) abandonRoom(room.name); else {
                 room.memory.noBunkerPos = true;
                 log.a(room.name + ' was unable to find a position for the new bunker.');
