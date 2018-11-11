@@ -208,6 +208,7 @@ function buildFromLayout(room) {
 function findHub(room) {
     if (room.memory.bunkerHub) return;
     if (!room.memory.typeSearch) room.memory.typeSearch = 1;
+    let spawn = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN)[0];
     primary:
         for (let i = 1; i < 1000; i++) {
             let searched = [];
@@ -220,6 +221,7 @@ function findHub(room) {
                 return;
             }
             let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
+            if (spawn) pos = new RoomPosition(spawn.pos.x, spawn.pos.y, room.name);
             let clean = pos.x + '.' + pos.y;
             if (!_.includes(searched, clean)) {
                 searched.push(clean);
