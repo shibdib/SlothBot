@@ -2,7 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 module.exports.buildRoom = function (room) {
-    if (_.size(room.memory.layout) && room.memory.layoutVersion === 1.2 && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
+    if (_.size(room.memory.layout) && room.memory.layoutVersion === LAYOUT_VERSION && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
     layoutRoom(room);
 };
 module.exports.hubCheck = function (room) {
@@ -89,7 +89,7 @@ function buildFromLayout(room) {
         }
     }
     // Hub
-    if (room.memory.bunkerType === 1) {
+    if (room.memory.bunkerVersion === 1) {
         let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
         if (level >= 5) {
             delete room.memory.hubContainer;
@@ -207,71 +207,62 @@ function buildFromLayout(room) {
 function findHub(room) {
     if (room.memory.bunkerHub) return;
     if (!room.memory.typeSearch) room.memory.typeSearch = 1;
-    for (let i = 1; i < 1000; i++) {
-        let searched = [];
-        let hubSearch = room.memory.newHubSearch || 0;
-        if (hubSearch >= 3000) {
-            /**if (room.memory.typeSearch === 1) {
-                room.memory.typeSearch = 2;
-                room.memory.newHubSearch = undefined;
-                return false;
-            } else if (room.memory.typeSearch === 2) {
-                room.memory.typeSearch = 3;
-                room.memory.newHubSearch = undefined;
-                return false;
-            } else if (room.memory.typeSearch === 3) {
-                room.memory.typeSearch = 4;
-                room.memory.newHubSearch = undefined;
-                return false;
-            } else if (room.memory.typeSearch === 4) {
-                room.memory.typeSearch = 5;
-                room.memory.newHubSearch = undefined;
-                return false;
-            }**/
-            if (!room.memory.extensionHub) abandonRoom(room.name); else {
-                room.memory.noBunkerPos = true;
-                log.a(room.name + ' was unable to find a position for the new bunker.');
-                Game.notify(room.name + ' was unable to find a position for the new bunker.');
-                return false;
+    primary:
+        for (let i = 1; i < 1000; i++) {
+            let searched = [];
+            let hubSearch = room.memory.newHubSearch || 0;
+            if (hubSearch >= layouts.length * 1000) {
+                abandonRoom(room.name);
+                Memory.roomCache[room.name].noClaim = true;
+                log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
+                Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
+                return;
             }
-            Memory.roomCache[room.name].noClaim = true;
-            log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
-            Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
-            return;
-        }
-        let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
-        let clean = pos.x + '.' + pos.y;
-        if (!_.includes(searched, clean)) {
-            searched.push(clean);
-            room.memory.newHubSearch = hubSearch + 1;
-            let controller = room.controller;
-            let closestSource = pos.findClosestByRange(FIND_SOURCES);
-            let terrain;
-            if (room.memory.typeSearch === 1) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 4, pos.x + 5, true);
-            if (room.memory.typeSearch === 2) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 4, pos.x - 9, pos.y - 5, pos.x + 8, true);
-            if (room.memory.typeSearch === 3) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 5, pos.x - 9, pos.y - 5, pos.x + 9, true);
-            if (room.memory.typeSearch === 4) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 7, pos.x - 10, pos.y + 7, pos.x + 10, true);
-            if (room.memory.typeSearch === 5) terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y + 6, pos.x - 6, pos.y + 6, pos.x - 6, true);
-            let wall = false;
-            for (let key in terrain) {
-                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (!position.checkIfOutOfBounds() && !position.checkForWall()) {
-                    continue;
+            let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
+            let clean = pos.x + '.' + pos.y;
+            if (!_.includes(searched, clean)) {
+                searched.push(clean);
+                room.memory.newHubSearch = hubSearch + 1;
+                let controller = room.controller;
+                let closestSource = pos.findClosestByRange(FIND_SOURCES);
+                let buildTemplate = _.sample(layouts);
+                let layoutVersion = buildTemplate[0]['layout'];
+                let yVar, xVar;
+                if (layoutVersion === 1) {
+                    yVar = 16;
+                    xVar = 15;
+                } else {
+                    yVar = 25;
+                    xVar = 25;
                 }
-                wall = true;
-                break;
-            }
-            if (pos.getRangeTo(controller) >= 2 && !wall && pos.getRangeTo(closestSource) >= 2) {
+                let xOffset = difference(pos.x, xVar);
+                if (pos.x < xVar) xOffset *= -1;
+                let yOffset = difference(pos.y, yVar);
+                if (pos.y < yVar) yOffset *= -1;
+                let layout = [];
+                for (let type of buildTemplate) {
+                    if (type.type === STRUCTURE_RAMPART) continue;
+                    for (let s of type.pos) {
+                        let structure = {};
+                        structure.structureType = type.type;
+                        structure.x = s.x + xOffset;
+                        structure.y = s.y + yOffset;
+                        let structurePos = new RoomPosition(structure.x, structure.y, room.name);
+                        if (structurePos.checkIfOutOfBounds() || structurePos.checkForImpassible() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2) continue primary;
+                        layout.push(structure);
+                    }
+                }
                 room.memory.bunkerHub = {};
                 room.memory.bunkerHub.x = pos.x;
                 room.memory.bunkerHub.y = pos.y;
                 room.memory.bunkerType = room.memory.typeSearch;
                 room.memory.hubSearch = undefined;
-                layoutRoom(room);
+                room.memory.layout = JSON.stringify(layout);
+                room.memory.layoutVersion = LAYOUT_VERSION;
+                room.memory.bunkerVersion = layoutVersion;
                 return true;
             }
         }
-    }
 }
 
 abandonRoom = function (room) {
@@ -301,6 +292,7 @@ function difference(num1, num2) {
 
 let template = [
     {
+        "layout": 1,
         "type": STRUCTURE_RAMPART,
         "pos": [{"x": 10, "y": 9}, {"x": 11, "y": 9}, {"x": 12, "y": 9}, {"x": 13, "y": 9}, {"x": 14, "y": 9}, {
             "x": 15,
@@ -329,6 +321,7 @@ let template = [
         }]
     },
     {
+        "layout": 1,
         "type": STRUCTURE_LAB,
         "pos": [{"x": 11, "y": 10}, {"x": 19, "y": 10}, {"x": 10, "y": 11}, {"x": 11, "y": 11}, {
             "x": 19,
@@ -336,6 +329,7 @@ let template = [
         }, {"x": 20, "y": 11}, {"x": 15, "y": 12}, {"x": 14, "y": 19}, {"x": 15, "y": 19}, {"x": 16, "y": 19}]
     },
     {
+        "layout": 1,
         "type": STRUCTURE_ROAD,
         "pos": [{"x": 12, "y": 10}, {"x": 18, "y": 10}, {"x": 13, "y": 11}, {"x": 17, "y": 11}, {
             "x": 10,
@@ -356,6 +350,7 @@ let template = [
             {"x": 19, "y": 13}, {"x": 20, "y": 12}]
     },
     {
+        "layout": 1,
         "type": STRUCTURE_EXTENSION,
         "pos": [{"x": 13, "y": 10}, {"x": 14, "y": 10}, {"x": 15, "y": 10}, {"x": 16, "y": 10}, {
             "x": 17,
@@ -390,21 +385,38 @@ let template = [
         }, {"x": 19, "y": 20}]
     },
     {
+        "layout": 1,
         "type": STRUCTURE_TOWER,
         "pos": [{"x": 12, "y": 15}, {"x": 18, "y": 15}, {"x": 13, "y": 16}, {"x": 17, "y": 16}, {
             "x": 12,
             "y": 17
         }, {"x": 18, "y": 17}]
     },
-    {"type": STRUCTURE_STORAGE, "pos": [{"x": 15, "y": 15}]},
-    {"type": STRUCTURE_TERMINAL, "pos": [{"x": 14, "y": 16}]},
-    {"type": STRUCTURE_POWER_SPAWN, "pos": [{"x": 16, "y": 16}]},
-    {"type": STRUCTURE_SPAWN, "pos": [{"x": 14, "y": 17}, {"x": 15, "y": 17}, {"x": 16, "y": 17}]},
-    {"type": STRUCTURE_OBSERVER, "pos": [{"x": 15, "y": 11}]}
+    {
+        "layout": 1,
+        "type": STRUCTURE_STORAGE, "pos": [{"x": 15, "y": 15}]
+    },
+    {
+        "layout": 1,
+        "type": STRUCTURE_TERMINAL, "pos": [{"x": 14, "y": 16}]
+    },
+    {
+        "layout": 1,
+        "type": STRUCTURE_POWER_SPAWN, "pos": [{"x": 16, "y": 16}]
+    },
+    {
+        "layout": 1,
+        "type": STRUCTURE_SPAWN, "pos": [{"x": 14, "y": 17}, {"x": 15, "y": 17}, {"x": 16, "y": 17}]
+    },
+    {
+        "layout": 1,
+        "type": STRUCTURE_OBSERVER, "pos": [{"x": 15, "y": 11}]
+    }
 ];
 
 let template2 = [
     {
+        "layout": 2,
         "type": STRUCTURE_RAMPART,
         "pos": [{"x": 27, "y": 16}, {"x": 28, "y": 16}, {"x": 29, "y": 16}, {
             "x": 30,
@@ -451,6 +463,7 @@ let template2 = [
         }, {"x": 19, "y": 34}, {"x": 20, "y": 34}, {"x": 21, "y": 34}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_EXTENSION,
         "pos": [{"x": 28, "y": 17}, {"x": 29, "y": 17}, {"x": 30, "y": 17}, {
             "x": 27,
@@ -491,6 +504,7 @@ let template2 = [
         }, {"x": 20, "y": 33}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_ROAD,
         "pos": [{"x": 29, "y": 18}, {"x": 28, "y": 19}, {"x": 30, "y": 19}, {"x": 27, "y": 20}, {
             "x": 31,
@@ -513,6 +527,7 @@ let template2 = [
         }, {"x": 19, "y": 30}, {"x": 21, "y": 30}, {"x": 20, "y": 31}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_LAB,
         "pos": [{"x": 23, "y": 22}, {"x": 24, "y": 22}, {"x": 22, "y": 23}, {"x": 24, "y": 23}, {
             "x": 22,
@@ -520,6 +535,7 @@ let template2 = [
         }, {"x": 23, "y": 24}, {"x": 25, "y": 25}, {"x": 26, "y": 25}, {"x": 25, "y": 26}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_TOWER,
         "pos": [{"x": 25, "y": 22}, {"x": 25, "y": 23}, {"x": 25, "y": 24}, {"x": 22, "y": 25}, {
             "x": 23,
@@ -527,27 +543,34 @@ let template2 = [
         }, {"x": 24, "y": 25}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_LINK, "pos": [{"x": 26, "y": 22}, {"x": 22, "y": 26}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_TERMINAL, "pos": [{"x": 27, "y": 23}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_OBSERVER, "pos": [{"x": 24, "y": 24}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_STORAGE, "pos": [{"x": 26, "y": 24}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_NUKER, "pos": [{"x": 23, "y": 27}]
     },
     {
+        "layout": 2,
         "type": STRUCTURE_SPAWN, "pos": [{"x": 27, "y": 24}, {"x": 24, "y": 26}, {"x": 24, "y": 27}]
     }
 ];
 
 let template3 = [
     {
+        "layout": 3,
         "type": STRUCTURE_RAMPART,
         "pos": [{"x": 28, "y": 17}, {"x": 29, "y": 17}, {"x": 30, "y": 17}, {"x": 31, "y": 17}, {
             "x": 32,
@@ -581,12 +604,14 @@ let template3 = [
             "y": 32
         }, {"x": 18, "y": 33}, {"x": 19, "y": 33}, {"x": 20, "y": 33}, {"x": 21, "y": 33}, {"x": 22, "y": 33}]
     }, {
+        "layout": 3,
         "type": STRUCTURE_LAB,
         "pos": [{"x": 29, "y": 18}, {"x": 30, "y": 18}, {"x": 31, "y": 18}, {"x": 32, "y": 19}, {
             "x": 32,
             "y": 20
         }, {"x": 32, "y": 21}]
     }, {
+        "layout": 3,
         "type": STRUCTURE_EXTENSION,
         "pos": [{"x": 27, "y": 19}, {"x": 28, "y": 19}, {"x": 29, "y": 19}, {"x": 31, "y": 19}, {
             "x": 26,
@@ -620,6 +645,7 @@ let template3 = [
             "y": 32
         }, {"x": 21, "y": 32}]
     }, {
+        "layout": 3,
         "type": STRUCTURE_ROAD,
         "pos": [{"x": 30, "y": 19}, {"x": 28, "y": 20}, {"x": 30, "y": 20}, {"x": 31, "y": 20}, {
             "x": 27,
@@ -635,25 +661,39 @@ let template3 = [
             "y": 29
         }, {"x": 19, "y": 30}, {"x": 21, "y": 30}, {"x": 22, "y": 30}, {"x": 20, "y": 31}]
     }, {
+        "layout": 3,
         "type": STRUCTURE_SPAWN,
         "pos": [{"x": 28, "y": 22}, {"x": 26, "y": 24}, {"x": 24, "y": 26}]
-    }, {"type": STRUCTURE_OBSERVER, "pos": [{"x": 26, "y": 23}]}, {
+    }, {
+        "layout": 3,
+        "type": STRUCTURE_OBSERVER, "pos": [{"x": 26, "y": 23}]
+    }, {
+        "layout": 3,
         "type": STRUCTURE_TERMINAL,
         "pos": [{"x": 27, "y": 23}]
     }, {
+        "layout": 3,
         "type": STRUCTURE_TOWER,
         "pos": [{"x": 25, "y": 24}, {"x": 27, "y": 24}, {"x": 24, "y": 25}, {"x": 26, "y": 25}, {
             "x": 23,
             "y": 26
         }, {"x": 25, "y": 26}]
-    }, {"type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]}, {
+    }, {
+        "layout": 3,
+        "type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]
+    }, {
+        "layout": 3,
         "type": STRUCTURE_STORAGE,
         "pos": [{"x": 23, "y": 27}]
-    }, {"type": STRUCTURE_NUKER, "pos": [{"x": 24, "y": 27}]}
+    }, {
+        "layout": 3,
+        "type": STRUCTURE_NUKER, "pos": [{"x": 24, "y": 27}]
+    }
 ];
 
 let template4 = [
     {
+        "layout": 4,
         "type": STRUCTURE_RAMPART,
         "pos": [{"x": 16, "y": 16}, {"x": 17, "y": 16}, {"x": 18, "y": 16}, {"x": 19, "y": 16}, {
             "x": 20,
@@ -693,12 +733,14 @@ let template4 = [
             "y": 34
         }, {"x": 34, "y": 34}]
     }, {
+        "layout": 4,
         "type": STRUCTURE_LAB,
         "pos": [{"x": 22, "y": 22}, {"x": 26, "y": 23}, {"x": 26, "y": 24}, {"x": 27, "y": 24}, {
             "x": 23,
             "y": 26
         }, {"x": 24, "y": 26}, {"x": 24, "y": 27}, {"x": 28, "y": 28}]
     }, {
+        "layout": 4,
         "type": STRUCTURE_EXTENSION,
         "pos": [{"x": 18, "y": 17}, {"x": 19, "y": 17}, {"x": 20, "y": 17}, {"x": 17, "y": 18}, {
             "x": 18,
@@ -732,6 +774,7 @@ let template4 = [
             "y": 33
         }, {"x": 32, "y": 33}]
     }, {
+        "layout": 4,
         "type": STRUCTURE_ROAD,
         "pos": [{"x": 19, "y": 18}, {"x": 18, "y": 19}, {"x": 20, "y": 19}, {"x": 19, "y": 20}, {
             "x": 21,
@@ -747,25 +790,39 @@ let template4 = [
             "y": 29
         }, {"x": 29, "y": 30}, {"x": 31, "y": 30}, {"x": 30, "y": 31}, {"x": 32, "y": 31}, {"x": 31, "y": 32}]
     }, {
+        "layout": 4,
         "type": STRUCTURE_SPAWN,
         "pos": [{"x": 24, "y": 24}, {"x": 25, "y": 25}, {"x": 26, "y": 26}]
-    }, {"type": STRUCTURE_OBSERVER, "pos": [{"x": 17, "y": 17}]}, {
+    }, {
+        "layout": 4,
+        "type": STRUCTURE_OBSERVER, "pos": [{"x": 17, "y": 17}]
+    }, {
+        "layout": 4,
         "type": STRUCTURE_TERMINAL,
         "pos": [{"x": 23, "y": 23}]
     }, {
+        "layout": 4,
         "type": STRUCTURE_TOWER,
         "pos": [{"x": 24, "y": 23}, {"x": 28, "y": 24}, {"x": 21, "y": 25}, {"x": 29, "y": 25}, {
             "x": 22,
             "y": 26
         }, {"x": 26, "y": 27}]
-    }, {"type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]}, {
+    }, {
+        "layout": 4,
+        "type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]
+    }, {
+        "layout": 4,
         "type": STRUCTURE_STORAGE,
         "pos": [{"x": 27, "y": 27}]
-    }, {"type": STRUCTURE_NUKER, "pos": [{"x": 33, "y": 33}]}
+    }, {
+        "layout": 4,
+        "type": STRUCTURE_NUKER, "pos": [{"x": 33, "y": 33}]
+    }
 ];
 
 let template5 = [
     {
+        "layout": 5,
         "type": STRUCTURE_RAMPART,
         "pos": [{"x": 22, "y": 18}, {"x": 23, "y": 18}, {"x": 24, "y": 18}, {"x": 25, "y": 18}, {
             "x": 26,
@@ -796,6 +853,7 @@ let template5 = [
             "y": 32
         }, {"x": 26, "y": 32}, {"x": 27, "y": 32}, {"x": 28, "y": 32}]
     }, {
+        "layout": 5,
         "type": STRUCTURE_EXTENSION,
         "pos": [{"x": 23, "y": 19}, {"x": 24, "y": 19}, {"x": 25, "y": 19}, {"x": 22, "y": 20}, {
             "x": 23,
@@ -829,6 +887,7 @@ let template5 = [
             "y": 31
         }, {"x": 27, "y": 31}]
     }, {
+        "layout": 5,
         "type": STRUCTURE_ROAD,
         "pos": [{"x": 24, "y": 20}, {"x": 23, "y": 21}, {"x": 25, "y": 21}, {"x": 22, "y": 22}, {
             "x": 24,
@@ -847,22 +906,37 @@ let template5 = [
             "y": 29
         }, {"x": 26, "y": 30}]
     }, {
+        "layout": 5,
         "type": STRUCTURE_SPAWN,
         "pos": [{"x": 26, "y": 25}, {"x": 25, "y": 26}, {"x": 26, "y": 26}]
-    }, {"type": STRUCTURE_OBSERVER, "pos": [{"x": 23, "y": 24}]}, {
+    }, {
+        "layout": 5,
+        "type": STRUCTURE_OBSERVER, "pos": [{"x": 23, "y": 24}]
+    }, {
+        "layout": 5,
         "type": STRUCTURE_TERMINAL,
         "pos": [{"x": 26, "y": 27}]
     }, {
+        "layout": 5,
         "type": STRUCTURE_TOWER,
         "pos": [{"x": 23, "y": 23}, {"x": 25, "y": 23}, {"x": 24, "y": 24}, {"x": 25, "y": 24}, {
             "x": 23,
             "y": 25
         }, {"x": 24, "y": 25}]
-    }, {"type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]}, {
+    }, {
+        "layout": 5,
+        "type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]
+    }, {
+        "layout": 5,
         "type": STRUCTURE_STORAGE,
         "pos": [{"x": 27, "y": 26}]
-    }, {"type": STRUCTURE_NUKER, "pos": [{"x": 24, "y": 23}]}
+    }, {
+        "layout": 5,
+        "type": STRUCTURE_NUKER, "pos": [{"x": 24, "y": 23}]
+    }
 ];
+
+let layouts = [template, template2, template3, template4, template5];
 
 let protectedStructures = [
     STRUCTURE_SPAWN,
