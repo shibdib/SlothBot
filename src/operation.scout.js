@@ -203,8 +203,6 @@ Creep.prototype.scoutRoom = function () {
         } else {
             delete Memory.targetRooms[this.room.name];
         }
-    } else {
-        delete Memory.targetRooms[this.room.name];
     }
     Memory.targetRooms = cache;
     return this.memory.recycle = true;
