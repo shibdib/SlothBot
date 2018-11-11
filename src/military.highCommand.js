@@ -13,7 +13,7 @@ module.exports.highCommand = function () {
     if (Game.time % 50 === 0) manageAttacks();
 
     // Request scouting for new operations
-    if (Game.time % 100 === 0) operationRequests();
+    if (Game.time % 3 === 0) operationRequests();
 
     // Send help if needed
     if (Memory._alliedRoomDefense) {
@@ -83,7 +83,8 @@ function operationRequests() {
     if (HOSTILES.length) {
         targetLimit = (surplusRooms + 5) - totalCountFiltered;
         enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, r.user)
-            && !Memory.targetRooms[r.name] && !r.owner);
+            && !Memory.targetRooms[r.name]);
+        console.log(JSON.stringify(enemyHarass))
     } else {
         targetLimit = surplusRooms - totalCountFiltered;
         enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, r.user)
@@ -93,7 +94,7 @@ function operationRequests() {
         for (let target of enemyHarass) {
             if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation !== 0 && lastOperation + 2000 > Game.time) continue;
+            if (lastOperation + 2000 > Game.time) continue;
             if (totalCountFiltered >= targetLimit) break;
             totalCountFiltered++;
             let cache = Memory.targetRooms || {};
