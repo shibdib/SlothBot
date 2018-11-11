@@ -12,11 +12,17 @@ module.exports.hubCheck = function (room) {
 function layoutRoom(room) {
     if (!_.size(room.memory.bunkerHub)) return findHub(room);
     if (!room.memory.bunkerType) room.memory.bunkerType = 1;
-    let yVar, xVar;
+    let yVar, xVar, buildTemplate;
     if (room.memory.bunkerType === 1) {
+        buildTemplate = template;
         yVar = 16;
         xVar = 15;
     } else if (room.memory.bunkerType === 2) {
+        buildTemplate = template2;
+        yVar = 25;
+        xVar = 25;
+    } else if (room.memory.bunkerType === 3) {
+        buildTemplate = template3;
         yVar = 25;
         xVar = 25;
     }
@@ -26,7 +32,7 @@ function layoutRoom(room) {
     let yOffset = difference(hub.y, yVar);
     if (hub.y < yVar) yOffset *= -1;
     let layout = [];
-    for (let type of template) {
+    for (let type of buildTemplate) {
         for (let s of type.pos) {
             let structure = {};
             structure.structureType = type.type;
@@ -196,6 +202,10 @@ function findHub(room) {
         if (hubSearch >= 3000) {
             if (room.memory.typeSearch === 1) {
                 room.memory.typeSearch = 2;
+                room.memory.newHubSearch = undefined;
+                return false;
+            } else if (room.memory.typeSearch === 2) {
+                room.memory.typeSearch = 3;
                 room.memory.newHubSearch = undefined;
                 return false;
             }
@@ -513,6 +523,113 @@ let template2 = [
         "type": STRUCTURE_SPAWN, "pos": [{"x": 27, "y": 24}, {"x": 24, "y": 26}, {"x": 24, "y": 27}]
     }
 ];
+
+let template3 = [
+    {
+        "type": STRUCTURE_RAMPART,
+        "pos": [{"x": 28, "y": 17}, {"x": 29, "y": 17}, {"x": 30, "y": 17}, {"x": 31, "y": 17}, {
+            "x": 32,
+            "y": 17
+        }, {"x": 26, "y": 18}, {"x": 27, "y": 18}, {"x": 28, "y": 18}, {"x": 32, "y": 18}, {"x": 33, "y": 18}, {
+            "x": 25,
+            "y": 19
+        }, {"x": 26, "y": 19}, {"x": 33, "y": 19}, {"x": 24, "y": 20}, {"x": 25, "y": 20}, {"x": 33, "y": 20}, {
+            "x": 23,
+            "y": 21
+        }, {"x": 24, "y": 21}, {"x": 33, "y": 21}, {"x": 23, "y": 22}, {"x": 32, "y": 22}, {"x": 33, "y": 22}, {
+            "x": 21,
+            "y": 23
+        }, {"x": 22, "y": 23}, {"x": 23, "y": 23}, {"x": 32, "y": 23}, {"x": 20, "y": 24}, {"x": 21, "y": 24}, {
+            "x": 31,
+            "y": 24
+        }, {"x": 32, "y": 24}, {"x": 19, "y": 25}, {"x": 20, "y": 25}, {"x": 30, "y": 25}, {"x": 31, "y": 25}, {
+            "x": 18,
+            "y": 26
+        }, {"x": 19, "y": 26}, {"x": 29, "y": 26}, {"x": 30, "y": 26}, {"x": 18, "y": 27}, {"x": 27, "y": 27}, {
+            "x": 28,
+            "y": 27
+        }, {"x": 29, "y": 27}, {"x": 17, "y": 28}, {"x": 18, "y": 28}, {"x": 27, "y": 28}, {"x": 17, "y": 29}, {
+            "x": 26,
+            "y": 29
+        }, {"x": 27, "y": 29}, {"x": 17, "y": 30}, {"x": 25, "y": 30}, {"x": 26, "y": 30}, {"x": 17, "y": 31}, {
+            "x": 24,
+            "y": 31
+        }, {"x": 25, "y": 31}, {"x": 17, "y": 32}, {"x": 18, "y": 32}, {"x": 22, "y": 32}, {"x": 23, "y": 32}, {
+            "x": 24,
+            "y": 32
+        }, {"x": 18, "y": 33}, {"x": 19, "y": 33}, {"x": 20, "y": 33}, {"x": 21, "y": 33}, {"x": 22, "y": 33}]
+    }, {
+        "type": STRUCTURE_LAB,
+        "pos": [{"x": 29, "y": 18}, {"x": 30, "y": 18}, {"x": 31, "y": 18}, {"x": 32, "y": 19}, {
+            "x": 32,
+            "y": 20
+        }, {"x": 32, "y": 21}]
+    }, {
+        "type": STRUCTURE_EXTENSION,
+        "pos": [{"x": 27, "y": 19}, {"x": 28, "y": 19}, {"x": 29, "y": 19}, {"x": 31, "y": 19}, {
+            "x": 26,
+            "y": 20
+        }, {"x": 27, "y": 20}, {"x": 29, "y": 20}, {"x": 25, "y": 21}, {"x": 26, "y": 21}, {"x": 28, "y": 21}, {
+            "x": 30,
+            "y": 21
+        }, {"x": 31, "y": 21}, {"x": 24, "y": 22}, {"x": 25, "y": 22}, {"x": 27, "y": 22}, {"x": 29, "y": 22}, {
+            "x": 31,
+            "y": 22
+        }, {"x": 24, "y": 23}, {"x": 28, "y": 23}, {"x": 30, "y": 23}, {"x": 31, "y": 23}, {"x": 22, "y": 24}, {
+            "x": 23,
+            "y": 24
+        }, {"x": 29, "y": 24}, {"x": 30, "y": 24}, {"x": 21, "y": 25}, {"x": 22, "y": 25}, {"x": 28, "y": 25}, {
+            "x": 29,
+            "y": 25
+        }, {"x": 20, "y": 26}, {"x": 21, "y": 26}, {"x": 27, "y": 26}, {"x": 28, "y": 26}, {"x": 19, "y": 27}, {
+            "x": 20,
+            "y": 27
+        }, {"x": 22, "y": 27}, {"x": 26, "y": 27}, {"x": 19, "y": 28}, {"x": 21, "y": 28}, {"x": 23, "y": 28}, {
+            "x": 25,
+            "y": 28
+        }, {"x": 26, "y": 28}, {"x": 18, "y": 29}, {"x": 19, "y": 29}, {"x": 21, "y": 29}, {"x": 22, "y": 29}, {
+            "x": 24,
+            "y": 29
+        }, {"x": 25, "y": 29}, {"x": 18, "y": 30}, {"x": 20, "y": 30}, {"x": 23, "y": 30}, {"x": 24, "y": 30}, {
+            "x": 18,
+            "y": 31
+        }, {"x": 19, "y": 31}, {"x": 21, "y": 31}, {"x": 22, "y": 31}, {"x": 23, "y": 31}, {"x": 19, "y": 32}, {
+            "x": 20,
+            "y": 32
+        }, {"x": 21, "y": 32}]
+    }, {
+        "type": STRUCTURE_ROAD,
+        "pos": [{"x": 30, "y": 19}, {"x": 28, "y": 20}, {"x": 30, "y": 20}, {"x": 31, "y": 20}, {
+            "x": 27,
+            "y": 21
+        }, {"x": 29, "y": 21}, {"x": 26, "y": 22}, {"x": 30, "y": 22}, {"x": 25, "y": 23}, {"x": 29, "y": 23}, {
+            "x": 24,
+            "y": 24
+        }, {"x": 28, "y": 24}, {"x": 23, "y": 25}, {"x": 27, "y": 25}, {"x": 22, "y": 26}, {"x": 26, "y": 26}, {
+            "x": 21,
+            "y": 27
+        }, {"x": 25, "y": 27}, {"x": 20, "y": 28}, {"x": 22, "y": 28}, {"x": 24, "y": 28}, {"x": 20, "y": 29}, {
+            "x": 23,
+            "y": 29
+        }, {"x": 19, "y": 30}, {"x": 21, "y": 30}, {"x": 22, "y": 30}, {"x": 20, "y": 31}]
+    }, {
+        "type": STRUCTURE_SPAWN,
+        "pos": [{"x": 28, "y": 22}, {"x": 26, "y": 24}, {"x": 24, "y": 26}]
+    }, , {"type": STRUCTURE_OBSERVER, "pos": [{"x": 26, "y": 23}]}, {
+        "type": STRUCTURE_TERMINAL,
+        "pos": [{"x": 27, "y": 23}]
+    }, {
+        "type": STRUCTURE_TOWER,
+        "pos": [{"x": 25, "y": 24}, {"x": 27, "y": 24}, {"x": 24, "y": 25}, {"x": 26, "y": 25}, {
+            "x": 23,
+            "y": 26
+        }, {"x": 25, "y": 26}]
+    }, {"type": STRUCTURE_LINK, "pos": [{"x": 25, "y": 25}]}, {
+        "type": STRUCTURE_STORAGE,
+        "pos": [{"x": 23, "y": 27}]
+    }, {"type": STRUCTURE_NUKER, "pos": [{"x": 24, "y": 27}]}
+];
+
 
 let protectedStructures = [
     STRUCTURE_SPAWN,
