@@ -464,7 +464,7 @@ Creep.prototype.findStorage = function () {
     }
     //Controller
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && Math.random() > 0.5 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+    if (controllerContainer && Math.random() > 0.6 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
