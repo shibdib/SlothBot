@@ -231,15 +231,23 @@ function findHub(room) {
                     if (type.type !== STRUCTURE_SPAWN) continue;
                     spawnPos = type.pos[0];
                 }
-                pos = new RoomPosition(spawn.pos.x, spawn.pos.y, room.name);
                 let yVar, xVar;
-                yVar = spawnPos.y;
-                xVar = spawnPos.x;
+                if (layoutVersion === 1) {
+                    yVar = 16;
+                    xVar = 15;
+                } else {
+                    yVar = 25;
+                    xVar = 25;
+                }
+                xOffset = difference(spawnPos.x, xVar);
+                if (spawnPos.x > xVar) xOffset *= -1;
+                yOffset = difference(spawnPos.y, yVar);
+                if (spawnPos.y > yVar) yOffset *= -1;
+                pos = new RoomPosition(spawn.pos.x + xOffset, spawn.pos.y + yOffset, room.name);
                 xOffset = difference(pos.x, xVar);
                 if (pos.x < xVar) xOffset *= -1;
                 yOffset = difference(pos.y, yVar);
                 if (pos.y < yVar) yOffset *= -1;
-                pos = new RoomPosition(spawn.pos.x + xOffset, spawn.pos.y + yOffset, room.name);
             } else {
                 pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
                 let yVar, xVar;
