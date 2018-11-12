@@ -32,5 +32,5 @@ module.exports.role = function (creep) {
                     break;
             }
         } else creep.idleFor(5);
-    } else if (creep.memory.energyDestination || creep.getEnergy(true)) creep.withdrawEnergy(); else creep.idleFor(5);
+    } else if (creep.memory.energyDestination || creep.getEnergy(true)) creep.withdrawEnergy(); else creep.idleFor(1);
 };
