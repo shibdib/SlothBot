@@ -95,7 +95,7 @@ module.exports.overlordMind = function (room) {
     }
 
     // Manage remote creep spawning
-    if (Game.time % 50 === 0 && cpuBucket >= 7000 && room.controller.level >= 2 && !TEN_CPU) {
+    if (Game.time % 50 === 0 && cpuBucket >= 7000 && room.memory.remoteRooms && !TEN_CPU) {
         cpu = Game.cpu.getUsed();
         try {
             let remoteSpawn = Game.cpu.getUsed();

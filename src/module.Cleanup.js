@@ -10,25 +10,28 @@ function cleanup() {
         cleanRouteCacheByUsage();
         cleanConstructionSites();
         cleanRoomIntel();
+        cleanStructureMemory();
     }
     if (Game.time % EST_TICKS_PER_DAY === 0) {
         delete Memory._pathCache;
         delete Memory._distanceCache;
     }
-    for (let name in Memory.creeps) {
-        if (!Game.creeps[name]) {
-            delete Memory.creeps[name];
-            delete creepCpuArray[name];
+    if (Game.time % 5 === 0) {
+        for (let name in Memory.creeps) {
+            if (!Game.creeps[name]) {
+                delete Memory.creeps[name];
+                delete creepCpuArray[name];
+            }
         }
-    }
-    for(let name in Memory.flags) {
-        if(!Game.flags[name]) {
-            delete Memory.flags[name];
+        for (let name in Memory.flags) {
+            if (!Game.flags[name]) {
+                delete Memory.flags[name];
+            }
         }
-    }
-    let buggedCreep = _.filter(Game.creeps, (c) => !c.memory.role);
-    for (let key in buggedCreep) {
-        buggedCreep[key].suicide();
+        let buggedCreep = _.filter(Game.creeps, (c) => !c.memory.role);
+        for (let key in buggedCreep) {
+            buggedCreep[key].suicide();
+        }
     }
 }
 module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
@@ -125,10 +128,20 @@ function cleanConstructionSites() {
 }
 
 function cleanRoomIntel() {
-    for (let key in Memory.roomCache) {
-        if (Memory.roomCache[key].cached + 25000 < Game.time) delete Memory.roomCache[key];
+    if (Memory.roomCache) {
+        for (let key in Memory.roomCache) {
+            if (Memory.roomCache[key].cached + 25000 < Game.time) delete Memory.roomCache[key];
+        }
     }
     for (let key in Memory.rooms) {
         if (!Game.rooms[key]) delete Memory.rooms[key];
+    }
+}
+
+function cleanStructureMemory() {
+    if (Memory.structureMemory) {
+        for (let key in Memory.structureMemory) {
+            if (!Game.getObjectById(key)) delete Memory.structureMemory[key];
+        }
     }
 }

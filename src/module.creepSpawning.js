@@ -300,7 +300,7 @@ module.exports.workerCreepQueue = function (room) {
         if (room.controller.level >= 6) number = 1;
         let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
         if (room.controller.level < 8 && room.memory.energySurplus) number = 2;
-        if (room.controller.level < 4 && !importantBuilds) number = _.round((7 - level) / 2);
+        if (room.controller.level < 4 && !importantBuilds) number = _.round((12 - level) / 2);
         //If room is about to downgrade get a creep out asap
         let reboot;
         if (level !== room.controller.level || (room.controller.level >= 4 && room.memory.state < 3)) number = 1;
