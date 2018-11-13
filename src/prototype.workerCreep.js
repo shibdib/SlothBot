@@ -290,12 +290,12 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && this.room.memory.state > 0) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= 10000 && this.room.memory.state > 0) {
         this.memory.energyDestination = storage.id;
         return true;
     }
     // Links
-    let hubLink = Game.getObjectById(this.room.memory.hubLink);
+    /**let hubLink = Game.getObjectById(this.room.memory.hubLink);
     if (hubLink && hubLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length) {
         this.memory.energyDestination = hubLink.id;
         return true;
@@ -305,7 +305,7 @@ Creep.prototype.findEnergy = function () {
     if (hubContainer && hubContainer.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id).length) {
         this.memory.energyDestination = hubContainer.id;
         return true;
-    }
+    }**/
     // Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {
