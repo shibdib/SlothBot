@@ -374,7 +374,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (hubLink && hubLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length) {
+    if (hubLink && hubLink.energy > 50) {
         this.memory.energyDestination = hubLink.id;
         return true;
     }
