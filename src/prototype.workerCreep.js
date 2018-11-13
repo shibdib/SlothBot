@@ -505,6 +505,12 @@ Creep.prototype.findEssentials = function () {
             return true;
         }
     }
+    //Storage
+    let storage = this.room.storage;
+    if (storage && storage.store[RESOURCE_ENERGY] < 10000) {
+        this.memory.storageDestination = storage.id;
+        return true;
+    }
     //Labs
     let lab = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity});
     if (lab) {
