@@ -294,7 +294,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Upgrader
-    if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded) {
+    if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded && (!room.storage || room.storage.store[RESOURCE_ENERGY] >= 7500)) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let number = 2;
         if (room.controller.level >= 6) number = 1;
