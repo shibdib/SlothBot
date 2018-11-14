@@ -294,19 +294,23 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Upgrader
-    if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded && (!room.storage || room.storage.store[RESOURCE_ENERGY] >= 7500)) {
+    if (!_.includes(queue, 'upgrader') && !room.memory.responseNeeded && (!room.storage || room.storage.store[RESOURCE_ENERGY] >= 7500 || room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal)) {
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let number = 2;
         if (room.controller.level >= 6) number = 1;
         let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
         if (room.controller.level < 8 && room.memory.energySurplus) number = 2;
         if (room.controller.level < 4 && !importantBuilds) number = _.round((12 - level) / 2);
+        if (level !== room.controller.level || (room.controller.level >= 4 && room.memory.state < 3)) number = 1;
         //If room is about to downgrade get a creep out asap
         let reboot;
-        if (level !== room.controller.level || (room.controller.level >= 4 && room.memory.state < 3)) number = 1;
-        if (room.controller.ticksToDowngrade <= 1500) reboot = true;
+        let priority = PRIORITIES.upgrader;
+        if (room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal) {
+            reboot = true;
+            priority = 1;
+        }
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < 100 && upgraders.length < number + 1)) {
-            queueCreep(room, PRIORITIES.upgrader, {role: 'upgrader', reboot: reboot})
+            queueCreep(room, priority, {role: 'upgrader', reboot: reboot})
         }
     }
     //Worker
