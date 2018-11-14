@@ -228,21 +228,13 @@ function findHub(room) {
                 let closestSource = pos.findClosestByRange(FIND_SOURCES);
                 let layout = [];
                 for (let type of buildTemplate) {
-                    if (type.type === STRUCTURE_RAMPART) {
-                        let structure = {};
-                        structure.structureType = type.type;
-                        structure.x = s.x + xOffset;
-                        structure.y = s.y + yOffset;
-                        layout.push(structure);
-                        continue;
-                    }
                     for (let s of type.pos) {
                         let structure = {};
                         structure.structureType = type.type;
                         structure.x = s.x + xOffset;
                         structure.y = s.y + yOffset;
                         let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                        if (structurePos.checkIfOutOfBounds() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2 || (structurePos.checkForImpassible() && (!spawnCheck || (structure.structureType === STRUCTURE_SPAWN && !_.filter(structurePos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_SPAWN)[0])))) {
+                        if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2 || (structurePos.checkForImpassible() && (!spawnCheck || (structure.structureType === STRUCTURE_SPAWN && !_.filter(structurePos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_SPAWN)[0]))))) {
                             continue primary;
                         }
                         layout.push(structure);
@@ -279,14 +271,6 @@ function updateLayout(room) {
     let layout = [];
     let xOffset, yOffset;
     for (let type of buildTemplate) {
-        if (type.type === STRUCTURE_RAMPART) {
-            let structure = {};
-            structure.structureType = type.type;
-            structure.x = s.x + xOffset;
-            structure.y = s.y + yOffset;
-            layout.push(structure);
-            continue;
-        }
         for (let s of type.pos) {
             let structure = {};
             structure.structureType = type.type;
