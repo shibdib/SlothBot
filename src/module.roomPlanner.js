@@ -3,8 +3,12 @@
  */
 let layouts = require('module.roomLayouts');
 module.exports.buildRoom = function (room) {
-    if (room.memory.layout && room.memory.layoutVersion === LAYOUT_VERSION && room.memory.bunkerHub) {
-        if (room.memory.layoutVersion === LAYOUT_VERSION) return buildFromLayout(room); else return updateLayout(room);
+    if (room.memory.layout && room.memory.bunkerHub) {
+        if (room.memory.layoutVersion === LAYOUT_VERSION) {
+            return buildFromLayout(room);
+        } else {
+            return updateLayout(room);
+        }
     }
 };
 module.exports.hubCheck = function (room) {
@@ -256,7 +260,7 @@ function updateLayout(room) {
     let layoutVersion = room.memory.layoutVersion;
     let buildTemplate = layouts.layoutArray[layoutVersion - 1];
     let pos = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let yVar, xVar;
+    let yVar, xVar, xOffset, yOffset;
     if (layoutVersion === 1) {
         yVar = 16;
         xVar = 15;
@@ -269,7 +273,7 @@ function updateLayout(room) {
     yOffset = difference(pos.y, yVar);
     if (pos.y < yVar) yOffset *= -1;
     let layout = [];
-    let xOffset, yOffset;
+
     for (let type of buildTemplate) {
         for (let s of type.pos) {
             let structure = {};
