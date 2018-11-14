@@ -769,7 +769,7 @@ module.exports.militaryCreepQueue = function () {
                 })
             }
             let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer' && creep.memory.operation === 'siegeGroup');
-            if ((healer.length < healers || (healer[0] && healer[0].ticksToLive <= 125 && healer.length < healers + 1)) && !_.includes(queue, 'healer') && breacher.length) {
+            if ((healer.length < healers || (healer[0] && healer[0].ticksToLive <= 125 && healer.length < healers + 1)) && !_.includes(queue, 'healer') && siegeEngine.length) {
                 queueMilitaryCreep(priority, {
                     role: 'healer',
                     targetRoom: key,
