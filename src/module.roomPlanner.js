@@ -257,8 +257,14 @@ function findHub(room) {
 }
 
 function updateLayout(room) {
-    let layoutVersion = room.memory.layoutVersion;
-    let buildTemplate = layouts.layoutArray[layoutVersion - 1];
+    let buildTemplate;
+    let layoutVersion = room.memory.bunkerVersion;
+    for (let i = 0; i < layouts.layoutArray.length; i++) {
+        if (layouts.layoutArray[i][0]['layout'] === layoutVersion) {
+            buildTemplate = layouts.layoutArray[i];
+            break;
+        }
+    }
     let pos = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     let yVar, xVar, xOffset, yOffset;
     if (layoutVersion === 1) {
@@ -273,7 +279,6 @@ function updateLayout(room) {
     yOffset = difference(pos.y, yVar);
     if (pos.y < yVar) yOffset *= -1;
     let layout = [];
-
     for (let type of buildTemplate) {
         for (let s of type.pos) {
             let structure = {};
