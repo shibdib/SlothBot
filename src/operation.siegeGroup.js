@@ -12,9 +12,9 @@ Creep.prototype.siegeGroupRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
-    if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
+    if ((!this.memory.squadLeader || !Game.getObjectById(this.memory.leader)) && !this.memory.leader) {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.memory.squadLeader);
-        if (!squadLeader.length && this.memory.role === 'breacher') this.memory.squadLeader = true; else if (squadLeader.length) this.memory.leader = squadLeader[0].id;
+        if (!squadLeader.length && this.memory.role === 'siegeEngine') this.memory.squadLeader = true; else if (squadLeader.length) this.memory.leader = squadLeader[0].id;
     }
     // Handle squad leader
     if (this.memory.squadLeader) {
