@@ -15,8 +15,6 @@ let globals = function () {
     global.POKE_ATTACKS = true;
     global.ATTACK_COOLDOWN = 2500; //Time between attacks on a room
 
-    global.TEN_CPU = Game.cpu.limit === 20;
-
     global.LAYOUT_VERSION = 1.3;
 
     //Signing
@@ -522,6 +520,8 @@ let globals = function () {
     };
 
     global.stats = require('stats');
+
+    global.TEN_CPU = Game.cpu.limit === 20;
 };
 
 module.exports = globals;
