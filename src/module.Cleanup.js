@@ -1,6 +1,4 @@
-const profiler = require('screeps-profiler');
-
-function cleanup() {
+module.exports.cleanup = function () {
 //CLEANUP
     if (Game.time % 25 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
@@ -34,7 +32,6 @@ function cleanup() {
         }
     }
 }
-module.exports.cleanup = profiler.registerFN(cleanup, 'cleanup');
 
 function cleanPathCacheByUsage() {
     if (Memory._pathCache) { //1500 entries ~= 100kB
