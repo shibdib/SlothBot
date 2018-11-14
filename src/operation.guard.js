@@ -40,7 +40,7 @@ Creep.prototype.guardRoom = function () {
                 moveRange = 1;
                 ignore = false;
             }
-            this.shibMove(leader, {range: moveRange, ignoreCreeps: ignore});
+            this.shibMove(leader, {range: moveRange, ignoreCreeps: ignore, ignoreRoads: true});
         } else {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
         }

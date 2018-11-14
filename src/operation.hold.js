@@ -34,7 +34,18 @@ Creep.prototype.holdRoom = function () {
         } else {
             // Set leader and move to them
             let leader = Game.getObjectById(this.memory.leader);
-            if (this.room.name === leader.room.name) this.shibMove(leader, {range: 0}); else this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
+            if (!leader) return delete this.memory.leader;
+            if (this.room.name === leader.room.name) {
+                let moveRange = 0;
+                let ignore = true;
+                if (this.pos.x === 0 || this.pos.x === 49 || this.pos.y === 0 || this.pos.y === 49 || this.pos.getRangeTo(leader) > 2) {
+                    moveRange = 1;
+                    ignore = false;
+                }
+                this.shibMove(leader, {range: moveRange, ignoreCreeps: ignore, ignoreRoads: true});
+            } else {
+                this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
+            }
             // Heal squadmates
             let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
             if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
