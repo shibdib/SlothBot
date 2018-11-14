@@ -12,6 +12,7 @@ function role(creep) {
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
     // Siege
     if (creep.memory.operation && creep.memory.operation === 'siege') creep.siegeRoom();
+    if (creep.memory.operation && creep.memory.operation === 'siegeGroup') creep.siegeGroupRoom();
     // Hold
     if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
     // Remote Guard Squad
