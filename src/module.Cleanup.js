@@ -2,7 +2,6 @@ module.exports.cleanup = function () {
 //CLEANUP
     if (Game.time % 25 === 0) {
         cleanPathCacheByUsage(); //clean path and distance caches
-        //cleanPathCacheByAge();
         cleanDistanceCacheByUsage();
         cleanRouteCacheByAge();
         cleanRouteCacheByUsage();
@@ -31,7 +30,7 @@ module.exports.cleanup = function () {
             buggedCreep[key].suicide();
         }
     }
-}
+};
 
 function cleanPathCacheByUsage() {
     if (Memory._pathCache) { //1500 entries ~= 100kB
@@ -41,21 +40,6 @@ function cleanPathCacheByUsage() {
             log.i('Cleaning Path cache (Over max size by ' + overage + ')...');
             Memory._pathCache = _.slice(sorted, overage, _.size(Memory._pathCache));
         }
-    }
-}
-
-function cleanPathCacheByAge() {
-    if (Memory.pathCache) { //1500 entries ~= 100kB
-        let originalCount = Memory.pathCache.length;
-        let cache = Memory.pathCache;
-        for (let key in cache) {
-            if (cache[key].tick + 7500 < Game.time) {
-                delete cache[key];
-            }
-        }
-        let prunedCount = originalCount - cache.length;
-        if (prunedCount) log.i('Cleaning Path cache (Removed ' + prunedCount + ' old paths.)');
-        Memory.pathCache = cache;
     }
 }
 
@@ -80,21 +64,6 @@ function cleanRouteCacheByAge() {
         let prunedCount = originalCount - cache.length;
         if (prunedCount) log.i('Cleaning Route cache (Removed ' + prunedCount + ' old routes.)');
         Memory._routeCache = cache;
-    }
-}
-
-function cleanDistanceCacheByAge() {
-    if (Memory._distanceCache) { //1500 entries ~= 100kB
-        let originalCount = Memory._distanceCache.length;
-        let cache = Memory._distanceCache;
-        for (let key in cache) {
-            if (cache[key].tick + 100 < Game.time) {
-                delete cache[key];
-            }
-        }
-        let prunedCount = originalCount - cache.length;
-        if (prunedCount) log.i('Cleaning Distance cache (Removed ' + prunedCount + ' old routes.)');
-        Memory._distanceCache = cache;
     }
 }
 
