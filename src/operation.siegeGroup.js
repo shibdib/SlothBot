@@ -46,6 +46,7 @@ Creep.prototype.siegeGroupRoom = function () {
                 moveRange = 1;
                 ignore = false;
             }
+            if (this.borderCheck()) return;
             this.shibMove(leader, {range: moveRange, ignoreCreeps: ignore, ignoreRoads: true});
         } else {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
@@ -55,7 +56,6 @@ Creep.prototype.siegeGroupRoom = function () {
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
-        this.attackInRange();
     }
 };
 
