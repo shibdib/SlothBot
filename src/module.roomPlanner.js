@@ -3,56 +3,13 @@
  */
 let layouts = require('module.roomLayouts');
 module.exports.buildRoom = function (room) {
-    if (_.size(room.memory.layout) && room.memory.layoutVersion === LAYOUT_VERSION && _.size(room.memory.bunkerHub)) return buildFromLayout(room);
-    layoutRoom(room);
+    if (room.memory.layout && room.memory.layoutVersion === LAYOUT_VERSION && room.memory.bunkerHub) {
+        if (room.memory.layoutVersion === LAYOUT_VERSION) return buildFromLayout(room); else return updateLayout(room);
+    }
 };
 module.exports.hubCheck = function (room) {
     return findHub(room)
 };
-
-function layoutRoom(room) {
-    if (!_.size(room.memory.bunkerHub)) return findHub(room);
-    if (!room.memory.bunkerVersion) room.memory.bunkerType = 1;
-    let yVar, xVar, buildTemplate;
-    if (room.memory.bunkerVersion === 1) {
-        buildTemplate = template;
-        yVar = 16;
-        xVar = 15;
-    } else if (room.memory.bunkerVersion === 2) {
-        buildTemplate = template2;
-        yVar = 25;
-        xVar = 25;
-    } else if (room.memory.bunkerVersion === 3) {
-        buildTemplate = template3;
-        yVar = 25;
-        xVar = 25;
-    } else if (room.memory.bunkerVersion === 4) {
-        buildTemplate = template4;
-        yVar = 25;
-        xVar = 25;
-    } else if (room.memory.bunkerVersion === 5) {
-        buildTemplate = template5;
-        yVar = 25;
-        xVar = 25;
-    }
-    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let xOffset = difference(hub.x, xVar);
-    if (hub.x < xVar) xOffset *= -1;
-    let yOffset = difference(hub.y, yVar);
-    if (hub.y < yVar) yOffset *= -1;
-    let layout = [];
-    for (let type of buildTemplate) {
-        for (let s of type.pos) {
-            let structure = {};
-            structure.structureType = type.type;
-            structure.x = s.x + xOffset;
-            structure.y = s.y + yOffset;
-            layout.push(structure);
-        }
-    }
-    room.memory.layout = JSON.stringify(layout);
-    room.memory.layoutVersion = 1.2;
-}
 
 function buildFromLayout(room) {
     if (!room.memory.bunkerVersion) room.memory.bunkerVersion = 1;
@@ -271,7 +228,14 @@ function findHub(room) {
                 let closestSource = pos.findClosestByRange(FIND_SOURCES);
                 let layout = [];
                 for (let type of buildTemplate) {
-                    if (type.type === STRUCTURE_RAMPART) continue;
+                    if (type.type === STRUCTURE_RAMPART) {
+                        let structure = {};
+                        structure.structureType = type.type;
+                        structure.x = s.x + xOffset;
+                        structure.y = s.y + yOffset;
+                        layout.push(structure);
+                        continue;
+                    }
                     for (let s of type.pos) {
                         let structure = {};
                         structure.structureType = type.type;
@@ -294,6 +258,45 @@ function findHub(room) {
                 return true;
             }
         }
+}
+
+function updateLayout(room) {
+    let layoutVersion = room.memory.layoutVersion;
+    let buildTemplate = layouts.layoutArray[layoutVersion - 1];
+    let pos = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    let yVar, xVar;
+    if (layoutVersion === 1) {
+        yVar = 16;
+        xVar = 15;
+    } else {
+        yVar = 25;
+        xVar = 25;
+    }
+    xOffset = difference(pos.x, xVar);
+    if (pos.x < xVar) xOffset *= -1;
+    yOffset = difference(pos.y, yVar);
+    if (pos.y < yVar) yOffset *= -1;
+    let layout = [];
+    let xOffset, yOffset;
+    for (let type of buildTemplate) {
+        if (type.type === STRUCTURE_RAMPART) {
+            let structure = {};
+            structure.structureType = type.type;
+            structure.x = s.x + xOffset;
+            structure.y = s.y + yOffset;
+            layout.push(structure);
+            continue;
+        }
+        for (let s of type.pos) {
+            let structure = {};
+            structure.structureType = type.type;
+            structure.x = s.x + xOffset;
+            structure.y = s.y + yOffset;
+            layout.push(structure);
+        }
+    }
+    room.memory.layoutVersion = LAYOUT_VERSION;
+    room.memory.layout = JSON.stringify(layout);
 }
 
 abandonRoom = function (room) {

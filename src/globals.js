@@ -17,7 +17,7 @@ let globals = function () {
 
     global.TEN_CPU = Game.cpu.limit === 20;
 
-    global.LAYOUT_VERSION = 1.2;
+    global.LAYOUT_VERSION = 1.3;
 
     //Signing
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];
