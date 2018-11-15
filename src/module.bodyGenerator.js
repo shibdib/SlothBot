@@ -47,9 +47,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level === 8) {
                 work = 15;
                 carry = 10;
-            } else if (level <= 4) {
-                work = level;
-                carry = level;
             }
             if (room.memory.state < 2 && room.memory.state !== -1) {
                 work = 2;
