@@ -15,7 +15,7 @@ function controller(room) {
 
     // Tower control
     let towerCpu = Game.cpu.getUsed();
-    if (Game.time % 5 === 0 || room.memory.responseNeeded) towers.towerControl(room);
+    towers.towerControl(room);
     shib.shibBench('towerController', towerCpu);
 
     // Handle nuke defense

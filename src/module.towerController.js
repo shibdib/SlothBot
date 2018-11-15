@@ -61,7 +61,7 @@ function towerControl(room) {
                 }
             } else if (unArmedHostile.length) {
                 tower.attack(_.sample(unArmedHostile));
-            } else if (tower.energy > tower.energyCapacity * 0.75 && (tower.room.memory.state > 1 || tower.room.memory.state === -1)) {
+            } else if (tower.energy > tower.energyCapacity * 0.75) {
                 let structures = tower.room.structures;
                 let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1500);
                 if (barriers.length > 0) {
