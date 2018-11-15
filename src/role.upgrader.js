@@ -25,22 +25,19 @@ module.exports.role = function (creep) {
         if (!creep.memory.onContainer) {
             if (container && !container.pos.checkForCreep() && creep.pos.getRangeTo(container) > 0) return creep.shibMove(container, {range: 0});
         } else creep.memory.onContainer = true;
-        if (container.store[RESOURCE_ENERGY] > 0) {
+        if (creep.room.memory.controllerLink && Game.getObjectById(creep.room.memory.controllerLink).energy > 0) {
+            switch (creep.withdraw(Game.getObjectById(creep.room.memory.controllerLink), RESOURCE_ENERGY)) {
+                case OK:
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(Game.getObjectById(creep.room.memory.controllerLink));
+            }
+        } else if (container.store[RESOURCE_ENERGY] > 0) {
             switch (creep.withdraw(container, RESOURCE_ENERGY)) {
                 case OK:
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(container);
-            }
-        } else if (creep.room.memory.controllerLink) {
-            let link = Game.getObjectById(creep.room.memory.controllerLink);
-            if (link && link.energy > 0) {
-                switch (creep.withdraw(link, RESOURCE_ENERGY)) {
-                    case OK:
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(link);
-                }
             }
         } else {
             creep.idleFor(5);
