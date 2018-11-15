@@ -8,7 +8,6 @@ module.exports.highCommand = function () {
     if (maxLevel < 2) return;
     // Check for flags
     if (Game.time % 10 === 0) manualAttacks();
-
     // Manage old operations
     if (Game.time % 50 === 0) manageAttacks();
 
@@ -56,28 +55,7 @@ function queueAllyAttack(roomName) {
 
 function operationRequests() {
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout').length || 0;
-    let totalRooms = Memory.ownedRooms.length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
-    // Local targets
-    if (ATTACK_LOCALS && Game.cpu.bucket > 5500 && totalCountFiltered < _.round(totalRooms / 2)) {
-        for (let ownedRoom of Memory.ownedRooms) {
-            if (_.size(Memory.targetRooms) >= totalRooms) break;
-            let localTargets = _.filter(Memory.roomCache, (r) => Game.map.findRoute(r.name, ownedRoom.name).length <= LOCAL_SPHERE && r.cached > Game.time - 5000 && !Memory.targetRooms[r.name] && ((r.owner && !_.includes(FRIENDLIES, r.owner.username) && !_.includes(NO_AGGRESSION, r.owner.username))
-                || (r.reservation && !_.includes(FRIENDLIES, r.reservation) && !_.includes(NO_AGGRESSION, r.reservation)) || r.potentialTarget) && (!r.attackCooldown || r.attackCooldown + 5000 < Game.time));
-            if (localTargets.length) {
-                let target = _.sample(localTargets);
-                if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[target.name] = {
-                    tick: tick,
-                    type: 'attack',
-                    local: true
-                };
-                Memory.targetRooms = cache;
-            }
-        }
-    }
     // Harass Targets
     let enemyHarass, targetLimit;
     if (HOSTILES.length) {

@@ -506,7 +506,7 @@ function urgentMilitary(room) {
         return
     }
     // Already a target or too far
-    if (Memory.targetRooms[room.name] || range > 10) return;
+    if (Memory.targetRooms[room.name] || range > 5) return;
     let otherCreeps = _.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.body.length > 1);
     let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(s.store) > 0);
     if (room.controller) {
