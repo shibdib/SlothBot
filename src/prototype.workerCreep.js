@@ -384,16 +384,16 @@ Creep.prototype.getEnergy = function (hauler = false) {
         this.memory.energyDestination = hubContainer.id;
         return true;
     }
-    // Terminal
-    let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000) {
-        this.memory.energyDestination = terminal.id;
-        return true;
-    }
     // Storage
     let storage = this.room.storage;
     if (storage && storage.store[RESOURCE_ENERGY] > 5000) {
         this.memory.energyDestination = storage.id;
+        return true;
+    }
+    // Terminal
+    let terminal = this.room.terminal;
+    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000) {
+        this.memory.energyDestination = terminal.id;
         return true;
     }
     // Container
@@ -458,7 +458,7 @@ Creep.prototype.findSpawnsExtensions = function () {
 Creep.prototype.findStorage = function () {
     //Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] < 5000) {
+    if (terminal && (terminal.store[RESOURCE_ENERGY] < 5000 || (this.room.memory.extremeEnergySurplus && terminal.store[RESOURCE_ENERGY] < 50000))) {
         this.memory.storageDestination = terminal.id;
         return true;
     }
