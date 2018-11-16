@@ -366,6 +366,14 @@ Creep.prototype.fillerEnergy = function () {
 
 Creep.prototype.getEnergy = function (hauler = false) {
     if (!this.room.memory.hubContainer) hauler = false;
+    // chance to check for dropped
+    if (Math.random() > 0.75) {
+        let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
+        if (dropped) {
+            this.memory.energyDestination = dropped.id;
+            return true;
+        }
+    }
     // Links OLD
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {
