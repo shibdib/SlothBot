@@ -29,7 +29,7 @@ function role(creep) {
         let word = Game.time % sentence.length;
         creep.say(sentence[word], true);
     } else {
-        if (!creep.memory.signed) {
+        if (!creep.memory.signed && (!creep.room.controller.sign || creep.room.controller.sign.username !== MY_USERNAME)) {
             switch (creep.signController(creep.room.controller, _.sample(signs))) {
                 case OK:
                     creep.memory.signed = true;
