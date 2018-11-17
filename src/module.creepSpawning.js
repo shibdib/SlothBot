@@ -333,21 +333,21 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Haulers
-    let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-    if (hauler.length === 0) {
-        delete roomQueue[room.name];
-        return queueCreep(room, -1, {role: 'hauler', reboot: true});
-    }
-    if ((room.memory.hubLink || room.memory.hubLinks || room.memory.hubContainer) && !_.includes(queue, 'hauler')) {
-        let amount = 1;
+    if (room.memory.hubLink || room.memory.hubLinks || room.memory.hubContainer) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-        if ((hauler[0] && hauler[0].ticksToLive < 100 && hauler.length < amount + 1) || hauler.length < amount) {
-            queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
+        if (hauler.length === 0) {
+            delete roomQueue[room.name];
+            return queueCreep(room, -1, {role: 'hauler', reboot: true});
+        } else if (!_.includes(queue, 'hauler')) {
+            let amount = 1;
+            if ((hauler[0] && hauler[0].ticksToLive < 100 && hauler.length < amount + 1) || hauler.length < amount) {
+                queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
+            }
         }
     }
     if (!_.includes(queue, 'filler')) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
-        let filler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'filler'));
+        let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < 100 && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
         }
@@ -631,7 +631,7 @@ module.exports.remoteCreepQueue = function (room) {
                 });
             }
             let riotPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'attacker');
-            if (!_.includes(queue, 'attacker') && riotPatrol.length < count) {
+            if (!_.includes(queue, 'attacker') && riotPatrol.length < 1) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'attacker',
                     operation: 'borderPatrol',

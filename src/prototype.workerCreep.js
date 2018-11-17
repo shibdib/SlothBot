@@ -344,7 +344,7 @@ Creep.prototype.findEnergy = function () {
 Creep.prototype.fillerEnergy = function () {
     let source, container;
     if (!this.memory.assignedSource) {
-        let assignment = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.onContainer && !c.memory.linkID && !_.filter(this.room.creeps, (f) => f.my && f.memory.role === 'filler' && f.memory.assignedSource === c.memory.source).length);
+        let assignment = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID && !_.filter(this.room.creeps, (f) => f.my && f.memory.role === 'filler' && f.memory.assignedSource === c.memory.source).length);
         if (assignment.length) this.memory.assignedSource = assignment[0].memory.source;
         return;
     } else {
@@ -353,7 +353,10 @@ Creep.prototype.fillerEnergy = function () {
     // Container
     if (!this.memory.assignedContainer) {
         source = Game.getObjectById(this.memory.assignedSource);
-        if (source) this.memory.assignedContainer = source.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0].id;
+        if (source) {
+            let container = source.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+            if (container) this.memory.assignedContainer = container.id;
+        }
     } else {
         container = Game.getObjectById(this.memory.assignedContainer);
         if (container && container.store[RESOURCE_ENERGY] >= this.carryCapacity * 0.5) {
