@@ -511,7 +511,7 @@ module.exports.remoteCreepQueue = function (room) {
     let harvesterTarget = 7;
     if (room.memory.state >= 2) harvesterTarget = 5;
     if (room.memory.state >= 4) harvesterTarget = 3;
-    if (!room.memory.remoteRange || Game.time % 200 === 0) {
+    if (Math.random() > 0.75) {
         range:
             for (range = 1; range < 6; range++) {
                 for (let keys in room.memory.remoteRooms) {
