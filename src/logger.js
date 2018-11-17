@@ -25,7 +25,7 @@ class Log {
 
         // This sets the default logging level if it's not already defined.
         // You can change this to a different default logging level.
-        Memory.loggingLevel = Memory.loggingLevel || this.LOGGING_LEVEL.WARN;
+        Memory.loggingLevel = Memory.loggingLevel || 3;
     }
 
     /**

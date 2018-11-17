@@ -49,23 +49,12 @@ function role(creep) {
 module.exports.role = profiler.registerFN(role, 'mineralHarvesterRole');
 
 function depositMineral(creep) {
-    if (creep.room.memory.extractorContainer && Game.getObjectById(creep.room.memory.extractorContainer)) {
-        for (let resourceType in creep.carry) {
-            switch (creep.transfer(Game.getObjectById(creep.room.memory.extractorContainer), resourceType)) {
-                case OK:
-                    return creep.shibMove(Game.getObjectById(creep.room.memory.extractorContainer), {range: 0});
-                case ERR_NOT_IN_RANGE:
-                    return creep.shibMove(Game.getObjectById(creep.room.memory.extractorContainer), {range: 0});
-            }
-        }
-    } else {
-        let storage = creep.room.terminal;
-        for (let resourceType in creep.carry) {
-            switch (creep.transfer(storage, resourceType)) {
-                case OK:
-                case ERR_NOT_IN_RANGE:
-                    return creep.shibMove(storage);
-            }
+    let storage = creep.room.terminal;
+    for (let resourceType in creep.carry) {
+        switch (creep.transfer(storage, resourceType)) {
+            case OK:
+            case ERR_NOT_IN_RANGE:
+                return creep.shibMove(storage);
         }
     }
 }

@@ -4,6 +4,7 @@
 const profiler = require('screeps-profiler');
 let towers = require('module.towerController');
 let shib = require("shibBench");
+let structureCount = {};
 
 //Claimed Defense
 function controller(room) {
@@ -91,18 +92,15 @@ function rampartManager(room, structures) {
 }
 
 function safeModeManager(room) {
-    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-    if (room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !_.inRange(room.controller.level, maxLevel - 1, maxLevel + 1)) return;
+    let enemyMilitary = room.hostileCreeps.length;
+    if (!enemyMilitary || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !_.inRange(room.controller.level, _.max(Memory.ownedRooms, 'controller.level').controller.level - 1, _.max(Memory.ownedRooms, 'controller.level').controller.level + 1)) return;
     if (room.controller.level < 3) {
-        let enemyMilitary = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 2));
-        if (enemyMilitary.length) return room.controller.activateSafeMode();
+        return room.controller.activateSafeMode();
     } else {
-        let hub;
-        if (room.memory.bunkerHub) hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name); else if (room.memory.extensionHub) hub = new RoomPosition(room.memory.extensionHub.x, room.memory.extensionHub.y, room.name);
-        let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy >= 10);
-        let alliedMilitary = _.filter(room.creeps, (c) => c.memory && c.memory.military);
-        let enemyMilitary = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) >= 2 || c.getActiveBodyparts(RANGED_ATTACK) >= 2 || c.getActiveBodyparts(WORK) >= 5);
-        if (!towers.length && enemyMilitary.length && !alliedMilitary.length && hub.getRangeTo(hub.findClosestByRange(enemyMilitary)) <= 5) {
+        let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
+        let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
+        structureCount[room.name] = worthyCount;
+        if (structureLost) {
             log.a(roomLink(room.name) + ' has entered safemode with ' + enemyMilitary.length + ' attackers in the room, at least one of them is from ' + enemyMilitary[0].owner.username);
             Game.notify(roomLink(room.name) + ' has entered safemode with ' + enemyMilitary.length + ' attackers in the room, at least one of them is from ' + enemyMilitary[0].owner.username);
             return room.controller.activateSafeMode();

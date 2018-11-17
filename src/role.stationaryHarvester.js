@@ -127,7 +127,7 @@ function harvestDepositContainer(source, creep) {
         return container.id;
     } else {
         let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (!site && creep.pos.getRangeTo(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 3) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
     }
 }
 

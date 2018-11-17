@@ -482,7 +482,7 @@ function addBorderToMatrix(room, matrix) {
     return matrix;
 }
 
-function serializePath(startPos, path, color = "orange") {
+function serializePath(startPos, path, color = _.sample(["orange", "blue", "green", "red", "yellow", "black", "gray", "purple"])) {
     let serializedPath = "";
     let lastPosition = startPos;
     for (let position of path) {

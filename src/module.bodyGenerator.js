@@ -31,6 +31,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level > 2) move = 3;
             break;
         // General Creeps
+        case 'drone':
+            work = level;
+            carry = _.random(1, level);
+            move = work + carry;
+            break;
         case 'worker':
             work = level;
             carry = level;

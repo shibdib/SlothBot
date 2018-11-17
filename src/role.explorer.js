@@ -4,11 +4,12 @@
 
 module.exports.role = function (creep) {
     creep.room.cacheRoomIntel();
-    let sayings = ['Dont Mind Me', 'Beep Beep', 'Just Saying Hi', 'o/', ':D', ':)'];
+    let sayings = EXPLORER_SPAM;
     creep.say(_.sample(sayings), true);
     if (!creep.memory.destination) {
         let adjacent = Game.map.describeExits(creep.pos.roomName);
-        let target = _.sample(adjacent);
+        let possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].lastIntelCache + 1501 > Game.time) || adjacent;
+        let target = _.sample(possibles);
         if (!Game.map.isRoomAvailable(target)) return creep.say("??");
         creep.memory.destination = target;
     }

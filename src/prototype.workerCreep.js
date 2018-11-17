@@ -318,6 +318,12 @@ Creep.prototype.findEnergy = function () {
         this.memory.energyDestination = dropped.id;
         return true;
     }
+    // Tombstone
+    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= this.carryCapacity * 0.8});
+    if (tombstone) {
+        this.memory.energyDestination = tombstone.id;
+        return true;
+    }
     // Container
     let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
     if (container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {

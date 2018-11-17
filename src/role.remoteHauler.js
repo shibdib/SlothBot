@@ -63,8 +63,8 @@ function role(creep) {
                 } else {
                     if (!creep.shibMove(pairedHarvester)) creep.idleFor(10);
                 }
-            } else if (pairedHarvester.pos.lookFor(FIND_DROPPED_RESOURCES)[0]) {
-                let dropped = pairedHarvester.pos.lookFor(FIND_DROPPED_RESOURCES)[0];
+            } else if (pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0]) {
+                let dropped = pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0];
                 if (creep.pickup(dropped) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(dropped);
                 }

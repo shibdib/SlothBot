@@ -9,6 +9,8 @@ module.exports.buildRoom = function (room) {
         } else {
             return updateLayout(room);
         }
+    } else {
+        findHub(room);
     }
 };
 module.exports.hubCheck = function (room) {

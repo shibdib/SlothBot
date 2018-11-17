@@ -17,11 +17,12 @@ let globals = function () {
 
     global.LAYOUT_VERSION = 1.3;
 
-    //Signing
+    //Signing and whatnot
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];
     global.RESERVE_ROOM_SIGNS = ["~~Reserved Territory of an #overlords member~~", "~~This is a restricted area, violators will be attacked #overlords~~", "~~#overlords Exclusion Zone~~", "~~#overlords Reserved Room~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER~~"];
     global.EXPLORED_ROOM_SIGNS = ["#overlords were here.", "#overlords have collected intel from this room. We Know.", "Spawn More #Overlord-Bot's", "All your rooms belong to #overlords"];
     global.ATTACK_ROOM_SIGNS = ["~~Overlords is your daddy~~", "~~This room was declared unnecessary by overlords~~", "~~#overlords wasteland~~"];
+    global.EXPLORER_SPAM = ['HI', 'Hello', '#overlords'];
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
@@ -101,6 +102,7 @@ let globals = function () {
         0: {
             stationaryHarvester: [WORK, WORK, CARRY, MOVE],
             worker: [MOVE, MOVE, CARRY, WORK],
+            drone: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
             pioneer: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
