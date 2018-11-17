@@ -28,6 +28,7 @@ function buildFromLayout(room) {
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
+            if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType) pos.checkForAllStructure()[0].destroy();
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     } else if (level < 8 && level >= 6) {
@@ -35,6 +36,7 @@ function buildFromLayout(room) {
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
+            if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType) pos.checkForAllStructure()[0].destroy();
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     } else if (level < 6 && level >= 3) {
@@ -42,6 +44,7 @@ function buildFromLayout(room) {
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
+            if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType) pos.checkForAllStructure()[0].destroy();
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     } else {
@@ -49,6 +52,7 @@ function buildFromLayout(room) {
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
+            if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType) pos.checkForAllStructure()[0].destroy();
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     }
@@ -67,6 +71,14 @@ function buildFromLayout(room) {
                 room.memory.hubContainer = hub.checkForAllStructure()[0].id;
             }
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
+        }
+    } else if (level >= 5) {
+        delete room.memory.hubContainer;
+        let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2)
+        if (links.length) {
+            let a = [];
+            links.forEach((l) => a.push(l.id))
+            room.memory.hubLinks = a;
         }
     }
     // Ramparts on buildings

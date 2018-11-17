@@ -272,8 +272,15 @@ module.exports.workerCreepQueue = function (room) {
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     // Level 1 room management
-    if (level < 3) {
+    if (level < 2) {
         return roomStartup(room, roomCreeps);
+    }
+    // Drones until level 4
+    if (level < 4 && !_.includes(queue, 'drone')) {
+        let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
+        if (drones.length < roomSourceSpace[room.name] * 0.5) {
+            queueCreep(room, PRIORITIES.drone, {role: 'drone'})
+        }
     }
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
@@ -331,15 +338,15 @@ module.exports.workerCreepQueue = function (room) {
         delete roomQueue[room.name];
         return queueCreep(room, -1, {role: 'hauler', reboot: true});
     }
-    if (!_.includes(queue, 'hauler')) {
+    if ((room.memory.hubLink || room.memory.hubLinks || room.memory.hubContainer) && !_.includes(queue, 'hauler')) {
         let amount = 1;
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if ((hauler[0] && hauler[0].ticksToLive < 100 && hauler.length < amount + 1) || hauler.length < amount) {
             queueCreep(room, PRIORITIES.hauler, {role: 'hauler'})
         }
     }
-    if (level < 7 && !_.includes(queue, 'filler')) {
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.onContainer && !c.memory.linkID));
+    if (!_.includes(queue, 'filler')) {
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < 100 && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
@@ -611,7 +618,7 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         // Border Patrol
-        if (level >= 3 && responseNeeded) {
+        if (level >= 2 && responseNeeded) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
             let count = 1;
             if (heavyResponse) count = 2;
