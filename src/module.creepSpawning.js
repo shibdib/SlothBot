@@ -333,7 +333,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Haulers
-    if (room.memory.hubLink || room.memory.hubLinks || room.memory.hubContainer) {
+    if (room.storage || room.memory.hubLink || room.memory.hubLinks || room.memory.hubContainer) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (hauler.length === 0) {
             delete roomQueue[room.name];
