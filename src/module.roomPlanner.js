@@ -252,7 +252,7 @@ function findHub(room) {
                         structure.x = s.x + xOffset;
                         structure.y = s.y + yOffset;
                         let structurePos = new RoomPosition(structure.x, structure.y, room.name);
-                        if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2 || (structurePos.checkForImpassible() && (!spawnCheck || (structure.structureType === STRUCTURE_SPAWN && !_.filter(structurePos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_SPAWN)[0]))))) {
+                        if (type.type !== STRUCTURE_RAMPART && (structurePos.checkIfOutOfBounds() || pos.getRangeTo(controller) < 2 || pos.getRangeTo(closestSource) < 2 || structurePos.checkForWall())) {
                             continue primary;
                         }
                         layout.push(structure);
