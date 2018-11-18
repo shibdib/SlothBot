@@ -198,10 +198,9 @@ function findHub(room) {
             }
             let buildTemplate = _.sample(layouts.layoutArray);
             let layoutVersion = buildTemplate[0]['layout'];
-            let xOffset, yOffset, spawnCheck;
+            let xOffset, yOffset;
             if (spawn) {
                 let spawnPos;
-                spawnCheck = true;
                 for (let type of buildTemplate) {
                     if (type.type !== STRUCTURE_SPAWN) continue;
                     spawnPos = type.pos[0];
