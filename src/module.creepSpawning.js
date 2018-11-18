@@ -219,8 +219,16 @@ function queueMilitaryCreep(importance, options = {}) {
 function roomStartup(room, roomCreeps) {
     let queue = roomQueue[room.name];
     let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
+    let priority = 3;
+    if (drones.length < 2) priority = 1;
     if (drones.length < roomSourceSpace[room.name] + 4) {
-        queueCreep(room, 2, {role: 'drone'})
+        queueCreep(room, priority, {role: 'drone'})
+    }
+    let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
+    if (!_.includes(queue, 'stationaryHarvester')) {
+        if (harvesters.length < 2 || (harvesters[0].ticksToLive < 100 && harvesters.length < 3)) {
+            queueCreep(room, 2, {role: 'stationaryHarvester'})
+        }
     }
     let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
     if (explorers.length < 5) {

@@ -13,6 +13,7 @@ module.exports.role = function role(creep) {
     if (_.sum(creep.carry) === creep.carryCapacity) {
         creep.memory.working = true;
         creep.memory.source = undefined;
+        creep.memory.harvest = undefined;
     }
     // Work
     if (creep.memory.working === true) {
@@ -79,13 +80,18 @@ module.exports.role = function role(creep) {
             }
         }
     } else {
-        creep.say('Harvest!', true);
-        let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
-        if (source) {
-            creep.memory.source = source.id;
-            if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
+            creep.withdrawEnergy();
         } else {
-            creep.idleFor(5);
+            creep.memory.harvest = true;
+            creep.say('Harvest!', true);
+            let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
+            if (source) {
+                creep.memory.source = source.id;
+                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+            } else {
+                creep.idleFor(5);
+            }
         }
     }
 };
