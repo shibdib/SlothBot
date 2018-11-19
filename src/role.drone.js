@@ -3,6 +3,7 @@
  */
 
 module.exports.role = function role(creep) {
+    if (creep.borderCheck()) return;
     // Handle remote drones
     if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
@@ -74,12 +75,12 @@ module.exports.role = function role(creep) {
         } else {
             creep.memory.task = 'upgrade';
             creep.say('Praise!', true);
-            switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
+            switch (creep.upgradeController(creep.room.controller)) {
                 case OK:
                     delete creep.memory._shibMove;
                     return;
                 case ERR_NOT_IN_RANGE:
-                    return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
+                    return creep.shibMove(creep.room.controller, {range: 3});
             }
         }
     } else {
