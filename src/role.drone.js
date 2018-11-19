@@ -54,23 +54,40 @@ module.exports.role = function role(creep) {
                 creep.memory.task = undefined;
             }
         } else if (creep.memory.task !== 'upgrade' && praisers.length && (creep.memory.constructionSite || creep.findConstruction())) {
-            creep.memory.task = 'build';
             let construction = Game.getObjectById(creep.memory.constructionSite);
             creep.say('Build!', true);
-            switch (creep.build(construction)) {
-                case OK:
-                    return null;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(construction, {range: 3});
-                    break;
-                case ERR_RCL_NOT_ENOUGH:
-                    creep.memory.constructionSite = undefined;
-                    creep.memory.task = undefined;
-                    break;
-                case ERR_INVALID_TARGET:
-                    creep.memory.constructionSite = undefined;
-                    creep.memory.task = undefined;
-                    break;
+            if (creep.memory.task === 'repair') {
+                switch (creep.repair(construction)) {
+                    case OK:
+                        return null;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(construction, {range: 3});
+                        break;
+                    case ERR_RCL_NOT_ENOUGH:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
+                    case ERR_INVALID_TARGET:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
+                }
+            } else {
+                switch (creep.build(construction)) {
+                    case OK:
+                        return null;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(construction, {range: 3});
+                        break;
+                    case ERR_RCL_NOT_ENOUGH:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
+                    case ERR_INVALID_TARGET:
+                        creep.memory.constructionSite = undefined;
+                        creep.memory.task = undefined;
+                        break;
+                }
             }
         } else {
             creep.memory.task = 'upgrade';

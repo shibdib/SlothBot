@@ -5,7 +5,11 @@ let layouts = require('module.roomLayouts');
 module.exports.buildRoom = function (room) {
     if (room.memory.layout && room.memory.bunkerHub) {
         if (room.memory.layoutVersion === LAYOUT_VERSION) {
-            return buildFromLayout(room);
+            if (Memory.ownedRooms.length === 1 || room.controller.level >= 4) {
+                return buildFromLayout(room);
+            } else {
+                return newClaimBuild(room);
+            }
         } else {
             return updateLayout(room);
         }
@@ -178,6 +182,32 @@ function buildFromLayout(room) {
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
     if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
+}
+
+function newClaimBuild(room) {
+    let level = room.controller.level;
+    if (level < 2) return;
+    let layout = JSON.parse(room.memory.layout);
+    // Build tower rampart, then tower, then spawn
+    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
+    let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
+    if (!towers.length) {
+        let tower = _.filter(layout, (s) => s.structureType === STRUCTURE_TOWER)[0];
+        let pos = new RoomPosition(tower.x, tower.y, room.name);
+        // Tower Rampart
+        if (!pos.checkForConstructionSites() && !pos.checkForRampart()) return pos.createConstructionSite(STRUCTURE_RAMPART);
+        // Tower
+        if (!pos.checkForConstructionSites() && !pos.checkForObstacleStructure()) return pos.createConstructionSite(STRUCTURE_TOWER);
+    } else if (!spawns.length) {
+        let spawn = _.filter(layout, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+        let pos = new RoomPosition(spawn.x, spawn.y, room.name);
+        // Spawn Rampart
+        if (!pos.checkForConstructionSites() && !pos.checkForRampart()) return pos.createConstructionSite(STRUCTURE_RAMPART);
+        // Spawn
+        if (!pos.checkForConstructionSites() && !pos.checkForObstacleStructure()) return pos.createConstructionSite(STRUCTURE_SPAWN);
+    } else {
+        return buildFromLayout(room);
+    }
 }
 
 function findHub(room) {
