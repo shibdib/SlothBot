@@ -54,7 +54,7 @@ function queueAllyAttack(roomName) {
 }
 
 function operationRequests() {
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout' && target.type !== 'clean').length || 0;
     let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Harass Targets
     let enemyHarass, targetLimit;
@@ -80,6 +80,23 @@ function operationRequests() {
             };
             Memory.targetRooms = cache;
             break;
+        }
+    }
+    // Clean
+    let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
+    if (!cleanCount) {
+        let enemyClean = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !Memory.targetRooms[r.name] && r.needsCleaning);
+        if (enemyClean.length) {
+            let cleanTarget = _.sample(enemyClean);
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[cleanTarget.name] = {
+                tick: tick,
+                type: 'clean',
+                level: 1,
+                priority: 4
+            };
+            Memory.targetRooms = cache;
         }
     }
     // Pokes
@@ -118,6 +135,7 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
+    let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
     if (sieges.length) {
         let activeSiege = _.filter(sieges, (t) => t.activeSiege)[0];
@@ -137,6 +155,7 @@ function manageAttacks() {
         }
     }
     if (!Memory.targetRooms) Memory.targetRooms = {};
+    let staleMulti = 1;
     for (let key in Memory.targetRooms) {
         let type = Memory.targetRooms[key].type;
         // Special Conditions
@@ -144,10 +163,12 @@ function manageAttacks() {
             // Manage Pokes
             case 'poke':
                 if (pokeCount > 10) delete Memory.targetRooms[key];
-                continue;
+                staleMulti = 3;
+                break;
             // Manage Holds
             case 'hold':
-                continue;
+                staleMulti = 10;
+                break;
             // Manage Nukes
             case 'nukes':
                 continue;
@@ -167,16 +188,21 @@ function manageAttacks() {
                 continue;
             // Manage Guard
             case 'guard':
+                staleMulti = 3;
+                break;
+            // Manage Cleaning
+            case 'clean':
+                if (cleanCount > 1) delete Memory.targetRooms[key];
                 continue;
         }
         // Cancel stale ops with no kills
-        if (Memory.targetRooms[key].tick + 3000 < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
+        if (Memory.targetRooms[key].tick + (3000 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + key + ' as it has gone stale.');
             continue;
         }
         // Cancel once active stale ops who hasn't killed in 1 creep lifetime
-        if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + 1500 < Game.time) {
+        if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (3000 * staleMulti) < Game.time) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + key + ' as it has gone stale.');
             continue;

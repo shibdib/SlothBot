@@ -8,7 +8,6 @@ module.exports.role = function role(creep) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     }
     // Checks
-    if (creep.wrongRoom()) return;
     if (creep.carry.energy === 0) {
         creep.memory.working = null;
         creep.memory.constructionSite = undefined;
