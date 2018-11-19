@@ -254,7 +254,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let sources = room.sources;
         let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER);
         let barriers, spawns;
-        barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 5;
+        barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 7;
         spawns = _.filter(room.structures, (e) => e.structureType === STRUCTURE_SPAWN);
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
@@ -264,6 +264,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         let minerals = room.mineral;
         if (room.controller) {
+            user = room.controller.owner || room.controller.reservation;
             owner = room.controller.owner;
             level = room.controller.level;
             if (room.controller.reservation) {
@@ -271,22 +272,33 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 reservationTick = room.controller.reservation.ticksToEnd + Game.time;
             }
             // Handle claim targets
-            let closestRoom = this.findClosestOwnedRoom(true);
             let safemodeCooldown = this.controller.safeModeCooldown;
-            if (!owner && !safemodeCooldown && !reservation && sources.length > 1 && closestRoom > 2 && !barriers && findHub(room)) {
+            if (sources.length > 1 && !user && !barriers && !safemodeCooldown && this.findClosestOwnedRoom(true) <= 10) {
+                // All rooms start at 1000
+                let baseScore = 1000;
+                // Get source distance from controller
                 let sourceDist = 0;
                 for (let source in sources) {
                     let range = sources[source].pos.getRangeTo(room.controller);
                     sourceDist = sourceDist + range;
                 }
-                claimValue = 250 - sourceDist;
-                let minerals = Memory.ownedMineral;
-                let roomRangeMulti = 0;
-                if (3 < closestRoom < 7) roomRangeMulti = 50;
-                if (6 < closestRoom < 13) roomRangeMulti = 20;
-                claimValue = claimValue + roomRangeMulti;
-                if (!_.includes(minerals, room.mineral[0].mineralType)) claimValue = claimValue * 2;
-                claimWorthy = true;
+                baseScore -= sourceDist;
+                // Swamps suck
+                let terrain = new Room.Terrain(this.name);
+                let terrainScore = 0;
+                for (let y = 0; y < 50; y++) {
+                    for (let x = 0; x < 50; x++) {
+                        let tile = terrain.get(x, y);
+                        terrainScore += tile === TERRAIN_MASK_WALL ? 1 :
+                            tile === TERRAIN_MASK_SWAMP ? 5 :
+                                0;
+                    }
+                }
+                baseScore -= terrainScore;
+                // If it's a new mineral add to the score
+                if (!_.includes(Memory.ownedMineral, room.mineral[0].mineralType)) baseScore += 75;
+                claimWorthy = baseScore > 0;
+                claimValue = baseScore;
             } else {
                 claimValue = undefined;
                 claimWorthy = undefined;
@@ -295,7 +307,18 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (!owner && !reservation && structures.length > 2) {
                 needsCleaning = true;
             }
-            user = room.controller.owner || room.controller.reservation;
+        }
+        // Store portal info
+        if (portal.length) {
+            let portalArray = [];
+            let destinationArray = [];
+            for (let obj of portal) {
+                if (obj.ticksToDecay && obj.ticksToDecay <= 500) continue;
+                if (!_.includes(destinationArray, obj.destination)) destinationArray.push(obj.destination); else continue;
+                let decayTick = obj.ticksToDecay + Game.time || 99999999999;
+                portalArray.push({decayTick: decayTick, destination: obj.destination})
+            }
+            if (portalArray.length) portal = JSON.stringify(portalArray); else portal = undefined;
         }
         if (user) user = user.username; else if (_.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader')[0].owner.username;
         let potentialTarget;
@@ -322,7 +345,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             claimWorthy: claimWorthy,
             needsCleaning: needsCleaning,
             potentialTarget: potentialTarget,
-            user: user
+            user: user,
+            portal: portal
         };
         Memory.roomCache = cache;
         Memory.roomCache[this.name].lastIntelCache = Game.time;
@@ -531,34 +555,6 @@ function urgentMilitary(room) {
             type: 'scout',
         };
         Memory.targetRooms = cache;
-    }
-}
-
-function findHub(room) {
-    if (room.memory.hub) {
-        return true;
-    }
-    for (let i = 1; i < 1000; i++) {
-        let searched = [];
-        let pos = new RoomPosition(getRandomInt(9, 40), getRandomInt(9, 40), room.name);
-        let clean = pos.x + '.' + pos.y;
-        if (!_.includes(searched, clean)) {
-            searched.push(clean);
-            let closestStructure = pos.findClosestByRange(FIND_STRUCTURES);
-            let terrain = Game.rooms[pos.roomName].lookForAtArea(LOOK_TERRAIN, pos.y - 6, pos.x - 5, pos.y + 6, pos.x + 5, true);
-            let wall = false;
-            for (let key in terrain) {
-                let position = new RoomPosition(terrain[key].x, terrain[key].y, room.name);
-                if (!position.checkForWall()) {
-                    continue;
-                }
-                wall = true;
-                break;
-            }
-            if (pos.getRangeTo(closestStructure) >= 4 && !wall) {
-                return true;
-            }
-        }
     }
 }
 
