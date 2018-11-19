@@ -466,15 +466,15 @@ module.exports.workerCreepQueue = function (room) {
     // Assist room
     let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && room.shibRoute(r.name).length - 1 <= 15))[0];
     if (needyRoom && !room.memory.responseNeeded) {
-        if (!_.includes(queue, 'pioneer') && (!queueTracker['pioneer'] || queueTracker['pioneer'] + 25 <= Game.time)) {
-            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && (creep.memory.role === 'pioneer' || creep.memory.role === 'worker'));
-            let amount = roomSourceSpace[needyRoom.name] || 5;
+        if (!_.includes(queue, 'drone') && (!queueTracker['drone'] || queueTracker['drone'] + 15 <= Game.time)) {
+            let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && (creep.memory.role === 'drone' || creep.memory.role === 'worker'));
+            let amount = roomSourceSpace[needyRoom.name] + 3 || 5;
             if (pioneers.length < amount) {
                 queueCreep(room, PRIORITIES.assistPioneer + pioneers.length, {
-                    role: 'pioneer',
+                    role: 'drone',
                     destination: needyRoom.name
                 });
-                queueTracker['pioneer'] = Game.time;
+                queueTracker['drone'] = Game.time;
             }
         }
         if (!_.includes(queue, 'fuelTruck') && level >= 6 && room.storage && room.memory.state > 1 && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 200 <= Game.time)) {

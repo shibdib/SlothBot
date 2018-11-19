@@ -12,7 +12,11 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
-        return this.memory.idle;
+        if (this.pos.checkForRoad()) {
+            this.moveRandom();
+        } else {
+            return this.memory.idle;
+        }
     },
     set: function (val) {
         if (!val && this.memory.idle) {
