@@ -470,7 +470,7 @@ module.exports.workerCreepQueue = function (room) {
             if (!_.includes(queue, 'drone')) {
                 let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
                 let priority = PRIORITIES.assistPioneer;
-                if (drones.length >= 3) priority += drones.length;
+                if (drones.length >= 6) priority += drones.length;
                 let amount = roomSourceSpace[needyRoom.name] + 3 || 5;
                 if (drones.length < amount) {
                     queueCreep(room, priority, {
