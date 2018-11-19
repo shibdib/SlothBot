@@ -26,7 +26,8 @@ module.exports.role = function role(creep) {
         let haulers = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'drone' && c.memory.task === 'haul');
         let praisers = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'drone' && c.memory.task === 'upgrade');
         // If haulers needed haul
-        if (creep.memory.task === 'haul' || (creep.carry[RESOURCE_ENERGY] === creep.carryCapacity && haulers.length < getLevel(creep.room) && creep.room.energyAvailable < creep.room.energyCapacityAvailable && !creep.memory.task)) {
+        let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5).length > 0;
+        if (creep.memory.task === 'haul' || (creep.carry[RESOURCE_ENERGY] === creep.carryCapacity && haulers.length < getLevel(creep.room) && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
             creep.memory.task = 'haul';
             creep.say('Haul!', true);
             if (creep.memory.storageDestination || creep.findSpawnsExtensions() || creep.findEssentials() || creep.findStorage()) {

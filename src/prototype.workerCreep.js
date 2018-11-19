@@ -436,6 +436,12 @@ Creep.prototype.findSpawnsExtensions = function () {
             this.memory.storageDestination = tower.id;
             return true;
         }
+    } else {
+        let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.45});
+        if (tower) {
+            this.memory.storageDestination = tower.id;
+            return true;
+        }
     }
     //Spawn
     if (this.memory.spawns) {
