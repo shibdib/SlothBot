@@ -333,7 +333,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Repairer
-    if (level >= 9 && !_.includes(queue, 'repairer') && !room.memory.responseNeeded && (!room.storage || room.storage.store[RESOURCE_ENERGY] >= 10000)) {
+    if (!_.includes(queue, 'repairer') && !room.memory.responseNeeded && (!room.storage || room.storage.store[RESOURCE_ENERGY] >= 10000)) {
         let amount = 1;
         let repairers = _.filter(roomCreeps, (creep) => creep.memory.role === 'repairer');
         if (repairers.length < amount) {
