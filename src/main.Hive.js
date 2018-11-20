@@ -144,8 +144,8 @@ function mind() {
 }
 
 function minionController(minion) {
-    // If spawning disable notifications
-    if (minion.spawning) return minion.notifyWhenAttacked(false);
+    // Disable notifications
+    if (minion.ticksToLive > 1450) minion.notifyWhenAttacked(false);
     // If minion has been flagged to recycle do so
     if (minion.memory.recycle) return minion.recycleCreep();
     // If idle sleep

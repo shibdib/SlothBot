@@ -237,8 +237,8 @@ module.exports.overlordMind = function (room) {
 };
 
 function minionController(minion) {
-    // If spawning disable notifications
-    if (minion.spawning) return minion.notifyWhenAttacked(false);
+    // Disable notifications
+    if (minion.ticksToLive > 1450) minion.notifyWhenAttacked(false);
     // If idle sleep
     if (minion.idle) return;
     // If minion has been flagged to recycle do so

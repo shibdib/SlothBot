@@ -92,8 +92,7 @@ function rampartManager(room, structures) {
 }
 
 function safeModeManager(room) {
-    let enemyMilitary = room.hostileCreeps.length;
-    if (!enemyMilitary || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !_.inRange(room.controller.level, _.max(Memory.ownedRooms, 'controller.level').controller.level - 1, _.max(Memory.ownedRooms, 'controller.level').controller.level + 1)) return;
+    if (!room.hostileCreeps.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !_.inRange(room.controller.level, _.max(Memory.ownedRooms, 'controller.level').controller.level - 1, _.max(Memory.ownedRooms, 'controller.level').controller.level + 1)) return;
     if (room.controller.level < 3) {
         return room.controller.activateSafeMode();
     } else {
@@ -101,9 +100,11 @@ function safeModeManager(room) {
         let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
         structureCount[room.name] = worthyCount;
         if (structureLost) {
-            log.a(roomLink(room.name) + ' has entered safemode with ' + enemyMilitary.length + ' attackers in the room, at least one of them is from ' + enemyMilitary[0].owner.username);
-            Game.notify(roomLink(room.name) + ' has entered safemode with ' + enemyMilitary.length + ' attackers in the room, at least one of them is from ' + enemyMilitary[0].owner.username);
-            return room.controller.activateSafeMode();
+            let ownerArray = [];
+            room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
+            room.controller.activateSafeMode();
+            log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
+            Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
         }
     }
 }
