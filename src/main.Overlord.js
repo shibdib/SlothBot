@@ -243,6 +243,8 @@ function minionController(minion) {
     if (minion.idle) return;
     // If minion has been flagged to recycle do so
     if (minion.memory.recycle) return minion.recycleCreep();
+    // If flee to room is active
+    if (minion.memory.runCooldown) return minion.goHomeAndHeal();
     // Chance based CPU saving
     let cpuUsed = Game.cpu.getUsed();
     if (Game.cpu.bucket < 10000) {
@@ -313,7 +315,7 @@ function cleanQueue(room) {
 function requestBuilders(room) {
     let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military);
-    if (!spawns.length || roomCreeps.length < 4 || getLevel(room) !== room.controller.level || _.size(room.constructionSites) > 10) {
+    if (!spawns.length || roomCreeps.length < 4 || getLevel(room) !== room.controller.level || _.size(_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)) > 10) {
         room.memory.buildersNeeded = true;
     } else {
         room.memory.buildersNeeded = undefined;

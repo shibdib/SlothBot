@@ -4,7 +4,7 @@ Creep.prototype.borderPatrol = function () {
     this.say(sentence[word], true);
     // Set squad leader
     if (!this.memory.squadLeader && !this.memory.leader) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader && c.memory.role === 'longbow');
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
     // Handle squad leader
@@ -61,10 +61,19 @@ Creep.prototype.borderPatrol = function () {
         } else {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
         }
-        // Heal squad
+        // Run from unwinnable fights
+        if (!this.canIWin()) {
+            this.attackInRange();
+            this.say('RUN!', true);
+            delete this.memory.responseTarget;
+            return this.goHomeAndHeal();
+        }
+        // Handle attacker
+        if (this.getActiveBodyparts(ATTACK) && this.handleMilitaryCreep(false, true, false, false, true)) return;
+        // Handle longbow
         let woundedSquad = _.filter(this.room.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.id !== this.id && c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
-        if (this.memory.role === 'longbow') this.attackInRange(); else if (this.canIWin()) this.handleMilitaryCreep(false, true, false, false, true);
+        if (this.memory.role === 'longbow') this.attackInRange();
     }
 };
 

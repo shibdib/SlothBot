@@ -7,7 +7,6 @@ const profiler = require('screeps-profiler');
 
 function role(creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack', 'heal']);
-    if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'borderPatrol') creep.borderPatrol();
     // Harass
