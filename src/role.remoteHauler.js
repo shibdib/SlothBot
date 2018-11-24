@@ -8,7 +8,7 @@ const profiler = require('screeps-profiler');
 function role(creep) {
     creep.say(ICONS.haul2, true);
     //Invader detection
-    if (creep.room.memory.responseNeeded || creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.fleeHome()) return;
     // Set harvester pairing
     if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
         let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && !c.memory.hauler)[0];

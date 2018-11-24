@@ -243,8 +243,6 @@ function minionController(minion) {
     if (minion.idle) return;
     // If minion has been flagged to recycle do so
     if (minion.memory.recycle) return minion.recycleCreep();
-    // If flee to room is active
-    if (minion.memory.runCooldown) return minion.goHomeAndHeal();
     // Chance based CPU saving
     let cpuUsed = Game.cpu.getUsed();
     if (Game.cpu.bucket < 10000) {

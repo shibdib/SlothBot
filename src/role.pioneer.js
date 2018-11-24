@@ -4,7 +4,8 @@
 
 module.exports.role = function (creep) {
     creep.repairRoad();
-    if (creep.hits < creep.hitsMax && !creep.memory.initialBuilder) return creep.goHomeAndHeal();
+    //Invader detection
+    if (creep.fleeHome()) return;
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     // Check for border wall blocking path
