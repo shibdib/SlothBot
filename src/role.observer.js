@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
         creep.room.cacheRoomIntel(true);
         return creep.memory.recycle = true;
     }
-    //Type specific stuff
+    //Type specific stuff 
     switch (Memory.targetRooms[creep.memory.targetRoom].type) {
         case 'hold':
             // HOLD - Clear target if room is no longer owned
