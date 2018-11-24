@@ -203,7 +203,7 @@ module.exports.overlordMind = function (room) {
     // Store Data
     log.d('Data Store');
     storedLevel[room.name] = room.controller.level;
-    let minerals = Memory.ownedMineral || [];
+    let minerals = [];
     if (!_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
     Memory.ownedMineral = minerals;
 

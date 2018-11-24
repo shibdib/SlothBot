@@ -274,8 +274,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             // Handle claim targets
             let safemodeCooldown = this.controller.safeModeCooldown;
             if (sources.length > 1 && !user && !barriers && !safemodeCooldown && this.findClosestOwnedRoom(true) <= 10) {
-                // All rooms start at 1000
-                let baseScore = 1000;
+                // All rooms start at 5000
+                let baseScore = 5000;
                 // Get source distance from controller
                 let sourceDist = 0;
                 for (let source in sources) {
@@ -289,14 +289,13 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);
-                        terrainScore += tile === TERRAIN_MASK_WALL ? 1 :
-                            tile === TERRAIN_MASK_SWAMP ? 5 :
-                                0;
+                        if (tile === TERRAIN_MASK_WALL) terrainScore += 0.5;
+                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 1.5;
                     }
                 }
                 baseScore -= terrainScore;
                 // If it's a new mineral add to the score
-                if (!_.includes(Memory.ownedMineral, room.mineral[0].mineralType)) baseScore += 75;
+                if (!_.includes(Memory.ownedMineral, room.mineral[0].mineralType)) baseScore += 100;
                 claimWorthy = baseScore > 0;
                 claimValue = baseScore;
             } else {

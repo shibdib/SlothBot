@@ -27,7 +27,7 @@ function role(creep) {
             if (Game.time % 50 === 0) {
                 let container = Game.getObjectById(creep.memory.containerID);
                 let lowRoad = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.6);
-                Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7) || lowRoad[0];
+                Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7) || lowRoad.length > 0;
                 //Check hauler status
                 if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
             }
