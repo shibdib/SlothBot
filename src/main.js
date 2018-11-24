@@ -79,8 +79,10 @@ module.exports.loop = function() {
         }
 
         //Hive Mind
-        log.d('Initiate Hive');
-        hive.hiveMind();
+        if (_.size(Memory.ownedRooms)) {
+            log.d('Initiate Hive');
+            hive.hiveMind();
+        }
 
         log.d('Benchmark Processed');
         shib.shibBench('Total', mainCpu);

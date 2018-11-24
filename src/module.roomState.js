@@ -41,8 +41,8 @@ module.exports.setRoomState = function (room) {
     if (!room.memory.lastStateChange || (room.memory.lastStateChange + 3000) < Game.time) {
         room.memory.lastStateChange = Game.time;
         let oldState = room.memory.state || 0;
-        let news;
-        let averageIncome = _.round(average(room.memory.energyIncomeArray), 0);
+        let news, averageIncome;
+        if (room.memory.energyIncomeArray.length) averageIncome = _.round(average(room.memory.energyIncomeArray), 0); else averageIncome = 0;
         // Special Case (Turtler)
         if (room.controller.level >= 4 && (!room.memory.remoteRooms || !room.memory.remoteRooms.length || room.memory.shellShock)) {
             room.memory.state = -1;

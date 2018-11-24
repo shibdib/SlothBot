@@ -21,14 +21,14 @@ Creep.prototype.cleanRoom = function () {
     }
     highCommand.operationSustainability(this.room);
     let creeps = this.pos.findClosestByRange(this.room.creeps, {filter: (e) => _.includes(FRIENDLIES, e.owner.username) === false});
-    if (creeps && Memory.targetRooms[this.room.name]) {
+    if (creeps && Memory.targetRooms[this.memory.targetRoom]) {
         Memory.targetRooms[this.room.name].escort = true;
-    } else if (Memory.targetRooms[this.room.name]) {
+    } else if (Memory.targetRooms[this.memory.targetRoom]) {
         delete Memory.targetRooms[this.room.name].escort;
     }
     let target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
     if (!target || target === null) {
-        if (!Memory.targetRooms[this.room.name].complete) {
+        if (!Memory.targetRooms[this.memory.targetRoom].complete) {
             target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
         } else {
             target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
@@ -44,7 +44,7 @@ Creep.prototype.cleanRoom = function () {
     if (!target) {
         let terminal = this.room.terminal;
         let storage = this.room.storage;
-        if (!Memory.targetRooms[this.room.name].complete && ((terminal && _.sum(terminal.store) > terminal.store[RESOURCE_ENERGY]) || (storage && _.sum(storage.store) > storage.store[RESOURCE_ENERGY]))) {
+        if (!Memory.targetRooms[this.memory.targetRoom].complete && ((terminal && _.sum(terminal.store) > terminal.store[RESOURCE_ENERGY]) || (storage && _.sum(storage.store) > storage.store[RESOURCE_ENERGY]))) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.pos.roomName] = {
@@ -54,7 +54,7 @@ Creep.prototype.cleanRoom = function () {
             };
             Memory.targetRooms = cache;
         } else if (terminal || storage) {
-            return Memory.targetRooms[this.room.name].complete = true;
+            return Memory.targetRooms[this.memory.targetRoom].complete = true;
         } else if (this.room.controller.owner) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
@@ -71,7 +71,7 @@ Creep.prototype.cleanRoom = function () {
                 case ERR_NOT_IN_RANGE:
                     return this.shibMove(this.room.controller);
             }
-            if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
+            if (Memory.targetRooms) delete Memory.targetRooms[this.memory.targetRoom];
             if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
             this.suicide();
         }
