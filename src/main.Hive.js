@@ -9,6 +9,8 @@ let hud = require('module.hud');
 let shib = require("shibBench");
 
 function mind() {
+    // Clean mineral list
+    Memory.ownedMineral = [];
     let cpuBucket = Game.cpu.bucket;
 
     let cpu;
