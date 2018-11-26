@@ -3,7 +3,8 @@ let shib = require("shibBench");
 module.exports.claimNewRoom = function () {
     let cpu = Game.cpu.getUsed();
     let avoidRooms = _.filter(Memory.roomCache, (r) => r.owner);
-    let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimTarget && !r.owner);
+    let noClaim = Memory.noClaim || [];
+    let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && !r.owner && !_.includes(noClaim, r.name));
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     if (worthyRooms.length > 0) {
         let possibles = {};
@@ -13,7 +14,7 @@ module.exports.claimNewRoom = function () {
                 // Check if it's near any owned rooms
                 for (let key in avoidRooms) {
                     let distance = Game.map.findRoute(worthyName, avoidRooms[key].name).length;
-                    if (distance < 2 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my) || (Memory.noClaim && _.includes(Memory.noClaim, worthyName))) {
+                    if (distance < 2 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my)) {
                         continue loop1;
                     }
                 }

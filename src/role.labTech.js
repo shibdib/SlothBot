@@ -57,8 +57,6 @@ module.exports.role = function (creep) {
                     return true;
             }
         }
-    } else if (boostDelivery(creep)) {
-
     } else if (creep.pos.getRangeTo(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
     } else if (creep.pos.checkForRoad()) {
@@ -188,16 +186,29 @@ function supplyLab(creep) {
             }
         }
     } else {
-        switch (creep.transfer(lab, creep.memory.componentNeeded)) {
-            case OK:
-                creep.memory.itemStorage = undefined;
-                creep.memory.labHelper = undefined;
-                creep.memory.componentNeeded = undefined;
-                creep.memory.supplier = undefined;
-                return undefined;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(lab);
-                return undefined;
+        if (_.sum(creep.carry) > creep.carry[creep.memory.componentNeeded]) {
+            for (let resourceType in creep.carry) {
+                if (resourceType === creep.memory.componentNeeded) continue;
+                switch (creep.transfer(storage, resourceType)) {
+                    case OK:
+                        return;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(storage);
+                        return;
+                }
+            }
+        } else {
+            switch (creep.transfer(lab, creep.memory.componentNeeded)) {
+                case OK:
+                    creep.memory.itemStorage = undefined;
+                    creep.memory.labHelper = undefined;
+                    creep.memory.componentNeeded = undefined;
+                    creep.memory.supplier = undefined;
+                    return undefined;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(lab);
+                    return undefined;
+            }
         }
     }
 }

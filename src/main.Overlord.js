@@ -335,6 +335,10 @@ abandonRoom = function (room) {
         Game.rooms[room].constructionSites[key].remove();
     }
     delete Game.rooms[room].memory;
+    let noClaim = Memory.noClaim || [];
+    noClaim.push(room.name);
+    Memory.noClaim = noClaim;
+    delete Memory.roomCache[room.name];
     Game.rooms[room].controller.unclaim();
 };
 
