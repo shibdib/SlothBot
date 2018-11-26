@@ -86,7 +86,7 @@ function mind() {
         let overlordCount = Memory.ownedRooms.length;
         let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
         let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
-        if (maxLevel >= 4 && minLevel >= 4 && cpuBucket === 10000) {
+        if (maxLevel >= 4 && minLevel >= 3 && cpuBucket === 10000) {
             let maxRooms = _.round(Game.cpu.limit / 15);
             if (TEN_CPU) maxRooms = 2;
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
