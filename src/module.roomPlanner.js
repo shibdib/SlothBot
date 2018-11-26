@@ -182,11 +182,18 @@ function buildFromLayout(room) {
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
     if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
+    let badStructure = _.filter(room.structures, (s) => s.owner && s.owner.username !== MY_USERNAME);
+    if (badStructure.length) badStructure.forEach((s) => s.destroy());
 }
 
 function newClaimBuild(room) {
     let level = room.controller.level;
     if (level < 2) return;
+    // Cleanup
+    let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
+    if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
+    let badStructure = _.filter(room.structures, (s) => s.owner && s.owner.username !== MY_USERNAME);
+    if (badStructure.length) badStructure.forEach((s) => s.destroy());
     let layout = JSON.parse(room.memory.layout);
     // Build tower rampart, then tower, then spawn
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
