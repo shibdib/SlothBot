@@ -145,9 +145,9 @@ function manageActiveLabs(room) {
                     continue
                 }
                 //Clean bad boosting
-                if (outputLab.memory.neededBoost && outputLab.memory.neededBoost !== outputLab.memory.creating) delete outputLab.memory.neededBoost;
-                if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) delete creatorOne.memory.neededBoost;
-                if (creatorTwo.memory.neededBoost && creatorTwo.memory.neededBoost !== creatorTwo.memory.itemNeeded) delete creatorTwo.memory.neededBoost;
+                if (outputLab.memory.neededBoost && outputLab.memory.neededBoost !== outputLab.memory.creating) outputLab.memory.neededBoost = undefined;
+                if (creatorOne.memory.neededBoost && creatorOne.memory.neededBoost !== creatorOne.memory.itemNeeded) creatorOne.memory.neededBoost = undefined;
+                if (creatorTwo.memory.neededBoost && creatorTwo.memory.neededBoost !== creatorTwo.memory.itemNeeded) creatorTwo.memory.neededBoost = undefined;
                 if (outputLab.memory.creating) {
                     switch (outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]))) {
                         case OK:
@@ -226,7 +226,7 @@ function cleanBoostLabs(room) {
     for (let key in boostLabs) {
         let boostLab = boostLabs[key];
         if (boostLab.memory && (!boostLab.memory.requested || boostLab.memory.requested + 150 < Game.time)) {
-            boostLab.memory = undefined;
+            boostLab.memory.neededBoost = undefined;
         }
     }
 }
