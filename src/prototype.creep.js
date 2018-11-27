@@ -12,7 +12,7 @@ Object.defineProperty(Creep.prototype, "idle", {
             return 0;
         }
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
-        if (this.pos.checkForRoad() && this.memory.role !== 'stationaryHarvester') {
+        if (this.pos.checkForRoad() && this.memory.role !== 'stationaryHarvester' && this.memory.role !== 'upgrader' && this.memory.role !== 'mineralHarvester') {
             this.moveRandom();
         } else {
             return this.memory.idle;
