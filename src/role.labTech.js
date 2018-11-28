@@ -40,6 +40,7 @@ module.exports.role = function (creep) {
         return;
     }
     let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
+    let container = Game.getObjectById(creep.room.memory.extractorContainer);
     if (_.sum(creep.carry) > 0) {
         let storage = creep.room.storage;
         for (let resourceType in creep.carry) {
@@ -55,6 +56,16 @@ module.exports.role = function (creep) {
                 case ERR_FULL:
                     creep.drop(resourceType);
                     return true;
+            }
+        }
+    } else if (container && _.sum(container.store)) {
+        for (let resourceType in container.store) {
+            switch (creep.withdraw(container, resourceType)) {
+                case OK:
+                    return;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(container);
+                    return;
             }
         }
     } else if (creep.pos.getRangeTo(closeLab) > 3) {

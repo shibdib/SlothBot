@@ -91,6 +91,28 @@ function buildFromLayout(room) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
+    // Mineral Container
+    let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+    if (extractor) {
+        let extractorContainer = _.filter(extractor.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+        if (!extractorContainer) {
+            let extractorBuild = _.filter(extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+            if (!extractorBuild) {
+                let containerSpots = room.lookForAtArea(LOOK_TERRAIN, extractor.pos.y - 1, extractor.pos.x - 1, extractor.pos.y + 1, extractor.pos.x + 1, true);
+                for (let key in containerSpots) {
+                    let position = new RoomPosition(containerSpots[key].x, containerSpots[key].y, room.name);
+                    if (position && position.getRangeTo(extractor) === 1) {
+                        if (!position.checkForImpassible()) {
+                            position.createConstructionSite(STRUCTURE_CONTAINER);
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            room.memory.extractorContainer = extractorContainer.id;
+        }
+    }
     // Roads
     if (level >= 3 && !_.size(room.constructionSites) && level === extensionLevel) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);

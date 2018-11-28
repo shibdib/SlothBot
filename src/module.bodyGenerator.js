@@ -121,21 +121,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'mineralHarvester':
-            work = 12;
-            carry = 2;
-            move = 7;
-            if (level === 7) {
-                work = 20;
-                carry = 2;
-                move = 11;
-                break;
-            }
-            if (level === 8) {
-                work = 25;
-                carry = 2;
-                move = 14;
-                break;
-            }
+            let multi = 1.25;
+            if (room.memory.state > 1 && level > 5) multi = 2.5;
+            if (room.memory.state > 2 && level > 5) multi = 3;
+            work = _.round((multi * level) + 1);
+            move = 2;
             break;
         // Military
         case 'responder':
