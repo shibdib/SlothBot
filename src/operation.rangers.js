@@ -11,6 +11,9 @@ Creep.prototype.rangersRoom = function () {
     }
     // Handle squad leader
     if (this.memory.squadLeader) {
+        // Remove duplicate squad leaders
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id);
+        if (squadLeader.length) this.memory.squadLeader = undefined;
         // Sustainability
         if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
         highCommand.threatManagement(this);

@@ -93,7 +93,7 @@ function mind() {
             let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
             let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
             let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
-            if (!needyRoom.length && !safemode.length && !claimAttempt.length && !claimScout.length && Game.gcl.level - 2 > overlordCount && overlordCount < maxRooms) {
+            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimAttempt.length && !claimScout.length && Game.gcl.level - 2 > overlordCount && overlordCount < maxRooms) {
                 log.d('Expansion Module');
                 try {
                     expansion.claimNewRoom();
