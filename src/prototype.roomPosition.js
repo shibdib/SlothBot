@@ -6,7 +6,7 @@
 let distanceCache = {};
 
 RoomPosition.prototype.checkIfOutOfBounds = function () {
-    return this.x > 47 || this.x < 3 || this.y > 47 || this.y < 3;
+    return this.x > 46 || this.x < 3 || this.y > 46 || this.y < 3;
 };
 
 RoomPosition.prototype.getClosestSource = function () {
