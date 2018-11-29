@@ -320,28 +320,6 @@ function requestBuilders(room) {
     }
 }
 
-abandonRoom = function (room) {
-    for (let key in Game.rooms[room].creeps) {
-        Game.rooms[room].creeps[key].suicide();
-    }
-    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
-    for (let key in overlordFor) {
-        overlordFor[key].suicide();
-    }
-    for (let key in Game.rooms[room].structures) {
-        Game.rooms[room].structures[key].destroy();
-    }
-    for (let key in Game.rooms[room].constructionSites) {
-        Game.rooms[room].constructionSites[key].remove();
-    }
-    delete Game.rooms[room].memory;
-    let noClaim = Memory.noClaim || [];
-    noClaim.push(room.name);
-    Memory.noClaim = noClaim;
-    delete Memory.roomCache[room.name];
-    Game.rooms[room].controller.unclaim();
-};
-
 function bunkerConversion(room) {
     //if (room.memory.noBunkerPos) return;
     if (!room.memory.readyToConvert && !room.memory.bunkerHub && planner.hubCheck(room)) room.memory.readyToConvert = true; else if (room.memory.newHubSearch >= 5000) room.memory.notConvertable = true;
