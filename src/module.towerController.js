@@ -73,7 +73,7 @@ function towerControl(room) {
                     tower.repair(road[0]);
                     continue;
                 }
-                let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
+                let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000000 * s.room.controller.level), 'hits');
                 tower.repair(lowestRampart);
             }
             if (tower.energy > tower.energyCapacity * 0.25) {
