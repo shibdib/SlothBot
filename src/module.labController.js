@@ -153,7 +153,8 @@ function manageActiveLabs(room) {
                         case OK:
                             // Enough created
                             let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
-                            if ((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.5) {
+                            if (((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT) ||
+                                ((_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || _.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 4)) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                                 for (let id in creators) {
                                     creators[id].memory = undefined;

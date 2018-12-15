@@ -4,7 +4,7 @@ Creep.prototype.borderPatrol = function () {
     this.say(sentence[word], true);
     // Set squad leader
     if (!this.memory.squadLeader && !this.memory.leader) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader && c.memory.role === 'longbow');
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
     // Handle squad leader

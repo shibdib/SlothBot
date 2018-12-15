@@ -65,7 +65,7 @@ function fillBuyOrders(terminal, globalOrders) {
             let onHand = terminal.store[resourceType];
             let sellOffAmount = SELL_OFF_AMOUNT * 2;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = SELL_OFF_AMOUNT * 5;
-            if (Game.market.credits < 25000) sellOffAmount = 0;
+            if (Game.market.credits < 25000) sellOffAmount = 250;
             if (onHand >= sellOffAmount) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.2;
                 if (!sellableAmount || sellableAmount < 0) continue;
@@ -84,7 +84,6 @@ function fillBuyOrders(terminal, globalOrders) {
                     }
                     return true;
                 } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
-                    console.log(2)
                     switch (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName)) {
                         case OK:
                             log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");

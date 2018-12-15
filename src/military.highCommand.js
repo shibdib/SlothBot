@@ -314,6 +314,19 @@ function manualAttacks() {
             }
             Game.flags[name].remove();
         }
+        // Claim target
+        if (_.startsWith(name, 'claim')) {
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[Game.flags[name].pos.roomName] = {
+                tick: tick,
+                type: 'claimScout',
+                manual: true,
+                priority: 1
+            };
+            Memory.targetRooms = cache;
+            Game.flags[name].remove();
+        }
         //Set staging room
         if (_.startsWith(name, 'stage')) {
             let cache = Memory.stagingRooms || {};
