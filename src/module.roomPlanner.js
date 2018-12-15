@@ -204,13 +204,13 @@ function buildFromLayout(room) {
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
     if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
-    let badStructure = _.filter(room.structures, (s) => s.owner && s.owner.username !== MY_USERNAME);
+    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME) || s.structureType === STRUCTURE_WALL);
     if (badStructure.length) badStructure.forEach((s) => s.destroy());
 }
 
 function newClaimBuild(room) {
     let level = room.controller.level;
-    let badStructure = _.filter(room.structures, (s) => s.owner && s.owner.username !== MY_USERNAME);
+    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME) || s.structureType === STRUCTURE_WALL);
     if (badStructure.length) badStructure.forEach((s) => s.destroy());
     if (level < 2) return;
     // Cleanup
