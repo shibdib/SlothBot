@@ -30,6 +30,10 @@ function manageBoostProduction(room) {
     for (let key in MAKE_THESE_BOOSTS) {
         boost = checkForInputs(room, MAKE_THESE_BOOSTS[key]);
         if (!boost) continue;
+        // Check if we already have enough
+        if (getBoostAmount(room, boost) >= BOOST_AMOUNT * 2) {
+            continue;
+        }
         let alreadyCreating = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === boost);
         let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
         let fresh = 0;
@@ -46,6 +50,10 @@ function manageBoostProduction(room) {
         for (let key in END_GAME_BOOSTS) {
             boost = checkForInputs(room, END_GAME_BOOSTS[key]);
             if (!boost) continue;
+            // Check if we already have enough
+            if (getBoostAmount(room, boost) >= BOOST_AMOUNT * 5) {
+                continue;
+            }
             let alreadyCreating = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === boost);
             let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
             let fresh = 0;
@@ -63,6 +71,10 @@ function manageBoostProduction(room) {
         for (let key in TIER_1_BOOSTS) {
             boost = checkForInputs(room, END_GAME_BOOSTS[key]);
             if (!boost) continue;
+            // Check if we already have enough
+            if (getBoostAmount(room, boost) >= BOOST_AMOUNT * 2) {
+                continue;
+            }
             let alreadyCreating = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating === boost);
             let outputLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === boost);
             let fresh = 0;
@@ -153,8 +165,8 @@ function manageActiveLabs(room) {
                         case OK:
                             // Enough created
                             let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
-                            if (((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT) ||
-                                ((_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || _.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 4)) {
+                            if (((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.25) ||
+                                ((_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || _.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 6)) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                                 for (let id in creators) {
                                     creators[id].memory = undefined;
