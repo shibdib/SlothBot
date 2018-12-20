@@ -9,7 +9,7 @@ let segments = require('module.segmentManager');
 let shib = require("shibBench");
 const tickLengthArray = [];
 const lastGlobal = Memory.lastGlobalReset || Game.time;
-log.e('Global Reset - Last reset occured ' + (Game.time - lastGlobal) + ' ticks ago.');
+log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
 
 module.exports.loop = function() {
@@ -71,8 +71,7 @@ module.exports.loop = function() {
                 log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
                 return;
             }
-        }
-        if (Game.cpu.bucket < Game.cpu.limit * 10) {
+        } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
             Memory.cooldown = Game.time;
             log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
             return;

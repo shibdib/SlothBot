@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return;
@@ -73,6 +70,4 @@ function role(creep) {
             }
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'remoteHaulerRole');
+};

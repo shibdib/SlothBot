@@ -2,11 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-let shib = require("shibBench");
-
-function role(creep) {
+module.exports.role = function (creep) {
     let source;
     //Invader detection
     if (creep.fleeHome()) return;
@@ -60,9 +56,7 @@ function role(creep) {
             creep.findSource();
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'remoteHarvesterRole');
+};
 
 function depositEnergy(creep) {
     // Check for container and build one if one isn't there
@@ -71,18 +65,12 @@ function depositEnergy(creep) {
         if (!creep.memory.buildAttempt) remoteRoads(creep);
         let container = Game.getObjectById(creep.memory.containerID);
         if (container) {
-            if (container.hits < container.hitsMax * 0.5) {
-                if (creep.repair(container) === ERR_NOT_IN_RANGE) {
-                    creep.shibMove(container);
+            if (_.sum(container.store) === container.storeCapacity) {
+                if (container.hits < container.hitsMax * 0.8) {
+                    creep.repair(container);
                 } else {
-                    creep.say('Fixing');
+                    creep.idleFor(25);
                 }
-            } else if (_.sum(container.store) !== container.storeCapacity) {
-                creep.transfer(container, RESOURCE_ENERGY);
-            } else if (container.hits < container.hitsMax) {
-                creep.repair(container);
-            } else {
-                creep.idleFor(25);
             }
         } else {
             creep.memory.containerID = undefined;

@@ -27,7 +27,7 @@ function manageBoostProduction(room) {
     let storage = room.storage;
     let terminal = room.terminal;
     let boost;
-    for (let key in MAKE_THESE_BOOSTS) {
+    for (let key in _.shuffle(MAKE_THESE_BOOSTS)) {
         boost = checkForInputs(room, MAKE_THESE_BOOSTS[key]);
         if (!boost) continue;
         // Check if we already have enough
@@ -47,7 +47,7 @@ function manageBoostProduction(room) {
         }
     }
     if (!boost) {
-        for (let key in END_GAME_BOOSTS) {
+        for (let key in _.shuffle(END_GAME_BOOSTS)) {
             boost = checkForInputs(room, END_GAME_BOOSTS[key]);
             if (!boost) continue;
             // Check if we already have enough
@@ -68,7 +68,7 @@ function manageBoostProduction(room) {
         }
     }
     if (!boost) {
-        for (let key in TIER_1_BOOSTS) {
+        for (let key in _.shuffle(TIER_1_BOOSTS)) {
             boost = checkForInputs(room, END_GAME_BOOSTS[key]);
             if (!boost) continue;
             // Check if we already have enough
@@ -125,7 +125,7 @@ function manageBoostProduction(room) {
 }
 
 function manageActiveLabs(room) {
-    let activeLabs = _.filter(room.structures, (s) => s.room.memory.reactionRoom && s.structureType === STRUCTURE_LAB && s.memory.active && s.memory.creating);
+    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating);
     if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
@@ -137,8 +137,6 @@ function manageActiveLabs(room) {
                     }
                     continue;
                 }
-                //If on cooldown continue
-                if (outputLab.cooldown) continue;
                 if (outputLab.memory.creating) {
                     for (let lab of hub) {
                         lab.say(lab.memory.creating);

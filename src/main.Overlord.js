@@ -34,7 +34,7 @@ module.exports.overlordMind = function (room) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 50 === 0) && cpuBucket >= 1000) {
+    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 250 === 0) && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
         log.d('Room Building Module');
         // Request builders
@@ -238,7 +238,7 @@ module.exports.overlordMind = function (room) {
 
 function minionController(minion) {
     // Disable notifications
-    if (minion.ticksToLive > 1450) minion.notifyWhenAttacked(false);
+    if (minion.ticksToLive > 1490) minion.notifyWhenAttacked(false);
     // If idle sleep
     if (minion.idle) return;
     // If minion has been flagged to recycle do so
