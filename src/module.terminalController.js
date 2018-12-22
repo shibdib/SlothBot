@@ -278,7 +278,7 @@ function orderCleanup(myOrders) {
 function balanceBoosts(terminal) {
     // Loop thru boosts
     let storedResources = Object.keys(terminal.store);
-    for (let boost of _.shuffle(storedResources)) {
+    for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
         if (terminal.store[boost] >= TRADE_AMOUNT) {
             // Find needy terminals
             let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && s.store[boost] < TRADE_AMOUNT * 0.7));
@@ -311,6 +311,26 @@ function balanceBoosts(terminal) {
             switch (terminal.send(boost, neededAmount, needyTerminal.room.name)) {
                 case OK:
                     log.a(' MARKET: Balancing ' + neededAmount + ' ' + boost + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[boost] + ' / ' + (storedAmount + neededAmount));
+                    return true;
+            }
+        }
+    }
+    // Balance energy
+    if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 1.5) {
+        // Find needy terminals
+        let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] < terminal.store[RESOURCE_ENERGY] * 0.7));
+        if (needyTerminal) {
+            // Determine how much you can move
+            let availableAmount = terminal.store[RESOURCE_ENERGY] - (ENERGY_AMOUNT * 1.25);
+            if (availableAmount <= 0) return false;
+            // Determine how much is needed
+            let storedAmount = 0;
+            if (needyTerminal.store[RESOURCE_ENERGY]) storedAmount = needyTerminal.store[RESOURCE_ENERGY];
+            let neededAmount = (availableAmount * 0.95) - storedAmount;
+            if (neededAmount <= 0) return false;
+            switch (terminal.send(RESOURCE_ENERGY, neededAmount, needyTerminal.room.name)) {
+                case OK:
+                    log.a(' MARKET: Balancing ' + neededAmount + ' ' + RESOURCE_ENERGY + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[RESOURCE_ENERGY] + ' / ' + (storedAmount + neededAmount));
                     return true;
             }
         }

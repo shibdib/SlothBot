@@ -320,7 +320,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break
             } else {
                 carry = _.random(1.25 * level, 3 * level);
-                move = _.round((carry / 2));
+                move = _.round((carry / 2) + 0.5);
                 break;
             }
         case 'SKattacker':

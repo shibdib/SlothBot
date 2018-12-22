@@ -135,7 +135,6 @@ function manageActiveLabs(room) {
                     for (let id in hub) {
                         hub[id].memory = undefined;
                     }
-                    log.a(hub[0].room.name + ' is no longer producing ' + hub[0].memory.creating + ' due to a lab error (1).');
                     continue;
                 }
                 if (outputLab.memory.creating) {
