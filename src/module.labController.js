@@ -21,7 +21,7 @@ function labManager() {
 module.exports.labManager = profiler.registerFN(labManager, 'labManager');
 
 function manageBoostProduction(room) {
-    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 2);
+    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.creating && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.creating}).length >= 2);
     if (!availableLabs.length) return;
     availableLabs = availableLabs[0];
     let storage = room.storage;
@@ -111,7 +111,7 @@ function manageBoostProduction(room) {
                 id: hub[labID].id,
                 active: true
             };
-        } else {
+        } else if (one && two) {
             hub[labID].memory = {
                 creating: boost,
                 room: hub[labID].pos.roomName,
@@ -135,6 +135,7 @@ function manageActiveLabs(room) {
                     for (let id in hub) {
                         hub[id].memory = undefined;
                     }
+                    log.a(hub[0].room.name + ' is no longer producing ' + hub[0].memory.creating + ' due to a lab error (1).');
                     continue;
                 }
                 if (outputLab.memory.creating) {
@@ -152,6 +153,7 @@ function manageActiveLabs(room) {
                         creators[id].memory = undefined;
                     }
                     outputLab.memory = undefined;
+                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a lab error (2).');
                     continue
                 }
                 //Clean bad boosting

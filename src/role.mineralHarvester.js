@@ -21,6 +21,7 @@ module.exports.role = function (creep) {
         }
         let extractor = Game.getObjectById(creep.memory.extractor);
         if (!extractor) return creep.memory.recycle = true;
+        if (_.sum(Game.getObjectById(creep.room.memory.extractorContainer).store) === 2000) return creep.idleFor(25);
         if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {
             creep.idleFor(extractor.cooldown - 1)
         } else {

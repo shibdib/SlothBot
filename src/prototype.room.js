@@ -366,42 +366,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 }
             }
         }
-        if ((sk || sources.length > 0) && !owner) {
-            for (let key in Memory.ownedRooms) {
-                let activeRoom = Memory.ownedRooms[key];
-                if (activeRoom && Game.map.findRoute(activeRoom.name, room.name).length <= 2) {
-                    if (sk) {
-                        if (activeRoom.memory.skRooms) {
-                            if (_.includes(activeRoom.memory.skRooms, room.name) === false) {
-                                activeRoom.memory.skRooms.push(room.name);
-                            }
-                        } else {
-                            activeRoom.memory.skRooms = [];
-                        }
-                    }
-                    if (activeRoom && Game.map.findRoute(activeRoom.name, room.name).length <= 4 && !owner && !sk && !reservation) {
-                        if (activeRoom.memory.remoteRooms) {
-                            if (_.includes(activeRoom.memory.remoteRooms, room.name) === false) {
-                                if (!Game.rooms[room.name] || !Game.rooms[room.name].memory.noRemote) {
-                                    activeRoom.memory.remoteRooms.push(room.name);
-                                }
-                            }
-                        } else {
-                            activeRoom.memory.remoteRooms = [];
-                        }
-                    } else if (activeRoom && _.includes(activeRoom.memory.remoteRooms, room.name) === true) {
-                        _.remove(activeRoom.memory.remoteRooms, room.name);
-                    }
-                }
-            }
-        } else if (owner) {
-            for (let key in Memory.ownedRooms) {
-                let activeRoom = Memory.ownedRooms[key];
-                if (_.includes(activeRoom.memory.remoteRooms, room.name) === true) {
-                    activeRoom.memory.remoteRooms = _.filter(activeRoom.memory.remoteRooms, (e) => e !== room.name);
-                }
-            }
-        }
     }
 };
 

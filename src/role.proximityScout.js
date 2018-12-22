@@ -10,6 +10,7 @@
  */
 
 module.exports.role = function (creep) {
+    return creep.suicide();
     creep.room.cacheRoomIntel();
     creep.room.invaderCheck();
     let sayings = [creep.memory.overlord, 'PROXIMITY', 'INTRUSION', 'SENSOR'];

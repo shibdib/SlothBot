@@ -751,21 +751,18 @@ function addCreepsToMatrix(room, matrix) {
 Creep.prototype.goHomeAndHeal = function () {
     let cooldown = this.memory.runCooldown || Game.time + 100;
     if (this.room.name !== this.memory.overlord) {
-        this.say(1)
         this.memory.runCooldown = Game.time + 100;
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
     } else if (Game.time >= cooldown) {
-        this.say(2)
         this.memory.runCooldown = cooldown;
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
     } else {
-        this.say(3)
         return delete this.memory.cooldown;
     }
 };
 
 Creep.prototype.fleeHome = function () {
-    if (!this.memory.runCooldown && !this.room.memory.responseNeeded && !this.room.invaderCheck() && this.hits >= this.hitsMax) return false;
+    if (!this.memory.runCooldown && !this.room.invaderCheck()) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     if (this.room.name !== this.memory.overlord) {
         this.memory.runCooldown = Game.time + 100;
@@ -775,7 +772,7 @@ Creep.prototype.fleeHome = function () {
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
         return true;
     } else {
-        delete this.memory.cooldown;
+        delete this.memory.runCooldown;
         return false;
     }
 };

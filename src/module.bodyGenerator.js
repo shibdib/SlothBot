@@ -278,12 +278,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = 1;
             break;
         case 'reserver':
-            if (level < 7 || !room.memory.energySurplus) {
-                claim = 3;
-            } else {
-                claim = level;
-            }
-            if (level === 4 || level === 5) claim = 2;
+            claim = 2;
             move = claim;
             break;
         case 'pioneer':
@@ -312,15 +307,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = 1;
                 move = 2;
                 break;
-            } else if (level < 5) {
+            } else {
                 work = _.round(0.5 * level);
                 carry = 1;
                 move = 2;
-                break;
-            } else {
-                work = 6;
-                carry = 1;
-                move = 3;
                 break;
             }
         case 'remoteHauler':
@@ -329,7 +319,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = carry;
                 break
             } else {
-                carry = _.random(2 * level, 3 * level);
+                carry = _.random(1.25 * level, 3 * level);
                 move = _.round((carry / 2));
                 break;
             }

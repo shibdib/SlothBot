@@ -480,7 +480,7 @@ Creep.prototype.findSpawnsExtensions = function () {
 Creep.prototype.findStorage = function () {
     //Terminal
     let terminal = this.room.terminal;
-    if (terminal && (terminal.store[RESOURCE_ENERGY] < 5000 || (this.room.memory.extremeEnergySurplus && terminal.store[RESOURCE_ENERGY] < 50000))) {
+    if (terminal && (terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT || (this.room.memory.extremeEnergySurplus && terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 2))) {
         this.memory.storageDestination = terminal.id;
         return true;
     }
@@ -488,6 +488,12 @@ Creep.prototype.findStorage = function () {
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
     if (controllerContainer && Math.random() > 0.6 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
         this.memory.storageDestination = controllerContainer.id;
+        return true;
+    }
+    //Tower
+    let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.8});
+    if (tower) {
+        this.memory.storageDestination = tower.id;
         return true;
     }
     //Storage

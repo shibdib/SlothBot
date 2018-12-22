@@ -31,7 +31,7 @@ module.exports.role = function (creep) {
         // If lab doesn't need anything
         if (!lab.memory.itemNeeded) continue;
         // If lab has correct resource continue
-        if (lab.mineralAmount >= creep.carryCapacity - 50) continue;
+        if (lab.mineralAmount >= 50) continue;
         if (!creep.memory.labHelper) creep.memory.labHelper = lab.id;
         creep.memory.supplier = true;
         return;
@@ -39,7 +39,7 @@ module.exports.role = function (creep) {
     let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
     let container = Game.getObjectById(creep.room.memory.extractorContainer);
     if (_.sum(creep.carry) > 0) {
-        let storage = creep.room.storage;
+        let storage = creep.room.terminal || creep.room.storage;
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
@@ -55,7 +55,7 @@ module.exports.role = function (creep) {
                     return true;
             }
         }
-    } else if (container && _.sum(container.store)) {
+    } else if (container && _.sum(container.store) >= 500) {
         for (let resourceType in container.store) {
             switch (creep.withdraw(container, resourceType)) {
                 case OK:
@@ -65,10 +65,23 @@ module.exports.role = function (creep) {
                     return;
             }
         }
-    } else if (creep.pos.getRangeTo(closeLab) > 3) {
+    }
+    if (creep.room.storage) {
+        let storedResources = Object.keys(creep.room.storage.store);
+        for (let resource of storedResources) {
+            if (creep.room.storage.store[resource] >= DUMP_AMOUNT) {
+                switch (creep.withdraw(creep.room.storage, resource)) {
+                    case OK:
+                        return;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.storage);
+                        return;
+                }
+            }
+        }
+    }
+    if (creep.pos.getRangeTo(closeLab) > 3) {
         creep.shibMove(closeLab, {range: 2})
-    } else if (creep.pos.checkForRoad()) {
-        creep.moveRandom();
     } else {
         creep.idleFor(15);
     }
@@ -156,7 +169,6 @@ function supplyLab(creep) {
                 creep.memory.labHelper = undefined;
                 creep.memory.componentNeeded = undefined;
                 creep.memory.supplier = undefined;
-                lab.memory = undefined;
             }
         } else {
             if (_.sum(creep.carry) > creep.carry[creep.memory.componentNeeded]) {

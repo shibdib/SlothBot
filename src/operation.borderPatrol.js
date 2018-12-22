@@ -39,9 +39,7 @@ Creep.prototype.borderPatrol = function () {
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
         // Idle in target rooms for 20 ticks
         if (!this.memory.responseTarget || this.memory.onTarget + _.random(5, 20) <= Game.time) {
-            if (!this.memory.remotes) this.memory.remotes = JSON.stringify(Game.rooms[this.memory.overlord].memory.remoteRooms);
-            let remotes = JSON.parse(this.memory.remotes);
-            this.memory.responseTarget = _.sample(remotes);
+            this.memory.responseTarget = this.memory.overlord;
             this.memory.onTarget = undefined;
             return this.say(this.memory.responseTarget);
         }
