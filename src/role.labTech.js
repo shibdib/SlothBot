@@ -38,8 +38,10 @@ module.exports.role = function (creep) {
     }
     let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
     let container = Game.getObjectById(creep.room.memory.extractorContainer);
+    let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (_.sum(creep.carry) > 0) {
         let storage = creep.room.terminal || creep.room.storage;
+        if (nuker && nuker.ghodium < nuker.ghodiumCapacity && creep.carry[RESOURCE_GHODIUM]) storage = nuker;
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
@@ -47,13 +49,22 @@ module.exports.role = function (creep) {
                     creep.memory.labHelper = undefined;
                     return;
                 case ERR_NOT_IN_RANGE:
-                    creep.memory.empty = true;
                     creep.shibMove(storage);
                     return;
                 case ERR_FULL:
                     creep.drop(resourceType);
                     return true;
             }
+        }
+    } else if (nuker && nuker.ghodium < nuker.ghodiumCapacity && (creep.room.storage.store[RESOURCE_GHODIUM] || creep.room.terminal.store[RESOURCE_GHODIUM])) {
+        let storage = creep.room.terminal;
+        if (creep.room.storage.store[RESOURCE_GHODIUM]) storage = creep.room.storage;
+        switch (creep.withdraw(storage, RESOURCE_GHODIUM)) {
+            case OK:
+                return;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(storage);
+                return;
         }
     } else if (container && _.sum(container.store) >= 500) {
         for (let resourceType in container.store) {
