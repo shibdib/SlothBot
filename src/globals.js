@@ -15,7 +15,7 @@ let globals = function () {
     global.POKE_ATTACKS = true;
     global.ATTACK_COOLDOWN = 2500; //Time between attacks on a room
 
-    global.LAYOUT_VERSION = 1.3;
+    global.LAYOUT_VERSION = 1.4;
 
     //Signing and whatnot
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];

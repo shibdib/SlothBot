@@ -119,6 +119,10 @@ let template1 = [
     {
         "layout": 1,
         "type": STRUCTURE_OBSERVER, "pos": [{"x": 15, "y": 11}]
+    },
+    {
+        "layout": 1,
+        "type": STRUCTURE_NUKER, "pos": [{"x": 15, "y": 8}]
     }
 ];
 
