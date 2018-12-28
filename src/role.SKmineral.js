@@ -1,11 +1,7 @@
 /**
  * Created by Bob on 7/12/2017.
  */
-
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     let source;
     let hostiles = creep.findClosestEnemy();
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
@@ -53,13 +49,8 @@ function role(creep) {
             creep.findMineral();
         }
     }
-}
+};
 
-module.exports.role = profiler.registerFN(role, 'SKMineral');
-
-/**
- * @return {undefined}
- */
 function SKdeposit(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
         if (creep.renewalCheck(8)) return;

@@ -1,4 +1,3 @@
-let profiler = require('screeps-profiler');
 let overlord = require('main.Overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
@@ -8,7 +7,7 @@ let diplomacy = require('module.diplomacy');
 let hud = require('module.hud');
 let shib = require("shibBench");
 
-function mind() {
+module.exports.hiveMind = function () {
     // Clean mineral list
     Memory.ownedMineral = [];
     let cpuBucket = Game.cpu.bucket;
@@ -191,6 +190,4 @@ function minionController(minion) {
     }
     shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
-
-module.exports.hiveMind = profiler.registerFN(mind, 'hiveMind');
 

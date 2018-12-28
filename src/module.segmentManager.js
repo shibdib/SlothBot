@@ -1,6 +1,4 @@
-const profiler = require('screeps-profiler');
-
-function segmentManager() {
+module.exports.segmentManager = function () {
 //Alliance List Management
     let doNotAggressArray;
     if (!!~['shard0', 'shard1', 'shard2'].indexOf(Game.shard.name)) {
@@ -54,6 +52,4 @@ function segmentManager() {
     // Set segment as public/active
     RawMemory.setPublicSegments([2, 22, 23]);
     RawMemory.setActiveSegments([2, 22, 23]);
-}
-
-module.exports.segmentManager = profiler.registerFN(segmentManager, 'segmentManager');
+};

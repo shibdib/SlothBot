@@ -8,10 +8,7 @@
 /**
  * Created by Bob on 7/12/2017.
  */
-const profiler = require('screeps-profiler');
 
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.memory.operation === 'hold') return creep.holdRoom();
-}
-
-module.exports.role = profiler.registerFN(role, 'unClaimer');
+};

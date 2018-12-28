@@ -1,6 +1,4 @@
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     //Initial move
@@ -13,6 +11,4 @@ function role(creep) {
     } else {
         creep.healMyCreeps();
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'powerHealer');
+};

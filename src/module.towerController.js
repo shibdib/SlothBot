@@ -1,10 +1,8 @@
 /**
  * Created by rober on 5/16/2017.
  */
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
 
-function towerControl(room) {
+module.exports.towerControl = function (room) {
     let creeps = room.friendlyCreeps;
     let hostileCreeps = room.hostileCreeps;
     let structures = room.structures;
@@ -84,9 +82,7 @@ function towerControl(room) {
                 }
             }
         }
-}
-
-module.exports.towerControl = profiler.registerFN(towerControl, 'towerControl');
+};
 
 // Computes damage of a tower
 function determineDamage(range) {

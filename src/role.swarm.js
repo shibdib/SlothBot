@@ -1,11 +1,7 @@
 /**
  * Created by Bob on 7/19/2017.
  */
-
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
     // Escort
@@ -16,7 +12,4 @@ function role(creep) {
     if (creep.memory.operation && creep.memory.operation === 'swarm') creep.swarmRoom();
     // Swarm
     if (creep.memory.operation && creep.memory.operation === 'swarmHarass') creep.swarmHarassRoom();
-
-}
-
-module.exports.role = profiler.registerFN(role, '');
+};

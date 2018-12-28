@@ -8,9 +8,8 @@
 /**
  * Created by Bob on 7/12/2017.
  */
-const profiler = require('screeps-profiler');
 
-function role(creep) {
+module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.suicide();
     if (creep.tryToBoost(['build'])) return;
@@ -63,6 +62,4 @@ function role(creep) {
             }
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'repairer');
+};

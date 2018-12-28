@@ -2,9 +2,7 @@
  * Created by Bob on 6/6/2017.
  */
 
-const profiler = require('screeps-profiler');
-
-function linkControl(room) {
+module.exports.linkControl = function (room) {
     let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.storageLink && s.id !== s.room.memory.controllerLink && s.cooldown === 0);
     let storageLink = Game.getObjectById(room.memory.storageLink) || Game.getObjectById(room.memory.hubLink) || Game.getObjectById(_.sample(room.memory.hubLinks));
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
@@ -32,6 +30,4 @@ function linkControl(room) {
     if (storageLink && controllerLink && storageLink.energy > 100 && controllerLink.energy < 250 && storageLink.room.energyAvailable > storageLink.room.energyCapacityAvailable * 0.95) {
         storageLink.transferEnergy(controllerLink);
     }
-}
-
-module.exports.linkControl = profiler.registerFN(linkControl, 'linkControl');
+};

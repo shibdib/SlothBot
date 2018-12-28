@@ -1,10 +1,8 @@
 /**
  * Created by rober on 5/16/2017.
  */
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
 
-function observerControl(room) {
+module.exports.observerControl = function (room) {
     let observer = _.filter(room.structures, (s) => s.structureType === STRUCTURE_OBSERVER)[0];
     if (observer) {
         if (Game.time % 2 === 0) {
@@ -34,7 +32,5 @@ function observerControl(room) {
             }
         }
     }
-}
-
-module.exports.observerControl = profiler.registerFN(observerControl, 'observerControl');
+};
 

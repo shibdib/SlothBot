@@ -1,13 +1,12 @@
 /**
  * Created by Bob on 7/1/2017.
  */
-const profiler = require('screeps-profiler');
 let towers = require('module.towerController');
 let shib = require("shibBench");
 let structureCount = {};
 
 //Claimed Defense
-function controller(room) {
+module.exports.controller = function (room) {
     let creeps = room.creeps;
     let structures = room.structures;
 
@@ -70,9 +69,7 @@ function controller(room) {
 
     // Manage remote/room standby responders
     manageResponseForces()
-}
-
-module.exports.controller = profiler.registerFN(controller, 'defenseController');
+};
 
 //Functions
 

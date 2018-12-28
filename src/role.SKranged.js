@@ -1,11 +1,7 @@
 /**
  * Created by Bob on 7/12/2017.
  */
-
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
             RESOURCE_GHODIUM_OXIDE,
@@ -65,6 +61,4 @@ function role(creep) {
             creep.rangedAttack(hostiles);
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'SKRangedRole');
+};

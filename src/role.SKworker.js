@@ -1,11 +1,7 @@
 /**
  * Created by Bob on 7/12/2017.
  */
-
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     let source;
     let hostiles = creep.findClosestEnemy();
     if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
@@ -51,12 +47,8 @@ function role(creep) {
             }
         }
     }
-}
-module.exports.role = profiler.registerFN(role, 'skWorker');
+};
 
-/**
- * @return {undefined}
- */
 function SKdeposit(creep) {
     if (!creep.memory.buildAttempt) skRoads(creep);
     if (!creep.memory.containerID) {
@@ -151,8 +143,6 @@ function buildRoadFromTo(room, start, end) {
     }
 }
 
-buildRoadFromTo = profiler.registerFN(buildRoadFromTo, 'buildRoadFromToFunctionRemote');
-
 function buildRoadAround(room, position) {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
@@ -164,11 +154,7 @@ function buildRoadAround(room, position) {
     }
 }
 
-buildRoadAround = profiler.registerFN(buildRoadAround, 'buildRoadAroundFunctionRemote');
-
 function buildRoad(position) {
     if (position.checkForImpassible()) return;
     position.createConstructionSite(STRUCTURE_ROAD);
 }
-
-buildRoad = profiler.registerFN(buildRoad, 'buildRoadFunctionRemote');

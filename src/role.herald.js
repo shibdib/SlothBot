@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     //ANNOUNCE
     let signs = OWNED_ROOM_SIGNS;
     if (creep.memory.inPlace) {
@@ -44,6 +41,4 @@ function role(creep) {
             delete creep.memory._shibMove;
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'upgraderWorkers');
+};

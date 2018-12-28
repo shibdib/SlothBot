@@ -2,10 +2,7 @@
  * Created by Bob on 7/19/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['heal', 'tough', 'ranged']);
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
@@ -15,7 +12,4 @@ function role(creep) {
     if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
     // Swarm
     if (creep.memory.operation && creep.memory.operation === 'templarSiege') creep.templarSiege();
-
-}
-
-module.exports.role = profiler.registerFN(role, '');
+};

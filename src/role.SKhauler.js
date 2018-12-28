@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     creep.say(ICONS.haul, true);
     if (_.sum(creep.carry) === 0) {
         delete creep.memory.storageDestination;
@@ -148,6 +145,4 @@ function role(creep) {
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 18, offRoad: true});
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'SKHauler');
+};

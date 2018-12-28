@@ -1,11 +1,7 @@
 /**
  * Created by Bob on 8/5/2017.
  */
-
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.memory.boostAttempt !== true) {
         let desiredReactions = [
             RESOURCE_GHODIUM_OXIDE,
@@ -62,6 +58,4 @@ function role(creep) {
             if (creep.hits < creep.hitsMax) creep.heal(creep);
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'SKSupport');
+};

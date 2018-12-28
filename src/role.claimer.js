@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     //Check if claim clear op
     if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move
@@ -43,7 +40,7 @@ function role(creep) {
             }
         }
     }
-}
+};
 
 function cleanRoom(room, structures) {
     for (let key in structures) {
@@ -52,5 +49,3 @@ function cleanRoom(room, structures) {
         }
     }
 }
-
-module.exports.role = profiler.registerFN(role, 'claimerRole');

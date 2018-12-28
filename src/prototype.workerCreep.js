@@ -1,12 +1,9 @@
-const profiler = require('screeps-profiler');
-
-wrongRoom = function () {
+Creep.prototype.wrongRoom = function () {
     if (Game.time % 25 === 0 && this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
         this.memory.recycle = true;
         return true;
     }
 };
-Creep.prototype.wrongRoom = profiler.registerFN(wrongRoom, 'wrongRoomCheck');
 
 Creep.prototype.findSource = function (ignoreOthers = false) {
     let source = shuffle(this.room.sources);
@@ -113,7 +110,7 @@ Creep.prototype.findConstruction = function () {
     return null;
 };
 
-findRepair = function (level) {
+Creep.prototype.findRepair = function (level) {
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
     let site = _.filter(structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.7);
     if (site.length > 0) {
@@ -174,9 +171,8 @@ findRepair = function (level) {
     this.memory.constructionSite = undefined;
     this.memory.task = undefined;
 };
-Creep.prototype.findRepair = profiler.registerFN(findRepair, 'findRepairCreepFunctions');
 
-containerBuilding = function () {
+Creep.prototype.containerBuilding = function () {
     let site = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site !== null && site !== undefined) {
         if (this.pos.getRangeTo(site) <= 1) {
@@ -184,9 +180,8 @@ containerBuilding = function () {
         }
     }
 };
-Creep.prototype.containerBuilding = profiler.registerFN(containerBuilding, 'containerBuildingCreepFunctions');
 
-harvestDepositContainer = function () {
+Creep.prototype.harvestDepositContainer = function () {
     let container = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (container) {
         if (this.pos.getRangeTo(container) <= 1) {
@@ -199,9 +194,8 @@ harvestDepositContainer = function () {
         this.harvesterContainerBuild();
     }
 };
-Creep.prototype.harvestDepositContainer = profiler.registerFN(harvestDepositContainer, 'harvestDepositContainerCreepFunctions');
 
-harvesterContainerBuild = function () {
+Creep.prototype.harvesterContainerBuild = function () {
     if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
         if (Game.getObjectById(this.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
         if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
@@ -209,7 +203,6 @@ harvesterContainerBuild = function () {
         }
     }
 };
-Creep.prototype.harvesterContainerBuild = profiler.registerFN(harvesterContainerBuild, 'harvesterContainerBuildCreepFunctions');
 
 Creep.prototype.withdrawEnergy = function () {
     if (!this.memory.energyDestination) {

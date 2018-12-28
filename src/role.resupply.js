@@ -2,13 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-/**
- * @return {null}
- */
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
         delete creep.memory.destinationReached;
     } else if (creep.pos.roomName === Game.flags[creep.memory.destination].pos.roomName) {
@@ -56,5 +50,4 @@ function role(creep) {
             }
         }
     }
-}
-module.exports.role = profiler.registerFN(role, 'resupplyRole');
+};

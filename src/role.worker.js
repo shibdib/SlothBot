@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.tryToBoost(['build'])) return;
     //If short on harvesters become one
@@ -72,6 +69,4 @@ function role(creep) {
             }
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'workerRole');
+};

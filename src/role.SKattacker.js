@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['attack']);
     if (creep.renewalCheck(5)) return null;
     if (creep.hits < creep.hitsMax) creep.heal(creep);
@@ -29,6 +26,4 @@ function role(creep) {
     } else {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'SKAttackerRole');
+};

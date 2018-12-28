@@ -1,7 +1,6 @@
 //modules
 //Setup globals and prototypes
 require("require");
-let profiler = require('screeps-profiler');
 let _ = require('lodash');
 let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
@@ -15,78 +14,76 @@ Memory.lastGlobalReset = Game.time;
 module.exports.loop = function() {
     stats.lastTime = false;
     stats.reset();
-    profiler.wrap(function () {
-        log.d('Initiating Tick');
-        let mainCpu = Game.cpu.getUsed();
+    log.d('Initiating Tick');
+    let mainCpu = Game.cpu.getUsed();
 
-        //Logging level
-        Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
+    //Logging level
+    Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
-        log.d('Name Set');
-        // Set Name
-        if (!global.USERNAME) {
-            for (let key in Game.spawns) {
-                global.USERNAME = Game.spawns[key].owner.username;
-                break;
-            }
+    log.d('Name Set');
+    // Set Name
+    if (!global.USERNAME) {
+        for (let key in Game.spawns) {
+            global.USERNAME = Game.spawns[key].owner.username;
+            break;
         }
+    }
 
-        log.d('Owned Rooms Declared');
-        Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === USERNAME));
+    log.d('Owned Rooms Declared');
+    Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === USERNAME));
 
-        // Get Tick Length
-        log.d('Getting Tick Length');
-        let d = new Date();
-        let seconds = _.round(d.getTime() / 1000, 2);
-        let lastTick = Memory.lastTick || seconds;
-        Memory.lastTick = seconds;
-        let tickLength = seconds - lastTick;
-        if (tickLengthArray.length < 50) {
-            tickLengthArray.push(tickLength)
+    // Get Tick Length
+    log.d('Getting Tick Length');
+    let d = new Date();
+    let seconds = _.round(d.getTime() / 1000, 2);
+    let lastTick = Memory.lastTick || seconds;
+    Memory.lastTick = seconds;
+    let tickLength = seconds - lastTick;
+    if (tickLengthArray.length < 50) {
+        tickLengthArray.push(tickLength)
+    } else {
+        tickLengthArray.shift();
+        tickLengthArray.push(tickLength)
+    }
+    Memory.tickLength = average(tickLengthArray);
+
+    //Routine status
+    if (Game.time % 100 === 0) status();
+
+    //Update allies
+    log.d('Updating LOAN List');
+    populateLOANlist();
+
+    //Must run modules
+    log.d('Utility Modules');
+    segments.segmentManager();
+    cleanUp.cleanup();
+
+    //Bucket Check
+    log.d('Bucket Check');
+    if (Memory.cooldown) {
+        if (Memory.cooldown + 25 < Game.time) {
+            delete Memory.cooldown;
         } else {
-            tickLengthArray.shift();
-            tickLengthArray.push(tickLength)
-        }
-        Memory.tickLength = average(tickLengthArray);
-
-        //Routine status
-        if (Game.time % 100 === 0) status();
-
-        //Update allies
-        log.d('Updating LOAN List');
-        populateLOANlist();
-
-        //Must run modules
-        log.d('Utility Modules');
-        segments.segmentManager();
-        cleanUp.cleanup();
-
-        //Bucket Check
-        log.d('Bucket Check');
-        if (Memory.cooldown) {
-            if (Memory.cooldown + 25 < Game.time) {
-                delete Memory.cooldown;
-            } else {
-                let countDown = (Memory.cooldown + 25) - Game.time;
-                log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
-                return;
-            }
-        } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
-            Memory.cooldown = Game.time;
-            log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
+            let countDown = (Memory.cooldown + 25) - Game.time;
+            log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
             return;
         }
+    } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
+        Memory.cooldown = Game.time;
+        log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
+        return;
+    }
 
-        //Hive Mind
-        if (_.size(Memory.ownedRooms)) {
-            log.d('Initiate Hive');
-            hive.hiveMind();
-        }
+    //Hive Mind
+    if (_.size(Memory.ownedRooms)) {
+        log.d('Initiate Hive');
+        hive.hiveMind();
+    }
 
-        log.d('Benchmark Processed');
-        shib.shibBench('Total', mainCpu);
-        shib.processBench();
-    });
+    log.d('Benchmark Processed');
+    shib.shibBench('Total', mainCpu);
+    shib.processBench();
     // Simple stats
     stats.addSimpleStat('totalCreepCount', _.size(Game.creeps)); // Creep Count
     stats.addSimpleStat('militaryCreepCount', _.size(_.filter(Game.creeps, (r) => r.memory.military))); // Creep Count

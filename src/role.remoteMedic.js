@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.tryToBoost(['heal'])) return;
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     if (creep.memory.healTarget) {
@@ -39,6 +36,4 @@ function role(creep) {
             creep.idleFor(15)
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'healerRole');
+};

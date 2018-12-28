@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.tryToBoost(['build'])) return;
     creep.say(ICONS.castle, true);
     //If short on harvesters become one
@@ -25,7 +22,7 @@ function role(creep) {
             let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART)[0];
             if (barrier && barrier.hits < 2000) {
                 creep.memory.currentTarget = barrier.id;
-                creep.memory.targetHits = 10000 * creep.room.controller.level;
+                creep.memory.targetHits = 10000;
                 creep.shibMove(barrier, {range: 3})
             } else if (site) {
                 switch (creep.build(site)) {
@@ -55,7 +52,7 @@ function role(creep) {
             let target = Game.getObjectById(creep.memory.currentTarget);
             switch (creep.repair(target)) {
                 case OK:
-                    if (target.hits >= creep.memory.targetHits + 2000) creep.memory.currentTarget = undefined;
+                    if (target.hits >= creep.memory.targetHits + 1200) creep.memory.currentTarget = undefined;
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(target, {range: 3})
@@ -74,6 +71,4 @@ function role(creep) {
             }
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'wallerRole');
+};

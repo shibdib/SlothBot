@@ -2,10 +2,7 @@
  * Created by Bob on 6/24/2017.
  */
 
-const profiler = require('screeps-profiler');
-let _ = require('lodash');
-
-function labManager() {
+module.exports.labManager = function () {
     for (let key in shuffle(Memory.ownedRooms)) {
         if (Memory.ownedRooms[key].controller.level < 6) continue;
         let room = Memory.ownedRooms[key];
@@ -16,9 +13,7 @@ function labManager() {
         if (lab && terminal && room.memory.reactionRoom && Game.time % 5 === 0) manageActiveLabs(room);
         if (lab && terminal && Game.time % 100 === 0) cleanBoostLabs(room);
     }
-}
-
-module.exports.labManager = profiler.registerFN(labManager, 'labManager');
+};
 
 function manageBoostProduction(room) {
     let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.creating && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.creating}).length >= 2);

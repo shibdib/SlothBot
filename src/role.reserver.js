@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     if (creep.pos.roomName !== creep.memory.reservationTarget) {
@@ -32,6 +29,4 @@ function role(creep) {
                 creep.shibMove(creep.room.controller);
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'reserverRole');
+};

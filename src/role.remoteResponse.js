@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.hits < creep.hitsMax / 2) {
         creep.heal(creep);
     }
@@ -29,9 +26,7 @@ function role(creep) {
             findDefensivePosition(creep, creep);
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'remoteResponder');
+};
 
 function findDefensivePosition(creep, target) {
     if (target) {

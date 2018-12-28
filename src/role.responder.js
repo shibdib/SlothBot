@@ -2,18 +2,13 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     creep.say(ICONS.respond, true);
     if (creep.tryToBoost(['attack'])) return;
     if (!creep.handleMilitaryCreep(false, true, true)) {
         findDefensivePosition(creep, creep);
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'responderRole');
+};
 
 function findDefensivePosition(creep, target) {
     if (target) {

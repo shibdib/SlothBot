@@ -351,18 +351,12 @@ module.exports.workerCreepQueue = function (room) {
             }
         }
     }
+    //Filler
     if (!_.includes(queue, 'filler')) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < 100 && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler'})
-        }
-    }
-    if (level >= 9 && !_.includes(queue, 'courier')) {
-        let amount = 0;
-        let courier = _.filter(roomCreeps, (creep) => (creep.memory.role === 'courier'));
-        if (courier.length < amount) {
-            queueCreep(room, PRIORITIES.hauler, {role: 'courier'})
         }
     }
     //LabTech
@@ -379,7 +373,7 @@ module.exports.workerCreepQueue = function (room) {
     if (level >= 3 && !_.includes(queue, 'waller') && tower.length && (!room.storage || room.storage.store[RESOURCE_ENERGY] >= 10000)) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
-        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length >= 5 && room.memory.state > 1) amount = 2;
+        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length >= 5) amount = 3;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller + wallers.length, {role: 'waller'})
         }

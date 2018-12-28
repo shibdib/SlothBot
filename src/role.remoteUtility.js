@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function role(creep) {
     let source;
     if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     let lair = Game.getObjectById(creep.memory.lair);
@@ -46,12 +43,8 @@ function role(creep) {
             creep.findSource(true);
         }
     }
-}
-module.exports.role = profiler.registerFN(role, 'SKMineral');
+};
 
-/**
- * @return {undefined}
- */
 function utilityDeposit(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
         creep.memory.destinationReached = false;

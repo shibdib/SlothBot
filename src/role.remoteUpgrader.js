@@ -2,10 +2,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-let _ = require('lodash');
-const profiler = require('screeps-profiler');
-
-function role(creep) {
+module.exports.role = function (creep) {
     if (creep.tryToBoost(['upgrade'])) return;
     //INITIAL CHECKS
     // Travel
@@ -43,6 +40,4 @@ function role(creep) {
             }
         }
     }
-}
-
-module.exports.role = profiler.registerFN(role, 'upgraderWorkers');
+};
