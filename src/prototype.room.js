@@ -307,6 +307,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 needsCleaning = true;
             }
         }
+        // Get special rooms via name
+        let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
+        let isHighway = (parsed[1] % 10 === 0) ||
+            (parsed[2] % 10 === 0);
         // Store portal info
         if (portal.length) {
             let portalArray = [];
@@ -345,7 +349,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             needsCleaning: needsCleaning,
             potentialTarget: potentialTarget,
             user: user,
-            portal: portal
+            portal: portal,
+            isHighway: isHighway
         };
         Memory.roomCache = cache;
         Memory.roomCache[this.name].lastIntelCache = Game.time;

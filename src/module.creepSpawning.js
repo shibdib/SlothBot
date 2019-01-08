@@ -509,7 +509,7 @@ module.exports.remoteCreepQueue = function (room) {
         room.memory.remoteRooms = undefined;
         let adjacent = Game.map.describeExits(room.name);
         let possibles;
-        possibles = _.filter(adjacent, (r) => Memory.roomCache[r] && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME));
+        possibles = _.filter(adjacent, (r) => Memory.roomCache[r] && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].isHighway);
         if (!possibles.length) possibles = adjacent;
         remoteHives[room.name] = JSON.stringify(possibles);
     }

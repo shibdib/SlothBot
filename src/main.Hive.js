@@ -9,7 +9,7 @@ let shib = require("shibBench");
 
 module.exports.hiveMind = function () {
     // Clean mineral list
-    Memory.ownedMineral = [];
+    if (Game.time % 10000 === 0) Memory.ownedMineral = [];
     let cpuBucket = Game.cpu.bucket;
 
     let cpu;
