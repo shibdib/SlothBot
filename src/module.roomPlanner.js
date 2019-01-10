@@ -421,8 +421,8 @@ function buildRoadFromTo(room, start, end) {
             ignoreCreeps: true,
             maxRooms: 1,
             ignoreRoads: false,
-            swampCost: 15,
-            plainCost: 15
+            swampCost: 50,
+            plainCost: 50
         });
         if (path.length) return cacheRoad(room, start.pos, target, path); else return;
     }
