@@ -6,7 +6,7 @@ module.exports.role = function (creep) {
     if (creep.memory.boostAttempt !== true) return creep.tryToBoost(['attack']);
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     if (creep.room.name === creep.memory.destination) {
-        let sourceKeeper = creep.pos.findClosestByRange(creep.room.creeps, 6, {filter: (c) => c.owner.username === 'Source Keeper'});
+        let sourceKeeper = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (sourceKeeper) {
             switch (creep.attack(sourceKeeper)) {
                 case ERR_NOT_IN_RANGE:
