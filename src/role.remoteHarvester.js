@@ -3,6 +3,7 @@
  */
 
 module.exports.role = function (creep) {
+    if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true);
     let source;
     //Invader detection
     if (creep.fleeHome()) return;
@@ -71,6 +72,8 @@ function depositEnergy(creep) {
                 } else {
                     creep.idleFor(25);
                 }
+            } else if (Math.random() > 0.9) {
+                creep.idleFor(25);
             }
         } else {
             creep.memory.containerID = undefined;

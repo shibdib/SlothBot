@@ -19,7 +19,8 @@ module.exports.setRoomState = function (room) {
     if (Game.time % 5 === 0) {
         let last = room.memory.lastEnergyAmount || 0;
         room.memory.lastEnergyAmount = energyInRoom;
-        let energyIncomeArray = room.memory.energyIncomeArray || [];
+        let energyIncomeArray = [];
+        if (room.memory.energyIncomeArray) energyIncomeArray = JSON.parse(room.memory.energyIncomeArray);
         if (energyIncomeArray.length < 50) {
             energyIncomeArray.push(energyInRoom - last)
         } else {
@@ -27,7 +28,7 @@ module.exports.setRoomState = function (room) {
             energyIncomeArray.push(energyInRoom - last);
         }
         room.memory.energyPositive = average(energyIncomeArray) > 0;
-        room.memory.energyIncomeArray = energyIncomeArray;
+        room.memory.energyIncomeArray = JSON.stringify(energyIncomeArray);
         let energyAvailableArray = roomEnergyArray[room.name] || [];
         if (energyAvailableArray.length < 50) {
             energyAvailableArray.push(energyInRoom)
@@ -42,7 +43,7 @@ module.exports.setRoomState = function (room) {
         room.memory.lastStateChange = Game.time;
         let oldState = room.memory.state || 0;
         let news, averageIncome;
-        if (room.memory.energyIncomeArray && room.memory.energyIncomeArray.length) averageIncome = _.round(average(room.memory.energyIncomeArray), 0); else averageIncome = 0;
+        if (room.memory.energyIncomeArray && JSON.parse(room.memory.energyIncomeArray).length) averageIncome = _.round(average(JSON.parse(room.memory.energyIncomeArray)), 0); else averageIncome = 0;
         // Special Case (Turtler)
         if (room.controller.level >= 4 && room.memory.shellShock) {
             room.memory.state = -1;

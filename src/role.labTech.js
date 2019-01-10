@@ -4,6 +4,7 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
+    if (creep.wrongRoom()) return null;
     creep.say(ICONS.reaction, true);
     //If creep needs boosts do that first
     if (boostDelivery(creep)) return;
@@ -254,6 +255,8 @@ function boostDelivery(creep) {
         delete lab.memory;
         return delete creep.memory.labTech
     }
+    //If lab is already full enough continue
+    if (lab.mineralType === lab.memory.neededBoost && lab.mineralAmount >= boostCreep.memory.boostNeeded) return false;
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;
     creep.say(ICONS.boost, true);

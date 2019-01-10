@@ -244,11 +244,10 @@ Object.defineProperty(StructureLab.prototype, 'memory', {
 });
 
 Room.prototype.cacheRoomIntel = function (force = false) {
-    if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastIntelCache + 1501 > Game.time) return;
+    if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     urgentMilitary(this);
     let room = Game.rooms[this.name];
-    let owner, reservation, reservationTick, level, hostiles, nonCombats, sk, towers, claimValue, claimWorthy,
-        needsCleaning, power, abandoned, portal, user;
+    let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
@@ -258,19 +257,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         spawns = _.filter(room.structures, (e) => e.structureType === STRUCTURE_SPAWN);
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
-        towers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_TOWER);
-        power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
-        portal = _.filter(room.structures, (e) => e.structureType === STRUCTURE_PORTAL);
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
-        let minerals = room.mineral;
         if (room.controller) {
-            user = room.controller.owner || room.controller.reservation;
-            owner = room.controller.owner;
-            level = room.controller.level;
-            if (room.controller.reservation) {
-                reservation = room.controller.reservation.username;
-                reservationTick = room.controller.reservation.ticksToEnd + Game.time;
-            }
+            if (room.controller.owner) user = room.controller.owner.username; else if (room.controller.reservation) user = room.controller.reservation.username;
+            controller = JSON.stringify(room.controller);
             // Handle claim targets
             let safemodeCooldown = this.controller.safeModeCooldown;
             if (sources.length > 1 && !user && !barriers && !safemodeCooldown && this.findClosestOwnedRoom(true) <= 10) {
@@ -303,7 +293,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 claimWorthy = undefined;
             }
             // Handle abandoned rooms
-            if (!owner && !reservation && structures.length > 2) {
+            if (!user && structures.length > 2) {
                 needsCleaning = true;
             }
         }
@@ -312,6 +302,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let isHighway = (parsed[1] % 10 === 0) ||
             (parsed[2] % 10 === 0);
         // Store portal info
+        portal = _.filter(room.structures, (e) => e.structureType === STRUCTURE_PORTAL);
         if (portal.length) {
             let portalArray = [];
             let destinationArray = [];
@@ -322,27 +313,24 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 portalArray.push({decayTick: decayTick, destination: obj.destination})
             }
             if (portalArray.length) portal = JSON.stringify(portalArray); else portal = undefined;
+        } else {
+            portal = undefined;
         }
-        if (user) user = user.username; else if (_.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader')[0].owner.username;
+        // Store power info
+        power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
+        if (power.length && power[0].ticksToDecay >= 2500) power = true; else power = undefined;
+        if (!user && _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader')[0].owner.username;
         let potentialTarget;
-        if (!owner && nonCombats.length >= 2) potentialTarget = true;
-        if (owner && !spawns) abandoned = true;
+        if (!user && nonCombats.length >= 2) potentialTarget = true;
+        if (!user && spawns) needsCleaning = true;
         let key = room.name;
         if (Memory.roomCache && Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
             cached: Game.time,
             name: room.name,
-            sources: sources,
-            minerals: minerals,
-            owner: owner,
-            abandoned: abandoned,
-            reservation: reservation,
-            reservationTick: reservationTick,
-            level: level,
-            towers: towers.length,
-            barriers: barriers,
+            sources: sources.length,
+            controller: controller,
             hostiles: hostiles.length,
-            nonCombats: nonCombats.length,
             sk: sk,
             claimValue: claimValue,
             claimWorthy: claimWorthy,
@@ -350,141 +338,127 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             potentialTarget: potentialTarget,
             user: user,
             portal: portal,
+            power: power,
             isHighway: isHighway
         };
         Memory.roomCache = cache;
-        Memory.roomCache[this.name].lastIntelCache = Game.time;
-        if (power.length && power[0].ticksToDecay >= 2500) {
-            for (let key in Memory.ownedRooms) {
-                if (Game.map.findRoute(Memory.ownedRooms[key].name, room.name).length <= 6) {
-                    let activeRoom = Memory.ownedRooms[key];
-                    cache = {} || activeRoom.memory.powerRooms;
-                    cache[room.name] = {
-                        cached: Game.time,
-                        decayOn: power[0].ticksToDecay + Game.time,
-                        hits: power[0].hits,
-                        powerAmount: power[0].power
-                    };
-                    log.a('Power found in ' + room.name + ' adding to power targets for ' + activeRoom.name);
-                    activeRoom.memory.powerRooms = cache;
-                    break;
-                }
-            }
-        }
     }
 };
 
 
 Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 5 > Game.time) return;
-    if (!Memory.roomCache) Memory.roomCache = {};
-    if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
-    Memory.roomCache[this.name].lastInvaderCheck = Game.time;
-    let sk;
-    if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
-    let closestRoomRange = this.findClosestOwnedRoom(true);
-    // No invader checks for hostile rooms
-    if ((sk || (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || closestRoomRange >= 5) {
-        this.memory.numberOfHostiles = undefined;
-        this.memory.responseNeeded = undefined;
-        this.memory.alertEmail = undefined;
-        this.memory.requestingSupport = undefined;
-        this.memory.threatLevel = undefined;
-        return;
-    }
-    let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
-    if (invader.length > 0) {
-        let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6)
-        if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
-        this.memory.responseNeeded = true;
-        this.memory.tickDetected = Game.time;
-        if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
-            this.memory.numberOfHostiles = invader.length || 1;
+    if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper').length) {
+        if (!Memory.roomCache) Memory.roomCache = {};
+        if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
+        Memory.roomCache[this.name].lastInvaderCheck = Game.time;
+        let sk;
+        if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
+        let closestRoomRange = this.findClosestOwnedRoom(true);
+        // No invader checks for hostile rooms
+        if ((sk || (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || closestRoomRange >= 5) {
+            this.memory.numberOfHostiles = undefined;
+            this.memory.responseNeeded = undefined;
+            this.memory.alertEmail = undefined;
+            this.memory.requestingSupport = undefined;
+            this.memory.threatLevel = undefined;
+            return;
         }
-        // Determine threat
-        if ((invader.length === 1 && (invader[0].owner.username === 'Invader' || !armedInvader.length)) || (this.controller && this.controller.safeMode)) {
-            this.memory.threatLevel = 1;
-            Memory.roomCache[this.name].threatLevel = 1;
-        }
-        if (invader.length > 1 && invader[0].owner.username === 'Invader') {
-            this.memory.threatLevel = 2;
-            Memory.roomCache[this.name].threatLevel = 2;
-        }
-        if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
-            this.memory.threatLevel = 3;
-            this.memory.lastPlayerAttack = Game.time;
-            Memory.roomCache[this.name].threatLevel = 3;
-            let cache = Memory._badBoyList || {};
-            let key = invader[0].owner.username;
-            let multiple = 2;
-            if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
-            else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
-            else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
-            else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
-            let threatRating;
-            let gained = invader.length * multiple;
-            if (cache[key]) {
-                if (cache[key].lastAction + 50 > Game.time) return true;
-                threatRating = cache[key]['threatRating'] + gained;
-            } else {
-                threatRating = gained;
+        let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
+        if (invader.length > 0) {
+            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6)
+            if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');
+            this.memory.responseNeeded = true;
+            this.memory.tickDetected = Game.time;
+            if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
+                this.memory.numberOfHostiles = invader.length || 1;
             }
-            cache[key] = {
-                threatRating: threatRating,
-                lastAction: Game.time,
-            };
-            Memory._badBoyList = cache;
-            log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
-            let roomHeat = this.memory.roomHeat || 0;
-            this.memory.roomHeat = roomHeat + (invader.length * 5);
-        }
-        if (invader.length > 1 && invader[0].owner.username !== 'Invader') {
-            this.memory.threatLevel = 4;
-            this.memory.lastPlayerAttack = Game.time;
-            Memory.roomCache[this.name].threatLevel = 4;
-            let cache = Memory._badBoyList || {};
-            let key = invader[0].owner.username;
-            let multiple = 2;
-            if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
-            else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
-            else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
-            else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
-            let threatRating;
-            let gained = invader.length * multiple;
-            if (cache[key]) {
-                if (cache[key].lastAction + 50 > Game.time) return true;
-                threatRating = cache[key]['threatRating'] + gained;
-            } else {
-                threatRating = gained;
+            // Determine threat
+            if ((invader.length === 1 && (invader[0].owner.username === 'Invader' || !armedInvader.length)) || (this.controller && this.controller.safeMode)) {
+                this.memory.threatLevel = 1;
+                Memory.roomCache[this.name].threatLevel = 1;
             }
-            cache[key] = {
-                threatRating: threatRating,
-                lastAction: Game.time,
-            };
-            Memory._badBoyList = cache;
-            log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
-            let roomHeat = this.memory.roomHeat || 0;
-            this.memory.roomHeat = roomHeat + (invader.length * 5);
+            if (invader.length > 1 && invader[0].owner.username === 'Invader') {
+                this.memory.threatLevel = 2;
+                Memory.roomCache[this.name].threatLevel = 2;
+            }
+            if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
+                this.memory.threatLevel = 3;
+                this.memory.lastPlayerAttack = Game.time;
+                Memory.roomCache[this.name].threatLevel = 3;
+                let cache = Memory._badBoyList || {};
+                let key = invader[0].owner.username;
+                let multiple = 2;
+                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
+                else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
+                else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
+                else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
+                let threatRating;
+                let gained = invader.length * multiple;
+                if (cache[key]) {
+                    if (cache[key].lastAction + 50 > Game.time) return true;
+                    threatRating = cache[key]['threatRating'] + gained;
+                } else {
+                    threatRating = gained;
+                }
+                cache[key] = {
+                    threatRating: threatRating,
+                    lastAction: Game.time,
+                };
+                Memory._badBoyList = cache;
+                log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
+                let roomHeat = this.memory.roomHeat || 0;
+                this.memory.roomHeat = roomHeat + (invader.length * 5);
+            }
+            if (invader.length > 1 && invader[0].owner.username !== 'Invader') {
+                this.memory.threatLevel = 4;
+                this.memory.lastPlayerAttack = Game.time;
+                Memory.roomCache[this.name].threatLevel = 4;
+                let cache = Memory._badBoyList || {};
+                let key = invader[0].owner.username;
+                let multiple = 2;
+                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
+                else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
+                else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
+                else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
+                let threatRating;
+                let gained = invader.length * multiple;
+                if (cache[key]) {
+                    if (cache[key].lastAction + 50 > Game.time) return true;
+                    threatRating = cache[key]['threatRating'] + gained;
+                } else {
+                    threatRating = gained;
+                }
+                cache[key] = {
+                    threatRating: threatRating,
+                    lastAction: Game.time,
+                };
+                Memory._badBoyList = cache;
+                log.a(key + ' has gained ' + gained + ' and now has a threat rating of ' + threatRating + ' from an incident in ' + this.name);
+                let roomHeat = this.memory.roomHeat || 0;
+                this.memory.roomHeat = roomHeat + (invader.length * 5);
+            }
+            return invader.length > 0;
         }
-        return invader.length > 0;
-    }
-    let waitOut = 25;
-    if (this.memory.threatLevel > 3) waitOut = 100;
-    if (this.memory.tickDetected < Game.time - waitOut || !this.memory.responseNeeded) {
-        Memory.roomCache[this.name].threatLevel = undefined;
-        let roomHeat = (this.memory.roomHeat - 0.5) || 0;
-        if (roomHeat <= 0) {
-            this.memory.roomHeat = undefined;
-        } else {
-            this.memory.roomHeat = roomHeat;
+    } else {
+        let waitOut = 25;
+        if (this.memory.threatLevel > 3) waitOut = 100;
+        if (this.memory.tickDetected < Game.time - waitOut || !this.memory.responseNeeded) {
+            if (Memory.roomCache[this.name]) Memory.roomCache[this.name].threatLevel = undefined;
+            let roomHeat = (this.memory.roomHeat - 0.5) || 0;
+            if (roomHeat <= 0) {
+                this.memory.roomHeat = undefined;
+            } else {
+                this.memory.roomHeat = roomHeat;
+            }
+            this.memory.numberOfHostiles = undefined;
+            this.memory.responseNeeded = undefined;
+            this.memory.alertEmail = undefined;
+            this.memory.requestingSupport = undefined;
+            this.memory.threatLevel = undefined;
         }
-        this.memory.numberOfHostiles = undefined;
-        this.memory.responseNeeded = undefined;
-        this.memory.alertEmail = undefined;
-        this.memory.requestingSupport = undefined;
-        this.memory.threatLevel = undefined;
+        return false;
     }
-    return false;
 };
 
 function urgentMilitary(room) {

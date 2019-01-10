@@ -85,7 +85,7 @@ let globals = function () {
         Power: 5,
         // SK
         SKworker: 6,
-        SKattacker: 7,
+        SKattacker: 4,
         SKsupport: 6,
         SKhauler: 6,
         // Military

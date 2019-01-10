@@ -29,6 +29,7 @@ function queueHelp(roomName) {
         let op = 'scout';
         if (Memory.roomCache[roomName]) op = 'guard';
         log.e('~~ALLY REQUESTING HELP~~ Guard Patrol Requested For ' + roomName);
+        Game.notify('~~ALLY REQUESTING HELP~~ Guard Patrol Requested For ' + roomName);
         cache[roomName] = {
             tick: Game.time,
             type: op,
@@ -43,6 +44,7 @@ function queueAllyAttack(roomName) {
     let cache = Memory.targetRooms || {};
     if (!cache[roomName]) {
         log.e('~~ALLY REQUESTING ATTACK~~ Attack Requested For ' + roomName);
+        Game.notify('~~ALLY REQUESTING ATTACK~~ Attack Requested For ' + roomName);
         cache[roomName] = {
             tick: Game.time,
             type: 'scout',
@@ -260,7 +262,7 @@ module.exports.operationSustainability = function (room) {
     operation.trackedEnemy = trackedEnemy;
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold') ||
+    if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
         (operation.type === 'drain' && (operation.trackedFriendly.length >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time)) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');

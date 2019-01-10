@@ -45,10 +45,12 @@ function shibMove(creep, heading, options = {}) {
     if (rangeToDestination <= options.range) {
         creep.memory._shibMove = undefined;
         shib.shibBench('pathfinding', pathingStart);
+        shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         return false;
     } else if (rangeToDestination === 1) {
         let direction = creep.pos.getDirectionTo(heading);
         shib.shibBench('pathfinding', pathingStart);
+        shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         return creep.move(direction);
     }
     if (creep.memory.military) options.useCache = false;
@@ -106,13 +108,16 @@ function shibMove(creep, heading, options = {}) {
                     break;
             }
             shib.shibBench('pathfinding', pathingStart);
+            shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         } else {
             delete pathInfo.path;
             shib.shibBench('pathfinding', pathingStart);
+            shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         }
     } else {
         shibPath(creep, heading, pathInfo, origin, target, options);
         shib.shibBench('pathfinding', pathingStart);
+        shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
     }
 }
 
@@ -141,7 +146,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = pathInfo.route || options.route;
-        if (!allowedRooms && roomDistance > 0) {
+        if (!allowedRooms && roomDistance > 2) {
             let route;
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
             if (route) {
@@ -287,20 +292,16 @@ function findRoute(origin, destination, options = {}) {
             // Check for manual flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
-                // Friendly Owned Rooms
-                if (Memory.roomCache[roomName].owner && _.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username)) {
-                    return 1;
-                }
-                // Friendly Reserved Rooms
-                if (Memory.roomCache[roomName].reservation && _.includes(FRIENDLIES, Memory.roomCache[roomName].reservation)) {
+                // Friendly Rooms
+                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) {
                     return 1;
                 }
                 // Avoid rooms owned by others
-                if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner.username) && !Memory.roomCache[roomName].abandoned) {
-                    if (Memory.roomCache[roomName].towers) return 254; else return 15;
+                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user) && !Memory.roomCache[roomName].needsCleaning) {
+                    if (Memory.roomCache[roomName].controller && JSON.parse(Memory.roomCache[roomName].controller).level >= 3) return 254; else return 15;
                 }
                 // Avoid rooms reserved by others
-                if (Memory.roomCache[roomName].reservation && !_.includes(FRIENDLIES, Memory.roomCache[roomName].reservation)) {
+                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) {
                     return 10;
                 }
             } else

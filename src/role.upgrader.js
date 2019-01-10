@@ -4,6 +4,7 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
+    if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
     if (!creep.carry.energy) delete creep.memory.working;
     if (creep.memory.working) {
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
@@ -15,7 +16,6 @@ module.exports.role = function (creep) {
         }
     }
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) return creep.memory.working = true;
-    if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
         creep.upgradeController(Game.rooms[creep.memory.overlord].controller)

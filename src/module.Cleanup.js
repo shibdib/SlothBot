@@ -95,9 +95,7 @@ function cleanConstructionSites() {
 
 function cleanRoomIntel() {
     if (Memory.roomCache) {
-        for (let key in Memory.roomCache) {
-            if (Memory.roomCache[key].cached + 25000 < Game.time) delete Memory.roomCache[key];
-        }
+        Memory.roomCache = _.filter(Memory.roomCache, (r) => r.cached > Game.time - 50000);
     }
     for (let key in Memory.rooms) {
         if (!Game.rooms[key]) delete Memory.rooms[key];

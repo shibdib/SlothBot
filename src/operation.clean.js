@@ -4,10 +4,11 @@ Creep.prototype.cleanRoom = function () {
     let sentence = ['Cleaning', 'Room', this.memory.targetRoom];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    if (!Memory.targetRooms[this.memory.targetRoom]) this.suicide();
+    //Handle movement and staging
     if (this.memory.staging && this.room.name === this.memory.staging) this.memory.staged = true;
     if (this.memory.staging && !this.memory.staged && this.room.name !== this.memory.staging) return this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+    //If room safemodes switch to pending
     if (this.room.controller && this.room.controller.safeMode) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
@@ -17,14 +18,16 @@ Creep.prototype.cleanRoom = function () {
             type: 'pending',
         };
         Memory.targetRooms = cache;
-        return this.suicide();
+        return this.memory.recycle = true;
     }
     highCommand.operationSustainability(this.room);
-    let creeps = this.pos.findClosestByRange(this.room.creeps, {filter: (e) => _.includes(FRIENDLIES, e.owner.username) === false});
-    if (creeps && Memory.targetRooms[this.memory.targetRoom]) {
+    //If no longer a target recycle
+    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle = true;
+    //If hostile creeps present request an escort
+    if (this.room.hostileCreeps.length) {
         Memory.targetRooms[this.room.name].escort = true;
-    } else if (Memory.targetRooms[this.memory.targetRoom]) {
-        delete Memory.targetRooms[this.room.name].escort;
+    } else {
+        Memory.targetRooms[this.room.name].escort = undefined;
     }
     let target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
     if (!target || target === null) {
