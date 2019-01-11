@@ -521,22 +521,31 @@ module.exports.remoteCreepQueue = function (room) {
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].sk);
         if (adjacent.length) skRooms[room.name] = adjacent[0]; else skRooms[room.name] = undefined;
     }
-    if (level >= 9 && skRooms[room.name] && !room.memory.responseNeeded && !TEN_CPU) {
+    if (level >= 7 && skRooms[room.name] && !room.memory.responseNeeded && !TEN_CPU) {
+        let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKsupport' && creep.memory.overlord === room.name);
+        if (!_.includes(queue, 'SKsupport') && (SKSupport.length < 1 || SKSupport[0] && SKSupport[0].ticksToLive < 100 && SKSupport.length < 2)) {
+            queueCreep(room, PRIORITIES.SKsupport, {role: 'SKsupport', destination: skRooms[room.name]})
+        }
         let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
-        if (!_.includes(queue, 'SKattacker') && SKAttacker.length < 1) {
+        if (!_.includes(queue, 'SKattacker') && (SKAttacker.length < 1 || SKAttacker[0] && SKAttacker[0].ticksToLive < 200 && SKAttacker.length < 2) && SKSupport.length) {
             queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', destination: skRooms[room.name]})
         }
-        let SKmineral = _.filter(Game.creeps, (creep) => creep.memory.destination === skRooms[room.name] && creep.memory.role === 'SKmineral');
-        if (!_.includes(queue, 'SKmineral') && SKmineral.length < 1 && SKAttacker.length > 0) {
-            queueCreep(room, PRIORITIES.SKworker, {role: 'SKmineral', destination: skRooms[room.name]})
-        }
-        if (!_.includes(queue, 'remoteHarvester')) {
-            let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === skRooms[room.name] && creep.memory.role === 'remoteHarvester');
+        if (!_.includes(queue, 'SKworker') && SKAttacker.length && SKSupport.length) {
+            let SKworker = _.filter(Game.creeps, (creep) => creep.memory.destination === skRooms[room.name] && creep.memory.role === 'SKworker');
             let sourceCount = 1;
             if (Memory.roomCache[skRooms[room.name]] && Memory.roomCache[skRooms[room.name]].sources) sourceCount = Memory.roomCache[skRooms[room.name]].sources;
-            if (remoteHarvester.length < sourceCount) {
-                queueCreep(room, PRIORITIES.remoteHarvester, {
-                    role: 'remoteHarvester',
+            if (SKworker.length < sourceCount + 1) {
+                queueCreep(room, PRIORITIES.SKworker, {
+                    role: 'SKworker',
+                    destination: skRooms[room.name]
+                })
+            }
+        }
+        if (!_.includes(queue, 'pioneer') && SKAttacker.length && SKSupport.length) {
+            let pioneer = _.filter(Game.creeps, (creep) => creep.memory.destination === skRooms[room.name] && creep.memory.role === 'pioneer');
+            if (pioneer.length < 1) {
+                queueCreep(room, PRIORITIES.pioneer, {
+                    role: 'pioneer',
                     destination: skRooms[room.name]
                 })
             }
@@ -552,6 +561,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
             if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].user && Memory.roomCache[remotes[keys]].user !== USERNAME)) continue;
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].owner) continue;
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk) continue;
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].memory.responseNeeded) || (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].threatLevel || Memory.roomCache[remotes[keys]].hostiles))) roomThreat = true;
@@ -575,7 +585,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             //Harvesters
-            if (!_.includes(queue, 'remoteHarvester') && !TEN_CPU) {
+            if (!_.includes(queue, 'remoteHarvester') && !TEN_CPU && (level < 7 || !skRooms[room.name])) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources && remotes.length < 3) sourceCount = Memory.roomCache[remotes[keys]].sources;
@@ -623,7 +633,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
     // Remote Hauler
     if (!_.includes(queue, 'remoteHauler')) {
-        let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
+        let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'SKworker'));
         let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
         if (remoteHauler.length < remoteHarvester.length) {
             queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'})
@@ -631,7 +641,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 
     //Power Mining
-    if (level >= 7 && room.memory.state > 2 && !TEN_CPU && room.memory.powerRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
+    if (level >= 9 && room.memory.state > 2 && !TEN_CPU && room.memory.powerRooms && room.memory.energySurplus && !room.memory.responseNeeded && room.constructionSites.length <= 3) {
         for (let key in room.memory.powerRooms) {
             let powerRoom = room.memory.powerRooms[key];
             if ((powerRoom.decayOn <= Game.time + 2000 && powerRoom.hits === 2000000) || powerRoom.decayOn < Game.time) {

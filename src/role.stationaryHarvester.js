@@ -3,7 +3,6 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.tryToBoost(['harvest'])) return;
     //If source is set harvest
     if (creep.memory.source) {
         //Make sure you're on the container

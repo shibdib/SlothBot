@@ -9,6 +9,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
     let source = shuffle(this.room.sources);
     if (this.memory.role === 'stationaryHarvester') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'stationaryHarvester' && c.memory.source === s.id).length === 0);
     if (this.memory.role === 'remoteHarvester') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'remoteHarvester' && c.memory.source === s.id).length === 0);
+    if (this.memory.role === 'SKworker') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'SKworker' && c.memory.source === s.id).length === 0);
     if (ignoreOthers) source = this.room.sources;
     if (source.length > 0) {
         this.memory.source = this.pos.findClosestByRange(source).id;

@@ -364,7 +364,7 @@ Room.prototype.invaderCheck = function () {
             this.memory.threatLevel = undefined;
             return;
         }
-        let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
+        let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && !_.includes(FRIENDLIES, c.owner.username));
         if (invader.length > 0) {
             let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6)
             if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');

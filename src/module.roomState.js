@@ -20,7 +20,8 @@ module.exports.setRoomState = function (room) {
         let last = room.memory.lastEnergyAmount || 0;
         room.memory.lastEnergyAmount = energyInRoom;
         let energyIncomeArray = [];
-        if (room.memory.energyIncomeArray.constructor === Array) room.memory.energyIncomeArray = undefined
+        // Backwards compatibility
+        if (room.memory.energyIncomeArray && room.memory.energyIncomeArray.constructor === Array) room.memory.energyIncomeArray = undefined;
         if (room.memory.energyIncomeArray) energyIncomeArray = JSON.parse(room.memory.energyIncomeArray);
         if (energyIncomeArray.length < 50) {
             energyIncomeArray.push(energyInRoom - last)

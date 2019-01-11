@@ -8,7 +8,7 @@ module.exports.role = function (creep) {
     if (creep.fleeHome()) return;
     // Set harvester pairing
     if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
-        let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && !c.memory.hauler)[0];
+        let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKworker') && !c.memory.hauler)[0];
         if (!remoteHarvester) return creep.idleFor(10);
         creep.memory.harvester = remoteHarvester.id;
         remoteHarvester.memory.hauler = creep.id;
@@ -21,6 +21,8 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
+            // If carrying minerals deposit in terminal or storage
+            if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) creep.memory.storageDestinatio = creep.room.terminal.id || creep.room.storage.id;
             creep.memory.destinationReached = false;
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);

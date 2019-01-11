@@ -284,14 +284,30 @@ function boostDelivery(creep) {
         }
     }
     if (lab.mineralType && lab.mineralType !== lab.memory.neededBoost) {
-        switch (creep.withdraw(lab, lab.mineralType)) {
-            case OK:
-                creep.memory.labTech = true;
-                return true;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(lab);
-                creep.memory.labTech = true;
-                return true;
+        if (_.sum(creep.carry) > 0) {
+            let storage = creep.room.terminal || creep.room.storage;
+            for (let resourceType in creep.carry) {
+                switch (creep.transfer(storage, resourceType)) {
+                    case OK:
+                        return true;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(storage);
+                        return true;
+                    case ERR_FULL:
+                        creep.drop(resourceType);
+                        return true;
+                }
+            }
+        } else {
+            switch (creep.withdraw(lab, lab.mineralType)) {
+                case OK:
+                    creep.memory.labTech = true;
+                    return true;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(lab);
+                    creep.memory.labTech = true;
+                    return true;
+            }
         }
     } else {
         if (!creep.memory.itemStorage) {

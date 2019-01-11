@@ -4,9 +4,11 @@
 module.exports.role = function (creep) {
     let source;
     let hostiles = creep.findClosestEnemy();
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
     let lair = Game.getObjectById(creep.memory.lair);
-    if (lair && creep.pos.getRangeTo(lair) <= 6 && lair.ticksToSpawn <= 10) return creep.flee(lair);
+    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.flee(hostiles);
+    if (lair && (lair.ticksToSpawn <= 15 || !lair.ticksToSpawn)) {
+        if (lair.pos.getRangeTo(creep) <= 10) return creep.flee(lair); else creep.idleFor(10);
+    }
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (creep.carry.energy === 0) creep.memory.harvesting = true;
