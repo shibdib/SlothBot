@@ -6,6 +6,8 @@ module.exports.role = function (creep) {
     //ANNOUNCE
     let signs = OWNED_ROOM_SIGNS;
     if (creep.memory.inPlace) {
+        //RECHECK FOR ROAD EVERY 150 TICKS
+        if (Game.time % 150 === 0) creep.memory.inPlace = undefined;
         let sentence = ['-', '#overlords', '-'];
         if (creep.room.memory.responseNeeded) {
             if (creep.room.memory.threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
