@@ -320,7 +320,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Worker
-    if (!_.includes(queue, 'worker') && !room.memory.responseNeeded && (!room.storage || room.storage.store[RESOURCE_ENERGY] >= 10000)) {
+    if (!_.includes(queue, 'worker') && !room.memory.responseNeeded) {
         let amount = 0;
         if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) amount = 2;
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');

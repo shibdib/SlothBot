@@ -73,7 +73,7 @@ function depositEnergy(creep) {
                     creep.idleFor(25);
                 }
             } else if (Math.random() > 0.9) {
-                creep.idleFor(25);
+                creep.idleFor(5);
             }
         } else {
             creep.memory.containerID = undefined;

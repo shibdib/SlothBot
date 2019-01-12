@@ -348,7 +348,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 5 > Game.time) return;
-    if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper').length) {
+    if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && !_.includes(FRIENDLIES, c.owner.username)).length) {
+        let hostilesssss = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && !_.includes(FRIENDLIES, c.owner.username));
+        for (let key in hostilesssss) {
+            console.log(hostilesssss[key].owner.username)
+        }
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
         Memory.roomCache[this.name].lastInvaderCheck = Game.time;
