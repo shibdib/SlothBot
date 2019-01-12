@@ -22,7 +22,7 @@ module.exports.role = function (creep) {
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
             // If carrying minerals deposit in terminal or storage
-            if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) creep.memory.storageDestinatio = creep.room.terminal.id || creep.room.storage.id;
+            if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
             creep.memory.destinationReached = false;
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
