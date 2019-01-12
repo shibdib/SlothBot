@@ -332,7 +332,8 @@ Creep.prototype.tryToBoost = function (boosts) {
             }
             if (lab && lab.pos.getRangeTo(this) > 1) {
                 this.say(ICONS.boost);
-                return this.shibMove(lab);
+                this.shibMove(lab);
+                return true;
             }
             if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && lab.mineralAmount >= this.memory.boostNeeded) {
                 switch (lab.boostCreep(this)) {

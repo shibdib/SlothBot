@@ -287,13 +287,22 @@ function balanceBoosts(terminal) {
                 let dumpAmount = DUMP_AMOUNT * 1.5;
                 if (_.includes(END_GAME_BOOSTS, boost)) dumpAmount = DUMP_AMOUNT * 4;
                 if (boost !== RESOURCE_ENERGY && terminal.store[boost] >= dumpAmount) {
-                    let alliedRoom = _.sample(_.filter(Memory.roomCache, (r) => r.owner && r.owner.username !== MY_USERNAME && _.includes(FRIENDLIES, r.owner.username) && r.level >= 6));
+                    let alliedRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(FRIENDLIES, r.user) && r.level >= 6));
+                    let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6));
                     if (alliedRoom) {
                         alliedRoom = alliedRoom.name;
-                        let allyName = Memory.roomCache[alliedRoom].owner.username;
+                        let allyName = Memory.roomCache[alliedRoom].user;
                         switch (terminal.send(boost, 2500, alliedRoom)) {
                             case OK:
                                 log.a(' MARKET: Dumping to ally (' + allyName + ') ' + 2500 + ' ' + boost + ' To ' + alliedRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[boost]);
+                                return true;
+                        }
+                    } else if (_.sum(terminal.store) >= terminal.storeCapacity * 0.95 && randomRoom) {
+                        randomRoom = randomRoom.name;
+                        let randomName = Memory.roomCache[randomRoom].user;
+                        switch (terminal.send(boost, 2500, randomRoom)) {
+                            case OK:
+                                log.a(' MARKET: Dumping to random player (' + randomName + ') ' + 2500 + ' ' + boost + ' To ' + randomRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[boost]);
                                 return true;
                         }
                     }

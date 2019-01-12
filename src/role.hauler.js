@@ -32,5 +32,12 @@ module.exports.role = function (creep) {
                     break;
             }
         } else creep.idleFor(5);
-    } else if (creep.memory.energyDestination || creep.getEnergy(true)) creep.withdrawEnergy(); else creep.idleFor(1);
+    } else if (creep.memory.energyDestination || creep.getEnergy(true)) {
+        if (creep.withdrawEnergy()) {
+            if (creep.findSpawnsExtensions() || creep.findEssentials() || creep.findStorage()) {
+                let storageItem = Game.getObjectById(creep.memory.storageDestination);
+                creep.shibMove(storageItem);
+            }
+        }
+    } else creep.idleFor(1);
 };

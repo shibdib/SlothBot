@@ -2,9 +2,9 @@ let shib = require("shibBench");
 
 module.exports.claimNewRoom = function () {
     let cpu = Game.cpu.getUsed();
-    let avoidRooms = _.filter(Memory.roomCache, (r) => r.owner);
+    let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
     let noClaim = Memory.noClaim || [];
-    let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && !r.owner && !_.includes(noClaim, r.name));
+    let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && !r.level && !_.includes(noClaim, r.name));
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     if (worthyRooms.length > 0) {
         let possibles = {};

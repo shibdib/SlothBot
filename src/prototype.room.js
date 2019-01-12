@@ -247,7 +247,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     urgentMilitary(this);
     let room = Game.rooms[this.name];
-    let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user;
+    let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level;
     if (room) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
@@ -261,6 +261,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (room.controller) {
             if (room.controller.owner) user = room.controller.owner.username; else if (room.controller.reservation) user = room.controller.reservation.username;
             controller = JSON.stringify(room.controller);
+            level = room.controller.level || undefined;
             // Handle claim targets
             let safemodeCooldown = this.controller.safeModeCooldown;
             if (sources.length > 1 && !user && !barriers && !safemodeCooldown && this.findClosestOwnedRoom(true) <= 10) {
@@ -330,6 +331,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             name: room.name,
             sources: sources.length,
             controller: controller,
+            level: level,
             hostiles: hostiles.length,
             sk: sk,
             claimValue: claimValue,
@@ -348,19 +350,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 5 > Game.time) return;
-    if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && !_.includes(FRIENDLIES, c.owner.username)).length) {
-        let hostilesssss = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && !_.includes(FRIENDLIES, c.owner.username));
-        for (let key in hostilesssss) {
-            console.log(hostilesssss[key].owner.username)
-        }
+    if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper').length) {
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
         Memory.roomCache[this.name].lastInvaderCheck = Game.time;
         let sk;
         if (_.filter(this.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
-        let closestRoomRange = this.findClosestOwnedRoom(true);
         // No invader checks for hostile rooms
-        if ((sk || (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || closestRoomRange >= 5) {
+        if ((sk || (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) || (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username))) || this.findClosestOwnedRoom(true) >= 5) {
             this.memory.numberOfHostiles = undefined;
             this.memory.responseNeeded = undefined;
             this.memory.alertEmail = undefined;
@@ -368,7 +365,7 @@ Room.prototype.invaderCheck = function () {
             this.memory.threatLevel = undefined;
             return;
         }
-        let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper' && !_.includes(FRIENDLIES, c.owner.username));
+        let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
         if (invader.length > 0) {
             let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6)
             if (Game.time % 50 === 0) log.a('Response Requested in ' + this.name + '. ' + invader.length + ' hostiles detected.');

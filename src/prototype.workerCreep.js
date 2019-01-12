@@ -215,7 +215,7 @@ Creep.prototype.withdrawEnergy = function () {
                 case OK:
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
-                    break;
+                    return true;
                 case ERR_INVALID_TARGET:
                     switch (this.pickup(energyItem)) {
                         case OK:
@@ -234,7 +234,7 @@ Creep.prototype.withdrawEnergy = function () {
                                 case OK:
                                     this.memory.energyDestination = undefined;
                                     this.memory._shibMove = undefined;
-                                    break;
+                                    return true;
                                 case ERR_NOT_IN_RANGE:
                                     this.shibMove(energyItem, {ignoreRoads: true});
                                     break;

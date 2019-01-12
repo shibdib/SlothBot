@@ -320,9 +320,9 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Worker
-    if (!_.includes(queue, 'worker') && !room.memory.responseNeeded) {
-        let amount = 0;
-        if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL).length) amount = 2;
+    if (room.constructionSites.length && !_.includes(queue, 'worker') && !room.memory.responseNeeded) {
+        let amount = 1;
+        if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD).length) amount = 2;
         let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
         if (workers.length < amount) {
             queueCreep(room, PRIORITIES.worker, {role: 'worker'})
@@ -419,13 +419,13 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Explorer
-    if (!_.includes(queue, 'explorer') && !TEN_CPU && !room.memory.responseNeeded) {
-        let amount = 3;
-        if (TEN_CPU) amount = 1;
-        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
+    if (!_.includes(queue, 'explorer') && !room.memory.responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 4500 <= Game.time)) {
+        let amount = 1;
+        let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
         if (explorers.length < amount) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
+        queueTracker['explorer'] = Game.time;
     }
     //ProximityScout
     if (room.memory.remoteRooms && room.memory.remoteRooms.length && !_.includes(queue, 'proximityScout') && level < 8 && !TEN_CPU && !room.memory.responseNeeded) {

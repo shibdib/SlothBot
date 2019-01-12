@@ -65,7 +65,7 @@ function operationRequests() {
         enemyHarass = _.filter(Memory.roomCache, (r) => r.user && _.includes(HOSTILES, r.user) && !Memory.targetRooms[r.name]);
     } else {
         targetLimit = surplusRooms - totalCountFiltered;
-        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.owner);
+        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.level);
     }
     if (enemyHarass.length) {
         for (let target of enemyHarass) {
@@ -87,7 +87,7 @@ function operationRequests() {
     // Clean
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
     if (!cleanCount) {
-        let enemyClean = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !Memory.targetRooms[r.name] && r.needsCleaning);
+        let enemyClean = _.filter(Memory.roomCache, (r) => !r.user && r.cached > Game.time - 50000 && !Memory.targetRooms[r.name] && r.needsCleaning);
         if (enemyClean.length) {
             let cleanTarget = _.sample(enemyClean);
             let cache = Memory.targetRooms || {};
@@ -107,10 +107,10 @@ function operationRequests() {
         let enemyHarass;
         if (HOSTILES.length) {
             enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, r.user)
-                && !Memory.targetRooms[r.name] && !r.owner);
+                && !Memory.targetRooms[r.name] && !r.level);
         } else {
             enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, r.user)
-                && !Memory.targetRooms[r.name] && !r.owner);
+                && !Memory.targetRooms[r.name] && !r.level);
         }
         if (enemyHarass.length) {
             for (let target of enemyHarass) {

@@ -16,7 +16,7 @@ module.exports.labManager = function () {
 };
 
 function manageBoostProduction(room) {
-    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.creating && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.creating}).length >= 2);
+    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.creating && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.creating}).length >= 3);
     if (!availableLabs.length) return;
     availableLabs = availableLabs[0];
     let storage = room.storage;
@@ -143,11 +143,11 @@ function manageActiveLabs(room) {
                 let creatorTwo = Game.getObjectById(creators[1]);
                 //If any dont exist reset
                 if (!outputLab || !creatorOne || !creatorTwo) {
+                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a lab error (2).');
                     for (let id in creators) {
                         creators[id].memory = undefined;
                     }
                     outputLab.memory = undefined;
-                    log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a lab error (2).');
                     continue
                 }
                 //Clean bad boosting
