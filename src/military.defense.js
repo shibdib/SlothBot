@@ -7,6 +7,8 @@ let structureCount = {};
 
 //Claimed Defense
 module.exports.controller = function (room) {
+    //Reset structure count every so often
+    if (Game.time % 250 === 0) structureCount = {};
     let creeps = room.creeps;
     let structures = room.structures;
 

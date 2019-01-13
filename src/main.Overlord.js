@@ -313,7 +313,7 @@ function cleanQueue(room) {
 function requestBuilders(room) {
     let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military);
-    if (!spawns.length || roomCreeps.length < 4 || getLevel(room) !== room.controller.level || _.size(_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)) > 10) {
+    if (!spawns.length || roomCreeps.length < 4 || getLevel(room) !== room.controller.level || _.size(_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)) > 2) {
         room.memory.buildersNeeded = true;
     } else {
         room.memory.buildersNeeded = undefined;

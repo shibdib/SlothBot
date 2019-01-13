@@ -51,14 +51,16 @@ function depositEnergy(creep) {
     if (!creep.memory.extensionsFound) extensionFinder(creep);
     //Fill extensions if you have any stored
     if (creep.room.memory.extensionHub && creep.memory.extensions && extensionFiller(creep)) {
-        return;
+
     } else if (creep.memory.linkID) {
         let link = Game.getObjectById(creep.memory.linkID);
+        if (Game.getObjectById(creep.memory.containerID) && Game.getObjectById(creep.memory.containerID).pos.getRangeTo(link) > 1) link.destroy();
         creep.transfer(link, RESOURCE_ENERGY);
     } else if (!creep.memory.linkAttempt) {
         creep.memory.linkID = harvestDepositLink(creep)
     } else if (creep.memory.containerID) {
         let container = Game.getObjectById(creep.memory.containerID);
+        if (Game.getObjectById(creep.memory.linkID) && Game.getObjectById(creep.memory.linkID).pos.getRangeTo(container) > 1) Game.getObjectById(creep.memory.linkID).destroy();
         if (!container) return creep.memory.containerID = undefined;
         if (_.sum(container.store) !== container.storeCapacity) {
             creep.transfer(container, RESOURCE_ENERGY);

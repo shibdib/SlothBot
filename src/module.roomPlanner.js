@@ -63,7 +63,7 @@ function buildFromLayout(room) {
     // Hub
     if (room.memory.bunkerVersion < 2 || room.memory.bunkerVersion > 5) {
         let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-        if (level >= 5) {
+        if (level >= 4) {
             delete room.memory.hubContainer;
             if (hub.checkForAllStructure()[0]) {
                 if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
@@ -76,7 +76,7 @@ function buildFromLayout(room) {
             }
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
-    } else if (level >= 5) {
+    } else if (level >= 4) {
         delete room.memory.hubContainer;
         let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2)
         if (links.length) {
@@ -86,7 +86,7 @@ function buildFromLayout(room) {
         }
     }
     // Ramparts on buildings
-    if (level >= 7 && level === extensionLevel) {
+    if (level >= 6 && level === extensionLevel) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType))) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }

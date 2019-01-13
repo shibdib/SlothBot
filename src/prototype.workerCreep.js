@@ -369,7 +369,7 @@ Creep.prototype.fillerEnergy = function () {
 Creep.prototype.getEnergy = function (hauler = false) {
     if (!this.room.memory.hubContainer) hauler = false;
     // chance to check for dropped
-    if (Math.random() > 0.75) {
+    if (Math.random() > 0.25) {
         let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
         if (dropped) {
             this.memory.energyDestination = dropped.id;
@@ -383,7 +383,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
         return true;
     }
     // Links
-    let hubLink = Game.getObjectById(this.room.memory.hubLink);
+    let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
     if (hubLink && hubLink.energy > 50) {
         this.memory.energyDestination = hubLink.id;
         return true;
@@ -547,7 +547,8 @@ Creep.prototype.findEssentials = function () {
     }
     //Top off towers
     let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9});
-    if (this.room.memory.energySurplus && Math.random() > 0.7 && tower) {
+    let fullTower = _.filter(this.structures, {filter: (s) => s.my && s.structureType === STRUCTURE_TOWER && s.energy >= s.energyCapacity * 0.9});
+    if (tower && !fullTower.length) {
         this.memory.storageDestination = tower.id;
         return true;
     }
