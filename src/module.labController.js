@@ -6,18 +6,17 @@ module.exports.labManager = function () {
     for (let key in shuffle(Memory.ownedRooms)) {
         if (Memory.ownedRooms[key].controller.level < 6) continue;
         let room = Memory.ownedRooms[key];
-        if (!room.memory.reactionRoom) room.memory.reactionRoom = true;
-        let terminal = room.terminal;
+        room.memory.reactionRoom = true;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
-        if (lab && terminal && room.memory.reactionRoom && Game.time % 50 === 0) manageBoostProduction(room);
-        if (lab && terminal && room.memory.reactionRoom && Game.time % 5 === 0) manageActiveLabs(room);
-        if (lab && terminal && Game.time % 100 === 0) cleanBoostLabs(room);
+        if (lab && room.terminal && room.memory.reactionRoom && Game.time % 50 === 0) manageBoostProduction(room);
+        if (lab && room.terminal && room.memory.reactionRoom && Game.time % 2 === 0) manageActiveLabs(room);
+        if (lab && room.terminal && Game.time % 100 === 0) cleanBoostLabs(room);
     }
 };
 
 function manageBoostProduction(room) {
-    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.creating && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.creating}).length >= 3);
-    if (!availableLabs.length) return;
+    let availableLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.memory.active && s.pos.findInRange(room.structures, 2, {filter: (l) => l.structureType === STRUCTURE_LAB && !l.memory.active}).length >= 3);
+    if (!availableLabs.length || availableLabs.length < 3) return;
     availableLabs = availableLabs[0];
     let storage = room.storage;
     let terminal = room.terminal;
@@ -120,7 +119,7 @@ function manageBoostProduction(room) {
 }
 
 function manageActiveLabs(room) {
-    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating);
+    let activeLabs = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && !s.cooldown && s.memory.active && s.memory.creating && !s.memory.itemNeeded);
     if (activeLabs.length) {
         active:
             for (let key in activeLabs) {
@@ -134,9 +133,9 @@ function manageActiveLabs(room) {
                 }
                 if (outputLab.memory.creating) {
                     for (let lab of hub) {
-                        lab.say(lab.memory.creating);
                         if (lab.memory.itemNeeded) lab.lineTo(outputLab);
                     }
+                    outputLab.say(outputLab.memory.creating);
                 }
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let creatorOne = Game.getObjectById(creators[0]);

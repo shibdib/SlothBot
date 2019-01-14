@@ -6,29 +6,31 @@ let reactionNeeds = REACTION_NEEDS;
 let tradeAmount = TRADE_AMOUNT;
 let energyAmount = ENERGY_AMOUNT;
 let reactionAmount = REACTION_AMOUNT;
+let runOnce, globalOrders;
 
 module.exports.terminalControl = function (room) {
-    let globalOrders = Game.market.getAllOrders();
     let myOrders = Game.market.orders;
-    let terminal = room.terminal;
-    if (terminal && terminal.isActive()) {
-        if (terminal.cooldown) return false;
-        //Cleanup broken or old order
+    //Things that don't need to be run for every terminal
+    if (runOnce !== Game.time) {
+        //Get global orders
+        globalOrders = Game.market.getAllOrders();
+        //Cleanup broken or old orders
         orderCleanup(myOrders);
-        //update prices every 30 ticks
-        if (Game.time % 30 === 0) pricingUpdateSell(terminal, globalOrders, myOrders);
-        //Disperse Minerals and Boosts
-        if (balanceBoosts(terminal)) return;
-        //fill buy
-        if (fillBuyOrders(terminal, globalOrders)) return;
-        //Extend/Place buy orders if we have enough buffer cash
-        if (placeReactionOrders(terminal, globalOrders, myOrders)) return;
-        //Sell off excess
-        if (extendSellOrders(terminal, globalOrders, myOrders)) return;
-        if (placeSellOrders(terminal, globalOrders, myOrders)) return;
-        //Use extra creds to buy needed items for boosts
-        if (onDemandReactionOrders(terminal, globalOrders)) return;
+        //Update prices
+        pricingUpdateSell(globalOrders, myOrders);
+        runOnce = Game.time;
     }
+    //Disperse Minerals and Boosts
+    if (balanceBoosts(room.terminal)) return;
+    //Dump Excess
+    if (_.filter(room.terminal.store, (r) => r !== RESOURCE_ENERGY && room.terminal.store[r] > DUMP_AMOUNT).length && fillBuyOrders(room.terminal, globalOrders)) return;
+    //Extend/Place buy orders if we have enough buffer cash
+    if (placeReactionOrders(room.terminal, globalOrders, myOrders)) return;
+    //Handle Sell Orders
+    if (extendSellOrders(room.terminal, globalOrders, myOrders)) return;
+    if (placeSellOrders(room.terminal, globalOrders, myOrders)) return;
+    //Use extra creds to buy needed items for boosts
+    if (onDemandReactionOrders(room.terminal, globalOrders)) return;
 };
 
 function fillBuyOrders(terminal, globalOrders) {
@@ -38,7 +40,7 @@ function fillBuyOrders(terminal, globalOrders) {
             let onHand = terminal.store[resourceType];
             let sellOffAmount = DUMP_AMOUNT;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = DUMP_AMOUNT * 3;
-            if (onHand >= DUMP_AMOUNT) {
+            if (onHand >= sellOffAmount) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.2;
                 if (!sellableAmount || sellableAmount < 0) continue;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
@@ -109,9 +111,9 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                     }
                 }
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
-                    order.type === ORDER_SELL && order.remainingAmount >= 500 && order.roomName !== terminal.pos.roomName), 'price');
+                    order.type === ORDER_SELL && order.remainingAmount >= 500 && order.roomName !== terminal.pos.roomName && (!Memory.roomCache[order.roomName] || !Memory.roomCache[order.roomName].user !== MY_USERNAME)), 'price');
                 let sellableAmount = terminal.store[resourceType] - SELL_OFF_AMOUNT;
-                let salePrice;
+                let salePrice = BASE_RESOURCES_SALE_MAX;
                 if (_.includes(END_GAME_BOOSTS, resourceType)) salePrice = END_GAME_SALE_MAX;
                 if (_.includes(TIER_2_BOOSTS, resourceType)) salePrice = TIER_2_SALE_MAX;
                 if (_.includes(TIER_1_BOOSTS, resourceType)) salePrice = TIER_1_SALE_MAX;
@@ -194,27 +196,22 @@ function onDemandReactionOrders(terminal, globalOrders) {
     }
 }
 
-let lastPriceUpdate = Game.time;
-function pricingUpdateSell(terminal, globalOrders, myOrders) {
-    if (lastPriceUpdate === Game.time) return false;
-    lastPriceUpdate = Game.time;
-    for (const resourceType in terminal.store) {
-        for (let key in myOrders) {
-            if (myOrders[key].resourceType === resourceType && myOrders[key].type === ORDER_SELL) {
-                let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
-                    order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.id !== myOrders[key].id), "price");
-                let salePrice;
-                if (_.includes(END_GAME_BOOSTS, resourceType)) salePrice = END_GAME_SALE_MAX;
-                if (_.includes(TIER_2_BOOSTS, resourceType)) salePrice = TIER_2_SALE_MAX;
-                if (_.includes(TIER_1_BOOSTS, resourceType)) salePrice = TIER_1_SALE_MAX;
-                if (_.includes(BASE_COMPOUNDS, resourceType)) salePrice = BASE_COMPOUNDS_SALE_MAX;
-                if (resourceType === RESOURCE_GHODIUM) salePrice = GHODIUM_SALE_MAX;
-                if (_.round((sellOrder.price - 0.001), 3) < salePrice && _.round((sellOrder.price - 0.001), 3) >= salePrice * 0.2) salePrice = _.round((sellOrder.price - 0.001), 3);
-                if (salePrice !== myOrders[key].price) {
-                    if (Game.market.changeOrderPrice(myOrders[key].id, salePrice) === OK) {
-                        log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + salePrice + "/" + myOrders[key].price + " Resource - " + resourceType);
-                        return true;
-                    }
+function pricingUpdateSell(globalOrders, myOrders) {
+    for (let key in myOrders) {
+        if (myOrders[key].type === ORDER_SELL) {
+            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
+                order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.id !== myOrders[key].id && (!Memory.roomCache[order.roomName] || !Memory.roomCache[order.roomName].user !== MY_USERNAME)), "price");
+            let salePrice = BASE_RESOURCES_SALE_MAX;
+            if (_.includes(END_GAME_BOOSTS, myOrders[key].resourceType)) salePrice = END_GAME_SALE_MAX;
+            if (_.includes(TIER_2_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_2_SALE_MAX;
+            if (_.includes(TIER_1_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_1_SALE_MAX;
+            if (_.includes(BASE_COMPOUNDS, myOrders[key].resourceType)) salePrice = BASE_COMPOUNDS_SALE_MAX;
+            if (myOrders[key].resourceType === RESOURCE_GHODIUM) salePrice = GHODIUM_SALE_MAX;
+            if (_.round((sellOrder.price - 0.001), 3) < salePrice && _.round((sellOrder.price - 0.001), 3) >= salePrice * 0.2) salePrice = _.round((sellOrder.price - 0.001), 3);
+            if (salePrice !== myOrders[key].price) {
+                if (Game.market.changeOrderPrice(myOrders[key].id, salePrice) === OK) {
+                    log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + salePrice + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType);
+                    return true;
                 }
             }
         }

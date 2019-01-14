@@ -419,7 +419,7 @@ module.exports.workerCreepQueue = function (room) {
         }
     }
     //Explorer
-    if (!_.includes(queue, 'explorer') && !room.memory.responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 4500 <= Game.time)) {
+    if (level < 8 && !_.includes(queue, 'explorer') && !room.memory.responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 4500 <= Game.time)) {
         let amount = 1;
         let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
         if (explorers.length < amount) {
@@ -508,7 +508,6 @@ module.exports.remoteCreepQueue = function (room) {
     room.memory.remoteRange = undefined;
     let level = getLevel(room);
     let queue = roomQueue[room.name];
-    let queueTracker = lastQueue[room.name] || {};
     if (!remoteHives[room.name] || Math.random() > 0.95) {
         room.memory.remoteRooms = undefined;
         let adjacent = Game.map.describeExits(room.name);
@@ -560,9 +559,7 @@ module.exports.remoteCreepQueue = function (room) {
         let remotes = JSON.parse(remoteHives[room.name]);
         for (let keys in remotes) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
-            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].user && Memory.roomCache[remotes[keys]].user !== USERNAME)) continue;
-            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].owner) continue;
-            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk) continue;
+            if (Memory.roomCache[remotes[keys]] && ((Memory.roomCache[remotes[keys]].user && Memory.roomCache[remotes[keys]].user !== USERNAME) || Memory.roomCache[remotes[keys]].sk)) continue;
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].memory.responseNeeded) || (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].threatLevel || Memory.roomCache[remotes[keys]].hostiles))) roomThreat = true;

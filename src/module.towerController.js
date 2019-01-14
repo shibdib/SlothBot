@@ -6,15 +6,21 @@ module.exports.towerControl = function (room) {
     let creeps = room.friendlyCreeps;
     let hostileCreeps = room.hostileCreeps;
     let structures = room.structures;
-    let towers = _.filter(structures, (s) => s.structureType === STRUCTURE_TOWER);
-    let armedHostile = _.filter(hostileCreeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1));
-    let healers = _.filter(hostileCreeps, (s) => (s.getActiveBodyparts(HEAL) >= 3) && !_.includes(FRIENDLIES, s.owner.username));
-    let unArmedHostile = _.filter(hostileCreeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK)));
+    let towers = _.shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER));
+    // Target wounded first otherwise find armed
+    let armedHostile = _.shuffle(_.filter(hostileCreeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1) && s.hits < s.hitsMax * 0.5));
+    if (!armedHostile.length) armedHostile = _.shuffle(_.filter(hostileCreeps, (s) => (s.getActiveBodyparts(ATTACK) >= 1 || s.getActiveBodyparts(RANGED_ATTACK) >= 1 || s.getActiveBodyparts(WORK) >= 1)));
+    let healers = _.shuffle(_.filter(hostileCreeps, (s) => (s.getActiveBodyparts(HEAL) >= 3)));
+    let unArmedHostile = _.shuffle(_.filter(hostileCreeps, (s) => (!s.getActiveBodyparts(ATTACK) && !s.getActiveBodyparts(RANGED_ATTACK) && !s.getActiveBodyparts(HEAL) && !s.getActiveBodyparts(WORK))));
     towers:
         for (let tower of towers) {
-            if (tower.room.memory.responseNeeded === true) {
+            if (hostileCreeps.length) {
                 let healPower = 0;
-                if (armedHostile.length || unArmedHostile.length) {
+                let headShot = _.filter(hostileCreeps, (c) => c.hits <= 150 * towers.length);
+                if (headShot.length > 0) {
+                    tower.attack(headShot[0]);
+                    continue;
+                } else if (armedHostile.length || unArmedHostile.length) {
                     for (let i = 0; i < armedHostile.length; i++) {
                         let inRangeHealers = _.filter(healers, (s) => s.pos.getRangeTo(armedHostile[i]) === 1);
                         let inRangeResponders = _.filter(creeps, (c) => c.getActiveBodyparts(ATTACK) && c.pos.getRangeTo(armedHostile[i]) === 1);
@@ -44,16 +50,11 @@ module.exports.towerControl = function (room) {
                         tower.attack(unArmedHostile[0]);
                     }
                 }
-                let headShot = _.filter(hostileCreeps, (c) => c.hits <= 150 * towers.length && _.includes(FRIENDLIES, c.owner.username) === false);
-                if (headShot.length > 0) {
-                    tower.attack(headShot[0]);
-                    continue;
-                }
                 if (healers.length && tower.pos.getRangeTo(healers[0]) <= 6) {
                     tower.attack(healers[0]);
                     continue;
                 }
-                let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax);
+                let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(c.pos.findClosestByRange(armedHostile)) > 2);
                 if (woundedCreep.length > 0) {
                     tower.heal(woundedCreep[0]);
                 }

@@ -338,7 +338,7 @@ Creep.prototype.tryToBoost = function (boosts) {
             if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && lab.mineralAmount >= this.memory.boostNeeded) {
                 switch (lab.boostCreep(this)) {
                     case OK:
-                        lab.memory = undefined;
+                        if (lab.memory.creating) lab.memory.neededBoost = undefined; else lab.memory = undefined;
                         this.memory.requestedBoosts.shift();
                         if (this.memory.requestedBoosts.length) {
                             this.memory.boostNeeded = this.memory.requestedBoosts[0];

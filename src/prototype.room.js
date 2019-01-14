@@ -147,7 +147,7 @@ Object.defineProperty(Room.prototype, 'creeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = _.filter(this.creeps, (c) => (!c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username))));
+            this._Hostilecreeps = _.filter(this.creeps, (c) => (!c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username || c.owner.username === 'Invader'))));
         }
         return this._Hostilecreeps;
     },
@@ -249,13 +249,19 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     let room = Game.rooms[this.name];
     let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level;
     if (room) {
+        // Get special rooms via name
+        let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
+        let isHighway = (parsed[1] % 10 === 0) ||
+            (parsed[2] % 10 === 0);
+        if (!isHighway) isHighway = undefined;
         let cache = Memory.roomCache || {};
         let sources = room.sources;
-        let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER);
+        let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER && e.structureType !== STRUCTURE_KEEPER_LAIR);
         let barriers, spawns;
         barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 7;
         spawns = _.filter(room.structures, (e) => e.structureType === STRUCTURE_SPAWN);
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
+        if (!hostiles.length) hostiles = undefined;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         if (room.controller) {
@@ -264,7 +270,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             level = room.controller.level || undefined;
             // Handle claim targets
             let safemodeCooldown = this.controller.safeModeCooldown;
-            if (sources.length > 1 && !user && !barriers && !safemodeCooldown && this.findClosestOwnedRoom(true) <= 10) {
+            let range = this.findClosestOwnedRoom(true);
+            if (sources.length > 1 && (!user || user === MY_USERNAME) && !barriers && !safemodeCooldown && range <= 10 && range > 2) {
                 // All rooms start at 5000
                 let baseScore = 5000;
                 // Get source distance from controller
@@ -294,14 +301,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 claimWorthy = undefined;
             }
             // Handle abandoned rooms
-            if (!user && structures.length > 2) {
+            if (!isHighway && !sk && !user && structures.length > 2) {
                 needsCleaning = true;
             }
         }
-        // Get special rooms via name
-        let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
-        let isHighway = (parsed[1] % 10 === 0) ||
-            (parsed[2] % 10 === 0);
         // Store portal info
         portal = _.filter(room.structures, (e) => e.structureType === STRUCTURE_PORTAL);
         if (portal.length) {
@@ -332,7 +335,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             sources: sources.length,
             controller: controller,
             level: level,
-            hostiles: hostiles.length,
+            hostiles: hostiles,
             sk: sk,
             claimValue: claimValue,
             claimWorthy: claimWorthy,

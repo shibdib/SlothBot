@@ -174,8 +174,9 @@ status = function (roomName = undefined, creep = false) {
             let activeRoom = Memory.ownedRooms[key];
             if (!activeRoom.controller) continue;
             let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
+            let averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
             let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-            log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(activeRoom.memory.energyIncomeArray)), 0) + ' | Energy Positive - ' + _.capitalize(activeRoom.memory.energyPositive) + ' | Creep Count: ' + _.size(roomCreeps));
+            log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(activeRoom.memory.energyIncomeArray)), 0) + ' | Energy Positive - ' + _.capitalize(activeRoom.memory.energyPositive) + ' | Creep Count: ' + _.size(roomCreeps));
         }
         if (Memory.targetRooms && _.size(Memory.targetRooms)) {
             log.e('--OPERATION INFO--');
@@ -212,12 +213,14 @@ status = function (roomName = undefined, creep = false) {
         if (!activeRoom) return log.e('No Data Found');
         log.e('---------------------------------------------------------------------------');
         log.e('--ROOM INFO--');
-        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
+        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
+        let averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
         let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));
+        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));
         log.e('--TASK CPU INFO--');
         for (let key in taskCpuArray[roomName]) {
-            log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(taskCpuArray[roomName][key]), 2));
+            let averageCpu = _.round(average(taskCpuArray[activeRoom.name]), 2) || 'No Data';
+            log.e(_.capitalize(key) + ' Avg. CPU - ' + averageCpu);
         }
         log.e('---------------------------------------------------------------------------');
     } else {
@@ -225,12 +228,14 @@ status = function (roomName = undefined, creep = false) {
         if (!activeRoom) return log.e('No Data Found');
         log.e('---------------------------------------------------------------------------');
         log.e('--ROOM INFO--');
-        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0);
+        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
+        let averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
         let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + (_.round(average(roomCpuArray[activeRoom.name]), 2)) + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));
+        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));
         log.e('--CREEP CPU INFO--');
         for (let key in roomCreepCpuObject[roomName]) {
-            log.e(_.capitalize(key) + ' in ' + global.roomLink(Game.creeps[key].room.name) + ' | Avg. CPU - ' + _.round(average(roomCreepCpuObject[roomName][key]), 2));
+            let averageCpu = _.round(average(roomCreepCpuObject[activeRoom.name]), 2) || 'No Data';
+            log.e(_.capitalize(key) + ' in ' + global.roomLink(Game.creeps[key].room.name) + ' | Avg. CPU - ' + averageCpu);
         }
         log.e('---------------------------------------------------------------------------');
     }

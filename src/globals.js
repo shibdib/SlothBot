@@ -13,6 +13,7 @@ let globals = function () {
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = true;
+    global.POKE_NEUTRALS = true;
     global.ATTACK_COOLDOWN = 2500; //Time between attacks on a room
 
     global.LAYOUT_VERSION = 1.4;
@@ -49,6 +50,7 @@ let globals = function () {
     global.TIER_1_SALE_MAX = 0.75;
     global.BASE_COMPOUNDS_SALE_MAX = 0.22;
     global.GHODIUM_SALE_MAX = 1.1;
+    global.BASE_RESOURCES_SALE_MAX = 1.25;
 
 
     // Reaction
@@ -421,7 +423,11 @@ let globals = function () {
     };
 
     //Get average of array
-    global.average = arr => arr.reduce((p, c) => p + c, 0) / arr.length;
+    try {
+        global.average = arr => arr.reduce((p, c) => p + c, 0) / arr.length;
+    } catch (e) {
+        global.average = undefined;
+    }
 
 // League Of Automated Nations allied users list by Kamots
 // Provides global.LOANlist as array of allied usernames. Array is empty if not in an alliance, but still defined.
