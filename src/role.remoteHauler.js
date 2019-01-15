@@ -6,14 +6,6 @@ module.exports.role = function (creep) {
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return;
-    // Set harvester pairing
-    if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
-        let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKworker') && !c.memory.hauler)[0];
-        if (!remoteHarvester) return creep.idleFor(5);
-        creep.memory.harvester = remoteHarvester.id;
-        remoteHarvester.memory.hauler = creep.id;
-        return;
-    }
     // Check if empty
     if (_.sum(creep.carry) === 0) {
         creep.memory.storageDestination = undefined;
@@ -43,6 +35,14 @@ module.exports.role = function (creep) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
     } else {
+        // Set harvester pairing
+        if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
+            let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKworker') && !c.memory.hauler)[0];
+            if (!remoteHarvester) return creep.idleFor(5);
+            creep.memory.harvester = remoteHarvester.id;
+            remoteHarvester.memory.hauler = creep.id;
+            return;
+        }
         // Check if ready to haul
         if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.hauling = true;
         // Set Harvester and move to them if not nearby

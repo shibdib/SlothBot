@@ -11,6 +11,7 @@ const skMatrixCache = {};
 let routeCache = {};
 let pathCache = {};
 
+//TODO:Creep Specific Path Cache
 function shibMove(creep, heading, options = {}) {
     let pathingStart = Game.cpu.getUsed();
     _.defaults(options, {

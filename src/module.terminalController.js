@@ -6,7 +6,7 @@ let reactionNeeds = REACTION_NEEDS;
 let tradeAmount = TRADE_AMOUNT;
 let energyAmount = ENERGY_AMOUNT;
 let reactionAmount = REACTION_AMOUNT;
-let runOnce, globalOrders;
+let runOnce, globalOrders, lastPriceAdjust;
 
 module.exports.terminalControl = function (room) {
     let myOrders = Game.market.orders;
@@ -17,18 +17,25 @@ module.exports.terminalControl = function (room) {
         //Cleanup broken or old orders
         orderCleanup(myOrders);
         //Update prices
-        pricingUpdateSell(globalOrders, myOrders);
+        if (lastPriceAdjust + 100 < Game.time) {
+            pricingUpdateSell(globalOrders, myOrders);
+            lastPriceAdjust = Game.time;
+        }
         runOnce = Game.time;
     }
+    //Use extra creds to buy energy
+    placeEnergyOrders(room.terminal, globalOrders);
+    //Handle Sell Orders
+    extendSellOrders(room.terminal, globalOrders, myOrders);
+    placeSellOrders(room.terminal, globalOrders, myOrders);
+    //Send energy to rooms under siege
+    if (emergencyEnergy(room.terminal)) return;
     //Disperse Minerals and Boosts
     if (balanceBoosts(room.terminal)) return;
     //Dump Excess
     if (_.filter(room.terminal.store, (r) => r !== RESOURCE_ENERGY && room.terminal.store[r] > DUMP_AMOUNT).length && fillBuyOrders(room.terminal, globalOrders)) return;
     //Extend/Place buy orders if we have enough buffer cash
     if (placeReactionOrders(room.terminal, globalOrders, myOrders)) return;
-    //Handle Sell Orders
-    if (extendSellOrders(room.terminal, globalOrders, myOrders)) return;
-    if (placeSellOrders(room.terminal, globalOrders, myOrders)) return;
     //Use extra creds to buy needed items for boosts
     if (onDemandReactionOrders(room.terminal, globalOrders)) return;
 };
@@ -102,6 +109,7 @@ function extendSellOrders(terminal, myOrders) {
 }
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
+    let myOrderKeys = _.pluck(myOrders, 'id');
     resource:
         for (let resourceType in terminal.store) {
             if (terminal.store[resourceType] >= SELL_OFF_AMOUNT && resourceType !== RESOURCE_ENERGY) {
@@ -111,7 +119,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                     }
                 }
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
-                    order.type === ORDER_SELL && order.remainingAmount >= 500 && order.roomName !== terminal.pos.roomName && (!Memory.roomCache[order.roomName] || !Memory.roomCache[order.roomName].user !== MY_USERNAME)), 'price');
+                    order.type === ORDER_SELL && order.remainingAmount >= 500 && order.roomName !== terminal.pos.roomName && !_.includes(myOrderKeys, order.id)), 'price');
                 let sellableAmount = terminal.store[resourceType] - SELL_OFF_AMOUNT;
                 let salePrice = BASE_RESOURCES_SALE_MAX;
                 if (_.includes(END_GAME_BOOSTS, resourceType)) salePrice = END_GAME_SALE_MAX;
@@ -197,10 +205,11 @@ function onDemandReactionOrders(terminal, globalOrders) {
 }
 
 function pricingUpdateSell(globalOrders, myOrders) {
+    let myOrderKeys = _.pluck(myOrders, 'id');
     for (let key in myOrders) {
         if (myOrders[key].type === ORDER_SELL) {
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
-                order.type === ORDER_SELL && order.remainingAmount >= 10000 && order.id !== myOrders[key].id && (!Memory.roomCache[order.roomName] || !Memory.roomCache[order.roomName].user !== MY_USERNAME)), "price");
+                order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.id !== myOrders[key].id && !_.includes(myOrderKeys, order.id)), "price");
             let salePrice = BASE_RESOURCES_SALE_MAX;
             if (_.includes(END_GAME_BOOSTS, myOrders[key].resourceType)) salePrice = END_GAME_SALE_MAX;
             if (_.includes(TIER_2_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_2_SALE_MAX;
@@ -210,8 +219,7 @@ function pricingUpdateSell(globalOrders, myOrders) {
             if (_.round((sellOrder.price - 0.001), 3) < salePrice && _.round((sellOrder.price - 0.001), 3) >= salePrice * 0.2) salePrice = _.round((sellOrder.price - 0.001), 3);
             if (salePrice !== myOrders[key].price) {
                 if (Game.market.changeOrderPrice(myOrders[key].id, salePrice) === OK) {
-                    log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + salePrice + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType);
-                    return true;
+                    log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old/comp " + salePrice + "/" + myOrders[key].price + '/' + sellOrder.price + " Resource - " + myOrders[key].resourceType);
                 }
             }
         }
@@ -272,7 +280,50 @@ function orderCleanup(myOrders) {
     }
 }
 
+function placeEnergyOrders(terminal, globalOrders, myOrders) {
+    // Check if an order exists
+    for (let key in myOrders) {
+        if (myOrders[key].resourceType = RESOURCE_ENERGY && myOrders[key].roomName === terminal.pos.roomName) return false;
+    }
+    let energyTarget = ENERGY_AMOUNT;
+    // If we have extra credits get more energy
+    if (Game.market.credits >= 100000) energyTarget *= 2;
+    // Check if we don't need energy
+    if (terminal.room.energy >= energyTarget * 0.9 || Game.market.credits < 10000) return false;
+    let myOrderKeys = _.pluck(myOrders, 'id');
+    let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+        order.type === ORDER_BUY && order.remainingAmount >= 10000 && !_.includes(myOrderKeys, order.id)), 'price');
+    let buyableAmount = (energyTarget - terminal.room.energy) + (energyTarget * 0.2);
+    let buyPrice = ENERGY_BUY_MAX;
+    if (_.round((buyOrder.price + 0.001), 3) < buyPrice) buyPrice = _.round((buyOrder.price + 0.001), 3);
+    if (Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, buyPrice, buyableAmount, terminal.pos.roomName) === OK) {
+        log.w(" MARKET: " + terminal.pos.roomName + " New Energy Buy Order at/per " + buyPrice + " for " + buyableAmount + " Energy.");
+        return true;
+    }
+}
+
+function emergencyEnergy(terminal) {
+    // Balance energy
+    if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.5) {
+        // Find needy terminals
+        let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.memory.requestingSupport && r.terminal && r.energy < ENERGY_AMOUNT * 2))[0];
+        if (responseNeeded) {
+            let needyTerminal = responseNeeded.terminal;
+            // Determine how much you can move
+            let availableAmount = terminal.store[RESOURCE_ENERGY] - (ENERGY_AMOUNT * 0.5);
+            if (availableAmount <= 0) return false;
+            switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
+                case OK:
+                    log.a(' MARKET: Siege Supplies ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[RESOURCE_ENERGY] + ' / ' + (storedAmount + neededAmount));
+                    return true;
+            }
+        }
+    }
+}
+
 function balanceBoosts(terminal) {
+    // Dont balance if being sieged or broke
+    if (terminal.room.memory.requestingSupport) return false;
     // Loop thru boosts
     let storedResources = Object.keys(terminal.store);
     for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
@@ -285,8 +336,8 @@ function balanceBoosts(terminal) {
                 if (_.includes(END_GAME_BOOSTS, boost)) dumpAmount = DUMP_AMOUNT * 4;
                 if (boost !== RESOURCE_ENERGY && terminal.store[boost] >= dumpAmount) {
                     let alliedRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(FRIENDLIES, r.user) && r.level >= 6));
-                    let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6));
-                    if (alliedRoom) {
+                    let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
+                    if (alliedRoom && (_.includes(END_GAME_BOOSTS, boost) || _.includes(TIER_2_BOOSTS, boost))) {
                         alliedRoom = alliedRoom.name;
                         let allyName = Memory.roomCache[alliedRoom].user;
                         switch (terminal.send(boost, 2500, alliedRoom)) {
@@ -324,19 +375,15 @@ function balanceBoosts(terminal) {
     // Balance energy
     if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 1.5) {
         // Find needy terminals
-        let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && s.store[RESOURCE_ENERGY] < terminal.store[RESOURCE_ENERGY] * 0.7));
-        if (needyTerminal) {
+        let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < ENERGY_AMOUNT))[0];
+        if (needyRoom) {
+            let needyTerminal = needyRoom.terminal;
             // Determine how much you can move
-            let availableAmount = terminal.store[RESOURCE_ENERGY] - (ENERGY_AMOUNT * 1.25);
+            let availableAmount = terminal.store[RESOURCE_ENERGY] - (ENERGY_AMOUNT * 1.15);
             if (availableAmount <= 0) return false;
-            // Determine how much is needed
-            let storedAmount = 0;
-            if (needyTerminal.store[RESOURCE_ENERGY]) storedAmount = needyTerminal.store[RESOURCE_ENERGY];
-            let neededAmount = (availableAmount * 0.95) - storedAmount;
-            if (neededAmount <= 0) return false;
-            switch (terminal.send(RESOURCE_ENERGY, neededAmount, needyTerminal.room.name)) {
+            switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
                 case OK:
-                    log.a(' MARKET: Balancing ' + neededAmount + ' ' + RESOURCE_ENERGY + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[RESOURCE_ENERGY] + ' / ' + (storedAmount + neededAmount));
+                    log.a(' MARKET: Balancing ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[RESOURCE_ENERGY] + ' / ' + (storedAmount + neededAmount));
                     return true;
             }
         }

@@ -39,18 +39,20 @@ let globals = function () {
 
     global.TRADE_AMOUNT = 10000;
     global.ENERGY_AMOUNT = 25000;
+    global.SIEGE_ENERGY_AMOUNT = 100000;
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 12500;
     global.BOOST_AMOUNT = 10000;
     global.DUMP_AMOUNT = TRADE_AMOUNT * 1.75;
 
-    // Sale max prices
+    // Max prices
+    global.ENERGY_BUY_MAX = 0.02;
     global.END_GAME_SALE_MAX = 2.25;
     global.TIER_2_SALE_MAX = 1.25;
     global.TIER_1_SALE_MAX = 0.75;
-    global.BASE_COMPOUNDS_SALE_MAX = 0.22;
+    global.BASE_COMPOUNDS_SALE_MAX = 0.35;
     global.GHODIUM_SALE_MAX = 1.1;
-    global.BASE_RESOURCES_SALE_MAX = 1.25;
+    global.BASE_RESOURCES_SALE_MAX = 0.35;
 
 
     // Reaction

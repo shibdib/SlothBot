@@ -4,15 +4,7 @@ module.exports.setRoomState = function (room) {
     // Set Energy Needs
     let cpu = Game.cpu.getUsed();
     log.d('Energy Status');
-    let terminalEnergy = 0;
-    if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
-    let storageEnergy = 0;
-    if (room.storage) storageEnergy = room.storage.store[RESOURCE_ENERGY] || 0;
-    let containerEnergy = 0;
-    _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] && s.id !== room.memory.controllerContainer).forEach((c) => c.store[RESOURCE_ENERGY] + containerEnergy);
-    let linkEnergy = 0;
-    _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.energy && s.id !== room.memory.controllerLink).forEach((c) => c.energy + linkEnergy);
-    let energyInRoom = terminalEnergy + storageEnergy + containerEnergy + linkEnergy;
+    let energyInRoom = room.energy;
     room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT;
     room.memory.extremeEnergySurplus = energyInRoom >= 100000;
     room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT * 0.8;

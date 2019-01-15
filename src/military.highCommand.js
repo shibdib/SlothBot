@@ -86,8 +86,8 @@ function operationRequests() {
     }
     // Clean
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
-    if (!cleanCount) {
-        let enemyClean = _.filter(Memory.roomCache, (r) => !r.user && r.cached > Game.time - 50000 && !Memory.targetRooms[r.name] && r.needsCleaning);
+    if (cleanCount < 2) {
+        let enemyClean = _.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.needsCleaning);
         if (enemyClean.length) {
             let cleanTarget = _.sample(enemyClean);
             let cache = Memory.targetRooms || {};

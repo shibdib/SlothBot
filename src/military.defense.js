@@ -64,7 +64,7 @@ module.exports.controller = function (room) {
     if (room.memory.responseNeeded) {
         let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy >= 10);
         let responders = _.filter(creeps, (c) => c.memory && c.memory.role === 'responder' && c.memory.overlord === room.name);
-        if (((!towers.length && !responders.length) || room.memory.threatLevel >= 4) && !room.controller.safeMode) {
+        if (((!towers.length && !responders.length) || room.memory.threatLevel >= 4 || room.energy < 1000) && !room.controller.safeMode) {
             room.memory.requestingSupport = true;
         }
     }

@@ -217,10 +217,15 @@ Object.defineProperty(Room.prototype, 'energy', {
 });
 
 function getRoomEnergy(room) {
-    let energy = room.energyAvailable;
-    if (room.storage) energy = room.storage.store[RESOURCE_ENERGY] + energy;
-    if (room.terminal) energy = room.terminal.store[RESOURCE_ENERGY] + energy;
-    return energy;
+    let terminalEnergy = 0;
+    if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
+    let storageEnergy = 0;
+    if (room.storage) storageEnergy = room.storage.store[RESOURCE_ENERGY] || 0;
+    let containerEnergy = 0;
+    _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] && s.id !== room.memory.controllerContainer).forEach((c) => c.store[RESOURCE_ENERGY] + containerEnergy);
+    let linkEnergy = 0;
+    _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.energy && s.id !== room.memory.controllerLink).forEach((c) => c.energy + linkEnergy);
+    return terminalEnergy + storageEnergy + containerEnergy + linkEnergy;
 }
 
 /**
@@ -257,9 +262,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER && e.structureType !== STRUCTURE_KEEPER_LAIR);
-        let barriers, spawns;
+        let barriers;
         barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 7;
-        spawns = _.filter(room.structures, (e) => e.structureType === STRUCTURE_SPAWN);
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
         if (!hostiles.length) hostiles = undefined;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
@@ -326,7 +330,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (!user && _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader')[0].owner.username;
         let potentialTarget;
         if (!user && nonCombats.length >= 2) potentialTarget = true;
-        if (!user && spawns) needsCleaning = true;
         let key = room.name;
         if (Memory.roomCache && Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
