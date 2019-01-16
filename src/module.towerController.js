@@ -67,7 +67,7 @@ module.exports.towerControl = function (room) {
                     tower.repair(barriers[0]);
                     continue;
                 }
-                let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25);
+                let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.5);
                 if (road.length > 0) {
                     tower.repair(road[0]);
                     continue;
@@ -76,7 +76,7 @@ module.exports.towerControl = function (room) {
                 tower.repair(lowestRampart);
             } else if (tower.energy > tower.energyCapacity * 0.4) {
                 let structures = tower.room.structures;
-                let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.5);
+                let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25);
                 if (road.length > 0) {
                     tower.repair(road[0]);
                     continue;
