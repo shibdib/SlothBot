@@ -43,7 +43,7 @@ let globals = function () {
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 12500;
     global.BOOST_AMOUNT = 10000;
-    global.DUMP_AMOUNT = TRADE_AMOUNT * 1.75;
+    global.DUMP_AMOUNT = TRADE_AMOUNT * 2.25;
 
     // Max prices
     global.ENERGY_BUY_MAX = 0.02;

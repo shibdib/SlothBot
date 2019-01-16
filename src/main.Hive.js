@@ -15,7 +15,6 @@ module.exports.hiveMind = function () {
     let cpu;
     // High Command
     cpu = Game.cpu.getUsed();
-    log.d('High Command Module');
     try {
         highCommand.highCommand();
     } catch (e) {
@@ -27,7 +26,6 @@ module.exports.hiveMind = function () {
 
     // Handle Labs
     cpu = Game.cpu.getUsed();
-    log.d('Lab Manager Module');
     if (Game.cpu.bucket > 5000) {
         try {
             labs.labManager();
@@ -41,7 +39,6 @@ module.exports.hiveMind = function () {
 
     // Handle Diplomacy
     cpu = Game.cpu.getUsed();
-    log.d('Diplomacy Module');
     try {
         diplomacy.diplomacyOverlord();
     } catch (e) {
@@ -52,7 +49,6 @@ module.exports.hiveMind = function () {
     shib.shibBench('diplomacyControl', cpu);
 
     // Military first
-    log.d('Military Creep Management');
     let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military));
     for (let key in militaryCreeps) {
         try {
@@ -65,11 +61,9 @@ module.exports.hiveMind = function () {
     }
 
     // Process Overlords
-    log.d('Overlords Processed');
     let processed = 0;
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
-        log.d('Overlord For ' + activeRoom.name);
         try {
             overlord.overlordMind(activeRoom);
         } catch (e) {
@@ -93,7 +87,6 @@ module.exports.hiveMind = function () {
             let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
             let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
             if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimAttempt.length && !claimScout.length && Game.gcl.level - 2 > overlordCount && overlordCount < maxRooms) {
-                log.d('Expansion Module');
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {
@@ -108,7 +101,6 @@ module.exports.hiveMind = function () {
     //Non room specific creep spawning
     if (Game.time % 3 === 0) {
         cpu = Game.cpu.getUsed();
-        log.d('Military Build Queue');
         try {
             spawning.militaryCreepQueue();
         } catch (e) {
@@ -120,7 +112,6 @@ module.exports.hiveMind = function () {
     }
     //Process creep build queues
     cpu = Game.cpu.getUsed();
-    log.d('Process Build Queues');
     try {
         spawning.processBuildQueue();
     } catch (e) {
@@ -132,7 +123,6 @@ module.exports.hiveMind = function () {
     //Room HUD (If CPU Allows)
     if (!TEN_CPU && Game.cpu.bucket > 9000) {
         cpu = Game.cpu.getUsed();
-        log.d('Room HUD');
         try {
             hud.hud();
         } catch (e) {

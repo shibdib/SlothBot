@@ -34,7 +34,7 @@ module.exports.processBuildQueue = function () {
             if (roomQueue[spawn.room.name] || militaryQueue) {
                 let queue;
                 let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-                if (!spawn.room.memory.responseNeeded && level >= 2 && _.inRange(level, maxLevel - 1, maxLevel + 1) && spawn.room.memory.state >= 1) {
+                if (!spawn.room.memory.responseNeeded && level >= 2 && _.inRange(level, maxLevel - 1, maxLevel + 1) && (spawn.room.memory.state >= 1 || !roomQueue[spawn.room.name] || !roomQueue[spawn.room.name].length)) {
                     queue = _.sortBy(Object.assign({}, militaryQueue, roomQueue[spawn.room.name]), 'importance');
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'importance')
@@ -76,6 +76,7 @@ module.exports.processBuildQueue = function () {
                         waitFor: undefined,
                         reservationTarget: undefined,
                         initialBuilder: undefined,
+                        localCache: undefined,
                         misc: undefined
                     });
                     if (!topPriority.role) continue;
@@ -98,11 +99,12 @@ module.exports.processBuildQueue = function () {
                             waitFor: topPriority.waitFor,
                             reservationTarget: topPriority.reservationTarget,
                             initialBuilder: topPriority.initialBuilder,
+                            localCache: topPriority.localCache,
                             misc: topPriority.misc
                         }
                     })) {
                         case OK:
-                            if (!topPriority.operation) log.i(spawn.room.name + ' Spawning a ' + role);
+                            if (!topPriority.operation) log.d(spawn.room.name + ' Spawning a ' + role);
                             if (topPriority.military && militaryQueue) delete militaryQueue[role];
                             if (topPriority.buildCount && roomQueue[spawn.room.name][role]) return roomQueue[spawn.room.name][role].buildCount = topPriority.buildCount - 1;
                             if (roomQueue[spawn.room.name]) delete roomQueue[spawn.room.name][role];
@@ -139,6 +141,7 @@ function queueCreep(room, importance, options = {}, military = false) {
         waitFor: undefined,
         reservationTarget: undefined,
         initialBuilder: undefined,
+        localCache: undefined,
         reboot: undefined,
         misc: undefined
     });
@@ -161,6 +164,7 @@ function queueCreep(room, importance, options = {}, military = false) {
             waitFor: options.waitFor,
             reservationTarget: options.reservationTarget,
             initialBuilder: options.initialBuilder,
+            localCache: options.localCache,
             reboot: options.reboot,
             misc: options.misc
         };
@@ -634,7 +638,7 @@ module.exports.remoteCreepQueue = function (room) {
         let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'SKworker'));
         let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
         if (remoteHauler.length < remoteHarvester.length) {
-            queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler'})
+            queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler', localCache: true})
         }
     }
 

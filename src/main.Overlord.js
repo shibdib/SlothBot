@@ -25,7 +25,6 @@ module.exports.overlordMind = function (room) {
 
     // Handle Defense
     cpu = Game.cpu.getUsed();
-    log.d('Defence Module');
     defense.controller(room);
     currentTask = roomTaskObject['defenseController'] || [];
     if (currentTask.length > 50) currentTask.shift();
@@ -36,7 +35,6 @@ module.exports.overlordMind = function (room) {
     //Build Room
     if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 250 === 0) && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
-        log.d('Room Building Module');
         // Request builders
         requestBuilders(room);
         // Fix broken
@@ -76,7 +74,6 @@ module.exports.overlordMind = function (room) {
     // Manage creep spawning
     if (Game.time % 10 === 0 && cpuBucket >= 3000) {
         cpu = Game.cpu.getUsed();
-        log.d('Creep Queueing');
         try {
             let creepSpawn = Game.cpu.getUsed();
             spawning.workerCreepQueue(room);
@@ -114,7 +111,6 @@ module.exports.overlordMind = function (room) {
     }
 
     // Manage creeps
-    log.d('Manage Room Creeps');
     cpu = Game.cpu.getUsed();
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
     // Worker minions
@@ -129,7 +125,6 @@ module.exports.overlordMind = function (room) {
 
     // Observer Control
     if (room.level === 8 && cpuBucket >= 8000) {
-        log.d('Observer Module');
         let observerCpu = Game.cpu.getUsed();
         try {
             observers.observerControl(room);
@@ -147,7 +142,6 @@ module.exports.overlordMind = function (room) {
 
     // Handle Links
     if (room.level >= 5) {
-        log.d('Links Module');
         cpu = Game.cpu.getUsed();
         try {
             links.linkControl(room);
@@ -165,7 +159,6 @@ module.exports.overlordMind = function (room) {
 
     // Handle Terminals
     if (Game.time % 11 === 0 && Math.random() > 0.65 && room.level >= 6 && cpuBucket >= 4000 && room.terminal && !room.terminal.cooldown) {
-        log.d('Terminal Module');
         cpu = Game.cpu.getUsed();
         try {
             terminals.terminalControl(room);
@@ -183,7 +176,6 @@ module.exports.overlordMind = function (room) {
 
     // Power Processing
     if (!TEN_CPU && room.level >= 8 && cpuBucket >= 8000) {
-        log.d('Power Module');
         cpu = Game.cpu.getUsed();
         try {
             power.powerControl(room);
@@ -201,7 +193,6 @@ module.exports.overlordMind = function (room) {
     taskCpuArray[room.name] = roomTaskObject;
 
     // Store Data
-    log.d('Data Store');
     storedLevel[room.name] = room.controller.level;
     let minerals = Memory.ownedMineral;
     if (!_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);

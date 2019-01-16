@@ -138,7 +138,6 @@ function manageResponseForces() {
 
 function unsavableCheck(room) {
     // Abandon Bad Rooms
-    log.d('Abandon Check');
     if (room.controller.safeMode) return;
     let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
     let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TOWER && s.my);

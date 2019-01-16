@@ -3,7 +3,6 @@ let shib = require("shibBench");
 module.exports.setRoomState = function (room) {
     // Set Energy Needs
     let cpu = Game.cpu.getUsed();
-    log.d('Energy Status');
     let energyInRoom = room.energy;
     room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT;
     room.memory.extremeEnergySurplus = energyInRoom >= 100000;

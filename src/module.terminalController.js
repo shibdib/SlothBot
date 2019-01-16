@@ -33,7 +33,7 @@ module.exports.terminalControl = function (room) {
     //Disperse Minerals and Boosts
     if (balanceBoosts(room.terminal)) return;
     //Dump Excess
-    if (_.filter(room.terminal.store, (r) => r !== RESOURCE_ENERGY && room.terminal.store[r] > DUMP_AMOUNT).length && fillBuyOrders(room.terminal, globalOrders)) return;
+    if (fillBuyOrders(room.terminal, globalOrders)) return;
     //Extend/Place buy orders if we have enough buffer cash
     if (placeReactionOrders(room.terminal, globalOrders, myOrders)) return;
     //Use extra creds to buy needed items for boosts
@@ -42,8 +42,8 @@ module.exports.terminalControl = function (room) {
 
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
-        for (const resourceType in terminal.store) {
-            if (resourceType === RESOURCE_ENERGY) continue;
+        for (let resourceType in terminal.store) {
+            if (resourceType === RESOURCE_ENERGY || terminal.store[resourceType] < DUMP_AMOUNT) continue;
             let onHand = terminal.store[resourceType];
             let sellOffAmount = DUMP_AMOUNT;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = DUMP_AMOUNT * 3;
@@ -56,25 +56,47 @@ function fillBuyOrders(terminal, globalOrders) {
                 if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
                     switch (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName)) {
                         case OK:
-                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+                            log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
                             return true;
                         case ERR_NOT_ENOUGH_RESOURCES:
                             Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
-                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
+                            log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
                             return true;
                     }
                     return true;
                 } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
                     switch (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName)) {
                         case OK:
-                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
+                            log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
                             return true;
                         case ERR_NOT_ENOUGH_RESOURCES:
                             Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
-                            log.w(" MARKET: Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
+                            log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
                             return true;
                     }
                     return true;
+                } else if (!buyOrder.id) {
+                    let alliedRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(FRIENDLIES, r.user) && r.level >= 6));
+                    let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6)) || _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
+                    if (alliedRoom && (_.includes(END_GAME_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType))) {
+                        alliedRoom = alliedRoom.name;
+                        let allyName = Memory.roomCache[alliedRoom].user;
+                        switch (terminal.send(resourceType, 2500, alliedRoom)) {
+                            case OK:
+                                log.a(' MARKET: Dumping to ally (' + allyName + ') ' + 2500 + ' ' + resourceType + ' To ' + alliedRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[resourceType]);
+                                return true;
+                        }
+                    } else if (randomRoom) {
+                        randomRoom = randomRoom.name;
+                        let randomName = Memory.roomCache[randomRoom].user;
+                        let amount = 10000;
+                        if (_.includes(FRIENDLIES, Memory.roomCache[randomRoom].user)) amount = 2500;
+                        switch (terminal.send(resourceType, amount, randomRoom)) {
+                            case OK:
+                                log.a(' MARKET: Dumping to random player (' + randomName + ') ' + amount + ' ' + resourceType + ' To ' + randomRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[resourceType]);
+                                return true;
+                        }
+                    }
                 }
             }
         }
@@ -330,45 +352,20 @@ function balanceBoosts(terminal) {
         if (terminal.store[boost] >= TRADE_AMOUNT) {
             // Find needy terminals
             let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && s.isActive() && s.store[boost] < TRADE_AMOUNT * 0.7));
-            // If no needy terminals check if it's overfull and try to dump to allies
-            if (!needyTerminal) {
-                let dumpAmount = DUMP_AMOUNT * 1.5;
-                if (_.includes(END_GAME_BOOSTS, boost)) dumpAmount = DUMP_AMOUNT * 4;
-                if (boost !== RESOURCE_ENERGY && terminal.store[boost] >= dumpAmount) {
-                    let alliedRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(FRIENDLIES, r.user) && r.level >= 6));
-                    let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
-                    if (alliedRoom && (_.includes(END_GAME_BOOSTS, boost) || _.includes(TIER_2_BOOSTS, boost))) {
-                        alliedRoom = alliedRoom.name;
-                        let allyName = Memory.roomCache[alliedRoom].user;
-                        switch (terminal.send(boost, 2500, alliedRoom)) {
-                            case OK:
-                                log.a(' MARKET: Dumping to ally (' + allyName + ') ' + 2500 + ' ' + boost + ' To ' + alliedRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[boost]);
-                                return true;
-                        }
-                    } else if (_.sum(terminal.store) >= terminal.storeCapacity * 0.95 && randomRoom) {
-                        randomRoom = randomRoom.name;
-                        let randomName = Memory.roomCache[randomRoom].user;
-                        switch (terminal.send(boost, 2500, randomRoom)) {
-                            case OK:
-                                log.a(' MARKET: Dumping to random player (' + randomName + ') ' + 2500 + ' ' + boost + ' To ' + randomRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[boost]);
-                                return true;
-                        }
-                    }
+            if (needyTerminal) {
+                // Determine how much you can move
+                let availableAmount = terminal.store[boost] - (TRADE_AMOUNT * 1.1);
+                if (availableAmount <= 0) continue;
+                // Determine how much is needed
+                let storedAmount = 0;
+                if (needyTerminal.store[boost]) storedAmount = needyTerminal.store[boost];
+                let neededAmount = (TRADE_AMOUNT * 0.95) - storedAmount;
+                if (neededAmount <= 0) continue;
+                switch (terminal.send(boost, neededAmount, needyTerminal.room.name)) {
+                    case OK:
+                        log.a(' MARKET: Balancing ' + neededAmount + ' ' + boost + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[boost] + ' / ' + (storedAmount + neededAmount));
+                        return true;
                 }
-                continue;
-            }
-            // Determine how much you can move
-            let availableAmount = terminal.store[boost] - (TRADE_AMOUNT * 1.1);
-            if (availableAmount <= 0) continue;
-            // Determine how much is needed
-            let storedAmount = 0;
-            if (needyTerminal.store[boost]) storedAmount = needyTerminal.store[boost];
-            let neededAmount = (TRADE_AMOUNT * 0.95) - storedAmount;
-            if (neededAmount <= 0) continue;
-            switch (terminal.send(boost, neededAmount, needyTerminal.room.name)) {
-                case OK:
-                    log.a(' MARKET: Balancing ' + neededAmount + ' ' + boost + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[boost] + ' / ' + (storedAmount + neededAmount));
-                    return true;
             }
         }
     }

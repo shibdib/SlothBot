@@ -555,7 +555,7 @@ function cachePath(creep, from, to, path) {
     if (path.length < 5) return;
     let key = getPathKey(from, to);
     let cache;
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
+    if (creep.memory.localCache) cache = creep.memory.localPathCache || {}; else if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
     if (cache instanceof Array) cache = {};
     let tick = Game.time;
     cache[key] = {
@@ -563,12 +563,12 @@ function cachePath(creep, from, to, path) {
         uses: 1,
         tick: tick
     };
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._pathCache = cache; else pathCache = cache;
+    if (creep.memory.localCache) creep.memory.localPathCache = cache; else if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._pathCache = cache; else pathCache = cache;
 }
 
 function getPath(creep, from, to) {
     let cache;
-    if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
+    if (creep.memory.localPathCache && creep.memory.localPathCache[getPathKey(from, to)]) return creep.memory.localPathCache[getPathKey(from, to)].path; else if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
     if (!cache) return null;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {
