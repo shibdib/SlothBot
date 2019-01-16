@@ -11,6 +11,8 @@ module.exports.role = function (creep) {
         creep.memory.storageDestination = undefined;
         creep.memory.hauling = undefined;
     }
+    // Check if ready to haul
+    creep.memory.hauling = _.sum(creep.carry) >= creep.carryCapacity * 0.8;
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
             // If carrying minerals deposit in terminal or storage
@@ -43,8 +45,6 @@ module.exports.role = function (creep) {
             remoteHarvester.memory.hauler = creep.id;
             return;
         }
-        // Check if ready to haul
-        if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.hauling = true;
         // Set Harvester and move to them if not nearby
         let pairedHarvester = Game.getObjectById(creep.memory.harvester);
         // Handle Moving
@@ -53,14 +53,14 @@ module.exports.role = function (creep) {
         } else {
             if (pairedHarvester.memory.containerID) {
                 let container = Game.getObjectById(pairedHarvester.memory.containerID);
-                if (container && _.sum(container.store) > 0) {
+                if (container && _.sum(container.store) > 50) {
                     for (const resourceType in container.store) {
                         if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
                             creep.shibMove(container);
                         }
                     }
                 } else {
-                    if (!creep.shibMove(pairedHarvester)) creep.idleFor(3);
+                    creep.idleFor(5);
                 }
             } else if (pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0]) {
                 let dropped = pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0];

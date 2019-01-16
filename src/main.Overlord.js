@@ -92,7 +92,7 @@ module.exports.overlordMind = function (room) {
     }
 
     // Manage remote creep spawning
-    if (Game.time % 13 === 0 && cpuBucket >= 7000 && !TEN_CPU) {
+    if (Game.time % 13 === 0 && cpuBucket >= 3000 && !TEN_CPU) {
         cpu = Game.cpu.getUsed();
         try {
             let remoteSpawn = Game.cpu.getUsed();
@@ -288,7 +288,7 @@ function minionController(minion) {
             {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
         );
     } catch (e) {
-        log.e(minion.name + ' experienced an error in room ' + minion.room.name);
+        log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
         log.e(e.stack);
         Game.notify(e.stack);
     }

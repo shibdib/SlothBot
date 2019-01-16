@@ -70,7 +70,7 @@ function shibMove(creep, heading, options = {}) {
     pathInfo.targetRoom = targetRoom(heading);
     //Clear path if stuck
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
-        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path) && c.memory.role !== 'stationaryHarvester' && c.memory.role !== 'upgrader')[0];
+        let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y && (!c.memory._shibMove || !c.memory._shibMove.path) && c.memory.role !== 'stationaryHarvester' && c.memory.role !== 'upgrader' && c.memory.role !== 'reserver' && c.memory.role !== 'remoteHarvester')[0];
         if (bumpCreep) {
             bumpCreep.shibMove(creep, {range: 0});
             bumpCreep.say(ICONS.traffic, true)

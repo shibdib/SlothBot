@@ -3,12 +3,24 @@
  */
 
 module.exports.role = function (creep) {
-    if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true);
-    let source;
     //Invader detection
     if (creep.fleeHome()) return;
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
+    //Harvest
+    if (creep.memory.onContainer) {
+        switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
+            case OK:
+                if (_.sum(Game.getObjectById(creep.memory.containerID).store) >= 1900) creep.idleFor(Math.random(15, 50));
+                break;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(Game.getObjectById(creep.memory.source));
+                break;
+            case ERR_NOT_ENOUGH_RESOURCES:
+                creep.idleFor(Game.getObjectById(creep.memory.source).ticksToRegeneration + 1)
+        }
+        return;
+    }
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
@@ -20,14 +32,6 @@ module.exports.role = function (creep) {
         }
         //If source is set mine
         if (creep.memory.source) {
-            //Request pioneer if construction sites exist or repairs are needed
-            if (Game.time % 50 === 0) {
-                let container = Game.getObjectById(creep.memory.containerID);
-                let lowRoad = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.6);
-                Memory.roomCache[creep.room.name].requestingPioneer = creep.room.constructionSites.length > 0 || (container && container.hits < container.hitsMax * 0.7) || lowRoad.length > 0;
-                //Check hauler status
-                if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
-            }
             //Make sure you're on the container
             if (creep.memory.containerID && !creep.memory.onContainer) {
                 let container = Game.getObjectById(creep.memory.containerID);
@@ -35,23 +39,9 @@ module.exports.role = function (creep) {
                     return creep.shibMove(container, {range: 0});
                 } else if (container) {
                     creep.memory.onContainer = true;
+                    remoteRoads(creep);
                 }
-            }
-            source = Game.getObjectById(creep.memory.source);
-            if (source) {
-                switch (creep.harvest(source)) {
-                    case OK:
-                        if (creep.carry.energy === creep.carryCapacity) depositEnergy(creep);
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(source);
-                        break;
-                    case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.idleFor(source.ticksToRegeneration + 1)
-                }
-            } else {
-                creep.memory.source = undefined;
-            }
+            } else if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
             //Find Source
         } else {
             creep.findSource();
@@ -59,27 +49,6 @@ module.exports.role = function (creep) {
     }
 };
 
-function depositEnergy(creep) {
-    // Check for container and build one if one isn't there
-    if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-    if (creep.memory.containerID) {
-        if (!creep.memory.buildAttempt) remoteRoads(creep);
-        let container = Game.getObjectById(creep.memory.containerID);
-        if (container) {
-            if (_.sum(container.store) === container.storeCapacity) {
-                if (container.hits < container.hitsMax * 0.8) {
-                    creep.repair(container);
-                } else {
-                    creep.idleFor(25);
-                }
-            } else if (Math.random() > 0.9) {
-                creep.idleFor(5);
-            }
-        } else {
-            creep.memory.containerID = undefined;
-        }
-    }
-}
 function remoteRoads(creep) {
     creep.memory.buildAttempt = true;
     if (creep.room.name !== creep.memory.destination) return;
@@ -166,6 +135,6 @@ function harvestDepositContainer(source, creep) {
     } else {
         let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
         if (!site && creep.pos.getRangeTo(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
-        if (site && Game.rooms[creep.memory.overlord].controller.level >= 5) creep.build(site);
+        if (site) creep.build(site);
     }
 }

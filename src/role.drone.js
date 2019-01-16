@@ -90,7 +90,7 @@ module.exports.role = function role(creep) {
                         break;
                 }
             }
-        } else {
+        } else if (creep.room.controller && creep.room.controller.my) {
             creep.memory.task = 'upgrade';
             creep.say('Praise!', true);
             switch (creep.upgradeController(creep.room.controller)) {
@@ -100,6 +100,8 @@ module.exports.role = function role(creep) {
                 case ERR_NOT_IN_RANGE:
                     return creep.shibMove(creep.room.controller, {range: 3});
             }
+        } else {
+            creep.idleFor(25);
         }
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {

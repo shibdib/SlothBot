@@ -355,7 +355,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
-    if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 5 > Game.time) return;
+    if ((Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time)) return;
     if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper').length) {
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
@@ -447,10 +447,10 @@ Room.prototype.invaderCheck = function () {
             }
             return invader.length > 0;
         }
-    } else {
+    } else if (this.memory.threatLevel) {
         let waitOut = 25;
         if (this.memory.threatLevel > 3) waitOut = 100;
-        if (this.memory.tickDetected < Game.time - waitOut || !this.memory.responseNeeded) {
+        if (this.memory.tickDetected + waitOut > Game.time) {
             if (Memory.roomCache[this.name]) Memory.roomCache[this.name].threatLevel = undefined;
             let roomHeat = (this.memory.roomHeat - 0.5) || 0;
             if (roomHeat <= 0) {

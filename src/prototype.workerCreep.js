@@ -118,59 +118,60 @@ Creep.prototype.findRepair = function (level) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.hits < s.hitsMax);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_WALL && s.hits < 100000 * level);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 100000 * level);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        return;
+        return true;
     }
     this.memory.constructionSite = undefined;
     this.memory.task = undefined;
+    return false;
 };
 
 Creep.prototype.containerBuilding = function () {
