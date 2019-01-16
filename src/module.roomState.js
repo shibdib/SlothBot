@@ -1,8 +1,5 @@
-let shib = require("shibBench");
-
 module.exports.setRoomState = function (room) {
     // Set Energy Needs
-    let cpu = Game.cpu.getUsed();
     let energyInRoom = room.energy;
     room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT;
     room.memory.extremeEnergySurplus = energyInRoom >= 100000;
@@ -74,5 +71,4 @@ module.exports.setRoomState = function (room) {
         }
         if (oldState !== room.memory.state) log.a(news);
     }
-    shib.shibBench('roomEnergyStatus', cpu);
 };

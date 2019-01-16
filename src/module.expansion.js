@@ -1,7 +1,4 @@
-let shib = require("shibBench");
-
 module.exports.claimNewRoom = function () {
-    let cpu = Game.cpu.getUsed();
     let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
     let noClaim = Memory.noClaim || [];
     let worthyRooms = _.filter(Memory.roomCache, (r) => r.claimWorthy && !r.level && !_.includes(noClaim, r.name));
@@ -71,5 +68,4 @@ module.exports.claimNewRoom = function () {
             Memory.targetRooms = cache;
         }
     }
-    shib.shibBench('roomClaiming', cpu);
 };

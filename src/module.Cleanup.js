@@ -34,9 +34,9 @@ module.exports.cleanup = function () {
 
 function cleanPathCacheByUsage() {
     if (Memory._pathCache) { //1500 entries ~= 100kB
-        if (_.size(Memory._pathCache) > 1000) {
+        if (_.size(Memory._pathCache) > (_.size(Memory.ownedRooms) * 50)) {
             let sorted = _.sortBy(Memory._pathCache, 'uses');
-            let overage = (_.size(Memory._pathCache) - 1000) + 100;
+            let overage = (_.size(Memory._pathCache) - _.size(Memory.ownedRooms) * 50) + 50;
             log.i('Cleaning Path cache (Over max size by ' + overage + ')...');
             Memory._pathCache = _.slice(sorted, overage, _.size(Memory._pathCache));
         }
@@ -44,9 +44,9 @@ function cleanPathCacheByUsage() {
 }
 
 function cleanRouteCacheByUsage() {
-    if (Memory._routeCache && _.size(Memory._routeCache) > 500) { //1500 entries ~= 100kB
+    if (Memory._routeCache && _.size(Memory._routeCache) > (_.size(Memory.ownedRooms) * 10)) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory._routeCache, 'uses');
-        let overage = (_.size(Memory._routeCache) - 500) + 75;
+        let overage = (_.size(Memory._routeCache) - (_.size(Memory.ownedRooms) * 10)) + 5;
         log.i('Cleaning Route cache (Over max size by ' + overage + ')...');
         Memory._routeCache = _.slice(sorted, overage, _.size(Memory._routeCache));
     }
@@ -94,12 +94,11 @@ function cleanConstructionSites() {
 }
 
 function cleanRoomIntel() {
-    if (Memory.roomCache) {
-        let startLength = Memory.roomCache.length;
-        for (let key in Memory.roomCache) {
-            if (Memory.roomCache[key].cached + 32500 < Game.time) delete Memory.roomCache[key];
-        }
-        if (startLength > Memory.roomCache.length) log.i('CleanUp: Room Cache Purged of ' + startLength - Memory.roomCache.length + ' entries.')
+    if (Memory.roomCache && _.size(Memory.roomCache) > (_.size(Memory.ownedRooms) * 20)) {
+        let sorted = _.sortBy(Memory.roomCache, 'cached');
+        let overage = (_.size(Memory.roomCache) - (_.size(Memory.ownedRooms) * 20)) + 15;
+        log.i('Cleaning Intel cache (Over max size by ' + overage + ')...');
+        Memory.roomCache = _.slice(sorted, overage, _.size(Memory.roomCache));
     }
     for (let key in Memory.rooms) {
         if (!Game.rooms[key]) delete Memory.rooms[key];
