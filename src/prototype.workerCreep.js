@@ -206,7 +206,8 @@ Creep.prototype.harvesterContainerBuild = function () {
     }
 };
 
-Creep.prototype.withdrawEnergy = function () {
+Creep.prototype.withdrawEnergy = function (destination = undefined) {
+    if (destination) this.memory.energyDestination = destination.id;
     if (!this.memory.energyDestination) {
         return null;
     } else {
@@ -486,7 +487,7 @@ Creep.prototype.findStorage = function () {
     }
     //Controller
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && Math.random() > 0.6 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+    if (controllerContainer && Math.random() > 0.7 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
@@ -532,6 +533,12 @@ Creep.prototype.findEssentials = function () {
             this.memory.storageDestination = tower.id;
             return true;
         }
+    }
+    //Controller
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (creep.room.controller.level < 8 && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity) {
+        this.memory.storageDestination = controllerContainer.id;
+        return true;
     }
     //Storage
     let storage = this.room.storage;

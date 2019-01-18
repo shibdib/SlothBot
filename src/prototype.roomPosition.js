@@ -90,7 +90,7 @@ RoomPosition.prototype.checkForObstacleStructure = function () {
 };
 
 RoomPosition.prototype.checkForConstructionSites = function () {
-    return this.lookFor(LOOK_CONSTRUCTION_SITES).length;
+    return this.lookFor(LOOK_CONSTRUCTION_SITES)[0];
 };
 
 RoomPosition.prototype.checkForRoad = function () {

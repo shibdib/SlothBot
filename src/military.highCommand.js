@@ -194,7 +194,7 @@ function manageAttacks() {
                 break;
             // Manage Cleaning
             case 'clean':
-                if (cleanCount > 1) delete Memory.targetRooms[key];
+                if (cleanCount > 3) delete Memory.targetRooms[key];
                 continue;
         }
         // Cancel stale ops with no kills
@@ -268,6 +268,7 @@ module.exports.operationSustainability = function (room) {
         log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
         delete Memory.targetRooms[room.name];
         Memory.roomCache[room.name].attackCooldown = Game.time;
+        if (operation.type === 'drain') Memory.roomCache[room.name].noDrain = true;
     } else {
         Memory.targetRooms[room.name] = operation;
     }

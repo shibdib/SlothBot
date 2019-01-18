@@ -35,6 +35,7 @@ module.exports.role = function (creep) {
                     creep.memory.task = undefined;
                     break;
                 case ERR_INVALID_TARGET:
+                    if (construction instanceof ConstructionSite) construction.remove();
                     creep.memory.constructionSite = undefined;
                     creep.memory.task = undefined;
                     break;

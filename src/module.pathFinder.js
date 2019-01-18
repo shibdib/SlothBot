@@ -34,11 +34,14 @@ function shibMove(creep, heading, options = {}) {
         stayInHub: false,
         ignoreBorder: false
     });
-    if (creep.fatigue > 0) return creep.room.visual.circle(creep.pos, {
-        fill: 'transparent',
-        radius: 0.55,
-        stroke: 'black'
-    });
+    if (creep.fatigue > 0) {
+        if (!creep.memory.military) creep.idleFor(1);
+        return creep.room.visual.circle(creep.pos, {
+            fill: 'transparent',
+            radius: 0.55,
+            stroke: 'black'
+        });
+    }
     let rangeToDestination = creep.pos.getRangeTo(heading);
     // CPU Saver for moving to 0 on creeps
     if (heading instanceof Creep && options.range === 0 && rangeToDestination > 2) options.range = 1;
@@ -461,6 +464,11 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     let blockingSites = _.filter(room.constructionSites, (s) => (s.my && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART) || (!s.my && _.includes(FRIENDLIES, s.owner.username)));
     for (let site of blockingSites) {
         matrix.set(site.pos.x, site.pos.y, 256);
+    }
+    //Stationary creeps
+    let stationaryCreeps = _.filter(room.creeps, (c) => c.my && (c.memory.role === 'stationaryHarvester' || c.memory.role === 'upgrader' || c.memory.role === 'reserver' || c.memory.role === 'remoteHarvester'));
+    for (let site of stationaryCreeps) {
+        matrix.set(site.pos.x, site.pos.y, 150);
     }
     return matrix;
 }

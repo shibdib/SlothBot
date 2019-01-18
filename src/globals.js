@@ -498,24 +498,26 @@ let globals = function () {
 
     global.getLevel = function (room) {
         let energy = room.energyCapacityAvailable;
+        let energyLevel = 0;
         if (energy >= RCL_1_ENERGY && energy < RCL_2_ENERGY) {
-            return 1;
+            energyLevel = 1;
         } else if (energy >= RCL_2_ENERGY && energy < RCL_3_ENERGY) {
-            return 2
+            energyLevel = 2
         } else if (energy >= RCL_3_ENERGY && energy < RCL_4_ENERGY) {
-            return 3
+            energyLevel = 3
         } else if (energy >= RCL_4_ENERGY && energy < RCL_5_ENERGY) {
-            return 4
+            energyLevel = 4
         } else if (energy >= RCL_5_ENERGY && energy < RCL_6_ENERGY) {
-            return 5
+            energyLevel = 5
         } else if (energy >= RCL_6_ENERGY && energy < RCL_7_ENERGY) {
-            return 6
+            energyLevel = 6
         } else if (energy >= RCL_7_ENERGY && energy < RCL_8_ENERGY) {
-            return 7
+            energyLevel = 7
         } else if (energy >= RCL_8_ENERGY) {
-            return 8
+            energyLevel = 8
         }
-    }
+        if (energyLevel <= room.controller.level) return energyLevel; else return room.controller.level;
+    };
 
     global.roomLink = function (roomArg, text = undefined, select = true) {
         let roomName;

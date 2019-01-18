@@ -6,6 +6,8 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.wrongRoom()) return null;
     creep.say(ICONS.reaction, true);
+    let terminal = creep.room.terminal;
+    let storage = creep.room.storage;
     //If creep needs boosts do that first
     if (boostDelivery(creep)) return;
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
@@ -30,12 +32,12 @@ module.exports.role = function (creep) {
     if (creep.memory.supplier) return supplyLab(creep);
     for (let lab of labs) {
         // If lab doesn't need anything
-        if (!lab.memory.itemNeeded) continue;
+        if (!lab.memory.itemNeeded || (!storage.store[lab.memory.itemNeeded] && !terminal.store[lab.memory.itemNeeded])) continue;
         // If lab has correct resource continue
         if (lab.mineralAmount >= 50) continue;
         if (!creep.memory.labHelper) creep.memory.labHelper = lab.id;
         creep.memory.supplier = true;
-        return;
+        return supplyLab(creep);
     }
     let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
     let container = Game.getObjectById(creep.room.memory.extractorContainer);
@@ -78,7 +80,7 @@ module.exports.role = function (creep) {
             }
         }
     }
-    if (creep.room.storage) {
+    if (storage) {
         let storedResources = Object.keys(creep.room.storage.store);
         for (let resource of storedResources) {
             if (creep.room.storage.store[resource] >= DUMP_AMOUNT) {

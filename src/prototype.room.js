@@ -3,7 +3,7 @@
  */
 'use strict';
 
-Room.prototype.getConstructionSites = function () {
+Room.prototype.constructionSites = function () {
     if (!this.constructionSites) {
         this.constructionSites = JSON.parse(JSON.stringify(this.find(FIND_CONSTRUCTION_SITES)));
     }

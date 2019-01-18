@@ -11,7 +11,13 @@ module.exports.role = function (creep) {
     if (creep.memory.onContainer) {
         switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
             case OK:
-                if (_.sum(Game.getObjectById(creep.memory.containerID).store) >= 1900) creep.idleFor(Math.random(15, 50));
+                let container = Game.getObjectById(creep.memory.containerID);
+                if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
+                if (container.hits < container.hitsMax * 0.5) return creep.repair(container);
+                if (_.sum(container.store) >= 1900) {
+                    if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
+                    creep.idleFor(20);
+                }
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(Game.getObjectById(creep.memory.source));
@@ -129,12 +135,24 @@ function buildRoad(position, room) {
 }
 
 function harvestDepositContainer(source, creep) {
-    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
-    if (container) {
-        return container.id;
-    } else {
-        let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (!site && creep.pos.getRangeTo(source) === 1) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
-        if (site) creep.build(site);
+    switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
+        case OK:
+            let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
+            if (container) {
+                return container.id;
+            } else {
+                let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+                if (!site && creep.pos.getRangeTo(source) === 1) {
+                    creep.say(2)
+                    creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+                }
+                if (site) creep.build(site);
+            }
+            break;
+        case ERR_NOT_IN_RANGE:
+            creep.shibMove(Game.getObjectById(creep.memory.source));
+            break;
+        case ERR_NOT_ENOUGH_RESOURCES:
+            creep.idleFor(Game.getObjectById(creep.memory.source).ticksToRegeneration + 1)
     }
 }

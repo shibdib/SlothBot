@@ -412,14 +412,15 @@ Creep.prototype.moveToStaging = function () {
 };
 
 Creep.prototype.siege = function () {
+    let healer = Game.getObjectById(this.memory.healer);
     if (this.room.name !== this.memory.targetRoom) {
-        if (!this.memory.healer || this.pos.getRangeTo(Game.getObjectById(this.memory.healer)) > 2) return this.shibMove(Game.getObjectById(this.memory.healer), {ignoreCreeps: false});
-        this.rangedMassAttack();
+        if (!healer || (this.pos.roomName === healer.pos.roomName && this.pos.getRangeTo(healer)) > 2) return this.shibMove(Game.getObjectById(this.memory.healer), {ignoreCreeps: false});
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
             ignoreCreeps: true,
             range: 20
         });
     }
+    this.rangedMassAttack();
     if (this.room.controller && this.room.controller.safeMode) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
@@ -437,7 +438,6 @@ Creep.prototype.siege = function () {
     if (neighborEnemyCreep.length && !neighborEnemyCreep[0].pos.checkForRampart()) {
         target = neighborEnemyCreep[0];
     }
-    let healer = Game.getObjectById(this.memory.healer);
     if (healer && (healer.fatigue > 0 || this.pos.getRangeTo(healer) > 1) && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
     if (!this.room.controller.owner || (this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username))) {
         let targetFlags = _.filter(Game.flags, (f) => f.pos.roomName === this.pos.roomName && _.startsWith(f.name, 't') && f.pos.checkForAllStructure(true).length);
@@ -551,10 +551,10 @@ Creep.prototype.siegeHeal = function () {
         if (!Game.getObjectById(this.memory.healTarget)) delete this.memory.healTarget;
         let deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
         if (!deconstructor) deconstructor = _.filter(Game.creeps, (c) => (c.memory.role === 'deconstructor' || c.memory.role === 'siegeEngine') && c.memory.targetRoom === this.memory.targetRoom)[0];
-        if (deconstructor) this.memory.healTarget = deconstructor.id;
-        if (!deconstructor.memory.healer || !Game.getObjectById(deconstructor.memory.healer)) {
+        if (deconstructor) {
+            this.memory.healTarget = deconstructor.id;
+            deconstructor.memory.healer = this.id;
         }
-        deconstructor.memory.healer = this.id;
         return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
     } else {
         let deconstructor = Game.getObjectById(this.memory.healTarget);
@@ -691,15 +691,32 @@ Creep.prototype.retreat = function (fleeRange = 7) {
 Creep.prototype.borderHump = function () {
     let damagedDrainer = _.min(_.filter(this.room.creeps, (creep) => creep.memory && creep.memory.role === 'drainer' && creep.id !== this.id && this.pos.getRangeTo(creep) <= 5 && creep.hits < creep.hitsMax), 'hits');
     if (this.hits < this.hitsMax * 0.9 && !this.getActiveBodyparts(TOUGH) && this.room.name === this.memory.targetRoom) {
+        this.memory.noDrain = 0;
         let exit = this.pos.findClosestByRange(FIND_EXIT);
         return this.shibMove(exit, {ignoreCreeps: false, range: 0});
     } else if (damagedDrainer.id) {
+        this.memory.noDrain = 0;
         this.heal(damagedDrainer);
         this.shibMove(damagedDrainer, {range: 1})
     } else if (this.hits === this.hitsMax && this.room.name === this.memory.targetRoom) {
+        let noDrainCount = this.memory.noDrain || 0;
+        this.memory.noDrain = noDrainCount + 1;
+        // If room is not drainable mark as such and recycle
+        if (this.memory.noDrain >= 15) {
+            let cache = Memory.targetRooms || {};
+            cache[this.room.name] = {
+                tick: Game.time,
+                type: 'attack',
+                priority: 1,
+            };
+            Memory.targetRooms = cache;
+            this.room.cacheRoomIntel(true);
+            Memory.roomCache[this.room.name].noDrain = true;
+            this.memory.recycle = true;
+        }
         this.borderCheck();
         this.heal(this);
-        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 5})
+        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 15})
     } else if (this.hits < this.hitsMax && this.room.name !== this.memory.targetRoom) {
         this.borderCheck();
         this.heal(this);

@@ -107,25 +107,8 @@ Creep.prototype.scoutRoom = function () {
             } else {
                 // If we dont have any level 6+ rooms
                 if (maxLevel < 6) {
-                    // If there's one tower send in the conscripts
-                    if (towers.length < 2) {
-                        cache[this.room.name] = {
-                            tick: tick,
-                            type: 'conscripts',
-                            level: 1,
-                            priority: priority
-                        };
-                    }
-                    // If there's no active guards, no ramparts, and we have enough rooms swarm
-                    else if (towers.length <= 2 && !armedHostiles.length && !ramparts.length && Memory.ownedRooms.length >= 2) {
-                        cache[this.room.name] = {
-                            tick: tick,
-                            type: 'swarm',
-                            level: towers.length,
-                            priority: priority
-                        };
-                        // Try to drain the towers
-                    } else {
+                    // Try to drain
+                    if (!Memory.roomCache[this.room.name].noDrain) {
                         cache[this.room.name] = {
                             tick: tick,
                             type: 'drain',
@@ -133,19 +116,44 @@ Creep.prototype.scoutRoom = function () {
                             priority: priority
                         };
                     }
-                    // If we do have level 6+ rooms
-                } else {
-                    if (towers.length < 2) {
+                    // If there's one tower send in the conscripts
+                    else if (towers.length < 2) {
                         cache[this.room.name] = {
                             tick: tick,
-                            type: 'siegeGroup',
+                            type: 'conscripts',
                             level: 1,
                             priority: priority
                         };
-                    } else if (maxLevel === 8) {
+                    }
+                } // If we do have level 6+ rooms
+                else {
+                    if (maxLevel === 8) {
+                        if (!Memory.roomCache[this.room.name].noDrain) {
+                            cache[this.room.name] = {
+                                tick: tick,
+                                type: 'drain',
+                                level: towers.length,
+                                priority: priority
+                            };
+                        } else if (towers.length >= 5 && nukeTarget(this.room)) {
+                            cache[Game.flags[name].pos.roomName] = {
+                                tick: tick,
+                                dDay: tick + 50000,
+                                type: 'nuke',
+                                level: 1
+                            };
+                        } else {
+                            cache[this.room.name] = {
+                                tick: tick,
+                                type: 'siege',
+                                level: 1,
+                                priority: priority
+                            };
+                        }
+                    } else if (towers.length <= 2) {
                         cache[this.room.name] = {
                             tick: tick,
-                            type: 'siege',
+                            type: 'siegeGroup',
                             level: 1,
                             priority: priority
                         };
@@ -212,3 +220,40 @@ Creep.prototype.scoutRoom = function () {
     Memory.targetRooms = cache;
     return this.memory.recycle = true;
 };
+
+function nukeTarget(room) {
+    let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown && Game.map.getRoomLinearDistance(s.room.name, room.name) <= 10);
+    let inboundNukes = room.find(FIND_NUKES);
+    if (nukes.length && !inboundNukes.length) {
+        let launched = 0;
+        let towerTarget, spawnTarget, terminalTarget;
+        for (let nuker of nukes) {
+            if (launched >= 2) break;
+            let clusteredTower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.pos.findInRange(room.structures, 4, {filter: (l) => l.structureType === STRUCTURE_TOWER}).length >= 3)[0];
+            let clusteredSpawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.pos.findInRange(room.structures, 4, {filter: (l) => l.structureType === STRUCTURE_SPAWN}).length >= 2)[0];
+            if (clusteredTower && !towerTarget) {
+                launched += 1;
+                nuker.launchNuke(clusteredTower.pos);
+                log.a('NUCLEAR LAUNCH DETECTED - ' + clusteredTower.pos.roomName + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+                Game.notify('NUCLEAR LAUNCH DETECTED - ' + clusteredTower.pos.roomName + ' ' + clusteredTower.pos.x + '.' + clusteredTower.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+            } else if (clusteredSpawns && !spawnTarget) {
+                launched += 1;
+                nuker.launchNuke(clusteredSpawns.pos);
+                log.a('NUCLEAR LAUNCH DETECTED - ' + clusteredSpawns.pos.roomName + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+                Game.notify('NUCLEAR LAUNCH DETECTED - ' + clusteredSpawns.pos.roomName + ' ' + clusteredSpawns.pos.x + '.' + clusteredSpawns.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+            } else if (room.terminal && !terminalTarget) {
+                launched += 1;
+                nuker.launchNuke(room.terminal.pos);
+                log.a('NUCLEAR LAUNCH DETECTED - ' + room.terminal.pos.roomName + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+                Game.notify('NUCLEAR LAUNCH DETECTED - ' + room.terminal.pos.roomName + ' ' + room.terminal.pos.x + '.' + room.terminal.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+            } else if (room.storage) {
+                nuker.launchNuke(room.storage.pos);
+                log.a('NUCLEAR LAUNCH DETECTED - ' + room.storage.pos.roomName + ' ' + room.storage.pos.x + '.' + room.storage.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+                Game.notify('NUCLEAR LAUNCH DETECTED - ' + room.storage.pos.roomName + ' ' + room.storage.pos.x + '.' + room.storage.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+                break;
+            }
+        }
+        return true;
+    }
+    return false;
+}

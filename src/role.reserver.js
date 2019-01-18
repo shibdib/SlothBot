@@ -5,6 +5,8 @@
 module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
+    //Initial Move
+    if (creep.pos.roomName !== creep.memory.reservationTarget) return creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
     //Reserver
     if (creep.memory.inPlace) {
         if (creep.ticksToLive <= 3) {
@@ -24,10 +26,6 @@ module.exports.role = function (creep) {
             }
         }
         return;
-    }
-    //Initial Move
-    if (creep.pos.roomName !== creep.memory.reservationTarget) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
     } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation.username === USERNAME)) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:

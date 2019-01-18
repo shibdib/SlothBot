@@ -5,27 +5,21 @@ Creep.prototype.cleanRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     //Handle movement and staging
-    if (this.memory.staging && this.room.name === this.memory.staging) this.memory.staged = true;
-    if (this.memory.staging && !this.memory.staged && this.room.name !== this.memory.staging) return this.shibMove(new RoomPosition(25, 25, this.memory.staging), {range: 15});
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     //Check sustaintability
     highCommand.operationSustainability(this.room);
     //If no longer a target recycle
     if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type === 'Pending') return this.memory.recycle = true;
     //If hostile creeps present request an escort
-    if (this.room.hostileCreeps.length) {
-        Memory.targetRooms[this.room.name].escort = true;
-    } else {
-        Memory.targetRooms[this.room.name].escort = undefined;
-    }
+    Memory.targetRooms[this.room.name].escort = this.room.hostileCreeps.length;
     let target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_SPAWN});
-    if (!target || target === null) {
+    if (!target) {
         if (!Memory.targetRooms[this.memory.targetRoom].complete) {
             target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
         } else {
             target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
         }
-        if (!target || target === null) {
+        if (!target) {
             target = this.findClosestBarrier();
             if (!target) {
                 let valuable = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});

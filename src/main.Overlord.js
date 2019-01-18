@@ -10,30 +10,19 @@ let planner = require('module.roomPlanner');
 let storedLevel = {};
 
 module.exports.overlordMind = function (room) {
-    let roomTaskObject = taskCpuArray[room.name] || {};
-    let currentTask;
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 
     // Set room state
-    let cpu = Game.cpu.getUsed();
     state.setRoomState(room);
-    currentTask = roomTaskObject['roomEnergyStatus'] || [];
-    if (currentTask.length > 50) currentTask.shift();
-    currentTask.push(Game.cpu.getUsed() - cpu);
-    roomTaskObject['roomEnergyStatus'] = currentTask;
 
     // Handle Defense
-    cpu = Game.cpu.getUsed();
+    let cpu = Game.cpu.getUsed();
     defense.controller(room);
-    currentTask = roomTaskObject['defenseController'] || [];
-    if (currentTask.length > 50) currentTask.shift();
-    currentTask.push(Game.cpu.getUsed() - cpu);
-    roomTaskObject['defenseController'] = currentTask;
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 250 === 0) && cpuBucket >= 1000) {
+    if (((storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 1500 === 0) && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
         // Request builders
         requestBuilders(room);
@@ -64,50 +53,49 @@ module.exports.overlordMind = function (room) {
                 building.notifyWhenAttacked(false);
             }
         }
-        currentTask = roomTaskObject['roomBuild'] || [];
-        if (currentTask.length > 50) currentTask.shift();
-        currentTask.push(Game.cpu.getUsed() - cpu);
-        roomTaskObject['roomBuild'] = currentTask;
         shib.shibBench('roomBuild', cpu);
     }
 
     // Manage creep spawning
-    if (Game.time % 10 === 0 && cpuBucket >= 3000) {
-        cpu = Game.cpu.getUsed();
-        try {
-            let creepSpawn = Game.cpu.getUsed();
-            spawning.workerCreepQueue(room);
-            shib.shibBench('workerCreepQueue', creepSpawn);
-            cleanQueue(room);
-        } catch (e) {
-            log.e('Creep Spawning for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
+    // Level 1 room management
+    if (Math.random() > 0.7) {
+        if (getLevel(room) < 2) {
+            spawning.roomStartup(room);
+        } else {
+            if (Math.random() > 0.1 && cpuBucket >= 3000) {
+                try {
+                    let creepSpawn = Game.cpu.getUsed();
+                    spawning.essentialCreepQueue(room);
+                    shib.shibBench('essentialCreepQueue', creepSpawn);
+                } catch (e) {
+                    log.e('Essential Queueing for room ' + room.name + ' experienced an error');
+                    log.e(e.stack);
+                    Game.notify(e.stack);
+                }
+            }
+            if (Math.random() > 0.5 && cpuBucket >= 8000) {
+                try {
+                    let creepSpawn = Game.cpu.getUsed();
+                    spawning.miscCreepQueue(room);
+                    shib.shibBench('miscCreepQueue', creepSpawn);
+                } catch (e) {
+                    log.e('Misc Queueing for room ' + room.name + ' experienced an error');
+                    log.e(e.stack);
+                    Game.notify(e.stack);
+                }
+            }
+            if (Math.random() > 0.6 && cpuBucket >= 3000 && !TEN_CPU) {
+                try {
+                    let remoteSpawn = Game.cpu.getUsed();
+                    spawning.remoteCreepQueue(room);
+                    shib.shibBench('remoteQueue', remoteSpawn);
+                } catch (e) {
+                    log.e('Remote Creep Queuing for room ' + room.name + ' experienced an error');
+                    log.e(e.stack);
+                    Game.notify(e.stack);
+                }
+            }
         }
-        currentTask = roomTaskObject['creepSpawning'] || [];
-        if (currentTask.length > 50) currentTask.shift();
-        currentTask.push(Game.cpu.getUsed() - cpu);
-        roomTaskObject['creepSpawning'] = currentTask;
-        shib.shibBench('creepSpawning', cpu);
-    }
-
-    // Manage remote creep spawning
-    if (Game.time % 13 === 0 && cpuBucket >= 3000 && !TEN_CPU) {
-        cpu = Game.cpu.getUsed();
-        try {
-            let remoteSpawn = Game.cpu.getUsed();
-            spawning.remoteCreepQueue(room);
-            shib.shibBench('remoteSpawn', remoteSpawn);
-        } catch (e) {
-            log.e('Remote Creep Spawning for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-        currentTask = roomTaskObject['remoteSpawn'] || [];
-        if (currentTask.length > 50) currentTask.shift();
-        currentTask.push(Game.cpu.getUsed() - cpu);
-        roomTaskObject['remoteSpawn'] = currentTask;
-        shib.shibBench('remoteSpawn', cpu);
     }
 
     // Manage creeps
@@ -117,10 +105,6 @@ module.exports.overlordMind = function (room) {
     for (let key in roomCreeps) {
         minionController(roomCreeps[key]);
     }
-    currentTask = roomTaskObject['minionController'] || [];
-    if (currentTask.length > 50) currentTask.shift();
-    currentTask.push(Game.cpu.getUsed() - cpu);
-    roomTaskObject['minionController'] = currentTask;
     shib.shibBench('minionController', cpu);
 
     // Observer Control
@@ -133,10 +117,6 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        currentTask = roomTaskObject['observerControl'] || [];
-        if (currentTask.length > 50) currentTask.shift();
-        currentTask.push(Game.cpu.getUsed() - cpu);
-        roomTaskObject['observerControl'] = currentTask;
         shib.shibBench('observerControl', observerCpu);
     }
 
@@ -150,10 +130,6 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        currentTask = roomTaskObject['linkControl'] || [];
-        if (currentTask.length > 50) currentTask.shift();
-        currentTask.push(Game.cpu.getUsed() - cpu);
-        roomTaskObject['linkControl'] = currentTask;
         shib.shibBench('linkControl', cpu);
     }
 
@@ -167,10 +143,6 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        currentTask = roomTaskObject['terminalControl'] || [];
-        if (currentTask.length > 50) currentTask.shift();
-        currentTask.push(Game.cpu.getUsed() - cpu);
-        roomTaskObject['terminalControl'] = currentTask;
         shib.shibBench('terminalControl', cpu);
     }
 
@@ -184,13 +156,8 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        currentTask = roomTaskObject['powerControl'] || [];
-        if (currentTask.length > 50) currentTask.shift();
-        currentTask.push(Game.cpu.getUsed() - cpu);
-        roomTaskObject['powerControl'] = currentTask;
         shib.shibBench('powerControl', cpu);
     }
-    taskCpuArray[room.name] = roomTaskObject;
 
     // Store Data
     storedLevel[room.name] = room.controller.level;
@@ -293,12 +260,6 @@ function minionController(minion) {
         Game.notify(e.stack);
     }
     shib.shibBench(memoryRole, cpuUsed, Game.cpu.getUsed());
-}
-
-function cleanQueue(room) {
-    for (let key in room.memory.creepBuildQueue) {
-        if (room.memory.creepBuildQueue[key].room !== room.name) delete room.memory.creepBuildQueue[key]
-    }
 }
 
 function requestBuilders(room) {
