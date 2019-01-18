@@ -396,7 +396,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //LabTech
-    if (level >= 6 && !_.includes(queue, 'labTech') && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) {
+    if (!_.includes(queue, 'labTech') && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0]) {
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (labTech.length < 1) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech', localCache: true})
@@ -404,8 +404,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    let tower = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
-    if (!_.includes(queue, 'waller') && tower.length) {
+    if (!_.includes(queue, 'waller') && _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my).length) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
         if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length >= 5) amount = 5;
