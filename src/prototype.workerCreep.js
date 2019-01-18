@@ -536,7 +536,7 @@ Creep.prototype.findEssentials = function () {
     }
     //Controller
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (creep.room.controller.level < 8 && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity) {
+    if (this.room.controller.level < 8 && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5 && Math.random() > controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
