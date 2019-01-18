@@ -7,8 +7,6 @@
 let generator = require('module.bodyGenerator');
 const lastQueue = {};
 let roomQueue = {};
-let roomSourceSpace = {};
-let roomControllerSpace = {};
 let militaryQueue = {};
 
 module.exports.processBuildQueue = function () {
@@ -275,16 +273,9 @@ module.exports.essentialCreepQueue = function (room) {
     //Static room info
     let queue = roomQueue[room.name];
     let level = getLevel(room);
-    let queueTracker = lastQueue[room.name] || {};
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     // Drones until level 4
     if (level < 4 && !_.includes(queue, 'drone')) {
-        // Cache number of spaces around sources for things
-        if (!roomSourceSpace[room.name]) {
-            let spaces = 0;
-            for (let source of room.sources) spaces += source.pos.countOpenTerrainAround();
-            roomSourceSpace[room.name] = spaces;
-        }
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         if (drones.length < roomSourceSpace[room.name] * 0.5) {
             queueCreep(room, PRIORITIES.drone, {role: 'drone'})
@@ -366,7 +357,7 @@ module.exports.essentialCreepQueue = function (room) {
             if (needyRoom && !room.memory.responseNeeded) {
                 if (!_.includes(queue, 'drone')) {
                     let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
-                    let amount = roomSourceSpace[needyRoom.name] - 2;
+                    let amount = roomSourceSpace[needyRoom.name] + 2;
                     if (drones.length < amount) {
                         queueCreep(room, PRIORITIES.assistPioneer, {
                             role: 'drone',

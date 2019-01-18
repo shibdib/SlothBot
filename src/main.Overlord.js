@@ -13,6 +13,9 @@ module.exports.overlordMind = function (room) {
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 
+    // Cache globals
+    cacheRoomItems(room);
+
     // Set room state
     state.setRoomState(room);
 
@@ -260,6 +263,19 @@ function minionController(minion) {
         Game.notify(e.stack);
     }
     shib.shibBench(memoryRole, cpuUsed, Game.cpu.getUsed());
+}
+
+function cacheRoomItems(room) {
+    // Cache number of spaces around sources for things
+    if (!roomSourceSpace[room.name]) {
+        let spaces = 0;
+        for (let source of room.sources) spaces += source.pos.countOpenTerrainAround();
+        roomSourceSpace[room.name] = spaces;
+    }
+    // Cache number of spaces around sources for things
+    if (!roomControllerSpace[room.name]) {
+        roomControllerSpace[room.name] = room.controller.pos.countOpenTerrainAround();
+    }
 }
 
 function requestBuilders(room) {
