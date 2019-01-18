@@ -492,16 +492,11 @@ module.exports.remoteCreepQueue = function (room) {
     let level = getLevel(room);
     let queue = roomQueue[room.name];
     if (!remoteHives[room.name] || Math.random() > 0.95) {
+        room.memory.remoteRooms = undefined;
         let adjacent = Game.map.describeExits(room.name);
         let possibles;
         possibles = _.filter(adjacent, (r) => Memory.roomCache[r] && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].isHighway && !Memory.roomCache[r].sk);
         if (!possibles.length) possibles = adjacent;
-        let remotes = possibles;
-        for (let keys in remotes) {
-            let adjacent = Game.map.describeExits(remotes[keys]);
-            let filtered = _.filter(adjacent, (r) => Memory.roomCache[r] && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].isHighway && !Memory.roomCache[r].sk && r !== room.name);
-            if (!filtered.length) possibles = _.union(possibles, adjacent); else possibles = _.union(possibles, filtered);
-        }
         remoteHives[room.name] = JSON.stringify(possibles);
     }
     //SK Rooms
@@ -572,6 +567,14 @@ module.exports.remoteCreepQueue = function (room) {
             }
             //Reserver
             if (level >= 4 && !_.includes(queue, 'reserver') && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
+                // Cache number of spaces around sources for things
+                if (!roomControllerSpace[remotes[keys]]) {
+                    let spaces = 1;
+                    if (Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].controller) {
+                        spaces += Game.rooms[remotes[keys]].controller.pos.countOpenTerrainAround();
+                    }
+                    roomControllerSpace[remotes[keys]] = spaces;
+                }
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
                 if (reserver.length < 1) {
                     let priority = PRIORITIES.remoteHarvester + 1;
