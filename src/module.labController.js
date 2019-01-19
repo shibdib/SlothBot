@@ -41,8 +41,8 @@ function manageBoostProduction(room) {
         }
     }
     if (!boost) {
-        for (let key in _.shuffle(END_GAME_BOOSTS)) {
-            boost = checkForInputs(room, END_GAME_BOOSTS[key]);
+        for (let key in _.shuffle(TIER_2_BOOSTS)) {
+            boost = checkForInputs(room, TIER_2_BOOSTS[key]);
             if (!boost) continue;
             // Check if we already have enough
             if (getBoostAmount(room, boost) >= BOOST_AMOUNT * 5) {
