@@ -25,6 +25,7 @@ module.exports.hubCheck = function (room) {
 
 function buildFromLayout(room) {
     if (!room.memory.bunkerVersion) room.memory.bunkerVersion = 1;
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     let level = room.controller.level;
     let layout = JSON.parse(room.memory.layout);
     let extensionLevel = getLevel(room);
@@ -50,7 +51,7 @@ function buildFromLayout(room) {
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
-            if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType) pos.checkForAllStructure()[0].destroy();
+            if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && (pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER || level >= 5)) pos.checkForAllStructure()[0].destroy();
             if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
         }
     } else {
@@ -64,8 +65,7 @@ function buildFromLayout(room) {
     }
     // Hub
     if (room.memory.bunkerVersion < 2 || room.memory.bunkerVersion > 5) {
-        let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-        if (level >= 4) {
+        if (level >= 5 || room.memory.hubLink) {
             delete room.memory.hubContainer;
             if (hub.checkForAllStructure()[0]) {
                 if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
@@ -74,12 +74,10 @@ function buildFromLayout(room) {
             }
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
         } else {
-            if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) {
-                room.memory.hubContainer = hub.checkForAllStructure()[0].id;
-            }
+            if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) room.memory.hubContainer = hub.checkForAllStructure()[0].id;
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
-    } else if (level >= 4) {
+    } else if (level >= 5) {
         delete room.memory.hubContainer;
         let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.isActive());
         if (links.length) {

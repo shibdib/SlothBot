@@ -14,7 +14,6 @@ let protectedStructures = [
 
 Room.prototype.buildRoom = function () {
     let structures = this.structures;
-    let cpu;
     cleanRoom(this, structures);
     if (!this.memory.extensionHub || !this.memory.extensionHub.x) return findExtensionHub(this);
     let spawn = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN);
