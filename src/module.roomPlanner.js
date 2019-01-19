@@ -2,6 +2,7 @@
  * Created by rober on 5/16/2017.
  */
 let layouts = require('module.roomLayouts');
+
 module.exports.buildRoom = function (room) {
     if (room.memory.layout && room.memory.bunkerHub) {
         if (room.memory.layoutVersion === LAYOUT_VERSION) {
@@ -17,6 +18,7 @@ module.exports.buildRoom = function (room) {
         findHub(room);
     }
 };
+
 module.exports.hubCheck = function (room) {
     return findHub(room)
 };
@@ -365,7 +367,7 @@ function updateLayout(room) {
     room.memory.layout = JSON.stringify(layout);
 }
 
-abandonRoom = function (room) {
+function abandonRoom(room) {
     for (let key in Game.rooms[room].creeps) {
         Game.rooms[room].creeps[key].suicide();
     }
@@ -390,19 +392,6 @@ abandonRoom = function (room) {
 function difference(num1, num2) {
     return (num1 > num2) ? num1 - num2 : num2 - num1
 }
-
-let protectedStructures = [
-    STRUCTURE_SPAWN,
-    STRUCTURE_STORAGE,
-    STRUCTURE_TOWER,
-    STRUCTURE_POWER_SPAWN,
-    STRUCTURE_TERMINAL,
-    STRUCTURE_CONTAINER,
-    STRUCTURE_NUKER,
-    STRUCTURE_OBSERVER,
-    STRUCTURE_LINK,
-    STRUCTURE_LAB
-];
 
 function buildRoadFromTo(room, start, end) {
     let target;
@@ -483,3 +472,16 @@ function getPathKey(from, to) {
 function getPosKey(pos) {
     return pos.x + 'x' + pos.y;
 }
+
+let protectedStructures = [
+    STRUCTURE_SPAWN,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TOWER,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_CONTAINER,
+    STRUCTURE_NUKER,
+    STRUCTURE_OBSERVER,
+    STRUCTURE_LINK,
+    STRUCTURE_LAB
+];

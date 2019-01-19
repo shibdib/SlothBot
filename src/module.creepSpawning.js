@@ -8,11 +8,17 @@ let generator = require('module.bodyGenerator');
 const lastQueue = {};
 let roomQueue = {};
 let militaryQueue = {};
+let energyOrder = {};
+let storedLevel = {};
+let remoteHives = {};
+let skRooms = {};
 
+//Build Creeps From Queue
 module.exports.processBuildQueue = function () {
     let spawns = Game.spawns;
     for (let key in spawns) {
         let spawn = spawns[key];
+        if (!energyOrder[spawn.pos.roomName] || storedLevel[spawn.pos.roomName] !== getLevel(spawn.room)) determineEnergyOrder(spawn.room);
         let level = getLevel(spawn.room);
         if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
         let oldest = _.min(roomQueue[spawn.room.name], 'cached');
@@ -100,7 +106,8 @@ module.exports.processBuildQueue = function () {
                             initialBuilder: topPriority.initialBuilder,
                             localCache: topPriority.localCache,
                             misc: topPriority.misc
-                        }
+                        },
+                        energyStructures: JSON.parse(energyOrder[spawn.pos.roomName])
                     })) {
                         case OK:
                             if (!topPriority.operation) log.d(spawn.room.name + ' Spawning a ' + role);
@@ -117,108 +124,7 @@ module.exports.processBuildQueue = function () {
     }
 };
 
-function queueCreep(room, importance, options = {}, military = false) {
-    let cache;
-    if (!military) {
-        cache = roomQueue[room.name] || {};
-        if (cache[options.role]) return;
-    } else {
-        cache = militaryQueue || {};
-        if (cache[options.role]) return;
-    }
-    _.defaults(options, {
-        role: undefined,
-        assignedSource: undefined,
-        destination: undefined,
-        assignedMineral: undefined,
-        military: undefined,
-        responseTarget: undefined,
-        targetRoom: undefined,
-        operation: undefined,
-        siegePoint: undefined,
-        staging: undefined,
-        waitFor: undefined,
-        reservationTarget: undefined,
-        initialBuilder: undefined,
-        localCache: undefined,
-        reboot: undefined,
-        misc: undefined
-    });
-    if (room) {
-        let key = options.role;
-        cache[key] = {
-            cached: Game.time,
-            room: room.name,
-            importance: importance,
-            role: options.role,
-            assignedSource: options.assignedSource,
-            destination: options.destination,
-            assignedMineral: options.assignedMineral,
-            military: options.military,
-            responseTarget: options.responseTarget,
-            targetRoom: options.targetRoom,
-            operation: options.operation,
-            siegePoint: options.siegePoint,
-            staging: options.staging,
-            waitFor: options.waitFor,
-            reservationTarget: options.reservationTarget,
-            initialBuilder: options.initialBuilder,
-            localCache: options.localCache,
-            reboot: options.reboot,
-            misc: options.misc
-        };
-        if (!military) {
-            roomQueue[room.name] = cache;
-        } else {
-            militaryQueue = cache;
-        }
-    }
-}
-
-function queueMilitaryCreep(importance, options = {}) {
-    let cache;
-    cache = militaryQueue || {};
-    if (cache[options.role]) return;
-    _.defaults(options, {
-        role: undefined,
-        assignedSource: undefined,
-        destination: undefined,
-        assignedMineral: undefined,
-        military: undefined,
-        responseTarget: undefined,
-        targetRoom: undefined,
-        operation: undefined,
-        siegePoint: undefined,
-        staging: undefined,
-        waitFor: undefined,
-        reservationTarget: undefined,
-        initialBuilder: undefined,
-        reboot: undefined,
-        misc: undefined
-    });
-    let key = options.role;
-    cache[key] = {
-        cached: Game.time,
-        importance: importance,
-        role: options.role,
-        assignedSource: options.assignedSource,
-        destination: options.destination,
-        assignedMineral: options.assignedMineral,
-        military: options.military,
-        responseTarget: options.responseTarget,
-        targetRoom: options.targetRoom,
-        operation: options.operation,
-        siegePoint: options.siegePoint,
-        staging: options.staging,
-        waitFor: options.waitFor,
-        reservationTarget: options.reservationTarget,
-        initialBuilder: options.initialBuilder,
-        reboot: options.reboot,
-        misc: options.misc
-    };
-    militaryQueue = cache;
-}
-
+//First Room Startup
 module.exports.roomStartup = function (room) {
     let queue = roomQueue[room.name];
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
@@ -269,6 +175,7 @@ module.exports.roomStartup = function (room) {
     }
 }
 
+//Essential creeps
 module.exports.essentialCreepQueue = function (room) {
     //Static room info
     let queue = roomQueue[room.name];
@@ -394,11 +301,11 @@ module.exports.miscCreepQueue = function (room) {
     let queueTracker = lastQueue[room.name] || {};
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
-    //Worker
-    if (room.constructionSites.length && !_.includes(queue, 'worker') && !room.memory.responseNeeded) {
-        let workers = _.filter(roomCreeps, (creep) => creep.memory.role === 'worker');
-        if (workers.length < 2) {
-            queueCreep(room, PRIORITIES.worker, {role: 'worker'})
+    //Drones
+    if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') && !room.memory.responseNeeded) {
+        let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
+        if (drones.length < roomSourceSpace[room.name]) {
+            queueCreep(room, PRIORITIES.drone, {role: 'drone'})
         }
     }
     //LabTech
@@ -490,8 +397,7 @@ module.exports.miscCreepQueue = function (room) {
     lastQueue[room.name] = queueTracker;
 };
 
-let remoteHives = {};
-let skRooms = {};
+//Remote creeps
 module.exports.remoteCreepQueue = function (room) {
     room.memory.remoteRange = undefined;
     let level = getLevel(room);
@@ -660,6 +566,7 @@ module.exports.remoteCreepQueue = function (room) {
     }
 };
 
+//Military creeps
 module.exports.militaryCreepQueue = function () {
     if (!_.size(Memory.targetRooms)) return;
     let queue = militaryQueue;
@@ -973,10 +880,119 @@ module.exports.militaryCreepQueue = function () {
     }
 };
 
-function checkIfSK(roomName) {
-    let parsed;
-    if (!parsed) parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-    let fMod = parsed[1] % 10;
-    let sMod = parsed[2] % 10;
-    return !(fMod === 5 && sMod === 5) && ((fMod >= 4) && (fMod <= 6)) && ((sMod >= 4) && (sMod <= 6));
+function queueCreep(room, importance, options = {}, military = false) {
+    let cache;
+    if (!military) {
+        cache = roomQueue[room.name] || {};
+        if (cache[options.role]) return;
+    } else {
+        cache = militaryQueue || {};
+        if (cache[options.role]) return;
+    }
+    _.defaults(options, {
+        role: undefined,
+        assignedSource: undefined,
+        destination: undefined,
+        assignedMineral: undefined,
+        military: undefined,
+        responseTarget: undefined,
+        targetRoom: undefined,
+        operation: undefined,
+        siegePoint: undefined,
+        staging: undefined,
+        waitFor: undefined,
+        reservationTarget: undefined,
+        initialBuilder: undefined,
+        localCache: undefined,
+        reboot: undefined,
+        misc: undefined
+    });
+    if (room) {
+        let key = options.role;
+        cache[key] = {
+            cached: Game.time,
+            room: room.name,
+            importance: importance,
+            role: options.role,
+            assignedSource: options.assignedSource,
+            destination: options.destination,
+            assignedMineral: options.assignedMineral,
+            military: options.military,
+            responseTarget: options.responseTarget,
+            targetRoom: options.targetRoom,
+            operation: options.operation,
+            siegePoint: options.siegePoint,
+            staging: options.staging,
+            waitFor: options.waitFor,
+            reservationTarget: options.reservationTarget,
+            initialBuilder: options.initialBuilder,
+            localCache: options.localCache,
+            reboot: options.reboot,
+            misc: options.misc
+        };
+        if (!military) {
+            roomQueue[room.name] = cache;
+        } else {
+            militaryQueue = cache;
+        }
+    }
+}
+
+function queueMilitaryCreep(importance, options = {}) {
+    let cache;
+    cache = militaryQueue || {};
+    if (cache[options.role]) return;
+    _.defaults(options, {
+        role: undefined,
+        assignedSource: undefined,
+        destination: undefined,
+        assignedMineral: undefined,
+        military: undefined,
+        responseTarget: undefined,
+        targetRoom: undefined,
+        operation: undefined,
+        siegePoint: undefined,
+        staging: undefined,
+        waitFor: undefined,
+        reservationTarget: undefined,
+        initialBuilder: undefined,
+        reboot: undefined,
+        misc: undefined
+    });
+    let key = options.role;
+    cache[key] = {
+        cached: Game.time,
+        importance: importance,
+        role: options.role,
+        assignedSource: options.assignedSource,
+        destination: options.destination,
+        assignedMineral: options.assignedMineral,
+        military: options.military,
+        responseTarget: options.responseTarget,
+        targetRoom: options.targetRoom,
+        operation: options.operation,
+        siegePoint: options.siegePoint,
+        staging: options.staging,
+        waitFor: options.waitFor,
+        reservationTarget: options.reservationTarget,
+        initialBuilder: options.initialBuilder,
+        reboot: options.reboot,
+        misc: options.misc
+    };
+    militaryQueue = cache;
+}
+
+function determineEnergyOrder(room) {
+    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+    let energyStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
+    let rangeArray = [];
+    let usedIdArray = [];
+    for (let x = 0; x < energyStructures.length; x++) {
+        let nextClosest = hub.findClosestByPath(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
+        if (!nextClosest) break;
+        usedIdArray.push(nextClosest.id);
+        rangeArray.push(nextClosest);
+    }
+    storedLevel[room.name] = getLevel(room);
+    energyOrder[room.name] = JSON.stringify(rangeArray);
 }

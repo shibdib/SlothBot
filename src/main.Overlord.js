@@ -28,7 +28,7 @@ module.exports.overlordMind = function (room) {
     if (((room.controller.level < 4 && Game.time % 20 === 0) || (storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 1500 === 0) && cpuBucket >= 1000) {
         cpu = Game.cpu.getUsed();
         // Request builders
-        requestBuilders(room);
+        if (Math.random() > 0.7) requestBuilders(room);
         // Fix broken
         if (room.memory.bunkerHub && room.memory.extensionHub) room.memory.extensionHub = undefined;
         // Backwards compatible
@@ -279,13 +279,7 @@ function cacheRoomItems(room) {
 }
 
 function requestBuilders(room) {
-    let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
-    let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military);
-    if (!spawns.length || roomCreeps.length < 4 || getLevel(room) !== room.controller.level || _.size(_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)) > 2) {
-        room.memory.buildersNeeded = true;
-    } else {
-        room.memory.buildersNeeded = undefined;
-    }
+    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.size(_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)) > 2);
 }
 
 function bunkerConversion(room) {

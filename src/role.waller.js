@@ -7,7 +7,7 @@ module.exports.role = function (creep) {
     creep.say(ICONS.castle, true);
     //If short on harvesters become one
     let harvesters = _.filter(creep.room.creeps, (c) => (c.my && c.memory.role === 'stationaryHarvester'));
-    if (harvesters.length < 2) return creep.memory.role = 'stationaryHarvester';
+    if (!harvesters.length) return creep.memory.role = 'stationaryHarvester';
     if (creep.wrongRoom()) return;
     if (creep.carry.energy === 0) {
         creep.memory.working = undefined;
