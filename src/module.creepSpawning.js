@@ -385,6 +385,18 @@ module.exports.miscCreepQueue = function (room) {
                 })
             }
         }
+        // Power Level
+        let sayHello = shuffle(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level && _.includes(FRIENDLIES, r.user) && Game.map.getRoomLinearDistance(room.name, r.name) <= 7))[0];
+        if (sayHello && !room.memory.responseNeeded && !_.includes(queue, 'messenger')) {
+            let messengers = _.filter(Game.creeps, (creep) => creep.memory.role === 'messenger');
+            let currentMessenger = _.filter(Game.creeps, (creep) => creep.memory.destination === sayHello.name && creep.memory.role === 'messenger');
+            if (!currentMessenger.length && messengers.length < 3) {
+                queueCreep(room, PRIORITIES.explorer, {
+                    role: 'messenger',
+                    destination: sayHello.name
+                })
+            }
+        }
     }
     // Log queue tracking
     lastQueue[room.name] = queueTracker;

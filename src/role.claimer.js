@@ -7,8 +7,7 @@ module.exports.role = function (creep) {
     if (creep.memory.operation === 'claimClear') return creep.claimClear();
     //Initial move
     if (!creep.memory.destinationReached) {
-        let destination = new RoomPosition(25, 25, creep.memory.destination, {range: 17});
-        creep.shibMove(destination, {range: 17});
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 17});
         if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     } else {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;

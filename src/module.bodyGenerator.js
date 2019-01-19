@@ -15,6 +15,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'observer':
             move = 1;
             break;
+        case 'messenger':
+            move = 1;
+            break;
         case 'proximityScout':
             move = 1;
             break;
