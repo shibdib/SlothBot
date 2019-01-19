@@ -18,8 +18,8 @@ module.exports.processBuildQueue = function () {
     let spawns = Game.spawns;
     for (let key in spawns) {
         let spawn = spawns[key];
-        if (!energyOrder[spawn.pos.roomName] || storedLevel[spawn.pos.roomName] !== getLevel(spawn.room)) determineEnergyOrder(spawn.room);
         let level = getLevel(spawn.room);
+        if (!energyOrder[spawn.pos.roomName] || storedLevel[spawn.pos.roomName] !== level) determineEnergyOrder(spawn.room);
         if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
         let oldest = _.min(roomQueue[spawn.room.name], 'cached');
         if (oldest.priority > 3 && oldest.cached + 100 < Game.time) {
@@ -181,13 +181,6 @@ module.exports.essentialCreepQueue = function (room) {
     let queue = roomQueue[room.name];
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
-    // Drones until level 4
-    if (level < 4 && !_.includes(queue, 'drone')) {
-        let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
-        if (drones.length < roomSourceSpace[room.name] * 0.5) {
-            queueCreep(room, PRIORITIES.drone, {role: 'drone'})
-        }
-    }
     //Harvesters
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
@@ -465,39 +458,41 @@ module.exports.remoteCreepQueue = function (room) {
             }
             if (roomThreat) continue;
             let remoteRoom = Game.rooms[remotes[keys]];
-            //Pioneers
-            if (level >= 4 && !_.includes(queue, 'pioneer') && Memory.roomCache[remotes[keys]] && !TEN_CPU && remoteRoom) {
-                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'pioneer');
-                if (pioneers.length < 1) {
-                    queueCreep(room, PRIORITIES.remotePioneer, {
-                        role: 'pioneer',
-                        destination: remotes[keys],
-                        localCache: true
-                    })
-                }
-            }
-            //Reserver
-            if (level >= 4 && !_.includes(queue, 'reserver') && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
-                // Cache number of spaces around sources for things
-                if (!roomControllerSpace[remotes[keys]]) {
-                    let spaces = 1;
-                    if (Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].controller) {
-                        spaces += Game.rooms[remotes[keys]].controller.pos.countOpenTerrainAround();
+            if (level >= 4) {
+                //Pioneers
+                if (level >= 4 && !_.includes(queue, 'pioneer') && Memory.roomCache[remotes[keys]] && !TEN_CPU && remoteRoom) {
+                    let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'pioneer');
+                    if (pioneers.length < 1) {
+                        queueCreep(room, PRIORITIES.remotePioneer, {
+                            role: 'pioneer',
+                            destination: remotes[keys],
+                            localCache: true
+                        })
                     }
-                    roomControllerSpace[remotes[keys]] = spaces;
                 }
-                let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
-                if (reserver.length < 1) {
-                    let priority = PRIORITIES.remoteHarvester + 1;
-                    if (room.memory.energySurplus) priority = PRIORITIES.remoteHarvester;
-                    queueCreep(room, priority, {
-                        role: 'reserver',
-                        reservationTarget: remotes[keys]
-                    })
+                //Reserver
+                if (level >= 4 && !_.includes(queue, 'reserver') && !TEN_CPU && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
+                    // Cache number of spaces around sources for things
+                    if (!roomControllerSpace[remotes[keys]]) {
+                        let spaces = 1;
+                        if (Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].controller) {
+                            spaces += Game.rooms[remotes[keys]].controller.pos.countOpenTerrainAround();
+                        }
+                        roomControllerSpace[remotes[keys]] = spaces;
+                    }
+                    let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
+                    if (reserver.length < 1) {
+                        let priority = PRIORITIES.remoteHarvester + 1;
+                        if (room.memory.energySurplus) priority = PRIORITIES.remoteHarvester;
+                        queueCreep(room, priority, {
+                            role: 'reserver',
+                            reservationTarget: remotes[keys]
+                        })
+                    }
                 }
             }
             //Harvesters
-            if (!_.includes(queue, 'remoteHarvester') && !TEN_CPU && (level < 1 || !skRooms[room.name])) {
+            if (!_.includes(queue, 'remoteHarvester') && !TEN_CPU) {
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources && room.energy < ENERGY_AMOUNT) sourceCount = Memory.roomCache[remotes[keys]].sources;
