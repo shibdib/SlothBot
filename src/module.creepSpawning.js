@@ -353,29 +353,35 @@ module.exports.essentialCreepQueue = function (room) {
         }
         // Assist room
         if (level >= 4) {
-            let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15))[0];
-            if (needyRoom && !room.memory.responseNeeded) {
-                if (!_.includes(queue, 'drone')) {
-                    let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
-                    let amount = roomSourceSpace[needyRoom.name] + 2;
-                    if (drones.length < amount) {
-                        queueCreep(room, PRIORITIES.assistPioneer, {
-                            role: 'drone',
-                            destination: needyRoom.name
-                        });
+            let needyRooms = _.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15);
+            if (needyRooms.length && !room.memory.responseNeeded) {
+                for (let needyRoom of needyRooms) {
+                    if (!_.includes(queue, 'drone')) {
+                        let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
+                        let amount = roomSourceSpace[needyRoom.name] + 2;
+                        if (drones.length < amount) {
+                            queueCreep(room, PRIORITIES.assistPioneer, {
+                                role: 'drone',
+                                destination: needyRoom.name
+                            });
+                        }
                     }
                 }
             }
             // Remote response
-            let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && Game.map.getRoomLinearDistance(room.name, r.name) <= 15))[0];
-            if (responseNeeded && !_.includes(queue, 'remoteResponse') && !room.memory.responseNeeded) {
-                let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseNeeded.name && creep.memory.role === 'remoteResponse');
-                if (responder.length < 3) {
-                    queueCreep(room, PRIORITIES.remoteResponse, {
-                        role: 'remoteResponse',
-                        responseTarget: responseNeeded.name,
-                        military: true
-                    })
+            let responseNeeded = _.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && Game.map.getRoomLinearDistance(room.name, r.name) <= 15);
+            if (responseNeeded.length && !room.memory.responseNeeded) {
+                for (let responseRoom of responseNeeded) {
+                    if (!_.includes(queue, 'remoteResponse')) {
+                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseRoom.name && creep.memory.role === 'remoteResponse');
+                        if (responder.length < 3) {
+                            queueCreep(room, PRIORITIES.remoteResponse, {
+                                role: 'remoteResponse',
+                                responseTarget: responseRoom.name,
+                                military: true
+                            })
+                        }
+                    }
                 }
             }
         }
