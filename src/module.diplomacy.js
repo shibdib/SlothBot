@@ -10,7 +10,10 @@ function threatManager() {
     Memory._nuisance = [];
     Memory._threatList = [];
     for (let key in Memory._badBoyList) {
-        if (key === MY_USERNAME) continue;
+        if (key === MY_USERNAME) {
+            delete Memory._badBoyList[key];
+            continue;
+        }
         let threat = Memory._badBoyList[key];
         if (threat.lastAction + 25 < Game.time) {
             // Scaled threat decrease
@@ -26,7 +29,7 @@ function threatManager() {
                 Memory._badBoyList[key].threatRating = newRating;
             }
         }
-        if (Memory._badBoyList[key].threatRating > 1000) {
+        if (Memory._badBoyList[key].threatRating > 250) {
             Memory._enemies.push(key);
         } else if (Memory._badBoyList[key].threatRating > 25) {
             Memory._nuisance.push(key);
@@ -37,9 +40,8 @@ function threatManager() {
         let display = key.substring(0, length) + '-' + Memory._badBoyList[key].threatRating;
         Memory._badBoyArray.push(display);
     }
-    if (Game.time % 100 === 0) {
-        log.a('Current Enemies: ' + Memory._enemies);
-        log.a('Current Nuisances: ' + Memory._nuisance);
-        log.a('Current Threats: ' + Memory._threatList);
-    }
+    // Add manual enemies
+    Memory._enemies = _.union(Memory._enemies, HOSTILES);
+    // If Not Standard Server everyone except manually specified are hostile
+    if (!_.includes(['shard0', 'shard1', 'shard2', 'shard3'], Game.shard.name)) Memory._enemies = _.filter(_.union(Memory._enemies, _.uniq(_.pluck(Memory.roomCache, 'user'))), (p) => !_.includes(MANUAL_FRIENDS, p));
 }

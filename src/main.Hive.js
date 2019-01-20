@@ -13,6 +13,16 @@ module.exports.hiveMind = function () {
     let cpuBucket = Game.cpu.bucket;
 
     let cpu;
+    // Handle Diplomacy
+    cpu = Game.cpu.getUsed();
+    try {
+        diplomacy.diplomacyOverlord();
+    } catch (e) {
+        log.e('Diplomacy Module experienced an error');
+        log.e(e.stack);
+        Game.notify(e.stack);
+    }
+    shib.shibBench('diplomacyControl', cpu);
     // High Command
     cpu = Game.cpu.getUsed();
     try {
@@ -23,7 +33,6 @@ module.exports.hiveMind = function () {
         Game.notify(e.stack);
     }
     shib.shibBench('highCommand', cpu);
-
     // Handle Labs
     cpu = Game.cpu.getUsed();
     if (Game.cpu.bucket > 5000) {
@@ -36,18 +45,6 @@ module.exports.hiveMind = function () {
         }
     }
     shib.shibBench('labControl', cpu);
-
-    // Handle Diplomacy
-    cpu = Game.cpu.getUsed();
-    try {
-        diplomacy.diplomacyOverlord();
-    } catch (e) {
-        log.e('Diplomacy Module experienced an error');
-        log.e(e.stack);
-        Game.notify(e.stack);
-    }
-    shib.shibBench('diplomacyControl', cpu);
-
     // Military first
     let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military));
     for (let key in militaryCreeps) {
@@ -59,7 +56,6 @@ module.exports.hiveMind = function () {
             Game.notify(e.stack);
         }
     }
-
     // Process Overlords
     let processed = 0;
     for (let key in Memory.ownedRooms) {
@@ -73,7 +69,6 @@ module.exports.hiveMind = function () {
         }
         processed++;
     }
-    
     //Expansion Manager
     if (Game.time % 150 === 0) {
         let overlordCount = Memory.ownedRooms.length;
@@ -97,7 +92,6 @@ module.exports.hiveMind = function () {
             }
         }
     }
-
     //Non room specific creep spawning
     if (Game.time % 3 === 0) {
         cpu = Game.cpu.getUsed();
@@ -132,7 +126,7 @@ module.exports.hiveMind = function () {
         }
         shib.shibBench('roomHud', cpu);
     }
-}
+};
 
 function minionController(minion) {
     // Disable notifications

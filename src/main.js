@@ -230,4 +230,7 @@ status = function (roomName = undefined, creep = false) {
         }
         log.e('---------------------------------------------------------------------------');
     }
+    log.e('Current Enemies: ' + Memory._enemies);
+    log.e('Current Nuisances: ' + Memory._nuisance);
+    log.e('Current Threats: ' + Memory._threatList);
 };

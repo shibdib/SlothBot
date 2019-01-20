@@ -29,35 +29,33 @@ module.exports.controller = function (room) {
     // Abandon hopeless rooms
     if (Game.time % 5 === 0) unsavableCheck(room);
 
-    //TODO: ramparts up unless ally in room and no enemies near him
+    //Manage Ramparts for Allies
     rampartManager(room, structures);
 
     // Early Warning System
     //earlyWarning(room);
 
     // Send an email on a player attack with details of attack
-    if (room.memory.responseNeeded && !room.memory.alertEmail) {
+    if (room.memory.responseNeeded && !room.memory.alertEmail && room.memory.threatLevel >= 4) {
         room.memory.alertEmail = true;
-        if (room.memory.threatLevel >= 4) {
-            let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && c.owner.username !== 'Invader')[0];
-            if (!playerHostile || !playerHostile.length) return;
-            let hostileOwners = [];
-            for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
-            Game.notify('----------------------');
-            Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
-            Game.notify('----------------------');
-            Game.notify(room.memory.numberOfHostiles + ' - Foreign Hostiles Reported');
-            Game.notify('----------------------');
-            Game.notify('Hostile Owners - ' + hostileOwners.toString());
-            Game.notify('----------------------');
-            log.a('----------------------');
-            log.a(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
-            log.a('----------------------');
-            log.a(room.memory.numberOfHostiles + ' - Foreign Hostiles Reported');
-            log.a('----------------------');
-            log.a('Hostile Owners - ' + hostileOwners.toString());
-            log.a('----------------------');
-        }
+        let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && c.owner.username !== 'Invader')[0];
+        if (!playerHostile || !playerHostile.length) return;
+        let hostileOwners = [];
+        for (let hostile of playerHostile) hostileOwners.push(hostile.owner.username)
+        Game.notify('----------------------');
+        Game.notify(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
+        Game.notify('----------------------');
+        Game.notify(room.memory.numberOfHostiles + ' - Foreign Hostiles Reported');
+        Game.notify('----------------------');
+        Game.notify('Hostile Owners - ' + hostileOwners.toString());
+        Game.notify('----------------------');
+        log.a('----------------------');
+        log.a(room.name + ' - Enemy detected, room is now in FPCON DELTA.');
+        log.a('----------------------');
+        log.a(room.memory.numberOfHostiles + ' - Foreign Hostiles Reported');
+        log.a('----------------------');
+        log.a('Hostile Owners - ' + hostileOwners.toString());
+        log.a('----------------------');
     }
 
     // Request assistance
@@ -68,9 +66,6 @@ module.exports.controller = function (room) {
             room.memory.requestingSupport = true;
         }
     }
-
-    // Manage remote/room standby responders
-    manageResponseForces()
 };
 
 //Functions
@@ -84,7 +79,7 @@ function rampartManager(room, structures) {
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && !s.isPublic && !s.pos.checkForObstacleStructure() && s.pos.getRangeTo(s.pos.findClosestByRange(allies)) <= 1 && (!enemies.length || s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) > 2)).forEach((rampart) => rampart.setPublic(true));
         // Close ramparts
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic && (s.pos.getRangeTo(s.pos.findClosestByRange(allies)) > 1 || (enemies.length && s.pos.getRangeTo(s.pos.findClosestByRange(enemies)) <= 2))).forEach((rampart) => rampart.setPublic(false));
-    } else {
+    } else if (room.hostileCreeps.length) {
         // Close public ones
         _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.isPublic).forEach((rampart) => rampart.setPublic(false));
     }
@@ -92,19 +87,15 @@ function rampartManager(room, structures) {
 
 function safeModeManager(room) {
     if (!room.hostileCreeps.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || !_.inRange(room.controller.level, _.max(Memory.ownedRooms, 'controller.level').controller.level - 1, _.max(Memory.ownedRooms, 'controller.level').controller.level + 1)) return;
-    if (room.controller.level < 3) {
-        return room.controller.activateSafeMode();
-    } else {
-        let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
-        let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
-        structureCount[room.name] = worthyCount;
-        if (structureLost) {
-            let ownerArray = [];
-            room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
-            room.controller.activateSafeMode();
-            log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
-            Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
-        }
+    let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
+    let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
+    structureCount[room.name] = worthyCount;
+    if (structureLost) {
+        let ownerArray = [];
+        room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));
+        room.controller.activateSafeMode();
+        log.a(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
+        Game.notify(roomLink(room.name) + ' has entered safemode with ' + room.hostileCreeps.length + ' attackers in the room, creep owners: ' + _.uniq(ownerArray).toString());
     }
 }
 
@@ -114,32 +105,10 @@ function earlyWarning(room) {
     room.memory.earlyWarning = !!earlyWarning.length;
 }
 
-function manageResponseForces() {
-    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded), 'memory.threatLevel');
-    if (!responseTargets || !responseTargets.name) {
-        let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
-        if (highestHeat) {
-            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
-            for (let creep of idleResponders) {
-                creep.memory.responseTarget = highestHeat.name;
-                creep.memory.awaitingOrders = undefined;
-                log.a(creep.name + ' reassigned to guard ' + highestHeat.name + ' from ' + creep.room.name);
-            }
-        }
-    } else {
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
-        for (let creep of idleResponders) {
-            creep.memory.responseTarget = responseTargets.name;
-            creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
-        }
-    }
-}
-
 function unsavableCheck(room) {
     // Abandon Bad Rooms
-    if (room.controller.safeMode) return;
-    let hostiles = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
+    if (room.controller.safeMode || !room.hostileCreeps.length) return;
+    let hostiles = _.filter(room.hostileCreeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
     let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TOWER && s.my);
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     let badCount = room.memory.badCount || 0;

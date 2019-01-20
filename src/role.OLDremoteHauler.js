@@ -3,7 +3,6 @@
  */
 
 module.exports.role = function (creep) {
-    if (!creep.memory.destination) return creep.suicide();
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return;
@@ -18,6 +17,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName === creep.memory.overlord) {
             // If carrying minerals deposit in terminal or storage
             if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
+            creep.memory.destinationReached = false;
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 for (const resourceType in creep.carry) {
@@ -37,24 +37,38 @@ module.exports.role = function (creep) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
     } else {
+        // Set harvester pairing
+        if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
+            let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKworker') && !c.memory.hauler)[0];
+            if (!remoteHarvester) return creep.idleFor(5);
+            creep.memory.harvester = remoteHarvester.id;
+            remoteHarvester.memory.hauler = creep.id;
+            return;
+        }
+        // Set Harvester and move to them if not nearby
+        let pairedHarvester = Game.getObjectById(creep.memory.harvester);
         // Handle Moving
-        if (creep.room.name !== creep.memory.destination) {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
+        if (creep.room.name !== pairedHarvester.room.name) {
+            return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 22, offRoad: true});
         } else {
-            let container = _.max(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY]), 'store[RESOURCE_ENERGY]');
-            if (container) {
-                for (const resourceType in container.store) {
-                    if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
-                        creep.shibMove(container, {offRoad: true});
+            if (pairedHarvester.memory.containerID) {
+                let container = Game.getObjectById(pairedHarvester.memory.containerID);
+                if (container && _.sum(container.store) > 50) {
+                    for (const resourceType in container.store) {
+                        if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
+                            creep.shibMove(container, {offRoad: true});
+                        }
                     }
+                } else {
+                    creep.idleFor(5);
                 }
-            } else if (_.filter(creep.room.droppedEnergy, (e) => e.amount >= 50)) {
-                let dropped = _.max(creep.room.droppedEnergy, 'amount');
+            } else if (pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0]) {
+                let dropped = pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0];
                 if (creep.pickup(dropped) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(dropped, {offRoad: true});
                 }
             } else {
-                return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
+                return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 22, offRoad: true});
             }
         }
     }

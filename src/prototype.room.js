@@ -147,7 +147,7 @@ Object.defineProperty(Room.prototype, 'creeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = _.filter(this.creeps, (c) => (!c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username || c.owner.username === 'Invader'))));
+            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._nuisance, c.owner.username)));
         }
         return this._Hostilecreeps;
     },
@@ -158,7 +158,7 @@ Object.defineProperty(Room.prototype, 'hostileCreeps', {
 Object.defineProperty(Room.prototype, 'friendlyCreeps', {
     get: function () {
         if (!this._friendlyCreeps) {
-            this._friendlyCreeps = _.filter(this.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !_.includes(Memory._threatList, c.owner.username));
+            this._friendlyCreeps = _.filter(this.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !_.includes(Memory._nuisance, c.owner.username));
         }
         return this._friendlyCreeps;
     },
@@ -252,8 +252,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     urgentMilitary(this);
     let room = Game.rooms[this.name];
-    let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level;
+    let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
+        closestRange, important;
     if (room) {
+        // Get range to nearest room of yours
+        closestRange = this.findClosestOwnedRoom(true);
         // Get special rooms via name
         let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
         let isHighway = (parsed[1] % 10 === 0) ||
@@ -273,9 +276,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             controller = JSON.stringify(room.controller);
             level = room.controller.level || undefined;
             // Handle claim targets
-            let safemodeCooldown = this.controller.safeModeCooldown;
-            let range = this.findClosestOwnedRoom(true);
-            if (sources.length > 1 && (!user || user === MY_USERNAME) && !barriers && !safemodeCooldown && range <= 10 && range > 2) {
+            if (sources.length > 1 && !level && (!user || user === MY_USERNAME) && !barriers && !this.controller.safeModeCooldown && closestRange <= 7 && closestRange > 2) {
                 // All rooms start at 5000
                 let baseScore = 5000;
                 // Get source distance from controller
@@ -299,11 +300,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 // If it's a new mineral add to the score
                 if (!_.includes(Memory.ownedMineral, room.mineral[0].mineralType)) baseScore += 100;
                 claimWorthy = baseScore > 0;
+                if (claimWorthy) important = true;
                 claimValue = baseScore;
-            } else {
-                claimValue = undefined;
-                claimWorthy = undefined;
             }
+            if (_.includes(HOSTILES, user)) important = true;
             // Handle abandoned rooms
             if (!isHighway && !sk && !user && structures.length > 2) {
                 needsCleaning = true;
@@ -347,7 +347,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             user: user,
             portal: portal,
             power: power,
-            isHighway: isHighway
+            isHighway: isHighway,
+            closestRange: closestRange,
+            important: important
         };
         Memory.roomCache = cache;
     }
@@ -472,18 +474,18 @@ function urgentMilitary(room) {
     let sendScout, ownerType;
     // Friendly rooms
     if (room.controller) ownerType = room.controller.owner || room.controller.reservation || undefined;
-    if (ownerType && _.includes(FRIENDLIES, ownerType.username)) return;
+    if (!ATTACK_LOCALS || (ownerType && _.includes(FRIENDLIES, ownerType.username))) return;
     let range = room.findClosestOwnedRoom(true);
     // Operation cooldown per room
     if (Memory.roomCache[room.name] && !Memory.roomCache[room.name].manual && Memory.roomCache[room.name].lastOperation && Memory.roomCache[room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
         return
     }
     // Already a target or too far
-    if (Memory.targetRooms[room.name] || range > 5) return;
+    if (Memory.targetRooms[room.name] || range > LOCAL_SPHERE * 2.5) return;
     let otherCreeps = _.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.body.length > 1);
     let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(s.store) > 0);
     if (room.controller) {
-        // If neutral/hostile owned room
+        // If neutral/hostile owned room that is still building
         if (room.controller.owner && !_.includes(FRIENDLIES, room.controller.owner.username) && (room.controller.level < 3 || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length)) {
             sendScout = true;
         }
@@ -493,7 +495,7 @@ function urgentMilitary(room) {
         }
     }
     // If other creeps and nearby
-    if (otherCreeps.length && range <= LOCAL_SPHERE + 2) {
+    if (otherCreeps.length && range <= LOCAL_SPHERE) {
         sendScout = true;
     }
     if (sendScout) {
@@ -512,11 +514,6 @@ Room.prototype.handleNukeAttack = function () {
     if (nukes.length === 0) {
         return false;
     }
-
-    let sorted = _.sortBy(nukes, function (object) {
-        return object.timeToLand;
-    });
-
     let findSaveableStructures = function (object) {
         if (object.structureType === STRUCTURE_ROAD) {
             return false;
@@ -531,13 +528,10 @@ Room.prototype.handleNukeAttack = function () {
             return false;
         }
         return object.structureType !== STRUCTURE_WALL;
-
     };
-
     let isRampart = function (object) {
         return object.structureType === STRUCTURE_RAMPART;
     };
-
     for (let nuke of nukes) {
         if (nuke.timeToLand <= 200) {
             for (let c of nuke.room.creeps) {
@@ -561,7 +555,6 @@ Room.prototype.handleNukeAttack = function () {
             structure.pos.createConstructionSite(STRUCTURE_RAMPART);
         }
     }
-
     return true;
 };
 

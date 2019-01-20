@@ -345,12 +345,13 @@ module.exports.miscCreepQueue = function (room) {
         queueTracker['explorer'] = Game.time;
     }
     //Jerk
-    if (!_.includes(queue, 'jerk') && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
+    /**
+     if (!_.includes(queue, 'jerk') && level >= 2 && !TEN_CPU && !room.memory.responseNeeded) {
         let jerks = _.filter(Game.creeps, (creep) => creep.memory.role === 'jerk' || creep.memory.role === 'explorer');
         if (jerks.length < (10 - level) / 2) {
             queueCreep(room, PRIORITIES.jerk + jerks.length, {role: 'jerk'})
         }
-    }
+    }**/
     //Claim Stuff
     if (!_.includes(queue, 'claimer') && room.memory.claimTarget && !room.memory.responseNeeded) {
         let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'claimer');
@@ -515,6 +516,18 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             }
+            // Remote Hauler
+            if (!_.includes(queue, 'remoteHauler')) {
+                let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.destination === remotes[keys]);
+                let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
+                if (remoteHarvester.length && remoteHauler.length < 1) {
+                    queueCreep(room, PRIORITIES.remoteHauler, {
+                        role: 'remoteHauler',
+                        localCache: true,
+                        destination: remotes[keys]
+                    })
+                }
+            }
         }
         // Border Patrol
         if (level >= 2 && responseNeeded) {
@@ -538,14 +551,6 @@ module.exports.remoteCreepQueue = function (room) {
                     military: true
                 });
             }
-        }
-    }
-    // Remote Hauler
-    if (!_.includes(queue, 'remoteHauler')) {
-        let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'SKworker'));
-        let remoteHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
-        if (remoteHauler.length < remoteHarvester.length) {
-            queueCreep(room, PRIORITIES.remoteHauler, {role: 'remoteHauler', localCache: true})
         }
     }
 

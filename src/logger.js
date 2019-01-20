@@ -94,8 +94,8 @@ class Log {
      * message the console about. For example, you can use this to alert about
      * an incoming enemy attack.
      **/
-    a(message) {
-        this.cprint('ALERT: ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07');
+    a(message, custom = undefined) {
+        if (custom) this.cprint(custom + ': ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07'); else this.cprint('ALERT: ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07');
     }
 
     /**

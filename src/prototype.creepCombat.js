@@ -837,13 +837,13 @@ Creep.prototype.templarCombat = function () {
 Creep.prototype.canIWin = function () {
     if (!this.room.hostileCreeps.length || this.room.name === this.memory.overlord) return true;
     let hostileCombatParts = 0;
-    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0);
+    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && this.pos.getRangeTo(c) <= 8);
     for (let i = 0; i < armedHostiles.length; i++) {
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
     }
     let alliedCombatParts = 0;
-    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0);
+    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0 && this.pos.getRangeTo(c) <= 8);
     for (let i = 0; i < armedFriendlies.length; i++) {
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(ATTACK);
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);

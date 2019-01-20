@@ -6,14 +6,14 @@ module.exports.highCommand = function () {
     if (!Memory.targetRooms) Memory.targetRooms = {};
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
     if (maxLevel < 2) return;
-    // Check for flags
-    if (Game.time % 10 === 0) manualAttacks();
+    // Manage dispatching responders
+    if (Game.time % 10 === 0) manageResponseForces();
+    // Request scouting for new operations
+    if (Game.time % 100 === 0) operationRequests();
     // Manage old operations
     if (Game.time % 50 === 0) manageAttacks();
-
-    // Request scouting for new operations
-    if (Game.time % 3 === 0) operationRequests();
-
+    // Check for flags
+    if (Game.time % 10 === 0) manualAttacks();
     // Send help if needed
     if (Memory._alliedRoomDefense) {
         Memory._alliedRoomDefense.forEach((r) => queueHelp(r));
@@ -22,6 +22,100 @@ module.exports.highCommand = function () {
         Memory._alliedRoomAttack.forEach((r) => queueAllyAttack(r));
     }
 };
+
+module.exports.operationSustainability = function (room) {
+    // Switch to pending if safemodes
+    if (room.controller && room.controller.safeMode) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[room.name] = {
+            tick: tick,
+            type: 'pending',
+            dDay: tick + room.controller.safeMode,
+        };
+        // Set no longer needed creeps to go recycle
+        _.filter(Game.creeps, (c) => c.my && c.memory.targetRoom && c.memory.targetRoom === room.name).forEach((c) => c.memory.recycle = true);
+        return Memory.targetRooms = cache;
+    }
+    let operation = Memory.targetRooms[room.name];
+    if (!operation || operation.sustainabilityCheck === Game.time) return;
+    let friendlyDead = operation.friendlyDead || 0;
+    let trackedFriendly = operation.trackedFriendly || [];
+    let friendlyTombstones = _.filter(room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username));
+    for (let tombstone of friendlyTombstones) {
+        if (_.includes(trackedFriendly, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
+        friendlyDead = friendlyDead + UNIT_COST(tombstone.creep.body);
+        trackedFriendly.push(tombstone.id);
+    }
+    let friendlyForces = _.filter(room.creeps, (c) => c.memory && c.memory.military);
+    let enemyForces = _.filter(room.creeps, (c) => !c.memory);
+    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.14 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
+        friendlyDead = friendlyDead + UNIT_COST(friendlyForces[0].body);
+        trackedFriendly.push(friendlyForces[0].id);
+    }
+    let enemyDead = operation.enemyDead || 0;
+    let trackedEnemy = operation.trackedEnemy || [];
+    let enemyTombstones = _.filter(room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username));
+    for (let tombstone of enemyTombstones) {
+        if (_.includes(trackedEnemy, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
+        operation.lastEnemyKilled = Game.time;
+        enemyDead = enemyDead + UNIT_COST(tombstone.creep.body);
+        trackedEnemy.push(tombstone.id);
+    }
+    operation.enemyDead = enemyDead;
+    operation.friendlyDead = friendlyDead;
+    operation.trackedEnemy = trackedEnemy;
+    operation.trackedFriendly = trackedFriendly;
+    operation.sustainabilityCheck = Game.time;
+    if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
+        (operation.type === 'drain' && (operation.trackedFriendly.length >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time)) {
+        room.cacheRoomIntel(true);
+        log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
+        delete Memory.targetRooms[room.name];
+        Memory.roomCache[room.name].attackCooldown = Game.time;
+        if (operation.type === 'drain') Memory.roomCache[room.name].noDrain = true;
+    } else {
+        Memory.targetRooms[room.name] = operation;
+    }
+};
+
+module.exports.threatManagement = function (creep) {
+    if (!creep.room.controller) return;
+    let user;
+    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
+    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
+    if (!user || (_.includes(FRIENDLIES, user) && !_.includes(Memory._threatList, user))) return;
+    let cache = Memory._badBoyList || {};
+    let threatRating = 50;
+    if (cache[user] && (cache[user]['threatRating'] > 50 || _.includes(FRIENDLIES, user))) threatRating = cache[user]['threatRating'];
+    cache[user] = {
+        threatRating: threatRating,
+        lastAction: Game.time,
+    };
+    Memory._badBoyList = cache;
+};
+
+function manageResponseForces() {
+    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded), 'memory.threatLevel');
+    if (!responseTargets || !responseTargets.name) {
+        let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
+        if (highestHeat) {
+            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
+            for (let creep of idleResponders) {
+                creep.memory.responseTarget = highestHeat.name;
+                creep.memory.awaitingOrders = undefined;
+                log.a(creep.name + ' reassigned to guard ' + highestHeat.name + ' from ' + creep.room.name);
+            }
+        }
+    } else {
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = responseTargets.name;
+            creep.memory.awaitingOrders = undefined;
+            log.a(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
+        }
+    }
+}
 
 function queueHelp(roomName) {
     let cache = Memory.targetRooms || {};
@@ -56,22 +150,17 @@ function queueAllyAttack(roomName) {
 }
 
 function operationRequests() {
+    let baddies = _.union(Memory._enemies, Memory._nuisance);
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout' && target.type !== 'clean').length || 0;
-    let surplusRooms = _.filter(Memory.ownedRooms, (r) => r.memory.energySurplus).length;
     // Harass Targets
-    let enemyHarass, targetLimit;
-    if (HOSTILES.length) {
-        targetLimit = (surplusRooms + 5) - totalCountFiltered;
-        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && _.includes(HOSTILES, r.user) && !Memory.targetRooms[r.name]);
-    } else {
-        targetLimit = surplusRooms - totalCountFiltered;
-        enemyHarass = _.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.level);
-    }
-    if (enemyHarass.length) {
+    if (baddies.length) {
+        let targetLimit = (_.size(Memory.ownedRooms) * 2.5) - totalCountFiltered;
+        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway), 'closestRange');
         for (let target of enemyHarass) {
             if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
             if (lastOperation + 2000 > Game.time) continue;
+            totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout' && target.type !== 'clean').length || 0;
             if (totalCountFiltered >= targetLimit) break;
             totalCountFiltered++;
             let cache = Memory.targetRooms || {};
@@ -81,13 +170,13 @@ function operationRequests() {
                 type: 'attack'
             };
             Memory.targetRooms = cache;
-            break;
+            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND');
         }
     }
     // Clean
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
     if (cleanCount < 2) {
-        let enemyClean = _.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.needsCleaning);
+        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.needsCleaning), 'closestRange');
         if (enemyClean.length) {
             let cleanTarget = _.sample(enemyClean);
             let cache = Memory.targetRooms || {};
@@ -99,24 +188,23 @@ function operationRequests() {
                 priority: 4
             };
             Memory.targetRooms = cache;
+            log.a('Cleaning operation planned for ' + roomLink(cleanTarget.name), 'HIGH COMMAND');
         }
     }
     // Pokes
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-    if (pokeCount < 10) {
-        let enemyHarass;
-        if (HOSTILES.length) {
-            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && _.includes(HOSTILES, r.user)
-                && !Memory.targetRooms[r.name] && !r.level);
-        } else {
-            enemyHarass = _.filter(Memory.roomCache, (r) => r.user && r.cached > Game.time - 50000 && !_.includes(FRIENDLIES, r.user)
-                && !Memory.targetRooms[r.name] && !r.level);
+    if (pokeCount < 5) {
+        let enemyHarass = [];
+        if (baddies.length) {
+            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+        } else if (POKE_NEUTRALS) {
+            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
         }
         if (enemyHarass.length) {
             for (let target of enemyHarass) {
                 if (Memory.targetRooms[target.name]) continue;
                 pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-                if (pokeCount >= 10) break;
+                if (pokeCount >= 5) break;
                 let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
                 if (lastOperation !== 0 && lastOperation + _.random(1000, 5000) > Game.time) continue;
                 Memory.roomCache[target.name].lastPoke = Game.time;
@@ -129,6 +217,7 @@ function operationRequests() {
                     priority: 4
                 };
                 Memory.targetRooms = cache;
+                log.a('Poke operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND');
             }
         }
     }
@@ -217,63 +306,6 @@ function manageAttacks() {
         }
     }
 }
-
-module.exports.operationSustainability = function (room) {
-    // Switch to pending if safemodes
-    if (room.controller && room.controller.safeMode) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[room.name] = {
-            tick: tick,
-            type: 'pending',
-            dDay: tick + room.controller.safeMode,
-        };
-        // Set no longer needed creeps to go recycle
-        _.filter(Game.creeps, (c) => c.my && c.memory.targetRoom && c.memory.targetRoom === room.name).forEach((c) => c.memory.recycle = true);
-        return Memory.targetRooms = cache;
-    }
-    let operation = Memory.targetRooms[room.name];
-    if (!operation || operation.sustainabilityCheck === Game.time) return;
-    let friendlyDead = operation.friendlyDead || 0;
-    let trackedFriendly = operation.trackedFriendly || [];
-    let friendlyTombstones = _.filter(room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username));
-    for (let tombstone of friendlyTombstones) {
-        if (_.includes(trackedFriendly, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
-        friendlyDead = friendlyDead + UNIT_COST(tombstone.creep.body);
-        trackedFriendly.push(tombstone.id);
-    }
-    let friendlyForces = _.filter(room.creeps, (c) => c.memory && c.memory.military);
-    let enemyForces = _.filter(room.creeps, (c) => !c.memory);
-    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.14 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
-        friendlyDead = friendlyDead + UNIT_COST(friendlyForces[0].body);
-        trackedFriendly.push(friendlyForces[0].id);
-    }
-    let enemyDead = operation.enemyDead || 0;
-    let trackedEnemy = operation.trackedEnemy || [];
-    let enemyTombstones = _.filter(room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username));
-    for (let tombstone of enemyTombstones) {
-        if (_.includes(trackedEnemy, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
-        operation.lastEnemyKilled = Game.time;
-        enemyDead = enemyDead + UNIT_COST(tombstone.creep.body);
-        trackedEnemy.push(tombstone.id);
-    }
-    operation.enemyDead = enemyDead;
-    operation.friendlyDead = friendlyDead;
-    operation.trackedEnemy = trackedEnemy;
-    operation.trackedFriendly = trackedFriendly;
-    operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
-        (operation.type === 'drain' && (operation.trackedFriendly.length >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time)) {
-        room.cacheRoomIntel(true);
-        log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
-        delete Memory.targetRooms[room.name];
-        Memory.roomCache[room.name].attackCooldown = Game.time;
-        if (operation.type === 'drain') Memory.roomCache[room.name].noDrain = true;
-    } else {
-        Memory.targetRooms[room.name] = operation;
-    }
-};
-
 
 function manualAttacks() {
     for (let name in Game.flags) {
@@ -558,18 +590,15 @@ function nukeFlag(flag) {
     }
 }
 
-module.exports.threatManagement = function (creep) {
-    if (!creep.room.controller) return;
-    let user;
-    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
-    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
-    if (!user || (_.includes(FRIENDLIES, user) && !_.includes(Memory._threatList, user))) return;
-    let cache = Memory._badBoyList || {};
-    let threatRating = 50;
-    if (cache[user] && (cache[user]['threatRating'] > 50 || _.includes(FRIENDLIES, user))) threatRating = cache[user]['threatRating'];
-    cache[user] = {
-        threatRating: threatRating,
-        lastAction: Game.time,
-    };
-    Memory._badBoyList = cache;
-};
+function checkForNap(user) {
+    // If we have no alliance data return false
+    if (!ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(Memory._enemies, user)) return false;
+    let LOANdata = JSON.parse(ALLIANCE_DATA);
+    let LOANdataKeys = Object.keys(LOANdata);
+    for (let iL = (LOANdataKeys.length - 1); iL >= 0; iL--) {
+        if (LOANdata[LOANdataKeys[iL]].indexOf(user) >= 0 && _.includes(NAP_ALLIANCE, LOANdataKeys[iL])) {
+            return true;
+        }
+    }
+    return false;
+}
