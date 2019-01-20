@@ -74,15 +74,15 @@ module.exports.towerControl = function (room) {
                 }
                 let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1000000 * s.room.controller.level), 'hits');
                 tower.repair(lowestRampart);
-            } else if (tower.energy > tower.energyCapacity * 0.4) {
+            } else if (tower.energy > tower.energyCapacity * 0.25) {
                 let structures = tower.room.structures;
-                let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25);
+                let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.15);
                 if (road.length > 0) {
                     tower.repair(road[0]);
                     continue;
                 }
             }
-            if (tower.energy > tower.energyCapacity * 0.25) {
+            if (tower.energy > tower.energyCapacity * 0.15) {
                 let creeps = tower.room.creeps;
                 let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
                 if (woundedCreep.length > 0) {

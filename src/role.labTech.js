@@ -32,7 +32,8 @@ module.exports.role = function (creep) {
     if (creep.memory.supplier) return supplyLab(creep);
     for (let lab of labs) {
         // If lab doesn't need anything or there isn't anything in the room to give it
-        if (!lab.memory.itemNeeded || (!storage.store[lab.memory.itemNeeded] && !terminal.store[lab.memory.itemNeeded] && !_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0].mineralAmount)) continue;
+        let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0];
+        if (!lab.memory.itemNeeded || (!storage.store[lab.memory.itemNeeded] && !terminal.store[lab.memory.itemNeeded] && !stockedLab)) continue;
         // If lab has correct resource continue
         if (lab.mineralAmount >= 50) continue;
         if (!creep.memory.labHelper) creep.memory.labHelper = lab.id;

@@ -173,7 +173,7 @@ module.exports.roomStartup = function (room) {
             }
         }
     }
-}
+};
 
 //Essential creeps
 module.exports.essentialCreepQueue = function (room) {

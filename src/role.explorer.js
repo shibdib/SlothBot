@@ -17,8 +17,7 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
-            if (creep.room.controller && ((!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) || Math.random() > 0.6) &&
-                !creep.room.controller.owner && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
+            if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
                 let signs = EXPLORED_ROOM_SIGNS;
                 if (Memory.roomCache[creep.room.name].claimValue) signs = ['Overlord AI Room Claim Value - ' + Memory.roomCache[creep.room.name].claimValue, 'Claim Value of ' + Memory.roomCache[creep.room.name].claimValue];
                 if (Memory.roomCache[creep.room.name].needsCleaning) signs = ['Overlord AI Has Marked This Room For Cleaning', 'Overlord AI finds this room filthy, I will return to clean it'];
