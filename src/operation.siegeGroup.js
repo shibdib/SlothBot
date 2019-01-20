@@ -34,7 +34,6 @@ Creep.prototype.siegeGroupRoom = function () {
         if (this.hits < this.hitsMax) this.heal(this);
         // Move to response room if needed
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
-        if (!this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 17})) return this.idleFor(5);
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);

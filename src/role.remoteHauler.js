@@ -41,7 +41,7 @@ module.exports.role = function (creep) {
         if (creep.room.name !== creep.memory.destination) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
         } else {
-            let container = _.max(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY]), 'store[RESOURCE_ENERGY]');
+            let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= creep.carryCapacity * 0.5)[0];
             if (container) {
                 for (const resourceType in container.store) {
                     if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {

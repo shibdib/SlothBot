@@ -171,6 +171,7 @@ function operationRequests() {
             };
             Memory.targetRooms = cache;
             log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND');
+            break;
         }
     }
     // Clean

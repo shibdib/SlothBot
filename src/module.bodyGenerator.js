@@ -316,7 +316,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 2;
                 break;
             } else {
-                work = _.round(0.5 * level);
+                work = 3;
                 carry = 1;
                 move = 2;
                 break;

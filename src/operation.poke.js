@@ -12,7 +12,7 @@ Creep.prototype.pokeRoom = function () {
     if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle;
     // Travel to target
     if (this.room.name !== this.memory.targetRoom) {
-        if (this.room.hostileCreeps) return this.handleMilitaryCreep(false, false, false, true); else return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
+        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
     }
     highCommand.operationSustainability(this.room);
     // Run from unwinnable fights

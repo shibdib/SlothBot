@@ -29,6 +29,7 @@ function shibMove(creep, heading, options = {}) {
         highwayBias: 2.5,
         maxRooms: 1,
         checkPath: false,
+        returnDistance: false,
         badRoom: undefined,
         returnIncomplete: false,
         stayInHub: false,
@@ -236,6 +237,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         }
         if (options.checkPath) return true;
         pathInfo.path = serializePath(creep.pos, ret.path);
+        if (options.returnDistance) return pathInfo.path.length;
         let nextDirection = parseInt(pathInfo.path[0], 10);
         pathInfo.newPos = positionAtDirection(creep.pos, nextDirection);
         pathInfo.target = target;
@@ -605,4 +607,7 @@ Creep.prototype.shibRoute = function (destination, options) {
 };
 Room.prototype.shibRoute = function (destination, options) {
     return findRoute(this.name, destination, options);
+};
+RoomPosition.prototype.shibMove = function (destination, options) {
+    return shibMove(this, destination, options);
 };
