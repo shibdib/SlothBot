@@ -297,7 +297,8 @@ module.exports.miscCreepQueue = function (room) {
     //Drones
     if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') && !room.memory.responseNeeded) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
-        if (drones.length < roomSourceSpace[room.name]) {
+        let amount = roomSourceSpace[room.name] || 1;
+        if (drones.length < amount) {
             queueCreep(room, PRIORITIES.drone, {role: 'drone'})
         }
     }

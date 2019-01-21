@@ -5,9 +5,10 @@
 module.exports.role = function (creep) {
     //If source is set harvest
     if (creep.memory.source) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
         //Make sure you're on the container
         if (!creep.memory.onContainer && creep.memory.containerID) {
-            let container = Game.getObjectById(creep.memory.containerID);
             if (container && creep.pos.getRangeTo(container) > 0) {
                 return creep.shibMove(container, {range: 0});
             } else if (container) {
@@ -23,7 +24,7 @@ module.exports.role = function (creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.containerID && Game.getObjectById(creep.memory.containerID) && creep.memory.linkID && Game.time % 3 === 0 && Game.getObjectById(creep.memory.containerID).store[RESOURCE_ENERGY] > 10) creep.withdraw(Game.getObjectById(creep.memory.containerID), RESOURCE_ENERGY);
+                if (container && creep.memory.linkID && Game.time % 3 === 0 && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
                 if (creep.carry.energy === creep.carryCapacity) return depositEnergy(creep);
                 break;
         }

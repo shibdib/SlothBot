@@ -106,6 +106,7 @@ module.exports.role = function role(creep) {
         }
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
+            creep.say('Energy!', true);
             creep.withdrawEnergy();
         } else {
             creep.memory.harvest = true;
@@ -115,6 +116,7 @@ module.exports.role = function role(creep) {
                 creep.memory.source = source.id;
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             } else {
+                delete creep.memory.harvest;
                 creep.idleFor(5);
             }
         }

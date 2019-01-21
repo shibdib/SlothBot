@@ -66,11 +66,11 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        worker: 3,
-        drone: 4,
-        waller: 5,
+        worker: 6,
+        drone: 6,
+        waller: 6,
         upgrader: 3,
-        mineralHarvester: 5,
+        mineralHarvester: 6,
         repairer: 6,
         // Haulers
         hauler: 2,
@@ -488,6 +488,7 @@ let globals = function () {
         } else {
             global.LOANlist = [];
             Memory.LOANalliance = "";
+            global.ALLIANCE_DATA = undefined;
             return false;
         }
     };

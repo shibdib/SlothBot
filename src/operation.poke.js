@@ -8,6 +8,7 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.pokeRoom = function () {
+    this.room.cacheRoomIntel();
     // Recycle if room is no longer a target
     if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle;
     // Travel to target

@@ -9,11 +9,11 @@ module.exports.role = function (creep) {
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     //Harvest
     if (creep.memory.onContainer) {
+        let container = Game.getObjectById(creep.memory.containerID);
+        if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
         switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
             case OK:
-                let container = Game.getObjectById(creep.memory.containerID);
                 if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-                if (container.hits < container.hitsMax * 0.5) return creep.repair(container);
                 if (_.sum(container.store) >= 1900) {
                     if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
                     creep.idleFor(20);
@@ -143,7 +143,6 @@ function harvestDepositContainer(source, creep) {
             } else {
                 let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
                 if (!site && creep.pos.getRangeTo(source) === 1) {
-                    creep.say(2)
                     creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
                 }
                 if (site) creep.build(site);

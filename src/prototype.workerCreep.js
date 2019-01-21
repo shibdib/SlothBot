@@ -285,7 +285,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= 10000 && this.room.memory.state > 0) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= 10000) {
         this.memory.energyDestination = storage.id;
         return true;
     }
