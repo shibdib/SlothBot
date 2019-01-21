@@ -155,7 +155,7 @@ function operationRequests() {
     // Harass Targets
     if (baddies.length) {
         let targetLimit = (_.size(Memory.ownedRooms) * 2.5) - totalCountFiltered;
-        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway), 'closestRange');
+        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway), 'closestRange');
         for (let target of enemyHarass) {
             if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
@@ -197,9 +197,9 @@ function operationRequests() {
     if (pokeCount < 5) {
         let enemyHarass = [];
         if (baddies.length) {
-            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
         } else if (POKE_NEUTRALS) {
-            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
         }
         if (enemyHarass.length) {
             for (let target of enemyHarass) {

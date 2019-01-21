@@ -198,6 +198,9 @@ status = function (roomName = undefined, creep = false) {
                 }
             }
         }
+        log.e('Current Enemies: ' + Memory._enemies);
+        log.e('Current Nuisances: ' + Memory._nuisance);
+        log.e('Current Threats: ' + Memory._threatList);
         return log.e('---------------------------------------------------------------------------');
     } else if (!creep) {
         let activeRoom = Game.rooms[roomName];
@@ -230,7 +233,4 @@ status = function (roomName = undefined, creep = false) {
         }
         log.e('---------------------------------------------------------------------------');
     }
-    log.e('Current Enemies: ' + Memory._enemies);
-    log.e('Current Nuisances: ' + Memory._nuisance);
-    log.e('Current Threats: ' + Memory._threatList);
 };

@@ -92,7 +92,7 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
+    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000 && !_.filter(this.room.creeps, (c) => c.memory.constructionSite === s.id).length);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -285,7 +285,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= 10000) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= 5000) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -371,7 +371,7 @@ Creep.prototype.fillerEnergy = function () {
 Creep.prototype.getEnergy = function (hauler = false) {
     if (!this.room.memory.hubContainer) hauler = false;
     // chance to check for dropped
-    if (Math.random() > 0.25) {
+    if (Math.random() > 0.5) {
         let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
         if (dropped) {
             this.memory.energyDestination = dropped.id;

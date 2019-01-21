@@ -9,7 +9,7 @@ Creep.prototype.cleanRoom = function () {
     //Check sustaintability
     highCommand.operationSustainability(this.room);
     //If no longer a target recycle
-    if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type === 'Pending') return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type !== 'clean') return this.memory.recycle = true;
     //If hostile creeps present request an escort
     Memory.targetRooms[this.room.name].escort = this.room.hostileCreeps.length;
     // If all targets are cleared kill everything
@@ -18,7 +18,7 @@ Creep.prototype.cleanRoom = function () {
         let worthwhile = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD).length;
         if (worthwhile) {
             target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
-            if (!target) {
+            if (!target && !this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD})) {
                 target = this.findClosestBarrier() || this.findClosestBarrier(true);
             }
         }
@@ -28,7 +28,7 @@ Creep.prototype.cleanRoom = function () {
         if (worthwhile) {
             target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
             // If nothing check that there's not ramparts in the way
-            if (!target) {
+            if (!target && !this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD})) {
                 target = this.findClosestBarrier() || this.findClosestBarrier(true);
             }
         }

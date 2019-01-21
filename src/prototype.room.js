@@ -4,10 +4,7 @@
 'use strict';
 
 Room.prototype.constructionSites = function () {
-    if (!this.constructionSites) {
-        this.constructionSites = JSON.parse(JSON.stringify(this.find(FIND_CONSTRUCTION_SITES)));
-    }
-    return this.constructionSites;
+    return _.filter(Game.constructionSites, (s) => s.pos.roomName === this.name);
 };
 
 Room.prototype.getDroppedResources = function () {

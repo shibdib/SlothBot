@@ -8,7 +8,7 @@ module.exports.segmentManager = function () {
         doNotAggressArray = [MY_USERNAME];
         doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
     }
-    global.FRIENDLIES = JSON.parse(RawMemory.segments[2]) || doNotAggressArray;
+    global.FRIENDLIES = doNotAggressArray;
     if (Game.time % 100 === 0) {
         let helpNeeded = [];
         if (Memory.ownedRooms) {

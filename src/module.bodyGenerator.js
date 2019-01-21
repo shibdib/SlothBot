@@ -4,23 +4,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
     switch (role) {
         // Explorer/Scout
         case 'explorer':
-            move = 1;
-            break;
         case 'scout':
-            move = 1;
-            break;
         case 'claimScout':
-            move = 1;
-            break;
         case 'observer':
-            move = 1;
-            break;
         case 'messenger':
-            move = 1;
-            break;
         case 'proximityScout':
-            move = 1;
-            break;
         case 'herald':
             move = 1;
             break;
@@ -83,6 +71,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'hauler':
+        case 'filler':
             if (level < 5) {
                 carry = level;
                 move = carry;
@@ -100,16 +89,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             } else {
                 carry = 6;
                 move = 3;
-                break;
-            }
-        case 'filler':
-            if (level < 5) {
-                carry = level;
-                move = carry;
-                break
-            } else {
-                carry = _.random(2 * level, 3 * level);
-                move = _.round((carry / 2));
                 break;
             }
         case 'labTech':
@@ -281,7 +260,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         // Remote
         case 'claimer':
-            if (level < 3) break;
             claim = 1;
             move = 1;
             break;
@@ -299,7 +277,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = 20;
             break;
         case 'remoteUpgrader':
-            if (level < 6) return;
             work = level * 2;
             carry = 2;
             move = work + carry;
@@ -316,9 +293,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 2;
                 break;
             } else {
-                work = 3;
+                work = 6;
                 carry = 1;
-                move = 2;
+                move = 3;
                 break;
             }
         case 'remoteHauler':
@@ -327,7 +304,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = carry;
                 break
             } else {
-                carry = _.random(1.25 * level, 3 * level);
+                carry = 7;
                 move = _.round((carry / 2) + 0.5);
                 break;
             }
@@ -361,7 +338,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = 25;
             break;
         case 'powerHauler':
-            if (level < 7) break;
             carry = 25;
             move = 25;
     }

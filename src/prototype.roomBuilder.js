@@ -684,20 +684,36 @@ function buildRoadFromTo(room, start, end) {
     let path = getRoad(room, start.pos, target);
     if (!path) {
         path = start.pos.findPathTo(end, {
+            maxOps: 10000,
+            serialize: false,
+            ignoreCreeps: true,
+            maxRooms: 1,
             costCallback: function (roomName, costMatrix) {
                 for (let site of room.constructionSites) {
                     if (site.structureType === STRUCTURE_ROAD) {
                         costMatrix.set(site.pos.x, site.pos.y, 1);
                     }
                 }
+                for (let road of room.structures) {
+                    if (road.structureType === STRUCTURE_ROAD) {
+                        costMatrix.set(road.pos.x, road.pos.y, 1);
+                    }
+                }
+                for (let road of room.structures) {
+                    if (road.structureType === STRUCTURE_ROAD) {
+                        costMatrix.set(road.pos.x, road.pos.y, 1);
+                    }
+                }
+                let terrain = new Room.Terrain(this.name);
+                for (let y = 0; y < 50; y++) {
+                    for (let x = 0; x < 50; x++) {
+                        let tile = terrain.get(x, y);
+                        if (tile === 0) costMatrix.set(x, y, 15);
+                        if (tile === 1) costMatrix.set(x, y, 200);
+                        if (tile === 2) costMatrix.set(x, y, 15);
+                    }
+                }
             },
-            maxOps: 10000,
-            serialize: false,
-            ignoreCreeps: true,
-            maxRooms: 1,
-            ignoreRoads: false,
-            swampCost: 15,
-            plainCost: 15
         });
         if (path.length) return cacheRoad(room, start.pos, target, path); else return;
     }

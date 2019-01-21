@@ -6,7 +6,6 @@ module.exports.role = function (creep) {
     //If source is set harvest
     if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
-        if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
         //Make sure you're on the container
         if (!creep.memory.onContainer && creep.memory.containerID) {
             if (container && creep.pos.getRangeTo(container) > 0) {
@@ -25,7 +24,7 @@ module.exports.role = function (creep) {
                 break;
             case OK:
                 if (container && creep.memory.linkID && Game.time % 3 === 0 && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
-                if (creep.carry.energy === creep.carryCapacity) return depositEnergy(creep);
+                if (_.sum(creep.carry) === creep.carryCapacity) return depositEnergy(creep);
                 break;
         }
     } else {
@@ -51,26 +50,32 @@ function depositEnergy(creep) {
     //Check if there is extensions
     if (!creep.memory.extensionsFound) extensionFinder(creep);
     //Fill extensions if you have any stored
-    if (creep.room.memory.extensionHub && creep.memory.extensions && extensionFiller(creep)) {
 
-    } else if (creep.memory.linkID) {
-        let link = Game.getObjectById(creep.memory.linkID);
-        if (Game.getObjectById(creep.memory.containerID) && Game.getObjectById(creep.memory.containerID).pos.getRangeTo(link) > 1) link.destroy();
-        creep.transfer(link, RESOURCE_ENERGY);
+    let container = Game.getObjectById(creep.memory.containerID);
+    let link = Game.getObjectById(creep.memory.linkID);
+    if (link) {
+        if (container) {
+            if (container.pos.getRangeTo(link) > 1) return link.destroy();
+            if (container.hits < container.hitsMax * 0.5) {
+                return creep.repair(container);
+            }
+        }
+        if (link.energy < link.energyCapacity) {
+            creep.transfer(link, RESOURCE_ENERGY);
+        } else if (container && _.sum(container.store) >= 1900) {
+            creep.idleFor(20);
+        }
     } else if (!creep.memory.linkAttempt) {
         creep.memory.linkID = harvestDepositLink(creep)
-    } else if (creep.memory.containerID) {
-        let container = Game.getObjectById(creep.memory.containerID);
-        if (Game.getObjectById(creep.memory.linkID) && Game.getObjectById(creep.memory.linkID).pos.getRangeTo(container) > 1) Game.getObjectById(creep.memory.linkID).destroy();
-        if (!container) return creep.memory.containerID = undefined;
-        if (_.sum(container.store) !== container.storeCapacity) {
-            creep.transfer(container, RESOURCE_ENERGY);
-            creep.memory.linkDrop = true;
-        } else if (container.hits < container.hitsMax) {
-            creep.repair(container);
-        } else {
-            creep.idleFor(15);
+    } else if (container) {
+        if (container.hits < container.hitsMax * 0.5) {
+            return creep.repair(container);
+        } else if (_.sum(container.store) >= 1900) {
+            creep.idleFor(20);
         }
+    } else {
+        creep.memory.containerID = undefined;
+        creep.memory.linkID = undefined;
     }
 }
 
