@@ -324,7 +324,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // Store power info
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
         if (power.length && power[0].ticksToDecay >= 2500) power = true; else power = undefined;
-        if (!user && _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader')[0].owner.username;
+        if (!user && _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper')[0].owner.username;
         let potentialTarget;
         if (!user && nonCombats.length >= 2) potentialTarget = true;
         let key = room.name;

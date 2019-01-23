@@ -3,7 +3,6 @@
  */
 
 module.exports.role = function (creep) {
-    if (!creep.memory.destination) return creep.suicide();
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return;

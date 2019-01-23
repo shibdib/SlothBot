@@ -10,7 +10,7 @@ RoomPosition.prototype.checkIfOutOfBounds = function () {
 };
 
 RoomPosition.prototype.getClosestSource = function () {
-    let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() >= _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length});
+    let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() >= _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length + 1});
     if (source === null) {
         source = this.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() >= _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length + 1});
     }
@@ -54,7 +54,7 @@ RoomPosition.prototype.countOpenTerrainAround = function () {
     let swampArray = _.filter(terrainArray, 'terrain', 'swamp');
     let structures = Game.rooms[this.roomName].lookForAtArea(LOOK_STRUCTURES, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
     let impassible = _.filter(structures, (s) => s.structureType !== STRUCTURE_ROAD || s.structureType !== STRUCTURE_CONTAINER || s.structureType !== STRUCTURE_RAMPART);
-    return plainArray.length + swampArray.length - impassible.length + 1;
+    return plainArray.length + swampArray.length - impassible.length;
 };
 
 RoomPosition.prototype.checkForWall = function () {
@@ -107,7 +107,11 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
 };
 
 RoomPosition.prototype.checkForImpassible = function (ignoreWall = false) {
-    if (ignoreWall) if (this.checkForObstacleStructure()) return true; else if (this.checkForObstacleStructure() || this.checkForWall()) return true;
+    if (ignoreWall) {
+        if (this.checkForObstacleStructure()) return true;
+    } else {
+        if (this.checkForObstacleStructure() || this.checkForWall()) return true;
+    }
 };
 
 RoomPosition.prototype.isExit = function () {

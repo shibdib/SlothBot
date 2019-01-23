@@ -194,7 +194,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 matrix = getCreepMatrix(room);
                 getSKMatrix(room, matrix)
             }
-            getHostileMatrix(room, matrix);
+            if (room.hostileCreeps.length) getHostileMatrix(room, matrix);
             addBorderToMatrix(room, matrix);
             return matrix;
         };
@@ -598,7 +598,6 @@ function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
 
-// assigns a function to Creep.prototype: creep.travelTo(destination)
 Creep.prototype.shibMove = function (destination, options) {
     return shibMove(this, destination, options);
 };

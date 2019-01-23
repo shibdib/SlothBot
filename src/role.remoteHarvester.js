@@ -119,7 +119,7 @@ function harvestDepositContainer(source, creep) {
                 if (!site && creep.pos.getRangeTo(source) === 1) {
                     creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
                 }
-                if (site) creep.build(site);
+                if (site && Game.rooms[creep.memory.overlord].controller.level >= 4) creep.build(site);
             }
             break;
         case ERR_NOT_IN_RANGE:

@@ -22,9 +22,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level > 2) move = 3;
             break;
         // General Creeps
+        case 'pioneer':
         case 'drone':
             work = level;
-            carry = _.random(1, level);
+            carry = _.random(2, level);
             move = work + carry;
             break;
         case 'worker':
@@ -267,11 +268,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             claim = 2;
             move = claim;
             break;
-        case 'pioneer':
-            work = _.round((1 * level) / 2);
-            carry = _.round((1 * level) / 3) || 1;
-            move = work + carry;
-            break;
         case 'fuelTruck':
             carry = 20;
             move = 20;
@@ -290,7 +286,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level < 3) {
                 work = 1;
                 carry = 1;
-                move = 2;
+                move = 1;
                 break;
             } else {
                 work = 6;

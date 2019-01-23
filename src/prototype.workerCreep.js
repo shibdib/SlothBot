@@ -51,6 +51,13 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
+    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000 && !_.filter(this.room.creeps, (c) => c.memory.constructionSite === s.id).length);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        return true;
+    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -90,13 +97,6 @@ Creep.prototype.findConstruction = function () {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
-        return true;
-    }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000 && !_.filter(this.room.creeps, (c) => c.memory.constructionSite === s.id).length);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
@@ -415,7 +415,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Container
     let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && this.room.memory.hubContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
-    if ((!hauler || !_.filter(this.room.creeps, (c) => (c.memory.role === 'filler')).length) && container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
+    if ((!hauler || !_.filter(this.room.creeps, (c) => c.my && (c.memory.role === 'filler')).length) && container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
         this.memory.energyDestination = container.id;
         return true;
     }

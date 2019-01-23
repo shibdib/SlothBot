@@ -40,13 +40,16 @@ module.exports.towerControl = function (room) {
                         if (healers.length && tower.pos.getRangeTo(healers[0]) <= 6) {
                             tower.attack(healers[0]);
                             continue towers;
-                        } else if ((!inRangeHealers.length || (healPower < ((towerDamage * towers.length) + inRangeAttackPower) * 0.9)) && ((armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1) || armedHostile[i].owner.username === 'Invader')) {
+                        } else if ((!inRangeHealers.length || (healPower < ((towerDamage * towers.length) + inRangeAttackPower) * 0.9)) && ((armedHostile[i].pos.x < 47 && armedHostile[i].pos.x > 3 && armedHostile[i].pos.y < 47 && armedHostile[i].pos.y > 3) || armedHostile[i].owner.username === 'Invader')) {
                             tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if ((!inRangeHealers.length || (healPower < ((towerDamage * towers.length) + inRangeAttackPower) * 0.95)) && (armedHostile[i].pos.x < 48 && armedHostile[i].pos.x > 1 && armedHostile[i].pos.y < 48 && armedHostile[i].pos.y > 1)) {
+                        } else if ((!inRangeHealers.length || (healPower < ((towerDamage * towers.length) + inRangeAttackPower) * 0.95)) && (armedHostile[i].pos.x < 47 && armedHostile[i].pos.x > 3 && armedHostile[i].pos.y < 47 && armedHostile[i].pos.y > 3)) {
                             tower.attack(armedHostile[i]);
                             continue towers;
                         } else if (armedHostile[i].hits <= 150 * towers.length) {
+                            tower.attack(armedHostile[i]);
+                            continue towers;
+                        } else if (range <= 10) {
                             tower.attack(armedHostile[i]);
                             continue towers;
                         } else if (unArmedHostile[0]) {
@@ -67,7 +70,7 @@ module.exports.towerControl = function (room) {
         }
         if (repairTower.energy > repairTower.energyCapacity * 0.75) {
             let structures = room.structures;
-            let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 1500);
+            let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 12500);
             if (barriers.length > 0) {
                 return repairTower.repair(barriers[0]);
             }
@@ -82,6 +85,10 @@ module.exports.towerControl = function (room) {
             let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.15);
             if (road.length > 0) {
                 return repairTower.repair(road[0]);
+            }
+            let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5250);
+            if (barriers.length > 0) {
+                return repairTower.repair(barriers[0]);
             }
         }
     }

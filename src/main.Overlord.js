@@ -64,6 +64,7 @@ module.exports.overlordMind = function (room) {
     if (Math.random() > 0.7) {
         if (getLevel(room) < 2) {
             spawning.roomStartup(room);
+            if (Math.random() > 0.7) spawning.remoteCreepQueue(room);
         } else {
             if (Math.random() > 0.1 && cpuBucket >= 3000) {
                 try {
@@ -164,7 +165,7 @@ module.exports.overlordMind = function (room) {
 
     // Store Data
     storedLevel[room.name] = room.controller.level;
-    let minerals = Memory.ownedMineral;
+    let minerals = Memory.ownedMineral || [];
     if (!_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
     Memory.ownedMineral = minerals;
 

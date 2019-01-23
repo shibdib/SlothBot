@@ -23,8 +23,8 @@ module.exports.role = function role(creep) {
     if (creep.memory.working === true) {
         creep.memory.source = undefined;
         // Find a task
-        let haulers = _.filter(creep.room.creeps, (c) => c.my && (c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler');
-        let praisers = _.filter(creep.room.creeps, (c) => c.my && (c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader' || c.memory.role === 'remoteUpgrader');
+        let haulers = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler'));
+        let praisers = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader' || c.memory.role === 'remoteUpgrader'));
         // If haulers needed haul
         let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5).length > 0;
         if (creep.memory.task === 'haul' || (creep.carry[RESOURCE_ENERGY] === creep.carryCapacity && haulers.length < 1 && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
@@ -113,6 +113,7 @@ module.exports.role = function role(creep) {
             creep.say('Harvest!', true);
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
+                if (Math.random() > 0.75) return creep.memory.source = undefined;
                 creep.memory.source = source.id;
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             } else {

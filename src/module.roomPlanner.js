@@ -42,9 +42,11 @@ function buildFromLayout(room) {
     for (let structure of filter) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
-        if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType).length) continue;
-        if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType) pos.checkForAllStructure()[0].destroy();
-        if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) pos.createConstructionSite(structure.structureType);
+        if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
+        if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK) pos.checkForAllStructure()[0].destroy();
+        if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+            if (pos.createConstructionSite(structure.structureType) === OK) break;
+        }
     }
     // Hub
     if (room.memory.bunkerVersion < 2 || room.memory.bunkerVersion > 5) {
@@ -58,19 +60,24 @@ function buildFromLayout(room) {
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
         } else {
             if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) room.memory.hubContainer = hub.checkForAllStructure()[0].id;
-            if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
+            if (!hub.checkForConstructionSites() && !hub.checkForObstacleStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
-    } else if (level >= 5) {
-        delete room.memory.hubContainer;
-        let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.isActive());
-        if (links.length) {
-            let a = [];
-            links.forEach((l) => a.push(l.id))
-            room.memory.hubLinks = a;
+    } else {
+        if (level >= 5) {
+            delete room.memory.hubContainer;
+            let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.isActive());
+            if (links.length) {
+                let a = [];
+                links.forEach((l) => a.push(l.id))
+                room.memory.hubLinks = a;
+            }
+        } else {
+            if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) room.memory.hubContainer = hub.checkForAllStructure()[0].id;
+            if (!hub.checkForConstructionSites() && !hub.checkForObstacleStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
     }
     // Ramparts on buildings
-    if (level >= 6 && level === extensionLevel) {
+    if (level >= 2 && level === extensionLevel) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType) && !s.pos.checkForRampart())) {
             if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) break;
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
@@ -103,9 +110,12 @@ function buildFromLayout(room) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
-            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall() && !pos.checkForRoad()) pos.createConstructionSite(STRUCTURE_ROAD);
+            if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
+            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall() && !pos.checkForRoad()) {
+                if (pos.createConstructionSite(structure.structureType) === OK) break;
+            }
         }
-        if (level >= 4) {
+        if (!room.constructionSites.length && level >= 4) {
             let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
             // Controller Road
             let container = Game.getObjectById(room.memory.controllerContainer);
