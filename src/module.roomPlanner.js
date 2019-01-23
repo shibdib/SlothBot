@@ -108,14 +108,12 @@ function buildFromLayout(room) {
         if (level >= 4) {
             let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
             // Controller Road
-            buildRoadAround(room, room.controller.pos);
             let container = Game.getObjectById(room.memory.controllerContainer);
             if (container) {
                 buildRoadFromTo(room, spawn, container);
             }
             // Source Roads
             for (let source of room.sources) {
-                buildRoadAround(room, source.pos);
                 buildRoadFromTo(room, spawn, source);
             }
             // Neighboring Roads
@@ -147,7 +145,6 @@ function buildFromLayout(room) {
                 let mineral = room.find(FIND_MINERALS)[0];
                 let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
                 if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-                buildRoadAround(room, mineral.pos);
                 buildRoadFromTo(room, spawn, mineral);
             }
         }
@@ -392,7 +389,7 @@ function buildRoadFromTo(room, start, end) {
                         let tile = terrain.get(x, y);
                         if (tile === 0) costMatrix.set(x, y, 25);
                         if (tile === 1) costMatrix.set(x, y, 225);
-                        if (tile === 2) costMatrix.set(x, y, 25);
+                        if (tile === 2) costMatrix.set(x, y, 35);
                     }
                 }
                 for (let site of room.constructionSites) {
@@ -427,7 +424,7 @@ function buildRoadAround(room, position) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForRoad() || position.checkForImpassible() || _.size(room.find(FIND_CONSTRUCTION_SITES)) >= 10) return;
+    if (position.checkForRoad() || position.checkForImpassible(true) || _.size(room.find(FIND_CONSTRUCTION_SITES)) >= 10) return;
     if (room.controller.level < 5) {
         if (position.checkForSwamp()) position.createConstructionSite(STRUCTURE_ROAD);
     } else {

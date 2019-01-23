@@ -57,7 +57,7 @@ module.exports.role = function (creep) {
 
 function remoteRoads(creep) {
     if (creep.room.name !== creep.memory.destination) return;
-    return creep.memory.buildAttempt = true;
+    creep.memory.buildAttempt = true;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
@@ -82,7 +82,7 @@ function buildRoadFromTo(room, start, end) {
                     let tile = terrain.get(x, y);
                     if (tile === 0) costMatrix.set(x, y, 25);
                     if (tile === 1) costMatrix.set(x, y, 175);
-                    if (tile === 2) costMatrix.set(x, y, 25);
+                    if (tile === 2) costMatrix.set(x, y, 35);
                 }
             }
             for (let site of room.constructionSites) {
@@ -104,7 +104,7 @@ function buildRoadFromTo(room, start, end) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForImpassible() || _.size(room.constructionSites) >= 5) return false;
+    if (position.checkForImpassible(true) || _.size(room.constructionSites) >= 5) return false;
     return position.createConstructionSite(STRUCTURE_ROAD);
 }
 

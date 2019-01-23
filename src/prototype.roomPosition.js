@@ -54,7 +54,7 @@ RoomPosition.prototype.countOpenTerrainAround = function () {
     let swampArray = _.filter(terrainArray, 'terrain', 'swamp');
     let structures = Game.rooms[this.roomName].lookForAtArea(LOOK_STRUCTURES, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
     let impassible = _.filter(structures, (s) => s.structureType !== STRUCTURE_ROAD || s.structureType !== STRUCTURE_CONTAINER || s.structureType !== STRUCTURE_RAMPART);
-    return plainArray.length + swampArray.length - impassible.length;
+    return plainArray.length + swampArray.length - impassible.length + 1;
 };
 
 RoomPosition.prototype.checkForWall = function () {
@@ -106,8 +106,8 @@ RoomPosition.prototype.checkForAllStructure = function (ramparts = false) {
     }
 };
 
-RoomPosition.prototype.checkForImpassible = function () {
-    if (this.checkForObstacleStructure() || this.checkForWall()) return true;
+RoomPosition.prototype.checkForImpassible = function (ignoreWall = false) {
+    if (ignoreWall) if (this.checkForObstacleStructure()) return true; else if (this.checkForObstacleStructure() || this.checkForWall()) return true;
 };
 
 RoomPosition.prototype.isExit = function () {
