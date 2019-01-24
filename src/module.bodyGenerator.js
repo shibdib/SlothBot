@@ -57,7 +57,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = 1;
                 move = 5;
                 break;
-            } else if (!room.memory.controllerContainer || level < 4) {
+            } else if (!room.memory.controllerContainer || level < 6) {
                 work = level + 1;
                 carry = 1;
                 move = work + carry;
@@ -205,8 +205,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 20;
             } else {
                 rangedAttack = 1;
-                tough = 1;
-                move = 2;
+                move = 1;
             }
             break;
         case 'raider':
@@ -289,9 +288,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 1;
                 break;
             } else {
-                work = 6;
+                work = 4;
                 carry = 1;
-                move = 3;
+                move = 2;
                 break;
             }
         case 'remoteHauler':

@@ -124,7 +124,11 @@ function buildFromLayout(room) {
             }
             // Source Roads
             for (let source of room.sources) {
-                buildRoadFromTo(room, spawn, source);
+                let harvester = _.filter(room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester' && s.memory.containerID && s.memory.source === source.id)[0];
+                if (harvester) {
+                    let container = Game.getObjectById(harvester.memory.containerID);
+                    if (container) buildRoadFromTo(room, spawn, container);
+                }
             }
             // Neighboring Roads
             let neighboring = Game.map.describeExits(spawn.pos.roomName);

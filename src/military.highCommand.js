@@ -280,7 +280,7 @@ function manageAttacks() {
                 continue;
             // Manage Guard
             case 'guard':
-                staleMulti = 3;
+                staleMulti = 2;
                 break;
             // Manage Cleaning
             case 'clean':
@@ -297,6 +297,18 @@ function manageAttacks() {
         if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (3000 * staleMulti) < Game.time) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + key + ' as it has gone stale.');
+            continue;
+        }
+        // Remove allied rooms
+        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && _.includes(FRIENDLIES, Memory.roomCache[key].user)) {
+            delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is a friend.');
+            continue;
+        }
+        // Remove allied rooms
+        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && checkForNap(Memory.roomCache[key].user)) {
+            delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.');
             continue;
         }
         // Delete wave based rooms at the threshold

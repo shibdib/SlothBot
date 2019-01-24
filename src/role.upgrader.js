@@ -26,12 +26,14 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
-    } else if (creep.room.memory.controllerContainer && (creep.room.controller.level >= 4 || Game.getObjectById(creep.room.memory.controllerContainer).store[RESOURCE_ENERGY])) {
+    } else if (creep.room.memory.controllerContainer && (creep.room.controller.level >= 6 || Game.getObjectById(creep.room.memory.controllerContainer).store[RESOURCE_ENERGY])) {
         if (!container) return delete creep.room.memory.controllerContainer;
         if (creep.room.memory.controllerLink && Game.getObjectById(creep.room.memory.controllerLink).energy > 0) {
             creep.withdrawEnergy(Game.getObjectById(creep.room.memory.controllerLink));
         } else if (container.store[RESOURCE_ENERGY] > 0) {
             creep.withdrawEnergy(container);
+        } else if (creep.pos.getRangeTo(Game.rooms[creep.memory.overlord].controller) > 3) {
+            creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 2});
         } else {
             creep.idleFor(5);
         }

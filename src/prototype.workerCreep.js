@@ -51,13 +51,6 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000 && !_.filter(this.room.creeps, (c) => c.memory.constructionSite === s.id).length);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'repair';
-        return true;
-    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -97,6 +90,13 @@ Creep.prototype.findConstruction = function () {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
+        return true;
+    }
+    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000 && !_.filter(this.room.creeps, (c) => c.memory.constructionSite === s.id).length);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
@@ -320,7 +320,7 @@ Creep.prototype.findEnergy = function () {
         return true;
     }
     // Container
-    let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
+    let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && this.room.memory.hubContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
     if (container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
         this.memory.energyDestination = container.id;
         return true;
@@ -370,14 +370,6 @@ Creep.prototype.fillerEnergy = function () {
 
 Creep.prototype.getEnergy = function (hauler = false) {
     if (!this.room.memory.hubContainer) hauler = false;
-    // chance to check for dropped
-    if (Math.random() > 0.5) {
-        let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
-        if (dropped) {
-            this.memory.energyDestination = dropped.id;
-            return true;
-        }
-    }
     // Links OLD
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {

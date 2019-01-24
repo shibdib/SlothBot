@@ -86,10 +86,6 @@ module.exports.towerControl = function (room) {
             if (road.length > 0) {
                 return repairTower.repair(road[0]);
             }
-            let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5250);
-            if (barriers.length > 0) {
-                return repairTower.repair(barriers[0]);
-            }
         }
     }
 };

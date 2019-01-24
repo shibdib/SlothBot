@@ -354,7 +354,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
 
 Room.prototype.invaderCheck = function () {
-    if ((Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time)) return;
+    if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
     if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper').length) {
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};

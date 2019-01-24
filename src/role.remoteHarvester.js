@@ -57,7 +57,6 @@ module.exports.role = function (creep) {
 
 function remoteRoads(creep) {
     if (creep.room.name !== creep.memory.destination) return;
-    creep.memory.buildAttempt = true;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
