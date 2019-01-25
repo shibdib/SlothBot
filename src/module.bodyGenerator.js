@@ -24,7 +24,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         // General Creeps
         case 'pioneer':
         case 'drone':
-            work = level;
+            work = _.random(level, level * 2);
             carry = _.random(2, level);
             move = work + carry;
             break;
@@ -39,15 +39,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work + carry;
             break;
         case 'waller':
-            work = level;
-            carry = level;
+            work = _.random(level, level * 2);
+            carry = _.random(2, level);
             if (level === 8) {
                 work = 15;
                 carry = 10;
             }
             if (room.memory.state < 2 && room.memory.state !== -1) {
-                work = 2;
-                carry = 2;
+                work = _.random(level, level * 4);
+                carry = _.random(2, level);
             }
             move = work + carry;
             break;
@@ -57,7 +57,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = 1;
                 move = 5;
                 break;
-            } else if (!room.memory.controllerContainer || level < 6) {
+            } else if (!room.memory.controllerContainer || level < 5) {
                 work = level + 1;
                 carry = 1;
                 move = work + carry;
@@ -299,7 +299,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = carry;
                 break
             } else {
-                carry = 7;
+                carry = 14;
                 move = _.round((carry / 2) + 0.5);
                 break;
             }

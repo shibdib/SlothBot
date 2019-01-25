@@ -11,6 +11,7 @@ module.exports.role = function (creep) {
     if (creep.memory.onContainer) {
         let container = Game.getObjectById(creep.memory.containerID);
         if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
+        if (Math.random() > 0.98) creep.memory.onContainer = undefined;
         switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
             case OK:
                 if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
@@ -118,7 +119,6 @@ function harvestDepositContainer(source, creep) {
                 if (!site && creep.pos.getRangeTo(source) === 1) {
                     creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
                 }
-                if (site && Game.rooms[creep.memory.overlord].controller.level >= 4) creep.build(site);
             }
             break;
         case ERR_NOT_IN_RANGE:

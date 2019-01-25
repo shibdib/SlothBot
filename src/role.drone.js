@@ -113,9 +113,17 @@ module.exports.role = function role(creep) {
             creep.say('Harvest!', true);
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
-                if (Math.random() > 0.75) return creep.memory.source = undefined;
                 creep.memory.source = source.id;
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
+                switch (creep.harvest(source)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(source);
+                        break;
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        creep.memory.source = undefined;
+                        break;
+                    case OK:
+                        break;
+                }
             } else {
                 delete creep.memory.harvest;
                 creep.idleFor(5);

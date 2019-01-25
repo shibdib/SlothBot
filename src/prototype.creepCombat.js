@@ -160,7 +160,6 @@ Creep.prototype.healMyCreeps = function () {
 };
 
 Creep.prototype.healAllyCreeps = function () {
-
     let allyCreeps = _.filter(this.room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && c.hits < c.hitsMax);
     if (allyCreeps.length > 0) {
         this.say(ICONS.hospital, true);
@@ -793,11 +792,12 @@ Creep.prototype.goHomeAndHeal = function () {
 Creep.prototype.fleeHome = function () {
     if (!this.memory.runCooldown && !this.room.invaderCheck()) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
+    this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
         this.memory.runCooldown = Game.time + 100;
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
         return true;
-    } else if (Game.time >= cooldown) {
+    } else if (Game.time < cooldown) {
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
         return true;
     } else {

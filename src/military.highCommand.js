@@ -96,11 +96,11 @@ module.exports.threatManagement = function (creep) {
 };
 
 function manageResponseForces() {
-    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded), 'memory.threatLevel');
+    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded && r.findClosestOwnedRoom(true) <= 1), 'memory.threatLevel');
     if (!responseTargets || !responseTargets.name) {
         let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
         if (highestHeat) {
-            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
+            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 4);
             for (let creep of idleResponders) {
                 creep.memory.responseTarget = highestHeat.name;
                 creep.memory.awaitingOrders = undefined;
@@ -108,7 +108,7 @@ function manageResponseForces() {
             }
         }
     } else {
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 3);
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 4);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
@@ -151,7 +151,7 @@ function queueAllyAttack(roomName) {
 
 function operationRequests() {
     let baddies = _.union(Memory._enemies, Memory._nuisance);
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout' && target.type !== 'clean').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'clean').length || 0;
     // Harass Targets
     if (baddies.length) {
         let targetLimit = (_.size(Memory.ownedRooms) * 2.5) - totalCountFiltered;
@@ -160,7 +160,7 @@ function operationRequests() {
             if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
             if (lastOperation + 2000 > Game.time) continue;
-            totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'scout' && target.type !== 'clean').length || 0;
+            totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'clean').length || 0;
             if (totalCountFiltered >= targetLimit) break;
             totalCountFiltered++;
             let cache = Memory.targetRooms || {};

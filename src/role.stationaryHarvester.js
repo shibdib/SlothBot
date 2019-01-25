@@ -100,7 +100,7 @@ function extensionFiller(creep) {
 
 function harvestDepositLink(creep) {
     creep.memory.linkAttempt = true;
-    if (!creep.room.memory.controllerLink && !creep.room.memory.storageLink && !creep.room.memory.hubLink) return;
+    if (!creep.room.memory.controllerLink && !creep.room.memory.hubLink) return;
     let source = Game.getObjectById(creep.memory.source);
     let link = _.filter(source.pos.findInRange(creep.room.structures, 2), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
@@ -117,7 +117,7 @@ function harvestDepositLink(creep) {
             let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);
-                if (position.checkForAllStructure().length > 0) continue;
+                if (position.checkForAllStructure().length > 0 || position.getRangeTo(creep.room.controller) < 3) continue;
                 try {
                     position.createConstructionSite(STRUCTURE_LINK);
                 } catch (e) {

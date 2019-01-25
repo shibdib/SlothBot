@@ -26,7 +26,7 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
-    } else if (creep.room.memory.controllerContainer && (creep.room.controller.level >= 6 || Game.getObjectById(creep.room.memory.controllerContainer).store[RESOURCE_ENERGY])) {
+    } else if (creep.room.memory.controllerContainer && (creep.room.controller.level >= 5 || Game.getObjectById(creep.room.memory.controllerContainer).store[RESOURCE_ENERGY])) {
         if (!container) return delete creep.room.memory.controllerContainer;
         if (creep.room.memory.controllerLink && Game.getObjectById(creep.room.memory.controllerLink).energy > 0) {
             creep.withdrawEnergy(Game.getObjectById(creep.room.memory.controllerLink));
