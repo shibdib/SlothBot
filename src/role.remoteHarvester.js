@@ -14,11 +14,9 @@ module.exports.role = function (creep) {
         if (Math.random() > 0.98) creep.memory.onContainer = undefined;
         switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
             case OK:
+                if (Math.random() > 0.7) creep.memory.needHauler = creep.room.energy;
                 if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-                if (container && _.sum(container.store) >= 1900) {
-                    if (creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
-                    creep.idleFor(20);
-                }
+                if (container && _.sum(container.store) >= 1980) creep.idleFor(20);
                 break;
             case ERR_NOT_IN_RANGE:
                 creep.shibMove(Game.getObjectById(creep.memory.source));
@@ -39,6 +37,7 @@ module.exports.role = function (creep) {
         }
         //If source is set mine
         if (creep.memory.source) {
+            if (Math.random() > 0.7) creep.memory.needHauler = creep.room.energy;
             //Make sure you're on the container
             if (creep.memory.containerID && !creep.memory.onContainer) {
                 let container = Game.getObjectById(creep.memory.containerID);

@@ -70,7 +70,7 @@ module.exports.operationSustainability = function (room) {
     if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
         (operation.type === 'drain' && (operation.trackedFriendly.length >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time)) {
         room.cacheRoomIntel(true);
-        log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.');
+        log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.', 'HIGH COMMAND');
         delete Memory.targetRooms[room.name];
         Memory.roomCache[room.name].attackCooldown = Game.time;
         if (operation.type === 'drain') Memory.roomCache[room.name].noDrain = true;
@@ -290,25 +290,25 @@ function manageAttacks() {
         // Cancel stale ops with no kills
         if (Memory.targetRooms[key].tick + (3000 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as it has gone stale.');
+            log.a('Canceling operation in ' + key + ' as it has gone stale.', 'HIGH COMMAND');
             continue;
         }
         // Cancel once active stale ops who hasn't killed in 1 creep lifetime
         if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (3000 * staleMulti) < Game.time) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as it has gone stale.');
+            log.a('Canceling operation in ' + key + ' as it has gone stale.', 'HIGH COMMAND');
             continue;
         }
         // Remove allied rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && _.includes(FRIENDLIES, Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is a friend.');
+            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is a friend.', 'HIGH COMMAND');
             continue;
         }
         // Remove allied rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && checkForNap(Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.');
+            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND');
             continue;
         }
         // Delete wave based rooms at the threshold
@@ -598,7 +598,7 @@ function nukeFlag(flag) {
         flag.remove();
     } else {
         nuker.launchNuke(flag.pos);
-        log.a('NUCLEAR LAUNCH DETECTED - ' + flag.pos.roomName + ' ' + flag.pos.x + '.' + flag.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.');
+        log.a('NUCLEAR LAUNCH DETECTED - ' + flag.pos.roomName + ' ' + flag.pos.x + '.' + flag.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND');
         flag.remove();
     }
 }

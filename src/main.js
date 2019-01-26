@@ -11,7 +11,7 @@ const lastGlobal = Memory.lastGlobalReset || Game.time;
 log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
 
-module.exports.loop = function() {
+module.exports.loop = function () {
     stats.lastTime = false;
     stats.reset();
     let mainCpu = Game.cpu.getUsed();
@@ -155,82 +155,52 @@ nukes = function (target) {
     }
 };
 
-status = function (roomName = undefined, creep = false) {
-    if (!roomName) {
-        log.e('---------------------------------------------------------------------------');
-        log.e('--GLOBAL INFO--');
-        log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + _.size(Game.creeps) + ' | Likely Next Claim - ' + _.max(_.filter(Memory.roomCache, (r) => r.claimWorthy), 'claimValue').name);
-        log.e('--ROOM INFO--');
-        for (let key in Memory.ownedRooms) {
-            let activeRoom = Memory.ownedRooms[key];
-            if (!activeRoom.controller) continue;
-            let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
-            let averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
-            let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-            log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(activeRoom.memory.energyIncomeArray)), 0) + ' | Energy Positive - ' + _.capitalize(activeRoom.memory.energyPositive) + ' | Creep Count: ' + _.size(roomCreeps));
-        }
-        if (Memory.targetRooms && _.size(Memory.targetRooms)) {
-            log.e('--OPERATION INFO--');
-            for (let key in Memory.targetRooms) {
-                let level = Memory.targetRooms[key].level;
-                let type = Memory.targetRooms[key].type;
-                if (type === 'poke' || type === 'scout' || type === 'attack') continue;
-                let priority = Memory.targetRooms[key].priority || 4;
-                if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
-                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key) + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead);
-                } else {
-                    log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key));
-                }
-            }
-            let pokes = _.filter(Memory.targetRooms, (t) => t.type === 'poke');
-            if (pokes.length) log.e('Active Poke Count - ' + pokes.length);
-            let scouts = _.filter(Memory.targetRooms, (t) => t.type === 'scout' || t.type === 'attack');
-            if (scouts.length) log.e('Scout Target Count - ' + scouts.length);
-        }
-        let borderPatrolLeaders = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
-        if (borderPatrolLeaders.length) {
-            log.e('--BORDER PATROL INFO--');
-            for (let patrol of borderPatrolLeaders) {
-                if (patrol.memory.contactReport) {
-                    log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName) + ' ~~CONTACT REPORTED~~');
-                } else {
-                    log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName));
-                }
-            }
-        }
-        log.e('Current Enemies: ' + Memory._enemies);
-        log.e('Current Nuisances: ' + Memory._nuisance);
-        log.e('Current Threats: ' + Memory._threatList);
-        return log.e('---------------------------------------------------------------------------');
-    } else if (!creep) {
-        let activeRoom = Game.rooms[roomName];
-        if (!activeRoom) return log.e('No Data Found');
-        log.e('---------------------------------------------------------------------------');
-        log.e('--ROOM INFO--');
-        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
-        let averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
+status = function () {
+    log.a('---------------------------------------------------------------------------', ' ');
+    log.a('--GLOBAL INFO--', ' ');
+    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + _.size(Game.creeps) + ' | Likely Next Claim - ' + _.max(_.filter(Memory.roomCache, (r) => r.claimWorthy), 'claimValue').name, ' ');
+    log.a('--ROOM INFO--', ' ');
+    for (let key in Memory.ownedRooms) {
+        let activeRoom = Memory.ownedRooms[key];
+        if (!activeRoom.controller) continue;
+        let averageEnergy, averageCpu = 'No Data';
+        if (roomEnergyArray[activeRoom.name]) averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
+        if (roomCpuArray[activeRoom.name]) averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
         let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));
-        log.e('--TASK CPU INFO--');
-        for (let key in taskCpuArray[roomName]) {
-            let averageCpu = _.round(average(taskCpuArray[activeRoom.name]), 2) || 'No Data';
-            log.e(_.capitalize(key) + ' Avg. CPU - ' + averageCpu);
-        }
-        log.e('---------------------------------------------------------------------------');
-    } else {
-        let activeRoom = Game.rooms[roomName];
-        if (!activeRoom) return log.e('No Data Found');
-        log.e('---------------------------------------------------------------------------');
-        log.e('--ROOM INFO--');
-        let averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
-        let averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
-        let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-        log.e(global.roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Creep Count: ' + _.size(roomCreeps));
-        log.e('--CREEP CPU INFO--');
-        for (let key in roomCreepCpuObject[roomName]) {
-            let averageCpu = _.round(average(roomCreepCpuObject[activeRoom.name]), 2) || 'No Data';
-            log.e(_.capitalize(key) + ' in ' + global.roomLink(Game.creeps[key].room.name) + ' | Avg. CPU - ' + averageCpu);
-        }
-        log.e('---------------------------------------------------------------------------');
+        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(activeRoom.memory.energyIncomeArray)), 0) + ' | Energy Positive - ' + _.capitalize(activeRoom.memory.energyPositive) + ' | Creep Count: ' + _.size(roomCreeps), ' ');
     }
+    if (Memory.targetRooms && _.size(Memory.targetRooms)) {
+        log.a('--OPERATION INFO--', ' ');
+        for (let key in Memory.targetRooms) {
+            let level = Memory.targetRooms[key].level;
+            let type = Memory.targetRooms[key].type;
+            if (type === 'poke' || type === 'scout' || type === 'attack') continue;
+            let priority = Memory.targetRooms[key].priority || 4;
+            if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
+                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key) + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead, ' ');
+            } else {
+                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key), ' ');
+            }
+        }
+        let pokes = _.filter(Memory.targetRooms, (t) => t.type === 'poke');
+        if (pokes.length) log.e('Active Poke Count - ' + pokes.length, ' ');
+        let scouts = _.filter(Memory.targetRooms, (t) => t.type === 'scout' || t.type === 'attack');
+        if (scouts.length) log.e('Scout Target Count - ' + scouts.length, ' ');
+    }
+    let borderPatrolLeaders = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
+    if (borderPatrolLeaders.length) {
+        log.a('--BORDER PATROL INFO--', ' ');
+        for (let patrol of borderPatrolLeaders) {
+            if (patrol.memory.contactReport) {
+                log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName) + ' ~~CONTACT REPORTED~~', ' ');
+            } else {
+                log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName), ' ');
+            }
+        }
+    }
+    log.a('--DIPLOMATIC INFO--', ' ');
+    log.e('Current Enemies: ' + Memory._enemies.toString(), ' ');
+    log.e('Current Nuisances: ' + Memory._nuisance.toString(), ' ');
+    log.e('Current Threats: ' + Memory._threatList.toString(), ' ');
+    return log.a('---------------------------------------------------------------------------', ' ');
 };

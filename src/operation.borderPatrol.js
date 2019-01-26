@@ -25,7 +25,9 @@ Creep.prototype.borderPatrol = function () {
         }
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         // If military action required do that
-        if (this.handleMilitaryCreep(false, true, true, false, true)) return;
+        if (this.handleMilitaryCreep(false, true, true, false, true)) return this.memory.contactReport = true;
+        // Handle contact reporting
+        this.memory.contactReport = undefined;
         // Handle border
         if (this.borderCheck()) return;
         // Check for squad

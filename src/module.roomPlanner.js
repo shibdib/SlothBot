@@ -33,11 +33,11 @@ function buildFromLayout(room) {
     // Build preset layout
     let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_TOWER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LINK);
     if (level === 8) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_ROAD);
+        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
     } else if (level < 8 && level >= 6) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD);
+        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
     } else if (level < 6 && level >= 3) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD);
+        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
     }
     for (let structure of filter) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
@@ -76,6 +76,42 @@ function buildFromLayout(room) {
             if (!hub.checkForConstructionSites() && !hub.checkForObstacleStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
     }
+    // Bunker Ramparts
+    if (level >= 3 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) {
+        let posArray = [];
+        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_RAMPART).forEach((s) => posArray.push(new RoomPosition(s.x, s.y, room.name)));
+        let exit = hub.findClosestByPath(FIND_EXIT);
+        if (exit) {
+            let path = exit.findPathTo(hub, {
+                maxOps: 10000,
+                serialize: false,
+                ignoreCreeps: true,
+                maxRooms: 1,
+                costCallback: function (roomName, costMatrix) {
+                    for (let site of room.constructionSites) {
+                        if (site.structureType === STRUCTURE_RAMPART) {
+                            costMatrix.set(site.pos.x, site.pos.y, 256);
+                        } else {
+                            costMatrix.set(site.pos.x, site.pos.y, 1);
+                        }
+                    }
+                    for (let structure of room.structures) {
+                        if (structure.structureType === STRUCTURE_RAMPART) {
+                            costMatrix.set(structure.pos.x, structure.pos.y, 256);
+                        } else {
+                            costMatrix.set(structure.pos.x, structure.pos.y, 1);
+                        }
+                    }
+                },
+            });
+            for (let point of path) {
+                let pos = new RoomPosition(point.x, point.y, room.name);
+                if (posArray.some(r => r.isEqualTo(pos))) {
+                    if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                }
+            }
+        }
+    }
     // Ramparts on buildings
     if (level >= 2 && level === extensionLevel) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType) && !s.pos.checkForRampart())) {
@@ -107,7 +143,7 @@ function buildFromLayout(room) {
     }
     // Roads
     if (level >= 3 && _.size(room.constructionSites) < 5 && level === extensionLevel) {
-        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
+        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
             if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
@@ -246,7 +282,8 @@ function findHub(room) {
             let hubSearch = room.memory.newHubSearch || 0;
             if (hubSearch >= layouts.layoutArray.length * 2500) {
                 abandonRoom(room.name);
-                Memory.roomCache[room.name].noClaim = true;
+                if (!Memory.noClaim) Memory.noClaim = [];
+                Memory.noClaim.push(room.name);
                 log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
                 Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
                 return;

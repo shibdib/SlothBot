@@ -3,7 +3,7 @@
  */
 
 module.exports.linkControl = function (room) {
-    let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.storageLink && s.id !== s.room.memory.controllerLink && s.cooldown === 0);
+    let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.cooldown === 0 && s.id !== s.room.memory.storageLink && s.id !== s.room.memory.controllerLink && s.id !== s.room.memory.hubLink && !_.includes(room.memory.hubLinks, s.id));
     let storageLink = Game.getObjectById(room.memory.storageLink) || Game.getObjectById(room.memory.hubLink) || Game.getObjectById(_.sample(room.memory.hubLinks));
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerLink || !controllerLink.isActive()) delete room.memory.controllerLink;

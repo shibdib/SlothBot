@@ -61,8 +61,8 @@ class Log {
      * unless explicitly asked for. For example, you might use this to print out
      * the task a creep is doing when it first starts its src task.
      **/
-    i(message) {
-        this.cprint('INFO: ' + message, this.LOGGING_LEVEL.INFO);
+    i(message, custom = undefined) {
+        if (custom) this.cprint(custom + ' ' + message, this.LOGGING_LEVEL.INFO); else this.cprint('INFO: ' + message, this.LOGGING_LEVEL.INFO);
     }
 
     /**
@@ -72,8 +72,8 @@ class Log {
      * immediate response. For example, you could log a warning for if your
      * dedicate builder role creeps were out of work and just idling.
      **/
-    w(message) {
-        this.cprint('WARN: ' + message, this.LOGGING_LEVEL.WARN, '#f43e6d');
+    w(message, custom = undefined) {
+        if (custom) this.cprint(custom + ' ' + message, this.LOGGING_LEVEL.WARN, '#f43e6d'); else this.cprint('WARN: ' + message, this.LOGGING_LEVEL.WARN, '#f43e6d');
     }
 
     /**
@@ -83,8 +83,8 @@ class Log {
      * to automate a creeper task that has a dependency and the dependency is
      * not met, you can print an error message saying so.
      **/
-    e(message) {
-        this.cprint('ERROR: ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
+    e(message, custom = undefined) {
+        if (custom) this.cprint(custom + ' ' + message, this.LOGGING_LEVEL.ERROR, '#e59821'); else this.cprint('ERROR: ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
     }
 
     /**
@@ -95,7 +95,7 @@ class Log {
      * an incoming enemy attack.
      **/
     a(message, custom = undefined) {
-        if (custom) this.cprint(custom + ': ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07'); else this.cprint('ALERT: ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07');
+        if (custom) this.cprint(custom + ' ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07'); else this.cprint('ALERT: ' + message, this.LOGGING_LEVEL.ALERT, '#00ff07');
     }
 
     /**

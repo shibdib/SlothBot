@@ -641,6 +641,7 @@ Room.prototype.findAttackCreeps = function (object) {
     // TODO defender stop in rooms with (non attacking) enemies
     //    return false;
 };
+
 Creep.prototype.kite = function (fleeRange = 8) {
     let avoid = this.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0});
     let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1),
@@ -795,10 +796,10 @@ Creep.prototype.fleeHome = function () {
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
         this.memory.runCooldown = Game.time + 100;
-        this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
+        this.goToHub(this.memory.overlord, true);
         return true;
     } else if (Game.time < cooldown) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
+        this.goToHub(this.memory.overlord, true);
         return true;
     } else {
         delete this.memory.runCooldown;

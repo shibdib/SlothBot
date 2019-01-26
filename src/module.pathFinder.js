@@ -43,6 +43,16 @@ function shibMove(creep, heading, options = {}) {
             stroke: 'black'
         });
     }
+    // Set these for creeps that can afford them
+    if (!options.ignoreRoads || !options.offRoad) {
+        let move = creep.getActiveBodyparts(MOVE);
+        let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+        let fullCarry = 0;
+        if (_.sum(creep.carry)) fullCarry = _.ceil(_.sum(creep.carry) / 50);
+        weight += fullCarry;
+        if (move >= weight * 5) options.offRoad = true; else if (move >= weight) options.ignoreRoads = true; else options.offRoad = undefined;
+        options.ignoreRoads = undefined;
+    }
     let rangeToDestination = creep.pos.getRangeTo(heading);
     // CPU Saver for moving to 0 on creeps
     if (heading instanceof Creep && options.range === 0 && rangeToDestination > 2) options.range = 1;
