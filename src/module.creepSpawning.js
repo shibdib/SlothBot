@@ -285,7 +285,7 @@ module.exports.miscCreepQueue = function (room) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let amount = roomSourceSpace[room.name] || 1;
         if (amount > room.constructionSites.length) amount = room.constructionSites.length;
-        if (room.memory.responseNeeded) amount = 1;
+        if (amount <= 0 || room.memory.responseNeeded) amount = 1;
         if (drones.length < amount + 3) {
             queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
         }
@@ -510,7 +510,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
             let count = remoteHarvesters.length - 1 || 1;
-            if (remoteHauler.length < remoteHarvesters.length + 1) {
+            if (remoteHauler.length < count) {
                 queueCreep(room, PRIORITIES.remoteHauler, {
                     role: 'remoteHauler',
                     localCache: true

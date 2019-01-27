@@ -28,13 +28,11 @@ Object.defineProperty(Creep.prototype, "idle", {
 });
 
 //Go to the room hub
-Creep.prototype.goToHub = function (destination, inside = false) {
+Creep.prototype.goToHub = function (destination) {
     let hub = new RoomPosition(25, 25, destination);
     let room = Game.rooms[destination];
     if (room.memory && room.memory.bunkerHub) hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let range = 10;
-    if (inside) range = 3;
-    return this.shibMove(hub, {range: range})
+    return this.shibMove(hub)
 };
 
 /**

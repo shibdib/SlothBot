@@ -44,7 +44,6 @@ Creep.prototype.scoutRoom = function () {
     let tick = Game.time;
     let otherCreeps = _.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper');
     let armedHostiles = _.filter(otherCreeps, (c) => !c.my && (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && !_.includes(FRIENDLIES, c.owner.username));
-    let ramparts = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits > 1000);
     // Guard ally rooms
     if (ally) {
         cache[this.room.name] = {
@@ -105,8 +104,8 @@ Creep.prototype.scoutRoom = function () {
                 }
                 // If owned room has tower
             } else {
-                // If we dont have any level 6+ rooms
-                if (maxLevel < 6) {
+                // If we dont have any level 7+ rooms
+                if (maxLevel < 7) {
                     // Try to drain
                     if (!Memory.roomCache[this.room.name].noDrain) {
                         cache[this.room.name] = {
@@ -118,14 +117,23 @@ Creep.prototype.scoutRoom = function () {
                     }
                     // If there's one tower send in the conscripts
                     else if (towers.length < 2) {
-                        cache[this.room.name] = {
-                            tick: tick,
-                            type: 'conscripts',
-                            level: 1,
-                            priority: priority
-                        };
+                        if (maxLevel === 6) {
+                            cache[this.room.name] = {
+                                tick: tick,
+                                type: 'siegeGroup',
+                                level: 1,
+                                priority: priority
+                            };
+                        } else {
+                            cache[this.room.name] = {
+                                tick: tick,
+                                type: 'conscripts',
+                                level: 1,
+                                priority: priority
+                            };
+                        }
                     }
-                } // If we do have level 6+ rooms
+                } // If we do have level 7+ rooms
                 else {
                     if (maxLevel === 8) {
                         if (!Memory.roomCache[this.room.name].noDrain) {
@@ -217,7 +225,13 @@ Creep.prototype.scoutRoom = function () {
             delete Memory.targetRooms[this.room.name];
         }
     }
-    Memory.targetRooms = cache;
+    console.log(cache[this.room.name].type)
+    if (!cache[this.room.name].type || cache[this.room.name].type === 'attack' || cache[this.room.name].type === 'scout') {
+        delete Memory.targetRooms[this.room.name];
+    } else {
+        log.a(cache[this.room.name].type + ' planned for room ' + roomLink(this.room.name), 'OPERATION PLANNER: ');
+        Memory.targetRooms = cache;
+    }
     return this.memory.recycle = true;
 };
 

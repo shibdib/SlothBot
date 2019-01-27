@@ -62,6 +62,7 @@ Creep.prototype.cleanRoom = function () {
         } else {
             switch (this.signController(this.room.controller, 'Room cleaned courtesy of ' + MY_USERNAME)) {
                 case OK:
+                    this.room.cacheRoomIntel(true);
                     break;
                 case ERR_NOT_IN_RANGE:
                     return this.shibMove(this.room.controller);

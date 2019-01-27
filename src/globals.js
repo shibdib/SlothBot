@@ -93,8 +93,8 @@ let globals = function () {
         SKsupport: 4,
         SKhauler: 5,
         // Military
-        priority: 4,
-        urgent: 5,
+        priority: 6,
+        urgent: 7,
         high: 9,
         medium: 10,
         secondary: 11,
