@@ -159,7 +159,7 @@ function operationRequests() {
         let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
         for (let target of enemyHarass) {
             if (totalCountFiltered >= targetLimit) break;
-            if (Memory.targetRooms[target.name] || (Memory.targetRooms[target.name].type === 'poke' && Math.random() > 0.95)) continue;
+            if (Memory.targetRooms[target.name] || (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type === 'poke' && Math.random() > 0.95)) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
             if (lastOperation + 2000 > Game.time) continue;
             let cache = Memory.targetRooms || {};
