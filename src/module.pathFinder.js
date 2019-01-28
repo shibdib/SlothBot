@@ -50,8 +50,14 @@ function shibMove(creep, heading, options = {}) {
         let fullCarry = 0;
         if (_.sum(creep.carry)) fullCarry = _.ceil(_.sum(creep.carry) / 50);
         weight += fullCarry;
-        if (move >= weight * 5) options.offRoad = true; else if (move >= weight) options.ignoreRoads = true; else options.offRoad = undefined;
-        options.ignoreRoads = undefined;
+        if (move >= weight * 5) {
+            options.offRoad = true;
+        } else if (move >= weight) {
+            options.ignoreRoads = true;
+        } else {
+            options.offRoad = undefined;
+            options.ignoreRoads = undefined;
+        }
     }
     let rangeToDestination = creep.pos.getRangeTo(heading);
     // CPU Saver for moving to 0 on creeps
