@@ -238,7 +238,7 @@ Creep.prototype.withdrawEnergy = function (destination = undefined) {
                                     this.memory._shibMove = undefined;
                                     return true;
                                 case ERR_NOT_IN_RANGE:
-                                    this.shibMove(energyItem, {ignoreRoads: true});
+                                    this.shibMove(energyItem);
                                     break;
                                 case ERR_FULL:
                                     this.memory.energyDestination = undefined;
@@ -249,7 +249,7 @@ Creep.prototype.withdrawEnergy = function (destination = undefined) {
                     }
                     break;
                 case ERR_NOT_IN_RANGE:
-                    this.shibMove(energyItem, {ignoreRoads: true});
+                    this.shibMove(energyItem);
                     break;
                 case ERR_NOT_ENOUGH_RESOURCES:
                     this.memory.energyDestination = undefined;
