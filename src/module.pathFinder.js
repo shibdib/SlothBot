@@ -1,4 +1,3 @@
-let _ = require('lodash');
 let shib = require("shibBench");
 
 const DEFAULT_MAXOPS = 10000;
