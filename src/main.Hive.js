@@ -93,7 +93,7 @@ module.exports.hiveMind = function () {
         }
     }
     //Non room specific creep spawning
-    if (Game.time % 3 === 0) {
+    if (Game.time % 25 === 0) {
         cpu = Game.cpu.getUsed();
         try {
             spawning.militaryCreepQueue();
