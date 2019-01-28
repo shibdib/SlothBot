@@ -36,7 +36,7 @@ module.exports.role = function (creep) {
                 }
             } else if (!creep.findEssentials() && !creep.findStorage() && !creep.findSpawnsExtensions()) creep.idleFor(5)
         } else {
-            creep.goToHub(creep.memory.overlord, true);
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 22});
         }
     } else {
         // Handle finding resources
