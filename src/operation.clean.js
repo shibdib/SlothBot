@@ -69,6 +69,7 @@ Creep.prototype.cleanRoom = function () {
             }
             if (Memory.targetRooms) delete Memory.targetRooms[this.memory.targetRoom];
             if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
+            log.a('Room cleaning in ' + this.memory.targetRoom + ' is complete.', 'CLEANING: ');
         }
     } else {
         switch (this.dismantle(target)) {
