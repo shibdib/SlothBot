@@ -35,6 +35,7 @@ module.exports.operationSustainability = function (room) {
         };
         // Set no longer needed creeps to go recycle
         _.filter(Game.creeps, (c) => c.my && c.memory.targetRoom && c.memory.targetRoom === room.name).forEach((c) => c.memory.recycle = true);
+        log.a(room.name + ' is now marked as Pending as it has a safemode.', 'OPERATION PLANNER: ');
         return Memory.targetRooms = cache;
     }
     let operation = Memory.targetRooms[room.name];
@@ -43,7 +44,7 @@ module.exports.operationSustainability = function (room) {
     let trackedFriendly = operation.trackedFriendly || [];
     let friendlyTombstones = _.filter(room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username));
     for (let tombstone of friendlyTombstones) {
-        if (_.includes(trackedFriendly, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
+        if (_.includes(trackedFriendly, tombstone.id) || tombstone.creep.ticksToLive <= 5) continue;
         friendlyDead = friendlyDead + UNIT_COST(tombstone.creep.body);
         trackedFriendly.push(tombstone.id);
     }
@@ -67,10 +68,10 @@ module.exports.operationSustainability = function (room) {
     operation.trackedEnemy = trackedEnemy;
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
-        (operation.type === 'drain' && (operation.trackedFriendly.length >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time)) {
+    if (operation.tick + 1500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
+        (operation.type === 'drain' && (operation.trackedFriendly.length + 1 >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time) || (operation.type === 'clean' && operation.tick + 10000 < Game.time)) {
         room.cacheRoomIntel(true);
-        log.a('Canceling operation in ' + room.name + ' due to it no longer being economical.', 'HIGH COMMAND');
+        log.a('Canceling operation in ' + roomLink(room.name) + ' due to it no longer being economical.', 'HIGH COMMAND: ');
         delete Memory.targetRooms[room.name];
         Memory.roomCache[room.name].attackCooldown = Game.time;
         if (operation.type === 'drain') Memory.roomCache[room.name].noDrain = true;
@@ -155,14 +156,12 @@ function operationRequests() {
     // Harass Targets
     if (baddies.length) {
         let targetLimit = (_.size(Memory.ownedRooms) * 2.5) - totalCountFiltered;
-        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway), 'closestRange');
+        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
         for (let target of enemyHarass) {
-            if (Memory.targetRooms[target.name] && Memory.targetRooms[target.name].type !== 'poke') continue;
+            if (totalCountFiltered >= targetLimit) break;
+            if (Memory.targetRooms[target.name] || (Memory.targetRooms[target.name].type === 'poke' && Math.random() > 0.95)) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
             if (lastOperation + 2000 > Game.time) continue;
-            totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'clean').length || 0;
-            if (totalCountFiltered >= targetLimit) break;
-            totalCountFiltered++;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -170,7 +169,26 @@ function operationRequests() {
                 type: 'attack'
             };
             Memory.targetRooms = cache;
-            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND');
+            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Room -' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            break;
+        }
+    }
+    // Attack owned rooms of enemies
+    let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts').length || 0;
+    if (Memory._enemies.length && !activeSieges) {
+        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level), 'closestRange');
+        for (let target of enemyHarass) {
+            if (Memory.targetRooms[target.name]) continue;
+            let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+            if (lastOperation + 2000 > Game.time) continue;
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[target.name] = {
+                tick: tick,
+                type: 'attack'
+            };
+            Memory.targetRooms = cache;
+            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Room Level - ' + target.level + ' ), Nearest Room -' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
             break;
         }
     }
@@ -189,7 +207,7 @@ function operationRequests() {
                 priority: 4
             };
             Memory.targetRooms = cache;
-            log.a('Cleaning operation planned for ' + roomLink(cleanTarget.name), 'HIGH COMMAND');
+            log.a('Cleaning operation planned for ' + roomLink(cleanTarget.name), 'HIGH COMMAND: ');
         }
     }
     // Pokes
@@ -218,7 +236,7 @@ function operationRequests() {
                     priority: 4
                 };
                 Memory.targetRooms = cache;
-                log.a('Poke operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND');
+                log.a('Poke operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND: ');
             }
         }
     }
@@ -290,31 +308,37 @@ function manageAttacks() {
         // Cancel stale ops with no kills
         if (Memory.targetRooms[key].tick + (3000 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as it has gone stale.', 'HIGH COMMAND');
+            log.a('Canceling operation in ' + key + ' as it has gone stale.', 'HIGH COMMAND: ');
             continue;
         }
         // Cancel once active stale ops who hasn't killed in 1 creep lifetime
         if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (3000 * staleMulti) < Game.time) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as it has gone stale.', 'HIGH COMMAND');
+            log.a('Canceling operation in ' + key + ' as it has gone stale.', 'HIGH COMMAND: ');
+            continue;
+        }
+        // Remove your rooms
+        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && Memory.roomCache[key].user === MY_USERNAME) {
+            delete Memory.targetRooms[key];
             continue;
         }
         // Remove allied rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && _.includes(FRIENDLIES, Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is a friend.', 'HIGH COMMAND');
+            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is a friend.', 'HIGH COMMAND: ');
             continue;
         }
         // Remove allied rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && checkForNap(Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
-            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND');
+            log.a('Canceling operation in ' + key + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND: ');
             continue;
         }
         // Delete wave based rooms at the threshold
         if (Memory.targetRooms[key].waves) {
             if (Memory.targetRooms[key].waves >= 3) {
                 delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + key + ' as it has reached the maximum number of attack waves.', 'HIGH COMMAND: ');
             }
         }
     }
@@ -598,7 +622,7 @@ function nukeFlag(flag) {
         flag.remove();
     } else {
         nuker.launchNuke(flag.pos);
-        log.a('NUCLEAR LAUNCH DETECTED - ' + flag.pos.roomName + ' ' + flag.pos.x + '.' + flag.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND');
+        log.a('NUCLEAR LAUNCH DETECTED - ' + flag.pos.roomName + ' ' + flag.pos.x + '.' + flag.pos.y + ' has a nuke inbound from ' + nuker.room.name + ' and will impact in 50,000 ticks.', 'HIGH COMMAND: ');
         flag.remove();
     }
 }
