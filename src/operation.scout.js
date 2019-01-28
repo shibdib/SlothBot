@@ -187,7 +187,7 @@ Creep.prototype.scoutRoom = function () {
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'rangers',
-                        level: 0,
+                        level: 1,
                         priority: priority
                     };
                     // Otherwise use old harass
@@ -225,7 +225,6 @@ Creep.prototype.scoutRoom = function () {
             delete Memory.targetRooms[this.room.name];
         }
     }
-    console.log(cache[this.room.name].type)
     if (!cache[this.room.name].type || cache[this.room.name].type === 'attack' || cache[this.room.name].type === 'scout') {
         delete Memory.targetRooms[this.room.name];
     } else {
