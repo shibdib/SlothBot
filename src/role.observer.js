@@ -32,9 +32,12 @@ function levelManager(creep) {
     let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (armedEnemies.length) {
         Memory.targetRooms[creep.memory.targetRoom].level = 2;
-        return creep.flee(creep.pos.findClosestByRange(armedEnemies))
+        log.a(Memory.targetRooms[creep.memory.targetRoom].type + ' Operation in ' + creep.room.name + ' is now a level 2.', 'OBSERVER CONTROL:');
+        return creep.memory.recycle = true;
     } else if (enemyCreeps.length) {
         Memory.targetRooms[creep.memory.targetRoom].level = 1;
+        log.a(Memory.targetRooms[creep.memory.targetRoom].type + ' Operation in ' + creep.room.name + ' is now a level 3.', 'OBSERVER CONTROL:');
+        return creep.memory.recycle = true;
     } else {
         Memory.targetRooms[creep.memory.targetRoom].level = 0;
     }
