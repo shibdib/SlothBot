@@ -285,7 +285,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= 5000) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= 5000 || !storage.my)) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -390,13 +390,13 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Extra Full Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT) {
+    if (terminal && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT || !terminal.my)) {
         this.memory.energyDestination = terminal.id;
         return true;
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] > 5000) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= 5000 || !storage.my)) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -473,7 +473,7 @@ Creep.prototype.findSpawnsExtensions = function () {
 Creep.prototype.findStorage = function () {
     //Terminal
     let terminal = this.room.terminal;
-    if (terminal && (terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT || (this.room.memory.extremeEnergySurplus && terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 2))) {
+    if (terminal && terminal.my && (terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT || (this.room.memory.extremeEnergySurplus && terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 2))) {
         this.memory.storageDestination = terminal.id;
         return true;
     }
@@ -491,7 +491,7 @@ Creep.prototype.findStorage = function () {
     }
     //Storage
     let storage = this.room.storage;
-    if (storage) {
+    if (storage && storage.my) {
         this.memory.storageDestination = storage.id;
         return true;
     }
@@ -536,7 +536,7 @@ Creep.prototype.findEssentials = function () {
     }
     //Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] < 10000) {
+    if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 10000) {
         this.memory.storageDestination = storage.id;
         return true;
     }

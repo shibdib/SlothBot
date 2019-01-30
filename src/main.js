@@ -199,8 +199,8 @@ status = function () {
         }
     }
     log.a('--DIPLOMATIC INFO--', ' ');
-    log.e('Current Enemies: ' + Memory._enemies.toString(), ' ');
-    log.e('Current Nuisances: ' + Memory._nuisance.toString(), ' ');
-    log.e('Current Threats: ' + Memory._threatList.toString(), ' ');
+    if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.toString(), ' ');
+    if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.toString(), ' ');
+    if (Memory._threatList && Memory._threatList.length) log.e('Current Threats: ' + Memory._threatList.toString(), ' ');
     return log.a('---------------------------------------------------------------------------', ' ');
 };

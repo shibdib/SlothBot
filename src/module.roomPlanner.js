@@ -236,7 +236,12 @@ function buildFromLayout(room) {
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
     if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
-    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME) || s.structureType === STRUCTURE_WALL);
+    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL) || s.structureType === STRUCTURE_WALL);
+    if (level >= 6) {
+        badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME) || s.structureType === STRUCTURE_WALL);
+    } else if (level >= 4) {
+        badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME && s.structureType !== STRUCTURE_TERMINAL) || s.structureType === STRUCTURE_WALL);
+    }
     if (badStructure.length) badStructure.forEach((s) => s.destroy());
 }
 

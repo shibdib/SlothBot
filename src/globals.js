@@ -560,7 +560,7 @@ let globals = function () {
 
     global.stats = require('stats');
 
-    global.TEN_CPU = Game.cpu.limit === 20;
+    global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
 };
 
 module.exports = globals;
