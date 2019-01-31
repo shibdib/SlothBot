@@ -142,56 +142,73 @@ function buildFromLayout(room) {
         }
     }
     // Roads
-    if (level >= 3 && _.size(room.constructionSites) < 5 && level === extensionLevel) {
-        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD);
+    let inBuild = false;
+    if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) {
+        inBuild = true;
+    }
+    if (!inBuild && level >= 3 && _.size(room.constructionSites) < 5 && level === extensionLevel) {
+        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
-            if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
-            if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length && !pos.checkForWall() && !pos.checkForRoad()) {
-                if (pos.createConstructionSite(structure.structureType) === OK) break;
+            if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
+                if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+                    inBuild = true;
+                    break;
+                }
             }
         }
-        if (!room.constructionSites.length && level >= 4) {
+        if (!inBuild && !room.constructionSites.length) {
             let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
-            // Controller Road
-            let container = Game.getObjectById(room.memory.controllerContainer);
-            if (container) {
-                buildRoadFromTo(room, spawn, container);
-            }
             // Source Roads
             for (let source of room.sources) {
                 let harvester = _.filter(room.creeps, (s) => s.my && s.memory.role === 'stationaryHarvester' && s.memory.containerID && s.memory.source === source.id)[0];
                 if (harvester) {
                     let container = Game.getObjectById(harvester.memory.containerID);
-                    if (container) buildRoadFromTo(room, spawn, container);
+                    if (container && buildRoadFromTo(room, spawn, container)) {
+                        inBuild = true;
+                        break;
+                    }
                 }
             }
             // Neighboring Roads
             let neighboring = Game.map.describeExits(spawn.pos.roomName);
-            if (neighboring) {
+            if (!inBuild && neighboring) {
                 if (neighboring['1']) {
                     let exits = spawn.room.find(FIND_EXIT_TOP);
                     let middle = _.round(exits.length / 2);
-                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        inBuild = true;
+                    }
                 }
-                if (neighboring['3']) {
+                if (!inBuild && neighboring['3']) {
                     let exits = spawn.room.find(FIND_EXIT_RIGHT);
                     let middle = _.round(exits.length / 2);
-                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        inBuild = true;
+                    }
                 }
-                if (neighboring['5']) {
+                if (!inBuild && neighboring['5']) {
                     let exits = spawn.room.find(FIND_EXIT_BOTTOM);
                     let middle = _.round(exits.length / 2);
-                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        inBuild = true;
+                    }
                 }
-                if (neighboring['7']) {
+                if (!inBuild && neighboring['7']) {
                     let exits = spawn.room.find(FIND_EXIT_LEFT);
                     let middle = _.round(exits.length / 2);
-                    buildRoadFromTo(spawn.room, spawn, exits[middle]);
+                    if (buildRoadFromTo(spawn.room, spawn, exits[middle])) {
+                        inBuild = true;
+                    }
                 }
             }
+            // Controller Road
+            let container = Game.getObjectById(room.memory.controllerContainer);
+            if (!inBuild && container) {
+                buildRoadFromTo(room, spawn, container);
+            }
             // Mineral Roads/Harvester
-            if (level >= 6) {
+            if (!inBuild && level >= 6) {
                 let mineral = room.find(FIND_MINERALS)[0];
                 let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
                 if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
@@ -460,11 +477,11 @@ function buildRoadFromTo(room, start, end) {
                 }
             },
         });
-        if (path.length) return cacheRoad(room, start.pos, target, path); else return;
+        if (path.length) cacheRoad(room, start.pos, target, path); else return;
     }
     for (let point of JSON.parse(path)) {
         let pos = new RoomPosition(point.x, point.y, room.name);
-        buildRoad(pos, room);
+        if (buildRoad(pos, room)) return true;
     }
 }
 
@@ -480,11 +497,11 @@ function buildRoadAround(room, position) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForRoad() || position.checkForImpassible(true) || _.size(room.find(FIND_CONSTRUCTION_SITES)) >= 10) return;
-    if (room.controller.level < 5) {
-        if (position.checkForSwamp()) position.createConstructionSite(STRUCTURE_ROAD);
+    if (position.checkForRoad() || position.checkForImpassible(true) || room.constructionSites.length >= 10 || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length) return false;
+    if (room.controller.level < 5 && position.checkForSwamp()) {
+        return position.createConstructionSite(STRUCTURE_ROAD);
     } else {
-        position.createConstructionSite(STRUCTURE_ROAD);
+        return position.createConstructionSite(STRUCTURE_ROAD);
     }
 }
 

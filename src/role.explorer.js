@@ -29,7 +29,7 @@ module.exports.role = function (creep) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(creep.room.controller, {offRoad: true});
                 }
-            } else if (!creep.moveToHostileConstructionSites()) {
+            } else if (!creep.moveToHostileConstructionSites(true)) {
                 creep.memory.destinationReached = true;
             }
         } else {

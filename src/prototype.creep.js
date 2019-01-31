@@ -416,7 +416,7 @@ Creep.prototype.recycleCreep = function () {
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {
-            this._isFull = _.sum(this.carry) >= this.carryCapacity * 0.75;
+            this._isFull = _.sum(this.carry) >= this.carryCapacity * 0.95;
         }
         return this._isFull;
     },

@@ -151,11 +151,14 @@ function queueAllyAttack(roomName) {
 }
 
 function operationRequests() {
+    if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
+    if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
     let baddies = _.union(Memory._enemies, Memory._nuisance);
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'clean').length || 0;
     // Harass Targets
+    let targetLimit = (_.size(Memory.ownedRooms) * 2.5);
     if (baddies.length) {
-        let targetLimit = (_.size(Memory.ownedRooms) * 2.5) - totalCountFiltered;
+        if (TEN_CPU) targetLimit = 1;
         let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
         for (let target of enemyHarass) {
             if (totalCountFiltered >= targetLimit) break;
@@ -194,7 +197,9 @@ function operationRequests() {
     }
     // Clean
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
-    if (cleanCount < 2) {
+    targetLimit = 2;
+    if (TEN_CPU) targetLimit = 1;
+    if (cleanCount < targetLimit) {
         let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.needsCleaning), 'closestRange');
         if (enemyClean.length) {
             let cleanTarget = _.sample(enemyClean);

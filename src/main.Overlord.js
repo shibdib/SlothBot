@@ -88,7 +88,7 @@ module.exports.overlordMind = function (room) {
                     Game.notify(e.stack);
                 }
             }
-            if (Math.random() > 0.6 && cpuBucket >= 3000 && !TEN_CPU) {
+            if (Math.random() > 0.6 && cpuBucket >= 3000) {
                 try {
                     let remoteSpawn = Game.cpu.getUsed();
                     spawning.remoteCreepQueue(room);

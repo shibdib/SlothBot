@@ -294,13 +294,13 @@ Creep.prototype.findEnergy = function () {
     if (hubLink && hubLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length) {
         this.memory.energyDestination = hubLink.id;
         return true;
-    }
+    }**/
     // Hub Container
     let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
-    if (hubContainer && hubContainer.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id).length) {
+    if (hubContainer && hubContainer.energy > 500 && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id).length < hubContainer.store[RESOURCE_ENERGY] / this.carryCapacity) {
         this.memory.energyDestination = hubContainer.id;
         return true;
-    }**/
+    }
     // Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {
@@ -321,7 +321,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Container
     let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && this.room.memory.hubContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
-    if (container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
+    if (container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < container.store[RESOURCE_ENERGY] / this.carryCapacity) {
         this.memory.energyDestination = container.id;
         return true;
     }

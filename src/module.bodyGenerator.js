@@ -293,6 +293,18 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 2;
                 break;
             }
+        case 'remoteAllInOne':
+            if (level < 4) {
+                work = level;
+                carry = level;
+                move = work + carry;
+                break;
+            } else {
+                work = 4;
+                carry = level + 3;
+                move = work + carry;
+                break;
+            }
         case 'remoteHauler':
             if (level < 5) {
                 carry = level;

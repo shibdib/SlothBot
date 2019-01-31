@@ -76,7 +76,7 @@ module.exports.hiveMind = function () {
         let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
         if (maxLevel >= 4 && minLevel >= 3 && cpuBucket === 10000) {
             let maxRooms = _.round(Game.cpu.limit / 12);
-            if (TEN_CPU) maxRooms = 2;
+            if (TEN_CPU) maxRooms = 3;
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
             let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
