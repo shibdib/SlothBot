@@ -12,6 +12,11 @@ log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks
 Memory.lastGlobalReset = Game.time;
 
 module.exports.loop = function () {
+    // Every 10000 ticks refresh global
+    if (Game.time % 10000 === 0) {
+        log.a('Refreshing global.');
+        Game.cpu.halt();
+    }
     stats.lastTime = false;
     stats.reset();
     let mainCpu = Game.cpu.getUsed();

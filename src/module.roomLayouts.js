@@ -1150,7 +1150,7 @@ let template9 = [
     }, {
         "layout": 9,
         "type": STRUCTURE_TERMINAL,
-        "pos": [{"x": 27, "y": 23}]
+        "pos": [{"x": 25, "y": 27}]
     }, {
         "layout": 9,
         "type": STRUCTURE_POWER_SPAWN,
@@ -1595,4 +1595,6 @@ let template12 = [
 ];
 
 module.exports.layoutArray = [template1, template6, template10, template12];
+
+module.exports.allLayouts = [template1, template2, template3, template4, template5, template6, template7, template8, template9, template10, template11, template12];
 

@@ -43,7 +43,9 @@ function buildFromLayout(room) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
-        if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK) pos.checkForAllStructure()[0].destroy();
+        if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos !== hub) {
+            pos.checkForAllStructure()[0].destroy();
+        }
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
             if (pos.createConstructionSite(structure.structureType) === OK) break;
         }
@@ -386,9 +388,9 @@ function findHub(room) {
 function updateLayout(room) {
     let buildTemplate;
     let layoutVersion = room.memory.bunkerVersion;
-    for (let i = 0; i < layouts.layoutArray.length; i++) {
-        if (layouts.layoutArray[i][0]['layout'] === layoutVersion) {
-            buildTemplate = layouts.layoutArray[i];
+    for (let i = 0; i < layouts.allLayouts.length; i++) {
+        if (layouts.allLayouts[i][0]['layout'] === layoutVersion) {
+            buildTemplate = layouts.allLayouts[i];
             break;
         }
     }
@@ -478,10 +480,15 @@ function buildRoadFromTo(room, start, end) {
             },
         });
         if (path.length) cacheRoad(room, start.pos, target, path); else return;
-    }
-    for (let point of JSON.parse(path)) {
-        let pos = new RoomPosition(point.x, point.y, room.name);
-        if (buildRoad(pos, room)) return true;
+        for (let point of path) {
+            let pos = new RoomPosition(point.x, point.y, room.name);
+            if (buildRoad(pos, room)) return true;
+        }
+    } else {
+        for (let point of JSON.parse(path)) {
+            let pos = new RoomPosition(point.x, point.y, room.name);
+            if (buildRoad(pos, room)) return true;
+        }
     }
 }
 
