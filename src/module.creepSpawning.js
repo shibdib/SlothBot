@@ -278,7 +278,8 @@ module.exports.miscCreepQueue = function (room) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let amount = roomSourceSpace[room.name] || 1;
         if (amount > room.constructionSites.length) amount = room.constructionSites.length;
-        if (amount <= 1 || room.memory.responseNeeded || TEN_CPU) amount = 2;
+        if (amount <= 3) amount = 4;
+        if (TEN_CPU) amount = 2;
         if (drones.length < amount) {
             queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
         }
@@ -320,7 +321,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     //Explorer
     if (!_.includes(queue, 'explorer') && !room.memory.responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 4500 <= Game.time)) {
-        let amount = 1;
+        let amount = 3;
         let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
         if (explorers.length < amount) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
@@ -410,8 +411,7 @@ module.exports.remoteCreepQueue = function (room) {
         room.memory.remoteRooms = undefined;
         let adjacent = Game.map.describeExits(room.name);
         let possibles;
-        possibles = _.filter(adjacent, (r) => Memory.roomCache[r] && (!Memory.roomCache[r].user || Memory.roomCache[r].user === MY_USERNAME) && !Memory.roomCache[r].isHighway && !Memory.roomCache[r].sk);
-        if (!possibles.length) possibles = adjacent;
+        if (!possibles) possibles = adjacent;
         remoteHives[room.name] = JSON.stringify(possibles);
     }
     /**
@@ -459,17 +459,16 @@ module.exports.remoteCreepQueue = function (room) {
         let remotes = JSON.parse(remoteHives[room.name]);
         for (let keys in remotes) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
-            if (Memory.roomCache[remotes[keys]] && ((Memory.roomCache[remotes[keys]].user && Memory.roomCache[remotes[keys]].user !== USERNAME) || Memory.roomCache[remotes[keys]].sk)) continue;
+            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || Memory.roomCache[remotes[keys]].isHighway || Memory.roomCache[remotes[keys]].sk)) continue;
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].memory.responseNeeded) || (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].threatLevel || Memory.roomCache[remotes[keys]].hostiles))) roomThreat = true;
-            if (!responseNeeded && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 0) {
+            if (!responseNeeded && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel) {
                 responseNeeded = true;
                 responseRoom = remotes[keys];
                 // If many hostiles or hostiles are players spawn more
                 if (Memory.roomCache[remotes[keys]].threatLevel > 2) heavyResponse = true;
             }
-            if (roomThreat) continue;
             let remoteRoom = Game.rooms[remotes[keys]];
             //All in One
             if (!_.includes(queue, 'remoteAllInOne')) {

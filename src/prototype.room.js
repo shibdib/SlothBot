@@ -448,7 +448,7 @@ Room.prototype.invaderCheck = function () {
                 let roomHeat = this.memory.roomHeat || 0;
                 this.memory.roomHeat = roomHeat + (invader.length * 5);
             }
-            return invader.length > 0;
+            return this.memory.threatLevel > 0;
         }
     } else if (this.memory.threatLevel) {
         let waitOut = 25;

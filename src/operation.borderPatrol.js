@@ -47,7 +47,11 @@ Creep.prototype.borderPatrol = function () {
                 this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
             } else {
                 this.memory.awaitingOrders = true;
-                this.idleFor(6);
+                if (Math.random() > 0.5) {
+                    this.memory.responseTarget = _.sample(Game.map.describeExits(this.room.name));
+                } else {
+                    this.idleFor(6);
+                }
             }
         }
         // Heal if waiting for orders

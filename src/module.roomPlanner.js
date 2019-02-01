@@ -78,7 +78,7 @@ function buildFromLayout(room) {
         }
     }
     // Bunker Ramparts
-    if (level >= 3 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) {
+    if (level >= 2 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) {
         let posArray = [];
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_RAMPART).forEach((s) => posArray.push(new RoomPosition(s.x, s.y, room.name)));
         let exit = hub.findClosestByPath(FIND_EXIT);

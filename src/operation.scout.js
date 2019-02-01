@@ -225,7 +225,7 @@ Creep.prototype.scoutRoom = function () {
             delete Memory.targetRooms[this.room.name];
         }
     }
-    if (!cache[this.room.name].type || cache[this.room.name].type === 'attack' || cache[this.room.name].type === 'scout') {
+    if (!cache[this.room.name] || !cache[this.room.name].type || cache[this.room.name].type === 'attack' || cache[this.room.name].type === 'scout') {
         delete Memory.targetRooms[this.room.name];
     } else {
         log.a(cache[this.room.name].type + ' planned for room ' + roomLink(this.room.name), 'OPERATION PLANNER: ');
