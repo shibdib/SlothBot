@@ -14,6 +14,7 @@ module.exports.role = function (creep) {
     if (creep.fleeHome()) return;
     // Check if ready to haul
     if (creep.isFull || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry))) {
+        creep.memory.source = undefined;
         if (creep.pos.roomName === creep.memory.overlord) {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);

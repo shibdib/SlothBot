@@ -97,7 +97,8 @@ class InfluxDB {
             progress: Game.gcl.progress,
             progressTotal: Game.gcl.progressTotal,
             progressPercent: (Game.gcl.progress / Game.gcl.progressTotal) * 100,
-            gclTickProgress: progressPerTick
+            gclTickProgress: progressPerTick,
+            secondsToUpgrade: _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength
         });
         this.addStat('market', {}, {
             credits: Game.market.credits
@@ -113,6 +114,7 @@ class InfluxDB {
                 progress: controller.progress,
                 progressTotal: controller.progressTotal,
                 progressPercent: (controller.progress / controller.progressTotal) * 100,
+                secondsToUpgrade: _.round((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickLength,
                 energyAvailable: room.energyAvailable,
                 energyCapacityAvailable: room.energyCapacityAvailable,
                 creepCount: _.size(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military))
@@ -137,7 +139,7 @@ class InfluxDB {
                     room: room.name
                 }, terminal.store)
             }
-        })
+        });
         if (typeof Game.cpu.getHeapStatistics === 'function') {
             this.addStat('heap', {}, Game.cpu.getHeapStatistics())
         }

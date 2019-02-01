@@ -23,6 +23,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         // General Creeps
         case 'pioneer':
+        case 'remoteRoad':
         case 'drone':
             work = _.random(level, level * 2);
             carry = _.random(2, level);

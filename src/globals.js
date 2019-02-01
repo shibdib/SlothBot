@@ -66,8 +66,8 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 1,
         // Workers
-        worker: 6,
-        drone: 6,
+        worker: 5,
+        drone: 5,
         waller: 4,
         upgrader: 4,
         mineralHarvester: 7,
@@ -76,8 +76,8 @@ let globals = function () {
         hauler: 2,
         // Remotes
         remoteUtility: 6,
-        remoteHarvester: 5,
-        remoteHauler: 5,
+        remoteHarvester: 6,
+        remoteHauler: 6,
         remoteUpgrader: 7,
         remotePioneer: 7,
         assistPioneer: 7,
@@ -131,6 +131,7 @@ let globals = function () {
     };
 
     //Cache stuff
+    global.roadCache = {};
     global.creepCpuArray = {};
     global.roomCpuArray = {};
     global.roomEnergyArray = {};

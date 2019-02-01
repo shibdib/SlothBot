@@ -99,6 +99,13 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'repair';
         return true;
     }
+    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.3 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'repair';
+        return true;
+    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -295,12 +302,6 @@ Creep.prototype.findEnergy = function () {
         this.memory.energyDestination = hubLink.id;
         return true;
     }**/
-    // Hub Container
-    let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
-    if (hubContainer && hubContainer.energy > 500 && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id).length < hubContainer.store[RESOURCE_ENERGY] / this.carryCapacity) {
-        this.memory.energyDestination = hubContainer.id;
-        return true;
-    }
     // Links
     let storageLink = Game.getObjectById(this.room.memory.storageLink);
     if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {
@@ -323,6 +324,12 @@ Creep.prototype.findEnergy = function () {
     let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && this.room.memory.hubContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
     if (container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < container.store[RESOURCE_ENERGY] / this.carryCapacity) {
         this.memory.energyDestination = container.id;
+        return true;
+    }
+    // Hub Container
+    let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
+    if (hubContainer && hubContainer.energy > 500 && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id).length < hubContainer.store[RESOURCE_ENERGY] / this.carryCapacity) {
+        this.memory.energyDestination = hubContainer.id;
         return true;
     }
     //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop

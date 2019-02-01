@@ -2,7 +2,6 @@
  * Created by rober on 5/16/2017.
  */
 let layouts = require('module.roomLayouts');
-let roadCache = {};
 
 module.exports.buildRoom = function (room) {
     if (room.memory.layout && room.memory.bunkerHub) {
@@ -43,7 +42,7 @@ function buildFromLayout(room) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
-        if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK) {
+        if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK) {
             pos.checkForAllStructure()[0].destroy();
         }
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
@@ -506,9 +505,9 @@ function buildRoadAround(room, position) {
 function buildRoad(position, room) {
     if (position.checkForRoad() || position.checkForImpassible(true) || room.constructionSites.length >= 10 || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length) return false;
     if (room.controller.level < 5 && position.checkForSwamp()) {
-        return position.createConstructionSite(STRUCTURE_ROAD);
+        if (position.createConstructionSite(STRUCTURE_ROAD) === OK) return true;
     } else {
-        return position.createConstructionSite(STRUCTURE_ROAD);
+        if (position.createConstructionSite(STRUCTURE_ROAD) === OK) return true;
     }
 }
 
