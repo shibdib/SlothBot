@@ -30,7 +30,7 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working === true) {
-        if (creep.memory.constructionSite || creep.findConstruction()) {
+        if (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair()) {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             creep.say('Build!', true);
             if (creep.memory.task === 'repair') {
@@ -68,7 +68,7 @@ module.exports.role = function role(creep) {
                 }
             }
         } else {
-            creep.idleFor(25);
+            if (!remoteRoads(creep)) creep.idleFor(25);
         }
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
@@ -92,7 +92,7 @@ module.exports.role = function role(creep) {
                 }
             } else {
                 delete creep.memory.harvest;
-                if (!remoteRoads()) creep.idleFor(5);
+                creep.idleFor(5);
             }
         }
     }
@@ -182,4 +182,12 @@ function getRoad(room, from, to) {
     } else {
         return null;
     }
+}
+
+function getPathKey(from, to) {
+    return getPosKey(from) + '$' + getPosKey(to);
+}
+
+function getPosKey(pos) {
+    return pos.x + 'x' + pos.y;
 }

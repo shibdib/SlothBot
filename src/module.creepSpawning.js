@@ -478,7 +478,7 @@ module.exports.remoteCreepQueue = function (room) {
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources && room.energy < ENERGY_AMOUNT) sourceCount = Memory.roomCache[remotes[keys]].sources;
                 if (!TEN_CPU) sourceCount *= 2;
                 if (remoteAllInOne.length < sourceCount) {
-                    queueCreep(room, PRIORITIES.remoteHarvester, {
+                    queueCreep(room, PRIORITIES.remoteHarvester + (remoteAllInOne.length / 2), {
                         role: 'remoteAllInOne',
                         destination: remotes[keys],
                         localCache: true
@@ -496,7 +496,7 @@ module.exports.remoteCreepQueue = function (room) {
             }
              // If not in non sub mode
              if (!TEN_CPU) {
-                //Pioneers
+                 // Remote Road Builder
                  if (level >= 4 && !_.includes(queue, 'remoteRoad') && remoteRoom) {
                      let remoteRoad = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteRoad');
                      if (remoteRoad.length < 1) {

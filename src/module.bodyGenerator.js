@@ -300,6 +300,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = level;
                 move = work + carry;
                 break;
+            } else if (!TEN_CPU && level >= 5) {
+                work = 4;
+                carry = level + 3;
+                move = _.round((work + carry) / 2);
+                break;
             } else {
                 work = 4;
                 carry = level + 3;

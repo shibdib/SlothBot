@@ -52,10 +52,11 @@ module.exports.role = function (creep) {
                 creep.shibMove(source);
                 break;
             case ERR_NOT_ENOUGH_RESOURCES:
-                creep.idleFor(source.ticksToRegeneration + 1)
+                creep.memory.source = undefined;
         }
     } else {
         //Find Source
-        creep.findSource();
+        let source = creep.pos.getClosestSource();
+        if (source) creep.memory.source = source.id;
     }
 };
