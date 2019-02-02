@@ -289,7 +289,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 1;
                 break;
             } else {
-                work = 4;
+                work = 3;
                 carry = 1;
                 move = 2;
                 break;
@@ -301,11 +301,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = work + carry;
                 break;
             } else if (!TEN_CPU && level >= 5) {
-                carry = level + 3;
+                carry = level + 2;
                 move = _.round((work + carry) / 2);
                 break;
             } else {
-                carry = level + 3;
+                carry = level + 2;
                 move = work + carry;
                 break;
             }
