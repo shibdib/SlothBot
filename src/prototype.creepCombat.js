@@ -132,9 +132,9 @@ Creep.prototype.attackHostile = function (hostile) {
     // Attack
     switch (this.attack(hostile)) {
         case OK:
-            return this.shibMove(hostile, {range: 0, ignoreRoads: true});
+            return true;
         case ERR_NOT_IN_RANGE:
-            if (this.getActiveBodyparts(HEAL)) this.heal(this);
+            if (this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
             return this.shibMove(hostile, {ignoreCreeps: false});
     }
 };
