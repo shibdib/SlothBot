@@ -10,7 +10,7 @@ module.exports.role = function role(creep) {
     }
     // Checks
     if (creep.carry.energy === 0) {
-        creep.memory.working = null;
+        creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
@@ -60,7 +60,7 @@ module.exports.role = function role(creep) {
             if (creep.memory.task === 'repair') {
                 switch (creep.repair(construction)) {
                     case OK:
-                        return null;
+                        return;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(construction, {range: 3});
                         break;
@@ -77,7 +77,7 @@ module.exports.role = function role(creep) {
             } else {
                 switch (creep.build(construction)) {
                     case OK:
-                        return null;
+                        return;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(construction, {range: 3});
                         break;

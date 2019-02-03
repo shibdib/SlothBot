@@ -752,12 +752,12 @@ function cacheRoad(room, from, to, path) {
 function getRoad(room, from, to) {
     let cache;
     if (room.memory._roadCache && _.size(room.memory._roadCache)) cache = room.memory._roadCache; else return;
-    if (!cache) return null;
+    if (!cache) return;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {
         return cachedPath.path;
     } else {
-        return null;
+        return;
     }
 }
 

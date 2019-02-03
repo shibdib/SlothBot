@@ -11,7 +11,7 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
-    if (Game.time % 50 === 0 && creep.wrongRoom()) return null;
+    if (Game.time % 50 === 0 && creep.wrongRoom()) return;
     creep.say(ICONS.courier, true);
     // Special Tasks
     if (!creep.room.memory.responseNeeded && (creep.memory.terminalWorker || creep.memory.nuclearEngineer || Game.time % 50 === 0)) if (nuclearEngineer(creep) || terminalWorker(creep)) return;

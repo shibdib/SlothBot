@@ -4,7 +4,7 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
-    if (creep.wrongRoom()) return null;
+    if (creep.wrongRoom()) return;
     creep.say(ICONS.reaction, true);
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;

@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
     if (creep.tryToBoost(['build'])) return;
     if (creep.wrongRoom()) return;
     if (creep.carry.energy === 0) {
-        creep.memory.working = null;
+        creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
@@ -32,7 +32,7 @@ module.exports.role = function (creep) {
             if (repairNeeded.hits >= repairNeeded.hitsMax || repairNeeded.hits > 100000 * creep.room.controller.level) return creep.memory.constructionSite = undefined;
             switch (creep.repair(repairNeeded)) {
                 case OK:
-                    return null;
+                    return;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(repairNeeded, {range: 3});
                     break;

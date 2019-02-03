@@ -11,7 +11,7 @@ RoomPosition.prototype.checkIfOutOfBounds = function () {
 
 RoomPosition.prototype.getClosestSource = function () {
     let source = this.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: (s) => s.pos.countOpenTerrainAround() > _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length});
-    if (source === null) {
+    if (!source) {
         source = this.findClosestByRange(FIND_SOURCES, {filter: (s) => s.pos.countOpenTerrainAround() > _.filter(Game.rooms[this.roomName].creeps, (c) => c.memory && c.memory.source === s.id).length});
     }
     return source;
@@ -168,9 +168,9 @@ function getCachedTargetDistance(origin, target) {
             distanceCache = cache;
             return cachedDistance.distance;
         }
-        return null;
+        return;
     } else {
-        return null;
+        return;
     }
 }
 

@@ -525,12 +525,12 @@ function cacheRoad(room, from, to, path) {
 function getRoad(room, from, to) {
     if (room.memory._roadCache) room.memory._roadCache = undefined;
     let cache = roadCache[room.name] || undefined;
-    if (!cache) return null;
+    if (!cache) return;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {
         return cachedPath.path;
     } else {
-        return null;
+        return;
     }
 }
 

@@ -109,7 +109,7 @@ Creep.prototype.findBorderBarrier = function (walls = true) {
 Creep.prototype.fleeFromHostile = function (hostile) {
     let direction = this.pos.getDirectionTo(hostile);
     direction = (direction + 3) % 8 + 1;
-    if (!direction || direction === null || this.pos.x === 0 || this.pos.x === 49 || this.pos.y === 0 || this.pos.y === 49) {
+    if (!direction || !direction || this.pos.x === 0 || this.pos.x === 49 || this.pos.y === 0 || this.pos.y === 49) {
         this.moveTo(25, 25);
         return true;
     }
@@ -449,7 +449,7 @@ Creep.prototype.siege = function () {
     if (neighborEnemyCreep.length && !neighborEnemyCreep[0].pos.checkForRampart()) {
         target = neighborEnemyCreep[0];
     }
-    if (healer && (healer.fatigue > 0 || this.pos.getRangeTo(healer) > 1) && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return null;
+    if (healer && (healer.fatigue > 0 || this.pos.getRangeTo(healer) > 1) && this.pos.x !== 48 && this.pos.x !== 1 && this.pos.y !== 48 && this.pos.y !== 1) return;
     if (!this.room.controller.owner || (this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username))) {
         let targetFlags = _.filter(Game.flags, (f) => f.pos.roomName === this.pos.roomName && _.startsWith(f.name, 't') && f.pos.checkForAllStructure(true).length);
         if (targetFlags.length) {
@@ -461,23 +461,23 @@ Creep.prototype.siege = function () {
         }
         let sharedTarget = _.filter(Game.creeps, (c) => c.memory && c.memory.siegeTarget && c.memory.targetRoom === this.memory.targetRoom)[0];
         if (sharedTarget) target = Game.getObjectById(sharedTarget.memory.siegeTarget);
-        if (!target || target === null) {
+        if (!target || !target) {
             target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_TOWER)});
             if (target) this.memory.siegeTarget = target.id;
         }
-        if (!target || target === null) {
+        if (!target || !target) {
             target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_SPAWN)});
             if (target) this.memory.siegeTarget = target.id;
         }
-        if (!target || target === null) {
+        if (!target || !target) {
             target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType === STRUCTURE_EXTENSION)});
             if (target) this.memory.siegeTarget = target.id;
         }
-        if (!target || target === null) {
+        if (!target || !target) {
             target = this.pos.findClosestByPath(FIND_STRUCTURES, {filter: (s) => (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_LINK && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER)});
             if (target) this.memory.siegeTarget = target.id;
         }
-        if (!target || target === null) {
+        if (!target || !target) {
             target = this.findClosestBarrier();
         }
         if (!target) {

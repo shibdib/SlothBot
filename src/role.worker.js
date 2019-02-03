@@ -10,7 +10,7 @@ module.exports.role = function (creep) {
     if (harvesters.length < 2) return creep.memory.role = 'stationaryHarvester';
     if (creep.wrongRoom()) return;
     if (creep.carry.energy === 0) {
-        creep.memory.working = null;
+        creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
@@ -26,7 +26,7 @@ module.exports.role = function (creep) {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             switch (creep.build(construction)) {
                 case OK:
-                    return null;
+                    return;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(construction, {range: 3});
                     break;
@@ -46,7 +46,7 @@ module.exports.role = function (creep) {
                 let repairNeeded = Game.getObjectById(creep.memory.constructionSite);
                 switch (creep.repair(repairNeeded)) {
                     case OK:
-                        return null;
+                        return;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(repairNeeded, {range: 3});
                         break;

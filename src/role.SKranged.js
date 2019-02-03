@@ -25,7 +25,7 @@ module.exports.role = function (creep) {
         if (count === 1) {
             creep.memory.boostAttempt = true;
         }
-        return null;
+        return;
     }
     let SKAttacker = _.filter(Game.creeps, (c) => c.memory.role && c.memory.role === 'SKattacker' && c.memory.destination === creep.memory.destination);
     if (SKAttacker.length === 0) {

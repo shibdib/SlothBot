@@ -19,7 +19,7 @@ module.exports.role = function role(creep) {
     }
     // Checks
     if (creep.carry.energy === 0) {
-        creep.memory.working = null;
+        creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
@@ -30,13 +30,13 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working === true) {
-        if (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair()) {
+        if (creep.memory.constructionSite || creep.findConstruction()) {
             let construction = Game.getObjectById(creep.memory.constructionSite);
             creep.say('Build!', true);
             if (creep.memory.task === 'repair') {
                 switch (creep.repair(construction)) {
                     case OK:
-                        return null;
+                        return;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(construction, {range: 3});
                         break;
@@ -49,11 +49,14 @@ module.exports.role = function role(creep) {
                         creep.memory.constructionSite = undefined;
                         creep.memory.task = undefined;
                         break;
+                    case ERR_NOT_ENOUGH_ENERGY:
+                        creep.memory.working = undefined;
+                        break;
                 }
             } else {
                 switch (creep.build(construction)) {
                     case OK:
-                        return null;
+                        return;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(construction, {range: 3});
                         break;
@@ -64,6 +67,9 @@ module.exports.role = function role(creep) {
                     case ERR_INVALID_TARGET:
                         creep.memory.constructionSite = undefined;
                         creep.memory.task = undefined;
+                        break;
+                    case ERR_NOT_ENOUGH_ENERGY:
+                        creep.memory.working = undefined;
                         break;
                 }
             }
@@ -175,12 +181,12 @@ function cacheRoad(room, from, to, path) {
 function getRoad(room, from, to) {
     if (room.memory._roadCache) room.memory._roadCache = undefined;
     let cache = roadCache[room.name] || undefined;
-    if (!cache) return null;
+    if (!cache) return;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {
         return cachedPath.path;
     } else {
-        return null;
+        return;
     }
 }
 

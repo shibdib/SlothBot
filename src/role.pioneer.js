@@ -84,7 +84,7 @@ module.exports.role = function (creep) {
                 }
                 switch (creep.repair(repairNeeded)) {
                     case OK:
-                        return null;
+                        return;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(repairNeeded, {range: 3});
                         break;

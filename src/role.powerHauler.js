@@ -7,7 +7,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
-        return null;
+        return;
     } else if (!creep.memory.hauling) {
         let powerBank = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
         if (powerBank) return creep.idleFor(10);

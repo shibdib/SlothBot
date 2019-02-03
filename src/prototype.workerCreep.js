@@ -15,7 +15,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
         this.memory.source = this.pos.findClosestByRange(source).id;
         return this.pos.findClosestByRange(source).id;
     }
-    return null;
+    return;
 };
 
 Creep.prototype.findMineral = function () {
@@ -32,7 +32,7 @@ Creep.prototype.findMineral = function () {
             }
         }
     }
-    return null;
+    return;
 };
 
 Creep.prototype.findConstruction = function () {
@@ -101,6 +101,7 @@ Creep.prototype.findConstruction = function () {
     }
     site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.3 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
     if (site.length > 0) {
+        console.log(this.name)
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
@@ -115,7 +116,7 @@ Creep.prototype.findConstruction = function () {
     }
     this.memory.constructionSite = undefined;
     this.memory.task = undefined;
-    return null;
+    return;
 };
 
 Creep.prototype.findRepair = function (level) {
@@ -141,7 +142,7 @@ Creep.prototype.findRepair = function (level) {
         this.memory.task = 'repair';
         return true;
     }
-    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax / 2);
+    site = _.filter(structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -183,7 +184,7 @@ Creep.prototype.findRepair = function (level) {
 
 Creep.prototype.containerBuilding = function () {
     let site = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (site !== null && site !== undefined) {
+    if (site) {
         if (this.pos.getRangeTo(site) <= 1) {
             return site.id;
         }
@@ -208,7 +209,7 @@ Creep.prototype.harvesterContainerBuild = function () {
     if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
         if (Game.getObjectById(this.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
         if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
-            return null;
+            return;
         }
     }
 };
@@ -216,7 +217,7 @@ Creep.prototype.harvesterContainerBuild = function () {
 Creep.prototype.withdrawEnergy = function (destination = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
     if (!this.memory.energyDestination) {
-        return null;
+        return;
     } else {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (energyItem && ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0))) {

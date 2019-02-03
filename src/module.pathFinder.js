@@ -354,7 +354,7 @@ function normalizePos(destination) {
         if (destination) {
             return destination.pos;
         } else {
-            return null;
+            return;
         }
     }
     return destination;
@@ -365,7 +365,7 @@ function targetRoom(destination) {
         if (destination) {
             return destination.pos.roomName;
         } else {
-            return null;
+            return;
         }
     }
     return destination.roomName;
@@ -571,7 +571,7 @@ function getRoute(from, to) {
             return JSON.parse(cachedRoute.route);
         }
     } else {
-        return null;
+        return;
     }
 }
 
@@ -594,14 +594,14 @@ function cachePath(creep, from, to, path) {
 function getPath(creep, from, to) {
     let cache;
     if (creep.memory.localPathCache && creep.memory.localPathCache[getPathKey(from, to)]) return creep.memory.localPathCache[getPathKey(from, to)].path; else if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
-    if (!cache) return null;
+    if (!cache) return;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {
         cachedPath.uses += 1;
         if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._pathCache = cache; else pathCache = cache;
         return cachedPath.path;
     } else {
-        return null;
+        return;
     }
 }
 

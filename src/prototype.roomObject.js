@@ -27,12 +27,12 @@
 RoomObject.prototype.getTarget = function (selector, validator = _.identity, chooser = _.first, prop = 'tid') {
     let tid = this.memory[prop];
     let target = Game.getObjectById(tid);
-    if (target === null || !validator(target)) {
+    if (!target || !validator(target)) {
         let candidates = _.filter(selector.call(this, this), validator);
         if (candidates && candidates.length)
             target = chooser(candidates, this);
         else
-            target = null;
+            target = undefined;
         if (target)
             this.memory[prop] = target.id;
         else
@@ -55,14 +55,14 @@ RoomObject.prototype.getTarget = function (selector, validator = _.identity, cho
 RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
     let tid = this.memory[prop];
     let target = Game.getObjectById(tid);
-    if (target === null || !validator(target)) {
+    if (!target || !validator(target)) {
         this.clearTarget(prop);
         let invalid = restrictor.call(this, this) || [];
         let candidates = _.filter(selector.call(this, this), x => validator(x) && !invalid.includes(x.id));
         if (candidates && candidates.length)
             target = chooser(candidates, this);
         else
-            target = null;
+            target = undefined;
         if (target)
             this.memory[prop] = target.id;
         // console.log(`New target on tick ${Game.time}: ${target}`);

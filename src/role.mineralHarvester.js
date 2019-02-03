@@ -4,7 +4,7 @@
 
 module.exports.role = function (creep) {
     if (creep.tryToBoost(['harvest'])) return;
-    if (creep.wrongRoom()) return null;
+    if (creep.wrongRoom()) return;
     // Check if mineral depleted
     if (creep.memory.assignedMineral && Game.getObjectById(creep.memory.assignedMineral).mineralAmount === 0) {
         log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.assignedMineral).mineralType + ' has been depleted.');

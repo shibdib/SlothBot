@@ -7,7 +7,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
-        return null;
+        return;
     } else {
         if (creep.hits < creep.hitsMax) return;
         if (creep.memory.powerBank) {
