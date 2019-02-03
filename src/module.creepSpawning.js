@@ -346,7 +346,7 @@ module.exports.miscCreepQueue = function (room) {
     // Assist room
     if (level >= 4) {
         let needyRooms = _.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15);
-        if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') && needyRooms.length && !room.memory.responseNeeded) {
+        if (!_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') && needyRooms.length && !room.memory.responseNeeded) {
             for (let needyRoom of needyRooms) {
                 let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
                 let amount = roomSourceSpace[needyRoom.name] + 2;
