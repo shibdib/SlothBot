@@ -55,42 +55,7 @@ module.exports.role = function role(creep) {
                 creep.memory.task = undefined;
             }
         } else if (creep.memory.task !== 'upgrade' && praisers.length && (creep.memory.constructionSite || creep.findConstruction())) {
-            let construction = Game.getObjectById(creep.memory.constructionSite);
-            creep.say('Build!', true);
-            if (creep.memory.task === 'repair') {
-                switch (creep.repair(construction)) {
-                    case OK:
-                        return;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(construction, {range: 3});
-                        break;
-                    case ERR_RCL_NOT_ENOUGH:
-                        creep.memory.constructionSite = undefined;
-                        creep.memory.task = undefined;
-                        break;
-                    case ERR_INVALID_TARGET:
-                        if (construction instanceof ConstructionSite) construction.remove();
-                        creep.memory.constructionSite = undefined;
-                        creep.memory.task = undefined;
-                        break;
-                }
-            } else {
-                switch (creep.build(construction)) {
-                    case OK:
-                        return;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(construction, {range: 3});
-                        break;
-                    case ERR_RCL_NOT_ENOUGH:
-                        creep.memory.constructionSite = undefined;
-                        creep.memory.task = undefined;
-                        break;
-                    case ERR_INVALID_TARGET:
-                        creep.memory.constructionSite = undefined;
-                        creep.memory.task = undefined;
-                        break;
-                }
-            }
+            creep.builderFunction();
         } else if (creep.room.controller && creep.room.controller.my) {
             creep.memory.task = 'upgrade';
             creep.say('Praise!', true);
@@ -110,9 +75,9 @@ module.exports.role = function role(creep) {
             creep.withdrawEnergy();
         } else {
             creep.memory.harvest = true;
-            creep.say('Harvest!', true);
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
+                creep.say('Harvest!', true);
                 creep.memory.source = source.id;
                 switch (creep.harvest(source)) {
                     case ERR_NOT_IN_RANGE:

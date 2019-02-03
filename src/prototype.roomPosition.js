@@ -49,12 +49,15 @@ RoomPosition.prototype.getAdjacentPosition = function (direction) {
 };
 
 RoomPosition.prototype.countOpenTerrainAround = function () {
-    let terrainArray = Game.rooms[this.roomName].lookForAtArea(LOOK_TERRAIN, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
-    let plainArray = _.filter(terrainArray, 'terrain', 'plain');
-    let swampArray = _.filter(terrainArray, 'terrain', 'swamp');
-    let structures = Game.rooms[this.roomName].lookForAtArea(LOOK_STRUCTURES, this.y - 1, this.x - 1, this.y + 1, this.x + 1, true);
-    let impassible = _.filter(structures, (s) => s.structureType !== STRUCTURE_ROAD || s.structureType !== STRUCTURE_CONTAINER || s.structureType !== STRUCTURE_RAMPART);
-    return plainArray.length + swampArray.length - impassible.length;
+    let impassible = 0;
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                if (new RoomPosition(this.x + xOff, this.y + yOff, this.roomName).checkForImpassible()) impassible += 1;
+            }
+        }
+    }
+    return 8 - impassible;
 };
 
 RoomPosition.prototype.checkForWall = function () {

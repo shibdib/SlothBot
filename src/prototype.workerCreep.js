@@ -101,7 +101,6 @@ Creep.prototype.findConstruction = function () {
     }
     site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.3 && !_.filter(this.room.creeps, (c) => c.my && c.memory.constructionSite === s.id).length);
     if (site.length > 0) {
-        console.log(this.name)
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
@@ -600,6 +599,60 @@ Creep.prototype.findDeliveries = function () {
         this.memory.storageDestination = deliver.id;
         deliver.memory.deliveryIncoming = true;
         return true;
+    }
+};
+
+Creep.prototype.builderFunction = function () {
+    let construction = Game.getObjectById(this.memory.constructionSite);
+    if (!construction) return;
+    if (!this.memory.task) this.memory.task = 'build';
+    if (this.memory.task === 'repair') {
+        if (construction.hits === construction.hitsMax || construction.hits >= this.memory.targetHits) {
+            this.memory.constructionSite = undefined;
+            this.memory.task = undefined;
+            this.say('Done!', true);
+            return;
+        }
+        this.say('Fix!', true);
+        switch (this.repair(construction)) {
+            case OK:
+                return true;
+            case ERR_NOT_IN_RANGE:
+                this.shibMove(construction, {range: 3});
+                return true;
+            case ERR_RCL_NOT_ENOUGH:
+                this.memory.constructionSite = undefined;
+                this.memory.task = undefined;
+                break;
+            case ERR_INVALID_TARGET:
+                if (construction instanceof ConstructionSite) construction.remove();
+                this.memory.constructionSite = undefined;
+                this.memory.task = undefined;
+                break;
+            case ERR_NOT_ENOUGH_ENERGY:
+                this.memory.working = undefined;
+                break;
+        }
+    } else {
+        this.say('Build!', true);
+        switch (this.build(construction)) {
+            case OK:
+                return true;
+            case ERR_NOT_IN_RANGE:
+                this.shibMove(construction, {range: 3});
+                return true;
+            case ERR_RCL_NOT_ENOUGH:
+                this.memory.constructionSite = undefined;
+                this.memory.task = undefined;
+                break;
+            case ERR_INVALID_TARGET:
+                this.memory.constructionSite = undefined;
+                this.memory.task = undefined;
+                break;
+            case ERR_NOT_ENOUGH_ENERGY:
+                this.memory.working = undefined;
+                break;
+        }
     }
 };
 
