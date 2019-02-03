@@ -420,7 +420,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     //Dropped
     let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
-    if (!hauler && dropped) {
+    if (dropped) {
         this.memory.energyDestination = dropped.id;
         return true;
     }
