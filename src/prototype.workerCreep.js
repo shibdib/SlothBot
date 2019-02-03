@@ -293,7 +293,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= 5000 || !storage.my)) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= 5000) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -404,7 +404,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= 5000 || !storage.my)) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= 5000) {
         this.memory.energyDestination = storage.id;
         return true;
     }
