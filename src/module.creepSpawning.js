@@ -460,9 +460,7 @@ module.exports.remoteCreepQueue = function (room) {
         for (let keys in shuffle(remotes)) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
             // Check if room is hostile
-            let roomThreat;
-            if ((Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].memory.responseNeeded) || (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].threatLevel || Memory.roomCache[remotes[keys]].hostiles))) roomThreat = true;
-            if (!responseNeeded && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel) {
+            if (!responseNeeded && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 1) {
                 responseNeeded = true;
                 responseRoom = remotes[keys];
                 // If many hostiles or hostiles are players spawn more
@@ -537,10 +535,10 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         // Border Patrol
-        if (!TEN_CPU && responseNeeded) {
+        if (!TEN_CPU) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
             let count = 1;
-            if (!TEN_CPU && heavyResponse) count = 2;
+            if (heavyResponse) count = 2;
             if (!_.includes(queue, 'longbow') && (borderPatrol.length < count || (borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1))) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'longbow',
@@ -551,7 +549,7 @@ module.exports.remoteCreepQueue = function (room) {
                 });
             }
             let riotPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'attacker');
-            if (!_.includes(queue, 'attacker') && riotPatrol.length < count) {
+            if (responseNeeded && !_.includes(queue, 'attacker') && riotPatrol.length < count) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'attacker',
                     operation: 'borderPatrol',

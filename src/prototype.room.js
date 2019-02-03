@@ -372,6 +372,7 @@ Room.prototype.invaderCheck = function () {
             this.memory.alertEmail = undefined;
             this.memory.requestingSupport = undefined;
             this.memory.threatLevel = undefined;
+            Memory.roomCache[this.name].threatLevel = undefined;
             return;
         }
         let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
