@@ -42,7 +42,7 @@ module.exports.role = function (creep) {
         //Suicide and cache intel if room is reserved by someone else
         if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) || creep.room.controller.owner)) {
             creep.room.cacheRoomIntel(true);
-            return creep.suicide();
+            return creep.memory.recycle = true;
         }
         let source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {

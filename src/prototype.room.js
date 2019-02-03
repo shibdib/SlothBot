@@ -246,7 +246,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
-        closestRange, important;
+        closestRange, important, owner, reservation;
     if (room) {
         // Get range to nearest room of yours
         closestRange = this.findClosestOwnedRoom(true);
@@ -265,7 +265,13 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         if (room.controller) {
-            if (room.controller.owner) user = room.controller.owner.username; else if (room.controller.reservation) user = room.controller.reservation.username;
+            if (room.controller.owner) {
+                owner = room.controller.owner.username;
+                user = room.controller.owner.username;
+            } else if (room.controller.reservation) {
+                reservation = room.controller.reservation.username;
+                user = room.controller.reservation.username;
+            }
             controller = JSON.stringify(room.controller);
             level = room.controller.level || undefined;
             // Handle claim targets
@@ -330,6 +336,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             name: room.name,
             sources: sources.length,
             controller: controller,
+            owner: owner,
+            reservation: reservation,
             level: level,
             hostiles: hostiles,
             sk: sk,

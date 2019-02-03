@@ -457,9 +457,8 @@ module.exports.remoteCreepQueue = function (room) {
         let responseRoom;
         let heavyResponse;
         let remotes = JSON.parse(remoteHives[room.name]);
-        for (let keys in remotes) {
+        for (let keys in shuffle(remotes)) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
-            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || Memory.roomCache[remotes[keys]].isHighway || Memory.roomCache[remotes[keys]].sk)) continue;
             // Check if room is hostile
             let roomThreat;
             if ((Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].memory.responseNeeded) || (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].threatLevel || Memory.roomCache[remotes[keys]].hostiles))) roomThreat = true;
@@ -469,6 +468,10 @@ module.exports.remoteCreepQueue = function (room) {
                 // If many hostiles or hostiles are players spawn more
                 if (Memory.roomCache[remotes[keys]].threatLevel > 2) heavyResponse = true;
             }
+            // If owned or a highway/sk continue
+            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || Memory.roomCache[remotes[keys]].isHighway || Memory.roomCache[remotes[keys]].sk)) continue;
+            // If it's reserved by someone else continue
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
             let remoteRoom = Game.rooms[remotes[keys]];
             let noSpawn = (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 0);
             //All in One
