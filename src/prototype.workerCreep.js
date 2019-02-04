@@ -167,6 +167,7 @@ Creep.prototype.findRepair = function (level) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
+        this.memory.targetHits = 100000 * level;
         return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 100000 * level);
@@ -174,6 +175,7 @@ Creep.prototype.findRepair = function (level) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
+        this.memory.targetHits = 100000 * level;
         return true;
     }
     this.memory.constructionSite = undefined;
@@ -604,7 +606,11 @@ Creep.prototype.findDeliveries = function () {
 
 Creep.prototype.builderFunction = function () {
     let construction = Game.getObjectById(this.memory.constructionSite);
-    if (!construction) return;
+    if (!construction || construction === null) {
+        this.memory.constructionSite = undefined;
+        this.memory.task = undefined;
+        return;
+    }
     if (!this.memory.task) this.memory.task = 'build';
     if (this.memory.task === 'repair') {
         if (construction.hits === construction.hitsMax || construction.hits >= this.memory.targetHits) {

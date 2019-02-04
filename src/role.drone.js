@@ -54,7 +54,7 @@ module.exports.role = function role(creep) {
             } else if (creep.room.energyAvailable === creep.room.energyCapacityAvailable) {
                 creep.memory.task = undefined;
             }
-        } else if (creep.memory.task !== 'upgrade' && praisers.length && (creep.memory.constructionSite || creep.findConstruction())) {
+        } else if (creep.memory.task !== 'upgrade' && praisers.length && (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair())) {
             creep.builderFunction();
         } else if (creep.room.controller && creep.room.controller.my) {
             creep.memory.task = 'upgrade';
