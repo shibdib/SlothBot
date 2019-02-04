@@ -125,6 +125,7 @@ Creep.prototype.findRepair = function (level) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
+        this.memory.targetHits = site.hitsMax * 0.8;
         return true;
     }
     site = _.filter(structures, (s) => s.structureType === STRUCTURE_SPAWN && s.hits < s.hitsMax);
