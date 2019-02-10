@@ -349,6 +349,7 @@ module.exports.miscCreepQueue = function (room) {
         if (!_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') && needyRooms.length && !room.memory.responseNeeded) {
             for (let needyRoom of needyRooms) {
                 let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
+                if (TEN_CPU) drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needyRoom.name || creep.memory.overlord === needyRoom.name) && creep.memory.role === 'drone');
                 let amount = roomSourceSpace[needyRoom.name] + 2;
                 if (drones.length < amount) {
                     queueCreep(room, PRIORITIES.assistPioneer, {
