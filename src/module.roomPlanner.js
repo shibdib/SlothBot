@@ -81,34 +81,37 @@ function buildFromLayout(room) {
     if (level >= 2 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) {
         let posArray = [];
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_RAMPART).forEach((s) => posArray.push(new RoomPosition(s.x, s.y, room.name)));
-        let exit = hub.findClosestByPath(FIND_EXIT);
-        if (exit) {
-            let path = exit.findPathTo(hub, {
-                maxOps: 10000,
-                serialize: false,
-                ignoreCreeps: true,
-                maxRooms: 1,
-                costCallback: function (roomName, costMatrix) {
-                    for (let site of room.constructionSites) {
-                        if (site.structureType === STRUCTURE_RAMPART) {
-                            costMatrix.set(site.pos.x, site.pos.y, 256);
-                        } else {
-                            costMatrix.set(site.pos.x, site.pos.y, 1);
+        let exits = [FIND_EXIT_BOTTOM, FIND_EXIT_LEFT, FIND_EXIT_RIGHT, FIND_EXIT_TOP];
+        for (let exit of exits) {
+            exit = hub.findClosestByPath(exit);
+            if (exit) {
+                let path = exit.findPathTo(hub, {
+                    maxOps: 10000,
+                    serialize: false,
+                    ignoreCreeps: true,
+                    maxRooms: 1,
+                    costCallback: function (roomName, costMatrix) {
+                        for (let site of room.constructionSites) {
+                            if (site.structureType === STRUCTURE_RAMPART) {
+                                costMatrix.set(site.pos.x, site.pos.y, 256);
+                            } else {
+                                costMatrix.set(site.pos.x, site.pos.y, 1);
+                            }
                         }
-                    }
-                    for (let structure of room.structures) {
-                        if (structure.structureType === STRUCTURE_RAMPART) {
-                            costMatrix.set(structure.pos.x, structure.pos.y, 256);
-                        } else {
-                            costMatrix.set(structure.pos.x, structure.pos.y, 1);
+                        for (let structure of room.structures) {
+                            if (structure.structureType === STRUCTURE_RAMPART) {
+                                costMatrix.set(structure.pos.x, structure.pos.y, 256);
+                            } else {
+                                costMatrix.set(structure.pos.x, structure.pos.y, 1);
+                            }
                         }
+                    },
+                });
+                for (let point of path) {
+                    let pos = new RoomPosition(point.x, point.y, room.name);
+                    if (posArray.some(r => r.isEqualTo(pos))) {
+                        if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
                     }
-                },
-            });
-            for (let point of path) {
-                let pos = new RoomPosition(point.x, point.y, room.name);
-                if (posArray.some(r => r.isEqualTo(pos))) {
-                    if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
                 }
             }
         }
