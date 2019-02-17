@@ -699,7 +699,7 @@ module.exports.militaryCreepQueue = function () {
         // Clean
         if (Memory.targetRooms[key].type === 'clean') {
             let deconstructors = 1;
-            if (opLevel === 1) {
+            if (opLevel === 1 || TEN_CPU) {
                 deconstructors = 1;
             } else if (opLevel === 2) {
                 deconstructors = 2;
@@ -741,6 +741,7 @@ module.exports.militaryCreepQueue = function () {
         if (Memory.targetRooms[key].type === 'robbery') {
             let raider = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'raider');
             if (opLevel > 10) opLevel = 6;
+            if (TEN_CPU) opLevel = 1;
             if (raider.length < opLevel && !_.includes(queue, 'raider')) {
                 queueMilitaryCreep(priority, {
                     role: 'raider',

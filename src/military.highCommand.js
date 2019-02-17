@@ -197,9 +197,9 @@ function operationRequests() {
     }
     // Clean
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
-    targetLimit = 2;
-    if (TEN_CPU) targetLimit = 1;
-    if (cleanCount < targetLimit) {
+    let cleanLimit = 3;
+    if (TEN_CPU) cleanLimit = 1;
+    if (cleanCount < cleanLimit) {
         let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.needsCleaning), 'closestRange');
         if (enemyClean.length) {
             let cleanTarget = _.sample(enemyClean);
@@ -217,7 +217,9 @@ function operationRequests() {
     }
     // Pokes
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-    if (pokeCount < 5) {
+    let pokeLimit = 10;
+    if (TEN_CPU) pokeLimit = 3;
+    if (pokeCount < pokeLimit) {
         let enemyHarass = [];
         if (baddies.length) {
             enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
@@ -250,7 +252,11 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
+    let pokeLimit = 10;
+    if (TEN_CPU) pokeLimit = 3;
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
+    let cleanLimit = 3;
+    if (TEN_CPU) cleanLimit = 1;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
     if (sieges.length) {
         let activeSiege = _.filter(sieges, (t) => t.activeSiege)[0];
@@ -277,7 +283,7 @@ function manageAttacks() {
         switch (type) {
             // Manage Pokes
             case 'poke':
-                if (pokeCount > 10) delete Memory.targetRooms[key];
+                if (pokeCount > pokeLimit) delete Memory.targetRooms[key];
                 staleMulti = 3;
                 break;
             // Manage Holds
@@ -307,7 +313,7 @@ function manageAttacks() {
                 break;
             // Manage Cleaning
             case 'clean':
-                if (cleanCount > 3) delete Memory.targetRooms[key];
+                if (cleanCount > cleanLimit) delete Memory.targetRooms[key];
                 continue;
         }
         // Cancel stale ops with no kills
