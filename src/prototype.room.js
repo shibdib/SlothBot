@@ -248,6 +248,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
         closestRange, important, owner, reservation;
     if (room) {
+        // Make NCP array
+        let ncpArray = Memory.ncpArray || [];
         // Get range to nearest room of yours
         closestRange = this.findClosestOwnedRoom(true);
         // Get special rooms via name
@@ -271,6 +273,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
+            }
+            // Signage NCP check
+            if (room.controller.sign && room.controller.sign.text.toLowerCase().includes('overmind')) {
+                let text = room.controller.sign.text.toLowerCase();
+                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum')) ncpArray.push(room.controller.sign.username);
             }
             controller = JSON.stringify(room.controller);
             level = room.controller.level || undefined;
@@ -352,6 +359,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             closestRange: closestRange,
             important: important
         };
+        Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;
     }
 };
