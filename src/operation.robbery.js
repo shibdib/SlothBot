@@ -114,7 +114,7 @@ Creep.prototype.robbery = function () {
                             this.findStorage();
                             break;
                     }
-                } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.70) {
+                } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.90) {
                     this.memory.storageDestination = storage.id;
                     for (const resourceType in this.carry) {
                         switch (this.transfer(storage, resourceType)) {
