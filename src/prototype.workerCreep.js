@@ -544,6 +544,12 @@ Creep.prototype.findEssentials = function () {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }
+    //Terminal
+    let terminal = this.room.terminal;
+    if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < 1000) {
+        this.memory.storageDestination = terminal.id;
+        return true;
+    }
     //Storage
     let storage = this.room.storage;
     if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 10000) {
