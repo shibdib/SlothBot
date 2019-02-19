@@ -12,6 +12,8 @@ module.exports.role = function (creep) {
     if (boostDelivery(creep)) return;
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
+    // If terminal is overfull handle that
+    if (emergencyDump(creep)) return;
     if (droppedResources(creep)) return;
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
     // Empty labs
@@ -44,7 +46,8 @@ module.exports.role = function (creep) {
     let container = Game.getObjectById(creep.room.memory.extractorContainer);
     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (_.sum(creep.carry) > 0) {
-        let storage = creep.room.terminal || creep.room.storage;
+        let storage = creep.room.terminal;
+        if (!storage || _.sum(storage.store) > 0.90 * storage.storeCapacity) storage = creep.room.storage;
         if (nuker && nuker.ghodium < nuker.ghodiumCapacity && creep.carry[RESOURCE_GHODIUM]) storage = nuker;
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
@@ -396,5 +399,25 @@ function droppedResources(creep) {
         }
     } else {
         return false;
+    }
+}
+
+// Remove minerals from the terminal if it's overfull and has no energy
+function emergencyDump(creep) {
+    if (!creep.room.terminal || _.sum(creep.room.terminal.store) < 0.95 * creep.room.terminal.storeCapacity || creep.memory.hauling) return false;
+    let maxResource = 0;
+    let overflow;
+    for (let resource of Object.keys(creep.room.terminal.store)) {
+        if (creep.room.terminal.store[resource] > maxResource) {
+            maxResource = creep.room.terminal.store[resource];
+            overflow = resource;
+        }
+    }
+    switch (creep.withdraw(creep.room.terminal, overflow)) {
+        case OK:
+            return true;
+        case ERR_NOT_IN_RANGE:
+            creep.shibMove(creep.room.terminal);
+            return true;
     }
 }

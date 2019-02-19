@@ -52,7 +52,7 @@ function fillBuyOrders(terminal, globalOrders) {
                 if (!sellableAmount || sellableAmount < 0) continue;
                 let buyOrder = _.max(globalOrders.filter(order => order.resourceType === resourceType &&
                     order.type === ORDER_BUY && order.remainingAmount >= 1000 && order.roomName !== terminal.pos.roomName &&
-                    Game.market.calcTransactionCost(sellableAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
+                    Game.market.calcTransactionCost(500, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
                 if (buyOrder.id && buyOrder.remainingAmount >= sellableAmount) {
                     switch (Game.market.deal(buyOrder.id, sellableAmount, terminal.pos.roomName)) {
                         case OK:
