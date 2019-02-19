@@ -275,7 +275,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 user = room.controller.reservation.username;
             }
             // Signage NCP check
-            if (room.controller.sign && room.controller.sign.text.toLowerCase().includes('overmind')) {
+            if (room.controller.sign) {
                 let text = room.controller.sign.text.toLowerCase();
                 if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum')) ncpArray.push(room.controller.sign.username);
             }
