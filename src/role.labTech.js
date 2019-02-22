@@ -43,7 +43,7 @@ module.exports.role = function (creep) {
         return supplyLab(creep);
     }
     let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
-    let container = Game.getObjectById(creep.room.memory.extractorContainer);
+    let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY])[0];
     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (_.sum(creep.carry) > 0) {
         let storage = creep.room.terminal;
@@ -73,8 +73,9 @@ module.exports.role = function (creep) {
                 creep.shibMove(storage);
                 return;
         }
-    } else if (container && _.sum(container.store) >= 500) {
+    } else if (container) {
         for (let resourceType in container.store) {
+            if (resourceType === RESOURCE_ENERGY) continue;
             switch (creep.withdraw(container, resourceType)) {
                 case OK:
                     return;
