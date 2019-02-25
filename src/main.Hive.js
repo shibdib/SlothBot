@@ -56,6 +56,7 @@ module.exports.hiveMind = function () {
             Game.notify(e.stack);
         }
     }
+    _.filter
     // Process Overlords
     let processed = 0;
     for (let key in Memory.ownedRooms) {

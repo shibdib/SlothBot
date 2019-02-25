@@ -214,9 +214,10 @@ function buildFromLayout(room) {
             // Mineral Roads/Harvester
             if (!inBuild && level >= 6) {
                 let mineral = room.find(FIND_MINERALS)[0];
+                let container = Game.getObjectById(room.memory.extractorContainer);
                 let spawn = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN))[0];
                 if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-                buildRoadFromTo(room, spawn, mineral);
+                buildRoadFromTo(room, spawn, container);
             }
         }
     }
