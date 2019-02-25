@@ -1565,7 +1565,7 @@ let template12 = [
     }, {
         "layout": 12,
         "type": STRUCTURE_POWER_SPAWN,
-        "pos": [{"x": 25, "y": 23}]
+        "pos": [{"x": 25, "y": 29}]
     }, {
         "layout": 12,
         "type": STRUCTURE_TOWER,
