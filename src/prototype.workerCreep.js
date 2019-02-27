@@ -417,7 +417,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Container
     let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && this.room.memory.hubContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
-    if ((!hauler || !_.filter(this.room.creeps, (c) => c.my && (c.memory.role === 'filler')).length) && container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
+    if ((!hauler || !_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'filler').length) && container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
         this.memory.energyDestination = container.id;
         return true;
     }
@@ -466,7 +466,7 @@ Creep.prototype.findSpawnsExtensions = function () {
         let rawExtension = _.shuffle(JSON.parse(this.memory.extensions));
         for (let i = 0; i < rawExtension.length; i++) {
             let extension = Game.getObjectById(rawExtension[i]);
-            if (!extension) return this.memory.spawns = undefined;
+            if (!extension) return this.memory.extensions = undefined;
             if (extension.energy < extension.energyCapacity) {
                 this.memory.storageDestination = extension.id;
                 return true;

@@ -106,32 +106,20 @@ Creep.prototype.scoutRoom = function () {
             } else {
                 // If we dont have any level 7+ rooms
                 if (maxLevel < 7) {
-                    // Try to drain
-                    if (!Memory.roomCache[this.room.name].noDrain) {
+                    if (maxLevel === 6) {
                         cache[this.room.name] = {
                             tick: tick,
-                            type: 'drain',
-                            level: towers.length,
+                            type: 'siegeGroup',
+                            level: 1,
                             priority: priority
                         };
-                    }
-                    // If there's one tower send in the conscripts
-                    else if (towers.length < 2) {
-                        if (maxLevel === 6) {
-                            cache[this.room.name] = {
-                                tick: tick,
-                                type: 'siegeGroup',
-                                level: 1,
-                                priority: priority
-                            };
-                        } else {
-                            cache[this.room.name] = {
-                                tick: tick,
-                                type: 'conscripts',
-                                level: 1,
-                                priority: priority
-                            };
-                        }
+                    } else {
+                        cache[this.room.name] = {
+                            tick: tick,
+                            type: 'conscripts',
+                            level: 1,
+                            priority: priority
+                        };
                     }
                 } // If we do have level 7+ rooms
                 else {
