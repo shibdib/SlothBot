@@ -292,7 +292,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (!_.includes(queue, 'waller')) {
+    if (!_.includes(queue, 'waller') && level >= 3) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
         let lowRampart = _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);

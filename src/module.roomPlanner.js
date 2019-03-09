@@ -78,7 +78,7 @@ function buildFromLayout(room) {
         }
     }
     // Bunker Ramparts
-    if (level >= 2 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) {
+    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) {
         let posArray = [];
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_RAMPART).forEach((s) => posArray.push(new RoomPosition(s.x, s.y, room.name)));
         let exits = [FIND_EXIT_BOTTOM, FIND_EXIT_LEFT, FIND_EXIT_RIGHT, FIND_EXIT_TOP];
@@ -117,7 +117,7 @@ function buildFromLayout(room) {
         }
     }
     // Ramparts on buildings
-    if (level >= 2 && level === extensionLevel) {
+    if (level >= 3 && level === extensionLevel) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType) && !s.pos.checkForRampart())) {
             if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) break;
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
