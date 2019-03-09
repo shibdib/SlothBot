@@ -473,7 +473,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteRoom = Game.rooms[remotes[keys]];
             let noSpawn = (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 0);
             //All in One
-            if (level < 5) {
+            if (level < 4) {
                 if (!noSpawn && !_.includes(queue, 'remoteAllInOne')) {
                     let remoteAllInOne = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteAllInOne');
                     let sourceCount = 1;
