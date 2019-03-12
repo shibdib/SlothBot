@@ -232,7 +232,7 @@ module.exports.essentialCreepQueue = function (room) {
             let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
             let number = 1;
             let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-            if (!TEN_CPU && room.controller.level < 4 && !importantBuilds) number = _.round((12 - level) / 2);
+            if (!TEN_CPU && room.controller.level < 6 && !importantBuilds) number = _.round((12 - level) / 2);
             //If room is about to downgrade get a creep out asap
             let reboot;
             let priority = PRIORITIES.upgrader;
@@ -295,8 +295,6 @@ module.exports.miscCreepQueue = function (room) {
     if (!_.includes(queue, 'waller') && level >= 3) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
-        let lowRampart = _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 10000);
-        if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length || level < 5 || lowRampart.length) amount = 2;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller', localCache: true})
         }
@@ -549,7 +547,7 @@ module.exports.remoteCreepQueue = function (room) {
                 });
             }
             let riotPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'attacker');
-            if (responseNeeded && !_.includes(queue, 'attacker') && riotPatrol.length < count) {
+            if (responseNeeded && !_.includes(queue, 'attacker') && riotPatrol.length < 1) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'attacker',
                     operation: 'borderPatrol',

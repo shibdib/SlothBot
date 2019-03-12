@@ -73,6 +73,7 @@ module.exports.operationSustainability = function (room) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + roomLink(room.name) + ' due to it no longer being economical.', 'HIGH COMMAND: ');
         delete Memory.targetRooms[room.name];
+        Memory.roomCache[room.name].lastOperation = Game.time;
         Memory.roomCache[room.name].attackCooldown = Game.time;
         if (operation.type === 'drain') Memory.roomCache[room.name].noDrain = true;
     } else {
@@ -164,7 +165,7 @@ function operationRequests() {
             if (totalCountFiltered >= targetLimit) break;
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 2000 > Game.time) continue;
+            if (lastOperation + 5000 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -183,7 +184,7 @@ function operationRequests() {
         for (let target of enemyHarass) {
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 2000 > Game.time) continue;
+            if (lastOperation + 5000 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -232,7 +233,7 @@ function operationRequests() {
                 pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
                 if (pokeCount >= 5) break;
                 let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
-                if (lastOperation !== 0 && lastOperation + _.random(1000, 5000) > Game.time) continue;
+                if (lastOperation !== 0 && lastOperation + _.random(2000, 5000) > Game.time) continue;
                 Memory.roomCache[target.name].lastPoke = Game.time;
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
