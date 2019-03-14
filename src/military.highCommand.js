@@ -165,7 +165,7 @@ function operationRequests() {
             if (totalCountFiltered >= targetLimit) break;
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 5000 > Game.time) continue;
+            if (lastOperation + 3000 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -184,7 +184,7 @@ function operationRequests() {
         for (let target of enemyHarass) {
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 5000 > Game.time) continue;
+            if (lastOperation + 4500 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -233,7 +233,7 @@ function operationRequests() {
                 pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
                 if (pokeCount >= 5) break;
                 let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
-                if (lastOperation !== 0 && lastOperation + _.random(2000, 5000) > Game.time) continue;
+                if (lastOperation !== 0 && lastOperation + _.random(0, 3000) > Game.time) continue;
                 Memory.roomCache[target.name].lastPoke = Game.time;
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
@@ -312,13 +312,18 @@ function manageAttacks() {
             case 'guard':
                 staleMulti = 2;
                 break;
+            // Manage Scouts
+            case 'scout':
+            case 'attack':
+                if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.targetRoom === key).length) staleMulti = 0.25;
+                break;
             // Manage Cleaning
             case 'clean':
                 if (cleanCount > cleanLimit) delete Memory.targetRooms[key];
                 continue;
         }
         // Cancel stale ops with no kills
-        if (Memory.targetRooms[key].tick + (3000 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
+        if (Memory.targetRooms[key].tick + (2000 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             continue;
