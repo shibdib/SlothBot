@@ -767,9 +767,13 @@ function addCreepsToMatrix(room, matrix) {
         for (let c = 0; c < bad.length; c++) {
             let sites = bad[c].room.lookForAtArea(LOOK_TERRAIN, bad[c].pos.y - 2, bad[c].pos.x - 2, bad[c].pos.y + 2, bad[c].pos.x + 2, true);
             for (let key in sites) {
-                let position = new RoomPosition(sites[key].x, sites[key].y, room.name);
-                if (!position.checkForWall()) {
-                    matrix.set(position.x, position.y, 254)
+                try {
+                    let position = new RoomPosition(sites[key].x, sites[key].y, room.name);
+                    if (!position.checkForWall()) {
+                        matrix.set(position.x, position.y, 254)
+                    }
+                } catch (e) {
+                    continue;
                 }
             }
         }
