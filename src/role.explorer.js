@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
             if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
-                if (creep.room.controller.sign.username === MY_USERNAME) {
+                if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) {
                     return creep.memory.destinationReached = true;
                 }
                 let signs = EXPLORED_ROOM_SIGNS;
