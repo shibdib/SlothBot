@@ -8,7 +8,7 @@ let globals = function () {
     global.HOSTILES = [];
     global.NO_AGGRESSION = [];
     global.MANUAL_FRIENDS = [];
-    global.NAP_ALLIANCE = ['YP', 'CoPS'];
+    global.NAP_ALLIANCE = ['YP', 'CoPS', 'Andromeda'];
 
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 3; //Range that rooms consider local via linear distance
