@@ -257,6 +257,12 @@ function orderCleanup(myOrders) {
                     return true;
                 }
             }
+            // Remove duplicates for same resource
+            let duplicate = _.filter(myOrders, (o) => o.roomName === myOrders[key].roomName &&
+                o.resourceType === myOrders[key].resourceType && o.type === ORDER_BUY && o.id !== myOrders[key].id);
+            if (duplicate.length) {
+                duplicate.forEach((duplicateOrder) => Game.market.cancelOrder(duplicateOrder.id))
+            }
             if (_.includes(Memory.ownedMineral, myOrders[key].resourceType)) {
                 if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                     log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we now have our own supply of " + myOrders[key].resourceType);
@@ -304,9 +310,8 @@ function orderCleanup(myOrders) {
 
 function placeEnergyOrders(terminal, globalOrders, myOrders) {
     // Check if an order exists
-    for (let key in myOrders) {
-        if (myOrders[key].resourceType = RESOURCE_ENERGY && myOrders[key].roomName === terminal.pos.roomName) return false;
-    }
+    if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName &&
+        o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0]) return false;
     let energyTarget = ENERGY_AMOUNT;
     // If we have extra credits get more energy
     if (Game.market.credits >= 100000) energyTarget *= 2;
