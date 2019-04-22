@@ -341,7 +341,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // Assist room
-    if (level >= 4) {
+    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length) {
         let needyRooms = _.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15);
         if (!_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') && needyRooms.length && !room.memory.responseNeeded) {
             for (let needyRoom of needyRooms) {
@@ -524,8 +524,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (!_.includes(queue, 'remoteHauler')) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
-            let count = remoteHarvesters.length - 1 || 1;
-            if (remoteHauler.length < count) {
+            if (remoteHauler.length < remoteHarvesters.length * 1.3) {
                 queueCreep(room, PRIORITIES.remoteHauler, {
                     role: 'remoteHauler',
                     localCache: true

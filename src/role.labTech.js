@@ -47,7 +47,7 @@ module.exports.role = function (creep) {
     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (_.sum(creep.carry) > 0) {
         let storage = creep.room.terminal;
-        if (!storage || _.sum(storage.store) > 0.90 * storage.storeCapacity) storage = creep.room.storage;
+        if (!storage || _.sum(storage.store) > 0.8 * storage.storeCapacity) storage = creep.room.storage;
         if (nuker && nuker.ghodium < nuker.ghodiumCapacity && creep.carry[RESOURCE_GHODIUM]) storage = nuker;
         for (let resourceType in creep.carry) {
             switch (creep.transfer(storage, resourceType)) {
@@ -85,7 +85,7 @@ module.exports.role = function (creep) {
             }
         }
     }
-    if (storage) {
+    if (storage && _.sum(creep.room.storage.store) > 0.9 * creep.room.storage.storeCapacity) {
         let storedResources = Object.keys(creep.room.storage.store);
         for (let resource of storedResources) {
             if (creep.room.storage.store[resource] >= DUMP_AMOUNT) {
@@ -99,11 +99,7 @@ module.exports.role = function (creep) {
             }
         }
     }
-    if (creep.pos.getRangeTo(closeLab) > 3) {
-        creep.shibMove(closeLab, {range: 2})
-    } else {
-        creep.idleFor(15);
-    }
+    creep.idleFor(15);
 };
 
 // Empty Function
@@ -178,6 +174,19 @@ function supplyLab(creep) {
     creep.say(ICONS.reaction + 'Filling', true);
     creep.memory.componentNeeded = lab.memory.itemNeeded;
     if (!creep.carry[creep.memory.componentNeeded]) {
+        let carried = creep.carry[creep.memory.componentNeeded] || 0;
+        if (_.sum(creep.carry) > carried) {
+            for (let resourceType in creep.carry) {
+                if (resourceType === creep.memory.componentNeeded) continue;
+                switch (creep.transfer(storage, resourceType)) {
+                    case OK:
+                        return;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(storage);
+                        return;
+                }
+            }
+        }
         if (!creep.memory.itemStorage) {
             if (storage.store[lab.memory.itemNeeded] > 0) {
                 creep.memory.itemStorage = storage.id;
@@ -192,38 +201,25 @@ function supplyLab(creep) {
                 creep.memory.supplier = undefined;
             }
         } else {
-            if (_.sum(creep.carry) > creep.carry[creep.memory.componentNeeded]) {
-                for (let resourceType in creep.carry) {
-                    if (resourceType === creep.memory.componentNeeded) continue;
-                    switch (creep.transfer(storage, resourceType)) {
-                        case OK:
-                            return;
-                        case ERR_NOT_IN_RANGE:
-                            creep.shibMove(storage);
-                            return;
-                    }
-                }
-            } else {
-                switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), creep.memory.componentNeeded)) {
-                    case OK:
-                        creep.memory.itemStorage = undefined;
-                        return;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
-                        return;
-                    case ERR_NOT_ENOUGH_RESOURCES:
-                        creep.memory.itemStorage = undefined;
-                        creep.memory.labHelper = undefined;
-                        creep.memory.componentNeeded = undefined;
-                        creep.memory.supplier = undefined;
-                        return;
-                    case ERR_INVALID_ARGS:
-                        creep.memory.itemStorage = undefined;
-                        creep.memory.labHelper = undefined;
-                        creep.memory.componentNeeded = undefined;
-                        creep.memory.supplier = undefined;
-                        return;
-                }
+            switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), creep.memory.componentNeeded)) {
+                case OK:
+                    creep.memory.itemStorage = undefined;
+                    return;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(Game.getObjectById(creep.memory.itemStorage));
+                    return;
+                case ERR_NOT_ENOUGH_RESOURCES:
+                    creep.memory.itemStorage = undefined;
+                    creep.memory.labHelper = undefined;
+                    creep.memory.componentNeeded = undefined;
+                    creep.memory.supplier = undefined;
+                    return;
+                case ERR_INVALID_ARGS:
+                    creep.memory.itemStorage = undefined;
+                    creep.memory.labHelper = undefined;
+                    creep.memory.componentNeeded = undefined;
+                    creep.memory.supplier = undefined;
+                    return;
             }
         }
     } else {
@@ -331,6 +327,8 @@ function boostDelivery(creep) {
             } else {
                 delete creep.memory.labTech;
                 delete creep.memory.itemStorage;
+                delete lab.memory;
+                return false;
             }
         } else {
             let amount = creep.carryCapacity;
@@ -344,8 +342,10 @@ function boostDelivery(creep) {
                     creep.memory.labTech = true;
                     return true;
                 case ERR_NOT_ENOUGH_RESOURCES:
+                    delete creep.memory.labTech;
                     delete creep.memory.itemStorage;
-                    return true;
+                    delete lab.memory;
+                    return false;
             }
         }
     }

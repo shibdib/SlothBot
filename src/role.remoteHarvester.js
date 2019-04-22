@@ -8,10 +8,10 @@ module.exports.role = function (creep) {
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     //Harvest
-    if (creep.memory.onContainer) {
+    if (creep.memory.onContainer && creep.memory.destinationReached) {
         let container = Game.getObjectById(creep.memory.containerID);
+        if (Math.random() > 0.7 && creep.pos.getRangeTo(container) > 0) return creep.memory.onContainer = undefined;
         if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-        if (Math.random() > 0.98) creep.memory.onContainer = undefined;
         switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
             case OK:
                 if (Math.random() > 0.7) creep.memory.needHauler = creep.room.energy;

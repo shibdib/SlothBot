@@ -41,7 +41,7 @@ module.exports.role = function (creep) {
     } else {
         // Handle finding resources
         if (!creep.memory.destination) {
-            let needyRoom = _.shuffle(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.needHauler && _.filter(Game.creeps, (h) => h.my && h.memory.role === 'remoteHauler' && h.memory.destination === c.room.name).length < c.memory.needHauler / creep.carryCapacity))[0]
+            let needyRoom = _.shuffle(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.needHauler && _.filter(Game.creeps, (h) => h.my && h.memory.role === 'remoteHauler' && h.memory.destination === c.room.name).length < c.memory.needHauler / creep.carryCapacity))[0];
             if (needyRoom) {
                 creep.memory.destination = needyRoom.memory.destination;
             } else {
