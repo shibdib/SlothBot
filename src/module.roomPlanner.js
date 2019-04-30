@@ -488,6 +488,9 @@ function buildRoadFromTo(room, start, end) {
                 for (let source of room.sources) {
                     costMatrix.set(source.pos.x, source.pos.y, 256);
                 }
+                if (room.mineral[0]) {
+                    costMatrix.set(room.mineral[0].pos.x, room.mineral[0].pos.y, 256);
+                }
             },
         });
         if (path.length) cacheRoad(room, start.pos, target, path); else return;

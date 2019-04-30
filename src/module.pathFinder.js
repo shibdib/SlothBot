@@ -1,7 +1,7 @@
 let shib = require("shibBench");
 
 const DEFAULT_MAXOPS = 10000;
-const STATE_STUCK = 2;
+const STATE_STUCK = 4;
 
 const structureMatrixCache = {};
 const creepMatrixCache = {};
@@ -502,6 +502,9 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     //Sources
     for (let source of room.sources) {
         matrix.set(source.pos.x, source.pos.y, 256);
+    }
+    if (room.mineral[0]) {
+        matrix.set(room.mineral[0].pos.x, room.mineral[0].pos.y, 256);
     }
     return matrix;
 }
