@@ -100,6 +100,27 @@ module.exports.hud = function () {
         let name = Memory.ownedRooms[key].name;
         let room = Game.rooms[name];
         if (!room) continue;
+        let spawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
+        let activeSpawns = _.filter(spawns, (s) => s.spawning);
+        let lowerBoundary = 3;
+        if (room.memory.sendingResponse) lowerBoundary++;
+        if (room.memory.assistingRoom) lowerBoundary++;
+        if (room.memory.claimTarget) lowerBoundary++;
+        if (room.memory.responseNeeded) lowerBoundary++;
+        room.visual.rect(0, 0, 12, lowerBoundary + activeSpawns.length, {
+            fill: '#ffffff',
+            opacity: '0.55',
+            stroke: 'black'
+        });
+        //SPAWNING
+        if (activeSpawns.length) {
+            let i = 0;
+            for (let spawn of activeSpawns) {
+                let spawningCreep = Game.creeps[spawn.spawning.name];
+                displayText(room, 0, lowerBoundary + i, spawn.name + ICONS.build + ' ' + _.capitalize(spawningCreep.name.split("_")[0]) + ' - Ticks: ' + spawn.spawning.remainingTime);
+                i++;
+            }
+        }
         //GCL
         let lastTickProgress = Memory.lastTickProgress || 0;
         Memory.gclProgressArray = Memory.gclProgressArray || [];
@@ -124,12 +145,7 @@ module.exports.hud = function () {
         if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
         if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
         if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
-        new RoomVisual(name).text(
-            ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - Next Level In Apx. ' + displayTime + ' or ' + ticksToUpgrade + ' ticks.' + paused,
-            1,
-            1,
-            {align: 'left', opacity: 0.5}
-        );
+        displayText(room, 0, 1, ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.' + paused);
         //Controller
         if (room.controller.progressTotal) {
             let lastTickProgress = room.memory.lastTickProgress || room.controller.progress;
@@ -155,53 +171,28 @@ module.exports.hud = function () {
             if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
             if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
             if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
-            new RoomVisual(name).text(
-                ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' - ' + room.controller.progress + '/' + room.controller.progressTotal + ' - Next Level In Apx. ' + displayTime + ' or ' + ticksToUpgrade + ' ticks.' + paused,
-                1,
-                3,
-                {align: 'left', opacity: 0.5}
-            );
+            displayText(room, 0, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.' + paused + ' (' + room.memory.averageCpu + '/CPU)');
         } else {
             delete room.memory.lastTickProgress;
             delete room.memory.rclProgressArray;
-            new RoomVisual(name).text(
-                ICONS.upgradeController + ' Controller Level: ' + room.controller.level,
-                1,
-                3,
-                {align: 'left', opacity: 0.5}
-            );
+            displayText(room, 0, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' (' + room.memory.averageCpu + '/R.CPU)');
         }
+        let y = lowerBoundary - (activeSpawns.length || 1);
         if (room.memory.responseNeeded) {
-            new RoomVisual(name).text(
-                ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + room.memory.threatLevel,
-                1,
-                2,
-                {align: 'left', opacity: 0.8, color: '#ff0000'}
-            );
+            displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + room.memory.threatLevel);
+            y++;
         }
         if (room.memory.claimTarget) {
-            new RoomVisual(name).text(
-                ICONS.claimController + ' Claim Target: ' + room.memory.claimTarget,
-                1,
-                7,
-                {align: 'left', opacity: 0.5, color: '#31ff1e'}
-            );
+            displayText(room, 0, y, ICONS.claimController + ' Claim Target: ' + room.memory.claimTarget);
+            y++;
         }
         if (room.memory.assistingRoom) {
-            new RoomVisual(name).text(
-                ICONS.repair + ' Sending Builders To Room: ' + room.memory.assistingRoom,
-                1,
-                5,
-                {align: 'left', opacity: 0.5, color: '#feff3b'}
-            );
+            displayText(room, 0, y, ICONS.repair + ' Sending Builders To Room: ' + room.memory.assistingRoom);
+            y++;
         }
         if (room.memory.sendingResponse) {
-            new RoomVisual(name).text(
-                ICONS.attack + ' Sending Military Support To: ' + room.memory.sendingResponse,
-                1,
-                6,
-                {align: 'left', opacity: 0.5, color: '#ff0000'}
-            );
+            displayText(room, 0, y, ICONS.attack + ' Sending Military Support To: ' + room.memory.sendingResponse);
+            y++;
         }
     }
 };

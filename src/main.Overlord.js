@@ -190,12 +190,6 @@ module.exports.overlordMind = function (room) {
     }
     room.memory.averageCpu = _.round(average(cpuUsageArray), 2);
     roomCpuArray[room.name] = cpuUsageArray;
-    room.visual.text(
-        'CPU Usage: ' + room.memory.averageCpu,
-        1,
-        8,
-        {align: 'left', opacity: 0.8, color: '#ff0000'}
-    );
 };
 
 function minionController(minion) {

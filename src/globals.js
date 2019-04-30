@@ -4,7 +4,7 @@ let globals = function () {
 
     global.log = new Log();
 
-    //Manually set badies and friends
+    //Manually set baddies and friends
     global.HOSTILES = [];
     global.NO_AGGRESSION = [];
     global.MANUAL_FRIENDS = [];
@@ -24,6 +24,11 @@ let globals = function () {
     global.EXPLORED_ROOM_SIGNS = ["#overlords were here.", "#overlords have collected intel from this room. We Know.", "Spawn More #Overlord-Bot's", "All your rooms belong to #overlords"];
     global.ATTACK_ROOM_SIGNS = ["~~Overlords is your daddy~~", "~~This room was declared unnecessary by overlords~~", "~~#overlords wasteland~~"];
     global.EXPLORER_SPAM = ['HI', 'Hello', '#overlords'];
+
+    //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
+    global.POKE_LIMIT = 5;
+    global.CLEAN_LIMIT = 2;
+    global.HARASS_LIMIT = 3;
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
@@ -433,6 +438,38 @@ let globals = function () {
     } catch (e) {
         global.average = undefined;
     }
+
+    global.displayText = function (room, x, y, what, br = false) {
+        if (!br) {
+            room.visual.text(what, x, y, {
+                color: "black",
+                opacity: 0.9,
+                align: "left",
+                font: "bold 0.6 Arial"
+            }).text(what, x, y, {
+                color: "black",
+                opacity: 0.9,
+                align: "left",
+                font: "bold 0.6 Arial",
+            });
+        } else {
+            room.visual.text(what, x, y, {
+                color: "black",
+                opacity: 0.9,
+                align: "left",
+                font: "bold 0.6 Arial",
+                backgroundColor: "black",
+                backgroundPadding: 0.3
+            }).text(what, x, y, {
+                color: "black",
+                opacity: 0.9,
+                align: "left",
+                font: "bold 0.6 Arial",
+                backgroundColor: "#eeeeee",
+                backgroundPadding: 0.2
+            });
+        }
+    };
 
 // League Of Automated Nations allied users list by Kamots
 // Provides global.LOANlist as array of allied usernames. Array is empty if not in an alliance, but still defined.

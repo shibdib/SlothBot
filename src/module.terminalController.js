@@ -83,7 +83,7 @@ function fillBuyOrders(terminal, globalOrders) {
                         let allyName = Memory.roomCache[alliedRoom].user;
                         switch (terminal.send(resourceType, 2500, alliedRoom)) {
                             case OK:
-                                log.a(' MARKET: Dumping to ally (' + allyName + ') ' + 2500 + ' ' + resourceType + ' To ' + alliedRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[resourceType]);
+                                //log.a(' MARKET: Dumping to ally (' + allyName + ') ' + 2500 + ' ' + resourceType + ' To ' + alliedRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[resourceType]);
                                 return true;
                         }
                     } else if (randomRoom) {
@@ -93,7 +93,7 @@ function fillBuyOrders(terminal, globalOrders) {
                         if (_.includes(FRIENDLIES, Memory.roomCache[randomRoom].user)) amount = 2500;
                         switch (terminal.send(resourceType, amount, randomRoom)) {
                             case OK:
-                                log.a(' MARKET: Dumping to random player (' + randomName + ') ' + amount + ' ' + resourceType + ' To ' + randomRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[resourceType]);
+                                //log.a(' MARKET: Dumping to random player (' + randomName + ') ' + amount + ' ' + resourceType + ' To ' + randomRoom + ' From ' + terminal.room.name + ' Current Amount - ' + terminal.store[resourceType]);
                                 return true;
                         }
                     }
