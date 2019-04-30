@@ -344,7 +344,7 @@ Creep.prototype.tryToBoost = function (boosts) {
                 this.shibMove(lab);
                 return true;
             }
-            if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && lab.mineralAmount >= this.memory.boostNeeded) {
+            if (lab && lab.mineralType === lab.memory.neededBoost && lab.energy > 0 && (lab.mineralAmount >= this.memory.boostNeeded || lab.mineralAmount === lab.mineralCapacity)) {
                 switch (lab.boostCreep(this)) {
                     case OK:
                         if (lab.memory.creating) lab.memory.neededBoost = undefined; else lab.memory = undefined;

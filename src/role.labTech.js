@@ -333,6 +333,7 @@ function boostDelivery(creep) {
         } else {
             let amount = creep.carryCapacity;
             if (boostCreep.memory.boostNeeded < creep.carryCapacity) amount = boostCreep.memory.boostNeeded;
+            if (Game.getObjectById(creep.memory.itemStorage).store[lab.memory.neededBoost] < amount) amount = Game.getObjectById(creep.memory.itemStorage).store[lab.memory.neededBoost];
             switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), lab.memory.neededBoost, amount)) {
                 case OK:
                     delete creep.memory.itemStorage;
