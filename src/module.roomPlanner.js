@@ -42,9 +42,9 @@ function buildFromLayout(room) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
-        if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && pos.checkForAllStructure()[0].structureType !== STRUCTURE_RAMPART) {
+        /**if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && pos.checkForAllStructure()[0].structureType !== STRUCTURE_RAMPART) {
             pos.checkForAllStructure()[0].destroy();
-        }
+        }**/
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
             if (pos.createConstructionSite(structure.structureType) === OK) break;
         }
@@ -479,6 +479,14 @@ function buildRoadFromTo(room, start, end) {
                     if (road.structureType === STRUCTURE_ROAD) {
                         costMatrix.set(road.pos.x, road.pos.y, 1);
                     }
+                }
+                for (let controller of room.structures) {
+                    if (controller.structureType === STRUCTURE_CONTROLLER) {
+                        costMatrix.set(controller.pos.x, controller.pos.y, 256);
+                    }
+                }
+                for (let source of room.sources) {
+                    costMatrix.set(source.pos.x, source.pos.y, 256);
                 }
             },
         });

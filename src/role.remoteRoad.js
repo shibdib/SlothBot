@@ -106,6 +106,14 @@ function buildRoadFromTo(room, start, end) {
                         costMatrix.set(road.pos.x, road.pos.y, 1);
                     }
                 }
+                for (let controller of room.structures) {
+                    if (controller.structureType === STRUCTURE_CONTROLLER) {
+                        costMatrix.set(controller.pos.x, controller.pos.y, 256);
+                    }
+                }
+                for (let source of room.sources) {
+                    costMatrix.set(source.pos.x, source.pos.y, 256);
+                }
             },
         });
         if (path.length) cacheRoad(room, start.pos, target, path); else return;

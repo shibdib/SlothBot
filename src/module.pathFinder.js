@@ -476,6 +476,8 @@ function addStructuresToMatrix(room, matrix, roadCost) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureWall) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
+        } else if (structure instanceof StructureController) {
+            matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
@@ -496,6 +498,10 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     let stationaryCreeps = _.filter(room.creeps, (c) => c.my && (c.memory.role === 'stationaryHarvester' || c.memory.role === 'upgrader' || c.memory.role === 'reserver' || c.memory.role === 'remoteHarvester'));
     for (let site of stationaryCreeps) {
         matrix.set(site.pos.x, site.pos.y, 150);
+    }
+    //Sources
+    for (let source of room.sources) {
+        matrix.set(source.pos.x, source.pos.y, 256);
     }
     return matrix;
 }
