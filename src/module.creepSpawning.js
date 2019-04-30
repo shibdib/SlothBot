@@ -57,13 +57,12 @@ module.exports.processBuildQueue = function () {
                         body = _.get(SPAWN[0], role);
                     } else {
                         body = generator.bodyGenerator(level, role, spawn.room);
-                        let cost = global.UNIT_COST(body);
                     }
                     if (body && body.length && global.UNIT_COST(body) <= spawn.room.energyCapacityAvailable) break;
                 }
                 let cost = global.UNIT_COST(body);
                 if (cost > spawn.room.energyAvailable) {
-                    spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
+                    displayText(spawn.room, 1, 39, 'Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
                     continue;
                 }
                 if (topPriority && typeof topPriority === 'object') {
@@ -118,9 +117,6 @@ module.exports.processBuildQueue = function () {
                     }
                 }
             }
-        } else {
-            let spawningCreep = Game.creeps[spawn.spawning.name];
-            spawn.say(ICONS.build + ' ' + spawningCreep.name + ' - Ticks Remaining: ' + spawn.spawning.remainingTime);
         }
     }
 };
@@ -191,7 +187,7 @@ module.exports.essentialCreepQueue = function (room) {
             return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
         } else if (!_.includes(queue, 'hauler')) {
             let amount = 1;
-            if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 10) && hauler.length < amount + 1) || hauler.length < amount) {
+            if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
                 queueCreep(room, PRIORITIES.hauler, {role: 'hauler', localCache: true})
             }
         }
@@ -523,8 +519,8 @@ module.exports.remoteCreepQueue = function (room) {
         // Remote Hauler
         if (!_.includes(queue, 'remoteHauler')) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
-            let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.role === 'remoteHauler' && creep.memory.overlord === room.name);
-            if (remoteHauler.length < remoteHarvesters.length * 1.3) {
+            let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
+            if (remoteHauler.length < remoteHarvesters.length) {
                 queueCreep(room, PRIORITIES.remoteHauler, {
                     role: 'remoteHauler',
                     localCache: true

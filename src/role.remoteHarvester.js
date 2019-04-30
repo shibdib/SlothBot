@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
         if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
         switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
             case OK:
-                if (Math.random() > 0.7) creep.memory.needHauler = creep.room.energy;
+                if (Math.random() > 0.7 && creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
                 if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
                 if (container && _.sum(container.store) >= 1980) creep.idleFor(20);
                 break;

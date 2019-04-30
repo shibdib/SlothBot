@@ -13,6 +13,7 @@ module.exports.role = function (creep) {
     }
     // Check if ready to haul
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry))) {
+        creep.memory.destination = undefined;
         creep.memory.hauling = true;
     }
     if (creep.memory.hauling) {
@@ -35,45 +36,44 @@ module.exports.role = function (creep) {
                 }
             } else if (!dropOff(creep)) creep.idleFor(5)
         } else {
-            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 22});
         }
     } else {
-        // Set harvester pairing
-        if (!creep.memory.harvester || !Game.getObjectById(creep.memory.harvester)) {
-            let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKworker') && !c.memory.hauler)[0];
-            if (!remoteHarvester) return creep.idleFor(5);
-            creep.memory.harvester = remoteHarvester.id;
-            remoteHarvester.memory.hauler = creep.id;
-            return;
+        // Handle finding resources
+        if (!creep.memory.destination) {
+            let needyRoom = _.shuffle(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester' && c.memory.needHauler && _.filter(Game.creeps, (h) => h.my && h.memory.role === 'remoteHauler' && h.memory.destination === c.room.name).length === 0))[0];
+            if (needyRoom) {
+                creep.memory.destination = needyRoom.memory.destination;
+            } else {
+                return creep.goToHub(creep.memory.overlord);
+            }
         }
-        // Set Harvester and move to them if not nearby
-        let pairedHarvester = Game.getObjectById(creep.memory.harvester);
         // Handle Moving
-        if (creep.room.name !== pairedHarvester.room.name) {
-            return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 22, offRoad: true});
+        if (creep.room.name !== creep.memory.destination) {
+            return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22, offRoad: true});
         } else {
-            if (pairedHarvester.memory.containerID) {
-                let container = Game.getObjectById(pairedHarvester.memory.containerID);
-                if (container && _.sum(container.store) > 50) {
-                    for (const resourceType in container.store) {
-                        if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
-                            creep.shibMove(container, {offRoad: true});
-                        }
+            if (creep.memory.energyDestination) return creep.withdrawEnergy();
+            let container = _.shuffle(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= creep.carryCapacity * 0.5))[0];
+            if (container) {
+                creep.memory.energyDestination = container.id;
+                for (const resourceType in container.store) {
+                    if (creep.withdraw(container, resourceType) === ERR_NOT_IN_RANGE) {
+                        creep.shibMove(container, {offRoad: true});
                     }
-                } else {
-                    creep.idleFor(5);
                 }
-            } else if (pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0]) {
-                let dropped = pairedHarvester.pos.lookFor(LOOK_RESOURCES)[0];
+            } else if (creep.room.droppedEnergy.length) {
+                let dropped = _.max(creep.room.droppedEnergy, 'amount');
+                creep.memory.energyDestination = dropped.id;
                 if (creep.pickup(dropped) === ERR_NOT_IN_RANGE) {
                     creep.shibMove(dropped, {offRoad: true});
                 }
             } else {
-                return creep.shibMove(new RoomPosition(25, 25, pairedHarvester.room.name), {range: 22, offRoad: true});
+                creep.memory.destination = undefined;
             }
         }
     }
 };
+
 
 // Remote Hauler Drop Off
 function dropOff(creep) {
