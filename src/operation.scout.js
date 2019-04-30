@@ -83,6 +83,13 @@ Creep.prototype.scoutRoom = function () {
             };
             // If room is owned
         } else if (controller.owner) {
+            // Do not siege non enemies
+            if (!_.includes(Memory._enemies, controller.owner.username)) {
+                delete Memory.targetRooms[this.room.name];
+                log.a('Abandoning attack on room ' + roomLink(this.room.name) + ' as they do not meet the required ' +
+                    'threat level for a siege', 'OPERATION PLANNER: ');
+                return this.memory.recycle;
+            }
             // If owned room has no towers
             if ((!towers.length || _.max(towers, 'energy').energy < 10)) {
                 // Set room to be raided for loot if some is available

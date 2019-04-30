@@ -154,13 +154,12 @@ function queueAllyAttack(roomName) {
 function operationRequests() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
-    let baddies = _.union(Memory._enemies, Memory._nuisance);
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'clean').length || 0;
-    // Harass Targets
-    let targetLimit = (_.size(Memory.ownedRooms) * 2.5);
-    if (baddies.length) {
+    let targetLimit = HARASS_LIMIT;
+    // Harass Enemies
+    if (Memory._enemies.length) {
         if (TEN_CPU) targetLimit = 1;
-        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
+        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
         for (let target of enemyHarass) {
             if (totalCountFiltered >= targetLimit) break;
             if (Memory.targetRooms[target.name]) continue;
@@ -173,18 +172,36 @@ function operationRequests() {
                 type: 'attack'
             };
             Memory.targetRooms = cache;
-            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Room -' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
             break;
         }
-    }
-    // Attack owned rooms of enemies
-    let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts' || target.type === 'drain').length || 0;
-    if (Memory._enemies.length && !activeSieges) {
-        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level), 'closestRange');
+        // Attack owned rooms of enemies
+        let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts' || target.type === 'drain').length || 0;
+        if (Memory._enemies.length && !activeSieges) {
+            let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level), 'closestRange');
+            for (let target of enemyHarass) {
+                if (Memory.targetRooms[target.name]) continue;
+                let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+                if (lastOperation + 4500 > Game.time) continue;
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[target.name] = {
+                    tick: tick,
+                    type: 'attack'
+                };
+                Memory.targetRooms = cache;
+                log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Room Level - ' + target.level + ' ), Nearest Room -' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                break;
+            }
+        }
+    } else {
+        if (TEN_CPU) targetLimit = 1;
+        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._nuisance, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
         for (let target of enemyHarass) {
+            if (totalCountFiltered >= targetLimit) break;
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 4500 > Game.time) continue;
+            if (lastOperation + 3000 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -192,13 +209,13 @@ function operationRequests() {
                 type: 'attack'
             };
             Memory.targetRooms = cache;
-            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Room Level - ' + target.level + ' ), Nearest Room -' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
             break;
         }
     }
     // Clean
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
-    let cleanLimit = 3;
+    let cleanLimit = CLEAN_LIMIT;
     if (TEN_CPU) cleanLimit = 1;
     if (cleanCount < cleanLimit) {
         let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.needsCleaning), 'closestRange');
@@ -218,12 +235,12 @@ function operationRequests() {
     }
     // Pokes
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-    let pokeLimit = 10;
-    if (TEN_CPU) pokeLimit = 3;
+    let pokeLimit = POKE_LIMIT;
+    if (TEN_CPU) pokeLimit = 2;
     if (pokeCount < pokeLimit) {
         let enemyHarass = [];
-        if (baddies.length) {
-            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(baddies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+        if (Memory._enemies.length) {
+            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
         } else if (POKE_NEUTRALS) {
             enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
         }
@@ -253,10 +270,10 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-    let pokeLimit = 10;
+    let pokeLimit = POKE_LIMIT;
     if (TEN_CPU) pokeLimit = 3;
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
-    let cleanLimit = 3;
+    let cleanLimit = CLEAN_LIMIT;
     if (TEN_CPU) cleanLimit = 1;
     let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
     if (sieges.length) {
