@@ -14,8 +14,6 @@ module.exports.role = function (creep) {
             let powerBank = Game.getObjectById(creep.memory.powerBank);
             switch (creep.attack(powerBank)) {
                 case OK:
-                    Game.rooms[creep.memory.overlord].memory.powerRooms[creep.room.name].hits = powerBank.hits;
-                    Game.rooms[creep.memory.overlord].memory.powerRooms[creep.room.name].decayOn = powerBank.ticksToDecay + Game.time;
                     break;
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(powerBank);
@@ -26,8 +24,7 @@ module.exports.role = function (creep) {
             if (powerBank) {
                 creep.memory.powerBank = powerBank.id;
             } else {
-                delete Game.rooms[creep.memory.overlord].memory.powerRooms[creep.room.name];
-                creep.idleFor(25);
+                creep.memory.recycle = true;
             }
         }
     }

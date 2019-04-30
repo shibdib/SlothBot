@@ -9,8 +9,6 @@ module.exports.role = function (creep) {
         }
         return;
     } else if (!creep.memory.hauling) {
-        let powerBank = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
-        if (powerBank) return creep.idleFor(10);
         let power = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_POWER})[0];
         if (power) {
             switch (creep.pickup(power)) {
