@@ -278,7 +278,7 @@ module.exports.miscCreepQueue = function (room) {
         let amount = roomSourceSpace[room.name] || 1;
         if (amount > room.constructionSites.length) amount = room.constructionSites.length;
         if (amount <= 3) amount = 4;
-        if (TEN_CPU) amount = 2;
+        if (TEN_CPU || level >= 6) amount = 2;
         if (drones.length < amount) {
             queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
         }
