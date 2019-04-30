@@ -567,7 +567,7 @@ module.exports.remoteCreepQueue = function (room) {
 
     //Power Mining
     if (level >= 8 && room.memory.state > 2 && !TEN_CPU && !room.memory.responseNeeded) {
-        let powerRooms = _.filter(Memory.roomCache, (r) => r.power && Game.map.getRoomLinearDistance(room.name, r) < 7);
+        let powerRooms = _.filter(Memory.roomCache, (r) => r.power && Game.map.getRoomLinearDistance(room.name, r.name) < 7);
         if (powerRooms.length) {
             for (let powerRoom of powerRooms) {
                 let powerScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerScout');
