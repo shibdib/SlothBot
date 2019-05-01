@@ -47,7 +47,7 @@ let globals = function () {
     global.SIEGE_ENERGY_AMOUNT = 100000;
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 12500;
-    global.BOOST_AMOUNT = 15000;
+    global.BOOST_AMOUNT = 7500;
     global.DUMP_AMOUNT = TRADE_AMOUNT * 2.25;
 
     // Max prices
@@ -94,8 +94,8 @@ let globals = function () {
         Power: 5,
         // SK
         SKworker: 5,
-        SKattacker: 4,
-        SKsupport: 4,
+        SKattacker: 7,
+        SKsupport: 7,
         SKhauler: 5,
         // Military
         priority: 6,

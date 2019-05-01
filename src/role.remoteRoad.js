@@ -99,6 +99,7 @@ function remoteRoads(creep) {
 
 function buildRoadFromTo(room, start, end) {
     let target;
+    if (!room || !start || !end) return false;
     if (end instanceof RoomPosition) target = end; else target = end.pos;
     let path = getRoad(room, start.pos, target);
     if (!path) {

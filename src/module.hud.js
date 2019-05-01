@@ -107,7 +107,7 @@ module.exports.hud = function () {
         if (room.memory.assistingRoom) lowerBoundary++;
         if (room.memory.claimTarget) lowerBoundary++;
         if (room.memory.responseNeeded) lowerBoundary++;
-        room.visual.rect(0, 0, 12, lowerBoundary + activeSpawns.length, {
+        room.visual.rect(0, 0, 13, lowerBoundary + activeSpawns.length, {
             fill: '#ffffff',
             opacity: '0.55',
             stroke: 'black'
@@ -171,7 +171,7 @@ module.exports.hud = function () {
             if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
             if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
             if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
-            displayText(room, 0, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.' + paused + ' (' + room.memory.averageCpu + '/CPU)');
+            displayText(room, 0, 2, ICONS.upgradeController + ' ' + room.controller.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.' + paused + ' (' + room.memory.averageCpu + '/R.CPU)');
         } else {
             delete room.memory.lastTickProgress;
             delete room.memory.rclProgressArray;

@@ -90,6 +90,13 @@ function dropOff(creep) {
         creep.memory.storageDestination = tower.id;
         return true;
     }
+    //Controller
+    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
+    let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
+    if (!controllerLink && controllerContainer && Math.random() > 0.7 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+        creep.memory.storageDestination = controllerContainer.id;
+        return true;
+    }
     // Hub Container
     let hubContainer = Game.getObjectById(creep.room.memory.hubContainer);
     if (hubContainer && _.sum(hubContainer.store) < 1000) {
@@ -106,13 +113,6 @@ function dropOff(creep) {
     let storage = creep.room.storage;
     if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 10000) {
         creep.memory.storageDestination = storage.id;
-        return true;
-    }
-    //Controller
-    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-    let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!controllerLink && controllerContainer && Math.random() > 0.7 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
-        creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
     if (storage && storage.my) {

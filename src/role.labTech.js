@@ -192,7 +192,7 @@ function supplyLab(creep) {
                 creep.memory.itemStorage = storage.id;
             } else if (terminal.store[lab.memory.itemNeeded] > 0) {
                 creep.memory.itemStorage = terminal.id;
-            } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0].mineralAmount > 0) {
+            } else if (_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0] && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0].mineralAmount > 0) {
                 creep.memory.itemStorage = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0].id;
             } else {
                 creep.memory.itemStorage = undefined;

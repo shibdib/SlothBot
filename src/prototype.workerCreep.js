@@ -406,12 +406,12 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= 5000) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= 7500) {
         this.memory.energyDestination = storage.id;
         return true;
     }
     // Terminal
-    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] > 7500) {
         this.memory.energyDestination = terminal.id;
         return true;
     }
@@ -552,7 +552,7 @@ Creep.prototype.findEssentials = function () {
     }
     //Storage
     let storage = this.room.storage;
-    if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 10000) {
+    if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 5000) {
         this.memory.storageDestination = storage.id;
         return true;
     }
