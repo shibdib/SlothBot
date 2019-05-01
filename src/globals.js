@@ -42,6 +42,7 @@ let globals = function () {
         RESOURCE_CATALYZED_ZYNTHIUM_ACID,
         RESOURCE_CATALYZED_GHODIUM_ACID];
 
+    global.CREDIT_BUFFER = 25000;
     global.TRADE_AMOUNT = 10000;
     global.ENERGY_AMOUNT = 25000;
     global.SIEGE_ENERGY_AMOUNT = 100000;
@@ -229,6 +230,7 @@ let globals = function () {
         , border: "\ud83d\udec2"
         , hospital: "\ud83c\udfe5"
         , courier: "\ud83d\ude90"
+        , power: "\u26a1"
     };
 
     global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);

@@ -568,6 +568,12 @@ Creep.prototype.findEssentials = function () {
         this.memory.storageDestination = nuke.id;
         return true;
     }
+    //Power Spawn
+    let power = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.energy < s.energyCapacity});
+    if (power) {
+        this.memory.storageDestination = power.id;
+        return true;
+    }
     //Top off towers
     let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9});
     let fullTower = _.filter(this.structures, {filter: (s) => s.my && s.structureType === STRUCTURE_TOWER && s.energy >= s.energyCapacity * 0.9});

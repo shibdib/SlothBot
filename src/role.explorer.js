@@ -9,7 +9,7 @@ module.exports.role = function (creep) {
     if (!creep.memory.destination) {
         let adjacent = Game.map.describeExits(creep.pos.roomName);
         let possibles;
-        possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 1501 > Game.time);
+        possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 750 > Game.time);
         if (!possibles.length) possibles = adjacent;
         let target = _.sample(possibles);
         if (!Game.map.isRoomAvailable(target)) return creep.say("??");

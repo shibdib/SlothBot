@@ -54,10 +54,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         case 'upgrader':
             if (level === 8) {
-                work = 15;
-                carry = 1;
-                move = 5;
-                break;
+                if (room.memory.state > 2) {
+                    work = 15;
+                    carry = 1;
+                    move = 5;
+                    break;
+                } else {
+                    work = 1;
+                    carry = 1;
+                    move = work + carry;
+                    break;
+                }
             } else if (!room.memory.controllerContainer || level < 5) {
                 work = level + 1;
                 carry = 1;
@@ -84,6 +91,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'courier':
+        case 'powerManager':
             if (level < 5) {
                 carry = 2;
                 move = 2;

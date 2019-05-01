@@ -57,6 +57,7 @@ module.exports.role = function role(creep) {
                 }
             } else {
                 delete creep.memory.harvest;
+                if (!creep.pos.findClosestByRange(FIND_SOURCES)) return creep.memory.recycle = true;
                 creep.idleFor(5);
             }
         }

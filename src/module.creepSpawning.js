@@ -287,6 +287,13 @@ module.exports.miscCreepQueue = function (room) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech', localCache: true})
         }
     }
+    //Power
+    if (room.memory.state > 2 && !_.includes(queue, 'powerManager') && level === 8) {
+        let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
+        if (powerManager.length < 1) {
+            queueCreep(room, PRIORITIES.hauler, {role: 'powerManager', localCache: true})
+        }
+    }
     //SPECIALIZED
     //Waller
     if (!_.includes(queue, 'waller') && level >= 3) {
@@ -438,7 +445,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteRoom = Game.rooms[remotes[keys]];
             let noSpawn = (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 0 && Memory.roomCache[remotes[keys]].lastInvaderCheck + 1000 > Game.time);
             // Handle SK
-            if (Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !room.memory.responseNeeded) {
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !room.memory.responseNeeded) {
                 let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKsupport' && creep.memory.overlord === room.name);
                 if (!_.includes(queue, 'SKsupport') && (SKSupport.length < 1 || SKSupport[0] && SKSupport[0].ticksToLive < (SKSupport[0].body.length * 3 + 10) && SKSupport.length < 2)) {
                     queueCreep(room, PRIORITIES.SKsupport, {role: 'SKsupport', destination: skRooms[room.name]})
@@ -634,16 +641,21 @@ module.exports.militaryCreepQueue = function () {
                 }
                 break;
             case 'power': //Power Mining
+                if (Memory.roomCache[key].power < Game.time + 1750) {
+                    Memory.targetRooms[key] = undefined;
+                    Memory.roomCache[key].power = undefined;
+                    break;
+                }
                 let powerHealer = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHealer' && creep.memory.destination === key);
-                if (!_.includes(queue, 'powerHealer') && powerHealer.length < 1) {
+                if (!Memory.targetRooms[key].complete && !_.includes(queue, 'powerHealer') && (powerHealer.length < 2 || (powerHealer[0] && powerHealer[0].ticksToLive < (powerHealer[0].body.length * 3 + 100) && powerHealer.length < 3))) {
                     queueMilitaryCreep(PRIORITIES.power, {role: 'powerHealer', destination: key, military: true})
                 }
                 let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
-                if (!_.includes(queue, 'powerAttacker') && powerAttacker.length < 2 && powerHealer.length > 0) {
+                if (!Memory.targetRooms[key].complete && !_.includes(queue, 'powerAttacker') && (powerAttacker.length < 2 || (powerAttacker[0] && powerAttacker[0].ticksToLive < (powerAttacker[0].body.length * 3 + 100) && powerAttacker.length < 3)) && powerHealer.length > 0) {
                     queueMilitaryCreep(PRIORITIES.power, {role: 'powerAttacker', destination: key, military: true})
                 }
                 let powerHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHauler' && creep.memory.destination === key);
-                if (!_.includes(queue, 'powerHauler') && powerHauler.length < 1 && powerAttacker.length > 0 && powerHealer.length > 0) {
+                if (Memory.targetRooms[key].hauler && !_.includes(queue, 'powerHauler') && powerHauler.length < Memory.targetRooms[key].hauler) {
                     queueMilitaryCreep(PRIORITIES.power, {role: 'powerHauler', destination: key, military: true})
                 }
                 break;

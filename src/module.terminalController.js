@@ -38,6 +38,8 @@ module.exports.terminalControl = function (room) {
     if (placeReactionOrders(room.terminal, globalOrders, myOrders)) return;
     //Use extra creds to buy needed items for boosts
     if (onDemandReactionOrders(room.terminal, globalOrders)) return;
+    //Buy Power
+    if (buyPower(room.terminal, globalOrders)) return;
 };
 
 function fillBuyOrders(terminal, globalOrders) {
@@ -202,7 +204,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
 }
 
 function onDemandReactionOrders(terminal, globalOrders) {
-    if (terminal.store[RESOURCE_ENERGY] > 500) {
+    if (terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER) {
         for (let i = 0; i < reactionNeeds.length; i++) {
             // Skip if you can procure yourself
             if (_.includes(Memory.ownedMineral, reactionNeeds[i])) continue;
@@ -220,6 +222,26 @@ function onDemandReactionOrders(terminal, globalOrders) {
                         log.w(" MARKET: Bought " + reactionAmount + " " + reactionNeeds[i] + " for " + sellOrder.price * reactionAmount + " credits");
                         return true;
                     }
+                }
+            }
+        }
+    }
+}
+
+function buyPower(terminal, globalOrders) {
+    if (terminal.room.controller.level === 8 && terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER) {
+        let storage = terminal.room.storage;
+        if (!storage) return;
+        let stored = terminal.store[RESOURCE_POWER] + storage.store[RESOURCE_POWER] || 0;
+        if (stored >= 5000) return;
+        if (!terminal.store[RESOURCE_POWER] || terminal.store[RESOURCE_POWER] < 2500) {
+            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_POWER &&
+                order.type === ORDER_SELL && order.remainingAmount >= 5500 && order.roomName !== terminal.pos.roomName &&
+                Game.market.calcTransactionCost(5500, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
+            if (sellOrder.id) {
+                if (Game.market.deal(sellOrder.id, 5500, terminal.pos.roomName) === OK) {
+                    log.w(" MARKET: Bought 5500 + " + RESOURCE_POWER + " for " + sellOrder.price * 5500 + " credits");
+                    return true;
                 }
             }
         }
@@ -316,7 +338,7 @@ function placeEnergyOrders(terminal, globalOrders, myOrders) {
     // If we have extra credits get more energy
     if (Game.market.credits >= 100000) energyTarget *= 2;
     // Check if we don't need energy
-    if (terminal.room.energy >= energyTarget * 0.9 || Game.market.credits < 10000) return false;
+    if (terminal.room.energy >= energyTarget * 0.75 || Game.market.credits < CREDIT_BUFFER) return false;
     let myOrderKeys = _.pluck(myOrders, 'id');
     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
         order.type === ORDER_BUY && order.remainingAmount >= 10000 && !_.includes(myOrderKeys, order.id)), 'price');

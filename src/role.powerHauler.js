@@ -4,10 +4,6 @@ module.exports.role = function (creep) {
     //Initial move
     if (!creep.memory.destinationReached && !creep.memory.hauling) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
-        }
-        return;
     } else if (!creep.memory.hauling) {
         let power = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_POWER})[0];
         if (power) {
@@ -20,7 +16,8 @@ module.exports.role = function (creep) {
                     break;
             }
         } else {
-            creep.memory.role = 'remoteHauler';
+            Memory.targetRooms[creep.room.name] = undefined;
+            creep.memory.recycle = true;
         }
     } else {
         if (creep.room.name !== creep.memory.overlord) {

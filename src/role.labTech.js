@@ -14,6 +14,7 @@ module.exports.role = function (creep) {
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
     // If terminal is overfull handle that
     if (emergencyDump(creep)) return;
+    // Handle dropped goodies
     if (droppedResources(creep)) return;
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
     // Empty labs
