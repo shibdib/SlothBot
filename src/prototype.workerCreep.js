@@ -400,7 +400,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Extra Full Terminal
     let terminal = this.room.terminal;
-    if (terminal && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT || !terminal.my)) {
+    if (terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 1.5 || !terminal.my || this.room.memory.responseNeeded)) {
         this.memory.energyDestination = terminal.id;
         return true;
     }
@@ -408,11 +408,6 @@ Creep.prototype.getEnergy = function (hauler = false) {
     let storage = this.room.storage;
     if (storage && storage.store[RESOURCE_ENERGY] >= 7500) {
         this.memory.energyDestination = storage.id;
-        return true;
-    }
-    // Terminal
-    if (terminal && terminal.store[RESOURCE_ENERGY] > 7500) {
-        this.memory.energyDestination = terminal.id;
         return true;
     }
     if (this.memory.role !== 'hauler' || this.room.controller.level < 7) {
@@ -499,6 +494,11 @@ Creep.prototype.findStorage = function () {
     let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.8});
     if (tower) {
         this.memory.storageDestination = tower.id;
+        return true;
+    }
+    //Terminal for balancing
+    if (terminal && terminal.my && terminal.store < terminal.storeCapacity) {
+        this.memory.storageDestination = terminal.id;
         return true;
     }
     //Storage

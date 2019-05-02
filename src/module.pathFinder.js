@@ -199,14 +199,14 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             if (options.ignoreStructures) {
                 matrix = new PathFinder.CostMatrix();
                 if (!options.ignoreCreeps) {
-                    addCreepsToMatrix(room, matrix);
+                    addCreepsToMatrix(room, matrix, creep);
                     addSksToMatrix(room, matrix);
                 }
             } else if (options.ignoreCreeps || roomName !== originRoomName) {
                 matrix = getStructureMatrix(room, options.freshMatrix);
                 getSKMatrix(room, matrix)
             } else {
-                matrix = getCreepMatrix(room);
+                matrix = getCreepMatrix(room, creep);
                 getSKMatrix(room, matrix)
             }
             if (room.hostileCreeps.length) getHostileMatrix(room, matrix);
@@ -384,16 +384,17 @@ function getStructureMatrix(room, freshMatrix) {
     return PathFinder.CostMatrix.deserialize(structureMatrixCache[room.name]);
 }
 
-function getCreepMatrix(room) {
+function getCreepMatrix(room, creep) {
     if (!creepMatrixCache[room.name] || (!room.memory.creepMatrixTick || Game.time !== room.memory.creepMatrixTick + 3)) {
         room.memory.creepMatrixTick = Game.time;
-        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone()).serialize();
+        creepMatrixCache[room.name] = addCreepsToMatrix(room, getStructureMatrix(room, true).clone(), creep).serialize();
     }
     return PathFinder.CostMatrix.deserialize(creepMatrixCache[room.name]);
 }
 
-function addCreepsToMatrix(room, matrix) {
+function addCreepsToMatrix(room, matrix, creep = undefined) {
     let creeps = room.creeps;
+    if (!room.hostileCreeps.length && creep) creeps = creep.pos.findInRange(FIND_CREEPS, 5);
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
     }

@@ -106,16 +106,12 @@ function dropOff(creep) {
     }
     //Terminal
     let terminal = creep.room.terminal;
-    if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < 5000) {
+    if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < terminal.storeCapacity) {
         creep.memory.storageDestination = terminal.id;
         return true;
     }
     //Storage
     let storage = creep.room.storage;
-    if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 10000) {
-        creep.memory.storageDestination = storage.id;
-        return true;
-    }
     if (storage && storage.my) {
         creep.memory.storageDestination = storage.id;
         return true;

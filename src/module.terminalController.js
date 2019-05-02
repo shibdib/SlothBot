@@ -397,7 +397,7 @@ function balanceBoosts(terminal) {
         }
     }
     // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 1.5) {
+    if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 1.2) {
         // Find needy terminals
         let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < ENERGY_AMOUNT))[0];
         if (needyRoom) {
