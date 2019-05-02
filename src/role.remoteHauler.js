@@ -24,6 +24,7 @@ module.exports.role = function (creep) {
                 for (const resourceType in creep.carry) {
                     switch (creep.transfer(storageItem, resourceType)) {
                         case OK:
+                            creep.memory.storageDestination = undefined;
                             break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(storageItem);
