@@ -70,7 +70,7 @@ let globals = function () {
 
     global.PRIORITIES = {
         // Harvesters
-        stationaryHarvester: 1,
+        stationaryHarvester: 2,
         // Workers
         worker: 5,
         drone: 5,
@@ -79,7 +79,7 @@ let globals = function () {
         mineralHarvester: 7,
         repairer: 7,
         // Haulers
-        hauler: 2,
+        hauler: 1,
         // Remotes
         remoteUtility: 6,
         remoteHarvester: 6,

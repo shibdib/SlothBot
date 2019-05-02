@@ -491,12 +491,9 @@ module.exports.remoteCreepQueue = function (room) {
                     //Harvesters
                     if (!noSpawn && !_.includes(queue, 'remoteHarvester')) {
                         let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
-                        let totalRemoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
                         let sourceCount = 1;
-                        let remoteHarvesterCap = 10;
-                        if (room.memory.state >= 3) remoteHarvesterCap = 6;
                         if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources && room.energy < ENERGY_AMOUNT && room.memory.state < 3) sourceCount = Memory.roomCache[remotes[keys]].sources;
-                        if (remoteHarvester.length < sourceCount && totalRemoteHarvester < remoteHarvesterCap) {
+                        if (remoteHarvester.length < sourceCount) {
                             queueCreep(room, PRIORITIES.remoteHarvester, {
                                 role: 'remoteHarvester',
                                 destination: remotes[keys]
