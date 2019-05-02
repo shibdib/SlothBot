@@ -991,12 +991,18 @@ function queueMilitaryCreep(importance, options = {}) {
 
 function determineEnergyOrder(room) {
     if (!room.memory.bunkerHub) return;
+    let hauler = _.filter(room.creeps, (c) => c.my && c.memory.role === 'hauler')[0];
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     let energyStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
     let rangeArray = [];
     let usedIdArray = [];
     for (let x = 0; x < energyStructures.length; x++) {
-        let nextClosest = hub.findClosestByPath(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
+        let nextClosest;
+        if (hauler) {
+            nextClosest = hauler.pos.findClosestByPath(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
+        } else {
+            nextClosest = hub.findClosestByPath(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
+        }
         if (!nextClosest) break;
         usedIdArray.push(nextClosest.id);
         rangeArray.push(nextClosest);
