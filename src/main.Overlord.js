@@ -1,5 +1,4 @@
 let observers = require('module.observerController');
-let power = require('module.powerManager');
 let shib = require("shibBench");
 let defense = require('military.defense');
 let links = require('module.linkController');
@@ -107,7 +106,13 @@ module.exports.overlordMind = function (room) {
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
     // Worker minions
     for (let key in roomCreeps) {
-        minionController(roomCreeps[key]);
+        try {
+            minionController(roomCreeps[key]);
+        } catch (e) {
+            log.e(roomCreeps[key].name + ' in room ' + roomCreeps[key].room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
     }
     shib.shibBench('minionController', cpu);
 
@@ -148,19 +153,6 @@ module.exports.overlordMind = function (room) {
             Game.notify(e.stack);
         }
         shib.shibBench('terminalControl', cpu);
-    }
-
-    // Power Processing
-    if (!TEN_CPU && room.level >= 8 && cpuBucket >= 8000) {
-        cpu = Game.cpu.getUsed();
-        try {
-            power.powerControl(room);
-        } catch (e) {
-            log.e('Power Control for room ' + room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
-        }
-        shib.shibBench('powerControl', cpu);
     }
 
     // Store Data

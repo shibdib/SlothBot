@@ -43,7 +43,7 @@ function shibMove(creep, heading, options = {}) {
         });
     }
     // Set these for creeps that can afford them
-    if (!options.ignoreRoads || !options.offRoad) {
+    if (creep instanceof Creep && !options.ignoreRoads || !options.offRoad) {
         let move = creep.getActiveBodyparts(MOVE);
         let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
         let fullCarry = 0;
@@ -633,6 +633,9 @@ function getPosKey(pos) {
     return pos.x + 'x' + pos.y + pos.roomName;
 }
 
+PowerCreep.prototype.shibMove = function (destination, options) {
+    return shibMove(this, destination, options);
+};
 Creep.prototype.shibMove = function (destination, options) {
     return shibMove(this, destination, options);
 };

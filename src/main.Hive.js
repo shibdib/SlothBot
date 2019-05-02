@@ -1,6 +1,7 @@
 let overlord = require('main.Overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
+let power = require('module.powerManager');
 let spawning = require('module.creepSpawning');
 let expansion = require('module.expansion');
 let diplomacy = require('module.diplomacy');
@@ -105,6 +106,16 @@ module.exports.hiveMind = function () {
         }
         shib.shibBench('militarySpawn', cpu);
     }
+    // Power Processing
+    cpu = Game.cpu.getUsed();
+    try {
+        power.powerControl();
+    } catch (e) {
+        log.e('Power Control for experienced an error');
+        log.e(e.stack);
+        Game.notify(e.stack);
+    }
+    shib.shibBench('powerControl', cpu);
     //Process creep build queues
     cpu = Game.cpu.getUsed();
     try {
