@@ -25,7 +25,7 @@ module.exports.powerControl = function () {
                         log.e(e.stack);
                         Game.notify(e.stack);
                     }
-                } else {
+                } else if (powerCreep.spawnCooldownTime < Date.now()) {
                     let spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0];
                     if (spawn) {
                         log.a('Spawned an operator in ' + roomLink(spawn.room.name));

@@ -31,7 +31,25 @@ module.exports.role = function (creep) {
                 creep.shibMove(powerSpawn);
                 return true;
         }
-    } else if (creep.memory.energyDestination || creep.getEnergy(true)) {
+    } else if (_.sum(creep.carry)) {
+        creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
+        if (creep.memory.storageDestination) {
+            let storageItem = Game.getObjectById(creep.memory.storageDestination);
+            for (const resourceType in creep.carry) {
+                switch (creep.transfer(storageItem, resourceType)) {
+                    case OK:
+                        creep.memory.storageDestination = undefined;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(storageItem);
+                        break;
+                    case ERR_FULL:
+                        creep.memory.storageDestination = undefined;
+                        break;
+                }
+            }
+        }
+    } else if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
     } else if (energySource && powerSpawn.energy < 1000) {
         switch (creep.withdraw(energySource, RESOURCE_ENERGY)) {
