@@ -396,7 +396,7 @@ function addCreepsToMatrix(room, matrix, creep = undefined) {
     let creeps = room.creeps;
     if (!room.hostileCreeps.length && creep) {
         creeps = creep.pos.findInRange(FIND_CREEPS, 5);
-        creeps.concat(creep.pos.findInRange(FIND_POWER_CREEPS, 5));
+        creeps = creeps.concat(creep.pos.findInRange(FIND_POWER_CREEPS, 5));
     }
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
