@@ -394,7 +394,10 @@ function getCreepMatrix(room, creep) {
 
 function addCreepsToMatrix(room, matrix, creep = undefined) {
     let creeps = room.creeps;
-    if (!room.hostileCreeps.length && creep) creeps = creep.pos.findInRange(FIND_CREEPS, 5);
+    if (!room.hostileCreeps.length && creep) {
+        creeps = creep.pos.findInRange(FIND_CREEPS, 5);
+        creeps.concat(creep.pos.findInRange(FIND_POWER_CREEPS, 5));
+    }
     for (let key in creeps) {
         matrix.set(creeps[key].pos.x, creeps[key].pos.y, 0xff);
     }
@@ -418,7 +421,7 @@ function getSKMatrix(room, matrix) {
 }
 
 function addHostilesToMatrix(room, matrix) {
-    let enemyCreeps = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+    let enemyCreeps = _.filter(room.hostileCreeps, (c) => !c.className && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     for (let key in enemyCreeps) {
         matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 0xff);
         let range = 8;

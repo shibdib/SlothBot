@@ -141,10 +141,22 @@ Object.defineProperty(Room.prototype, 'creeps', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'powerCreeps', {
+    get: function () {
+        if (!this._powerCreeps) {
+            this._powerCreeps = this.find(FIND_POWER_CREEPS);
+        }
+        return this._powerCreeps;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
             this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._nuisance, c.owner.username)));
+            this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._nuisance, c.owner.username))));
         }
         return this._Hostilecreeps;
     },
