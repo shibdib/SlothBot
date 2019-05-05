@@ -111,7 +111,7 @@ module.exports.hiveMind = function () {
     try {
         power.powerControl();
     } catch (e) {
-        log.e('Power Control for experienced an error');
+        log.e('Power Manager experienced an error.');
         log.e(e.stack);
         Game.notify(e.stack);
     }

@@ -43,7 +43,7 @@ function shibMove(creep, heading, options = {}) {
         });
     }
     // Set these for creeps that can afford them
-    if (creep instanceof Creep && !options.ignoreRoads || !options.offRoad) {
+    if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
         let move = creep.getActiveBodyparts(MOVE);
         let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
         let fullCarry = 0;

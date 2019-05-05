@@ -414,6 +414,17 @@ PowerCreep.prototype.recycleCreep = function () {
     }
 };
 
+Object.defineProperty(PowerCreep.prototype, 'ops', {
+    get: function () {
+        if (!this._ops) {
+            this._ops = this.carry[RESOURCE_OPS];
+        }
+        return this._ops;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(PowerCreep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {

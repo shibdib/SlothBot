@@ -400,7 +400,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Extra Full Terminal
     let terminal = this.room.terminal;
-    if (terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 1.5 || !terminal.my || this.room.memory.responseNeeded)) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 1.5 || !terminal.my || this.room.memory.responseNeeded)) {
         this.memory.energyDestination = terminal.id;
         return true;
     }

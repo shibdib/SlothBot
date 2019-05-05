@@ -611,6 +611,29 @@ Creep.prototype.moveRandom = function (onPath) {
     this.move(direction);
 };
 
+PowerCreep.prototype.moveRandom = function (onPath) {
+    let start = Math.ceil(Math.random() * 8);
+    let direction = 0;
+    for (let i = start; i < start + 8; i++) {
+        direction = ((i - 1) % 8) + 1;
+        let pos = this.pos.getAdjacentPosition(direction);
+        if (pos.isExit()) {
+            continue;
+        }
+        if (onPath && !pos.inPath()) {
+            continue;
+        }
+        if (pos.checkForWall()) {
+            continue;
+        }
+        if (pos.checkForObstacleStructure()) {
+            continue;
+        }
+        break;
+    }
+    this.move(direction);
+};
+
 Room.prototype.findAttackCreeps = function (object) {
     if (object.owner.username === 'Source Keeper') {
         return false;

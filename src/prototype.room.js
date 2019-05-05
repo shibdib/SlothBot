@@ -576,10 +576,11 @@ Room.prototype.handleNukeAttack = function () {
     return true;
 };
 
-Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false) {
+Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false, minLevel = 1) {
     let distance = 0;
     let closest;
     for (let key in Memory.ownedRooms) {
+        if (Memory.ownedRooms[key].controller.level < minLevel) continue;
         let range = Game.map.findRoute(this, Memory.ownedRooms[key]).length;
         if (safePath) range = this.shibRoute(Memory.ownedRooms[key]).length - 1;
         if (!distance) {

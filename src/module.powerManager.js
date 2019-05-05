@@ -19,13 +19,15 @@ module.exports.powerControl = function () {
                 if (powerCreep.ticksToLive) {
                     let powerCreepRole = require('powerRole.' + powerCreep.className);
                     try {
+                        // If idle sleep
+                        if (powerCreep.idle) continue;
                         powerCreepRole.role(powerCreep);
                     } catch (e) {
                         log.e(powerCreepRole.name + ' in room ' + powerCreep.room.name + ' experienced an error');
                         log.e(e.stack);
                         Game.notify(e.stack);
                     }
-                } else if (powerCreep.spawnCooldownTime < Date.now()) {
+                } else if (!powerCreep.spawnCooldownTime || powerCreep.spawnCooldownTime < Date.now()) {
                     let spawn = _.filter(Game.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0];
                     if (spawn) {
                         log.a('Spawned an operator in ' + roomLink(spawn.room.name));

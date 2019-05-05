@@ -288,7 +288,8 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Power
-    if (room.memory.state > 2 && !_.includes(queue, 'powerManager') && level === 8) {
+    let powerSpawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
+    if (powerSpawn && room.memory.state > 2 && !_.includes(queue, 'powerManager') && level === 8) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (powerManager.length < 1) {
             queueCreep(room, PRIORITIES.hauler, {role: 'powerManager', localCache: true})
