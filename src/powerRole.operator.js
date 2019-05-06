@@ -58,10 +58,11 @@ module.exports.role = function (powerCreep) {
         else if (targetSpawn && powerCreep.powers[PWR_OPERATE_SPAWN] && !powerCreep.powers[PWR_OPERATE_SPAWN].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_SPAWN].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_SPAWN, targetSpawn);
         }
-        // Boost Observer
-        else if (targetObserver && powerCreep.powers[PWR_OPERATE_OBSERVER] && !powerCreep.powers[PWR_OPERATE_OBSERVER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_OBSERVER].ops) {
+        /**
+         // Boost Observer
+         else if (targetObserver && powerCreep.powers[PWR_OPERATE_OBSERVER] && !powerCreep.powers[PWR_OPERATE_OBSERVER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_OBSERVER].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_OBSERVER, targetObserver);
-        }
+        }**/
         // Boost Lab
         else if (targetLab && powerCreep.powers[PWR_OPERATE_LAB] && !powerCreep.powers[PWR_OPERATE_LAB].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_LAB].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_LAB, targetLab);
