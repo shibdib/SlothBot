@@ -18,6 +18,9 @@ let globals = function () {
 
     global.LAYOUT_VERSION = 1.52;
 
+    //PC Stuff
+    global.OPERATOR_UPGRADE_PRIORITY = [PWR_GENERATE_OPS, PWR_OPERATE_SPAWN, PWR_OPERATE_EXTENSION, PWR_OPERATE_TOWER];
+
     //Signing and whatnot
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];
     global.RESERVE_ROOM_SIGNS = ["~~Reserved Territory of an #overlords member~~", "~~This is a restricted area, violators will be attacked #overlords~~", "~~#overlords Exclusion Zone~~", "~~#overlords Reserved Room~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER~~"];

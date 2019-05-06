@@ -414,14 +414,6 @@ module.exports.remoteCreepQueue = function (room) {
         room.memory.remoteRooms = undefined;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => !Memory.roomCache[r] ||
             (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME)));
-        if (adjacent.length < 4) {
-            let secondary = [];
-            for (let remoteRoom of adjacent) {
-                secondary = _.union(secondary, (_.filter(Game.map.describeExits(remoteRoom), (r) => !Memory.roomCache[r] ||
-                    (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME)))));
-            }
-            adjacent = _.union(adjacent, _.take(secondary, 4 - adjacent.length))
-        }
         remoteHives[room.name] = JSON.stringify(adjacent);
     }
     //Remotes
@@ -447,13 +439,13 @@ module.exports.remoteCreepQueue = function (room) {
             let noSpawn = (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 0 && Memory.roomCache[remotes[keys]].lastInvaderCheck + 1000 > Game.time);
             // Handle SK
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !room.memory.responseNeeded) {
-                let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKsupport' && creep.memory.overlord === room.name);
+                let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKsupport' && creep.memory.overlord === room.name);
                 if (!_.includes(queue, 'SKsupport') && (SKSupport.length < 1 || SKSupport[0] && SKSupport[0].ticksToLive < (SKSupport[0].body.length * 3 + 10) && SKSupport.length < 2)) {
-                    queueCreep(room, PRIORITIES.SKsupport, {role: 'SKsupport', destination: skRooms[room.name]})
+                    queueCreep(room, PRIORITIES.SKsupport, {role: 'SKsupport', destination: remotes[room.name]})
                 }
-                let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
+                let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
                 if (!_.includes(queue, 'SKattacker') && (SKAttacker.length < 1 || SKAttacker[0] && SKAttacker[0].ticksToLive < (SKAttacker[0].body.length * 3 + 10) && SKAttacker.length < 2) && SKSupport.length) {
-                    queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', destination: skRooms[room.name]})
+                    queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', destination: remotes[room.name]})
                 }
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;

@@ -64,6 +64,7 @@ module.exports.towerControl = function (room) {
         if (repairTower.energy > repairTower.energyCapacity * 0.15) {
             let creeps = room.creeps;
             let woundedCreep = _.filter(creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username));
+            woundedCreep = woundedCreep.concat(_.filter(room.powerCreeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)));
             if (woundedCreep.length > 0) {
                 return repairTower.heal(woundedCreep[0]);
             }
