@@ -11,7 +11,7 @@ module.exports.role = function (creep) {
         return;
     } else {
         if (!creep.memory.assignedAttacker) {
-            let attacker = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'skAttacker' && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
+            let attacker = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'powerAttacker' && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
             if (attacker) {
                 attacker.memory.healer = creep.id;
                 creep.memory.assignedAttacker = attacker.id;
@@ -20,10 +20,10 @@ module.exports.role = function (creep) {
             }
         } else {
             let attacker = Game.getObjectById(creep.memory.assignedAttacker);
-            if (this.pos.getRangeTo(attacker) <= 1) {
-                this.heal(attacker);
+            if (creep.pos.getRangeTo(attacker) <= 1) {
+                creep.heal(attacker);
             } else {
-                this.rangedHeal(attacker);
+                creep.rangedHeal(attacker);
             }
         }
     }
