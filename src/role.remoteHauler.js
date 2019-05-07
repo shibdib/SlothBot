@@ -94,8 +94,7 @@ function dropOff(creep) {
     //Controller
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!controllerLink && controllerContainer && Math.random() > 0.7 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5 &&
-        (!closestLink || closestLink.pos.getRangeTo(this) > controllerLink.pos.getRangeTo(this))) {
+    if (!controllerLink && controllerContainer && Math.random() > 0.7 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
