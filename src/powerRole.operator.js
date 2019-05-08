@@ -3,19 +3,14 @@
  */
 
 module.exports.role = function (powerCreep) {
+    // If not spawned return
+    if (!powerCreep.ticksToLive) return;
     // Handle border
     if (powerCreep.borderCheck()) return;
     // Handle upgrades
     upgradePowers(powerCreep);
     // Generate Ops
     if (powerCreep.powers[PWR_GENERATE_OPS] && !powerCreep.powers[PWR_GENERATE_OPS].cooldown) abilitySwitch(powerCreep, PWR_GENERATE_OPS);
-    // Handle room movement
-    if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
-        return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 17})
-    }
-    else if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom === powerCreep.room.name) {
-        powerCreep.memory.destinationRoom = undefined;
-    }
     // Handle renewal
     if (powerCreep.ticksToLive <= 1000) {
         let spawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0];
@@ -29,6 +24,13 @@ module.exports.role = function (powerCreep) {
         } else {
             powerCreep.memory.destinationRoom = powerCreep.room.findClosestOwnedRoom(false, false, 8);
         }
+    }
+    // Handle room movement
+    if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
+        return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 17})
+    }
+    else if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom === powerCreep.room.name) {
+        powerCreep.memory.destinationRoom = undefined;
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
@@ -73,7 +75,7 @@ module.exports.role = function (powerCreep) {
         }
         else {
             powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
-                _.filter(Game.powerCreeps, (c) => c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
+                _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
             if (!powerCreep.memory.destinationRoom) powerCreep.idleFor(5);
         }
     }

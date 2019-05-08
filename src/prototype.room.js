@@ -265,9 +265,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // Get range to nearest room of yours
         closestRange = this.findClosestOwnedRoom(true);
         // Get special rooms via name
-        let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
-        let isHighway = (parsed[1] % 10 === 0) ||
-            (parsed[2] % 10 === 0);
+        //let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
+        let isHighway = room.sources.length === 0;
         if (!isHighway) isHighway = undefined;
         let cache = Memory.roomCache || {};
         let sources = room.sources;
