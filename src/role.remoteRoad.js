@@ -74,6 +74,11 @@ function remoteRoads(creep) {
         if (_.size(Game.constructionSites) >= 70) return false;
         if (buildRoadFromTo(creep.room, sources[key], homeExit[homeMiddle])) return true;
     }
+    let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
+    for (let container of containers) {
+        if (_.size(Game.constructionSites) >= 70) return false;
+        if (buildRoadFromTo(creep.room, container, homeExit[homeMiddle])) return true;
+    }
     if (buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
     let neighboring = Game.map.describeExits(creep.pos.roomName);
     if (neighboring['1'] && neighboring['1'] !== creep.memory.overlord) {
@@ -115,7 +120,10 @@ function buildRoadFromTo(room, start, end) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);
                         if (tile === 0) costMatrix.set(x, y, 25);
-                        if (tile === 1) costMatrix.set(x, y, 225);
+                        if (tile === 1) {
+                            let tilePos = new RoomPosition(x, y, room.name);
+                            if (tilePos.findInRange(FIND_SOURCES, 1).length || tilePos.findInRange(FIND_MINERALS, 1).length) costMatrix.set(x, y, 256); else costMatrix.set(x, y, 225);
+                        }
                         if (tile === 2) costMatrix.set(x, y, 35);
                     }
                 }
@@ -173,7 +181,7 @@ function getRoad(room, from, to) {
     if (cachedPath) {
         return cachedPath.path;
     } else {
-        return;
+
     }
 }
 
