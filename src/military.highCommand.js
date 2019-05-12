@@ -69,7 +69,7 @@ module.exports.operationSustainability = function (room) {
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
     if (operation.tick + 1500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
-        (operation.type === 'drain' && (operation.trackedFriendly.length + 1 >= 4 || operation.tick + 10000 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time) || (operation.type === 'clean' && operation.tick + 10000 < Game.time && !operation.manual)) {
+        (operation.type === 'drain' && (operation.trackedFriendly.length + 1 >= 4 || operation.tick + 4500 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time) || (operation.type === 'clean' && operation.tick + 10000 < Game.time && !operation.manual)) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + roomLink(room.name) + ' due to it no longer being economical.', 'HIGH COMMAND: ');
         delete Memory.targetRooms[room.name];

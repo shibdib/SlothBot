@@ -112,7 +112,7 @@ Creep.prototype.scoutRoom = function () {
                 // If owned room has tower
             } else {
                 // If we dont have any level 7+ rooms
-                if (maxLevel < 7) {
+                if (maxLevel <= 6) {
                     if (maxLevel === 6) {
                         cache[this.room.name] = {
                             tick: tick,
@@ -131,14 +131,15 @@ Creep.prototype.scoutRoom = function () {
                 } // If we do have level 7+ rooms
                 else {
                     if (maxLevel === 8) {
-                        if (!Memory.roomCache[this.room.name].noDrain) {
+                        /**if (!Memory.roomCache[this.room.name].noDrain) {
                             cache[this.room.name] = {
                                 tick: tick,
                                 type: 'drain',
                                 level: towers.length,
                                 priority: priority
                             };
-                        } else if (towers.length >= 5 && nukeTarget(this.room)) {
+                        } else **/
+                        if (towers.length >= 5 && nukeTarget(this.room)) {
                             cache[Game.flags[name].pos.roomName] = {
                                 tick: tick,
                                 dDay: tick + 50000,
