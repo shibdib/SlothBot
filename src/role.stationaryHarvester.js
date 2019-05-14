@@ -23,7 +23,7 @@ module.exports.role = function (creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (container && creep.memory.linkID && Game.time % 3 === 0 && container.store[RESOURCE_ENERGY] > 10) creep.withdraw(container, RESOURCE_ENERGY);
+                if (container && container.store[RESOURCE_ENERGY] > 10 && creep.memory.linkID && Game.time % 3 === 0) creep.withdraw(container, RESOURCE_ENERGY);
                 if (_.sum(creep.carry) === creep.carryCapacity) return depositEnergy(creep);
                 break;
         }
@@ -32,11 +32,7 @@ module.exports.role = function (creep) {
             let oldestHarvester = _.min(_.filter(creep.room.creeps, (c) => c.memory && c.memory.role === 'stationaryHarvester'), 'ticksToLive');
             creep.shibMove(oldestHarvester);
             if (creep.pos.getRangeTo(oldestHarvester) <= 2) {
-                if (oldestHarvester.ticksToLive < 50) {
-                    oldestHarvester.suicide()
-                } else {
-                    oldestHarvester.memory.role = 'worker';
-                }
+                oldestHarvester.memory.recycle = true;
             }
         }
     }

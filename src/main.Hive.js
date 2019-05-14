@@ -36,7 +36,7 @@ module.exports.hiveMind = function () {
     shib.shibBench('highCommand', cpu);
     // Handle Labs
     cpu = Game.cpu.getUsed();
-    if (Game.cpu.bucket > 5000) {
+    if (Game.cpu.bucket >= 9999) {
         try {
             labs.labManager();
         } catch (e) {
@@ -57,7 +57,6 @@ module.exports.hiveMind = function () {
             Game.notify(e.stack);
         }
     }
-    _.filter
     // Process Overlords
     let processed = 0;
     for (let key in Memory.ownedRooms) {
@@ -127,7 +126,7 @@ module.exports.hiveMind = function () {
     }
     shib.shibBench('processBuildQueue', cpu);
     //Room HUD (If CPU Allows)
-    if (!TEN_CPU && Game.cpu.bucket > 9000) {
+    if (!TEN_CPU && Game.cpu.bucket > 9999) {
         cpu = Game.cpu.getUsed();
         try {
             hud.hud();

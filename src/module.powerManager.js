@@ -13,7 +13,7 @@ module.exports.powerControl = function () {
     }
     // Handle PC spawning
     if (Game.gpl.level) {
-        if (_.size(Game.powerCreeps) && Memory.ownedRooms.length / 4 <= _.size(Game.powerCreeps)) {
+        if (_.size(Game.powerCreeps) && (Game.gpl.level < 10 || Memory.ownedRooms.length / 4 <= _.size(Game.powerCreeps))) {
             let powerCreeps = _.filter(Game.powerCreeps, (c) => c.my);
             for (let powerCreep of powerCreeps) {
                 if (powerCreep.ticksToLive) {

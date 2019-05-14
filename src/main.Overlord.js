@@ -24,7 +24,7 @@ module.exports.overlordMind = function (room) {
     shib.shibBench('defenseController', cpu);
 
     //Build Room
-    if (((room.controller.level < 4 && Game.time % 20 === 0) || (storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 100 === 0) && cpuBucket >= 1000) {
+    if (((room.controller.level < 4 && Game.time % 20 === 0) || (storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 100 === 0) && cpuBucket >= 9999) {
         cpu = Game.cpu.getUsed();
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
@@ -87,7 +87,7 @@ module.exports.overlordMind = function (room) {
                     Game.notify(e.stack);
                 }
             }
-            if (Math.random() > 0.6 && cpuBucket >= 3000) {
+            if (Math.random() > 0.6 && cpuBucket >= 9999) {
                 try {
                     let remoteSpawn = Game.cpu.getUsed();
                     spawning.remoteCreepQueue(room);
@@ -117,7 +117,7 @@ module.exports.overlordMind = function (room) {
     shib.shibBench('minionController', cpu);
 
     // Observer Control
-    if (room.level === 8 && cpuBucket >= 8000) {
+    if (room.level === 8 && cpuBucket >= 9999) {
         let observerCpu = Game.cpu.getUsed();
         try {
             observers.observerControl(room);
@@ -143,7 +143,7 @@ module.exports.overlordMind = function (room) {
     }
 
     // Handle Terminals
-    if (Game.time % 11 === 0 && Math.random() > 0.65 && room.level >= 6 && cpuBucket >= 4000 && room.terminal && !room.terminal.cooldown) {
+    if (Game.time % 11 === 0 && Math.random() > 0.65 && room.level >= 6 && cpuBucket >= 9999 && room.terminal && !room.terminal.cooldown) {
         cpu = Game.cpu.getUsed();
         try {
             terminals.terminalControl(room);
@@ -158,7 +158,7 @@ module.exports.overlordMind = function (room) {
     // Store Data
     storedLevel[room.name] = room.controller.level;
     let minerals = Memory.ownedMineral || [];
-    if (!_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
+    if (room.controller.level >= 6 && !_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
     Memory.ownedMineral = minerals;
 
     shib.shibBench('overlordMind', mindStart);

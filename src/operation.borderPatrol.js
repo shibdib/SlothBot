@@ -1,5 +1,7 @@
 Creep.prototype.borderPatrol = function () {
     let sentence = [ICONS.border, 'Border', 'Patrol'];
+    // Abandon remotes if bucket empty
+    if (Game.cpu.bucket < 5000) return this.suicide();
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
@@ -47,11 +49,7 @@ Creep.prototype.borderPatrol = function () {
                 this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
             } else {
                 this.memory.awaitingOrders = true;
-                if (Math.random() > 0.5) {
-                    this.memory.responseTarget = _.sample(Game.map.describeExits(this.room.name));
-                } else {
-                    this.idleFor(6);
-                }
+                this.memory.responseTarget = _.sample(Game.map.describeExits(this.room.name));
             }
         }
         // Heal if waiting for orders

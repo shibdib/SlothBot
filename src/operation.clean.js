@@ -12,8 +12,20 @@ Creep.prototype.cleanRoom = function () {
     if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type !== 'clean') return this.memory.recycle = true;
     //If hostile creeps present request an escort
     Memory.targetRooms[this.room.name].escort = this.room.hostileCreeps.length;
-    // If all targets are cleared kill everything
     let target;
+    // If already have a target, kill it
+    if (this.memory.target && Game.getObjectById(this.memory.target)) {
+        target = Game.getObjectById(this.memory.target);
+        switch (this.dismantle(target)) {
+            case ERR_NOT_IN_RANGE:
+                this.shibMove(target);
+                return;
+            case OK:
+                return true;
+
+        }
+    }
+    // If all targets are cleared kill everything
     if (Memory.targetRooms[this.memory.targetRoom].complete) {
         let worthwhile = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD).length;
         if (worthwhile) {
@@ -72,13 +84,6 @@ Creep.prototype.cleanRoom = function () {
             log.a('Room cleaning in ' + this.memory.targetRoom + ' is complete.', 'CLEANING: ');
         }
     } else {
-        switch (this.dismantle(target)) {
-            case ERR_NOT_IN_RANGE:
-                this.shibMove(target);
-                break;
-            case OK:
-                return true;
-
-        }
+        this.memory.target = target.id;
     }
 };

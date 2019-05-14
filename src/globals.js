@@ -29,9 +29,9 @@ let globals = function () {
     global.EXPLORER_SPAM = ['HI', 'Hello', '#overlords'];
 
     //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
-    global.POKE_LIMIT = 5;
-    global.CLEAN_LIMIT = 2;
-    global.HARASS_LIMIT = 3;
+    global.POKE_LIMIT = 3;
+    global.CLEAN_LIMIT = 1;
+    global.HARASS_LIMIT = 2;
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
@@ -45,7 +45,7 @@ let globals = function () {
         RESOURCE_CATALYZED_ZYNTHIUM_ACID,
         RESOURCE_CATALYZED_GHODIUM_ACID];
 
-    global.CREDIT_BUFFER = 25000;
+    global.CREDIT_BUFFER = 10000;
     global.TRADE_AMOUNT = 10000;
     global.ENERGY_AMOUNT = 25000;
     global.SIEGE_ENERGY_AMOUNT = 100000;
@@ -495,7 +495,12 @@ let globals = function () {
 
             if ((Game.time >= (Memory.lastLOANtime + 1001)) && (typeof RawMemory.foreignSegment != "undefined") && (RawMemory.foreignSegment.username == LOANuser) && (RawMemory.foreignSegment.id == LOANsegment)) {
                 Memory.lastLOANtime = Game.time;
-                if (RawMemory.foreignSegment.data == null) return false;
+                if (RawMemory.foreignSegment.data == null) {
+                    global.LOANlist = [];
+                    Memory.LOANalliance = "";
+                    global.ALLIANCE_DATA = undefined;
+                    return false;
+                }
                 else {
                     let myUsername = ""; // Blank! Will be auto-filled.
                     let LOANdata = JSON.parse(RawMemory.foreignSegment.data);

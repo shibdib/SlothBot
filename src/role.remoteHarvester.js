@@ -3,6 +3,8 @@
  */
 
 module.exports.role = function (creep) {
+    // Abandon remotes if bucket empty
+    if (Game.cpu.bucket < 5000) return creep.suicide();
     //Invader detection
     if (creep.fleeHome()) return;
     //Set destination reached
@@ -10,21 +12,29 @@ module.exports.role = function (creep) {
     //Handle SK Mining
     if (creep.memory.destinationReached && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].sk && skSafety(creep)) return;
     //Harvest
-    if (creep.memory.onContainer && creep.memory.destinationReached) {
+    if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
-        if (Math.random() > 0.7 && creep.pos.getRangeTo(container) > 0) return creep.memory.onContainer = undefined;
-        if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-        switch (creep.harvest(Game.getObjectById(creep.memory.source))) {
-            case OK:
-                if (Math.random() > 0.7 && creep.memory.hauler && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
-                if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-                if (container && _.sum(container.store) >= 1980) creep.idleFor(20);
-                break;
+        //Make sure you're on the container
+        if (!creep.memory.onContainer && creep.memory.containerID) {
+            if (container && creep.pos.getRangeTo(container) > 0) {
+                return creep.shibMove(container, {range: 0});
+            } else if (container) {
+                creep.memory.onContainer = true;
+            }
+        } else if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
+        let source = Game.getObjectById(creep.memory.source);
+        switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(Game.getObjectById(creep.memory.source));
+                creep.shibMove(source);
                 break;
             case ERR_NOT_ENOUGH_RESOURCES:
-                creep.idleFor(Game.getObjectById(creep.memory.source).ticksToRegeneration + 1)
+                creep.idleFor(source.ticksToRegeneration + 1);
+                break;
+            case OK:
+                if (creep.memory.hauler && Game.time % 10 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
+                if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
+                if (container && _.sum(container.store) >= 1980) creep.idleFor(20);
+                break;
         }
         return;
     }
@@ -38,21 +48,7 @@ module.exports.role = function (creep) {
             return creep.suicide();
         }
         //If source is set mine
-        if (creep.memory.source) {
-            if (Math.random() > 0.7) creep.memory.needHauler = creep.room.energy;
-            //Make sure you're on the container
-            if (creep.memory.containerID && !creep.memory.onContainer) {
-                let container = Game.getObjectById(creep.memory.containerID);
-                if (container && creep.pos.getRangeTo(container) > 0) {
-                    return creep.shibMove(container, {range: 0});
-                } else if (container) {
-                    creep.memory.onContainer = true;
-                }
-            } else if (!creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
-            //Find Source
-        } else {
-            creep.findSource();
-        }
+        if (!creep.memory.source) creep.findSource();
     }
 };
 

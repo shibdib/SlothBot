@@ -43,7 +43,6 @@ module.exports.role = function (creep) {
         creep.memory.supplier = true;
         return supplyLab(creep);
     }
-    let closeLab = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_LAB});
     let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY])[0];
     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
     if (_.sum(creep.carry) > 0) {

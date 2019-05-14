@@ -57,7 +57,6 @@ module.exports.role = function role(creep) {
                 }
             } else {
                 delete creep.memory.harvest;
-                if (!creep.pos.findClosestByRange(FIND_SOURCES)) return creep.memory.recycle = true;
                 creep.idleFor(5);
             }
         }
@@ -65,7 +64,8 @@ module.exports.role = function role(creep) {
 };
 
 function remoteRoads(creep) {
-    if (creep.room.name !== creep.memory.destination) return false;
+    if (creep.room.name !== creep.memory.destination || (creep.memory.roadCheck && Game.time < creep.memory.roadCheck)) return false;
+    creep.memory.roadCheck = Game.time + 250;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);

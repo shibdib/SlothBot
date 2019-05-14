@@ -203,7 +203,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
     // Local Responder
     if (room.memory.responseNeeded || room.memory.earlyWarning) {
-        if (!_.includes(queue, 'responder') && room.memory.threatLevel > 2) {
+        if (!_.includes(queue, 'responder') && (room.memory.threatLevel > 2 || level < 3)) {
             let count = 1;
             if (room.memory.threatLevel >= 3 && room.memory.numberOfHostiles) count = room.memory.numberOfHostiles * 0.5;
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
@@ -229,7 +229,7 @@ module.exports.essentialCreepQueue = function (room) {
             let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
             let number = 1;
             let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-            if (!TEN_CPU && room.controller.level < 8 && !importantBuilds) number = _.round((12 - level) / 2);
+            if (!TEN_CPU && room.controller.level < 8 && !importantBuilds) number = _.round((11 - level) / 2);
             //If room is about to downgrade get a creep out asap
             let reboot;
             let priority = PRIORITIES.upgrader;
@@ -289,7 +289,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     //Power
     let powerSpawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
-    if (powerSpawn && room.memory.state > 2 && !_.includes(queue, 'powerManager') && level === 8) {
+    if (powerSpawn && !_.includes(queue, 'powerManager') && level === 8) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (powerManager.length < 1) {
             queueCreep(room, PRIORITIES.hauler, {role: 'powerManager', localCache: true})
@@ -529,7 +529,7 @@ module.exports.remoteCreepQueue = function (room) {
         }
         // Remote Hauler
         if (!_.includes(queue, 'remoteHauler')) {
-            let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.source);
+            let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.containerID);
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
             if (remoteHauler.length < remoteHarvesters.length) {
                 queueCreep(room, PRIORITIES.remoteHauler, {

@@ -13,7 +13,7 @@ module.exports.role = function (powerCreep) {
     if (powerCreep.powers[PWR_GENERATE_OPS] && !powerCreep.powers[PWR_GENERATE_OPS].cooldown) abilitySwitch(powerCreep, PWR_GENERATE_OPS);
     // Handle renewal
     if (powerCreep.ticksToLive <= 1000) {
-        let spawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0];
+        let spawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(powerCreep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
         if (spawn) {
             switch (powerCreep.renew(spawn)) {
                 case OK:
@@ -25,6 +25,8 @@ module.exports.role = function (powerCreep) {
             powerCreep.memory.destinationRoom = powerCreep.room.findClosestOwnedRoom(false, false, 8);
         }
     }
+    // level 0 idle
+    if (!powerCreep.level) return powerCreep.idleFor(100);
     // Handle room movement
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 17})
@@ -74,8 +76,9 @@ module.exports.role = function (powerCreep) {
             powerCreep.idleFor(5);
         }
         else {
-            powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
-                _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
+            /**powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
+             _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;**/
+            powerCreep.memory.destinationRoom = undefined;
             if (!powerCreep.memory.destinationRoom) powerCreep.idleFor(5);
         }
     }

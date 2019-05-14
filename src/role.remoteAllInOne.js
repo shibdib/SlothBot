@@ -10,6 +10,8 @@
  */
 
 module.exports.role = function (creep) {
+    // Abandon remotes if bucket empty
+    if (Game.cpu.bucket < 5000) return creep.suicide();
     //Invader detection
     if (creep.fleeHome()) return;
     // Check if ready to haul
@@ -32,7 +34,15 @@ module.exports.role = function (creep) {
                             break;
                     }
                 }
-            } else if (!creep.findEssentials() && !creep.findStorage() && !creep.findSpawnsExtensions()) creep.idleFor(5)
+            } else if (!creep.findEssentials() && !creep.findStorage() && !creep.findSpawnsExtensions()) {
+                switch (creep.upgradeController(creep.room.controller)) {
+                    case OK:
+                        delete creep.memory._shibMove;
+                        return;
+                    case ERR_NOT_IN_RANGE:
+                        return creep.shibMove(creep.room.controller, {range: 3});
+                }
+            }
         } else {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 22});
         }
