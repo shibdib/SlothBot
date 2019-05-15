@@ -288,8 +288,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Power
-    let powerSpawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
-    if (powerSpawn && !_.includes(queue, 'powerManager') && level === 8) {
+    if (((room.terminal && room.terminal.store[RESOURCE_POWER]) || (room.storage && room.storage.store[RESOURCE_POWER])) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] && !_.includes(queue, 'powerManager') && level === 8) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (powerManager.length < 1) {
             queueCreep(room, PRIORITIES.hauler, {role: 'powerManager', localCache: true})
@@ -346,10 +345,10 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // Assist room
-    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length) {
-        let needyRooms = _.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15);
-        if (!_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') && needyRooms.length && !room.memory.responseNeeded) {
-            for (let needyRoom of needyRooms) {
+    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !room.memory.responseNeeded) {
+        let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15))[0];
+        if (needyRoom) {
+            if (!_.includes(queue, 'drone')) {
                 let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
                 if (TEN_CPU) drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needyRoom.name || creep.memory.overlord === needyRoom.name) && creep.memory.role === 'drone');
                 let amount = roomSourceSpace[needyRoom.name] + 2;
@@ -358,13 +357,9 @@ module.exports.miscCreepQueue = function (room) {
                         role: 'drone',
                         destination: needyRoom.name
                     });
-                    break;
                 }
             }
-        }
-        let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15))[0];
-        if (needyRoom && !room.memory.responseNeeded) {
-            if (!_.includes(queue, 'fuelTruck') && level >= 6 && room.storage && room.memory.state > 1 && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 200 <= Game.time)) {
+            if (level >= 6 && !_.includes(queue, 'fuelTruck') && room.storage && room.memory.state > 1 && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 200 <= Game.time)) {
                 let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && (creep.memory.role === 'pioneer' || creep.memory.role === 'worker' || creep.memory.role === 'drone'));
                 let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'fuelTruck');
                 if (fuelTruck.length < 1 && pioneers.length > 1) {
@@ -378,7 +373,7 @@ module.exports.miscCreepQueue = function (room) {
         }
         // Power Level
         let upgradeAssist = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.controller.level + 1 < level))[0];
-        if (upgradeAssist && room.memory.state > 1 && level >= 6 && !room.memory.responseNeeded && !_.includes(queue, 'remoteUpgrader')) {
+        if (upgradeAssist && room.memory.state > 1 && level >= 6 && !_.includes(queue, 'remoteUpgrader')) {
             let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
             if (remoteUpgraders.length < 1) {
                 queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {

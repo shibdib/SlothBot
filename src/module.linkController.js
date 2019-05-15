@@ -25,6 +25,8 @@ module.exports.linkControl = function (room) {
             link.transferEnergy(controllerLink);
         } else if (storageLink && storageLink.energy < 800) {
             link.transferEnergy(storageLink);
+        } else if (_.filter(links, (l) => l.id !== link.id && l.energy < l.energyCapacity * 0.5 && l.energy < link.energy)[0]) {
+            link.transferEnergy(_.filter(links, (l) => l.id !== link.id && l.energy < l.energyCapacity * 0.5)[0], link.energy * 0.5);
         }
     }
     if (storageLink && controllerLink && storageLink.energy > 100 && controllerLink.energy < 250 && storageLink.room.energyAvailable > storageLink.room.energyCapacityAvailable * 0.95) {

@@ -24,13 +24,13 @@ module.exports.role = function (creep) {
                 for (const resourceType in creep.carry) {
                     switch (creep.transfer(storageItem, resourceType)) {
                         case OK:
-                            creep.memory.storageDestination = undefined;
+                            if (!_.sum(creep.carry) && storageItem.structureType !== STRUCTURE_LINK) creep.memory.storageDestination = undefined; else creep.idleFor(5);
                             break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(storageItem);
                             break;
                         case ERR_FULL:
-                            creep.memory.storageDestination = undefined;
+                            if (storageItem.structureType !== STRUCTURE_LINK) creep.memory.storageDestination = undefined; else creep.idleFor(5);
                             break;
                     }
                 }
@@ -64,14 +64,14 @@ module.exports.role = function (creep) {
 function dropOff(creep) {
     buildLinks(creep);
     //Close Link
-    let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.energy < s.energyCapacity && s.id !== s.room.memory.hubLink});
-    if (closestLink && closestLink.pos.getRangeTo(creep) <= 10) {
+    let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink});
+    if (closestLink && closestLink.pos.getRangeTo(creep) <= creep.room.storage.pos.getRangeTo(creep)) {
         creep.memory.storageDestination = closestLink.id;
         return true;
     }
     //Tower
     let tower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.8});
-    if (tower && (!closestLink || closestLink.pos.getRangeTo(this) > tower.pos.getRangeTo(this))) {
+    if (tower && (!closestLink || closestLink.pos.getRangeTo(creep) > tower.pos.getRangeTo(creep))) {
         creep.memory.storageDestination = tower.id;
         return true;
     }
@@ -84,19 +84,18 @@ function dropOff(creep) {
     }
     // Hub Container
     let hubContainer = Game.getObjectById(creep.room.memory.hubContainer);
-    if (hubContainer && _.sum(hubContainer.store) < 1000 && (!closestLink || closestLink.pos.getRangeTo(this) > hubContainer.pos.getRangeTo(this))) {
+    if (hubContainer && _.sum(hubContainer.store) < 1000 && (!closestLink || closestLink.pos.getRangeTo(creep) > hubContainer.pos.getRangeTo(creep))) {
         creep.memory.storageDestination = hubContainer.id;
         return true;
     }
     //Terminal
-    let terminal = creep.room.terminal;
-    if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < terminal.storeCapacity && (!closestLink || closestLink.pos.getRangeTo(this) > terminal.pos.getRangeTo(this))) {
-        creep.memory.storageDestination = terminal.id;
+    if (creep.room.terminal && creep.room.terminal.my && creep.room.terminal.store[RESOURCE_ENERGY] < creep.room.terminal.storeCapacity && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.terminal.pos.getRangeTo(creep))) {
+        creep.memory.storageDestination = creep.room.terminal.id;
         return true;
     }
     //Storage
     let storage = creep.room.storage;
-    if (storage && storage.my && (!closestLink || closestLink.pos.getRangeTo(this) > storage.pos.getRangeTo(this))) {
+    if (creep.room.storage && creep.room.storage.my && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep))) {
         creep.memory.storageDestination = storage.id;
         return true;
     }

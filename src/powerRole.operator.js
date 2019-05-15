@@ -76,8 +76,8 @@ module.exports.role = function (powerCreep) {
             powerCreep.idleFor(5);
         }
         else {
-            /**powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
-             _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;**/
+            powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
+                _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
             powerCreep.memory.destinationRoom = undefined;
             if (!powerCreep.memory.destinationRoom) powerCreep.idleFor(5);
         }

@@ -339,6 +339,7 @@ function manageAttacks() {
                 if (cleanCount > cleanLimit) delete Memory.targetRooms[key];
                 continue;
         }
+        if (!Memory.targetRooms[key]) continue;
         // Cancel stale ops with no kills
         if (Memory.targetRooms[key].tick + (2000 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
             delete Memory.targetRooms[key];
