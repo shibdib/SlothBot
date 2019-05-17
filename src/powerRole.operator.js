@@ -36,10 +36,10 @@ module.exports.role = function (powerCreep) {
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
-        let targetSpawn = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 20 && !s.effects));
-        let targetTower = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && !s.effects));
-        let targetObserver = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_OBSERVER && !s.effects));
-        let targetLab = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && !s.effects));
+        let targetSpawn = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 15 && (!s.effects || !s.effects.length)));
+        let targetTower = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length)));
+        let targetObserver = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_OBSERVER && (!s.effects || !s.effects.length)));
+        let targetLab = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length)));
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
             switch (powerCreep.enableRoom(powerCreep.room.controller)) {
@@ -76,9 +76,13 @@ module.exports.role = function (powerCreep) {
             powerCreep.idleFor(5);
         }
         else {
-            powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
-                _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
-            powerCreep.memory.destinationRoom = undefined;
+            // Find a new room unless you're already in the prime room
+            if (powerCreep.room.name !== Memory.primeRoom) {
+                powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
+                    _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
+            } else {
+                powerCreep.memory.destinationRoom = undefined;
+            }
             if (!powerCreep.memory.destinationRoom) powerCreep.idleFor(5);
         }
     }

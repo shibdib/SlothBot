@@ -89,6 +89,7 @@ module.exports.processBuildQueue = function () {
                     // If boosts are required to spawn check that a room has them
                     if (topPriority.boostCheck) {
                         let hasBoost;
+                        if (spawn.room.name !== Memory.primeRoom) continue;
                         for (let boost of BOOST_USE[topPriority.boostCheck]) {
                             hasBoost = spawn.room.getBoostAmount(boost) >= 500;
                         }

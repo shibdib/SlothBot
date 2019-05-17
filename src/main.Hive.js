@@ -93,6 +93,15 @@ module.exports.hiveMind = function () {
             }
         }
     }
+
+    // Figure out the prime room every 2500 ticks
+    if (!Memory.primeRoom || Game.time % 2500 === 0) {
+        // Find the highest level/richest room
+        let primeRoom = _.filter(Memory.ownedRooms, (r) => r.controller.level === _.max(Memory.ownedRooms, 'controller.level').controller.level);
+        if (primeRoom.length > 1) primeRoom = _.sortBy(primeRoom, 'energy')[0]; else primeRoom = primeRoom[0];
+        Memory.primeRoom = primeRoom.name;
+    }
+
     //Non room specific creep spawning
     if (Game.time % 25 === 0) {
         cpu = Game.cpu.getUsed();

@@ -45,7 +45,7 @@ module.exports.terminalControl = function (room) {
 function fillBuyOrders(terminal, globalOrders) {
     if (terminal.store[RESOURCE_ENERGY]) {
         for (let resourceType in terminal.store) {
-            if (resourceType === RESOURCE_ENERGY || terminal.store[resourceType] < DUMP_AMOUNT) continue;
+            if (resourceType === RESOURCE_ENERGY || (terminal.store[resourceType] < DUMP_AMOUNT && _.sum(terminal.room.storage.store) < terminal.room.storage.storeCapacity * 0.98)) continue;
             let onHand = terminal.store[resourceType];
             let sellOffAmount = DUMP_AMOUNT;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = DUMP_AMOUNT * 3;
@@ -363,7 +363,7 @@ function emergencyEnergy(terminal) {
             if (availableAmount <= 0) return false;
             switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
                 case OK:
-                    log.a(' MARKET: Siege Supplies ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name + ' Current Amounts - ' + terminal.store[RESOURCE_ENERGY] + ' / ' + (storedAmount + neededAmount));
+                    log.a(' MARKET: Siege Supplies ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name) + ' Current Amounts - ' + terminal.store[RESOURCE_ENERGY] + ' / ' + (storedAmount + neededAmount));
                     return true;
             }
         }
@@ -373,10 +373,21 @@ function emergencyEnergy(terminal) {
 function balanceBoosts(terminal) {
     // Dont balance if being sieged or broke
     if (terminal.room.memory.requestingSupport) return false;
+    let primeRoom = Game.rooms[Memory.primeRoom];
     // Loop thru boosts
     let storedResources = Object.keys(terminal.store);
     for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
-        if (terminal.store[boost] >= TRADE_AMOUNT * 1.2) {
+        // Handle prime room boosts
+        if (terminal.room.name === primeRoom.name) return;
+        if (terminal.store[boost] > 250 && (BOOST_USE['heal'].includes(boost) || BOOST_USE['attack'].includes(boost) || BOOST_USE['ranged'].includes(boost) || BOOST_USE['tough'].includes(boost) || BOOST_USE['move'].includes(boost))) {
+            // Determine how much you can move
+            let availableAmount = terminal.store[boost] - 200;
+            switch (terminal.send(boost, availableAmount, primeRoom.name)) {
+                case OK:
+                    log.a(' MARKET: Supplying Prime Room (' + roomLink(primeRoom.name) + ') ' + availableAmount + ' ' + boost + ' From ' + roomLink(terminal.room.name));
+                    return true;
+            }
+        } else if (terminal.store[boost] >= TRADE_AMOUNT * 1.2) {
             // Find needy terminals
             let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < TRADE_AMOUNT)));
             if (needyTerminal) {
@@ -384,7 +395,7 @@ function balanceBoosts(terminal) {
                 let availableAmount = terminal.store[boost] * 0.5;
                 switch (terminal.send(boost, availableAmount, needyTerminal.room.name)) {
                     case OK:
-                        log.a(' MARKET: Balancing ' + availableAmount + ' ' + boost + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name);
+                        log.a(' MARKET: Balancing ' + availableAmount + ' ' + boost + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name));
                         return true;
                 }
             }
@@ -401,7 +412,7 @@ function balanceBoosts(terminal) {
             if (availableAmount <= 0) return false;
             switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
                 case OK:
-                    log.a(' MARKET: Balancing ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + needyTerminal.room.name + ' From ' + terminal.room.name);
+                    log.a(' MARKET: Balancing ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name));
                     return true;
             }
         }
