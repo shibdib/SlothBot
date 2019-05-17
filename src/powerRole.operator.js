@@ -55,8 +55,13 @@ module.exports.role = function (powerCreep) {
         }
         // Fill extensions
         else if (powerCreep.powers[PWR_OPERATE_EXTENSION] && !powerCreep.powers[PWR_OPERATE_EXTENSION].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_EXTENSION].ops &&
-            1 - (powerCreep.room.energyAvailable / powerCreep.room.energyCapacityAvailable) > 0.2 && powerCreep.room.storage && powerCreep.room.storage.store[RESOURCE_ENERGY] >= 5000) {
-            abilitySwitch(powerCreep, PWR_OPERATE_EXTENSION, powerCreep.room.storage);
+            1 - (powerCreep.room.energyAvailable / powerCreep.room.energyCapacityAvailable) > 0.2 &&
+            ((powerCreep.room.storage && powerCreep.room.storage.store[RESOURCE_ENERGY] >= 5000) || (powerCreep.room.terminal && powerCreep.room.terminal.store[RESOURCE_ENERGY] >= 5000))) {
+            if (powerCreep.room.storage && powerCreep.room.storage.store[RESOURCE_ENERGY] >= 5000) {
+                abilitySwitch(powerCreep, PWR_OPERATE_EXTENSION, powerCreep.room.storage);
+            } else {
+                abilitySwitch(powerCreep, PWR_OPERATE_EXTENSION, powerCreep.room.terminal);
+            }
         }
         // Boost Spawn
         else if (targetSpawn && powerCreep.powers[PWR_OPERATE_SPAWN] && !powerCreep.powers[PWR_OPERATE_SPAWN].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_SPAWN].ops) {
