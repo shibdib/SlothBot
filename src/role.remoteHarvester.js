@@ -6,7 +6,10 @@ module.exports.role = function (creep) {
     // Abandon remotes if bucket empty
     if (Game.cpu.bucket < 5000) return creep.suicide();
     //Invader detection
-    if (creep.fleeHome()) return;
+    if (creep.fleeHome()) {
+        creep.memory.onContainer = undefined;
+        return;
+    }
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     //Handle SK Mining

@@ -666,7 +666,8 @@ Room.prototype.findAttackCreeps = function (object) {
 };
 
 Creep.prototype.kite = function (fleeRange = 8) {
-    let avoid = this.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) > 0});
+    let avoid = this.room.find(FIND_HOSTILE_CREEPS, {filter: (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)});
+    if (!avoid.length) return false;
     let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1),
         (c) => {
             return {pos: c.pos, range: 15};

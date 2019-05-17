@@ -25,13 +25,13 @@ Creep.prototype.borderPatrol = function () {
             this.memory.runRoom = this.room.name;
             return this.goHomeAndHeal();
         }
+        // Handle border
+        if (this.borderCheck()) return;
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         // If military action required do that
         if (this.handleMilitaryCreep(false, true, true, false, true)) return this.memory.contactReport = true;
         // Handle contact reporting
         this.memory.contactReport = undefined;
-        // Handle border
-        if (this.borderCheck()) return;
         // Check for squad
         if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         // Heal squad
@@ -45,12 +45,10 @@ Creep.prototype.borderPatrol = function () {
         if (!this.memory.responseTarget || this.memory.onTarget + _.random(5, 20) <= Game.time) {
             this.memory.responseTarget = undefined;
             if (this.pos.roomName !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
-            if (this.pos.getRangeTo(new RoomPosition(25, 25, this.memory.overlord)) > 20) {
-                this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
-            } else {
-                this.memory.awaitingOrders = true;
-                this.memory.responseTarget = _.sample(Game.map.describeExits(this.room.name));
-            }
+            this.memory.awaitingOrders = true;
+            let remotes = Game.map.describeExits(this.room.name);
+            let needsResponse = _.filter(remotes, (r) => Memory.roomCache[r].threatLevel)[0];
+            if (needsResponse) this.memory.responseTarget = needsResponse; else this.memory.responseTarget = _.sample(remotes)
         }
         // Heal if waiting for orders
         this.healAllyCreeps();

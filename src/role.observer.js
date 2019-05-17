@@ -8,6 +8,10 @@ module.exports.role = function (creep) {
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);
     if (creep.room.name !== creep.memory.targetRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {range: 23});
+    creep.borderCheck();
+    creep.room.invaderCheck();
+    creep.room.cacheRoomIntel();
+    creep.kite();
     if (Memory.targetRooms[creep.memory.targetRoom]) {
         highCommand.operationSustainability(creep.room);
         levelManager(creep);
@@ -21,9 +25,7 @@ module.exports.role = function (creep) {
                 break;
         }
     } else {
-        creep.borderCheck();
-        creep.room.invaderCheck();
-        creep.room.cacheRoomIntel();
+        creep.memory.role = 'explorer';
     }
 };
 
