@@ -45,10 +45,12 @@ Creep.prototype.borderPatrol = function () {
         if (!this.memory.responseTarget || this.memory.onTarget + _.random(5, 20) <= Game.time) {
             this.memory.responseTarget = undefined;
             if (this.pos.roomName !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
-            this.memory.awaitingOrders = true;
             let remotes = Game.map.describeExits(this.room.name);
             let needsResponse = _.filter(remotes, (r) => Memory.roomCache[r].threatLevel)[0];
-            if (needsResponse) this.memory.responseTarget = needsResponse; else this.memory.responseTarget = _.sample(remotes)
+            if (needsResponse) this.memory.responseTarget = needsResponse; else {
+                this.memory.awaitingOrders = true;
+                this.idleFor(15);
+            }
         }
         // Heal if waiting for orders
         this.healAllyCreeps();

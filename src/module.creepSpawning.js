@@ -538,7 +538,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Border Patrol
         if (!TEN_CPU) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
-            let count = 0;
+            let count = 1;
             let priority = PRIORITIES.borderPatrol;
             if (heavyResponse) {
                 count = 2;
@@ -554,7 +554,7 @@ module.exports.remoteCreepQueue = function (room) {
                 });
             }
             let riotPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'attacker');
-            if (responseNeeded && !_.includes(queue, 'attacker') && riotPatrol.length < 1) {
+            if (heavyResponse && !_.includes(queue, 'attacker') && riotPatrol.length < 1) {
                 queueCreep(room, priority, {
                     role: 'attacker',
                     operation: 'borderPatrol',
