@@ -13,10 +13,12 @@ module.exports.role = function role(creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     if (creep.borderCheck()) return;
-    // Handle remote drones
-    if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
-        return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
+    // Set destination
+    if (!creep.memory.destination) {
+        if (creep.memory.overlord === creep.room.name) creep.memory.destination = _.sample(Game.map.describeExits(creep.room.name)); else return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
     }
+    // Handle movement
+    if (creep.memory.destination && creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     // Checks
     if (creep.carry.energy === 0) {
         creep.memory.working = undefined;
@@ -33,7 +35,7 @@ module.exports.role = function role(creep) {
         if (creep.memory.constructionSite || creep.findConstruction()) {
             creep.builderFunction();
         } else {
-            if (!remoteRoads(creep)) creep.idleFor(25);
+            if (!remoteRoads(creep)) creep.memory.destination = undefined;
         }
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
@@ -64,7 +66,7 @@ module.exports.role = function role(creep) {
 };
 
 function remoteRoads(creep) {
-    if (creep.room.name !== creep.memory.destination || (creep.memory.roadCheck && Game.time < creep.memory.roadCheck)) return false;
+    if (creep.room.name !== creep.memory.destination || (creep.memory.roadCheck && Game.time < creep.memory.roadCheck) || !creep.room.sources.length) return false;
     creep.memory.roadCheck = Game.time + 250;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);

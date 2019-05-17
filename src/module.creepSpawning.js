@@ -462,14 +462,6 @@ module.exports.remoteCreepQueue = function (room) {
                         destination: remotes[keys]
                     })
                 }
-                let remoteRoad = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteRoad');
-                if (SKAttacker.length && SKSupport.length && remoteRoad.length < 1) {
-                    queueCreep(room, PRIORITIES.remotePioneer, {
-                        role: 'remoteRoad',
-                        destination: remotes[keys],
-                        localCache: true
-                    })
-                }
             } else {
                 if (!noSpawn) {
                     //All in One
@@ -509,17 +501,6 @@ module.exports.remoteCreepQueue = function (room) {
                                 })
                             }
                         }
-                        // Remote Road Builder
-                        if (!_.includes(queue, 'remoteRoad') && remoteRoom) {
-                            let remoteRoad = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteRoad');
-                            if (remoteRoad.length < 1) {
-                                queueCreep(room, PRIORITIES.remotePioneer, {
-                                    role: 'remoteRoad',
-                                    destination: remotes[keys],
-                                    localCache: true
-                                })
-                            }
-                        }
                     }
                 } else {
                     let observer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === remotes[keys] && creep.memory.role === 'observer');
@@ -540,6 +521,16 @@ module.exports.remoteCreepQueue = function (room) {
             if (remoteHauler.length < remoteHarvesters.length) {
                 queueCreep(room, PRIORITIES.remoteHauler, {
                     role: 'remoteHauler',
+                    localCache: true
+                })
+            }
+        }
+        // Remote Road Builder
+        if (!_.includes(queue, 'remoteRoad')) {
+            let remoteRoad = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteRoad');
+            if (remoteRoad.length < 1) {
+                queueCreep(room, PRIORITIES.remotePioneer, {
+                    role: 'remoteRoad',
                     localCache: true
                 })
             }
