@@ -16,6 +16,7 @@ module.exports.role = function (creep) {
     // Check if ready to haul
     if (!creep.memory.hauling && (_.sum(creep.carry) >= creep.carryCapacity * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry)))) creep.memory.hauling = true;
     if (creep.memory.hauling) {
+        creep.repairRoad();
         if (creep.pos.roomName === creep.memory.overlord) {
             // If carrying minerals deposit in terminal or storage
             if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;

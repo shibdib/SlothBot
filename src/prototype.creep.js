@@ -395,7 +395,7 @@ function getBoostAmount(room, boost) {
 }
 
 Creep.prototype.repairRoad = function () {
-    if (this.carry[RESOURCE_ENERGY] < 10 || this.getActiveBodyparts(WORK) === 0) return;
+    if (this.carry[RESOURCE_ENERGY] < 10 || !this.getActiveBodyparts(WORK)) return;
     let road = this.pos.lookFor(LOOK_STRUCTURES);
     if (road.length > 0 && road[0].hits < road[0].hitsMax) this.repair(road[0]);
 };

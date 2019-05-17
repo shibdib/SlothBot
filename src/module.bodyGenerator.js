@@ -320,11 +320,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'remoteHauler':
             if (level < 6) {
                 carry = level * 2;
-                move = _.round((carry / 2) + 0.5);
+                work = _.random(0, 1, false);
+                move = _.round(((carry + work) / 2) + 0.5);
                 break
             } else {
                 carry = 30;
-                move = 15;
+                work = 1;
+                move = 16;
                 break;
             }
         case 'SKattacker':
