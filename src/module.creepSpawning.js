@@ -82,9 +82,18 @@ module.exports.processBuildQueue = function () {
                         reservationTarget: undefined,
                         initialBuilder: undefined,
                         localCache: undefined,
+                        boostCheck: undefined,
                         misc: undefined
                     });
                     if (!topPriority.role) continue;
+                    // If boosts are required to spawn check that a room has them
+                    if (topPriority.boostCheck) {
+                        let hasBoost;
+                        for (let boost of BOOST_USE[topPriority.boostCheck]) {
+                            hasBoost = spawn.room.getBoostAmount(boost) >= 500;
+                        }
+                        if (!hasBoost) continue;
+                    }
                     let name = role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
                     if (topPriority.operation) name = topPriority.operation + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
                     switch (spawn.spawnCreep(body, name, {
@@ -105,6 +114,7 @@ module.exports.processBuildQueue = function () {
                             reservationTarget: topPriority.reservationTarget,
                             initialBuilder: topPriority.initialBuilder,
                             localCache: topPriority.localCache,
+                            boostCheck: topPriority.boostCheck,
                             misc: topPriority.misc
                         },
                         energyStructures: JSON.parse(energyOrder[spawn.pos.roomName])
@@ -687,7 +697,8 @@ module.exports.militaryCreepQueue = function () {
                 let siegeEngines = 1;
                 let healers = 2;
                 let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine' && creep.memory.operation === 'siegeGroup');
-                if ((siegeEngine.length < siegeEngines || (siegeEngine[0] && siegeEngine[0].ticksToLive < (siegeEngine[0].body.length * 3 + 50) && siegeEngine.length < siegeEngines + 1)) && !_.includes(queue, 'siegeEngine')) {
+                let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer' && creep.memory.operation === 'siegeGroup');
+                if (healer.length && (siegeEngine.length < siegeEngines || (siegeEngine[0] && siegeEngine[0].ticksToLive < (siegeEngine[0].body.length * 3 + 50) && siegeEngine.length < siegeEngines + 1)) && !_.includes(queue, 'siegeEngine')) {
                     queueMilitaryCreep(priority, {
                         role: 'siegeEngine',
                         targetRoom: key,
@@ -695,13 +706,13 @@ module.exports.militaryCreepQueue = function () {
                         military: true
                     })
                 }
-                let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer' && creep.memory.operation === 'siegeGroup');
-                if ((healer.length < healers || (healer[0] && healer[0].ticksToLive < (healer[0].body.length * 3 + 50) && healer.length < healers + 1)) && !_.includes(queue, 'healer') && siegeEngine.length) {
+                if ((healer.length < healers || (healer[0] && healer[0].ticksToLive < (healer[0].body.length * 3 + 50) && healer.length < healers + 1)) && !_.includes(queue, 'healer')) {
                     queueMilitaryCreep(priority, {
                         role: 'healer',
                         targetRoom: key,
                         operation: 'siegeGroup',
-                        military: true
+                        military: true,
+                        boostCheck: 'heal'
                     })
                 }
                 break;
@@ -788,7 +799,8 @@ module.exports.militaryCreepQueue = function () {
                         targetRoom: key,
                         operation: 'drain',
                         military: true,
-                        staging: stagingRoom
+                        staging: stagingRoom,
+                        boostCheck: 'heal'
                     })
                 }
                 break;
@@ -813,7 +825,8 @@ module.exports.militaryCreepQueue = function () {
                         operation: 'siege',
                         military: true,
                         waitFor: opLevel * 2,
-                        staging: stagingRoom
+                        staging: stagingRoom,
+                        boostCheck: 'heal'
                     })
                 }
                 break;

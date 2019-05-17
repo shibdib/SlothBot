@@ -605,3 +605,23 @@ Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false,
     if (!range) return closest;
     return distance;
 };
+
+Room.prototype.getBoostAmount = function (boost) {
+    let boostInRoomStructures = _.sum(this.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+        if (s['structure'] && s['structure'].store) {
+            return s['structure'].store[boost] || 0;
+        } else if (s['structure'] && s['structure'].mineralType === boost) {
+            return s['structure'].mineralAmount || 0;
+        } else {
+            return 0;
+        }
+    });
+    let boostInRoomCreeps = _.sum(this.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
+        if (s['creep'] && s['creep'].carry) {
+            return s['creep'].carry[boost] || 0;
+        } else {
+            return 0;
+        }
+    });
+    return boostInRoomCreeps + boostInRoomStructures;
+};

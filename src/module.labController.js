@@ -30,7 +30,7 @@ function manageBoostProduction(room) {
         // Check for inputs
         if (!checkForInputs(room, boostList[key])) continue;
         // Check if we already have enough
-        if (getBoostAmount(room, boostList[key]) >= BOOST_AMOUNT * 2) continue;
+        if (room.getBoostAmount(boostList[key]) >= BOOST_AMOUNT * 2) continue;
         boost = boostList[key];
         break;
     }
@@ -108,7 +108,7 @@ function manageActiveLabs(room) {
                     switch (outputLab.runReaction(Game.getObjectById(creators[0]), Game.getObjectById(creators[1]))) {
                         case OK:
                             // Enough created
-                            let total = getBoostAmount(outputLab.room, outputLab.memory.creating);
+                            let total = outputLab.room.getBoostAmount(outputLab.memory.creating);
                             if (((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.25) ||
                                 ((_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || _.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 6)) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
@@ -122,7 +122,7 @@ function manageActiveLabs(room) {
                         case ERR_NOT_ENOUGH_RESOURCES:
                             for (let id in creators) {
                                 let lab = Game.getObjectById(creators[id]);
-                                let total = getBoostAmount(lab.room, lab.memory.itemNeeded);
+                                let total = lab.room.getBoostAmount(lab.memory.itemNeeded);
                                 if (total < 10) {
                                     log.a(outputLab.room.name + ' is no longer producing ' + lab.memory.creating + ' due to a shortage of ' + lab.memory.itemNeeded);
                                     for (let id in creators) {
@@ -156,26 +156,6 @@ function checkForInputs(room, boost) {
         if (storageAmount + terminalAmount < 150) return false;
     }
     return boost;
-}
-
-function getBoostAmount(room, boost) {
-    let boostInRoomStructures = _.sum(room.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
-        if (s['structure'] && s['structure'].store) {
-            return s['structure'].store[boost] || 0;
-        } else if (s['structure'] && s['structure'].mineralType === boost) {
-            return s['structure'].mineralAmount || 0;
-        } else {
-            return 0;
-        }
-    });
-    let boostInRoomCreeps = _.sum(room.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
-        if (s['creep'] && s['creep'].carry) {
-            return s['creep'].carry[boost] || 0;
-        } else {
-            return 0;
-        }
-    });
-    return boostInRoomCreeps + boostInRoomStructures;
 }
 
 function cleanLabs(room) {
