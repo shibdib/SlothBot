@@ -94,8 +94,8 @@ module.exports.hiveMind = function () {
         }
     }
 
-    // Figure out the prime room every 2500 ticks
-    if (!Memory.primeRoom || Game.time % 2500 === 0) {
+    // Figure out the prime room every 5000 ticks
+    if (!Memory.primeRoom || Game.time % 5000 === 0) {
         // Find the highest level/richest room
         let primeRoom = _.filter(Memory.ownedRooms, (r) => r.controller.level === _.max(Memory.ownedRooms, 'controller.level').controller.level);
         if (primeRoom.length > 1) primeRoom = _.sortBy(primeRoom, 'energy')[0]; else primeRoom = primeRoom[0];

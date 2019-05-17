@@ -299,7 +299,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Power
-    if (((room.terminal && room.terminal.store[RESOURCE_POWER]) || (room.storage && room.storage.store[RESOURCE_POWER])) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] && !_.includes(queue, 'powerManager') && level === 8) {
+    if (room.energy >= ENERGY_AMOUNT && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] && !_.includes(queue, 'powerManager') && level === 8) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (powerManager.length < 1) {
             queueCreep(room, PRIORITIES.hauler, {role: 'powerManager', localCache: true})

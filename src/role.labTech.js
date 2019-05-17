@@ -12,8 +12,12 @@ module.exports.role = function (creep) {
     if (boostDelivery(creep)) return;
     if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
     if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
+    // Fill needy labs
+    if (creep.memory.supplier) return supplyLab(creep);
     // If terminal is overfull handle that
     if (emergencyDump(creep)) return;
+    // Handle filling terminal from storage
+    if (storageEmpty(creep)) return;
     // Handle dropped goodies
     if (droppedResources(creep)) return;
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
@@ -31,8 +35,6 @@ module.exports.role = function (creep) {
         creep.memory.empty = true;
         return;
     }
-    // Fill needy labs
-    if (creep.memory.supplier) return supplyLab(creep);
     for (let lab of labs) {
         // If lab doesn't need anything or there isn't anything in the room to give it
         let stockedLab = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.mineralType === lab.memory.itemNeeded)[0];
@@ -420,6 +422,26 @@ function emergencyDump(creep) {
             return true;
         case ERR_NOT_IN_RANGE:
             creep.shibMove(creep.room.terminal);
+            return true;
+    }
+}
+
+// Remove minerals from the storage if it's overfull and has no energy
+function storageEmpty(creep) {
+    if (!creep.room.storage || _.sum(creep.room.storage.store) < 0.1 * creep.room.storage.storeCapacity || !creep.room.terminal || _.sum(creep.room.terminal.store) >= 0.70 * creep.room.terminal.storeCapacity || creep.memory.hauling) return false;
+    let maxResource = 0;
+    let overflow;
+    for (let resource of Object.keys(creep.room.storage.store)) {
+        if (creep.room.storage.store[resource] > maxResource) {
+            maxResource = creep.room.storage.store[resource];
+            overflow = resource;
+        }
+    }
+    switch (creep.withdraw(creep.room.storage, overflow)) {
+        case OK:
+            return true;
+        case ERR_NOT_IN_RANGE:
+            creep.shibMove(creep.room.storage);
             return true;
     }
 }
