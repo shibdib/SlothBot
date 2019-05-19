@@ -65,7 +65,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                     move = work + carry;
                     break;
                 }
-            } else if (!room.memory.controllerContainer || level < 5) {
+            } else if (!room.memory.controllerLink || level < 5) {
                 work = level + 1;
                 carry = 1;
                 move = work + carry;
@@ -87,7 +87,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break
             } else {
                 carry = _.random(1.75 * level, 2 * level);
-                move = _.round((carry / 2));
+                move = _.round((carry / 2) + 0.5);
                 break;
             }
         case 'courier':
@@ -209,9 +209,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 heal = 5;
                 move = 11;
             } else if (level === 8) {
-                rangedAttack = 12;
+                rangedAttack = 17;
                 heal = 8;
-                move = 20;
+                move = 25;
             } else {
                 rangedAttack = 1;
                 move = 1;

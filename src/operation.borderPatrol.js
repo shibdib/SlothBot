@@ -9,6 +9,8 @@ Creep.prototype.borderPatrol = function () {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
+    // Handle border
+    if (this.borderCheck()) return;
     // Handle squad leader
     if (this.memory.squadLeader) {
         // Remove duplicate squad leaders
@@ -25,8 +27,9 @@ Creep.prototype.borderPatrol = function () {
             this.memory.runRoom = this.room.name;
             return this.goHomeAndHeal();
         }
-        // Handle border
-        if (this.borderCheck()) return;
+        // Invader check
+        this.room.invaderCheck();
+        // Get squad members
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         // If military action required do that
         if (this.handleMilitaryCreep(false, true, true, false, true)) return this.memory.contactReport = true;
@@ -41,9 +44,10 @@ Creep.prototype.borderPatrol = function () {
         if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) return this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
         // If on target, be available to respond
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
-        // Idle in target rooms for 20 ticks
-        if (!this.memory.responseTarget || this.memory.onTarget + _.random(5, 20) <= Game.time) {
+        // Idle in target rooms for 25 ticks
+        if (!this.memory.responseTarget || this.memory.onTarget + _.random(10, 25) <= Game.time) {
             this.memory.responseTarget = undefined;
+            this.memory.onTarget = undefined;
             if (this.pos.roomName !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
             let remotes = Game.map.describeExits(this.room.name);
             let needsResponse = _.filter(remotes, (r) => Memory.roomCache[r].threatLevel)[0];

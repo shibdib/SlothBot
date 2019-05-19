@@ -78,6 +78,11 @@ module.exports.role = function role(creep) {
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
                 creep.say('Harvest!', true);
+                if (Math.random() >= 0.9) {
+                    creep.memory.harvest = undefined;
+                    creep.memory.source = undefined;
+                    return;
+                }
                 creep.memory.source = source.id;
                 switch (creep.harvest(source)) {
                     case ERR_NOT_IN_RANGE:

@@ -240,7 +240,9 @@ module.exports.essentialCreepQueue = function (room) {
             let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
             let number = 1;
             let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-            if (!TEN_CPU && room.controller.level < 8 && !importantBuilds) number = _.round((11 - level) / 2);
+            if (!TEN_CPU && room.controller.level < 8 && !importantBuilds) {
+                if (!room.memory.controllerLink) number = _.round((11 - level) / 2); else number = _.round((15 - level) / 2);
+            }
             //If room is about to downgrade get a creep out asap
             let reboot;
             let priority = PRIORITIES.upgrader;
@@ -322,13 +324,6 @@ module.exports.miscCreepQueue = function (room) {
                 role: 'mineralHarvester',
                 assignedMineral: room.mineral[0].id
             })
-        }
-    }
-    //Herald
-    if (Memory.tickLength && Memory.tickLength > 2 && !_.includes(queue, 'herald') && !TEN_CPU) {
-        let herald = _.filter(roomCreeps, (creep) => creep.memory.role === 'herald');
-        if (!herald.length) {
-            queueCreep(room, PRIORITIES.explorer, {role: 'herald'})
         }
     }
     //Explorer

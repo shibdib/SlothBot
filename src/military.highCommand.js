@@ -68,7 +68,7 @@ module.exports.operationSustainability = function (room) {
     operation.trackedEnemy = trackedEnemy;
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 1500 <= Game.time && ((operation.friendlyDead > operation.enemyDead || operation.enemyDead === 0 || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
+    if (operation.tick + 1000 <= Game.time && ((operation.friendlyDead > operation.enemyDead || !operation.enemyDead || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
         (operation.type === 'drain' && (operation.trackedFriendly.length + 1 >= 4 || operation.tick + 4500 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time) || (operation.type === 'clean' && operation.tick + 10000 < Game.time && !operation.manual)) {
         room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + roomLink(room.name) + ' due to it no longer being economical.', 'HIGH COMMAND: ');
@@ -178,8 +178,9 @@ function operationRequests() {
         // Attack owned rooms of enemies
         let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts' || target.type === 'drain').length || 0;
         if (Memory._enemies.length && !activeSieges) {
-            let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level), 'closestRange');
-            for (let target of enemyHarass) {
+            let enemySiege = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) &&
+                !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && (Game.shard.name !== 'vsrv2' || r.forestPvp)), 'closestRange');
+            for (let target of enemySiege) {
                 if (Memory.targetRooms[target.name]) continue;
                 let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
                 if (lastOperation + 4500 > Game.time) continue;
@@ -238,14 +239,14 @@ function operationRequests() {
     let pokeLimit = POKE_LIMIT;
     if (TEN_CPU) pokeLimit = 2;
     if (pokeCount < pokeLimit) {
-        let enemyHarass = [];
+        let pokeTargets = [];
         if (Memory._enemies.length) {
-            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
         } else if (POKE_NEUTRALS) {
-            enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
         }
-        if (enemyHarass.length) {
-            for (let target of enemyHarass) {
+        if (pokeTargets.length) {
+            for (let target of pokeTargets) {
                 if (Memory.targetRooms[target.name]) continue;
                 pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
                 if (pokeCount >= 5) break;
@@ -302,7 +303,6 @@ function manageAttacks() {
             // Manage Pokes
             case 'poke':
                 if (pokeCount > pokeLimit) delete Memory.targetRooms[key];
-                staleMulti = 3;
                 break;
             // Manage Holds
             case 'hold':
@@ -337,7 +337,8 @@ function manageAttacks() {
             // Manage Cleaning
             case 'clean':
                 if (cleanCount > cleanLimit) delete Memory.targetRooms[key];
-                continue;
+                staleMulti = 10;
+                break;
         }
         if (!Memory.targetRooms[key]) continue;
         // Cancel stale ops with no kills

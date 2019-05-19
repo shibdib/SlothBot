@@ -3,6 +3,11 @@
  */
 
 module.exports.role = function (powerCreep) {
+    // If flagged as the combat operator, use that role
+    if (powerCreep.memory.combat) {
+        let combatRole = require('powerRole.' + powerCreep.className);
+        return combatRole.role(powerCreep);
+    }
     // If not spawned return
     if (!powerCreep.ticksToLive) return;
     // Handle border
@@ -39,6 +44,8 @@ module.exports.role = function (powerCreep) {
         let targetSpawn = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 15 && (!s.effects || !s.effects.length)));
         let targetTower = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length)));
         let targetObserver = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_OBSERVER && (!s.effects || !s.effects.length)));
+        let targetSource = _.sample(_.filter(powerCreep.room.sources, (s) => !s.effects || !s.effects.length));
+        let targetMineral = _.sample(_.filter(powerCreep.room.mineral, (s) => !s.effects || !s.effects.length));
         let targetLab = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length)));
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
@@ -67,6 +74,14 @@ module.exports.role = function (powerCreep) {
         else if (targetSpawn && powerCreep.powers[PWR_OPERATE_SPAWN] && !powerCreep.powers[PWR_OPERATE_SPAWN].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_SPAWN].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_SPAWN, targetSpawn);
         }
+        // Boost Sources
+        else if (targetSource && powerCreep.powers[PWR_REGEN_SOURCE] && !powerCreep.powers[PWR_REGEN_SOURCE].cooldown) {
+            abilitySwitch(powerCreep, PWR_REGEN_SOURCE, targetSource);
+        }
+        // Boost Mineral
+        else if (targetMineral && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown) {
+            abilitySwitch(powerCreep, PWR_REGEN_MINERAL, targetMineral);
+        }
         /**
          // Boost Observer
          else if (targetObserver && powerCreep.powers[PWR_OPERATE_OBSERVER] && !powerCreep.powers[PWR_OPERATE_OBSERVER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_OBSERVER].ops) {
@@ -84,7 +99,7 @@ module.exports.role = function (powerCreep) {
             // Find a new room unless you're already in the prime room
             if (powerCreep.room.name !== Memory.primeRoom) {
                 powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
-                    _.filter(Game.powerCreeps, (c) => c.ticksToLive && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
+                    _.filter(Game.powerCreeps, (c) => c.ticksToLive && !c.memory.combat && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
             } else {
                 powerCreep.memory.destinationRoom = undefined;
             }
@@ -129,6 +144,14 @@ function upgradePowers(powerCreep) {
     // Operate Lab
     else if (!powerCreep.powers[PWR_OPERATE_LAB]) {
         upgradeSwitch(powerCreep, PWR_OPERATE_LAB)
+    }
+    // Regen Source
+    else if (powerCreep.level >= 10 && !powerCreep.powers[PWR_REGEN_SOURCE]) {
+        upgradeSwitch(powerCreep, PWR_REGEN_SOURCE)
+    }
+    // Regen Mineral
+    else if (powerCreep.level >= 10 && !powerCreep.powers[PWR_REGEN_MINERAL]) {
+        upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
     }
     else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 2) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)

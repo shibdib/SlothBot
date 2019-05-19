@@ -258,7 +258,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
-        closestRange, important, owner, reservation;
+        closestRange, important, owner, reservation, forestPvp;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -289,6 +289,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (room.controller.sign) {
                 let text = room.controller.sign.text.toLowerCase();
                 if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum')) ncpArray.push(room.controller.sign.username);
+                // Special test server code
+                if (text.includes('@PVP@')) forestPvp = true;
             }
             controller = JSON.stringify(room.controller);
             level = room.controller.level || undefined;
@@ -368,7 +370,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             power: power,
             isHighway: isHighway,
             closestRange: closestRange,
-            important: important
+            important: important,
+            forestPvp: forestPvp
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;

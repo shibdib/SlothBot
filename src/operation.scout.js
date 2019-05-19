@@ -169,7 +169,7 @@ Creep.prototype.scoutRoom = function () {
             // If other creeps are present
             if (otherCreeps.length) {
                 // If far away set it as a poke
-                if (priority >= 4) {
+                if (priority >= 4 && Math.random() > 0.5) {
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'poke',

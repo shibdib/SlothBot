@@ -2,6 +2,7 @@ let highCommand = require('military.highCommand');
 
 Creep.prototype.drainRoom = function () {
     // If room is no longer a target
+    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle = true;
     if (this.room.name === this.memory.targetRoom) {
         let sentence = ['Gimme', 'That', 'Energy', 'Please'];
         let word = Game.time % sentence.length;

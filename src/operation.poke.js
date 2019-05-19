@@ -11,10 +11,6 @@ Creep.prototype.pokeRoom = function () {
     this.room.cacheRoomIntel();
     // Recycle if room is no longer a target
     if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle;
-    // Travel to target
-    if (this.room.name !== this.memory.targetRoom) {
-        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
-    }
     highCommand.operationSustainability(this.room);
     // Run from unwinnable fights
     if (!this.canIWin()) {
@@ -27,7 +23,7 @@ Creep.prototype.pokeRoom = function () {
         let sentence = ['Hi', 'Hello'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
-        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19})
+        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23})
     } else {
         let sentence = ['PLEASE', 'JUST', 'DIE'];
         let word = Game.time % sentence.length;

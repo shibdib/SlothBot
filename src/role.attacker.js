@@ -3,9 +3,10 @@
  */
 
 module.exports.role = function (creep) {
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack', 'heal']);
     // Harass
-    if (creep.memory.operation && creep.memory.operation === 'borderPatrol') creep.borderPatrol();
+    if (creep.memory.operation && creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
+    // Boosts
+    if (!creep.memory.boostAttempt) return creep.tryToBoost(['attack', 'heal']);
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
     // Escort

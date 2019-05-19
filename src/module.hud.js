@@ -103,8 +103,6 @@ module.exports.hud = function () {
         let spawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
         let activeSpawns = _.filter(spawns, (s) => s.spawning);
         let lowerBoundary = 3;
-        if (room.memory.sendingResponse) lowerBoundary++;
-        if (room.memory.assistingRoom) lowerBoundary++;
         if (room.memory.claimTarget) lowerBoundary++;
         if (room.memory.responseNeeded) lowerBoundary++;
         room.visual.rect(0, 0, 13, lowerBoundary + activeSpawns.length, {
@@ -126,16 +124,11 @@ module.exports.hud = function () {
         Memory.gclProgressArray = Memory.gclProgressArray || [];
         let progressPerTick = Game.gcl.progress - lastTickProgress;
         stats.addSimpleStat('gclTickProgress', _.size(progressPerTick)); // Creep Count
-        let paused = '';
-        if (progressPerTick > 0) {
-            if (Memory.gclProgressArray.length < 250) {
-                Memory.gclProgressArray.push(progressPerTick)
-            } else {
-                Memory.gclProgressArray.shift();
-                Memory.gclProgressArray.push(progressPerTick)
-            }
+        if (Memory.gclProgressArray.length < 250) {
+            Memory.gclProgressArray.push(progressPerTick)
         } else {
-            paused = '  **PAUSED**'
+            Memory.gclProgressArray.shift();
+            Memory.gclProgressArray.push(progressPerTick)
         }
         progressPerTick = average(Memory.gclProgressArray);
         let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
@@ -145,23 +138,18 @@ module.exports.hud = function () {
         if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
         if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
         if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
-        displayText(room, 0, 1, ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.' + paused);
+        displayText(room, 0, 1, ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.');
         //Controller
         if (room.controller.progressTotal) {
             let lastTickProgress = room.memory.lastTickProgress || room.controller.progress;
             room.memory.lastTickProgress = room.controller.progress;
             let progressPerTick = room.controller.progress - lastTickProgress;
             room.memory.rclProgressArray = room.memory.rclProgressArray || [];
-            let paused = '';
-            if (progressPerTick > 0) {
-                if (room.memory.rclProgressArray.length < 250) {
-                    room.memory.rclProgressArray.push(progressPerTick)
-                } else {
-                    room.memory.rclProgressArray.shift();
-                    room.memory.rclProgressArray.push(progressPerTick)
-                }
+            if (room.memory.rclProgressArray.length < 250) {
+                room.memory.rclProgressArray.push(progressPerTick)
             } else {
-                paused = '  **PAUSED**'
+                room.memory.rclProgressArray.shift();
+                room.memory.rclProgressArray.push(progressPerTick)
             }
             progressPerTick = average(room.memory.rclProgressArray);
             let secondsToUpgrade = _.round(((room.controller.progressTotal - room.controller.progress) / progressPerTick) * Memory.tickLength);
@@ -184,14 +172,6 @@ module.exports.hud = function () {
         }
         if (room.memory.claimTarget) {
             displayText(room, 0, y, ICONS.claimController + ' Claim Target: ' + room.memory.claimTarget);
-            y++;
-        }
-        if (room.memory.assistingRoom) {
-            displayText(room, 0, y, ICONS.repair + ' Sending Builders To Room: ' + room.memory.assistingRoom);
-            y++;
-        }
-        if (room.memory.sendingResponse) {
-            displayText(room, 0, y, ICONS.attack + ' Sending Military Support To: ' + room.memory.sendingResponse);
             y++;
         }
     }
