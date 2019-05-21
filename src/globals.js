@@ -4,22 +4,19 @@ let globals = function () {
 
     global.log = new Log();
 
-    //Manually set baddies and friends
+    //Manually set baddies and friends and combat stuff
     global.HOSTILES = [];
     global.NO_AGGRESSION = [];
     global.MANUAL_FRIENDS = [];
     global.NAP_ALLIANCE = ['YP', 'CoPS', 'Andromeda'];
-
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 3; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = true;
     global.POKE_NEUTRALS = true;
     global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 
-    global.LAYOUT_VERSION = 1.52;
-
-    //PC Stuff
-    global.OPERATOR_UPGRADE_PRIORITY = [PWR_GENERATE_OPS, PWR_OPERATE_SPAWN, PWR_OPERATE_EXTENSION, PWR_OPERATE_TOWER];
+    // remote rooms
+    global.HARVESTER_TARGET = 5; //Aim to have this number of remote harvesters
 
     //Signing and whatnot
     global.OWNED_ROOM_SIGNS = ["~~~OVERLORD BOT~~~", "~~OVERLORD HIVE~~", "~~RESTRICTED AREA BY ORDER OF THE OVERLORDS~~", "~~THIS ROOM IS UNDER THE PROTECTION OF AN OVERLORDS ALLIANCE MEMBER ~~"];
@@ -32,6 +29,11 @@ let globals = function () {
     global.POKE_LIMIT = 3;
     global.CLEAN_LIMIT = 1;
     global.HARASS_LIMIT = 2;
+
+    global.LAYOUT_VERSION = 1.52;
+
+    //PC Stuff
+    global.OPERATOR_UPGRADE_PRIORITY = [PWR_GENERATE_OPS, PWR_OPERATE_SPAWN, PWR_OPERATE_EXTENSION, PWR_OPERATE_TOWER];
 
     //Terminal
     global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,

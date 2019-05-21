@@ -1,6 +1,7 @@
 module.exports.bodyGenerator = function (level, role, room = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal;
+    let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     switch (role) {
         // Explorer/Scout
         case 'explorer':
@@ -65,6 +66,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                     move = work + carry;
                     break;
                 }
+            } else if (importantBuilds) {
+                work = 1;
+                carry = 1;
+                move = work + carry;
+                break;
             } else if (!room.memory.controllerLink || level < 5) {
                 work = level + 1;
                 carry = 1;
@@ -319,15 +325,27 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'remoteHauler':
             if (level < 6) {
-                carry = level * 2;
-                work = _.random(0, 1, false);
+                if (importantBuilds) {
+                    carry = level;
+                    work = 0;
+                } else {
+                    carry = level * 2;
+                    work = _.random(0, 1, false);
+                }
                 move = _.round(((carry + work) / 2) + 0.5);
                 break
             } else {
-                carry = 30;
-                work = 1;
-                move = 16;
-                break;
+                if (importantBuilds) {
+                    carry = level * 2;
+                    work = _.random(0, 1, false);
+                    move = _.round(((carry + work) / 2) + 0.5);
+                    break
+                } else {
+                    carry = 30;
+                    work = 1;
+                    move = 16;
+                    break;
+                }
             }
         case 'SKattacker':
             attack = 16;

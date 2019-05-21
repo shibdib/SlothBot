@@ -82,9 +82,10 @@ function dropOff(creep) {
         return true;
     }
     //Controller
+    let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!controllerLink && controllerContainer && Math.random() > 0.2 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity) {
+    if (!importantBuilds && !controllerLink && controllerContainer && Math.random() > 0.2 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }

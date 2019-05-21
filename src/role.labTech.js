@@ -429,7 +429,7 @@ function emergencyDump(creep) {
 
 // Remove minerals from the storage if it's overfull and has no energy
 function storageEmpty(creep) {
-    if (!creep.room.storage || _.sum(creep.room.storage.store) < 0.1 * creep.room.storage.storeCapacity || !creep.room.terminal || _.sum(creep.room.terminal.store) >= 0.70 * creep.room.terminal.storeCapacity || creep.memory.hauling) return false;
+    if (!creep.room.storage || !creep.room.terminal || _.sum(creep.room.terminal.store) >= 0.70 * creep.room.terminal.storeCapacity || creep.memory.hauling) return false;
     let maxResource = 0;
     let overflow;
     for (let resource of Object.keys(creep.room.storage.store)) {
