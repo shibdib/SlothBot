@@ -415,14 +415,14 @@ module.exports.remoteCreepQueue = function (room) {
         room.memory.remoteRooms = undefined;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => !Memory.roomCache[r] ||
             (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME)));
-        if (adjacent.length < 3) {
+        /**if (adjacent.length < 3) {
             for (let roomName of adjacent) {
                 if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
                 let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && (!Memory.roomCache[r] ||
                     (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME))));
                 adjacent = _.uniq(_.union(adjacentExits, adjacent));
             }
-        }
+        }**/
         remoteHives[room.name] = JSON.stringify(adjacent);
     }
     //Remotes
@@ -485,7 +485,7 @@ module.exports.remoteCreepQueue = function (room) {
                     } else {
                         //Harvesters
                         let totalHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester');
-                        if (!_.includes(queue, 'remoteHarvester') && totalHarvester.length < HARVESTER_TARGET) {
+                        if (!_.includes(queue, 'remoteHarvester') && totalHarvester.length < 100) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                             let sourceCount = 1;
                             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources && room.energy < ENERGY_AMOUNT && room.memory.state < 3) sourceCount = Memory.roomCache[remotes[keys]].sources;

@@ -47,7 +47,7 @@ let globals = function () {
         RESOURCE_CATALYZED_ZYNTHIUM_ACID,
         RESOURCE_CATALYZED_GHODIUM_ACID];
 
-    global.CREDIT_BUFFER = 10000;
+    global.CREDIT_BUFFER = 100000;
     global.TRADE_AMOUNT = 10000;
     global.ENERGY_AMOUNT = 25000;
     global.SIEGE_ENERGY_AMOUNT = 100000;

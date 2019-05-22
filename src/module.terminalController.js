@@ -24,7 +24,7 @@ module.exports.terminalControl = function (room) {
         runOnce = Game.time;
     }
     //Use extra creds to buy energy
-    placeEnergyOrders(room.terminal, globalOrders);
+    placeEnergyOrders(room.terminal, globalOrders, myOrders);
     //Handle Sell Orders
     extendSellOrders(room.terminal, globalOrders, myOrders);
     placeSellOrders(room.terminal, globalOrders, myOrders);
@@ -48,7 +48,7 @@ function fillBuyOrders(terminal, globalOrders) {
             if (resourceType === RESOURCE_ENERGY) continue;
             let onHand = terminal.store[resourceType];
             let sellOffAmount = DUMP_AMOUNT;
-            if (!Game.credits || Game.credits < CREDIT_BUFFER) sellOffAmount = 1000;
+            if (!Game.market.credits || Game.market.credits < CREDIT_BUFFER) sellOffAmount = 1000;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = DUMP_AMOUNT * 3;
             if (onHand >= sellOffAmount) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.2;
@@ -298,13 +298,6 @@ function orderCleanup(myOrders) {
                         return true;
                     }
                 }
-            } else {
-                if (myOrders[key].remainingAmount > energyAmount) {
-                    if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                        log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + energyAmount);
-                        return true;
-                    }
-                }
             }
             if (myOrders[key].amount === 0) {
                 if (Game.market.cancelOrder(myOrders[key].id) === OK) {
@@ -333,6 +326,8 @@ function orderCleanup(myOrders) {
 
 function placeEnergyOrders(terminal, globalOrders, myOrders) {
     // Check if an order exists
+    if (terminal.room.name === 'E2S7') console.log(_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName &&
+        o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0])
     if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName &&
         o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0]) return false;
     let energyTarget = ENERGY_AMOUNT;
