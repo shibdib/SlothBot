@@ -288,7 +288,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             // Signage NCP check
             if (room.controller.sign) {
                 let text = room.controller.sign.text.toLowerCase();
-                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum')) ncpArray.push(room.controller.sign.username);
+                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) ncpArray.push(room.controller.sign.username);
                 // Special test server code
                 if (text.includes('@PVP@')) forestPvp = true;
             }

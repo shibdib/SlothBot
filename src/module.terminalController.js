@@ -326,8 +326,6 @@ function orderCleanup(myOrders) {
 
 function placeEnergyOrders(terminal, globalOrders, myOrders) {
     // Check if an order exists
-    if (terminal.room.name === 'E2S7') console.log(_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName &&
-        o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0])
     if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName &&
         o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0]) return false;
     let energyTarget = ENERGY_AMOUNT;

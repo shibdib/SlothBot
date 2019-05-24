@@ -7,7 +7,7 @@ Creep.prototype.robbery = function () {
     let terminal = this.room.terminal;
     let storage = this.room.storage;
     // Kill if target is gone
-    if (!Memory.targetRooms[this.memory.targetRoom]) return this.suicide();
+    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle = true;
     let tower = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 0), 'energy');
     if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
         range: 23,
