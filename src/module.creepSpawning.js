@@ -240,9 +240,7 @@ module.exports.essentialCreepQueue = function (room) {
             let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
             let number = 1;
             let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-            if (!TEN_CPU && room.controller.level < 8 && !importantBuilds) {
-                if (!room.memory.controllerLink) number = _.round((11 - level) / 2); else number = _.round((15 - level) / 2);
-            }
+            if (!TEN_CPU && room.controller.level < 8 && !importantBuilds) number = _.round((11 - level) / 2);
             //If room is about to downgrade get a creep out asap
             let reboot;
             let priority = PRIORITIES.upgrader;
@@ -251,7 +249,7 @@ module.exports.essentialCreepQueue = function (room) {
                 priority = 1;
             }
             if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
-                queueCreep(room, priority, {role: 'upgrader', reboot: reboot})
+                queueCreep(room, priority + upgraders.length, {role: 'upgrader', reboot: reboot})
             }
         }
         // Assist room
@@ -523,7 +521,9 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.containerID);
             let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
             if (remoteHauler.length < remoteHarvesters.length) {
-                queueCreep(room, PRIORITIES.remoteHauler, {
+                let priority = PRIORITIES.remoteHauler;
+                if (!remoteHauler.length) priority = PRIORITIES.remoteHauler - 2;
+                queueCreep(room, priority, {
                     role: 'remoteHauler',
                     localCache: true
                 })
@@ -542,7 +542,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Border Patrol
         if (!TEN_CPU) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
-            let count = 1;
+            let count = 0;
             let priority = PRIORITIES.borderPatrol;
             if (heavyResponse) {
                 count = 2;
@@ -551,16 +551,6 @@ module.exports.remoteCreepQueue = function (room) {
             if (!_.includes(queue, 'longbow') && (borderPatrol.length < count || (borderPatrol[0] && borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1))) {
                 queueCreep(room, priority, {
                     role: 'longbow',
-                    operation: 'borderPatrol',
-                    responseTarget: responseRoom,
-                    military: true,
-                    localCache: true
-                });
-            }
-            let riotPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'attacker');
-            if (heavyResponse && !_.includes(queue, 'attacker') && riotPatrol.length < 1) {
-                queueCreep(room, priority, {
-                    role: 'attacker',
                     operation: 'borderPatrol',
                     responseTarget: responseRoom,
                     military: true,

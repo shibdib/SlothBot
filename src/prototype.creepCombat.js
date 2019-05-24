@@ -481,7 +481,6 @@ Creep.prototype.siege = function () {
             target = this.findClosestBarrier();
         }
         if (!target) {
-            if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             let terminal = this.room.terminal;
             let storage = this.room.storage;
             if ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0)) {

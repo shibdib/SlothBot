@@ -10,7 +10,7 @@ let globals = function () {
     global.MANUAL_FRIENDS = [];
     global.NAP_ALLIANCE = ['YP', 'CoPS', 'Andromeda'];
     global.ATTACK_LOCALS = true;
-    global.LOCAL_SPHERE = 3; //Range that rooms consider local via linear distance
+    global.LOCAL_SPHERE = 6; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = true;
     global.POKE_NEUTRALS = true;
     global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
@@ -28,7 +28,7 @@ let globals = function () {
     //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
     global.POKE_LIMIT = 3;
     global.CLEAN_LIMIT = 1;
-    global.HARASS_LIMIT = 2;
+    global.HARASS_LIMIT = 5;
 
     global.LAYOUT_VERSION = 1.52;
 

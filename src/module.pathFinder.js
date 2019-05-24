@@ -244,6 +244,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     if (creep.memory.military && creep.memory.targetRoom) {
                         delete Memory.targetRooms[creep.memory.targetRoom];
                         delete Memory.roomCache[creep.memory.targetRoom];
+                        log.a('Canceling operation in ' + roomLink(creep.memory.targetRoom) + ' as we cannot find a path.', 'HIGH COMMAND: ');
                     }
                     return creep.suicide();
                 }

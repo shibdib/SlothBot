@@ -68,17 +68,7 @@ module.exports.operationSustainability = function (room) {
     operation.trackedEnemy = trackedEnemy;
     operation.trackedFriendly = trackedFriendly;
     operation.sustainabilityCheck = Game.time;
-    if (operation.tick + 1000 <= Game.time && ((operation.friendlyDead > operation.enemyDead || !operation.enemyDead || operation.lastEnemyKilled + 1300 < Game.time) && operation.type !== 'drain' && operation.type !== 'guard' && operation.type !== 'hold' && operation.type !== 'clean') ||
-        (operation.type === 'drain' && (operation.trackedFriendly.length + 1 >= 4 || operation.tick + 4500 < Game.time)) || (operation.type === 'guard' && operation.tick + 10000 < Game.time) || (operation.type === 'clean' && operation.tick + 10000 < Game.time && !operation.manual)) {
-        room.cacheRoomIntel(true);
-        log.a('Canceling operation in ' + roomLink(room.name) + ' due to it no longer being economical.', 'HIGH COMMAND: ');
-        delete Memory.targetRooms[room.name];
-        Memory.roomCache[room.name].lastOperation = Game.time;
-        Memory.roomCache[room.name].attackCooldown = Game.time;
-        if (operation.type === 'drain') Memory.roomCache[room.name].noDrain = true;
-    } else {
-        Memory.targetRooms[room.name] = operation;
-    }
+    Memory.targetRooms[room.name] = operation;
 };
 
 module.exports.threatManagement = function (creep) {
@@ -306,8 +296,7 @@ function manageAttacks() {
                 break;
             // Manage Holds
             case 'hold':
-                staleMulti = 10;
-                break;
+                continue;
             // Manage Nukes
             case 'nukes':
                 continue;
@@ -356,6 +345,7 @@ function manageAttacks() {
         // Remove your rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && Memory.roomCache[key].user === MY_USERNAME) {
             delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + roomLink(key) + ' as it is your room.', 'HIGH COMMAND: ');
             continue;
         }
         // Remove allied rooms
