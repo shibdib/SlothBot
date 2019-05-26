@@ -11,7 +11,8 @@ module.exports.claimNewRoom = function () {
                 // Check if it's near any owned rooms
                 for (let key in avoidRooms) {
                     let distance = Game.map.findRoute(worthyName, avoidRooms[key].name).length;
-                    if (distance < 2 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my)) {
+                    let linearDistance = Game.map.getRoomLinearDistance(worthyName, avoidRooms[key].name);
+                    if (distance < 2 || (Game.rooms[worthyName] && Game.rooms[worthyName].controller.my) || linearDistance < 2) {
                         continue loop1;
                     }
                 }

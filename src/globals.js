@@ -13,7 +13,7 @@ let globals = function () {
     global.LOCAL_SPHERE = 6; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = true;
     global.POKE_NEUTRALS = true;
-    global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
+    global.ATTACK_COOLDOWN = 1500; //Time between attacks on a room
 
     // remote rooms
     global.HARVESTER_TARGET = 5; //Aim to have this number of remote harvesters
