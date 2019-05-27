@@ -320,7 +320,7 @@ function findRoute(origin, destination, options = {}) {
                 }
                 // Avoid rooms owned by others
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user) && !Memory.roomCache[roomName].needsCleaning) {
-                    if (Memory.roomCache[roomName].controller && JSON.parse(Memory.roomCache[roomName].controller).level >= 3) return 254; else return 15;
+                    if (Memory.roomCache[roomName].owner) return 254; else return 15;
                 }
                 // Avoid rooms reserved by others
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) {

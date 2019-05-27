@@ -257,7 +257,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     urgentMilitary(this);
     let room = Game.rooms[this.name];
-    let hostiles, nonCombats, sk, controller, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
+    let hostiles, nonCombats, sk, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
         closestRange, important, owner, reservation, forestPvp;
     if (room) {
         // Make NCP array
@@ -286,13 +286,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 user = room.controller.reservation.username;
             }
             // Signage NCP check
-            if (room.controller.sign) {
+            if (room.controller.owner && room.controller.sign) {
                 let text = room.controller.sign.text.toLowerCase();
                 if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) ncpArray.push(room.controller.sign.username);
                 // Special test server code
                 if (text.includes('@PVP@')) forestPvp = true;
             }
-            controller = JSON.stringify(room.controller);
             level = room.controller.level || undefined;
             // Handle claim targets
             if (sources.length > 1 && !level && (!user || user === MY_USERNAME) && !barriers && !this.controller.safeModeCooldown && closestRange <= 7 && closestRange > 2) {
@@ -355,7 +354,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             cached: Game.time,
             name: room.name,
             sources: sources.length,
-            controller: controller,
             owner: owner,
             reservation: reservation,
             level: level,
