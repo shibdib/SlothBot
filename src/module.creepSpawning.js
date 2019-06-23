@@ -626,9 +626,8 @@ module.exports.militaryCreepQueue = function () {
                 break;
             case 'attack':
             case 'scout': //Room Scouting
-                let totalScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'scout');
                 let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
-                if (totalScout.length < 5 && !scout.length && !_.includes(queue, 'scout')) {
+                if (!scout.length && !_.includes(queue, 'scout')) {
                     queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
                 }
                 break;

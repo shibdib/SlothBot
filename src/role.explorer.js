@@ -26,9 +26,9 @@ module.exports.role = function (creep) {
 
                 }
                 let signs = EXPLORED_ROOM_SIGNS;
-                if (Memory.roomCache[creep.room.name].claimValue) signs = ['Overlord AI Room Claim Value - ' + Memory.roomCache[creep.room.name].claimValue, 'Claim Value of ' + Memory.roomCache[creep.room.name].claimValue];
-                if (Memory.roomCache[creep.room.name].needsCleaning) signs = ['Overlord AI Has Marked This Room For Cleaning', 'Overlord AI finds this room filthy, I will return to clean it'];
-                if (Memory.roomCache[creep.room.name].potentialTarget) signs = ['Overlord AI Finds This Room Interesting, We Will Return', 'This room has been marked for cleansing by an overlord AI'];
+                if (Memory.roomCache[creep.room.name].claimValue) signs = ['AI Room Claim Value - ' + Memory.roomCache[creep.room.name].claimValue, 'Claim Value of ' + Memory.roomCache[creep.room.name].claimValue];
+                if (Memory.roomCache[creep.room.name].needsCleaning) signs = ['This AI Has Marked This Room For Cleaning', 'This AI finds this room filthy, I will return to clean it'];
+                if (Memory.roomCache[creep.room.name].potentialTarget) signs = ['This AI Finds This Room Interesting, We Will Return', 'This room has been marked for cleansing by an automated AI'];
                 switch (creep.signController(creep.room.controller, _.sample(signs))) {
                     case OK:
                         creep.memory.destinationReached = true;

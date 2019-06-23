@@ -1594,7 +1594,7 @@ let template12 = [
     },
 ];
 
-module.exports.layoutArray = [template1, template6, template10, template12];
+module.exports.layoutArray = [template1, template6, template12];
 
 module.exports.allLayouts = [template1, template2, template3, template4, template5, template6, template7, template8, template9, template10, template11, template12];
 
