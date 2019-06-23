@@ -97,6 +97,8 @@ module.exports.processBuildQueue = function () {
                     }
                     let name = role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
                     if (topPriority.operation) name = topPriority.operation + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
+                    let energyStructures;
+                    if (energyOrder[spawn.pos.roomName]) energyStructures = JSON.parse(energyOrder[spawn.pos.roomName]);
                     switch (spawn.spawnCreep(body, name, {
                         memory: {
                             born: Game.time,
@@ -118,7 +120,7 @@ module.exports.processBuildQueue = function () {
                             boostCheck: topPriority.boostCheck,
                             misc: topPriority.misc
                         },
-                        energyStructures: JSON.parse(energyOrder[spawn.pos.roomName])
+                        energyStructures: energyStructures
                     })) {
                         case OK:
                             if (!topPriority.operation) log.d(spawn.room.name + ' Spawning a ' + role);
@@ -987,6 +989,7 @@ function queueMilitaryCreep(importance, options = {}) {
 }
 
 function determineEnergyOrder(room) {
+    storedLevel[room.name] = getLevel(room);
     if (!room.memory.bunkerHub) return;
     let hauler = _.filter(room.creeps, (c) => c.my && c.memory.role === 'hauler')[0];
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
@@ -1004,6 +1007,5 @@ function determineEnergyOrder(room) {
         usedIdArray.push(nextClosest.id);
         rangeArray.push(nextClosest);
     }
-    storedLevel[room.name] = getLevel(room);
     energyOrder[room.name] = JSON.stringify(rangeArray);
 }
