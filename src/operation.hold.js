@@ -4,36 +4,40 @@ Creep.prototype.holdRoom = function () {
     let sentence = ['This', 'Room', 'Has', 'Been', 'Marked', 'For', 'Other', 'Uses', 'Please', 'Abandon'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
+    // Handle border
+    if (this.borderCheck()) return;
     if (this.memory.role === 'longbow') {
         // Set squad leader
-        if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
+        if (!this.memory.squadLeader && (!this.memory.leader || !Game.getObjectById(this.memory.leader))) {
             let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'hold' && c.memory.squadLeader && c.memory.role === 'longbow');
-            if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
+            if (!squadLeader.length) {
+                this.memory.squadLeader = true;
+            } else {
+                this.memory.leader = squadLeader[0].id;
+            }
         }
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'hold' && c.id !== this.id && c.memory.role === 'longbow');
         // Handle squad leader
         if (this.memory.squadLeader) {
+            levelManager(this);
+            highCommand.threatManagement(this);
             // Remove duplicate squad leaders
             let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id);
             if (squadLeader.length) this.memory.squadLeader = undefined;
-            // Sustainability
-            if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
-            highCommand.threatManagement(this);
-            levelManager(this);
-            // Request unClaimer if room level is too high
-            if (this.room.name === this.memory.targetRoom && Memory.targetRooms[this.room.name]) Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive);
             // If military action required do that
             if (this.handleMilitaryCreep(false, false)) return;
-            // Handle border
-            if (this.borderCheck()) return;
-            // Check for squad
-            if (!squadMember.length || this.pos.getRangeTo(squadMember[0]) > 1) return this.idleFor(1);
             // Heal squad
             let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
             if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
-            // Move to response room if needed
-            if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
-            if (!this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 17})) return this.idleFor(5);
+            // Handle target room
+            if (this.room.name === this.memory.targetRoom) {
+                highCommand.operationSustainability(this.room);
+                Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive);
+            } else {
+                // Check for squad
+                if (!squadMember.length || this.pos.getRangeTo(squadMember[0]) > 1) return this.idleFor(1);
+                this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+            }
         } else {
             // Set leader and move to them
             let leader = Game.getObjectById(this.memory.leader);
