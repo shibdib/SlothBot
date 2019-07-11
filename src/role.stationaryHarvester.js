@@ -40,13 +40,13 @@ module.exports.role = function (creep) {
 
 function depositEnergy(creep) {
     //Attempt to build extensions
-    //if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
+    if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
     //Find container
     if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
     //Check if there is extensions
     if (!creep.memory.extensionsFound) extensionFinder(creep);
     //Fill extensions if you have any stored
-
+    if (creep.memory.extensions && extensionFiller(creep)) return;
     let container = Game.getObjectById(creep.memory.containerID);
     let link = Game.getObjectById(creep.memory.linkID);
     if (link) {

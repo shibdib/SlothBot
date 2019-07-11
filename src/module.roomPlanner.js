@@ -43,6 +43,7 @@ function buildFromLayout(room) {
     for (let structure of filter) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
+        if (level === extensionLevel && structure.structureType === STRUCTURE_EXTENSION) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
         /**if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && pos.checkForAllStructure()[0].structureType !== STRUCTURE_RAMPART) {
             pos.checkForAllStructure()[0].destroy();
@@ -485,6 +486,9 @@ function buildRoadFromTo(room, start, end) {
                 for (let road of room.structures) {
                     if (road.structureType === STRUCTURE_ROAD) {
                         costMatrix.set(road.pos.x, road.pos.y, 1);
+                    }
+                    if (road.structureType === STRUCTURE_CONTAINER) {
+                        costMatrix.set(road.pos.x, road.pos.y, 71);
                     }
                 }
             },

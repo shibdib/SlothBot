@@ -826,7 +826,7 @@ Creep.prototype.goHomeAndHeal = function () {
 };
 
 Creep.prototype.fleeHome = function (force = false) {
-    if (this.memory.overlord === this.room.name) return false;
+    if (this.memory.overlord === this.room.name && !this.memory.runCooldown) return false;
     if (!force && !this.memory.runCooldown && !this.room.invaderCheck()) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;
