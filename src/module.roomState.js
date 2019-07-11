@@ -41,7 +41,7 @@ module.exports.setRoomState = function (room) {
         } else
         // Special Case (Low)
         if (room.controller.level < 3) {
-            room.memory.state = 4;
+            room.memory.state = 0;
             news = room.name + ' has been classified as a low level room.';
         } else
         // Needs Energy

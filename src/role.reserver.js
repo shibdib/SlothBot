@@ -5,6 +5,11 @@
 module.exports.role = function (creep) {
     //Initial Move
     if (creep.pos.roomName !== creep.memory.reservationTarget) return creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
+    //Invader detection
+    if (creep.fleeHome()) {
+        creep.memory.inPlace = undefined;
+        return;
+    }
     //Reserver
     if (creep.memory.inPlace) {
         if (creep.ticksToLive <= 3) {

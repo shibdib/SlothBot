@@ -69,7 +69,7 @@ module.exports.towerControl = function (room) {
                 return repairTower.heal(woundedCreep[0]);
             }
         }
-        if (repairTower.energy > repairTower.energyCapacity * 0.75) {
+        if (repairTower.energy > repairTower.energyCapacity * 0.5) {
             let structures = room.structures;
             let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 12500);
             if (barriers.length > 0) {

@@ -87,7 +87,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'hauler':
         case 'filler':
-            if (level < 4) {
+            if (level < 4 || !room.memory.roadsBuilt) {
                 carry = level;
                 move = carry;
                 break
@@ -302,8 +302,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = 1;
                 move = 1;
                 break;
-            } else {
+            } else if (room.memory.roadsBuilt) {
                 work = 6;
+                carry = 1;
+                move = 3;
+                break;
+            } else {
+                work = 3;
                 carry = 1;
                 move = 3;
                 break;
@@ -325,17 +330,18 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'remoteHauler':
             if (level < 7) {
-                if (importantBuilds) {
+                if (importantBuilds || room.memory.state < 3) {
                     carry = level;
                     work = 0;
                 } else {
                     carry = level * 2;
                     work = _.random(0, 1, false);
                 }
-                move = _.round(((carry + work) / 2) + 0.5);
+                move = work + carry;
+                if (room.memory.roadsBuilt) move = _.round(((carry + work) / 2) + 0.5);
                 break
             } else {
-                if (importantBuilds) {
+                if (importantBuilds || room.memory.state < 3) {
                     carry = level * 2;
                     work = _.random(0, 1, false);
                     move = _.round(((carry + work) / 2) + 0.5);

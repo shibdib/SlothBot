@@ -516,10 +516,17 @@ function buildRoadAround(room, position) {
 function buildRoad(position, room) {
     if (position.checkForRoad() || position.checkForImpassible(true) || room.constructionSites.length >= 10 || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length) return false;
     if (room.controller.level < 5 && position.checkForSwamp()) {
-        if (position.createConstructionSite(STRUCTURE_ROAD) === OK) return true;
+        if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
+            room.memory.roadsBuilt = true;
+            return true;
+        }
     } else {
-        if (position.createConstructionSite(STRUCTURE_ROAD) === OK) return true;
+        if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
+            room.memory.roadsBuilt = true;
+            return true;
+        }
     }
+    room.memory.roadsBuilt = undefined;
 }
 
 function cacheRoad(room, from, to, path) {

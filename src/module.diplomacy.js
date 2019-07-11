@@ -43,11 +43,11 @@ function threatManager() {
     // Add manual enemies
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
     // If Not Standard/S+ Server everyone except manually specified are hostile
-    if (!_.includes(['shard0', 'shard1', 'shard2', 'shard3'], Game.shard.name)) Memory._nuisance = _.filter(_.union(Memory._nuisance, _.uniq(_.pluck(Memory.roomCache, 'user'))), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME);
+    //if (!_.includes(['shard0', 'shard1', 'shard2', 'shard3'], Game.shard.name)) Memory._nuisance = _.filter(_.union(Memory._nuisance, _.uniq(_.pluck(Memory.roomCache, 'user'))), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME);
     // NCP's are always hostile
     if (Memory.ncpArray && Memory.ncpArray.length) Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
     // Clean up lists
-    Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined));
+    Memory._badBoyArray = _.union(_.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined)), Memory.ncpArray);
     Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined));
     Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined));
     Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined));

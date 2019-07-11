@@ -159,8 +159,17 @@ Creep.prototype.healMyCreeps = function () {
     return false;
 };
 
+Creep.prototype.healInRange = function () {
+    if (this.hits < this.hitsMax) return this.heal(this);
+    let healCreeps = _.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3);
+    if (healCreeps.length > 0) {
+        this.rangedHeal(healCreeps[0]);
+    }
+    return false;
+};
+
 Creep.prototype.healAllyCreeps = function () {
-    let allyCreeps = _.filter(this.room.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && c.hits < c.hitsMax);
+    let allyCreeps = _.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax);
     if (allyCreeps.length > 0) {
         this.say(ICONS.hospital, true);
         this.shibMove(allyCreeps[0]);
@@ -198,6 +207,8 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     if (!this.getActiveBodyparts(HEAL) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     // If target fight
     if (hostile && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
+        let range = this.pos.getRangeTo(hostile);
+        if ((!this.getActiveBodyparts(RANGED_ATTACK) && range > 1) || (this.getActiveBodyparts(RANGED_ATTACK) && range > 3)) this.healInRange();
         // Heal if needed
         if (!this.getActiveBodyparts(ATTACK) && this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
         // Fight from rampart
@@ -206,9 +217,6 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         if (this.getActiveBodyparts(ATTACK)) return this.attackHostile(hostile);
         // Ranged attacker
         if (this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) this.fightRanged(hostile);
-        // Opportunistic healer
-        let injured = _.min(this.pos.findInRange(_.filter(this.room.creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)), 3), 'hits');
-        if (injured && !this.getActiveBodyparts(ATTACK) && this.getActiveBodyparts(HEAL) && this.hits === this.hitsMax && this.pos.getRangeTo(hostile) > 3) this.rangedHeal(injured);
         return true;
         // If no target heal
     } else if (!noHeals && _.filter(this.room.friendlyCreeps, (c) => c.hits < c.hitsMax).length && this.getActiveBodyparts(HEAL)) {
@@ -818,6 +826,7 @@ Creep.prototype.goHomeAndHeal = function () {
 };
 
 Creep.prototype.fleeHome = function (force = false) {
+    if (this.memory.overlord === this.room.name) return false;
     if (!force && !this.memory.runCooldown && !this.room.invaderCheck()) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;

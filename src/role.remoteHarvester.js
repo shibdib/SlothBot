@@ -12,6 +12,18 @@ module.exports.role = function (creep) {
     }
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
+    //Initial move
+    if (!creep.memory.destinationReached) {
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
+    } else {
+        //Suicide and cache intel if room is reserved by someone else
+        if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
+            creep.room.cacheRoomIntel(true);
+            return creep.suicide();
+        }
+        //If source is set mine
+        if (!creep.memory.source) creep.findSource();
+    }
     //Handle SK Mining
     if (creep.memory.destinationReached && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].sk && skSafety(creep)) return;
     //Harvest
@@ -41,18 +53,6 @@ module.exports.role = function (creep) {
         }
         return;
     }
-    //Initial move
-    if (!creep.memory.destinationReached) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
-    } else {
-        //Suicide and cache intel if room is reserved by someone else
-        if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
-            creep.room.cacheRoomIntel(true);
-            return creep.suicide();
-        }
-        //If source is set mine
-        if (!creep.memory.source) creep.findSource();
-    }
 };
 
 function harvestDepositContainer(source, creep) {
@@ -67,7 +67,7 @@ function harvestDepositContainer(source, creep) {
                     creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
                 } else if (!site && creep.pos.checkForWall()) {
                     findContainerSpot(creep.room, source.pos);
-                } else if (site) {
+                } else if (site && site.pos.getRangeTo(source) === 1) {
                     creep.memory.containerSite = site.id;
                     if (creep.carry[RESOURCE_ENERGY] && creep.memory.containerSite) {
                         let site = Game.getObjectById(creep.memory.containerSite);

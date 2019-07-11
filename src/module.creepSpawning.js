@@ -287,7 +287,7 @@ module.exports.miscCreepQueue = function (room) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let amount = roomSourceSpace[room.name] || 1;
         if (amount > room.constructionSites.length) amount = room.constructionSites.length;
-        if (amount <= 3) amount = 4;
+        if (amount <= 3 && _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length) amount = 4;
         if (TEN_CPU || level >= 6) amount = 2;
         if (drones.length < amount) {
             queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
@@ -346,12 +346,12 @@ module.exports.miscCreepQueue = function (room) {
     //Claim Stuff
     if (!_.includes(queue, 'claimer') && room.memory.claimTarget && !room.memory.responseNeeded) {
         let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'claimer');
-        if (claimer.length < 1 && !_.includes(Memory.ownedRooms, room.memory.claimTarget) && !room.memory.activeClaim) {
+        if (claimer.length < 1 && !_.includes(Memory.ownedRooms, room.memory.claimTarget)) {
             queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: room.memory.claimTarget})
         }
     }
     // Assist room
-    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !room.memory.responseNeeded) {
+    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD).length && !room.memory.responseNeeded) {
         let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15))[0];
         if (needyRoom) {
             if (!_.includes(queue, 'drone')) {
@@ -415,14 +415,12 @@ module.exports.remoteCreepQueue = function (room) {
         room.memory.remoteRooms = undefined;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => !Memory.roomCache[r] ||
             (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME)));
-        /**if (adjacent.length < 3) {
-            for (let roomName of adjacent) {
-                if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
-                let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && (!Memory.roomCache[r] ||
-                    (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME))));
-                adjacent = _.uniq(_.union(adjacentExits, adjacent));
-            }
-        }**/
+        for (let roomName of adjacent) {
+            if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
+            let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && Game.map.getRoomLinearDistance(room.name, r) <= 1 && (!Memory.roomCache[r] ||
+                (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME))));
+            adjacent = _.uniq(_.union(adjacentExits, adjacent));
+        }
         remoteHives[room.name] = JSON.stringify(adjacent);
     }
     //Remotes
@@ -472,7 +470,7 @@ module.exports.remoteCreepQueue = function (room) {
                         if (!noSpawn && !_.includes(queue, 'remoteAllInOne')) {
                             let remoteAllInOne = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteAllInOne');
                             let sourceCount = 1;
-                            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources && room.energy < ENERGY_AMOUNT) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
                             if (!TEN_CPU) sourceCount *= 2;
                             if (remoteAllInOne.length < sourceCount) {
                                 queueCreep(room, PRIORITIES.remoteHarvester + (remoteAllInOne.length / 2), {
