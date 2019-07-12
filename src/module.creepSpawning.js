@@ -201,6 +201,7 @@ module.exports.essentialCreepQueue = function (room) {
             return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
         } else if (!_.includes(queue, 'hauler')) {
             let amount = 1;
+            if (room.memory.hubLink) amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
                 queueCreep(room, PRIORITIES.hauler, {role: 'hauler', localCache: true})
             }
@@ -311,7 +312,7 @@ module.exports.miscCreepQueue = function (room) {
     //Waller
     if (!_.includes(queue, 'waller') && level >= 3) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        let amount = 1;
+        let amount = 2;
         if (wallers.length < amount) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller', localCache: true})
         }
@@ -345,9 +346,14 @@ module.exports.miscCreepQueue = function (room) {
     }**/
     //Claim Stuff
     if (!_.includes(queue, 'claimer') && room.memory.claimTarget && !room.memory.responseNeeded) {
-        let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'claimer');
-        if (claimer.length < 1 && !_.includes(Memory.ownedRooms, room.memory.claimTarget)) {
-            queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: room.memory.claimTarget})
+        // Remove claimed target if no long applicable
+        if (_.round(Game.cpu.limit / 12) < Memory.ownedRooms.length) {
+            room.memory.claimTarget = undefined;
+        } else {
+            let claimer = _.filter(Game.creeps, (creep) => creep.memory.destination === room.memory.claimTarget && creep.memory.role === 'claimer');
+            if (claimer.length < 1 && !_.includes(Memory.ownedRooms, room.memory.claimTarget)) {
+                queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: room.memory.claimTarget})
+            }
         }
     }
     // Assist room

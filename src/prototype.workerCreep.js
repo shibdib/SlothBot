@@ -380,12 +380,6 @@ Creep.prototype.fillerEnergy = function () {
 
 Creep.prototype.getEnergy = function (hauler = false) {
     if (!this.room.memory.hubContainer) hauler = false;
-    // Links OLD
-    let storageLink = Game.getObjectById(this.room.memory.storageLink);
-    if (storageLink && storageLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === storageLink.id && c.id !== this.id).length) {
-        this.memory.energyDestination = storageLink.id;
-        return true;
-    }
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
     if (hubLink && hubLink.energy > 50) {
@@ -410,7 +404,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
         this.memory.energyDestination = storage.id;
         return true;
     }
-    if (this.memory.role !== 'hauler' || this.room.controller.level < 7) {
+    if (this.memory.role !== 'hauler' || this.room.controller.level < 5) {
         // Container
         let container = this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && this.room.memory.hubContainer !== s.id && s.store[RESOURCE_ENERGY] >= 100});
         if ((!hauler || !_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'filler').length) && container && _.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === container.id && c.id !== this.id).length < 2) {
@@ -470,7 +464,8 @@ Creep.prototype.findSpawnsExtensions = function () {
             }
         }
     } else {
-        let extension = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION), 'id');
+        let extension = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION &&
+            s.pos.getRangeTo(s.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.onContainer))) > 1), 'id');
         if (extension.length) this.memory.extensions = JSON.stringify(extension);
     }
     return false;

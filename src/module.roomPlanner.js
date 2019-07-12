@@ -40,7 +40,7 @@ function buildFromLayout(room) {
     } else if (level < 6 && level >= 3) {
         filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
     }
-    for (let structure of filter) {
+    for (let structure of shuffle(filter)) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
         if (level === extensionLevel && structure.structureType === STRUCTURE_EXTENSION) continue;
@@ -223,6 +223,7 @@ function buildFromLayout(room) {
                 buildRoadFromTo(room, spawn, container);
             }
         }
+        if (!inBuild) room.memory.roadsBuilt = true;
     }
     // Controller
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
