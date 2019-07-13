@@ -27,11 +27,10 @@ module.exports.role = function (creep) {
                 return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
         }
     }
-    let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
-    } else if (link && !importantBuilds) {
-        if (link.energy) {
+    } else if (creep.room.controller.level >= 5) {
+        if (link && link.energy) {
             creep.withdrawEnergy(link);
         } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
             creep.withdrawEnergy(container);

@@ -66,16 +66,22 @@ function dropOff(creep) {
     buildLinks(creep);
     //Close Link
     let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink});
-    if (closestLink && closestLink.pos.getRangeTo(creep) <= creep.room.storage.pos.getRangeTo(creep)) {
-        creep.memory.storageDestination = closestLink.id;
-        return true;
-    }
     //Controller
     let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
     if (!importantBuilds && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < 250) {
         creep.memory.storageDestination = controllerContainer.id;
+        return true;
+    }
+    if (closestLink && closestLink.pos.getRangeTo(creep) <= creep.room.storage.pos.getRangeTo(creep)) {
+        creep.memory.storageDestination = closestLink.id;
+        return true;
+    }
+    //Storage
+    let storage = creep.room.storage;
+    if (storage && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep)) && Math.random() >= 0.9) {
+        creep.memory.storageDestination = storage.id;
         return true;
     }
     //Tower
@@ -100,8 +106,7 @@ function dropOff(creep) {
         return true;
     }
     //Storage
-    let storage = creep.room.storage;
-    if (creep.room.storage && creep.room.storage.my && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep))) {
+    if (storage && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep))) {
         creep.memory.storageDestination = storage.id;
         return true;
     }

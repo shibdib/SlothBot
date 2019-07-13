@@ -71,18 +71,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = 1;
                 move = work + carry;
                 break;
-            } else if (!room.memory.controllerLink || level < 5) {
+            } else if (level < 5) {
                 work = level + 1;
                 carry = 1;
                 move = work + carry;
                 break;
             } else {
-                let multi = 1.25;
-                if (room.memory.state > 1 && level > 5) multi = 2.5;
-                if (room.memory.state > 2 && level > 5) multi = 3;
-                work = _.round((multi * level) + 1);
+                work = 15;
                 carry = 1;
-                move = 2;
+                move = 5;
                 break;
             }
         case 'hauler':

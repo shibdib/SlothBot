@@ -437,6 +437,12 @@ Creep.prototype.findSpawnsExtensions = function () {
             return true;
         }
     }
+    // Storage
+    let storage = this.room.storage;
+    if (storage && Math.random() > 0.95) {
+        this.memory.storageDestination = storage.id;
+        return true;
+    }
     //Spawn
     if (this.memory.spawns) {
         let rawSpawn = _.shuffle(JSON.parse(this.memory.spawns));
