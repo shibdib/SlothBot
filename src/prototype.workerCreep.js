@@ -465,7 +465,7 @@ Creep.prototype.findSpawnsExtensions = function () {
         }
     } else {
         let extension = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION &&
-            s.pos.getRangeTo(s.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.onContainer))) > 1), 'id');
+            s.pos.getRangeTo(s.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && (c.memory.onContainer || c.memory.containerAttempt)))) > 1), 'id');
         if (extension.length) this.memory.extensions = JSON.stringify(extension);
     }
     return false;
