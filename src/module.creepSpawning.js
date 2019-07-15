@@ -173,7 +173,7 @@ module.exports.roomStartup = function (room) {
 //Essential creeps
 module.exports.essentialCreepQueue = function (room) {
     //Chance queues get purged
-    if (lastPurge + 100 < Game.time && Math.random() > 0.98) {
+    if (lastPurge + 1000 < Game.time && Math.random() > 0.98) {
         roomQueue = {};
         militaryQueue = {};
         log.e('Random Creep Queue Purge.');
@@ -243,7 +243,9 @@ module.exports.essentialCreepQueue = function (room) {
             let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
             let number = 1;
             let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-            if (!TEN_CPU && room.controller.level < 5 && !importantBuilds) number = _.round((15 - level) / 2);
+            if (!TEN_CPU && !importantBuilds) {
+                if (room.controller.level < 5) number = _.round((15 - level) / 2);
+            }
             //If room is about to downgrade get a creep out asap
             let reboot;
             let priority = PRIORITIES.upgrader;
@@ -284,12 +286,12 @@ module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
     //Drones
-    if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone')) {
+    if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') || room.memory.energySurplus) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let amount = roomSourceSpace[room.name] || 1;
         if (amount > room.constructionSites.length) amount = room.constructionSites.length;
         if (amount <= 3 && _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length) amount = 4;
-        if (TEN_CPU || level >= 6) amount = 2;
+        if (TEN_CPU || level >= 6 || !room.constructionSites.length) amount = 2;
         if (drones.length < amount) {
             queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
         }
@@ -536,9 +538,10 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         // Remote Road Builder
-        if (remoteHives[room.name] && !_.includes(queue, 'remoteRoad')) {
+        if (!_.includes(queue, 'remoteRoad')) {
+            let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.containerID);
             let remoteRoad = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteRoad');
-            if (remoteRoad.length < _.round(remoteHives[room.name].length / 2)) {
+            if (remoteRoad.length < (remoteHarvesters.length * 0.25)) {
                 queueCreep(room, PRIORITIES.remotePioneer, {
                     role: 'remoteRoad',
                     localCache: true
@@ -548,7 +551,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Border Patrol
         if (!TEN_CPU) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
-            let count = 0;
+            let count = 1;
             let priority = PRIORITIES.borderPatrol;
             if (heavyResponse) {
                 count = 2;

@@ -295,7 +295,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= 5000) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -400,7 +400,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= 7500 || hauler)) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level || hauler)) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -464,7 +464,8 @@ Creep.prototype.findSpawnsExtensions = function () {
         for (let i = 0; i < rawExtension.length; i++) {
             let extension = Game.getObjectById(rawExtension[i]);
             if (!extension) return this.memory.extensions = undefined;
-            if (extension.energy < extension.energyCapacity) {
+            let taken = _.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === extension.id);
+            if (extension.energy < extension.energyCapacity && !taken.length) {
                 this.memory.storageDestination = extension.id;
                 return true;
             }

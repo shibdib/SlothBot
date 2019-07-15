@@ -77,7 +77,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = work + carry;
                 break;
             } else {
-                work = 15;
+                work = 14;
                 carry = 1;
                 move = 5;
                 break;

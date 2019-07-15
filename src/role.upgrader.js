@@ -21,7 +21,13 @@ module.exports.role = function (creep) {
         }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
+                if (Math.random() > 0.99) creep.memory.onContainer = undefined;
                 delete creep.memory._shibMove;
+                if (link && link.energy) {
+                    creep.withdrawEnergy(link);
+                } else if (container && container.store[RESOURCE_ENERGY]) {
+                    creep.withdrawEnergy(container);
+                }
                 return;
             case ERR_NOT_IN_RANGE:
                 return creep.shibMove(Game.rooms[creep.memory.overlord].controller, {range: 3});
@@ -34,8 +40,6 @@ module.exports.role = function (creep) {
             creep.withdrawEnergy(link);
         } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
             creep.withdrawEnergy(container);
-        } else {
-            creep.idleFor(15);
         }
     } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
         creep.withdrawEnergy(container);
