@@ -35,7 +35,7 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.energyDestination) {
         creep.withdrawEnergy();
-    } else if (creep.room.controller.level >= 5) {
+    } else if (creep.room.controller.level >= 5 && creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE)) {
         if (link && link.energy) {
             creep.withdrawEnergy(link);
         } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {

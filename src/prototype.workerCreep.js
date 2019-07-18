@@ -295,7 +295,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= (ENERGY_RESERVE * this.room.controller.level) / 2) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -379,7 +379,6 @@ Creep.prototype.fillerEnergy = function () {
 };
 
 Creep.prototype.getEnergy = function (hauler = false) {
-    if (!this.room.memory.hubContainer) hauler = false;
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
     if (hubLink && hubLink.energy > 50) {

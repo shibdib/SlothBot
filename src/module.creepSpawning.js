@@ -286,7 +286,8 @@ module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
     //Drones
-    if (_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART).length && !_.includes(queue, 'drone') || room.memory.energySurplus) {
+    let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)[0];
+    if (inBuild && !_.includes(queue, 'drone') || room.memory.energySurplus) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let amount = roomSourceSpace[room.name] || 1;
         if (amount > room.constructionSites.length) amount = room.constructionSites.length;
@@ -312,7 +313,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (!_.includes(queue, 'waller') && level >= 3) {
+    if (!inBuild && !_.includes(queue, 'waller') && level >= 3) {
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 2;
         if (wallers.length < amount) {
@@ -320,7 +321,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Mineral Harvester
-    if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0] && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !room.memory.responseNeeded && room.mineral[0].mineralAmount > 0) {
+    if (!inBuild && _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0] && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !room.memory.responseNeeded && room.mineral[0].mineralAmount > 0) {
         let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
         if (mineralHarvesters.length < 1) {
             queueCreep(room, PRIORITIES.mineralHarvester, {
@@ -359,7 +360,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // Assist room
-    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD).length && !room.memory.responseNeeded) {
+    if (level >= 4 && !inBuild && !room.memory.responseNeeded) {
         let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15))[0];
         if (needyRoom) {
             if (!_.includes(queue, 'drone')) {

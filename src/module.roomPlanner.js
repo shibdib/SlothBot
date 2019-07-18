@@ -244,7 +244,7 @@ function buildFromLayout(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (room.controller.level >= 6) {
+    } else if (room.controller.level >= 7) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
