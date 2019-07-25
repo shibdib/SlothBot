@@ -311,7 +311,7 @@ function findHub(room) {
         for (let i = 1; i < 2000; i++) {
             let searched = [];
             let hubSearch = room.memory.newHubSearch || 0;
-            if (hubSearch >= layouts.layoutArray.length * 2500) {
+            if (hubSearch >= layouts.layoutArray.length * 2500 && !room.memory.bunkerHub) {
                 abandonRoom(room.name);
                 if (!Memory.noClaim) Memory.noClaim = [];
                 Memory.noClaim.push(room.name);
