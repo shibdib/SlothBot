@@ -25,10 +25,10 @@ Creep.prototype.findClosestUnarmedEnemy = function () {
 
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
     let enemy, filter;
-    let worthwhileStructures = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR).length > 0;
+    let worthwhileStructures = _.filter(this.room.structures, (s) => !s.my && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR).length > 0;
     if (!this.room.hostileCreeps.length && !worthwhileStructures) return;
     let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
-    let hostileRoom = this.room.controller && this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username);
+    let hostileRoom = this.room.controller && !this.room.controller.my && this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username);
     // Towers die first
     if (hostileRoom) {
         filter = {filter: (c) => c.structureType === STRUCTURE_TOWER};
@@ -220,6 +220,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         return true;
         // If no target heal
     } else if (!noHeals && _.filter(this.room.friendlyCreeps, (c) => c.hits < c.hitsMax).length && this.getActiveBodyparts(HEAL)) {
+        this.say(1)
         if (this.healMyCreeps()) return true;
         if (this.healAllyCreeps()) return true;
     }

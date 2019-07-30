@@ -35,8 +35,8 @@ Creep.prototype.holdRoom = function () {
                 Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive);
             } else {
                 // Check for squad
-                if (!squadMember.length || this.pos.getRangeTo(squadMember[0]) > 1) return this.idleFor(1);
-                this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+                //if ((!squadMember.length || this.pos.getRangeTo(squadMember[0]) > 1) && Number(Memory.targetRooms[this.memory.targetRoom].level > 1)) return this.idleFor(1);
+                this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 24});
             }
         } else {
             // Set leader and move to them
