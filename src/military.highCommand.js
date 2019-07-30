@@ -296,7 +296,8 @@ function manageAttacks() {
                 break;
             // Manage Holds
             case 'hold':
-                continue;
+                staleMulti = 5;
+                break;
             // Manage Nukes
             case 'nukes':
                 continue;
@@ -316,7 +317,7 @@ function manageAttacks() {
                 continue;
             // Manage Guard
             case 'guard':
-                staleMulti = 2;
+                staleMulti = 5;
                 break;
             // Manage Scouts
             case 'scout':

@@ -350,8 +350,11 @@ Creep.prototype.fillerEnergy = function () {
     let source, container;
     if (!this.memory.assignedSource) {
         let assignment = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID && !_.filter(this.room.creeps, (f) => f.my && f.memory.role === 'filler' && f.memory.assignedSource === c.memory.source).length);
-        if (assignment.length) this.memory.assignedSource = assignment[0].memory.source;
-        return;
+        if (assignment.length) {
+            this.memory.assignedSource = assignment[0].memory.source;
+        } else {
+            return this.getEnergy();
+        }
     } else {
         source = Game.getObjectById(this.memory.assignedSource);
     }

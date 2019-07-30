@@ -22,7 +22,7 @@ module.exports.role = function (creep) {
 
         }
     } else {
-        let needsHeals = _.min(_.filter(Game.creeps, (c) => c.memory && c.id !== creep.id && c.memory.healsPlease && !c.memory.healsInbound && c.memory.overlord === creep.memory.overlord), 'hits');
+        let needsHeals = _.min(_.filter(Game.creeps, (c) => c.memory && c.id !== creep.id && c.memory.healsPlease && !c.memory.healsInbound), 'hits');
         if (needsHeals.name) {
             needsHeals.memory.healsInbound = creep.id;
             creep.memory.healTarget = needsHeals.id;

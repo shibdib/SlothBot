@@ -40,7 +40,7 @@ module.exports.processBuildQueue = function () {
             if (roomQueue[spawn.room.name] || militaryQueue) {
                 let queue;
                 let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-                if (!spawn.room.memory.responseNeeded && level >= 2 && _.inRange(level, maxLevel - 1, maxLevel + 1) && (spawn.room.memory.state >= 1 || !roomQueue[spawn.room.name] || !roomQueue[spawn.room.name].length) && !_.filter(spawn.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)[0]) {
+                if (!spawn.room.memory.responseNeeded && level >= 3 && _.inRange(level, maxLevel - 1, maxLevel + 1) && (spawn.room.memory.state >= 1 || !roomQueue[spawn.room.name] || !roomQueue[spawn.room.name].length) && !_.filter(spawn.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)[0]) {
                     queue = _.sortBy(Object.assign({}, militaryQueue, roomQueue[spawn.room.name]), 'importance');
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'importance')
@@ -62,7 +62,7 @@ module.exports.processBuildQueue = function () {
                 }
                 let cost = global.UNIT_COST(body);
                 if (cost > spawn.room.energyAvailable) {
-                    displayText(spawn.room, 1, 39, 'Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
+                    spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
                     continue;
                 }
                 if (topPriority && typeof topPriority === 'object') {
@@ -211,7 +211,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (!_.includes(queue, 'filler') && _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID)).length) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
-        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
+        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length + 1) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler', localCache: true})
         }
     }
@@ -287,14 +287,23 @@ module.exports.miscCreepQueue = function (room) {
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
     //Drones
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)[0];
-    if (inBuild && !_.includes(queue, 'drone') || room.memory.energySurplus) {
-        let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
-        let amount = roomSourceSpace[room.name] || 1;
-        if (amount > room.constructionSites.length) amount = room.constructionSites.length;
-        if (amount <= 3 && _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length) amount = 4;
-        if (TEN_CPU || level >= 6 || !room.constructionSites.length) amount = 2;
-        if (drones.length < amount) {
-            queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
+    if (!_.includes(queue, 'drone')) {
+        if (inBuild || room.memory.energySurplus) {
+            let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
+            let amount = roomSourceSpace[room.name] || 1;
+            if (amount > room.constructionSites.length) amount = room.constructionSites.length;
+            if (amount <= 3 && _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length) amount = 4;
+            if (TEN_CPU || level >= 6 || !room.constructionSites.length) amount = 2;
+            if (drones.length < amount) {
+                queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
+            }
+        }
+        let damaged = _.filter(room.structures, (s) => s.my && s.hits < s.hitsMax)[0];
+        if (damaged) {
+            let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
+            if (drones.length < 1) {
+                queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
+            }
         }
     }
     //LabTech
@@ -475,7 +484,7 @@ module.exports.remoteCreepQueue = function (room) {
             } else if (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].sk) {
                 if (!noSpawn) {
                     //All in One
-                    if (level < 4) {
+                    if (level === 1) {
                         if (!noSpawn && !_.includes(queue, 'remoteAllInOne')) {
                             let remoteAllInOne = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteAllInOne');
                             let sourceCount = 1;
@@ -563,6 +572,16 @@ module.exports.remoteCreepQueue = function (room) {
                     role: 'longbow',
                     operation: 'borderPatrol',
                     responseTarget: responseRoom,
+                    military: true,
+                    localCache: true
+                });
+            }
+            let medic = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteMedic');
+            let heals = _.filter(Game.creeps, (c) => c.memory && c.memory.healsPlease);
+            count = _.max(Memory.ownedRooms, 'controller.level').controller.level / 4;
+            if (heals.length && !_.includes(queue, 'remoteMedic') && medic.length < count) {
+                queueCreep(room, priority, {
+                    role: 'remoteMedic',
                     military: true,
                     localCache: true
                 });

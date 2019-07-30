@@ -108,6 +108,18 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'hostileStructures', {
+    get: function () {
+        if (!this._hostileStructures) {
+            this._hostileStructures = _.filter(this.structures, (s) => !s.my && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER &&
+                s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR);
+        }
+        return this._hostileStructures;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'droppedResources', {
     get: function () {
         if (!this._droppedResources) {
