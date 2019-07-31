@@ -4,6 +4,13 @@ Creep.prototype.borderPatrol = function () {
     if (Game.cpu.bucket < 5000) return this.suicide();
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
+    // Run from unwinnable fights
+    if (!this.canIWin()) {
+        this.attackInRange();
+        this.say('RUN!', true);
+        delete this.memory.responseTarget;
+        return this.goHomeAndHeal();
+    }
     // Set squad leader
     if (!this.memory.squadLeader && !this.memory.leader) {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
@@ -18,15 +25,6 @@ Creep.prototype.borderPatrol = function () {
         if (squadLeader.length) this.memory.squadLeader = undefined;
         // Handle removing bad remotes
         if (this.room.name === this.memory.responseTarget) remoteManager(this);
-        // Run from unwinnable fights
-        if (!this.canIWin()) {
-            this.attackInRange();
-            this.say('RUN!', true);
-            delete this.memory.responseTarget;
-            delete this.memory._shibMove;
-            this.memory.runRoom = this.room.name;
-            return this.goHomeAndHeal();
-        }
         // Invader check
         this.room.invaderCheck();
         // Get squad members
@@ -48,16 +46,7 @@ Creep.prototype.borderPatrol = function () {
         if (!this.memory.responseTarget || this.memory.onTarget + _.random(10, 25) <= Game.time) {
             this.memory.responseTarget = undefined;
             this.memory.onTarget = undefined;
-            if (this.pos.roomName !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
-            let remotes = Game.map.describeExits(this.room.name);
-            let needsResponse = _.filter(remotes, (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel && (!this.memory.runRoom || r !== this.memory.runRoom))[0];
-            if (needsResponse) {
-                this.memory.runRoom = undefined;
-                this.memory.responseTarget = needsResponse;
-            } else {
-                this.memory.awaitingOrders = true;
-                this.idleFor(15);
-            }
+            this.memory.awaitingOrders = true;
         }
         // Heal if waiting for orders
         this.healAllyCreeps();
@@ -80,13 +69,6 @@ Creep.prototype.borderPatrol = function () {
             this.shibMove(leader, {range: moveRange, ignoreCreeps: ignore, ignoreRoads: true});
         } else {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
-        }
-        // Run from unwinnable fights
-        if (!this.canIWin()) {
-            this.attackInRange();
-            this.say('RUN!', true);
-            delete this.memory.responseTarget;
-            return this.goHomeAndHeal();
         }
         // Handle attacker
         if (this.getActiveBodyparts(ATTACK) && this.handleMilitaryCreep(false, true, false, false, true)) return;

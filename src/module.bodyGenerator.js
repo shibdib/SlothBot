@@ -309,12 +309,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             move = work + carry;
             break;
         case 'remoteHarvester':
-            if (level < 4) {
-                work = 1;
-                carry = 1;
-                move = 1;
-                break;
-            } else if (room.memory.roadsBuilt) {
+            if (room.memory.roadsBuilt) {
                 work = 6;
                 carry = 1;
                 move = 3;

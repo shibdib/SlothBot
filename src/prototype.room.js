@@ -409,6 +409,22 @@ Room.prototype.invaderCheck = function () {
         }
         let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
         if (invader.length > 0) {
+            let hostileCombatParts = 0;
+            let armedHostiles = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+            for (let i = 0; i < armedHostiles.length; i++) {
+                hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
+                hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
+                hostileCombatParts += armedHostiles[i].getActiveBodyparts(HEAL) * 0.5;
+            }
+            let alliedCombatParts = 0;
+            let armedFriendlies = _.filter(this.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+            for (let i = 0; i < armedFriendlies.length; i++) {
+                alliedCombatParts += armedFriendlies[i].getActiveBodyparts(ATTACK);
+                alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);
+                alliedCombatParts += armedFriendlies[i].getActiveBodyparts(HEAL) * 0.5;
+            }
+            Memory.roomCache[this.name].hostilePower = hostileCombatParts;
+            Memory.roomCache[this.name].friendlyPower = alliedCombatParts;
             let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6);
             this.memory.tickDetected = Game.time;
             if (!this.memory.numberOfHostiles || this.memory.numberOfHostiles < invader.length) {
@@ -425,18 +441,21 @@ Room.prototype.invaderCheck = function () {
             } else if ((invader.length === 1 && invader[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) {
                 this.memory.threatLevel = 1;
                 Memory.roomCache[this.name].threatLevel = 1;
-                if (Game.time % 50 === 0) log.a('Invaders detected in ' + this.name + '. ' + invader.length + ' creeps detected.', 'RESPONSE COMMAND');
+                if (Game.time % 50 === 0) log.a('Invaders detected in ' + this.name + '. ' + invader.length +
+                    ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatParts + '/' + alliedCombatParts + ')', 'RESPONSE COMMAND');
                 this.memory.responseNeeded = true;
             } else if (invader.length > 1 && invader[0].owner.username === 'Invader' && ownerArray.length === 1) {
                 this.memory.threatLevel = 2;
                 Memory.roomCache[this.name].threatLevel = 2;
-                if (Game.time % 50 === 0) log.a('Invaders detected in ' + this.name + '. ' + invader.length + ' creeps detected.', 'RESPONSE COMMAND');
+                if (Game.time % 50 === 0) log.a('Invaders detected in ' + this.name + '. ' + invader.length +
+                    ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatParts + '/' + alliedCombatParts + ')', 'RESPONSE COMMAND');
                 this.memory.responseNeeded = true;
             } else if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
                 this.memory.threatLevel = 3;
                 this.memory.lastPlayerAttack = Game.time;
                 Memory.roomCache[this.name].threatLevel = 3;
-                if (Game.time % 50 === 0) log.a('Players creeps detected in ' + roomLink(this.name) + '. ' + invader.length + ' hostiles detected. Owners - ' + ownerArray.toString(), 'RESPONSE COMMAND');
+                if (Game.time % 50 === 0) log.a('Players creeps detected in ' + roomLink(this.name) + '. ' + invader.length +
+                    ' hostiles detected. Owners - ' + ownerArray.toString() + '(Invader/Friendly Power Present - ' + hostileCombatParts + '/' + alliedCombatParts + ')', 'RESPONSE COMMAND');
                 this.memory.responseNeeded = true;
                 let multiple = 2;
                 if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
@@ -464,7 +483,8 @@ Room.prototype.invaderCheck = function () {
                 this.memory.threatLevel = 4;
                 this.memory.lastPlayerAttack = Game.time;
                 Memory.roomCache[this.name].threatLevel = 4;
-                if (Game.time % 50 === 0) log.a('Players creeps detected in ' + roomLink(this.name) + '. ' + invader.length + ' hostiles detected. Owners - ' + ownerArray.toString(), 'RESPONSE COMMAND');
+                if (Game.time % 50 === 0) log.a('Players creeps detected in ' + roomLink(this.name) + '. ' + invader.length +
+                    ' hostiles detected. Owners - ' + ownerArray.toString() + '(Invader/Friendly Power Present - ' + hostileCombatParts + '/' + alliedCombatParts + ')', 'RESPONSE COMMAND');
                 this.memory.responseNeeded = true;
                 let multiple = 2;
                 if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;

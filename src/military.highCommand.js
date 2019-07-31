@@ -87,23 +87,25 @@ module.exports.threatManagement = function (creep) {
 };
 
 function manageResponseForces() {
-    let responseTargets = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.responseNeeded && r.findClosestOwnedRoom(true) <= 1), 'memory.threatLevel');
+    let responseTargets = _.max(Memory.roomCache, '.threatLevel');
     if (!responseTargets || !responseTargets.name) {
-        let highestHeat = _.max(_.filter(Game.rooms, (r) => r.memory && r.memory.roomHeat), 'memory.roomHeat');
-        if (highestHeat) {
-            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 4);
+        let highestHeat = _.max(Memory.roomCache, '.roomHeat');
+        if (highestHeat && highestHeat.name) {
+            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders &&
+                Game.map.getRoomLinearDistance(c.memory.overlord, highestHeat.name) <= 6);
             for (let creep of idleResponders) {
                 creep.memory.responseTarget = highestHeat.name;
                 creep.memory.awaitingOrders = undefined;
-                log.a(creep.name + ' reassigned to guard ' + highestHeat.name + ' from ' + creep.room.name);
+                log.a(creep.name + ' reassigned to guard ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
             }
         }
-    } else {
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders && Game.map.findRoute(c.memory.overlord, responseTargets.name).length <= 4);
+    } else if (responseTargets && responseTargets.name) {
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders &&
+            (!responseTargets.hostilePower || responseTargets.hostilePower * 1.1 < responseTargets.friendlyPower) && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 6);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to assist ' + responseTargets.name + ' from ' + creep.room.name);
+            log.a(creep.name + ' reassigned to assist ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
     }
 }

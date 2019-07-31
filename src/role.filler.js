@@ -11,7 +11,7 @@ module.exports.role = function (creep) {
     if (!_.sum(creep.carry)) creep.memory.hauling = undefined;
     if (creep.memory.hauling) {
         // Hub Container
-        let hubContainer = Game.getObjectById(creep.memory.storageDestination) || creep.pos.findInRange(_.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK), 3)[0] || creep.room.storage || Game.getObjectById(creep.room.memory.hubContainer) || Game.getObjectById(creep.findStorage()) || Game.getObjectById(creep.findSpawnsExtensions());
+        let hubContainer = Game.getObjectById(creep.memory.storageDestination) || creep.room.storage || creep.pos.findInRange(_.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK), 3)[0] || Game.getObjectById(creep.room.memory.hubContainer) || Game.getObjectById(creep.findStorage()) || Game.getObjectById(creep.findSpawnsExtensions());
         if (hubContainer) {
             if (_.sum(hubContainer.store) === hubContainer.storeCapacity) return creep.idleFor(10);
             let storageItem = hubContainer;

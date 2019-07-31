@@ -322,15 +322,14 @@ Creep.prototype.fightRanged = function (target) {
     if (range <= 3) {
         if (target instanceof Creep) {
             // Handle kite
-            if (target.getActiveBodyparts(ATTACK) || (target.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER) > ((this.getActiveBodyparts(HEAL) * HEAL_POWER) * 0.6)) {
+            if (target.getActiveBodyparts(ATTACK) || (target.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER) > (this.getActiveBodyparts(HEAL) * HEAL_POWER)) {
                 // If close kite
-                if (range <= 3) this.kite();
+                if (range < 3) this.kite();
             }
-            if (targets.length > 1 && !allies.length) {
+            if ((targets.length > 1 || range === 1) && !allies.length) {
                 this.rangedMassAttack();
             } else {
-                if (range === 1 && !allies.length) this.rangedMassAttack();
-                if (range > 1) this.rangedAttack(target);
+                this.rangedAttack(target);
                 if (!target.getActiveBodyparts(ATTACK)) this.shibMove(target, {
                     range: 1,
                     ignoreRoads: true
@@ -802,6 +801,7 @@ Creep.prototype.fleeHome = function (force = false) {
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
         this.memory.runCooldown = Game.time + 100;
+        this.drop();
         this.goToHub(this.memory.overlord, true);
         return true;
     } else if (Game.time < cooldown) {
@@ -857,7 +857,7 @@ Creep.prototype.canIWin = function () {
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(HEAL) * 0.5;
     }
-    this.memory.enemyPower = hostileCombatParts;
-    this.memory.friendlyPower = alliedCombatParts;
+    Memory.roomCache[this.room.name].hostilePower = hostileCombatParts;
+    Memory.roomCache[this.room.name].friendlyPower = alliedCombatParts;
     return !hostileCombatParts || hostileCombatParts * 0.8 < alliedCombatParts;
 };
