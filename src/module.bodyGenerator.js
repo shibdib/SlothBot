@@ -342,15 +342,18 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'remoteHauler':
             if (level < 7) {
+                work = 0;
                 if (importantBuilds || room.memory.state < 3) {
                     carry = level;
-                    work = 0;
                 } else {
                     carry = level * 2;
-                    work = _.random(0, 1, false);
                 }
-                move = work + carry;
-                if (room.memory.roadsBuilt) move = _.round(((carry + work) / 2) + 0.5);
+                if (room.memory.roadsBuilt) {
+                    work = _.random(0, 1, false);
+                    move = _.round(((carry + work) / 2) + 0.5);
+                } else {
+                    move = work + carry;
+                }
                 break
             } else {
                 if (importantBuilds || room.memory.state < 3) {

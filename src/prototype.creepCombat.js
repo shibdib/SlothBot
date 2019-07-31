@@ -189,7 +189,7 @@ Creep.prototype.moveToHostileConstructionSites = function (creepCheck = false) {
     if (!this.room.constructionSites.length || (creepCheck && this.room.hostileCreeps.length)) return false;
     // Friendly room
     if (this.room.controller && ((this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || this.room.controller.safeMode)) return false;
-    let constructionSite = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !s.pos.checkForRampart() && !_.includes(FRIENDLIES, s.owner.username)});
+    let constructionSite = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => !s.pos.checkForRampart() && !_.includes(FRIENDLIES, s.owner.username) && !s.my && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER});
     if (constructionSite) {
         if (constructionSite.pos.x === this.pos.x && constructionSite.pos.y === this.pos.y) return this.moveRandom();
         this.shibMove(constructionSite, {range: 0, ignoreCreeps: false});
@@ -844,16 +844,18 @@ Creep.prototype.templarCombat = function () {
 Creep.prototype.canIWin = function () {
     if (!this.room.hostileCreeps.length || this.room.name === this.memory.overlord) return true;
     let hostileCombatParts = 0;
-    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && this.pos.getRangeTo(c) <= 8);
+    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= 8);
     for (let i = 0; i < armedHostiles.length; i++) {
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
+        hostileCombatParts += armedHostiles[i].getActiveBodyparts(HEAL) * 0.5;
     }
     let alliedCombatParts = 0;
-    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0 && this.pos.getRangeTo(c) <= 8);
+    let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) && this.pos.getRangeTo(c) <= 8);
     for (let i = 0; i < armedFriendlies.length; i++) {
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(ATTACK);
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);
+        alliedCombatParts += armedFriendlies[i].getActiveBodyparts(HEAL) * 0.5;
     }
-    return !hostileCombatParts || hostileCombatParts * 0.9 < alliedCombatParts;
+    return !hostileCombatParts || hostileCombatParts * 0.75 < alliedCombatParts;
 };

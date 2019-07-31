@@ -211,7 +211,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (!_.includes(queue, 'filler') && _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID)).length) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
-        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length + 1) {
+        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length * 2) {
             queueCreep(room, PRIORITIES.hauler, {role: 'filler', localCache: true})
         }
     }
@@ -298,7 +298,7 @@ module.exports.miscCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
             }
         }
-        let damaged = _.filter(room.structures, (s) => s.my && s.hits < s.hitsMax)[0];
+        let damaged = _.filter(room.structures, (s) => s.my && s.hits < s.hitsMax && s.my && s.structureType !== STRUCTURE_RAMPART)[0];
         if (damaged) {
             let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
             if (drones.length < 1) {

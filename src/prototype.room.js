@@ -179,7 +179,7 @@ Object.defineProperty(Room.prototype, 'hostileCreeps', {
 Object.defineProperty(Room.prototype, 'friendlyCreeps', {
     get: function () {
         if (!this._friendlyCreeps) {
-            this._friendlyCreeps = _.filter(this.creeps, (c) => _.includes(FRIENDLIES, c.owner.username) && !_.includes(Memory._nuisance, c.owner.username));
+            this._friendlyCreeps = _.filter(this.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && !_.includes(Memory._nuisance, c.owner.username));
         }
         return this._friendlyCreeps;
     },
