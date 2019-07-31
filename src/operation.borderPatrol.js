@@ -50,8 +50,11 @@ Creep.prototype.borderPatrol = function () {
             this.memory.onTarget = undefined;
             if (this.pos.roomName !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 17});
             let remotes = Game.map.describeExits(this.room.name);
-            let needsResponse = _.filter(remotes, (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel)[0];
-            if (needsResponse) this.memory.responseTarget = needsResponse; else {
+            let needsResponse = _.filter(remotes, (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel && (!this.memory.runRoom || r !== this.memory.runRoom))[0];
+            if (needsResponse) {
+                this.memory.runRoom = undefined;
+                this.memory.responseTarget = needsResponse;
+            } else {
                 this.memory.awaitingOrders = true;
                 this.idleFor(15);
             }

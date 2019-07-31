@@ -5,11 +5,10 @@
 module.exports.highCommand = function () {
     if (!Memory.targetRooms) Memory.targetRooms = {};
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-    if (maxLevel < 2) return;
     // Manage dispatching responders
     if (Game.time % 10 === 0) manageResponseForces();
     // Request scouting for new operations
-    if (Game.time % 100 === 0) operationRequests();
+    if (maxLevel >= 4 && Game.time % 100 === 0) operationRequests();
     // Manage old operations
     if (Game.time % 50 === 0) manageAttacks();
     // Check for flags

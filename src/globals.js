@@ -81,15 +81,15 @@ let globals = function () {
         worker: 5,
         drone: 5,
         waller: 4,
-        upgrader: 4,
+        upgrader: 6,
         mineralHarvester: 7,
         repairer: 7,
         // Haulers
         hauler: 1,
         // Remotes
         remoteUtility: 6,
-        remoteHarvester: 6,
-        remoteHauler: 6,
+        remoteHarvester: 3,
+        remoteHauler: 3,
         remoteUpgrader: 7,
         remotePioneer: 7,
         assistPioneer: 7,

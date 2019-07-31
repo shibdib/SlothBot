@@ -42,6 +42,7 @@ Creep.prototype.goToHub = function (destination) {
  * @type {int}
  */
 Creep.prototype.idleFor = function (ticks = 0) {
+    if (this.hits < this.hitsMax && this.getActiveBodyparts(HEAL)) return this.heal(this);
     if (ticks > 0) {
         this.idle = Game.time + ticks;
     } else {

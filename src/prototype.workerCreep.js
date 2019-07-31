@@ -356,7 +356,7 @@ Creep.prototype.fillerEnergy = function () {
             // Container
             let container = _.max(this.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.hubContainer
                 && this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length < 3,), '.store.energy');
-            if ((!hauler || !_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'filler').length) && container) {
+            if (container) {
                 this.memory.energyDestination = container.id;
                 this.memory.findEnergyCountdown = undefined;
                 return true;
