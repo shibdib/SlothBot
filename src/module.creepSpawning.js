@@ -212,7 +212,7 @@ module.exports.essentialCreepQueue = function (room) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length * 2) {
-            queueCreep(room, PRIORITIES.hauler, {role: 'filler', localCache: true})
+            queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler', localCache: true})
         }
     }
     // Local Responder
@@ -563,8 +563,9 @@ module.exports.remoteCreepQueue = function (room) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
             let count = 1;
             let priority = PRIORITIES.borderPatrol;
-            if (heavyResponse) {
-                count = 2;
+            if (borderPatrol.length && borderPatrol[0].memory.enemyPower) {
+                count = borderPatrol[0].memory.enemyPower / 2.25;
+                if (count > 4) count = 4;
                 priority = priority - 2;
             }
             if (!_.includes(queue, 'longbow') && (borderPatrol.length < count || (borderPatrol[0] && borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1))) {

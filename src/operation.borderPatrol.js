@@ -36,7 +36,7 @@ Creep.prototype.borderPatrol = function () {
         // Handle contact reporting
         this.memory.contactReport = undefined;
         // Check for squad
-        if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
+        if (this.pos.findInRange(squadMember, 3).length < squadMember.length) return this.idleFor(1);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);

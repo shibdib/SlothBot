@@ -844,7 +844,7 @@ Creep.prototype.templarCombat = function () {
 Creep.prototype.canIWin = function () {
     if (!this.room.hostileCreeps.length || this.room.name === this.memory.overlord) return true;
     let hostileCombatParts = 0;
-    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= 8);
+    let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     for (let i = 0; i < armedHostiles.length; i++) {
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
@@ -857,5 +857,7 @@ Creep.prototype.canIWin = function () {
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(HEAL) * 0.5;
     }
-    return !hostileCombatParts || hostileCombatParts * 0.75 < alliedCombatParts;
+    this.memory.enemyPower = hostileCombatParts;
+    this.memory.friendlyPower = alliedCombatParts;
+    return !hostileCombatParts || hostileCombatParts * 0.8 < alliedCombatParts;
 };

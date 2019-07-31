@@ -353,7 +353,22 @@ Creep.prototype.fillerEnergy = function () {
         if (assignment.length) {
             this.memory.assignedSource = assignment[0].memory.source;
         } else {
-            return this.getEnergy();
+            // Container
+            let container = _.max(this.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.hubContainer
+                && this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length < 3,), '.store.energy');
+            if ((!hauler || !_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'filler').length) && container) {
+                this.memory.energyDestination = container.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+            //Dropped
+            let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
+            if (dropped) {
+                this.memory.energyDestination = dropped.id;
+                this.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+            return false;
         }
     } else {
         source = Game.getObjectById(this.memory.assignedSource);
@@ -381,46 +396,53 @@ Creep.prototype.fillerEnergy = function () {
     return false;
 };
 
-Creep.prototype.getEnergy = function (hauler = false) {
+Creep.prototype.getEnergy = function (hauler = false, filler = true) {
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
     if (hubLink && hubLink.energy > 50) {
         this.memory.energyDestination = hubLink.id;
+        this.memory.findEnergyCountdown = undefined;
         return true;
     }
     // Hub Container
     let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
     if (hubContainer && hubContainer.store[RESOURCE_ENERGY] > 50 && this.memory.role !== 'filler') {
         this.memory.energyDestination = hubContainer.id;
+        this.memory.findEnergyCountdown = undefined;
         return true;
     }
     // Extra Full Terminal
     let terminal = this.room.terminal;
     if (terminal && terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 1.5 || !terminal.my || this.room.memory.responseNeeded)) {
         this.memory.energyDestination = terminal.id;
+        this.memory.findEnergyCountdown = undefined;
         return true;
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level || hauler)) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level)) {
         this.memory.energyDestination = storage.id;
+        this.memory.findEnergyCountdown = undefined;
         return true;
     }
-    if (this.memory.role !== 'hauler' || this.room.controller.level < 5) {
+    if (this.memory.role !== 'hauler' || this.room.controller.level < 5 || this.memory.findEnergyCountdown >= 3) {
         // Container
         let container = _.max(this.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.hubContainer
             && this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length < 3,), '.store.energy');
         if ((!hauler || !_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'filler').length) && container) {
             this.memory.energyDestination = container.id;
+            this.memory.findEnergyCountdown = undefined;
             return true;
         }
         //Dropped
         let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
         if (dropped) {
             this.memory.energyDestination = dropped.id;
+            this.memory.findEnergyCountdown = undefined;
             return true;
         }
     }
+    if (!this.memory.findEnergyCountdown) this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
     return false;
 };
 

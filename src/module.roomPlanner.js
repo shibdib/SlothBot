@@ -153,7 +153,7 @@ function buildFromLayout(room) {
     if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) {
         inBuild = true;
     }
-    if (!inBuild && level >= 4 && _.size(room.constructionSites) < 5 && level === extensionLevel) {
+    if (!inBuild && level >= 3 && _.size(room.constructionSites) < 5 && level === extensionLevel) {
         let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
         for (let structure of filter) {
             let pos = new RoomPosition(structure.x, structure.y, room.name);
