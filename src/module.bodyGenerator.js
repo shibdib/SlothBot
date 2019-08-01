@@ -108,6 +108,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = _.round((carry / 2) + 0.5);
                 break;
             }
+        case 'linkManager':
+            move = 1;
+            carry = 1;
+            break;
         case 'courier':
         case 'powerManager':
             if (level < 5) {

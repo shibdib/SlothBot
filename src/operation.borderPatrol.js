@@ -47,6 +47,7 @@ Creep.prototype.borderPatrol = function () {
             this.memory.responseTarget = undefined;
             this.memory.onTarget = undefined;
             this.memory.awaitingOrders = true;
+            this.idleFor(5);
         }
         // Heal if waiting for orders
         this.healAllyCreeps();

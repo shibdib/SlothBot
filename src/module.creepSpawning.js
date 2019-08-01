@@ -313,6 +313,14 @@ module.exports.miscCreepQueue = function (room) {
             queueCreep(room, PRIORITIES.hauler, {role: 'labTech', localCache: true})
         }
     }
+    //Link Manager
+    if (!_.includes(queue, 'linkManager') && level >= 6) {
+        let linkManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'linkManager'));
+        let fullLinks = room.structures.filter((s) => s.structureType === STRUCTURE_LINK && s.energy >= 400);
+        if (linkManager.length < 1 && fullLinks.length >= 3) {
+            queueCreep(room, PRIORITIES.hauler, {role: 'linkManager', localCache: true})
+        }
+    }
     //Power
     if (room.energy >= ENERGY_AMOUNT && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] && !_.includes(queue, 'powerManager') && level === 8) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
