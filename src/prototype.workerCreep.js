@@ -418,7 +418,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level)) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level || hauler)) {
         this.memory.energyDestination = storage.id;
         this.memory.findEnergyCountdown = undefined;
         return true;

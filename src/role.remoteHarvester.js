@@ -46,10 +46,12 @@ module.exports.role = function (creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.hauler && Game.time % 10 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
-                if (creep.memory.secondHauler && Game.time % 10 === 0 && !Game.getObjectById(creep.memory.secondHauler)) creep.memory.secondHauler = undefined;
-                if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
-                if (container && _.sum(container.store) >= 1980) creep.idleFor(20);
+                //if (creep.memory.hauler && Game.time % 10 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
+                //if (creep.memory.secondHauler && Game.time % 10 === 0 && !Game.getObjectById(creep.memory.secondHauler)) creep.memory.secondHauler = undefined;
+                if (container) {
+                    if (creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
+                    if (_.sum(container.store) >= 1980) creep.idleFor(20);
+                }
                 break;
         }
         return;

@@ -16,6 +16,7 @@ module.exports.role = function (creep) {
     // Check if ready to haul
     if (!creep.memory.hauling && (_.sum(creep.carry) >= creep.carryCapacity * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry)))) creep.memory.hauling = true;
     if (creep.memory.hauling) {
+        if (creep.memory.containerID) creep.memory.containerID = undefined;
         creep.repairRoad();
         if (creep.pos.roomName === creep.memory.overlord) {
             // If carrying minerals deposit in terminal or storage
@@ -54,21 +55,14 @@ module.exports.role = function (creep) {
     } else {
         // Set harvester pairing
         if (!creep.memory.containerID || !Game.getObjectById(creep.memory.containerID)) {
-            let remoteHarvester = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKworker') && !c.memory.hauler && c.memory.containerID)[0];
-            if (!remoteHarvester) {
-                let secondHauler = _.filter(Game.creeps, (c) => c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKworker') && !c.memory.secondHauler && c.memory.containerID)[0];
-                if (!secondHauler) return creep.idleFor(5);
-                creep.memory.containerID = secondHauler.memory.containerID;
-                secondHauler.memory.secondHauler = creep.id;
-            } else {
-                creep.memory.containerID = remoteHarvester.memory.containerID;
-                remoteHarvester.memory.hauler = creep.id;
-                return;
-            }
+            let containers = [];
+            let harvesters = _.filter(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && c.memory.containerID);
+            harvesters.forEach((h) => containers.push(Game.getObjectById(h.memory.containerID)));
+            let needyContainer = _.max(_.filter(containers, ((s) => s.store[RESOURCE_ENERGY] >= _.sum(_.filter(Game.creeps, (c) => c.my && c.memory.containerID === s.id && c.id !== creep.id) + creep.carryCapacity, '.carryCapacity'))), '.store.energy');
+            if (needyContainer && needyContainer.id) creep.memory.containerID = needyContainer.id;
         }
         // Set Harvester and move to them if not nearby
         let pairedContainer = Game.getObjectById(creep.memory.containerID);
-        if (!pairedContainer || _.sum(pairedContainer.store) <= 50) return creep.idleFor(25);
         // Handle Moving
         if (creep.room.name !== pairedContainer.room.name) return creep.shibMove(new RoomPosition(25, 25, pairedContainer.room.name), {range: 23});
         for (const resourceType in pairedContainer.store) {
