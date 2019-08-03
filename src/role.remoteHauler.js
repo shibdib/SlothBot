@@ -60,10 +60,11 @@ module.exports.role = function (creep) {
                 if (!secondHauler) return creep.idleFor(5);
                 creep.memory.containerID = secondHauler.memory.containerID;
                 secondHauler.memory.secondHauler = creep.id;
+            } else {
+                creep.memory.containerID = remoteHarvester.memory.containerID;
+                remoteHarvester.memory.hauler = creep.id;
+                return;
             }
-            creep.memory.containerID = remoteHarvester.memory.containerID;
-            remoteHarvester.memory.hauler = creep.id;
-            return;
         }
         // Set Harvester and move to them if not nearby
         let pairedContainer = Game.getObjectById(creep.memory.containerID);

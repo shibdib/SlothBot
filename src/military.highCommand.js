@@ -100,8 +100,8 @@ function manageResponseForces() {
             }
         }
     } else if (responseTargets && responseTargets.name) {
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders &&
-            (!responseTargets.hostilePower || responseTargets.hostilePower * 1.1 < responseTargets.friendlyPower) && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 6);
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders
+            && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 6);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;

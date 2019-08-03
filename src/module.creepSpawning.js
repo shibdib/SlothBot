@@ -564,7 +564,7 @@ module.exports.remoteCreepQueue = function (room) {
         // Border Patrol
         if (!TEN_CPU && responseNeeded) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
-            let count = 4;
+            let count = 2;
             if (!_.includes(queue, 'longbow') && (borderPatrol.length < count || (borderPatrol[0] && borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1))) {
                 queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'longbow',

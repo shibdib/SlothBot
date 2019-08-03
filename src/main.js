@@ -158,7 +158,7 @@ nukes = function (target) {
 status = function () {
     log.a('---------------------------------------------------------------------------', ' ');
     log.a('--GLOBAL INFO--', ' ');
-    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + (_.round(Game.gcl.progress, 0)) + '/' + (_.round(Game.gcl.progressTotal, 0)) + ' | Creep Count - ' + _.size(Game.creeps) + ' | Likely Next Claim - ' + _.max(_.filter(Memory.roomCache, (r) => r.claimWorthy), 'claimValue').name, ' ');
+    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + ((_.round(Game.gcl.progress / Game.gcl.progressTotal, 2)) * 100) + '% | Creep Count - ' + _.size(Game.creeps) + ' | Likely Next Claim - ' + _.max(_.filter(Memory.roomCache, (r) => r.claimWorthy), 'claimValue').name, ' ');
     log.a('--ROOM INFO--', ' ');
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
@@ -167,7 +167,7 @@ status = function () {
         if (roomEnergyArray[activeRoom.name]) averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
         if (roomCpuArray[activeRoom.name]) averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
         let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
-        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + (activeRoom.controller.progress) + '/' + (activeRoom.controller.progressTotal) + ' | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(activeRoom.memory.energyIncomeArray)), 0) + ' | Energy Positive - ' + _.capitalize(activeRoom.memory.energyPositive) + ' | Creep Count: ' + _.size(roomCreeps), ' ');
+        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(activeRoom.memory.energyIncomeArray)), 0) + ' | Energy Positive - ' + _.capitalize(activeRoom.memory.energyPositive) + ' | Creep Count: ' + _.size(roomCreeps), ' ');
     }
     if (Memory.targetRooms && _.size(Memory.targetRooms)) {
         log.a('--OPERATION INFO--', ' ');

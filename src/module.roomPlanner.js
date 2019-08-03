@@ -154,13 +154,15 @@ function buildFromLayout(room) {
         inBuild = true;
     }
     if (!inBuild && level >= 3 && _.size(room.constructionSites) < 5 && level === extensionLevel) {
-        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
-        for (let structure of filter) {
-            let pos = new RoomPosition(structure.x, structure.y, room.name);
-            if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
-                if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
-                    inBuild = true;
-                    break;
+        if (level >= 4) {
+            let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART);
+            for (let structure of filter) {
+                let pos = new RoomPosition(structure.x, structure.y, room.name);
+                if (!pos.checkForRoad() && !pos.checkForConstructionSites() && !pos.checkForImpassible() && !pos.checkForWall()) {
+                    if (pos.createConstructionSite(STRUCTURE_ROAD) === OK) {
+                        inBuild = true;
+                        break;
+                    }
                 }
             }
         }
@@ -223,7 +225,6 @@ function buildFromLayout(room) {
                 buildRoadFromTo(room, spawn, container);
             }
         }
-        if (!inBuild) room.memory.roadsBuilt = true;
     }
     // Controller
     let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
@@ -532,6 +533,7 @@ function buildRoad(position, room) {
         }
     }
     room.memory.roadsBuilt = undefined;
+    return false;
 }
 
 function cacheRoad(room, from, to, path) {
