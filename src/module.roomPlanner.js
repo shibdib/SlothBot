@@ -231,7 +231,7 @@ function buildFromLayout(room) {
         controllerContainer = _.filter(room.controller.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
         if (!controllerContainer) {
             let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-            if (!controllerBuild) {
+            if (!controllerBuild && room.controller.level >= 3) {
                 for (let xOff = -1; xOff <= 1; xOff++) {
                     for (let yOff = -1; yOff <= 1; yOff++) {
                         if (xOff !== 0 || yOff !== 0) {

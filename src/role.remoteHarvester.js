@@ -47,6 +47,7 @@ module.exports.role = function (creep) {
                 break;
             case OK:
                 if (creep.memory.hauler && Game.time % 10 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
+                if (creep.memory.secondHauler && Game.time % 10 === 0 && !Game.getObjectById(creep.memory.secondHauler)) creep.memory.secondHauler = undefined;
                 if (container && creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                 if (container && _.sum(container.store) >= 1980) creep.idleFor(20);
                 break;
