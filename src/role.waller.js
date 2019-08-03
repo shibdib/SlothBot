@@ -18,7 +18,6 @@ module.exports.role = function (creep) {
         creep.memory.source = undefined;
         if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget)) {
             let barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
-            if (barrier.hits > barrier.hits < 500000 * creep.room.controller.level) barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
             let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART)[0];
             if (barrier && barrier.hits < 2000) {
                 creep.memory.currentTarget = barrier.id;

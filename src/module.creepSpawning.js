@@ -298,7 +298,7 @@ module.exports.miscCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
             }
         }
-        let damaged = _.filter(room.structures, (s) => s.my && s.hits < s.hitsMax && s.my && s.structureType !== STRUCTURE_RAMPART)[0];
+        let damaged = _.filter(room.structures, (s) => s.my && s.hits < s.hitsMax && s.my && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0];
         if (damaged) {
             let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
             if (drones.length < 1) {
@@ -331,9 +331,10 @@ module.exports.miscCreepQueue = function (room) {
     //SPECIALIZED
     //Waller
     if (!inBuild && !_.includes(queue, 'waller') && level >= 3) {
+        let barrier = _.min(room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART), 'hits');
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 2;
-        if (wallers.length < amount) {
+        if (wallers.length < amount && barrier.hits < RAMPART_HITS_MAX[room.controller.level] && 0.8 && barrier.hits < 20000000) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller', localCache: true})
         }
     }
@@ -452,17 +453,12 @@ module.exports.remoteCreepQueue = function (room) {
     //Remotes
     if (remoteHives[room.name] && !room.memory.responseNeeded) {
         let responseNeeded;
-        let responseRoom;
-        let heavyResponse;
         let remotes = JSON.parse(remoteHives[room.name]);
         for (let keys in shuffle(remotes)) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
             // Check if room is hostile
             if (!responseNeeded && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel) {
-                responseNeeded = true;
-                responseRoom = remotes[keys];
-                // If many hostiles or hostiles are players spawn more
-                if (Memory.roomCache[remotes[keys]].threatLevel > 2) heavyResponse = true;
+                responseNeeded = Memory.roomCache[remotes[keys]].hostilePower > Memory.roomCache[remotes[keys]].friendlyPower;
             }
             // If owned or a highway continue
             if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || Memory.roomCache[remotes[keys]].isHighway)) continue;
@@ -471,7 +467,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteRoom = Game.rooms[remotes[keys]];
             let noSpawn = (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 0 && Memory.roomCache[remotes[keys]].lastInvaderCheck + 1000 > Game.time);
             // Handle SK
-            if (1 > 2 && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !room.memory.responseNeeded) {
+            if (1 > 2 && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !responseNeeded) {
                 let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKsupport' && creep.memory.overlord === room.name);
                 if (!_.includes(queue, 'SKsupport') && (SKSupport.length < 1 || SKSupport[0] && SKSupport[0].ticksToLive < (SKSupport[0].body.length * 3 + 10) && SKSupport.length < 2)) {
                     queueCreep(room, PRIORITIES.SKsupport, {role: 'SKsupport', destination: remotes[room.name]})
@@ -566,30 +562,13 @@ module.exports.remoteCreepQueue = function (room) {
             }
         }
         // Border Patrol
-        if (!TEN_CPU) {
+        if (!TEN_CPU && responseNeeded) {
             let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol' && creep.memory.role === 'longbow');
-            let count = 1;
-            let priority = PRIORITIES.borderPatrol;
-            if (borderPatrol.length && borderPatrol[0].memory.enemyPower && !borderPatrol[0].memory.awaitingOrders) {
-                count = borderPatrol[0].memory.enemyPower / 2.25;
-                if (count > 4) count = 4;
-                priority = priority - 2;
-            }
+            let count = 4;
             if (!_.includes(queue, 'longbow') && (borderPatrol.length < count || (borderPatrol[0] && borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1))) {
-                queueCreep(room, priority, {
+                queueCreep(room, PRIORITIES.borderPatrol, {
                     role: 'longbow',
                     operation: 'borderPatrol',
-                    responseTarget: responseRoom,
-                    military: true,
-                    localCache: true
-                });
-            }
-            let medic = _.filter(Game.creeps, (creep) => creep.memory.role === 'remoteMedic');
-            let heals = _.filter(Game.creeps, (c) => c.memory && c.memory.healsPlease);
-            count = _.max(Memory.ownedRooms, 'controller.level').controller.level / 4;
-            if (heals.length && !_.includes(queue, 'remoteMedic') && medic.length < count) {
-                queueCreep(room, priority, {
-                    role: 'remoteMedic',
                     military: true,
                     localCache: true
                 });

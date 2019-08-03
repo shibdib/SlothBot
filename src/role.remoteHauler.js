@@ -25,13 +25,25 @@ module.exports.role = function (creep) {
                 for (const resourceType in creep.carry) {
                     switch (creep.transfer(storageItem, resourceType)) {
                         case OK:
-                            if (!_.sum(creep.carry) && storageItem.structureType !== STRUCTURE_LINK) creep.memory.storageDestination = undefined; else creep.idleFor(5);
+                            if (!_.sum(creep.carry) && (storageItem.structureType !== STRUCTURE_LINK || creep.memory.waitLink)) {
+                                creep.memory.storageDestination = undefined;
+                                creep.memory.waitLink = undefined;
+                            } else {
+                                creep.memory.waitLink = true;
+                                creep.idleFor(5);
+                            }
                             break;
                         case ERR_NOT_IN_RANGE:
                             creep.shibMove(storageItem);
                             break;
                         case ERR_FULL:
-                            if (storageItem.structureType !== STRUCTURE_LINK) creep.memory.storageDestination = undefined; else creep.idleFor(5);
+                            if (storageItem.structureType !== STRUCTURE_LINK || creep.memory.waitLink) {
+                                creep.memory.storageDestination = undefined;
+                                creep.memory.waitLink = undefined;
+                            } else {
+                                creep.memory.waitLink = true;
+                                creep.idleFor(5);
+                            }
                             break;
                     }
                 }
@@ -70,7 +82,7 @@ module.exports.role = function (creep) {
 function dropOff(creep) {
     buildLinks(creep);
     //Close Link
-    let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && s.isActive()});
+    let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && s.energy !== s.energyCapacity && s.isActive()});
     //Controller
     let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);

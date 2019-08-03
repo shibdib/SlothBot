@@ -93,8 +93,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                     move = _.round((carry / 2) + 0.5);
                     break;
                 } else {
-                    carry = 3;
-                    move = 2;
+                    carry = 3 + (room.controller.level / 2);
+                    move = (carry / 2) + 0.25;
                     break;
                 }
             }
@@ -109,8 +109,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'linkManager':
-            move = 1;
-            carry = 1;
+            move = 3;
+            carry = 3;
             break;
         case 'courier':
         case 'powerManager':
