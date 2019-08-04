@@ -26,6 +26,7 @@ module.exports.role = function (creep) {
             } else if (site) {
                 switch (creep.build(site)) {
                     case OK:
+                        creep.memory._shibMove = undefined;
                         break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(site, {range: 3})

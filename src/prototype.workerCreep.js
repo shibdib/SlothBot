@@ -352,7 +352,7 @@ Creep.prototype.fillerEnergy = function () {
             this.memory.assignedSource = assignment[0].memory.source;
         } else {
             // Container
-            let container = _.max(this.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.hubContainer
+            let container = _.max(this.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.hubContainer && s.id !== this.room.memory.controllerContainer
                 && this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length < 3,), '.store.energy');
             if (container) {
                 this.memory.energyDestination = container.id;
@@ -375,7 +375,7 @@ Creep.prototype.fillerEnergy = function () {
     if (!this.memory.assignedContainer) {
         source = Game.getObjectById(this.memory.assignedSource);
         if (source) {
-            let container = source.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+            let container = source.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.controllerContainer})[0];
             if (container) this.memory.assignedContainer = container.id;
         }
     } else {
@@ -397,7 +397,7 @@ Creep.prototype.fillerEnergy = function () {
 Creep.prototype.getEnergy = function (hauler = false) {
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
-    if (hubLink && hubLink.energy >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity) {
+    if (hubLink && hubLink.energy) {
         this.memory.energyDestination = hubLink.id;
         this.memory.findEnergyCountdown = undefined;
         return true;

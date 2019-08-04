@@ -6,6 +6,8 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (creep.wrongRoom()) return;
     creep.say(ICONS.reaction, true);
+    // Tow Truck
+    if (creep.towTruck()) return;
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;
     //If creep needs boosts do that first

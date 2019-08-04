@@ -50,6 +50,58 @@ Creep.prototype.idleFor = function (ticks = 0) {
     }
 };
 
+Creep.prototype.towTruck = function () {
+    if (_.sum(this.carry)) return false;
+    if (!this.memory.trailer) {
+        let needsTow = _.filter(this.room.creeps, (c) => c.my && c.memory.towDestination && !c.memory.towCreep);
+        if (needsTow.length) {
+            this.memory.trailer = this.pos.findClosestByRange(needsTow).id;
+            Game.getObjectById(this.memory.trailer).memory.towCreep = this.id;
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        this.say('Towing!', true);
+        let trailer = Game.getObjectById(this.memory.trailer);
+        if (trailer) {
+            if (!trailer.memory.towDestination) {
+                this.memory.trailer = undefined;
+                trailer.memory.towCreep = undefined;
+                trailer.memory.towDestination = undefined;
+                trailer.memory.towToObject = undefined;
+                return false;
+            }
+            if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
+                this.shibMove(trailer);
+                return true;
+            } else {
+                trailer.move(this);
+                if (this.pos.isNearTo(Game.getObjectById(trailer.memory.towDestination))) {
+                    this.move(this.pos.getDirectionTo(trailer));
+                    this.memory.trailer = undefined;
+                    trailer.memory.towCreep = undefined;
+                    trailer.memory.towDestination = undefined;
+                    trailer.memory.towToObject = undefined;
+                    return false;
+                } else {
+                    if (!Game.getObjectById(trailer.memory.towDestination)) {
+                        this.memory.trailer = undefined;
+                        trailer.memory.towCreep = undefined;
+                        trailer.memory.towDestination = undefined;
+                        trailer.memory.towToObject = undefined;
+                        return false;
+                    }
+                    let range = 1;
+                    if (trailer.memory.towToObject) range = 0;
+                    this.shibMove(Game.getObjectById(trailer.memory.towDestination), {range: range});
+                }
+                return true;
+            }
+        }
+    }
+};
+
 Creep.prototype.borderCheck = function () {
     let thisPos = this.pos;
     let x = thisPos.x;

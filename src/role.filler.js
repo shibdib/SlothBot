@@ -6,6 +6,8 @@ module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (Game.time % 150 === 0 && creep.wrongRoom()) return;
     creep.say(ICONS.haul, true);
+    // Tow Truck
+    if (creep.towTruck()) return;
     // If hauling do things
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.5) creep.memory.hauling = true;
     if (!_.sum(creep.carry)) creep.memory.hauling = undefined;

@@ -311,11 +311,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 let baseScore = 5000;
                 // Get source distance from controller
                 let sourceDist = 0;
-                for (let source in sources) {
-                    let range = sources[source].pos.getRangeTo(room.controller);
+                for (let source of sources) {
+                    let range = source.room.findPath(room.controller, source, {serialize: true}).length;
                     sourceDist = sourceDist + range;
                 }
-                baseScore -= sourceDist;
+                baseScore -= sourceDist * 3;
                 // Swamps suck
                 let terrain = new Room.Terrain(this.name);
                 let terrainScore = 0;
@@ -323,12 +323,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);
                         if (tile === TERRAIN_MASK_WALL) terrainScore += 0.5;
-                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 1.5;
+                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 2.5;
                     }
                 }
                 baseScore -= terrainScore;
                 // If it's a new mineral add to the score
-                if (!_.includes(Memory.ownedMineral, room.mineral[0].mineralType)) baseScore += 100;
+                if (!_.includes(Memory.ownedMineral, room.mineral[0].mineralType)) baseScore += 450;
                 claimWorthy = baseScore > 0;
                 if (claimWorthy) important = true;
                 claimValue = baseScore;

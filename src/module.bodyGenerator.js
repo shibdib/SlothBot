@@ -56,19 +56,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;
             break;
         case 'upgrader':
-            if (level === 8) {
-                if (room.memory.state > 2) {
-                    work = 15;
-                    carry = 1;
-                    move = 5;
-                    break;
-                } else {
-                    work = 1;
-                    carry = 1;
-                    move = work + carry;
-                    break;
-                }
-            } else if (importantBuilds) {
+            if (importantBuilds) {
                 work = 1;
                 carry = 1;
                 move = work + carry;
@@ -79,9 +67,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = work + carry;
                 break;
             } else {
-                work = 14;
+                work = 15;
                 carry = 1;
-                move = 5;
+                move = 0;
                 break;
             }
         case 'hauler':
@@ -95,8 +83,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                     move = _.round((carry / 2) + 0.5);
                     break;
                 } else {
-                    carry = 3 + (room.controller.level / 2);
-                    move = (carry / 2) + 0.25;
+                    carry = 16;
+                    move = 8;
                     break;
                 }
             }
@@ -127,12 +115,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level < 5) {
                 work = 4;
                 carry = 1;
-                move = 2;
+                move = 1;
                 break;
             } else {
                 work = 6;
                 carry = 1;
-                move = 2;
+                move = 1;
                 break;
             }
         case 'mineralHarvester':
@@ -336,12 +324,22 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            if (level < 7) {
+            if (level >= 7) {
+                carry = 30;
+                work = 1;
+                move = 16;
+                break;
+            } else if (level >= 5) {
+                carry = 20;
+                work = 1;
+                move = 11;
+                break;
+            } else {
                 work = 0;
                 if (importantBuilds) {
                     carry = level;
                 } else {
-                    carry = level * 2;
+                    carry = level * 4;
                 }
                 if (room.memory.roadsBuilt) {
                     work = _.random(0, 1, false);
@@ -350,18 +348,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                     move = work + carry;
                 }
                 break
-            } else {
-                if (importantBuilds || room.memory.state < 3) {
-                    carry = level * 2;
-                    work = _.random(0, 1, false);
-                    move = _.round(((carry + work) / 2) + 0.5);
-                    break
-                } else {
-                    carry = 30;
-                    work = 1;
-                    move = 16;
-                    break;
-                }
             }
         case 'SKattacker':
             attack = 16;

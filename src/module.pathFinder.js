@@ -58,6 +58,19 @@ function shibMove(creep, heading, options = {}) {
             options.ignoreRoads = undefined;
         }
     }
+    // Use roads with a trailer
+    if (creep.memory.trailer) {
+        options.offRoad = undefined;
+        options.ignoreRoads = undefined;
+    }
+    // Request a tow truck if needed
+    if (heading.id && (!creep.pos.isNearTo(heading) || !creep.getActiveBodyparts(MOVE)) && !creep.className && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
+        creep.memory.towDestination = heading.id;
+        if (options.range === 0) creep.memory.towToObject = true;
+    } else if (heading.id && creep.pos.isNearTo(heading)) {
+        creep.memory.towDestination = undefined;
+    }
+    if (creep.memory.towDestination && creep.memory.towCreep) return;
     let rangeToDestination = creep.pos.getRangeTo(heading);
     // CPU Saver for moving to 0 on creeps
     if (heading instanceof Creep && options.range === 0 && rangeToDestination > 2) options.range = 1;
@@ -502,7 +515,7 @@ function addStructuresToMatrix(room, matrix, roadCost) {
     //Stationary creeps
     let stationaryCreeps = _.filter(room.creeps, (c) => c.my && (c.memory.role === 'stationaryHarvester' || c.memory.role === 'upgrader' || c.memory.role === 'reserver' || c.memory.role === 'remoteHarvester'));
     for (let site of stationaryCreeps) {
-        matrix.set(site.pos.x, site.pos.y, 150);
+        matrix.set(site.pos.x, site.pos.y, 75);
     }
     //Sources
     for (let source of room.sources) {

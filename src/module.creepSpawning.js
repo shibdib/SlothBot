@@ -201,7 +201,6 @@ module.exports.essentialCreepQueue = function (room) {
             return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
         } else if (!_.includes(queue, 'hauler')) {
             let amount = 1;
-            if (room.memory.hubLink) amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
                 queueCreep(room, PRIORITIES.hauler, {role: 'hauler', localCache: true})
             }
@@ -211,8 +210,13 @@ module.exports.essentialCreepQueue = function (room) {
     if (!_.includes(queue, 'filler') && _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID)).length) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
-        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length * 2) {
-            queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler', localCache: true})
+        if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
+            if (filler.length === 0) {
+                delete roomQueue[room.name];
+                return queueCreep(room, -1, {role: 'filler', reboot: true, localCache: true});
+            } else {
+                queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler', localCache: true})
+            }
         }
     }
     // Local Responder
@@ -244,7 +248,7 @@ module.exports.essentialCreepQueue = function (room) {
             let number = 1;
             let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
             if (!TEN_CPU && !importantBuilds) {
-                if (room.controller.level < 5) number = _.round((15 - level) / 2); else if (room.controller.level < 8) number = 2;
+                if (room.controller.level < 5) number = _.round((15 - level) / 2); else if (room.controller.level < 8 && room.memory.energySurplus) number = 2;
             }
             //If room is about to downgrade get a creep out asap
             let reboot;
@@ -310,7 +314,7 @@ module.exports.miscCreepQueue = function (room) {
     if (!_.includes(queue, 'labTech') && (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0] || _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0])) {
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (labTech.length < 1) {
-            queueCreep(room, PRIORITIES.hauler, {role: 'labTech', localCache: true})
+            queueCreep(room, PRIORITIES.secondary, {role: 'labTech', localCache: true})
         }
     }
     //Link Manager
@@ -325,7 +329,7 @@ module.exports.miscCreepQueue = function (room) {
     if (room.energy >= ENERGY_AMOUNT && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] && !_.includes(queue, 'powerManager') && level === 8) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (powerManager.length < 1) {
-            queueCreep(room, PRIORITIES.hauler, {role: 'powerManager', localCache: true})
+            queueCreep(room, PRIORITIES.secondary, {role: 'powerManager', localCache: true})
         }
     }
     //SPECIALIZED
@@ -333,7 +337,8 @@ module.exports.miscCreepQueue = function (room) {
     if (!inBuild && !_.includes(queue, 'waller') && level >= 3) {
         let barrier = _.min(room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART), 'hits');
         let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        let amount = 2;
+        let amount = 1;
+        if (room.energy >= ENERGY_AMOUNT) amount = 2;
         if (wallers.length < amount && barrier.hits < RAMPART_HITS_MAX[room.controller.level] && 0.8 && barrier.hits < 20000000) {
             queueCreep(room, PRIORITIES.waller, {role: 'waller', localCache: true})
         }
@@ -508,7 +513,7 @@ module.exports.remoteCreepQueue = function (room) {
                         if (!_.includes(queue, 'remoteHarvester')) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                             let sourceCount = 1;
-                            if (!remotes[keys].farRoom && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
                             if (remoteHarvester.length < sourceCount) {
                                 queueCreep(room, PRIORITIES.remoteHarvester, {
                                     role: 'remoteHarvester',
@@ -541,14 +546,19 @@ module.exports.remoteCreepQueue = function (room) {
         // Remote Hauler
         if (!_.includes(queue, 'remoteHauler')) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.containerID);
-            let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
-            if (remoteHauler.length < remoteHarvesters.length * 2) {
-                let priority = PRIORITIES.remoteHauler;
-                if (!remoteHauler.length) priority = PRIORITIES.remoteHauler - 2;
-                queueCreep(room, priority, {
-                    role: 'remoteHauler',
-                    localCache: true
-                })
+            if (remoteHarvesters.length) {
+                let harvesterPower = remoteHarvesters[0].getActiveBodyparts(WORK) * 100;
+                let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
+                //let maxCapacity = _.max(remoteHauler, '.carryCapacity').carryCapacity || 250;
+                let remoteHaulerCapacity = _.sum(remoteHauler, '.carryCapacity');
+                if (remoteHaulerCapacity < remoteHarvesters.length * harvesterPower) {
+                    let priority = PRIORITIES.remoteHauler;
+                    if (!remoteHauler.length) priority = PRIORITIES.remoteHauler - 2;
+                    queueCreep(room, priority, {
+                        role: 'remoteHauler',
+                        localCache: true
+                    })
+                }
             }
         }
         // Remote Road Builder

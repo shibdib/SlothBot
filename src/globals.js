@@ -96,7 +96,7 @@ let globals = function () {
         fuelTruck: 7,
         remoteResponse: 5,
         reserver: 7,
-        borderPatrol: 7,
+        borderPatrol: 2,
         // Power
         Power: 5,
         // SK
@@ -133,6 +133,7 @@ let globals = function () {
             pioneer: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
             hauler: [CARRY, CARRY, MOVE, MOVE],
+            filler: [CARRY, CARRY, MOVE, MOVE],
             explorer: [MOVE],
             scout: [MOVE],
             responder: [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK],
