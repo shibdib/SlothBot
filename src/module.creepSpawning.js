@@ -244,7 +244,7 @@ module.exports.essentialCreepQueue = function (room) {
             let number = 1;
             let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
             if (!TEN_CPU && !importantBuilds) {
-                if (room.controller.level < 5) number = _.round((15 - level) / 2);
+                if (room.controller.level < 5) number = _.round((15 - level) / 2); else if (room.controller.level < 8) number = 2;
             }
             //If room is about to downgrade get a creep out asap
             let reboot;
@@ -446,6 +446,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
             let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && Game.map.getRoomLinearDistance(room.name, r) <= 1 && (!Memory.roomCache[r] ||
                 (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME))));
+            adjacentExits.forEach((a) => a.farRoom = true);
             adjacent = _.uniq(_.union(adjacentExits, adjacent));
         }
         remoteHives[room.name] = JSON.stringify(adjacent);
@@ -507,7 +508,7 @@ module.exports.remoteCreepQueue = function (room) {
                         if (!_.includes(queue, 'remoteHarvester')) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                             let sourceCount = 1;
-                            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                            if (!remotes[keys].farRoom && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
                             if (remoteHarvester.length < sourceCount) {
                                 queueCreep(room, PRIORITIES.remoteHarvester, {
                                     role: 'remoteHarvester',

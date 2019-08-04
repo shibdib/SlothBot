@@ -28,6 +28,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             work = _.random(level, level * 2);
             carry = _.random(2, level);
             move = work + carry;
+            if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;
             break;
         case 'worker':
             work = level;
@@ -52,6 +53,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = _.random(2, level);
             }
             move = work + carry;
+            if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;
             break;
         case 'upgrader':
             if (level === 8) {
@@ -114,15 +116,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         case 'courier':
         case 'powerManager':
-            if (level < 5) {
-                carry = 2;
-                move = 2;
-                break
-            } else {
-                carry = 6;
-                move = 3;
-                break;
-            }
+            carry = 6;
+            move = 3;
+            break;
         case 'labTech':
             carry = _.round(1.7 * level);
             move = _.round(carry / 2);
@@ -342,7 +338,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
         case 'remoteHauler':
             if (level < 7) {
                 work = 0;
-                if (importantBuilds || room.memory.state < 3) {
+                if (importantBuilds) {
                     carry = level;
                 } else {
                     carry = level * 2;

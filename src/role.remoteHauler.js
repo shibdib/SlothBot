@@ -48,7 +48,7 @@ module.exports.role = function (creep) {
                             break;
                     }
                 }
-            } else if (!dropOff(creep)) creep.idleFor(5)
+            } else if (!dropOff(creep)) creep.idleFor(2)
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
@@ -82,7 +82,7 @@ function dropOff(creep) {
     let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!importantBuilds && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < 750) {
+    if (!importantBuilds && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < 1200) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
@@ -108,7 +108,7 @@ function dropOff(creep) {
         return true;
     }
     //Controller
-    if (!importantBuilds && !controllerLink && controllerContainer && Math.random() > 0.2) {
+    if (!importantBuilds && !controllerLink && controllerContainer && Math.random() > 0.9) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }

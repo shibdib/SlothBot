@@ -36,7 +36,7 @@ function buildFromLayout(room) {
     } else if (level === 7) {
         filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
     } else if (level === 6) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
+        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
     } else if (level < 6 && level >= 3) {
         filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
     }
@@ -520,20 +520,22 @@ function buildRoadAround(room, position) {
 }
 
 function buildRoad(position, room) {
-    if (position.checkForRoad() || position.checkForImpassible(true) || room.constructionSites.length >= 10 || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length) return false;
-    if (room.controller.level < 5 && position.checkForSwamp()) {
+    if (room.constructionSites.length >= 10 || position.checkForImpassible(true) || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD).length > 2) {
+        return false;
+    } else if (position.checkForRoad()) {
+        room.memory.roadsBuilt = true;
+        return false;
+    } else if (room.controller.level < 5 && position.checkForSwamp()) {
         if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
-            room.memory.roadsBuilt = true;
+            room.memory.roadsBuilt = undefined;
             return true;
         }
     } else {
         if (position.createConstructionSite(STRUCTURE_ROAD) === OK) {
-            room.memory.roadsBuilt = true;
+            room.memory.roadsBuilt = undefined;
             return true;
         }
     }
-    room.memory.roadsBuilt = undefined;
-    return false;
 }
 
 function cacheRoad(room, from, to, path) {
