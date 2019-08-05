@@ -80,7 +80,7 @@ Creep.prototype.robbery = function () {
     } else {
         if (_.sum(this.carry) === 0) return delete this.memory.hauling;
         if (this.pos.roomName === this.memory.overlord) {
-            if (this.renewalCheck(6)) return;
+            if (this.renewalCheck()) return;
             if (this.memory.storageDestination) {
                 let storageItem = Game.getObjectById(this.memory.storageDestination);
                 for (const resourceType in this.carry) {

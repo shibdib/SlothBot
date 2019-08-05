@@ -45,9 +45,6 @@ function buildFromLayout(room) {
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
         if (level === extensionLevel && structure.structureType === STRUCTURE_EXTENSION) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
-        /**if (pos.checkForAllStructure().length && pos.checkForAllStructure()[0].structureType !== structure.structureType && pos.checkForAllStructure()[0].structureType !== STRUCTURE_CONTAINER && pos.checkForAllStructure()[0].structureType !== STRUCTURE_LINK && pos.checkForAllStructure()[0].structureType !== STRUCTURE_RAMPART) {
-            pos.checkForAllStructure()[0].destroy();
-        }**/
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
             if (pos.createConstructionSite(structure.structureType) === OK) break;
         }
@@ -284,20 +281,20 @@ function newClaimBuild(room) {
     // Build tower rampart, then tower, then spawn
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
-    if (!towers.length) {
-        let tower = _.filter(layout, (s) => s.structureType === STRUCTURE_TOWER)[0];
-        let pos = new RoomPosition(tower.x, tower.y, room.name);
-        // Tower Rampart
-        if (!pos.checkForConstructionSites() && !pos.checkForRampart()) return pos.createConstructionSite(STRUCTURE_RAMPART);
-        // Tower
-        if (!pos.checkForConstructionSites() && !pos.checkForObstacleStructure()) return pos.createConstructionSite(STRUCTURE_TOWER);
-    } else if (!spawns.length) {
+    if (!spawns.length) {
         let spawn = _.filter(layout, (s) => s.structureType === STRUCTURE_SPAWN)[0];
         let pos = new RoomPosition(spawn.x, spawn.y, room.name);
         // Spawn Rampart
         if (!pos.checkForConstructionSites() && !pos.checkForRampart()) return pos.createConstructionSite(STRUCTURE_RAMPART);
         // Spawn
         if (!pos.checkForConstructionSites() && !pos.checkForObstacleStructure()) return pos.createConstructionSite(STRUCTURE_SPAWN);
+    } else if (!towers.length) {
+        let tower = _.filter(layout, (s) => s.structureType === STRUCTURE_TOWER)[0];
+        let pos = new RoomPosition(tower.x, tower.y, room.name);
+        // Tower Rampart
+        if (!pos.checkForConstructionSites() && !pos.checkForRampart()) return pos.createConstructionSite(STRUCTURE_RAMPART);
+        // Tower
+        if (!pos.checkForConstructionSites() && !pos.checkForObstacleStructure()) return pos.createConstructionSite(STRUCTURE_TOWER);
     } else {
         return buildFromLayout(room);
     }

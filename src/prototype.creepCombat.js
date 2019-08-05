@@ -220,7 +220,6 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         return true;
         // If no target heal
     } else if (!noHeals && _.filter(this.room.friendlyCreeps, (c) => c.hits < c.hitsMax).length && this.getActiveBodyparts(HEAL)) {
-        this.say(1)
         if (this.healMyCreeps()) return true;
         if (this.healAllyCreeps()) return true;
     }

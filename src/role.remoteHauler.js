@@ -3,8 +3,8 @@
  */
 
 module.exports.role = function (creep) {
-    // Abandon remotes if bucket empty
-    if (Game.cpu.bucket < 5000) return creep.suicide();
+    //Renew
+    if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.fleeHome()) return creep.memory.destination = undefined;
@@ -60,7 +60,7 @@ module.exports.role = function (creep) {
             if (harvesters.length) {
                 harvesters.forEach((h) => containers.push(Game.getObjectById(h.memory.containerID)));
                 if (containers.length) {
-                    let needyContainer = _.max(_.filter(containers, ((s) => Memory.roomCache[s.room.name] && !Memory.roomCache[s.room.name].threatLevel &&
+                    let needyContainer = _.max(_.filter(containers, ((s) => s && Memory.roomCache[s.pos.roomName] && !Memory.roomCache[s.pos.roomName].threatLevel &&
                         s.store.energy >= _.sum(_.filter(Game.creeps, (c) => c.my && c.memory.containerID === s.id && c.id !== creep.id && c.memory.role !== 'remoteHarvester'), '.carryCapacity') + creep.carryCapacity)), '.store.energy');
                     if (needyContainer && needyContainer.id) creep.memory.containerID = needyContainer.id; else creep.idleFor(4);
                 } else {

@@ -53,7 +53,7 @@ module.exports.role = function (creep) {
 
 function SKdeposit(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
-        if (creep.renewalCheck(8)) return;
+        if (creep.renewalCheck()) return;
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
             for (const resourceType in creep.carry) {

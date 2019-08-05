@@ -52,8 +52,11 @@ module.exports.towerControl = function (room) {
                         } else if (range <= 10) {
                             tower.attack(armedHostile[i]);
                             continue towers;
-                        } else if (unArmedHostile[0]) {
-                            tower.attack(unArmedHostile[0]);
+                        }
+                    }
+                    if (!armedHostile.length) {
+                        for (let i = 0; i < unArmedHostile.length; i++) {
+                            tower.attack(unArmedHostile[i]);
                             continue towers;
                         }
                     }

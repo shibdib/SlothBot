@@ -2,7 +2,7 @@ module.exports.setRoomState = function (room) {
     // Set Energy Needs
     let energyInRoom = room.energy;
     room.memory.energySurplus = energyInRoom >= ENERGY_AMOUNT;
-    room.memory.extremeEnergySurplus = energyInRoom >= 100000;
+    room.memory.extremeEnergySurplus = energyInRoom >= ENERGY_AMOUNT * 2.5;
     room.memory.energyNeeded = energyInRoom < ENERGY_AMOUNT * 0.8;
     if (Game.time % 5 === 0) {
         let last = room.memory.lastEnergyAmount || 0;

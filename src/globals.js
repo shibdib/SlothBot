@@ -2,8 +2,6 @@ let Log = require('logger');
 
 let globals = function () {
 
-    global.log = new Log();
-
     //Manually set baddies and friends and combat stuff
     global.HOSTILES = [];
     global.NO_AGGRESSION = [];
@@ -13,10 +11,8 @@ let globals = function () {
     global.LOCAL_SPHERE = 6; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = true;
     global.POKE_NEUTRALS = true;
-    global.ATTACK_COOLDOWN = 750; //Time between attacks on a room
-
-    // remote rooms
-    global.HARVESTER_TARGET = 5; //Aim to have this number of remote harvesters
+    global.SIEGE_ENABLED = true; //Attack owned rooms with towers
+    global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
 
     //Signing and whatnot
     global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY~~~"];
@@ -27,13 +23,12 @@ let globals = function () {
 
     //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
     global.POKE_LIMIT = 5;
-    global.CLEAN_LIMIT = 0;
-    global.HARASS_LIMIT = 5;
+    global.CLEAN_LIMIT = 1;
+    global.HARASS_LIMIT = 3;
 
-    global.ENERGY_RESERVE = 10000;
     global.CREDIT_BUFFER = 100000;
     global.TRADE_AMOUNT = 10000;
-    global.ENERGY_AMOUNT = 25000;
+    global.ENERGY_AMOUNT = 100000;
     global.SIEGE_ENERGY_AMOUNT = 100000;
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 12500;
@@ -88,11 +83,11 @@ let globals = function () {
         hauler: 1,
         // Remotes
         remoteUtility: 6,
-        remoteHarvester: 5,
-        remoteHauler: 4,
+        remoteHarvester: 4,
+        remoteHauler: 5,
         remoteUpgrader: 7,
         remotePioneer: 7,
-        assistPioneer: 7,
+        assistPioneer: 3,
         fuelTruck: 7,
         remoteResponse: 5,
         reserver: 7,
@@ -651,6 +646,8 @@ let globals = function () {
     };
 
     global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
+
+    global.log = new Log();
 };
 
 module.exports = globals;

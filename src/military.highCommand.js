@@ -22,70 +22,6 @@ module.exports.highCommand = function () {
     }
 };
 
-module.exports.operationSustainability = function (room) {
-    // Switch to pending if safemodes
-    if (room.controller && room.controller.safeMode) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[room.name] = {
-            tick: tick,
-            type: 'pending',
-            dDay: tick + room.controller.safeMode,
-        };
-        // Set no longer needed creeps to go recycle
-        _.filter(Game.creeps, (c) => c.my && c.memory.targetRoom && c.memory.targetRoom === room.name).forEach((c) => c.memory.recycle = true);
-        log.a(room.name + ' is now marked as Pending as it has a safemode.', 'OPERATION PLANNER: ');
-        return Memory.targetRooms = cache;
-    }
-    let operation = Memory.targetRooms[room.name];
-    if (!operation || operation.sustainabilityCheck === Game.time) return;
-    let friendlyDead = operation.friendlyDead || 0;
-    let trackedFriendly = operation.trackedFriendly || [];
-    let friendlyTombstones = _.filter(room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username));
-    for (let tombstone of friendlyTombstones) {
-        if (_.includes(trackedFriendly, tombstone.id) || tombstone.creep.ticksToLive <= 5) continue;
-        friendlyDead = friendlyDead + UNIT_COST(tombstone.creep.body);
-        trackedFriendly.push(tombstone.id);
-    }
-    let friendlyForces = _.filter(room.creeps, (c) => c.memory && c.memory.military);
-    let enemyForces = _.filter(room.creeps, (c) => !c.memory);
-    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.14 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
-        friendlyDead = friendlyDead + UNIT_COST(friendlyForces[0].body);
-        trackedFriendly.push(friendlyForces[0].id);
-    }
-    let enemyDead = operation.enemyDead || 0;
-    let trackedEnemy = operation.trackedEnemy || [];
-    let enemyTombstones = _.filter(room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username));
-    for (let tombstone of enemyTombstones) {
-        if (_.includes(trackedEnemy, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
-        operation.lastEnemyKilled = Game.time;
-        enemyDead = enemyDead + UNIT_COST(tombstone.creep.body);
-        trackedEnemy.push(tombstone.id);
-    }
-    operation.enemyDead = enemyDead;
-    operation.friendlyDead = friendlyDead;
-    operation.trackedEnemy = trackedEnemy;
-    operation.trackedFriendly = trackedFriendly;
-    operation.sustainabilityCheck = Game.time;
-    Memory.targetRooms[room.name] = operation;
-};
-
-module.exports.threatManagement = function (creep) {
-    if (!creep.room.controller) return;
-    let user;
-    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
-    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
-    if (!user || (_.includes(FRIENDLIES, user) && !_.includes(Memory._threatList, user))) return;
-    let cache = Memory._badBoyList || {};
-    let threatRating = 50;
-    if (cache[user] && (cache[user]['threatRating'] > 50 || _.includes(FRIENDLIES, user))) threatRating = cache[user]['threatRating'];
-    cache[user] = {
-        threatRating: threatRating,
-        lastAction: Game.time,
-    };
-    Memory._badBoyList = cache;
-};
-
 function manageResponseForces() {
     let responseTargets = _.max(Memory.roomCache, '.threatLevel');
     if (!responseTargets || !responseTargets.name) {
@@ -145,6 +81,7 @@ function queueAllyAttack(roomName) {
 function operationRequests() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
+    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'clean').length || 0;
     let targetLimit = HARASS_LIMIT;
     // Harass Enemies
@@ -170,7 +107,7 @@ function operationRequests() {
         let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts' || target.type === 'drain').length || 0;
         if (Memory._enemies.length && !activeSieges) {
             let enemySiege = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) &&
-                !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && (Game.shard.name !== 'vsrv2' || r.forestPvp)), 'closestRange');
+                !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && (r.level < 3 || (SIEGE_ENABLED && maxLevel >= 6)) && (Game.shard.name !== 'vsrv2' || r.forestPvp)), 'closestRange');
             for (let target of enemySiege) {
                 if (Memory.targetRooms[target.name]) continue;
                 let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
@@ -261,6 +198,7 @@ function operationRequests() {
 
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
+    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
     if (TEN_CPU) pokeLimit = 3;
@@ -293,7 +231,15 @@ function manageAttacks() {
         switch (type) {
             // Manage Pokes
             case 'poke':
-                if (pokeCount > pokeLimit) delete Memory.targetRooms[key];
+                if (pokeCount > pokeLimit) {
+                    delete Memory.targetRooms[key];
+                    continue;
+                }
+                break;
+            // Manage harassment
+            case 'harass':
+            case 'rangers':
+                if (Memory.roomCache[key] && Memory.roomCache[key].closestRange <= LOCAL_SPHERE) staleMulti = 2.5;
                 break;
             // Manage Holds
             case 'hold':
@@ -302,6 +248,14 @@ function manageAttacks() {
             // Manage Nukes
             case 'nukes':
                 continue;
+            // Manage siege
+            case 'siegeGroup':
+            case 'siege':
+                if (maxLevel < 6) {
+                    delete Memory.targetRooms[key];
+                    continue;
+                }
+                break;
             // Manage Pending
             case 'pending':
                 if (Memory.targetRooms[key].dDay - 50 <= Game.time) {
@@ -333,7 +287,7 @@ function manageAttacks() {
         }
         if (!Memory.targetRooms[key]) continue;
         // Cancel stale ops with no kills
-        if (Memory.targetRooms[key].tick + (2000 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
+        if (Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             continue;
@@ -367,6 +321,15 @@ function manageAttacks() {
             if (Memory.targetRooms[key].waves >= 3) {
                 delete Memory.targetRooms[key];
                 log.a('Canceling operation in ' + roomLink(key) + ' as it has reached the maximum number of attack waves.', 'HIGH COMMAND: ');
+            }
+        }
+        // Remove rooms where we're getting wrecked
+        if (Memory.targetRooms[key].tick + (500 * staleMulti) && Memory.targetRooms[key].friendlyDead) {
+            let alliedLosses = Memory.targetRooms[key].friendlyDead;
+            let enemyLosses = Memory.targetRooms[key].enemyDead || 1000;
+            if (alliedLosses * staleMulti > enemyLosses) {
+                delete Memory.targetRooms[key];
+                log.a('Canceling operation in ' + roomLink(key) + ' due to heavy casualties.', 'HIGH COMMAND: ');
             }
         }
     }
@@ -680,3 +643,67 @@ function checkForNap(user) {
     }
     return false;
 }
+
+module.exports.operationSustainability = function (room) {
+    // Switch to pending if safemodes
+    if (room.controller && room.controller.safeMode) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[room.name] = {
+            tick: tick,
+            type: 'pending',
+            dDay: tick + room.controller.safeMode,
+        };
+        // Set no longer needed creeps to go recycle
+        _.filter(Game.creeps, (c) => c.my && c.memory.targetRoom && c.memory.targetRoom === room.name).forEach((c) => c.memory.recycle = true);
+        log.a(room.name + ' is now marked as Pending as it has a safemode.', 'OPERATION PLANNER: ');
+        return Memory.targetRooms = cache;
+    }
+    let operation = Memory.targetRooms[room.name];
+    if (!operation || operation.sustainabilityCheck === Game.time) return;
+    let friendlyDead = operation.friendlyDead || 0;
+    let trackedFriendly = operation.trackedFriendly || [];
+    let friendlyTombstones = _.filter(room.tombstones, (s) => _.includes(FRIENDLIES, s.creep.owner.username));
+    for (let tombstone of friendlyTombstones) {
+        if (_.includes(trackedFriendly, tombstone.id) || tombstone.creep.ticksToLive <= 5) continue;
+        friendlyDead = friendlyDead + UNIT_COST(tombstone.creep.body);
+        trackedFriendly.push(tombstone.id);
+    }
+    let friendlyForces = _.filter(room.creeps, (c) => c.memory && c.memory.military);
+    let enemyForces = _.filter(room.creeps, (c) => !c.memory);
+    if (friendlyForces.length === 1 && friendlyForces[0].hits < friendlyForces[0].hitsMax * 0.14 && enemyForces.length && !_.includes(trackedFriendly, friendlyForces[0].id)) {
+        friendlyDead = friendlyDead + UNIT_COST(friendlyForces[0].body);
+        trackedFriendly.push(friendlyForces[0].id);
+    }
+    let enemyDead = operation.enemyDead || 0;
+    let trackedEnemy = operation.trackedEnemy || [];
+    let enemyTombstones = _.filter(room.tombstones, (s) => !_.includes(FRIENDLIES, s.creep.owner.username));
+    for (let tombstone of enemyTombstones) {
+        if (_.includes(trackedEnemy, tombstone.id) || tombstone.creep.ticksToLive <= 10) continue;
+        operation.lastEnemyKilled = Game.time;
+        enemyDead = enemyDead + UNIT_COST(tombstone.creep.body);
+        trackedEnemy.push(tombstone.id);
+    }
+    operation.enemyDead = enemyDead;
+    operation.friendlyDead = friendlyDead;
+    operation.trackedEnemy = trackedEnemy;
+    operation.trackedFriendly = trackedFriendly;
+    operation.sustainabilityCheck = Game.time;
+    Memory.targetRooms[room.name] = operation;
+};
+
+module.exports.threatManagement = function (creep) {
+    if (!creep.room.controller) return;
+    let user;
+    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
+    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
+    if (!user || (_.includes(FRIENDLIES, user) && !_.includes(Memory._threatList, user))) return;
+    let cache = Memory._badBoyList || {};
+    let threatRating = 50;
+    if (cache[user] && (cache[user]['threatRating'] > 50 || _.includes(FRIENDLIES, user))) threatRating = cache[user]['threatRating'];
+    cache[user] = {
+        threatRating: threatRating,
+        lastAction: Game.time,
+    };
+    Memory._badBoyList = cache;
+};

@@ -91,7 +91,7 @@ Creep.prototype.scoutRoom = function () {
                 return this.memory.recycle;
             }
             // If owned room has no towers
-            if ((!towers.length || _.max(towers, 'energy').energy < 10)) {
+            if (!towers.length || _.max(towers, 'energy').energy < 10) {
                 // Set room to be raided for loot if some is available
                 if (lootStructures.length && !otherCreeps.length) {
                     cache[this.room.name] = {
@@ -110,74 +110,36 @@ Creep.prototype.scoutRoom = function () {
                     };
                 }
                 // If owned room has tower
-            } else {
-                // If we dont have any level 7+ rooms
-                if (maxLevel <= 6) {
-                    if (maxLevel === 6) {
-                        cache[this.room.name] = {
+            } else if (SIEGE_ENABLED && maxLevel >= 6) {
+                if (maxLevel === 8) {
+                    if (towers.length >= 3 && nukeTarget(this.room)) {
+                        cache[Game.flags[name].pos.roomName] = {
                             tick: tick,
-                            type: 'siegeGroup',
-                            level: 1,
-                            priority: priority
+                            dDay: tick + 50000,
+                            type: 'nuke',
+                            level: 1
                         };
-                    } else {
+                    } else if (towers.length <= 3) {
                         cache[this.room.name] = {
                             tick: tick,
-                            type: 'conscripts',
-                            level: 1,
-                            priority: priority
-                        };
-                    }
-                } // If we do have level 7+ rooms
-                else {
-                    if (maxLevel === 8) {
-                        /**if (!Memory.roomCache[this.room.name].noDrain) {
-                            cache[this.room.name] = {
-                                tick: tick,
-                                type: 'drain',
-                                level: towers.length,
-                                priority: priority
-                            };
-                        } else **/
-                        if (towers.length >= 5 && nukeTarget(this.room)) {
-                            cache[Game.flags[name].pos.roomName] = {
-                                tick: tick,
-                                dDay: tick + 50000,
-                                type: 'nuke',
-                                level: 1
-                            };
-                        } else {
-                            cache[this.room.name] = {
-                                tick: tick,
-                                type: 'siege',
-                                level: 1,
-                                priority: priority
-                            };
-                        }
-                    } else if (towers.length <= 2) {
-                        cache[this.room.name] = {
-                            tick: tick,
-                            type: 'siegeGroup',
+                            type: 'siege',
                             level: 1,
                             priority: priority
                         };
                     }
+                } else if ((maxLevel === 7 && towers.length <= 2) || towers.length === 1) {
+                    cache[this.room.name] = {
+                        tick: tick,
+                        type: 'siegeGroup',
+                        level: 1,
+                        priority: priority
+                    };
                 }
             }
             // If the room is unowned
         } else if (!controller.owner) {
             // If other creeps are present
             if (otherCreeps.length) {
-                // If far away set it as a poke
-                if (priority >= 4 && Math.random() > 0.5) {
-                    cache[this.room.name] = {
-                        tick: tick,
-                        type: 'poke',
-                        level: 1,
-                        priority: priority
-                    };
-                    // Otherwise use old harass
-                } else
                 // Use rangers if available
                 if (maxLevel >= 4) {
                     cache[this.room.name] = {

@@ -21,7 +21,7 @@ function threatManager() {
             let decrease = 1;
             if (currentRating > 1000) decrease = 0.5; else if (currentRating > 25) decrease = 0.75;
             newRating = currentRating - decrease;
-            if (newRating <= 0) {
+            if (newRating <= 0 && (!Memory.ncpArray || !_.includes(Memory.ncpArray, key))) {
                 delete Memory._badBoyList[key];
                 log.w(key + ' is no longer considered a threat.');
                 continue;
@@ -29,7 +29,7 @@ function threatManager() {
                 Memory._badBoyList[key].threatRating = newRating;
             }
         }
-        if (Memory._badBoyList[key].threatRating > 250) {
+        if (Memory._badBoyList[key].threatRating > 250 || (Memory.ncpArray && _.includes(Memory.ncpArray, key))) {
             Memory._enemies.push(key);
         } else if (Memory._badBoyList[key].threatRating > 25) {
             Memory._nuisance.push(key);

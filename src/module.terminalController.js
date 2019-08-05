@@ -48,7 +48,7 @@ function fillBuyOrders(terminal, globalOrders) {
             if (resourceType === RESOURCE_ENERGY) continue;
             let onHand = terminal.store[resourceType];
             let sellOffAmount = DUMP_AMOUNT;
-            if (!Game.market.credits || Game.market.credits < CREDIT_BUFFER) sellOffAmount = 1000;
+            if (!Game.market.credits || Game.market.credits < CREDIT_BUFFER * 0.8) sellOffAmount = 1000;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = DUMP_AMOUNT * 3;
             if (onHand >= sellOffAmount) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.2;

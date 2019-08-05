@@ -269,8 +269,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     urgentMilitary(this);
     let room = Game.rooms[this.name];
-    let hostiles, nonCombats, sk, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
-        closestRange, important, owner, reservation, forestPvp, ncp;
+    let hostiles, nonCombats, mineral, sk, needsCleaning, power, portal, user, level, closestRange, important, owner,
+        reservation, forestPvp, ncp;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -283,13 +283,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         let cache = Memory.roomCache || {};
         let sources = room.sources;
         let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER && e.structureType !== STRUCTURE_KEEPER_LAIR);
-        let barriers;
-        barriers = _.filter(room.structures, (e) => e.structureType === STRUCTURE_WALL || e.structureType === STRUCTURE_RAMPART).length > 7;
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
         if (!hostiles.length) hostiles = undefined;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         if (room.controller) {
+            mineral = room.mineral[0].mineralType;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;
                 user = room.controller.owner.username;
@@ -308,34 +307,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 if (text.includes('@PVP@')) forestPvp = true;
             }
             level = room.controller.level || undefined;
-            // Handle claim targets
-            if (sources.length > 1 && !level && (!user || user === MY_USERNAME) && !barriers && !this.controller.safeModeCooldown && closestRange <= 7 && closestRange > 2) {
-                // All rooms start at 5000
-                let baseScore = 5000;
-                // Get source distance from controller
-                let sourceDist = 0;
-                for (let source of sources) {
-                    let range = source.room.findPath(room.controller, source, {serialize: true}).length;
-                    sourceDist = sourceDist + range;
-                }
-                baseScore -= sourceDist * 3;
-                // Swamps suck
-                let terrain = new Room.Terrain(this.name);
-                let terrainScore = 0;
-                for (let y = 0; y < 50; y++) {
-                    for (let x = 0; x < 50; x++) {
-                        let tile = terrain.get(x, y);
-                        if (tile === TERRAIN_MASK_WALL) terrainScore += 0.5;
-                        if (tile === TERRAIN_MASK_SWAMP) terrainScore += 2.5;
-                    }
-                }
-                baseScore -= terrainScore;
-                // If it's a new mineral add to the score
-                if (!_.includes(Memory.ownedMineral, room.mineral[0].mineralType)) baseScore += 450;
-                claimWorthy = baseScore > 0;
-                if (claimWorthy) important = true;
-                claimValue = baseScore;
-            }
             if (_.includes(HOSTILES, user)) important = true;
             // Handle abandoned rooms
             if (!isHighway && !sk && !user && structures.length > 2) {
@@ -369,13 +340,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             cached: Game.time,
             name: room.name,
             sources: sources.length,
+            mineral: mineral,
             owner: owner,
             reservation: reservation,
             level: level,
             hostiles: hostiles,
             sk: sk,
-            claimValue: claimValue,
-            claimWorthy: claimWorthy,
             needsCleaning: needsCleaning,
             potentialTarget: potentialTarget,
             user: user,

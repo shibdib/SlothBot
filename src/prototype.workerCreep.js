@@ -295,7 +295,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= (ENERGY_RESERVE * this.room.controller.level) / 3) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= (ENERGY_AMOUNT * this.room.controller.level) / 3) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -418,7 +418,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_RESERVE * this.room.controller.level || hauler)) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * this.room.controller.level || hauler)) {
         this.memory.energyDestination = storage.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -466,8 +466,21 @@ Creep.prototype.findSpawnsExtensions = function () {
         this.memory.storageDestination = storage.id;
         return true;
     }
-    //Spawn
-    if (this.memory.spawns) {
+    // Spawns
+    let spawn = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_SPAWN && s.energy < s.energyCapacity});
+    if (spawn) {
+        this.memory.storageDestination = spawn.id;
+        return true;
+    }
+    // Extensions
+    let extension = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy < s.energyCapacity});
+    if (extension) {
+        this.memory.storageDestination = extension.id;
+        return true;
+    }
+    /**
+     //Spawn
+     if (this.memory.spawns) {
         let rawSpawn = _.shuffle(JSON.parse(this.memory.spawns));
         for (let i = 0; i < rawSpawn.length; i++) {
             let spawn = Game.getObjectById(rawSpawn[i]);
@@ -481,8 +494,8 @@ Creep.prototype.findSpawnsExtensions = function () {
         let spawn = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN), 'id');
         if (spawn.length) this.memory.spawns = JSON.stringify(spawn);
     }
-    //Extension
-    if (this.memory.extensions) {
+     //Extension
+     if (this.memory.extensions) {
         let rawExtension = _.shuffle(JSON.parse(this.memory.extensions));
         for (let i = 0; i < rawExtension.length; i++) {
             let extension = Game.getObjectById(rawExtension[i]);
@@ -498,6 +511,7 @@ Creep.prototype.findSpawnsExtensions = function () {
             s.pos.getRangeTo(s.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && (c.memory.onContainer || c.memory.containerAttempt)))) > 1), 'id');
         if (extension.length) this.memory.extensions = JSON.stringify(extension);
     }
+     **/
     return false;
 };
 
