@@ -625,6 +625,31 @@ let globals = function () {
 
     global.stats = require('stats');
 
+    /* Posted March 2nd, 2018 by @semperrabbit */
+
+    global.BUCKET_MAX = 10000;
+    global.clamp = function clamp(min, val, max) {
+        if (val < min) return min;
+        if (val > max) return max;
+        return val;
+    };
+    global.adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.8, maxCpuPerTick = 495) {
+        var multiplier = 1;
+        if (bucket < target) {
+            multiplier = Math.sin(Math.PI * bucket / (2 * target));
+        }
+        if (bucket > target) {
+            // Thanks @Deign for support with the sine function below
+            multiplier = 2 + Math.sin((Math.PI * (bucket - BUCKET_MAX)) / (2 * (BUCKET_MAX - target)));
+            // take care of our 10 CPU folks, to dip into their bucket reserves more...
+            // help them burn through excess bucket above the target.
+            if (limit === 10 && multiplier > 1.5)
+                multiplier += 1;
+        }
+
+        return clamp(Math.round(limit * 0.2), Math.round(limit * multiplier), maxCpuPerTick);
+    };
+
     global.TEN_CPU = Game.cpu.limit === 20 || Game.shard.name === 'shard3';
 };
 

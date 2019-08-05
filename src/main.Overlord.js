@@ -28,26 +28,12 @@ module.exports.overlordMind = function (room) {
         cpu = Game.cpu.getUsed();
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
-        // Fix broken
-        if (room.memory.bunkerHub && room.memory.extensionHub) room.memory.extensionHub = undefined;
-        // Backwards compatible
-        if (room.memory.extensionHub) {
-            try {
-                bunkerConversion(room);
-                room.buildRoom();
-            } catch (e) {
-                log.e('Room Building for room ' + room.name + ' experienced an error');
-                log.e(e.stack);
-                Game.notify(e.stack);
-            }
-        } else {
-            try {
-                planner.buildRoom(room);
-            } catch (e) {
-                log.e('Room Building for room ' + room.name + ' experienced an error');
-                log.e(e.stack);
-                Game.notify(e.stack);
-            }
+        try {
+            planner.buildRoom(room);
+        } catch (e) {
+            log.e('Room Building for room ' + room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
         }
         // Silence Alerts
         if (Game.time % 500 === 0) {
@@ -192,10 +178,11 @@ function minionController(minion) {
     // If minion has been flagged to recycle do so
     if (minion.memory.recycle) return minion.recycleCreep();
     // Chance based CPU saving
+    let adjustedLimit = adjustedCPULimit(Game.cpu.limit, Game.cpu.bucket);
     let cpuUsed = Game.cpu.getUsed();
-    if (Game.cpu.bucket < 10000) {
-        if ((cpuUsed >= Game.cpu.limit && Math.random() > 0.5) || Math.random() > 0.9) return minion.say('CPU'); else {
-            if (Math.random() > Game.cpu.bucket / 10000) return minion.say('BUCKET');
+    if (Game.cpu.bucket < 8000) {
+        if ((cpuUsed >= adjustedLimit && Math.random() > 0.5) || Math.random() > 0.9) return minion.say('CPU'); else {
+            if (Math.random() > Game.cpu.bucket / 8000) return minion.say('BUCKET');
         }
     }
     // Report damage if hits are low
