@@ -270,7 +270,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let hostiles, nonCombats, sk, claimValue, claimWorthy, needsCleaning, power, portal, user, level,
-        closestRange, important, owner, reservation, forestPvp;
+        closestRange, important, owner, reservation, forestPvp, ncp;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -300,7 +300,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             // Signage NCP check
             if (room.controller.owner && room.controller.sign) {
                 let text = room.controller.sign.text.toLowerCase();
-                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) ncpArray.push(room.controller.sign.username);
+                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) {
+                    ncp = true;
+                    ncpArray.push(room.controller.sign.username);
+                }
                 // Special test server code
                 if (text.includes('@PVP@')) forestPvp = true;
             }
@@ -381,7 +384,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             isHighway: isHighway,
             closestRange: closestRange,
             important: important,
-            forestPvp: forestPvp
+            forestPvp: forestPvp,
+            ncp: ncp
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;

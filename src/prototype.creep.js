@@ -77,7 +77,14 @@ Creep.prototype.towTruck = function () {
                 return true;
             } else {
                 trailer.move(this);
-                if (this.pos.isNearTo(Game.getObjectById(trailer.memory.towDestination))) {
+                if (!trailer.memory.towToObject && this.pos.isNearTo(Game.getObjectById(trailer.memory.towDestination))) {
+                    this.move(this.pos.getDirectionTo(trailer));
+                    this.memory.trailer = undefined;
+                    trailer.memory.towCreep = undefined;
+                    trailer.memory.towDestination = undefined;
+                    trailer.memory.towToObject = undefined;
+                    return false;
+                } else if (trailer.memory.towToObject && !this.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination))) {
                     this.move(this.pos.getDirectionTo(trailer));
                     this.memory.trailer = undefined;
                     trailer.memory.towCreep = undefined;

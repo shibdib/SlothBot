@@ -67,7 +67,7 @@ function shibMove(creep, heading, options = {}) {
     if (heading.id && (!creep.pos.isNearTo(heading) || !creep.getActiveBodyparts(MOVE)) && !creep.className && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
         creep.memory.towDestination = heading.id;
         if (options.range === 0) creep.memory.towToObject = true;
-    } else if (heading.id && creep.pos.isNearTo(heading)) {
+    } else if (heading.id && (creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading))) {
         creep.memory.towDestination = undefined;
     }
     if (creep.memory.towDestination && creep.memory.towCreep) return;

@@ -449,7 +449,7 @@ module.exports.remoteCreepQueue = function (room) {
             (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME)));
         for (let roomName of adjacent) {
             if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
-            let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && Game.map.getRoomLinearDistance(room.name, r) <= 1 && (!Memory.roomCache[r] ||
+            let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && (!Memory.roomCache[r] ||
                 (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME))));
             adjacentExits.forEach((a) => a.farRoom = true);
             adjacent = _.uniq(_.union(adjacentExits, adjacent));
@@ -521,7 +521,7 @@ module.exports.remoteCreepQueue = function (room) {
                                 })
                             }
                         }
-                        if (!_.includes(queue, 'reserver') && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
+                        if (!_.includes(queue, 'reserver') && Game.map.getRoomLinearDistance(room.name, remotes[keys]) <= 1 && (!remoteRoom || (!remoteRoom.memory.reservationExpires || remoteRoom.memory.reservationExpires <= Game.time))) {
                             let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
                             if (reserver.length < 1) {
                                 queueCreep(room, PRIORITIES.reserver, {
@@ -547,7 +547,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (!_.includes(queue, 'remoteHauler')) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.containerID);
             if (remoteHarvesters.length) {
-                let harvesterPower = remoteHarvesters[0].getActiveBodyparts(WORK) * 100;
+                let harvesterPower = remoteHarvesters[0].getActiveBodyparts(WORK) * 150;
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
                 //let maxCapacity = _.max(remoteHauler, '.carryCapacity').carryCapacity || 250;
                 let remoteHaulerCapacity = _.sum(remoteHauler, '.carryCapacity');

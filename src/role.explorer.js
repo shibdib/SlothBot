@@ -22,7 +22,7 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
-            if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
+            if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
                 try {
                     if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) {
                         return creep.memory.destinationReached = true;
@@ -34,6 +34,7 @@ module.exports.role = function (creep) {
                 if (Memory.roomCache[creep.room.name].claimValue) signs = ['AI Room Claim Value - ' + Memory.roomCache[creep.room.name].claimValue, 'Claim Value of ' + Memory.roomCache[creep.room.name].claimValue];
                 if (Memory.roomCache[creep.room.name].needsCleaning) signs = ['This AI Has Marked This Room For Cleaning', 'This AI finds this room filthy, I will return to clean it'];
                 if (Memory.roomCache[creep.room.name].potentialTarget) signs = ['This AI Finds This Room Interesting, We Will Return', 'This room has been marked for cleansing by an automated AI'];
+                if (Memory.roomCache[creep.room.name].ncp) signs = ['You have been flagged as a NCP, please use your own code or you will be attacked.'];
                 switch (creep.signController(creep.room.controller, _.sample(signs))) {
                     case OK:
                         creep.memory.destinationReached = true;

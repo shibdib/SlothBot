@@ -339,7 +339,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 if (importantBuilds) {
                     carry = level;
                 } else {
-                    carry = level * 4;
+                    carry = level * 2;
                 }
                 if (room.memory.roadsBuilt) {
                     work = _.random(0, 1, false);

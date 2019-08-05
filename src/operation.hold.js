@@ -78,12 +78,24 @@ Creep.prototype.holdRoom = function () {
 
 function levelManager(creep) {
     if (!Memory.targetRooms[creep.memory.targetRoom]) return;
+    // Safemode
+    if (creep.room.controller.safeMode) {
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[creep.room.name] = {
+            tick: tick,
+            type: 'pending',
+            dDay: tick + creep.room.controller.safeMode,
+        };
+        Memory.targetRooms = cache;
+        creep.memory.recycle = true;
+        return;
+    }
     let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10);
     let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (creep.room.name === creep.memory.targetRoom && towers.length) {
         delete Memory.targetRooms[creep.memory.targetRoom];
-        console.log(44)
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[creep.room.name] = {

@@ -23,10 +23,6 @@ module.exports.role = function (creep) {
                 case ERR_NOT_IN_RANGE:
                     let adjacentDelivery = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
                     if (adjacentDelivery.length) creep.transfer(adjacentDelivery[0], RESOURCE_ENERGY);
-                    if (_.sum(creep.carry) !== creep.carryCapacity) {
-                        let adjacentPickup = _.filter(creep.pos.findInRange([Game.getObjectById(creep.room.hubLink) || Game.getObjectById(creep.room.hubContainer) || creep.room.storage || creep.room.terminal], 1), (s) => s.energy || s.store.energy);
-                        if (adjacentPickup.length) creep.withdraw(adjacentPickup[0], RESOURCE_ENERGY);
-                    }
                     creep.shibMove(storageItem);
                     break;
                 case ERR_FULL || ERR_INVALID_TARGET:
