@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 const DEFAULT_MAXOPS = 10000;
 const STATE_STUCK = 4;
 
@@ -604,7 +611,7 @@ function getRoute(from, to) {
             return JSON.parse(cachedRoute.route);
         }
     } else {
-        return;
+
     }
 }
 
@@ -634,7 +641,7 @@ function getPath(creep, from, to) {
         if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._pathCache = cache; else pathCache = cache;
         return cachedPath.path;
     } else {
-        return;
+
     }
 }
 

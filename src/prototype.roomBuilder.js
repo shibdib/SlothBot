@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let protectedStructures = [
     STRUCTURE_SPAWN,
     STRUCTURE_STORAGE,
@@ -756,7 +763,7 @@ function getRoad(room, from, to) {
     if (cachedPath) {
         return cachedPath.path;
     } else {
-        return;
+
     }
 }
 
@@ -800,7 +807,7 @@ abandonRoom = function (room) {
         Game.rooms[room].structures[key].destroy();
     }
     for (let key in Game.rooms[room].constructionSites) {
-        console.log(6)
+        console.log(6);
         Game.rooms[room].constructionSites[key].remove();
     }
     delete Game.rooms[room].memory;

@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 Creep.prototype.borderPatrol = function () {
     let sentence = [ICONS.border, 'Border', 'Patrol'];
     let word = Game.time % sentence.length;
@@ -50,7 +57,7 @@ Creep.prototype.borderPatrol = function () {
         // Heal if waiting for orders
         this.healAllyCreeps();
         this.healMyCreeps();
-        if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17})) return;
+        if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17}))
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);

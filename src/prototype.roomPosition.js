@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/3/2017.
  */
@@ -150,7 +157,7 @@ RoomPosition.prototype.rangeToTarget = function (target) {
 function cacheTargetDistance(origin, target) {
     let key, cache;
     if (target instanceof RoomPosition) key = getPathKey(origin, target); else key = getPathKey(origin, target.pos);
-    cache = distanceCache
+    cache = distanceCache;
     let distance = origin.getRangeTo(target);
     cache[key] = {
         distance: distance,
@@ -171,9 +178,9 @@ function getCachedTargetDistance(origin, target) {
             distanceCache = cache;
             return cachedDistance.distance;
         }
-        return;
+
     } else {
-        return;
+
     }
 }
 

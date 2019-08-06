@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by rober on 6/21/2017.
  */
@@ -39,7 +46,7 @@ module.exports.terminalControl = function (room) {
     //Use extra creds to buy needed items for boosts
     if (onDemandReactionOrders(room.terminal, globalOrders)) return;
     //Buy Power
-    if (buyPower(room.terminal, globalOrders)) return;
+    if (buyPower(room.terminal, globalOrders))
 };
 
 function fillBuyOrders(terminal, globalOrders) {

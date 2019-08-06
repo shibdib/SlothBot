@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/3/2017.
  */
@@ -773,7 +780,7 @@ function addCreepsToMatrix(room, matrix) {
                         matrix.set(position.x, position.y, 254)
                     }
                 } catch (e) {
-                    continue;
+
                 }
             }
         }

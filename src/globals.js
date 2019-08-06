@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let Log = require('logger');
 
 let globals = function () {
@@ -626,7 +633,7 @@ let globals = function () {
         return val;
     };
     global.adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.8, maxCpuPerTick = 495) {
-        var multiplier = 1;
+        let multiplier = 1;
         if (bucket < target) {
             multiplier = Math.sin(Math.PI * bucket / (2 * target));
         }

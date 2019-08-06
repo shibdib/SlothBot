@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by rober on 5/16/2017.
  */
@@ -15,7 +22,7 @@ module.exports.powerControl = function () {
     if (Game.gpl.level) {
         if (_.size(Game.powerCreeps) && (Game.gpl.level < 10 || Memory.ownedRooms.length / 4 <= _.size(Game.powerCreeps))) {
             let powerCreeps = _.filter(Game.powerCreeps, (c) => c.my);
-            let militaryOperator = _.filter(Game.powerCreeps, (c) => c.my && c.memory.combat);
+
             for (let powerCreep of powerCreeps) {
                 if (powerCreep.ticksToLive) {
                     powerCreep.memory.combat = undefined;

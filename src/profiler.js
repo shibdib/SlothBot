@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 'use strict';
 
 let usedOnStart = 0;
@@ -32,7 +39,7 @@ function setupProfiler() {
             /* eslint-disable */
             const download = `
 <script>
-  var element = document.getElementById('${id}');
+  let element = document.getElementById('${id}');
   if (!element) {
     element = document.createElement('a');
     element.setAttribute('id', '${id}');
@@ -53,7 +60,7 @@ function setupProfiler() {
             if (Profiler.isProfiling()) {
                 const filter = Memory.profiler.filter;
                 let duration = false;
-                if (!!Memory.profiler.disableTick) {
+                if (Memory.profiler.disableTick) {
                     // Calculate the original duration, profile is enabled on the tick after the first call,
                     // so add 1.
                     duration = Memory.profiler.disableTick - Memory.profiler.enabledTick + 1;
@@ -315,7 +322,7 @@ const Profiler = {
             return val2.totalTime - val1.totalTime;
         });
 
-        const lines = stats.map(data => {
+        return stats.map(data => {
             return [
                 data.calls,
                 data.totalTime.toFixed(1),
@@ -323,8 +330,6 @@ const Profiler = {
                 data.name,
             ].join('\t\t');
         });
-
-        return lines;
     },
 
     prototypes: [
@@ -398,8 +403,7 @@ const Profiler = {
 
     endTick() {
         if (Game.time >= Memory.profiler.enabledTick) {
-            const cpuUsed = Game.cpu.getUsed();
-            Memory.profiler.totalTime += cpuUsed;
+            Memory.profiler.totalTime += Game.cpu.getUsed();
             Profiler.report();
         }
     },

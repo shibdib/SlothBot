@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 Creep.prototype.wrongRoom = function () {
     if (Game.time % 25 === 0 && this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
         this.memory.recycle = true;
@@ -15,7 +22,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
         this.memory.source = this.pos.findClosestByRange(source).id;
         return this.pos.findClosestByRange(source).id;
     }
-    return;
+
 };
 
 Creep.prototype.findMineral = function () {
@@ -32,7 +39,7 @@ Creep.prototype.findMineral = function () {
             }
         }
     }
-    return;
+
 };
 
 Creep.prototype.findConstruction = function () {
@@ -115,7 +122,7 @@ Creep.prototype.findConstruction = function () {
     }
     this.memory.constructionSite = undefined;
     this.memory.task = undefined;
-    return;
+
 };
 
 Creep.prototype.findRepair = function (level) {
@@ -211,7 +218,7 @@ Creep.prototype.harvesterContainerBuild = function () {
     if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
         if (Game.getObjectById(this.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
         if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
-            return;
+
         }
     }
 };
@@ -219,7 +226,7 @@ Creep.prototype.harvesterContainerBuild = function () {
 Creep.prototype.withdrawEnergy = function (destination = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
     if (!this.memory.energyDestination) {
-        return;
+
     } else {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (energyItem && ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0))) {
