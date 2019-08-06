@@ -8,7 +8,7 @@ module.exports.highCommand = function () {
     // Manage dispatching responders
     if (Game.time % 10 === 0) manageResponseForces();
     // Request scouting for new operations
-    if (maxLevel >= 4 && Game.time % 100 === 0) operationRequests();
+    if (maxLevel >= 4 && Game.time % 750 === 0) operationRequests();
     // Manage old operations
     if (Game.time % 50 === 0) manageAttacks();
     // Check for flags
@@ -82,7 +82,7 @@ function operationRequests() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'pending' && target.type !== 'poke' && target.type !== 'guard' && target.type !== 'clean').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean').length || 0;
     let targetLimit = HARASS_LIMIT;
     // Harass Enemies
     if (Memory._enemies.length) {
@@ -119,13 +119,14 @@ function operationRequests() {
                     type: 'attack'
                 };
                 Memory.targetRooms = cache;
-                log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Room Level - ' + target.level + ' ), Nearest Room -' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+                log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Room Level - ' + target.level + '), Nearest Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
                 break;
             }
         }
     } else {
         if (TEN_CPU) targetLimit = 1;
-        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._nuisance, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
+        let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => ATTACK_LOCALS && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level && r.closestRange <= LOCAL_SPHERE), 'closestRange');
+        if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._nuisance, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
         for (let target of enemyHarass) {
             if (totalCountFiltered >= targetLimit) break;
             if (Memory.targetRooms[target.name]) continue;
@@ -169,9 +170,9 @@ function operationRequests() {
     if (pokeCount < pokeLimit) {
         let pokeTargets = [];
         if (Memory._enemies.length) {
-            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
         } else if (POKE_NEUTRALS) {
-            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
         }
         if (pokeTargets.length) {
             for (let target of pokeTargets) {
@@ -199,6 +200,7 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'attack' && target.type !== 'scout').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
     if (TEN_CPU) pokeLimit = 3;
@@ -224,11 +226,28 @@ function manageAttacks() {
         }
     }
     if (!Memory.targetRooms) Memory.targetRooms = {};
+    // Clear scouts if over limit
+    if (totalCountFiltered > HARASS_LIMIT) {
+        let cullAmount = totalCountFiltered - HARASS_LIMIT;
+        let culled = 0;
+        let scouts = _.filter(Memory.targetRooms, (target) => target.type === 'attack' || target.type === 'scout');
+        for (let key in scouts) {
+            if (culled >= cullAmount) break;
+            culled++;
+            totalCountFiltered--;
+            delete Memory.targetRooms[key];
+        }
+    }
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
         let type = Memory.targetRooms[key].type;
         // Special Conditions
         switch (type) {
+            // Manage Scouts
+            case 'scout':
+            case 'attack':
+                if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.targetRoom === key).length) staleMulti = 0.25;
+                break;
             // Manage Pokes
             case 'poke':
                 if (pokeCount > pokeLimit) {
@@ -239,6 +258,12 @@ function manageAttacks() {
             // Manage harassment
             case 'harass':
             case 'rangers':
+                if (totalCountFiltered > HARASS_LIMIT + 2) {
+                    log.a('Canceling operation in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
+                    totalCountFiltered--;
+                    continue;
+                }
                 if (Memory.roomCache[key] && Memory.roomCache[key].closestRange <= LOCAL_SPHERE) staleMulti = 2.5;
                 break;
             // Manage Holds
@@ -274,11 +299,6 @@ function manageAttacks() {
             case 'guard':
                 staleMulti = 5;
                 break;
-            // Manage Scouts
-            case 'scout':
-            case 'attack':
-                if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.targetRoom === key).length) staleMulti = 0.25;
-                break;
             // Manage Cleaning
             case 'clean':
                 if (cleanCount > cleanLimit) delete Memory.targetRooms[key];
@@ -293,6 +313,12 @@ function manageAttacks() {
             continue;
         }
         // Cancel once active stale ops who hasn't killed in 1 creep lifetime
+        if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (3000 * staleMulti) < Game.time) {
+            delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
+            continue;
+        }
+        // Cancel if we have too many
         if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (3000 * staleMulti) < Game.time) {
             delete Memory.targetRooms[key];
             log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
@@ -342,6 +368,7 @@ function manualAttacks() {
             delete Memory.targetRooms[Game.flags[name].pos.roomName];
             delete Memory.roomCache[Game.flags[name].pos.roomName];
             if (Memory.activeSiege && Memory.activeSiege === Game.flags[name].pos.roomName) delete Memory.activeSiege;
+            log.a('Canceling operation in ' + roomLink(key) + ' at your request.', 'HIGH COMMAND: ');
             Game.flags[name].remove();
         }
         //Bad room flag

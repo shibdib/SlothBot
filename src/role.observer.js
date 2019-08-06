@@ -19,7 +19,10 @@ module.exports.role = function (creep) {
         switch (Memory.targetRooms[creep.memory.targetRoom].type) {
             case 'hold':
                 // HOLD - Clear target if room is no longer owned
-                if (!creep.room.controller.owner || creep.room.controller.safeMode || !Memory.targetRooms[creep.room.name]) delete Memory.targetRooms[creep.memory.targetRoom];
+                if (!creep.room.controller.owner || creep.room.controller.safeMode || !Memory.targetRooms[creep.room.name]) {
+                    log.a('Canceling hold operation in ' + roomLink(key) + ' as it is no longer owned.', 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[creep.memory.targetRoom];
+                }
                 // Request unClaimer if room level is too high
                 Memory.targetRooms[creep.memory.targetRoom].unClaimer = !creep.room.controller.upgradeBlocked && (!creep.room.controller.ticksToDowngrade || creep.room.controller.ticksToDowngrade > 1000);
                 break;

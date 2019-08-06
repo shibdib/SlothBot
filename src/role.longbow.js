@@ -23,10 +23,10 @@ module.exports.role = function (creep) {
             return findDefensivePosition(creep, creep);
         }
     } else if (creep.memory.operation) {
-        // Recycle old creeps
-        if (creep.memory.targetRoom && !Memory.targetRooms[creep.memory.targetRoom]) return creep.memory.recycle = true;
         // Harass
         if (creep.memory.operation === 'harass') creep.harassRoom();
+        // Marauder
+        if (creep.memory.operation === 'marauding') creep.marauding();
         // Escort
         if (creep.memory.operation === 'guard') creep.guardRoom();
         // Hold

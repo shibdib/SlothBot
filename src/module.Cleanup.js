@@ -27,7 +27,7 @@ module.exports.cleanup = function () {
         }
         let buggedCreep = _.filter(Game.creeps, (c) => !c.memory.role);
         for (let key in buggedCreep) {
-            buggedCreep[key].suicide();
+            buggedCreep[key].memory.recycle = true;
         }
     }
 };

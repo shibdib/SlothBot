@@ -61,15 +61,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 carry = 1;
                 move = work + carry;
                 break;
-            } else if (level < 5) {
+            } else if (level < 4) {
                 work = _.random(level + 1, level * 2);
                 carry = 1;
                 move = work + carry;
                 break;
             } else {
-                work = 15;
+                work = 8 + level;
                 carry = 1;
-                move = 0;
+                move = 1;
                 break;
             }
         case 'hauler':
@@ -280,6 +280,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         case 'reserver':
             claim = 2;
+            if (level >= 6) claim = 3;
             move = claim;
             break;
         case 'fuelTruck':

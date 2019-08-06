@@ -34,6 +34,7 @@ function shibMove(creep, heading, options = {}) {
         stayInHub: false,
         ignoreBorder: false
     });
+    // Handle fatigue
     if (creep.fatigue > 0) {
         if (!creep.memory.military) creep.idleFor(1);
         return creep.room.visual.circle(creep.pos, {
@@ -42,6 +43,8 @@ function shibMove(creep, heading, options = {}) {
             stroke: 'black'
         });
     }
+    // Get range
+    let rangeToDestination = creep.pos.getRangeTo(heading);
     // Set these for creeps that can afford them
     if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
         let move = creep.getActiveBodyparts(MOVE);
@@ -64,14 +67,15 @@ function shibMove(creep, heading, options = {}) {
         options.ignoreRoads = undefined;
     }
     // Request a tow truck if needed
-    if (heading.id && (!creep.pos.isNearTo(heading) || !creep.getActiveBodyparts(MOVE)) && !creep.className && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
-        creep.memory.towDestination = heading.id;
-        if (options.range === 0) creep.memory.towToObject = true;
-    } else if (heading.id && (creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading))) {
-        creep.memory.towDestination = undefined;
+    if (!creep.className) {
+        if (heading.id && (!creep.pos.isNearTo(heading) || !creep.getActiveBodyparts(MOVE)) && !creep.className && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
+            creep.memory.towDestination = heading.id;
+            if (options.range === 0) creep.memory.towToObject = true;
+        } else if (heading.id && (creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading))) {
+            creep.memory.towDestination = undefined;
+        }
+        if (creep.memory.towDestination && creep.memory.towCreep) return;
     }
-    if (creep.memory.towDestination && creep.memory.towCreep) return;
-    let rangeToDestination = creep.pos.getRangeTo(heading);
     // CPU Saver for moving to 0 on creeps
     if (heading instanceof Creep && options.range === 0 && rangeToDestination > 2) options.range = 1;
     // Check if target reached or within 1
@@ -260,7 +264,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                         delete Memory.roomCache[creep.memory.targetRoom];
                         log.a('Canceling operation in ' + roomLink(creep.memory.targetRoom) + ' as we cannot find a path.', 'HIGH COMMAND: ');
                     }
-                    return creep.suicide();
+                    return creep.memory.recycle = true;
                 }
                 return creep.moveTo(target);
             }

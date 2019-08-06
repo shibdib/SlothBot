@@ -448,7 +448,7 @@ Creep.prototype.siege = function () {
             type: 'pending',
         };
         Memory.targetRooms = cache;
-        return this.suicide();
+        return this.memory.recycle = true;
     }
     let target;
     let alliedCreep = _.filter(this.room.creeps, (c) => !c.my && _.includes(FRIENDLIES, c.owner));
@@ -843,9 +843,11 @@ Creep.prototype.templarCombat = function () {
 Creep.prototype.canIWin = function () {
     if (!this.room.hostileCreeps.length || this.room.name === this.memory.overlord) return true;
     let hostileCombatParts = 0;
+    let hostileAttackParts = 0;
     let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     for (let i = 0; i < armedHostiles.length; i++) {
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
+        hostileAttackParts += armedHostiles[i].getActiveBodyparts(ATTACK);
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(HEAL) * 0.5;
     }
@@ -858,5 +860,6 @@ Creep.prototype.canIWin = function () {
     }
     Memory.roomCache[this.room.name].hostilePower = hostileCombatParts;
     Memory.roomCache[this.room.name].friendlyPower = alliedCombatParts;
+    if (this.getActiveBodyparts(RANGED_ATTACK)) hostileCombatParts -= hostileAttackParts;
     return !hostileCombatParts || hostileCombatParts * 0.8 < alliedCombatParts;
 };

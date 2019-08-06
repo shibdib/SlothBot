@@ -128,11 +128,11 @@ resetBench = function () {
 abandon = function (room) {
     if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
     for (let key in Game.rooms[room].creeps) {
-        Game.rooms[room].creeps[key].suicide();
+        Game.rooms[room].creeps[key].memory.recycle = true;
     }
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
     for (let key in overlordFor) {
-        overlordFor[key].suicide();
+        overlordFor[key].memory.recycle = true;
     }
     for (let key in Game.rooms[room].structures) {
         Game.rooms[room].structures[key].destroy();

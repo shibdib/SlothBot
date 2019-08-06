@@ -20,7 +20,7 @@ Creep.prototype.claimClear = function () {
             cleanRoom(this.room, this.room.structures);
             this.room.controller.unclaim();
             if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
-            this.suicide();
+            this.memory.recycle = true;
         }
     } else {
         return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});

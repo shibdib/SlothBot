@@ -96,13 +96,8 @@ function levelManager(creep) {
     let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (creep.room.name === creep.memory.targetRoom && towers.length) {
         delete Memory.targetRooms[creep.memory.targetRoom];
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[creep.room.name] = {
-            tick: tick,
-            type: 'scout',
-        };
-        Memory.targetRooms = cache;
+        log.a('Canceling operation in ' + roomLink(key) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');
+        creep.room.cacheRoomIntel(true);
         return;
     }
     if (armedEnemies.length) {

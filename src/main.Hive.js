@@ -176,7 +176,7 @@ function minionController(minion) {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
             if (average(cpuUsageArray) > 10) {
-                minion.suicide();
+                minion.memory.recycle = true;
                 log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
             }
         }

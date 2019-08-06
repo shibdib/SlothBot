@@ -11,7 +11,7 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
-    if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.suicide();
+    if (creep.room.memory.responseNeeded && creep.room.memory.threatLevel > 2 && creep.room.memory.tickDetected + 100 < Game.time) creep.memory.recycle = true;
     if (creep.tryToBoost(['build'])) return;
     if (creep.wrongRoom()) return;
     if (creep.carry.energy === 0) {

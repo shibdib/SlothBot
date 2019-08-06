@@ -1,7 +1,5 @@
 Creep.prototype.borderPatrol = function () {
     let sentence = [ICONS.border, 'Border', 'Patrol'];
-    // Abandon remotes if bucket empty
-    if (Game.cpu.bucket < 5000) return this.suicide();
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Run from unwinnable fights

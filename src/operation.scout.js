@@ -13,7 +13,7 @@ Creep.prototype.scoutRoom = function () {
     });
     this.room.cacheRoomIntel(true);
     // If room is no longer a target
-    if (!Memory.targetRooms[this.room.name]) return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.room.name] || (Memory.targetRooms[this.room.name].type !== 'attack' && Memory.targetRooms[this.room.name].type !== 'scout')) return this.memory.recycle = true;
     // Operation cooldown per room
     if (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].manual && Memory.roomCache[this.room.name].lastOperation && Memory.roomCache[this.room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
         delete Memory.targetRooms[this.room.name];

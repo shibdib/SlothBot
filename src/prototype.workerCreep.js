@@ -295,7 +295,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= (ENERGY_AMOUNT * this.room.controller.level) / 3) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT / 3) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -411,14 +411,14 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Extra Full Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT * 1.5 || !terminal.my || this.room.memory.responseNeeded)) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT || !terminal.my || hauler)) {
         this.memory.energyDestination = terminal.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * this.room.controller.level || hauler)) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT || hauler)) {
         this.memory.energyDestination = storage.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -525,7 +525,7 @@ Creep.prototype.findStorage = function () {
     }
     //Controller
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && Math.random() > 0.7 && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+    if (controllerContainer && Math.random() > 0.7 && !controllerContainer.store[RESOURCE_ENERGY]) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
     }

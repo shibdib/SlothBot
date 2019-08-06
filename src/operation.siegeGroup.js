@@ -57,28 +57,3 @@ Creep.prototype.siegeGroupRoom = function () {
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
     }
 };
-
-function levelManager(creep) {
-    if (!Memory.targetRooms[creep.memory.targetRoom]) return;
-    let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-    let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10);
-    let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
-    if (towers.length) {
-        delete Memory.targetRooms[creep.memory.targetRoom];
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[creep.room.name] = {
-            tick: tick,
-            type: 'scout',
-        };
-        Memory.targetRooms = cache;
-        return;
-    }
-    if (armedEnemies.length) {
-        Memory.targetRooms[creep.memory.targetRoom].level = 2;
-    } else if (enemyCreeps.length) {
-        Memory.targetRooms[creep.memory.targetRoom].level = 1;
-    } else {
-        Memory.targetRooms[creep.memory.targetRoom].level = 0;
-    }
-}

@@ -468,6 +468,7 @@ Creep.prototype.recycleCreep = function () {
     if (!spawn.length) return;
     switch (spawn[0].recycleCreep(this)) {
         case OK:
+            log.a('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');
             break;
         case ERR_NOT_IN_RANGE:
             return this.shibMove(spawn[0]);

@@ -10,16 +10,24 @@
  */
 
 module.exports.role = function (creep) {
-    return creep.suicide();
     creep.room.cacheRoomIntel();
     creep.room.invaderCheck();
     let sayings = [creep.memory.overlord, 'PROXIMITY', 'INTRUSION', 'SENSOR'];
     let word = Game.time % sayings.length;
     creep.say(sayings[word], true);
     if (!creep.memory.destination) {
-        if (!creep.memory.remotes) creep.memory.remotes = JSON.stringify(Game.rooms[creep.memory.overlord].memory.remoteRooms);
-        let remotes = JSON.parse(creep.memory.remotes);
-        creep.memory.destination = _.sample(remotes);
+        let adjacent = Game.map.describeExits(creep.pos.roomName);
+        let possibles, target;
+        possibles = _.filter(adjacent, (r) => (!Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time) && Game.map.getRoomLinearDistance(creep.memory.overlord, r) <= LOCAL_SPHERE);
+        if (possibles.length) {
+            target = _.sample(possibles);
+        } else {
+            _.forEach(adjacent, function (room) {
+                if ((!target || Game.time - Memory.roomCache[room].cached > Game.time - Memory.roomCache[target].cached) && Game.map.isRoomAvailable(room) && Game.map.getRoomLinearDistance(creep.memory.overlord, room) <= LOCAL_SPHERE) target = room;
+            });
+        }
+        if (!Game.map.isRoomAvailable(target)) return creep.say("??");
+        creep.memory.destination = target;
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {

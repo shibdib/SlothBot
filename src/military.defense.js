@@ -137,11 +137,11 @@ function unsavableCheck(room) {
 
 abandonOverrun = function (room) {
     for (let key in room.creeps) {
-        room.creeps[key].suicide();
+        room.creeps[key].memory.recycle = true;
     }
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name);
     for (let key in overlordFor) {
-        overlordFor[key].suicide();
+        overlordFor[key].memory.recycle = true;
     }
     for (let key in room.structures) {
         room.structures[key].destroy();
