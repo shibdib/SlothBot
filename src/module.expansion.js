@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.claimNewRoom = function () {
     let noClaim = Memory.noClaim || [];
     let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && r.mineral && r.sources === 2 && r.closestRange <= 12 && !_.includes(noClaim, r));
@@ -10,6 +17,7 @@ module.exports.claimNewRoom = function () {
                 let baseScore = 5000;
                 // Remote access
                 let neighboring = Game.map.describeExits(key);
+                if (!neighboring) continue;
                 let sourceCount = 0;
                 if (neighboring['1'] && !Memory.roomCache[neighboring['1']].user && !Memory.roomCache[neighboring['1']].sk) sourceCount += Memory.roomCache[neighboring['1']].sources.length;
                 if (neighboring['3'] && !Memory.roomCache[neighboring['3']].user && !Memory.roomCache[neighboring['1']].sk) sourceCount += Memory.roomCache[neighboring['3']].sources.length;
@@ -50,6 +58,7 @@ module.exports.claimNewRoom = function () {
                 priority: 1
             };
             Memory.targetRooms = cache;
+            log.a('Claim Scout Mission For ' + claimTarget + ' Initiated.', 'EXPANSION CONTROL: ');
         }
     }
 };
