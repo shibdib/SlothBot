@@ -11,7 +11,7 @@ let militaryQueue = {};
 let energyOrder = {};
 let storedLevel = {};
 let remoteHives = {};
-
+let skRooms = {};
 let lastPurge = 0;
 
 //Build Creeps From Queue
@@ -1028,7 +1028,7 @@ function determineEnergyOrder(room) {
     if (!room.memory.bunkerHub) return;
     let hauler = _.filter(room.creeps, (c) => c.my && c.memory.role === 'hauler')[0];
     let harvester = _.filter(room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester');
-
+    let harvesterExtensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.findInRange(harvester, 1).length);
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     let energyStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
     let rangeArray = [];

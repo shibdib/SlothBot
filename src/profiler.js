@@ -39,7 +39,7 @@ function setupProfiler() {
             /* eslint-disable */
             const download = `
 <script>
-  let element = document.getElementById('${id}');
+  var element = document.getElementById('${id}');
   if (!element) {
     element = document.createElement('a');
     element.setAttribute('id', '${id}');
@@ -60,7 +60,7 @@ function setupProfiler() {
             if (Profiler.isProfiling()) {
                 const filter = Memory.profiler.filter;
                 let duration = false;
-                if (Memory.profiler.disableTick) {
+                if (!!Memory.profiler.disableTick) {
                     // Calculate the original duration, profile is enabled on the tick after the first call,
                     // so add 1.
                     duration = Memory.profiler.disableTick - Memory.profiler.enabledTick + 1;
@@ -119,7 +119,6 @@ function wrapFunction(name, originalFunction) {
     if (originalFunction.profilerWrapped) {
         throw new AlreadyWrappedError();
     }
-
     function wrappedFunction() {
         if (Profiler.isProfiling()) {
             const nameMatchesFilter = name === getFilter();
@@ -322,7 +321,7 @@ const Profiler = {
             return val2.totalTime - val1.totalTime;
         });
 
-        return stats.map(data => {
+        const lines = stats.map(data => {
             return [
                 data.calls,
                 data.totalTime.toFixed(1),
@@ -330,6 +329,8 @@ const Profiler = {
                 data.name,
             ].join('\t\t');
         });
+
+        return lines;
     },
 
     prototypes: [
@@ -403,7 +404,8 @@ const Profiler = {
 
     endTick() {
         if (Game.time >= Memory.profiler.enabledTick) {
-            Memory.profiler.totalTime += Game.cpu.getUsed();
+            const cpuUsed = Game.cpu.getUsed();
+            Memory.profiler.totalTime += cpuUsed;
             Profiler.report();
         }
     },
