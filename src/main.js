@@ -5,87 +5,72 @@ let _ = require('lodash');
 let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
-let shib = require("shibBench");
+const profiler = require('profiler');
 const tickLengthArray = [];
 const lastGlobal = Memory.lastGlobalReset || Game.time;
 log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
 
+profiler.enable();
 module.exports.loop = function () {
-    stats.lastTime = false;
-    stats.reset();
-    let mainCpu = Game.cpu.getUsed();
+    profiler.wrap(function () {
+        stats.lastTime = false;
+        stats.reset();
 
-    //Logging level
-    Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
+        //Logging level
+        Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
-    // Set Name
-    if (!global.USERNAME) {
-        for (let key in Game.spawns) {
-            global.USERNAME = Game.spawns[key].owner.username;
-            break;
-        }
-    }
+        Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME));
 
-    Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === USERNAME));
-
-    // Get Tick Length
-    let d = new Date();
-    let seconds = _.round(d.getTime() / 1000, 2);
-    let lastTick = Memory.lastTick || seconds;
-    Memory.lastTick = seconds;
-    let tickLength = seconds - lastTick;
-    if (tickLengthArray.length < 50) {
-        tickLengthArray.push(tickLength)
-    } else {
-        tickLengthArray.shift();
-        tickLengthArray.push(tickLength)
-    }
-    Memory.tickLength = average(tickLengthArray);
-
-    //Routine status
-    if (Game.time % 100 === 0) status();
-
-    //Update allies
-    populateLOANlist();
-
-    //Must run modules
-    segments.segmentManager();
-    cleanUp.cleanup();
-
-    //Bucket Check
-    if (Memory.cooldown) {
-        if (Memory.cooldown + 25 < Game.time) {
-            delete Memory.cooldown;
+        // Get Tick Length
+        let d = new Date();
+        let seconds = _.round(d.getTime() / 1000, 2);
+        let lastTick = Memory.lastTick || seconds;
+        Memory.lastTick = seconds;
+        let tickLength = seconds - lastTick;
+        if (tickLengthArray.length < 50) {
+            tickLengthArray.push(tickLength)
         } else {
-            let countDown = (Memory.cooldown + 25) - Game.time;
-            log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
+            tickLengthArray.shift();
+            tickLengthArray.push(tickLength)
+        }
+        Memory.tickLength = average(tickLengthArray);
+
+        //Routine status
+        if (Game.time % 100 === 0) status();
+
+        //Update allies
+        populateLOANlist();
+
+        //Must run modules
+        segments.segmentManager();
+        cleanUp.cleanup();
+
+        //Bucket Check
+        if (Memory.cooldown) {
+            if (Memory.cooldown + 25 < Game.time) {
+                delete Memory.cooldown;
+            } else {
+                let countDown = (Memory.cooldown + 25) - Game.time;
+                log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
+                return;
+            }
+        } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
+            Memory.cooldown = Game.time;
+            log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
             return;
         }
-    } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
-        Memory.cooldown = Game.time;
-        log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
-        return;
-    }
 
-    //Hive Mind
-    if (_.size(Memory.ownedRooms)) {
-        hive.hiveMind();
-    }
+        //Hive Mind
+        if (_.size(Memory.ownedRooms)) {
+            hive.hiveMind();
+        }
 
-    shib.shibBench('Total', mainCpu);
-    shib.processBench();
-    // Simple stats
-    stats.addSimpleStat('totalCreepCount', _.size(Game.creeps)); // Creep Count
-    stats.addSimpleStat('militaryCreepCount', _.size(_.filter(Game.creeps, (r) => r.memory.military))); // Creep Count
-    stats.commit();
-};
-
-requestBench = function (ticks, notify = false) {
-    delete Memory._benchmark;
-    Memory.reportBench = Game.time + ticks;
-    Memory.reportBenchNotify = notify;
-    log.a('Benchmark Queued');
+        // Simple stats
+        stats.addSimpleStat('totalCreepCount', _.size(Game.creeps)); // Creep Count
+        stats.addSimpleStat('militaryCreepCount', _.size(_.filter(Game.creeps, (r) => r.memory.military))); // Creep Count
+        stats.commit();
+    });
 };
 
 currentStats = function (notify = false) {
@@ -116,13 +101,6 @@ currentStats = function (notify = false) {
     log.e('---------------------------------------------------------------------------');
     if (notify) Game.notify('Ticks Covered: ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
     if (notify) Game.notify('Total Bucket Used: ' + bucketTotal + '. Current Bucket: ' + Game.cpu.bucket);
-};
-
-resetBench = function () {
-    delete Memory._benchmark;
-    delete Memory.reportBench;
-    delete Memory.reportBenchNotify;
-    log.a('Benchmarks Reset');
 };
 
 abandon = function (room) {
@@ -177,9 +155,9 @@ status = function () {
             if (type === 'poke' || type === 'scout' || type === 'attack') continue;
             let priority = Memory.targetRooms[key].priority || 4;
             if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
-                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key) + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead, ' ');
+                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key) + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead, ' ');
             } else {
-                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + global.roomLink(key), ' ');
+                log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key), ' ');
             }
         }
         let pokes = _.filter(Memory.targetRooms, (t) => t.type === 'poke');
@@ -192,9 +170,9 @@ status = function () {
         log.a('--BORDER PATROL INFO--', ' ');
         for (let patrol of borderPatrolLeaders) {
             if (patrol.memory.contactReport) {
-                log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName) + ' ~~CONTACT REPORTED~~', ' ');
+                log.e(roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + roomLink(patrol.pos.roomName) + ' ~~CONTACT REPORTED~~', ' ');
             } else {
-                log.e(global.roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + global.roomLink(patrol.pos.roomName), ' ');
+                log.e(roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + roomLink(patrol.pos.roomName), ' ');
             }
         }
     }

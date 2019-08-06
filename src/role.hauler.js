@@ -21,8 +21,6 @@ module.exports.role = function (creep) {
                     delete creep.memory._shibMove;
                     break;
                 case ERR_NOT_IN_RANGE:
-                    let adjacentDelivery = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
-                    if (adjacentDelivery.length) creep.transfer(adjacentDelivery[0], RESOURCE_ENERGY);
                     creep.shibMove(storageItem);
                     break;
                 case ERR_FULL || ERR_INVALID_TARGET:

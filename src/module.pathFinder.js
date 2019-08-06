@@ -1,5 +1,3 @@
-let shib = require("shibBench");
-
 const DEFAULT_MAXOPS = 10000;
 const STATE_STUCK = 4;
 
@@ -12,7 +10,6 @@ let pathCache = {};
 
 //TODO:Creep Specific Path Cache
 function shibMove(creep, heading, options = {}) {
-    let pathingStart = Game.cpu.getUsed();
     _.defaults(options, {
         useCache: true,
         ignoreCreeps: true,
@@ -74,20 +71,20 @@ function shibMove(creep, heading, options = {}) {
         } else if (heading.id && (creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading))) {
             creep.memory.towDestination = undefined;
         }
-        if (creep.memory.towDestination && creep.memory.towCreep) return;
+        if (creep.memory.towDestination && creep.memory.towCreep) {
+            if (!Game.getObjectById(creep.memory.towCreep)) creep.memory.towCreep = undefined;
+            return;
+        }
     }
     // CPU Saver for moving to 0 on creeps
     if (heading instanceof Creep && options.range === 0 && rangeToDestination > 2) options.range = 1;
     // Check if target reached or within 1
     if (rangeToDestination <= options.range) {
+        creep.memory.towDestination = undefined;
         creep.memory._shibMove = undefined;
-        shib.shibBench('pathfinding', pathingStart);
-        shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         return false;
     } else if (rangeToDestination === 1) {
         let direction = creep.pos.getDirectionTo(heading);
-        shib.shibBench('pathfinding', pathingStart);
-        shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         return creep.move(direction);
     }
     if (creep.memory.military) options.useCache = false;
@@ -145,17 +142,11 @@ function shibMove(creep, heading, options = {}) {
                     creep.idleFor(10);
                     break;
             }
-            shib.shibBench('pathfinding', pathingStart);
-            shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         } else {
             delete pathInfo.path;
-            shib.shibBench('pathfinding', pathingStart);
-            shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
         }
     } else {
         shibPath(creep, heading, pathInfo, origin, target, options);
-        shib.shibBench('pathfinding', pathingStart);
-        shib.shibBench('pathfinding[' + creep.memory.role + ']', pathingStart);
     }
 }
 

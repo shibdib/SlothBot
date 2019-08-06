@@ -360,6 +360,7 @@ Creep.prototype.fightRanged = function (target) {
 };
 
 Creep.prototype.attackInRange = function () {
+    if (!this.room.hostileCreeps.length) return false;
     let hostile = this.findClosestEnemy(false);
     let injured = _.min(this.pos.findInRange(_.filter(this.room.creeps, (c) => c.hits < c.hitsMax && _.includes(FRIENDLIES, c.owner.username)), 3), 'hits');
     if (injured && this.getActiveBodyparts(HEAL) && this.hits === this.hitsMax && this.pos.getRangeTo(hostile) > 3) this.rangedHeal(injured);

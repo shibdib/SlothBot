@@ -7,7 +7,10 @@ module.exports.role = function (creep) {
     if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
     //Invader detection
-    if (creep.fleeHome()) return creep.memory.destination = undefined;
+    if (creep.hits < creep.hitsMax) {
+        creep.goHomeAndHeal();
+        return creep.memory.destination = undefined;
+    }
     // Check if empty
     if (_.sum(creep.carry) === 0) {
         creep.memory.storageDestination = undefined;
@@ -61,7 +64,7 @@ module.exports.role = function (creep) {
                 harvesters.forEach((h) => containers.push(Game.getObjectById(h.memory.containerID)));
                 if (containers.length) {
                     let needyContainer = _.max(_.filter(containers, ((s) => s && Memory.roomCache[s.pos.roomName] && !Memory.roomCache[s.pos.roomName].threatLevel &&
-                        s.store.energy >= _.sum(_.filter(Game.creeps, (c) => c.my && c.memory.containerID === s.id && c.id !== creep.id && c.memory.role !== 'remoteHarvester'), '.carryCapacity') + creep.carryCapacity)), '.store.energy');
+                        s.store.energy >= _.sum(_.filter(Game.creeps, (c) => c.my && c.memory.containerID === s.id && c.id !== creep.id && c.memory.role !== 'remoteHarvester'), '.carryCapacity') + (creep.carryCapacity * 0.5))), '.store.energy');
                     if (needyContainer && needyContainer.id) creep.memory.containerID = needyContainer.id; else creep.idleFor(4);
                 } else {
                     creep.idleFor(4);

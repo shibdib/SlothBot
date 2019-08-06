@@ -17,7 +17,7 @@ module.exports.role = function (creep) {
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
             if (!creep.handleMilitaryCreep(false, false, false, true)) {
-                if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) &&
+                if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== MY_USERNAME) &&
                     (!creep.room.controller.owner || !_.includes(FRIENDLIES, creep.room.controller.owner.username)) &&
                     (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
                     let signs = ["#Overlord-Bot was here.", "#Overlord-Bot has collected intel from this room. We Know."];

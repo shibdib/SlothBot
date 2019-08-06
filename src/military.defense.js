@@ -2,7 +2,6 @@
  * Created by Bob on 7/1/2017.
  */
 let towers = require('module.towerController');
-let shib = require("shibBench");
 let structureCount = {};
 
 //Claimed Defense
@@ -16,9 +15,7 @@ module.exports.controller = function (room) {
     room.invaderCheck();
 
     // Tower control
-    let towerCpu = Game.cpu.getUsed();
     towers.towerControl(room);
-    shib.shibBench('towerController', towerCpu);
 
     // Handle nuke defense
     if (Game.time % 100 === 0) room.handleNukeAttack();

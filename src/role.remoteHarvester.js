@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else {
         //Suicide and cache intel if room is reserved by someone else
-        if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== USERNAME) {
+        if (creep.room.controller && creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME) {
             creep.room.cacheRoomIntel(true);
             return creep.memory.recycle = true;
         }

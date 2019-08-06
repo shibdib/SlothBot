@@ -28,7 +28,7 @@ module.exports.role = function (creep) {
                     creep.shibMove(creep.room.controller);
             }
         }
-    } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation.username === USERNAME)) {
+    } else if (creep.room.controller && !creep.room.controller.owner && (!creep.room.controller.reservation || creep.room.controller.reservation.username === MY_USERNAME)) {
         switch (creep.reserveController(creep.room.controller)) {
             case OK:
                 creep.memory.inPlace = true;

@@ -269,11 +269,11 @@ module.exports.essentialCreepQueue = function (room) {
             let responseNeeded = _.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.requestingSupport && Game.map.getRoomLinearDistance(room.name, r.name) <= 15);
             if (responseNeeded.length && !room.memory.responseNeeded) {
                 for (let responseRoom of responseNeeded) {
-                    if (!_.includes(queue, 'remoteResponse')) {
-                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseRoom.name && creep.memory.role === 'remoteResponse');
+                    if (!_.includes(queue, 'longbow')) {
+                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseRoom.name && creep.memory.role === 'longbow');
                         if (responder.length < 3) {
                             queueCreep(room, PRIORITIES.remoteResponse, {
-                                role: 'remoteResponse',
+                                role: 'longbow',
                                 responseTarget: responseRoom.name,
                                 military: true
                             })
@@ -409,7 +409,7 @@ module.exports.miscCreepQueue = function (room) {
                 }
             }
             if (level >= 6 && !_.includes(queue, 'fuelTruck') && room.storage && room.memory.state > 1 && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 200 <= Game.time)) {
-                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && (creep.memory.role === 'pioneer' || creep.memory.role === 'worker' || creep.memory.role === 'drone'));
+                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
                 let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'fuelTruck');
                 if (fuelTruck.length < 1 && pioneers.length > 1) {
                     queueCreep(room, PRIORITIES.fuelTruck, {
@@ -557,7 +557,7 @@ module.exports.remoteCreepQueue = function (room) {
         if (!_.includes(queue, 'remoteHauler')) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.containerID);
             if (remoteHarvesters.length) {
-                let harvesterPower = remoteHarvesters[0].getActiveBodyparts(WORK) * 225;
+                let harvesterPower = remoteHarvesters[0].getActiveBodyparts(WORK) * 350;
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
                 //let maxCapacity = _.max(remoteHauler, '.carryCapacity').carryCapacity || 250;
                 let remoteHaulerCapacity = _.sum(remoteHauler, '.carryCapacity');

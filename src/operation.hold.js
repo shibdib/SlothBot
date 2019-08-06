@@ -58,21 +58,6 @@ Creep.prototype.holdRoom = function () {
             if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
             this.attackInRange();
         }
-    } else if (this.memory.role === 'unClaimer') {
-        if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
-        if (this.room.controller.upgradeBlocked > this.ticksToLive) this.memory.recycle = true;
-        switch (this.attackController(this.room.controller)) {
-            case OK:
-                if (!this.memory.signed) {
-                    let signs = ATTACK_ROOM_SIGNS;
-                    this.signController(this.room.controller, _.sample(signs));
-                    this.memory.signed = true;
-                }
-                break;
-            case ERR_NOT_IN_RANGE:
-                this.shibMove(this.room.controller, {range: 1});
-                break;
-        }
     }
 };
 

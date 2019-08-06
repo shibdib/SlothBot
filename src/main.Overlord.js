@@ -1,5 +1,4 @@
 let observers = require('module.observerController');
-let shib = require("shibBench");
 let defense = require('military.defense');
 let links = require('module.linkController');
 let terminals = require('module.terminalController');
@@ -19,13 +18,10 @@ module.exports.overlordMind = function (room) {
     state.setRoomState(room);
 
     // Handle Defense
-    let cpu = Game.cpu.getUsed();
     defense.controller(room);
-    shib.shibBench('defenseController', cpu);
 
     //Build Room
     if (((room.controller.level < 4 && Game.time % 20 === 0) || (storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 100 === 0) && cpuBucket >= 9999) {
-        cpu = Game.cpu.getUsed();
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         try {
@@ -41,7 +37,6 @@ module.exports.overlordMind = function (room) {
                 building.notifyWhenAttacked(false);
             }
         }
-        shib.shibBench('roomBuild', cpu);
     }
 
     // Manage creep spawning
@@ -53,9 +48,7 @@ module.exports.overlordMind = function (room) {
         } else {
             if (Math.random() > 0.1 && cpuBucket >= 3000) {
                 try {
-                    let creepSpawn = Game.cpu.getUsed();
                     spawning.essentialCreepQueue(room);
-                    shib.shibBench('essentialCreepQueue', creepSpawn);
                 } catch (e) {
                     log.e('Essential Queueing for room ' + room.name + ' experienced an error');
                     log.e(e.stack);
@@ -64,9 +57,7 @@ module.exports.overlordMind = function (room) {
             }
             if (Math.random() > 0.5 && cpuBucket >= 8000) {
                 try {
-                    let creepSpawn = Game.cpu.getUsed();
                     spawning.miscCreepQueue(room);
-                    shib.shibBench('miscCreepQueue', creepSpawn);
                 } catch (e) {
                     log.e('Misc Queueing for room ' + room.name + ' experienced an error');
                     log.e(e.stack);
@@ -75,9 +66,7 @@ module.exports.overlordMind = function (room) {
             }
             if (Math.random() > 0.6 && cpuBucket >= 9999) {
                 try {
-                    let remoteSpawn = Game.cpu.getUsed();
                     spawning.remoteCreepQueue(room);
-                    shib.shibBench('remoteQueue', remoteSpawn);
                 } catch (e) {
                     log.e('Remote Creep Queuing for room ' + room.name + ' experienced an error');
                     log.e(e.stack);
@@ -88,7 +77,6 @@ module.exports.overlordMind = function (room) {
     }
 
     // Manage creeps
-    cpu = Game.cpu.getUsed();
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
     // Worker minions
     for (let key in roomCreeps) {
@@ -100,11 +88,9 @@ module.exports.overlordMind = function (room) {
             Game.notify(e.stack);
         }
     }
-    shib.shibBench('minionController', cpu);
 
     // Observer Control
     if (room.level === 8 && cpuBucket >= 9999) {
-        let observerCpu = Game.cpu.getUsed();
         try {
             observers.observerControl(room);
         } catch (e) {
@@ -112,12 +98,10 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        shib.shibBench('observerControl', observerCpu);
     }
 
     // Handle Links
     if (room.level >= 5) {
-        cpu = Game.cpu.getUsed();
         try {
             links.linkControl(room);
         } catch (e) {
@@ -125,12 +109,10 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        shib.shibBench('linkControl', cpu);
     }
 
     // Handle Terminals
     if (Game.time % 11 === 0 && Math.random() > 0.65 && room.level >= 6 && cpuBucket >= 9999 && room.terminal && !room.terminal.cooldown) {
-        cpu = Game.cpu.getUsed();
         try {
             terminals.terminalControl(room);
         } catch (e) {
@@ -138,7 +120,6 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        shib.shibBench('terminalControl', cpu);
     }
 
     // Store Data
@@ -147,7 +128,6 @@ module.exports.overlordMind = function (room) {
     if (room.controller.level >= 6 && !_.includes(minerals, room.mineral[0].mineralType)) minerals.push(room.mineral[0].mineralType);
     Memory.ownedMineral = minerals;
 
-    shib.shibBench('overlordMind', mindStart);
     let used = Game.cpu.getUsed() - mindStart;
     let cpuUsageArray = roomCpuArray[room.name] || [];
     if (cpuUsageArray.length < 50) {
@@ -236,7 +216,6 @@ function minionController(minion) {
         log.e(e.stack);
         Game.notify(e.stack);
     }
-    shib.shibBench(memoryRole, cpuUsed, Game.cpu.getUsed());
 }
 
 function cacheRoomItems(room) {
@@ -254,22 +233,4 @@ function cacheRoomItems(room) {
 
 function requestBuilders(room) {
     room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.size(_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)) > 2);
-}
-
-function bunkerConversion(room) {
-    //if (room.memory.noBunkerPos) return;
-    if (!room.memory.readyToConvert && !room.memory.bunkerHub && planner.hubCheck(room)) room.memory.readyToConvert = true; else if (room.memory.newHubSearch >= 5000) room.memory.notConvertable = true;
-    if (room.memory.converted || !room.memory.readyToConvert || !_.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded).length || !_.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded).length || _.size(Game.constructionSites) > 70 || !room.memory.bunkerHub) return;
-    room.memory.buildersNeeded = true;
-    delete room.memory.extensionHub;
-    delete room.memory.bunkerComplete;
-    delete room.memory.bunkerPos;
-    room.memory.converted = true;
-    for (let key in room.structures) {
-        if (room.structures[key].structureType !== STRUCTURE_CONTAINER || room.structures[key].structureType !== STRUCTURE_STORAGE) room.structures[key].destroy();
-    }
-    for (let key in room.constructionSites) {
-        room.constructionSites[key].remove();
-    }
-    planner.buildRoom(room);
 }

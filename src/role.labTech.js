@@ -20,8 +20,6 @@ module.exports.role = function (creep) {
     if (creep.memory.empty) return emptyLab(creep);
     // If terminal is overfull handle that
     if (emergencyDump(creep)) return;
-    // Handle filling terminal from storage
-    if (storageEmpty(creep)) return;
     // Handle dropped goodies
     if (droppedResources(creep)) return;
     let labs = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LAB);
@@ -88,7 +86,7 @@ module.exports.role = function (creep) {
                     return;
             }
         }
-    }
+    } else if (storageEmpty(creep)) return;
     if (storage && _.sum(creep.room.storage.store) > 0.9 * creep.room.storage.storeCapacity) {
         let storedResources = Object.keys(creep.room.storage.store);
         for (let resource of storedResources) {

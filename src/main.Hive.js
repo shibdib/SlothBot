@@ -6,16 +6,13 @@ let spawning = require('module.creepSpawning');
 let expansion = require('module.expansion');
 let diplomacy = require('module.diplomacy');
 let hud = require('module.hud');
-let shib = require("shibBench");
 
 module.exports.hiveMind = function () {
     // Clean mineral list
     if (Game.time % 10000 === 0) Memory.ownedMineral = [];
     let cpuBucket = Game.cpu.bucket;
 
-    let cpu;
     // Handle Diplomacy
-    cpu = Game.cpu.getUsed();
     try {
         diplomacy.diplomacyOverlord();
     } catch (e) {
@@ -23,9 +20,7 @@ module.exports.hiveMind = function () {
         log.e(e.stack);
         Game.notify(e.stack);
     }
-    shib.shibBench('diplomacyControl', cpu);
     // High Command
-    cpu = Game.cpu.getUsed();
     try {
         highCommand.highCommand();
     } catch (e) {
@@ -33,9 +28,7 @@ module.exports.hiveMind = function () {
         log.e(e.stack);
         Game.notify(e.stack);
     }
-    shib.shibBench('highCommand', cpu);
     // Handle Labs
-    cpu = Game.cpu.getUsed();
     if (Game.cpu.bucket >= 9999) {
         try {
             labs.labManager();
@@ -45,7 +38,6 @@ module.exports.hiveMind = function () {
             Game.notify(e.stack);
         }
     }
-    shib.shibBench('labControl', cpu);
     // Military first
     let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military));
     for (let key in militaryCreeps) {
@@ -104,7 +96,6 @@ module.exports.hiveMind = function () {
 
     //Non room specific creep spawning
     if (Game.time % 25 === 0) {
-        cpu = Game.cpu.getUsed();
         try {
             spawning.militaryCreepQueue();
         } catch (e) {
@@ -112,10 +103,8 @@ module.exports.hiveMind = function () {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        shib.shibBench('militarySpawn', cpu);
     }
     // Power Processing
-    cpu = Game.cpu.getUsed();
     try {
         power.powerControl();
     } catch (e) {
@@ -123,9 +112,7 @@ module.exports.hiveMind = function () {
         log.e(e.stack);
         Game.notify(e.stack);
     }
-    shib.shibBench('powerControl', cpu);
     //Process creep build queues
-    cpu = Game.cpu.getUsed();
     try {
         spawning.processBuildQueue();
     } catch (e) {
@@ -133,10 +120,8 @@ module.exports.hiveMind = function () {
         log.e(e.stack);
         Game.notify(e.stack);
     }
-    shib.shibBench('processBuildQueue', cpu);
     //Room HUD (If CPU Allows)
     if (!TEN_CPU && Game.cpu.bucket > 9999) {
-        cpu = Game.cpu.getUsed();
         try {
             hud.hud();
         } catch (e) {
@@ -144,7 +129,6 @@ module.exports.hiveMind = function () {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        shib.shibBench('roomHud', cpu);
     }
 };
 
@@ -192,6 +176,5 @@ function minionController(minion) {
         log.e(e.stack);
         Game.notify(e.stack);
     }
-    shib.shibBench(memoryRole, start, Game.cpu.getUsed());
 }
 

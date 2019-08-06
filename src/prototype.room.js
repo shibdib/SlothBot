@@ -270,7 +270,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let hostiles, nonCombats, mineral, sk, needsCleaning, power, portal, user, level, closestRange, important, owner,
-        reservation, forestPvp, ncp;
+        reservation, forestPvp, ncp, safemode;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -288,6 +288,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         if (room.controller) {
+            safemode = room.controller.safeMode;
             mineral = room.mineral[0].mineralType;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;
@@ -349,6 +350,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             needsCleaning: needsCleaning,
             potentialTarget: potentialTarget,
             user: user,
+            safemode: safemode,
             portal: portal,
             power: power,
             isHighway: isHighway,

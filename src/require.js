@@ -28,4 +28,3 @@ require("operation.claimClear");
 require("operation.borderPatrol");
 require("operation.poke");
 require("operation.conscripts");
-require("operation.powerScout");

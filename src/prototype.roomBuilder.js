@@ -1,4 +1,3 @@
-let shib = require("shibBench");
 let protectedStructures = [
     STRUCTURE_SPAWN,
     STRUCTURE_STORAGE,

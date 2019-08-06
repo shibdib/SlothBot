@@ -72,8 +72,7 @@ let globals = function () {
     global.PRIORITIES = {
         // Harvesters
         stationaryHarvester: 2,
-        // Workers
-        worker: 5,
+        // Workers=
         drone: 3,
         waller: 5,
         upgrader: 4,
@@ -122,10 +121,8 @@ let globals = function () {
     global.SPAWN = {
         0: {
             stationaryHarvester: [WORK, WORK, CARRY, MOVE],
-            worker: [MOVE, MOVE, CARRY, WORK],
             drone: [MOVE, MOVE, CARRY, WORK],
             waller: [MOVE, MOVE, CARRY, WORK],
-            pioneer: [MOVE, MOVE, CARRY, WORK],
             upgrader: [MOVE, MOVE, CARRY, WORK],
             hauler: [CARRY, CARRY, MOVE, MOVE],
             filler: [CARRY, CARRY, MOVE, MOVE],

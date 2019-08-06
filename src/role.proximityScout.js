@@ -32,7 +32,7 @@ module.exports.role = function (creep) {
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
             remoteManager(creep);
-            if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== USERNAME) &&
+            if (creep.room.controller && (!creep.room.controller.sign || creep.room.controller.sign.username !== MY_USERNAME) &&
                 !creep.room.controller.owner && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
                 let signs = EXPLORED_ROOM_SIGNS;
                 switch (creep.signController(creep.room.controller, _.sample(signs))) {
