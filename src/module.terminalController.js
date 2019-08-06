@@ -46,7 +46,7 @@ module.exports.terminalControl = function (room) {
     //Use extra creds to buy needed items for boosts
     if (onDemandReactionOrders(room.terminal, globalOrders)) return;
     //Buy Power
-    if (buyPower(room.terminal, globalOrders))
+    if (buyPower(room.terminal, globalOrders)) return;
 };
 
 function fillBuyOrders(terminal, globalOrders) {

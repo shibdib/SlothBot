@@ -780,7 +780,7 @@ function addCreepsToMatrix(room, matrix) {
                         matrix.set(position.x, position.y, 254)
                     }
                 } catch (e) {
-
+                    continue;
                 }
             }
         }

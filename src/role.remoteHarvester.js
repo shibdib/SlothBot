@@ -59,7 +59,7 @@ module.exports.role = function (creep) {
                 }
                 break;
         }
-
+        return;
     }
 };
 

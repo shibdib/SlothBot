@@ -57,7 +57,7 @@ Creep.prototype.borderPatrol = function () {
         // Heal if waiting for orders
         this.healAllyCreeps();
         this.healMyCreeps();
-        if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17}))
+        if (this.memory.responseTarget && !this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 17})) return;
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);

@@ -237,7 +237,7 @@ function abilitySwitch(powerCreep, power, target = undefined) {
 function upgradeSwitch(powerCreep, power) {
     switch (powerCreep.upgrade(power)) {
         case OK:
-            log.a(powerCreep.name + ' just upgraded the ' + power + ' ability.');
+            log.a(powerCreep.name + ' just upgraded the ' + power + ' ability.')
             break;
         case ERR_NOT_ENOUGH_RESOURCES:
             return;

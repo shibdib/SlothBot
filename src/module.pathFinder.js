@@ -611,7 +611,7 @@ function getRoute(from, to) {
             return JSON.parse(cachedRoute.route);
         }
     } else {
-
+        return;
     }
 }
 
@@ -641,7 +641,7 @@ function getPath(creep, from, to) {
         if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._pathCache = cache; else pathCache = cache;
         return cachedPath.path;
     } else {
-
+        return;
     }
 }
 

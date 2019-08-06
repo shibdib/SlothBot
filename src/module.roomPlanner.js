@@ -76,7 +76,7 @@ function buildFromLayout(room) {
             let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.isActive());
             if (links.length) {
                 let a = [];
-                links.forEach((l) => a.push(l.id));
+                links.forEach((l) => a.push(l.id))
                 room.memory.hubLinks = a;
             }
         } else {
@@ -453,7 +453,8 @@ function abandonRoom(room) {
     Memory.noClaim = noClaim;
     delete Memory.roomCache[room];
     Game.rooms[room].controller.unclaim();
-}
+};
+
 function difference(num1, num2) {
     return (num1 > num2) ? num1 - num2 : num2 - num1
 }
@@ -560,7 +561,7 @@ function getRoad(room, from, to) {
     if (cachedPath) {
         return cachedPath.path;
     } else {
-
+        return;
     }
 }
 

@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName === creep.memory.destination) {
             creep.memory.destinationReached = true;
         }
-
+        return;
     } else {
         if (!creep.memory.assignedAttacker) {
             let attacker = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'powerAttacker' && (!c.memory.healer || !Game.getObjectById(c.memory.healer)))[0];
