@@ -25,7 +25,7 @@ Creep.prototype.holdRoom = function () {
             let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id);
             if (squadLeader.length) this.memory.squadLeader = undefined;
             // If military action required do that
-            if (this.handleMilitaryCreep(false, false)) return;
+            if (this.handleMilitaryCreep(false, false, true)) return;
             // Heal squad
             let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
             if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
@@ -62,7 +62,7 @@ Creep.prototype.holdRoom = function () {
 };
 
 function levelManager(creep) {
-    if (!Memory.targetRooms[creep.memory.targetRoom]) return;
+    if (!Memory.targetRooms[creep.memory.targetRoom] || creep.room.name !== creep.memory.targetRoom) return;
     // Safemode
     if (creep.room.controller.safeMode) {
         let cache = Memory.targetRooms || {};

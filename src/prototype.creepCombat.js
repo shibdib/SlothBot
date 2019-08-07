@@ -231,7 +231,8 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         if (this.healAllyCreeps()) return true;
     }
     // If no target or heals stomp sites
-    if (this.moveToHostileConstructionSites()) return true;
+    return !!this.moveToHostileConstructionSites();
+
 };
 
 Creep.prototype.handleSquadMember = function (barrier = false, rampart = true) {

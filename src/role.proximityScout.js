@@ -23,7 +23,7 @@ module.exports.role = function (creep) {
             target = _.sample(possibles);
         } else {
             _.forEach(adjacent, function (room) {
-                if ((!target || Game.time - Memory.roomCache[room].cached > Game.time - Memory.roomCache[target].cached) && Game.map.isRoomAvailable(room) && Game.map.getRoomLinearDistance(creep.memory.overlord, room) <= LOCAL_SPHERE) target = room;
+                if ((!target || Memory.roomCache[room] && Game.time - Memory.roomCache[room].cached > Game.time - Memory.roomCache[target].cached) && Game.map.isRoomAvailable(room) && Game.map.getRoomLinearDistance(creep.memory.overlord, room) <= LOCAL_SPHERE) target = room;
             });
         }
         if (!Game.map.isRoomAvailable(target)) return creep.say("??");

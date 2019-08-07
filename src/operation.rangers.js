@@ -22,8 +22,19 @@ Creep.prototype.rangersRoom = function () {
         if (this.borderCheck()) return;
         // Check for squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
-        if (!squadMember.length) return this.handleMilitaryCreep(false, false);
-        if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
+        this.memory.waitingForSquad = squadMember.length > 0;
+        if (this.ticksToLive >= 1000 || squadMember.length) {
+            if (!squadMember.length) {
+                let otherRanger = _.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0] ||
+                    _.filter(Game.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0];
+                if (otherRanger) {
+                    otherRanger.memory.targetRoom = this.memory.targetRoom;
+                    otherRanger.memory.squadLeader = undefined;
+                }
+                return this.handleMilitaryCreep(false, false);
+            }
+            if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
+        }
         // If military action required do that
         if (this.handleMilitaryCreep(false, false)) return;
         // Heal squad
