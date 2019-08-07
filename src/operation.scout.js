@@ -127,7 +127,7 @@ Creep.prototype.scoutRoom = function () {
                             priority: priority
                         };
                     }
-                } else if ((maxLevel === 7 && towers.length <= 2) || towers.length === 1) {
+                } else if ((maxLevel === 7 && towers.length <= 2) || towers.length <= 1) {
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'siegeGroup',
