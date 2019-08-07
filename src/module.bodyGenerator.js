@@ -201,17 +201,17 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 heal = 2;
                 move = 6;
             } else if (level === 6) {
-                rangedAttack = 5;
+                rangedAttack = 7;
                 heal = 3;
-                move = 8;
+                move = 10;
             } else if (level === 7) {
-                rangedAttack = 6;
-                heal = 5;
-                move = 11;
+                rangedAttack = 12;
+                heal = 4;
+                move = 16;
             } else if (level === 8) {
-                rangedAttack = 17;
-                heal = 8;
-                move = 25;
+                rangedAttack = 18;
+                heal = 6;
+                move = 24;
             } else {
                 rangedAttack = 1;
                 move = 1;

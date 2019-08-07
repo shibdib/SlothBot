@@ -15,6 +15,7 @@ module.exports.role = function (creep) {
         creep.memory.onContainer = undefined;
         return;
     }
+    if (skSafety(creep)) return;
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     //Initial move
@@ -29,8 +30,6 @@ module.exports.role = function (creep) {
         //If source is set mine
         if (!creep.memory.source) creep.findSource();
     }
-    //Handle SK Mining
-    if (creep.memory.destinationReached && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].sk && skSafety(creep)) return;
     //Harvest
     if (creep.memory.source) {
         let container = Game.getObjectById(creep.memory.containerID);
@@ -59,7 +58,6 @@ module.exports.role = function (creep) {
                 }
                 break;
         }
-        return;
     }
 };
 
@@ -100,9 +98,12 @@ function harvestDepositContainer(source, creep) {
 }
 
 function skSafety(creep) {
-    let dangerousLair = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR && (!s.ticksToSpawn || s.ticksToSpawn < 15) && s.pos.getRangeTo(creep) <= 6);
+    let dangerousLair = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR && (!s.ticksToSpawn || s.ticksToSpawn < 10) && s.pos.getRangeTo(creep) <= 6);
     let keepers = _.filter(creep.room.creeps, (c) => c.owner === 'Source Keeper' && s.pos.getRangeTo(creep) <= 6);
-    if (keepers.length || dangerousLair.length) creep.fleeHome(true);
+    if (keepers.length || dangerousLair.length) {
+        creep.kite();
+        return true;
+    }
 }
 
 function findContainerSpot(room, position) {

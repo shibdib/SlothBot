@@ -3,10 +3,7 @@
  */
 module.exports.role = function (creep) {
     let source;
-    let hostiles = creep.findClosestEnemy();
-    if (hostiles && creep.pos.getRangeTo(hostiles) <= 4) return creep.retreat();
-    let lair = Game.getObjectById(creep.memory.lair);
-    if (lair && creep.pos.getRangeTo(lair) <= 5 && lair.ticksToSpawn <= 10) return creep.flee(lair);
+    if (skSafety(creep)) return;
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (_.sum(creep.carry) === 0) creep.memory.harvesting = true;
@@ -18,7 +15,7 @@ module.exports.role = function (creep) {
     if (_.sum(creep.carry) === creep.carryCapacity || !creep.memory.harvesting) {
         delete creep.memory.harvesting;
         creep.memory.hauling = true;
-        return SKdeposit(creep);
+        return skDeposit(creep);
     } else {
         delete creep.memory.hauling;
         if (creep.memory.source) {
@@ -26,7 +23,6 @@ module.exports.role = function (creep) {
             if (!source || source.pos.roomName !== creep.pos.roomName) return delete creep.memory.source;
             if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
             if (source.energy === 0) {
-                if (lair && creep.pos.getRangeTo(lair) <= 6) return creep.flee(lair);
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
                 switch (creep.harvest(source)) {
@@ -51,61 +47,33 @@ module.exports.role = function (creep) {
     }
 };
 
-function SKdeposit(creep) {
+function skDeposit(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
         if (creep.renewalCheck()) return;
-        if (creep.memory.storageDestination) {
-            let storageItem = Game.getObjectById(creep.memory.storageDestination);
+        if (creep.room.storage) {
             for (const resourceType in creep.carry) {
-                switch (creep.transfer(storageItem, resourceType)) {
+                switch (creep.transfer(creep.room.storage, resourceType)) {
                     case OK:
                         break;
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(storageItem);
+                        creep.shibMove(creep.room.storage);
                         break;
                     case ERR_FULL:
                         delete creep.memory.storageDestination;
                         break;
                 }
             }
-        } else {
-            let storage = creep.room.storage;
-            let terminal = creep.room.terminal;
-            if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70) {
-                creep.memory.storageDestination = terminal.id;
-                for (const resourceType in this.carry) {
-                    switch (this.transfer(terminal, resourceType)) {
-                        case OK:
-                            delete this.memory.storageDestination;
-                            delete this.memory.destinationReached;
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            this.shibMove(terminal);
-                            break;
-                        case ERR_FULL:
-                            delete this.memory.storageDestination;
-                            break;
-                    }
-                }
-            } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.90) {
-                creep.memory.storageDestination = storage.id;
-                for (const resourceType in this.carry) {
-                    switch (this.transfer(storage, resourceType)) {
-                        case OK:
-                            delete this.memory.storageDestination;
-                            delete this.memory.destinationReached;
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            this.shibMove(storage);
-                            break;
-                        case ERR_FULL:
-                            delete this.memory.storageDestination;
-                            break;
-                    }
-                }
-            }
         }
     } else {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 19});
+    }
+}
+
+function skSafety(creep) {
+    let dangerousLair = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR && (!s.ticksToSpawn || s.ticksToSpawn < 10) && s.pos.getRangeTo(creep) <= 6);
+    let keepers = _.filter(creep.room.creeps, (c) => c.owner === 'Source Keeper' && s.pos.getRangeTo(creep) <= 6);
+    if (keepers.length || dangerousLair.length) {
+        creep.kite();
+        return true;
     }
 }

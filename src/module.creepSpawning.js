@@ -460,7 +460,7 @@ module.exports.remoteCreepQueue = function (room) {
         for (let roomName of adjacent) {
             if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
             let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && (!Memory.roomCache[r] ||
-                (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME) &&
+                (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].sk && !Memory.roomCache[r].owner && (!Memory.roomCache[r].reservation || Memory.roomCache[r].user === MY_USERNAME) &&
                     Game.map.getRoomLinearDistance(room.name, r) <= 1)));
             adjacent = _.uniq(_.union(adjacentExits, adjacent));
         }
@@ -483,21 +483,24 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteRoom = Game.rooms[remotes[keys]];
             let noSpawn = (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].threatLevel > 0 && Memory.roomCache[remotes[keys]].lastInvaderCheck + 1000 > Game.time);
             // Handle SK
-            if (1 > 2 && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !responseNeeded) {
-                let SKSupport = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKsupport' && creep.memory.overlord === room.name);
-                if (!_.includes(queue, 'SKsupport') && (SKSupport.length < 1 || SKSupport[0] && SKSupport[0].ticksToLive < (SKSupport[0].body.length * 3 + 10) && SKSupport.length < 2)) {
-                    queueCreep(room, PRIORITIES.SKsupport, {role: 'SKsupport', destination: remotes[room.name]})
-                }
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !responseNeeded) {
                 let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
-                if (!_.includes(queue, 'SKattacker') && (SKAttacker.length < 1 || SKAttacker[0] && SKAttacker[0].ticksToLive < (SKAttacker[0].body.length * 3 + 10) && SKAttacker.length < 2) && SKSupport.length) {
+                if (!_.includes(queue, 'SKattacker') && (SKAttacker.length < 1 || SKAttacker[0] && SKAttacker[0].ticksToLive < (SKAttacker[0].body.length * 3 + 10) && SKAttacker.length < 2)) {
                     queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', destination: remotes[room.name]})
                 }
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;
-                if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources && room.energy < ENERGY_AMOUNT && room.memory.state < 3) sourceCount = Memory.roomCache[remotes[keys]].sources;
-                if (SKAttacker.length && SKSupport.length && remoteHarvester.length < sourceCount) {
+                if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                if (!_.includes(queue, 'remoteHarvester') && SKAttacker.length && remoteHarvester.length < sourceCount) {
                     queueCreep(room, PRIORITIES.remoteHarvester, {
                         role: 'remoteHarvester',
+                        destination: remotes[keys]
+                    })
+                }
+                let remoteMineral = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKmineral');
+                if (!_.includes(queue, 'SKmineral') && SKAttacker.length && !remoteMineral.length) {
+                    queueCreep(room, PRIORITIES.remoteHarvester, {
+                        role: 'SKmineral',
                         destination: remotes[keys]
                     })
                 }

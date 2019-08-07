@@ -8,13 +8,9 @@ Creep.prototype.holdRoom = function () {
     if (this.borderCheck()) return;
     if (this.memory.role === 'longbow') {
         // Set squad leader
-        if (!this.memory.squadLeader && (!this.memory.leader || !Game.getObjectById(this.memory.leader))) {
-            let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'hold' && c.memory.squadLeader && c.memory.role === 'longbow');
-            if (!squadLeader.length) {
-                this.memory.squadLeader = true;
-            } else {
-                this.memory.leader = squadLeader[0].id;
-            }
+        if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
+            let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'hold' && c.memory.squadLeader);
+            if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
         }
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'hold' && c.id !== this.id && c.memory.role === 'longbow');
         // Handle squad leader
@@ -22,22 +18,30 @@ Creep.prototype.holdRoom = function () {
             levelManager(this);
             highCommand.threatManagement(this);
             // Remove duplicate squad leaders
-            let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord && c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id);
-            if (squadLeader.length) this.memory.squadLeader = undefined;
+            let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord &&
+                c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id && c.memory.targetRoom === this.memory.targetRoom);
+            if (squadLeader.length) return this.memory.squadLeader = undefined;
             // If military action required do that
             if (this.handleMilitaryCreep(false, false, true)) return;
-            // Heal squad
-            let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
-            if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
+            if (this.ticksToLive >= 1000 || squadMember.length) {
+                if (!squadMember.length) {
+                    let otherHold = _.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0] ||
+                        _.filter(Game.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0];
+                    if (otherHold) {
+                        otherHold.memory.targetRoom = this.memory.targetRoom;
+                        otherHold.memory.squadLeader = undefined;
+                    }
+                }
+                if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
+            }
             // Handle target room
             if (this.room.name === this.memory.targetRoom) {
                 highCommand.operationSustainability(this.room);
                 Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive);
             } else {
-                // Check for squad
-                //if ((!squadMember.length || this.pos.getRangeTo(squadMember[0]) > 1) && Number(Memory.targetRooms[this.memory.targetRoom].level > 1)) return this.idleFor(1);
                 this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 24});
             }
+            if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
         } else {
             // Set leader and move to them
             let leader = Game.getObjectById(this.memory.leader);
@@ -53,10 +57,7 @@ Creep.prototype.holdRoom = function () {
             } else {
                 this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
             }
-            // Heal squadmates
-            let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
-            if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
-            this.attackInRange();
+            if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
         }
     }
 };

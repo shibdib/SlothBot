@@ -39,7 +39,6 @@ Creep.prototype.findMineral = function () {
             }
         }
     }
-    return;
 };
 
 Creep.prototype.findConstruction = function () {
