@@ -565,6 +565,7 @@ module.exports.remoteCreepQueue = function (room) {
                 //let maxCapacity = _.max(remoteHauler, '.carryCapacity').carryCapacity || 250;
                 let remoteHaulerCapacity = _.sum(remoteHauler, '.carryCapacity');
                 let spawn = remoteHaulerCapacity < remoteHarvesters.length * harvesterPower;
+                if (level < 5) spawn = remoteHaulerCapacity < remoteHarvesters.length * harvesterPower && remoteHauler.length < remoteHarvesters.length * 1.5;
                 if (spawn) {
                     let priority = PRIORITIES.remoteHauler;
                     if (!remoteHauler.length) priority = PRIORITIES.remoteHauler - 2;

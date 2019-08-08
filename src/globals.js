@@ -10,7 +10,7 @@ let Log = require('logger');
 let globals = function () {
 
     //Manually set baddies and friends and combat stuff
-    global.HOSTILES = [];
+    global.HOSTILES = ['Tanjera'];
     global.NO_AGGRESSION = [];
     global.MANUAL_FRIENDS = [];
     global.NAP_ALLIANCE = [];
@@ -35,7 +35,7 @@ let globals = function () {
 
     global.CREDIT_BUFFER = 100000;
     global.TRADE_AMOUNT = 10000;
-    global.ENERGY_AMOUNT = 100000;
+    global.ENERGY_AMOUNT = 50000;
     global.SIEGE_ENERGY_AMOUNT = 100000;
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 12500;

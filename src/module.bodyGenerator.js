@@ -298,7 +298,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = 3;
                 break;
             } else {
-                work = 2;
+                work = 3;
                 carry = 1;
                 move = 2;
                 break;

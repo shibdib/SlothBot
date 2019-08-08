@@ -74,7 +74,7 @@ function shibMove(creep, heading, options = {}) {
     }
     // Request a tow truck if needed
     if (!creep.className) {
-        if (heading.id && (!creep.pos.isNearTo(heading) || !creep.getActiveBodyparts(MOVE)) && !creep.className && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
+        if (heading.id && (!creep.pos.getRangeTo(heading) > 2 || !creep.getActiveBodyparts(MOVE)) && !creep.className && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
             creep.memory.towDestination = heading.id;
             if (options.range === 0) creep.memory.towToObject = true;
         } else if (heading.id && (creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading))) {
