@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let observers = require('module.observerController');
 let defense = require('military.defense');
 let links = require('module.linkController');
@@ -21,7 +28,7 @@ module.exports.overlordMind = function (room) {
     defense.controller(room);
 
     //Build Room
-    if (((room.controller.level < 4 && Game.time % 20 === 0) || (storedLevel[room.name] && storedLevel[room.name] !== room.controller.level) || Game.time % 100 === 0) && cpuBucket >= 9999) {
+    if ((room.controller.level < 4 && Game.time % 20 === 0) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         try {
