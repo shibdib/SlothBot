@@ -13,20 +13,21 @@ module.exports.claimNewRoom = function () {
         let possibles = {};
         loop1:
             for (let key in worthyRooms) {
+                let name = worthyRooms[key].name;
                 // All rooms start at 5000
                 let baseScore = 5000;
                 // Remote access
-                let neighboring = Game.map.describeExits(key);
+                let neighboring = Game.map.describeExits(name);
                 if (!neighboring) continue;
                 let sourceCount = 0;
-                if (neighboring['1'] && !Memory.roomCache[neighboring['1']].user && !Memory.roomCache[neighboring['1']].sk) sourceCount += Memory.roomCache[neighboring['1']].sources.length;
-                if (neighboring['3'] && !Memory.roomCache[neighboring['3']].user && !Memory.roomCache[neighboring['1']].sk) sourceCount += Memory.roomCache[neighboring['3']].sources.length;
-                if (neighboring['5'] && !Memory.roomCache[neighboring['5']].user && !Memory.roomCache[neighboring['1']].sk) sourceCount += Memory.roomCache[neighboring['5']].sources.length;
-                if (neighboring['7'] && !Memory.roomCache[neighboring['7']].user && !Memory.roomCache[neighboring['1']].sk) sourceCount += Memory.roomCache[neighboring['7']].sources.length;
+                if (neighboring['1'] && Memory.roomCache[neighboring['1']] && !Memory.roomCache[neighboring['1']].user) sourceCount += Memory.roomCache[neighboring['1']].sources;
+                if (neighboring['3'] && Memory.roomCache[neighboring['3']] && !Memory.roomCache[neighboring['3']].user) sourceCount += Memory.roomCache[neighboring['3']].sources;
+                if (neighboring['5'] && Memory.roomCache[neighboring['5']] && !Memory.roomCache[neighboring['5']].user) sourceCount += Memory.roomCache[neighboring['5']].sources;
+                if (neighboring['7'] && Memory.roomCache[neighboring['7']] && !Memory.roomCache[neighboring['7']].user) sourceCount += Memory.roomCache[neighboring['7']].sources;
                 if (sourceCount < 4) continue;
                 baseScore += (sourceCount * 40);
                 // Swamps suck
-                let terrain = new Room.Terrain(key);
+                let terrain = new Room.Terrain(name);
                 let terrainScore = 0;
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
@@ -44,7 +45,6 @@ module.exports.claimNewRoom = function () {
                     let distance = Game.map.findRoute(key, avoidRooms[key].name).length;
                     if (distance < 2 || (Game.rooms[key] && Game.rooms[key].controller.my)) continue loop1;
                 }
-                baseScore -= this.findClosestOwnedRoom(true) * 75;
                 worthyRooms[key].claimValue = baseScore;
                 possibles[key] = worthyRooms[key];
             }

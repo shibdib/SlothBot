@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018.
+ * Copyright (c) 2019.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -40,7 +40,7 @@ module.exports.role = function (creep) {
                         creep.memory.destinationReached = true;
                         break;
                     case ERR_NOT_IN_RANGE:
-                        creep.shibMove(creep.room.controller, {offRoad: true});
+                        if (!creep.shibMove(creep.room.controller, {offRoad: true})) creep.memory.destinationReached = true;
                 }
             } else if (!creep.moveToHostileConstructionSites()) {
                 creep.memory.destinationReached = true;

@@ -316,7 +316,7 @@ module.exports.miscCreepQueue = function (room) {
     if (!_.includes(queue, 'labTech') && (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0] || _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0])) {
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (labTech.length < 1) {
-            queueCreep(room, PRIORITIES.secondary, {role: 'labTech', localCache: true})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', localCache: true})
         }
     }
     //Link Manager
@@ -331,7 +331,7 @@ module.exports.miscCreepQueue = function (room) {
     if (room.energy >= ENERGY_AMOUNT && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] && !_.includes(queue, 'powerManager') && level === 8) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (powerManager.length < 1) {
-            queueCreep(room, PRIORITIES.secondary, {role: 'powerManager', localCache: true})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', localCache: true})
         }
     }
     //SPECIALIZED
@@ -526,7 +526,7 @@ module.exports.remoteCreepQueue = function (room) {
                         if (!_.includes(queue, 'remoteHarvester')) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                             let sourceCount = 1;
-                            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                            if (level >= 4 && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
                             if (remoteHarvester.length < sourceCount || (remoteHarvester[0] && remoteHarvester[0].ticksToLive < (remoteHarvester[0].body.length * 3 + 10) && remoteHarvester.length < sourceCount + 1)) {
                                 queueCreep(room, PRIORITIES.remoteHarvester, {
                                     role: 'remoteHarvester',
@@ -564,7 +564,8 @@ module.exports.remoteCreepQueue = function (room) {
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
                 //let maxCapacity = _.max(remoteHauler, '.carryCapacity').carryCapacity || 250;
                 let remoteHaulerCapacity = _.sum(remoteHauler, '.carryCapacity');
-                if (remoteHaulerCapacity < remoteHarvesters.length * harvesterPower) {
+                let spawn = remoteHaulerCapacity < remoteHarvesters.length * harvesterPower;
+                if (spawn) {
                     let priority = PRIORITIES.remoteHauler;
                     if (!remoteHauler.length) priority = PRIORITIES.remoteHauler - 2;
                     queueCreep(room, priority, {

@@ -1,16 +1,24 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
 
 module.exports.role = function (creep) {
-    let requireBoosts = creep.memory.operation === 'siege' || creep.memory.operation === 'siegeGroup';
-    if (!creep.memory.boostAttempt) return creep.tryToBoost(['heal'], requireBoosts);
+    if (!creep.memory.boostAttempt) return creep.tryToBoost(['heal']);
     if (creep.hits < creep.hitsMax) creep.heal(creep);
     // Harass
     if (creep.memory.operation && creep.memory.operation === 'harass') creep.harassRoom();
     // Siege
     if (creep.memory.operation && creep.memory.operation === 'siege') creep.siegeRoom();
-    if (creep.memory.operation && creep.memory.operation === 'siegeGroup') return creep.siegeGroupRoom();
+    if (creep.memory.operation && creep.memory.operation === 'siegeGroup') {
+        return creep.siegeGroupRoom();
+    }
     // Hold
     if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
     // Remote Guard Squad

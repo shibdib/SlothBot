@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let overlord = require('main.Overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
@@ -63,18 +70,18 @@ module.exports.hiveMind = function () {
         processed++;
     }
     //Expansion Manager
-    if (Game.time % 150 === 0) {
+    if (Game.time % 25 === 0) {
         let overlordCount = Memory.ownedRooms.length;
         let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
         let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
-        if (maxLevel >= 4 && minLevel >= 3 && cpuBucket === 10000) {
-            let maxRooms = _.round(Game.cpu.limit / 12);
-            if (TEN_CPU) maxRooms = 2;
+        let maxRooms = _.round(Game.cpu.limit / 12);
+        if (TEN_CPU) maxRooms = 2;
+        if (maxLevel >= 4 && minLevel >= 3 && overlordCount < maxRooms) {
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
             let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
             let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
-            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimAttempt.length && !claimScout.length && Game.gcl.level > overlordCount && overlordCount < maxRooms) {
+            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimAttempt.length && !claimScout.length && Game.gcl.level > overlordCount) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {

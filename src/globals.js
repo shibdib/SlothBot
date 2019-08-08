@@ -87,6 +87,7 @@ let globals = function () {
         repairer: 7,
         // Haulers
         hauler: 1,
+        miscHauler: 5,
         // Remotes
         remoteUtility: 6,
         remoteHarvester: 4,

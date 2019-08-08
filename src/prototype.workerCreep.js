@@ -323,6 +323,12 @@ Creep.prototype.findEnergy = function () {
         this.memory.energyDestination = tombstone.id;
         return true;
     }
+    // Hub Container
+    let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
+    if (hubContainer && hubContainer.energy >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity')) {
+        this.memory.energyDestination = hubContainer.id;
+        return true;
+    }
     // Container
     let container = this.pos.findClosestByRange(FIND_STRUCTURES, {
         filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id && this.room.memory.hubContainer !== s.id
@@ -330,12 +336,6 @@ Creep.prototype.findEnergy = function () {
     });
     if (container) {
         this.memory.energyDestination = container.id;
-        return true;
-    }
-    // Hub Container
-    let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
-    if (hubContainer && hubContainer.energy >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity')) {
-        this.memory.energyDestination = hubContainer.id;
         return true;
     }
     //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
