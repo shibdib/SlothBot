@@ -10,7 +10,9 @@ Creep.prototype.borderPatrol = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Run from unwinnable fights
-    if (!this.canIWin()) {
+    if (!this.canIWin() || (this.room.user && !_.includes(FRIENDLIES, this.room.user))) {
+        console.log(_.includes(FRIENDLIES, this.room.user))
+        console.log(this.canIWin())
         this.attackInRange();
         this.say('RUN!', true);
         delete this.memory.responseTarget;

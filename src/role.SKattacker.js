@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -20,6 +27,7 @@ module.exports.role = function (creep) {
                 default:
             }
         } else {
+            if (creep.healMyCreeps()) return;
             let lair = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR), 'ticksToSpawn');
             creep.shibMove(lair, {range: 1});
         }

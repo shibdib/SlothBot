@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Set the unit to idle-mode until recall tick
  *
@@ -77,14 +84,8 @@ Creep.prototype.towTruck = function () {
                 return true;
             } else {
                 trailer.move(this);
-                if (!trailer.memory.towToObject && this.pos.isNearTo(Game.getObjectById(trailer.memory.towDestination))) {
-                    this.move(this.pos.getDirectionTo(trailer));
-                    this.memory.trailer = undefined;
-                    trailer.memory.towCreep = undefined;
-                    trailer.memory.towDestination = undefined;
-                    trailer.memory.towToObject = undefined;
-                    return false;
-                } else if (trailer.memory.towToObject && !this.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination))) {
+                if (!Game.getObjectById(trailer.memory.towDestination) || (!trailer.memory.towToObject && this.pos.isNearTo(Game.getObjectById(trailer.memory.towDestination))) ||
+                    (trailer.memory.towToObject && !this.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination)))) {
                     this.move(this.pos.getDirectionTo(trailer));
                     this.memory.trailer = undefined;
                     trailer.memory.towCreep = undefined;
@@ -92,13 +93,6 @@ Creep.prototype.towTruck = function () {
                     trailer.memory.towToObject = undefined;
                     return false;
                 } else {
-                    if (!Game.getObjectById(trailer.memory.towDestination)) {
-                        this.memory.trailer = undefined;
-                        trailer.memory.towCreep = undefined;
-                        trailer.memory.towDestination = undefined;
-                        trailer.memory.towToObject = undefined;
-                        return false;
-                    }
                     let range = 1;
                     if (trailer.memory.towToObject) range = 0;
                     this.shibMove(Game.getObjectById(trailer.memory.towDestination), {range: range});

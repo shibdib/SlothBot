@@ -40,7 +40,9 @@ module.exports.role = function (creep) {
             } else if (container) {
                 creep.memory.onContainer = true;
             }
-        } else if (!creep.memory.containerID || !container) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
+        } else if (!creep.memory.containerID || !container) {
+            creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
+        }
         let source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:

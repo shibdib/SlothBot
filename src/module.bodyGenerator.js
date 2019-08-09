@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.bodyGenerator = function (level, role, room = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal;
@@ -380,13 +387,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
     for (let i = 0; i < work; i++) body.push(WORK)
     for (let i = 0; i < carry; i++) body.push(CARRY)
     for (let i = 0; i < claim; i++) body.push(CLAIM)
-    for (let i = 0; i < attack; i++) body.push(ATTACK)
     for (let i = 0; i < rangedAttack; i++) body.push(RANGED_ATTACK)
+    let attackArray = [];
+    for (let i = 0; i < attack; i++) attackArray.push(ATTACK)
     let moveArray = [];
     for (let i = 0; i < move; i++) moveArray.push(MOVE)
     let healArray = [];
     for (let i = 0; i < heal; i++) healArray.push(HEAL)
     let toughArray = [];
     for (let i = 0; i < tough; i++) toughArray.push(TOUGH)
-    return toughArray.concat(shuffle(body), moveArray, healArray);
+    return toughArray.concat(shuffle(body), moveArray, attackArray, healArray);
 };

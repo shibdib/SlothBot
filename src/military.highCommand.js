@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by rober on 5/16/2017.
  */
@@ -24,6 +31,7 @@ module.exports.highCommand = function () {
 
 function manageResponseForces() {
     let responseTargets = _.max(Memory.roomCache, '.threatLevel');
+    let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') && c.room.hostileCreeps.length)[0];
     if (!responseTargets || !responseTargets.name) {
         let highestHeat = _.max(Memory.roomCache, '.roomHeat');
         if (highestHeat && highestHeat.name) {
@@ -42,6 +50,14 @@ function manageResponseForces() {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
             log.a(creep.name + ' reassigned to assist ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
+        }
+    } else if (unarmedEnemies) {
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && unarmedEnemies.room.name !== c.room.name && c.memory.awaitingOrders
+            && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= 6);
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = unarmedEnemies.room.name;
+            creep.memory.awaitingOrders = undefined;
+            log.a(creep.name + ' reassigned to assist ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(creep.room.name));
         }
     }
 }
@@ -201,30 +217,13 @@ function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'attack' && target.type !== 'scout').length || 0;
+    let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
     if (TEN_CPU) pokeLimit = 3;
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
     let cleanLimit = CLEAN_LIMIT;
     if (TEN_CPU) cleanLimit = 1;
-    let sieges = _.filter(Memory.targetRooms, (t) => t.type === 'siege');
-    if (sieges.length) {
-        let activeSiege = _.filter(sieges, (t) => t.activeSiege)[0];
-        if (!activeSiege) {
-            let newActive = shuffle(sieges)[0];
-            newActive.activeSiege = true;
-            newActive.tick = Game.time;
-        }
-    }
-    let swarms = _.filter(Memory.targetRooms, (t) => t.type === 'swarm');
-    if (swarms.length) {
-        let activeSwarm = _.filter(swarms, (t) => t.activeSwarm)[0];
-        if (!activeSwarm) {
-            let newActive = shuffle(swarms)[0];
-            newActive.activeSwarm = true;
-            newActive.tick = Game.time;
-        }
-    }
     if (!Memory.targetRooms) Memory.targetRooms = {};
     // Clear scouts if over limit
     if (totalCountFiltered > HARASS_LIMIT) {
@@ -278,6 +277,12 @@ function manageAttacks() {
             case 'siege':
                 if (maxLevel < 6) {
                     delete Memory.targetRooms[key];
+                    continue;
+                }
+                if (siegeCountFiltered > 1) {
+                    log.a('Canceling operation in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
+                    siegeCountFiltered--;
                     continue;
                 }
                 break;

@@ -1,9 +1,16 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.segmentManager = function () {
 //Alliance List Management
     let doNotAggressArray;
     if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) {
         doNotAggressArray = LOANlist;
-        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
+        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, [MY_USERNAME]);
     } else {
         doNotAggressArray = [MY_USERNAME];
         doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);

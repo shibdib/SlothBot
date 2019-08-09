@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by rober on 7/5/2017.
  */
@@ -42,6 +49,20 @@ Room.prototype.getExtensionCount = function () {
         return RCL_8_EXTENSIONS
     }
 };
+
+Object.defineProperty(Room.prototype, 'user', {
+    get: function () {
+        if (!this._user) {
+            if (!this.controller) this._user = undefined;
+            else if (this.controller.owner) this._user = this.controller.owner.username;
+            else if (this.controller.reservation) this._user = this.controller.reservation.username;
+            else this._user = undefined;
+        }
+        return this._user;
+    },
+    enumerable: false,
+    configurable: true
+});
 
 Object.defineProperty(Room.prototype, 'sources', {
     get: function () {

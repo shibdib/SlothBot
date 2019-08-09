@@ -486,7 +486,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && !TEN_CPU && level >= 7 && !responseNeeded) {
                 let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKattacker' && creep.memory.overlord === room.name);
                 if (!_.includes(queue, 'SKattacker') && (SKAttacker.length < 1 || SKAttacker[0] && SKAttacker[0].ticksToLive < (SKAttacker[0].body.length * 3 + 10) && SKAttacker.length < 2)) {
-                    queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', destination: remotes[room.name]})
+                    queueCreep(room, PRIORITIES.SKattacker, {role: 'SKattacker', destination: remotes[keys]})
                 }
                 let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                 let sourceCount = 1;
