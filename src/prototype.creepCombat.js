@@ -170,7 +170,7 @@ Creep.prototype.healInRange = function () {
     if (this.hits < this.hitsMax) return this.heal(this);
     let healCreeps = _.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3);
     if (healCreeps.length > 0) {
-        this.rangedHeal(healCreeps[0]);
+        if (this.pos.isNearTo(healCreeps[0])) this.heal(healCreeps[0]); else this.rangedHeal(healCreeps[0]);
     }
     return false;
 };
@@ -872,5 +872,5 @@ Creep.prototype.canIWin = function () {
     Memory.roomCache[this.room.name].hostilePower = hostileCombatParts;
     Memory.roomCache[this.room.name].friendlyPower = alliedCombatParts;
     if (this.getActiveBodyparts(RANGED_ATTACK)) hostileCombatParts -= hostileAttackParts;
-    return !hostileCombatParts || hostileCombatParts * 0.8 < alliedCombatParts;
+    return !hostileCombatParts || hostileCombatParts * 0.95 < alliedCombatParts;
 };

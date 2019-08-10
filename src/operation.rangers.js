@@ -26,7 +26,7 @@ Creep.prototype.rangersRoom = function () {
         // Check for squad and handle grouping
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         this.memory.waitingForSquad = squadMember.length > 0;
-        if (this.ticksToLive >= 1000 || squadMember.length) {
+        if (this.ticksToLive <= 1000 || squadMember.length) {
             if (!squadMember.length) {
                 let otherRanger = _.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0] ||
                     _.filter(Game.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0];
@@ -60,7 +60,7 @@ Creep.prototype.rangersRoom = function () {
 };
 
 function levelManager(creep) {
-    if (!Memory.targetRooms[creep.memory.targetRoom]) return;
+    if (!Memory.targetRooms[creep.memory.targetRoom] || creep.room.name !== creep.memory.targetRoom) return;
     let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10);
     let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
@@ -76,5 +76,9 @@ function levelManager(creep) {
         Memory.targetRooms[creep.memory.targetRoom].level = 1;
     } else {
         Memory.targetRooms[creep.memory.targetRoom].level = 0;
+    }
+    if (creep.room.controller) {
+        if (creep.room.controller.owner) return Memory.targetRooms[creep.memory.targetRoom].type = 'hold';
+        if (creep.room.controller.reservation) Memory.targetRooms[creep.room.name].unClaimer = !creep.room.controller.upgradeBlocked && creep.room.controller.reservation.ticksToEnd >= 500;
     }
 }

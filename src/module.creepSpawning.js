@@ -650,7 +650,7 @@ module.exports.militaryCreepQueue = function () {
         //Observers
         if (opLevel === 0) {
             let observer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'observer');
-            if ((observer.length < 1 || (observer[0] && observer[0].ticksToLive < (observer[0].body.length * 3 + 10) && observer.length < 2)) && !_.includes(queue, 'observer')) {
+            if ((observer.length < 1 || (observer[0] && observer[0].ticksToLive < (observer[0].body.length * 3 + 10) && observer.length < 2))) {
                 queueMilitaryCreep(PRIORITIES.priority, {
                     role: 'observer',
                     targetRoom: key,
@@ -662,14 +662,14 @@ module.exports.militaryCreepQueue = function () {
         switch (Memory.targetRooms[key].type) {
             case 'claimScout': //Claim Scouting
                 let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
-                if (!claimScout.length && !_.includes(queue, 'claimScout')) {
+                if (!claimScout.length) {
                     queueMilitaryCreep(PRIORITIES.priority, {role: 'claimScout', targetRoom: key, military: true})
                 }
                 break;
             case 'attack':
             case 'scout': //Room Scouting
                 let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
-                if (!scout.length && !_.includes(queue, 'scout')) {
+                if (!scout.length) {
                     queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
                 }
                 break;
@@ -701,7 +701,7 @@ module.exports.militaryCreepQueue = function () {
                     reboot = false;
                 }
                 let longbow = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow' && creep.memory.operation === 'hold');
-                if ((longbow.length < longbows || (longbow[0] && longbow[0].ticksToLive < (longbow[0].body.length * 3 + 50) && longbow.length < longbows + 1)) && !_.includes(queue, 'longbow')) {
+                if ((longbow.length < longbows || (longbow[0] && longbow[0].ticksToLive < (longbow[0].body.length * 3 + 50) && longbow.length < longbows + 1))) {
                     queueMilitaryCreep(priority, {
                         role: 'longbow',
                         targetRoom: key,
@@ -711,7 +711,7 @@ module.exports.militaryCreepQueue = function () {
                     })
                 }
                 let unClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'unClaimer' && creep.memory.operation === 'hold');
-                if (unClaimerNeeded && (unClaimer.length < 1 || (unClaimer[0] && unClaimer[0].ticksToLive < (unClaimer[0].body.length * 3 + 10) && unClaimer.length < 2)) && !_.includes(queue, 'unClaimer') && longbow.length) {
+                if (unClaimerNeeded && (unClaimer.length < 1 || (unClaimer[0] && unClaimer[0].ticksToLive < (unClaimer[0].body.length * 3 + 10) && unClaimer.length < 2)) && longbow.length) {
                     queueMilitaryCreep(priority, {
                         role: 'unClaimer',
                         targetRoom: key,
@@ -725,7 +725,7 @@ module.exports.militaryCreepQueue = function () {
                 let healers = 2;
                 let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine' && creep.memory.operation === 'siegeGroup');
                 let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer' && creep.memory.operation === 'siegeGroup');
-                if (healer.length && (siegeEngine.length < siegeEngines || (siegeEngine[0] && siegeEngine[0].ticksToLive < (siegeEngine[0].body.length * 3 + 50) && siegeEngine.length < siegeEngines + 1)) && !_.includes(queue, 'siegeEngine')) {
+                if (healer.length && (siegeEngine.length < siegeEngines || (siegeEngine[0] && siegeEngine[0].ticksToLive < (siegeEngine[0].body.length * 3 + 50) && siegeEngine.length < siegeEngines + 1))) {
                     queueMilitaryCreep(priority, {
                         role: 'siegeEngine',
                         targetRoom: key,
@@ -733,7 +733,7 @@ module.exports.militaryCreepQueue = function () {
                         military: true
                     })
                 }
-                if ((healer.length < healers || (healer[0] && healer[0].ticksToLive < (healer[0].body.length * 3 + 50) && healer.length < healers + 1)) && !_.includes(queue, 'healer')) {
+                if ((healer.length < healers || (healer[0] && healer[0].ticksToLive < (healer[0].body.length * 3 + 50) && healer.length < healers + 1))) {
                     queueMilitaryCreep(priority, {
                         role: 'healer',
                         targetRoom: key,
@@ -753,7 +753,7 @@ module.exports.militaryCreepQueue = function () {
                     deconstructors = 3;
                 }
                 let deconstructor = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
-                if (deconstructor.length < deconstructors && !_.includes(queue, 'deconstructor')) {
+                if (deconstructor.length < deconstructors) {
                     queueMilitaryCreep(priority, {
                         role: 'deconstructor',
                         targetRoom: key,
@@ -799,7 +799,7 @@ module.exports.militaryCreepQueue = function () {
             case 'harass': // Harass
                 let harasser = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
                 let annoy = Memory.targetRooms[key].annoy;
-                if ((harasser.length < opLevel * 2 || (harasser[0] && harasser[0].ticksToLive < (harasser[0].body.length * 3 + 50) && harasser.length < opLevel * 2 + 1)) && !_.includes(queue, 'longbow')) {
+                if ((harasser.length < opLevel * 2 || (harasser[0] && harasser[0].ticksToLive < (harasser[0].body.length * 3 + 50) && harasser.length < opLevel * 2 + 1))) {
                     queueMilitaryCreep(priority, {
                         role: 'longbow',
                         targetRoom: key,
@@ -820,7 +820,7 @@ module.exports.militaryCreepQueue = function () {
                     drainers = 3;
                 }
                 let drainer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'drainer');
-                if ((drainer.length < drainers || (drainer[0] && drainer[0].ticksToLive < (drainer[0].body.length * 3 + 50) && drainer.length < drainers + 1)) && !_.includes(queue, 'drainer')) {
+                if ((drainer.length < drainers || (drainer[0] && drainer[0].ticksToLive < (drainer[0].body.length * 3 + 50) && drainer.length < drainers + 1))) {
                     queueMilitaryCreep(priority, {
                         role: 'drainer',
                         targetRoom: key,
@@ -835,7 +835,7 @@ module.exports.militaryCreepQueue = function () {
                 let sieger = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine');
                 let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeHealer');
                 if (opLevel > 2) opLevel = 2;
-                if (sieger.length < siegeHealer.length && !_.includes(queue, 'siegeEngine')) {
+                if (sieger.length < siegeHealer.length) {
                     queueMilitaryCreep(priority, {
                         role: 'siegeEngine',
                         targetRoom: key,
@@ -845,7 +845,7 @@ module.exports.militaryCreepQueue = function () {
                         staging: stagingRoom
                     })
                 }
-                if (siegeHealer.length < opLevel && !_.includes(queue, 'siegeHealer')) {
+                if (siegeHealer.length < opLevel) {
                     queueMilitaryCreep(priority, {
                         role: 'siegeHealer',
                         targetRoom: key,
@@ -859,7 +859,7 @@ module.exports.militaryCreepQueue = function () {
                 break;
             case 'swarm': // Swarm
                 let swarm = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'swarm');
-                if (swarm.length < (120 * opLevel) + 10 && !_.includes(queue, 'swarm')) {
+                if (swarm.length < (120 * opLevel) + 10) {
                     queueMilitaryCreep(priority, {
                         role: 'swarm',
                         targetRoom: key,
@@ -873,8 +873,8 @@ module.exports.militaryCreepQueue = function () {
             case 'rangers': // Rangers
                 let number = 2;
                 if (opLevel > 1) number = 3;
-                let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
-                if (rangers.length < number && !_.includes(queue, 'longbow')) {
+                let rangers = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow' && creep.memory.operation === 'rangers');
+                if (rangers.length < number) {
                     queueMilitaryCreep(priority, {
                         role: 'longbow',
                         targetRoom: key,
@@ -884,12 +884,21 @@ module.exports.militaryCreepQueue = function () {
                         staging: stagingRoom
                     })
                 }
+                let rangerUnClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'unClaimer' && creep.memory.operation === 'rangers');
+                if (Memory.targetRooms[key].unClaimer && rangerUnClaimer.length < 1 || (rangerUnClaimer[0] && rangerUnClaimer[0].ticksToLive < (rangerUnClaimer[0].body.length * 3 + 10) && rangerUnClaimer.length < 2)) {
+                    queueMilitaryCreep(priority, {
+                        role: 'unClaimer',
+                        targetRoom: key,
+                        operation: 'rangers',
+                        military: true
+                    })
+                }
                 break;
             case 'conscripts': // Conscripts
                 let conscriptCount = 10;
                 if (opLevel > 1) conscriptCount = 20;
                 let conscripts = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'conscript');
-                if (conscripts.length < conscriptCount + 2 && !_.includes(queue, 'conscript')) {
+                if (conscripts.length < conscriptCount + 2) {
                     queueMilitaryCreep(priority, {
                         role: 'conscript',
                         targetRoom: key,
@@ -902,7 +911,7 @@ module.exports.militaryCreepQueue = function () {
                 break;
             case 'poke': // Pokes
                 let jerk = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'jerk');
-                if (jerk.length < 1 && !_.includes(queue, 'jerk')) {
+                if (jerk.length < 1) {
                     queueMilitaryCreep(priority, {
                         role: 'jerk',
                         targetRoom: key,
@@ -913,7 +922,7 @@ module.exports.militaryCreepQueue = function () {
                 break;
             case 'guard': // Room Guard
                 let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
-                if (guards.length < 2 && !_.includes(queue, 'longbow')) {
+                if (guards.length < 2) {
                     queueMilitaryCreep(PRIORITIES.priority, {
                         role: 'longbow',
                         targetRoom: key,
@@ -984,10 +993,10 @@ function queueCreep(room, importance, options = {}, military = false) {
     }
 }
 
-function queueMilitaryCreep(importance, options = {}) {
+function queueMilitaryCreep(priority, options = {}) {
     let cache;
     cache = militaryQueue || {};
-    if (cache[options.role]) return;
+    if (cache[options.role] && cache[options.role].importance <= priority) return;
     _.defaults(options, {
         role: undefined,
         assignedSource: undefined,
@@ -1008,7 +1017,7 @@ function queueMilitaryCreep(importance, options = {}) {
     let key = options.role;
     cache[key] = {
         cached: Game.time,
-        importance: importance,
+        importance: priority,
         role: options.role,
         assignedSource: options.assignedSource,
         destination: options.destination,

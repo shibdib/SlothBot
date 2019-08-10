@@ -240,6 +240,7 @@ function manageAttacks() {
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
         let type = Memory.targetRooms[key].type;
+        let priority = Memory.targetRooms[key].priority;
         // Special Conditions
         switch (type) {
             // Manage Scouts
@@ -257,13 +258,13 @@ function manageAttacks() {
             // Manage harassment
             case 'harass':
             case 'rangers':
-                if (totalCountFiltered > HARASS_LIMIT + 2) {
+                if (totalCountFiltered > HARASS_LIMIT + 2 && Memory.roomCache[key].closestRange > LOCAL_SPHERE) {
                     log.a('Canceling operation in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     totalCountFiltered--;
                     continue;
                 }
-                if (Memory.roomCache[key] && Memory.roomCache[key].closestRange <= LOCAL_SPHERE) staleMulti = 2.5;
+                if (Memory.roomCache[key] && Memory.roomCache[key].closestRange <= LOCAL_SPHERE) staleMulti = 5;
                 break;
             // Manage Holds
             case 'hold':
