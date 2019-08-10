@@ -258,7 +258,7 @@ function manageAttacks() {
             // Manage harassment
             case 'harass':
             case 'rangers':
-                if (totalCountFiltered > HARASS_LIMIT + 2 && Memory.roomCache[key].closestRange > LOCAL_SPHERE) {
+                if (totalCountFiltered > HARASS_LIMIT + 2 && Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE) {
                     log.a('Canceling operation in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     totalCountFiltered--;
