@@ -30,11 +30,13 @@ module.exports.highCommand = function () {
 };
 
 function manageResponseForces() {
+    let spawnBorderPatrol = undefined;
     let responseTargets = _.max(Memory.roomCache, '.threatLevel');
     let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') && c.room.hostileCreeps.length)[0];
     if (!responseTargets || !responseTargets.name) {
         let highestHeat = _.max(Memory.roomCache, '.roomHeat');
         if (highestHeat && highestHeat.name) {
+            spawnBorderPatrol = true;
             let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders &&
                 Game.map.getRoomLinearDistance(c.memory.overlord, highestHeat.name) <= 6);
             for (let creep of idleResponders) {
@@ -44,6 +46,7 @@ function manageResponseForces() {
             }
         }
     } else if (responseTargets && responseTargets.name) {
+        spawnBorderPatrol = true;
         let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders
             && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 6);
         for (let creep of idleResponders) {
@@ -52,6 +55,7 @@ function manageResponseForces() {
             log.a(creep.name + ' reassigned to assist ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (unarmedEnemies) {
+        spawnBorderPatrol = true;
         let idleResponders = _.filter(Game.creeps, (c) => c.memory && unarmedEnemies.room.name !== c.room.name && c.memory.awaitingOrders
             && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= 6);
         for (let creep of idleResponders) {
@@ -59,7 +63,20 @@ function manageResponseForces() {
             creep.memory.awaitingOrders = undefined;
             log.a(creep.name + ' reassigned to assist ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(creep.room.name));
         }
+    } else if (Memory.targetRooms && _.size(Memory.targetRooms)) {
+        let local = _.filter(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'))[0];
+        if (local) {
+            spawnBorderPatrol = true;
+            let idleResponders = _.filter(Game.creeps, (c) => c.memory && unarmedEnemies.room.name !== c.room.name && c.memory.awaitingOrders
+                && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= 6);
+            for (let creep of idleResponders) {
+                creep.memory.responseTarget = unarmedEnemies.room.name;
+                creep.memory.awaitingOrders = undefined;
+                log.a(creep.name + ' reassigned to assist ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(creep.room.name));
+            }
+        }
     }
+    Memory.spawnBorderPatrol = spawnBorderPatrol;
 }
 
 function queueHelp(roomName) {
@@ -258,13 +275,13 @@ function manageAttacks() {
             // Manage harassment
             case 'harass':
             case 'rangers':
-                if (totalCountFiltered > HARASS_LIMIT + 2 && Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE) {
+                if (totalCountFiltered > HARASS_LIMIT) {
                     log.a('Canceling operation in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     totalCountFiltered--;
                     continue;
                 }
-                if (Memory.roomCache[key] && Memory.roomCache[key].closestRange <= LOCAL_SPHERE) staleMulti = 5;
+                if (Memory.roomCache[key] && Memory.roomCache[key].closestRange <= LOCAL_SPHERE) staleMulti = 2;
                 break;
             // Manage Holds
             case 'hold':
@@ -313,13 +330,8 @@ function manageAttacks() {
         }
         if (!Memory.targetRooms[key]) continue;
         // Cancel stale ops with no kills
-        if (Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) {
-            delete Memory.targetRooms[key];
-            if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
-            continue;
-        }
-        // Cancel once active stale ops who hasn't killed in 1 creep lifetime
-        if (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (3000 * staleMulti) < Game.time) {
+        if ((Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
+            (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (1500 * staleMulti) < Game.time)) {
             delete Memory.targetRooms[key];
             if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             continue;

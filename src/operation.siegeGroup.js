@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018.
+ * Copyright (c) 2019.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -12,7 +12,7 @@ Creep.prototype.siegeGroupRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
-    if ((!this.memory.squadLeader || !Game.getObjectById(this.memory.leader)) && !this.memory.leader) {
+    if ((!this.memory.squadLeader && !this.memory.leader) || (this.memory.leader && !Game.getObjectById(this.memory.leader))) {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.memory.squadLeader);
         if (!squadLeader.length && this.memory.role === 'siegeEngine') this.memory.squadLeader = true; else if (squadLeader.length) this.memory.leader = squadLeader[0].id;
     }
@@ -29,11 +29,12 @@ Creep.prototype.siegeGroupRoom = function () {
         if (!squadMember.length) return this.handleMilitaryCreep(false, false);
         if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         // If military action required do that
-        if (this.handleMilitaryCreep(false, false)) return;
+        this.attackInRange();
         // Heal
         if (this.hits < this.hitsMax) this.heal(this);
         // Move to response room if needed
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+        this.siege();
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);

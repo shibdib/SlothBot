@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -24,9 +31,9 @@ module.exports.role = function (creep) {
                 if (Math.random() > 0.99) creep.memory.onContainer = undefined;
                 delete creep.memory._shibMove;
                 if (link && link.energy) {
-                    creep.withdrawEnergy(link);
+                    creep.withdrawResource(link);
                 } else if (container && container.store[RESOURCE_ENERGY]) {
-                    creep.withdrawEnergy(container);
+                    creep.withdrawResource(container);
                 }
                 return;
             case ERR_NOT_IN_RANGE:
@@ -34,15 +41,15 @@ module.exports.role = function (creep) {
         }
     }
     if (creep.memory.energyDestination) {
-        creep.withdrawEnergy();
-    } else if (creep.room.controller.level >= 5 && creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE)) {
+        creep.withdrawResource();
+    } else if (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE)) {
         if (link && link.energy) {
-            creep.withdrawEnergy(link);
+            creep.withdrawResource(link);
         } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
-            creep.withdrawEnergy(container);
+            creep.withdrawResource(container);
         }
     } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
-        creep.withdrawEnergy(container);
+        creep.withdrawResource(container);
     } else if (!creep.findEnergy(25)) {
         let source = creep.pos.getClosestSource();
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)

@@ -222,11 +222,9 @@ Creep.prototype.harvesterContainerBuild = function () {
     }
 };
 
-Creep.prototype.withdrawEnergy = function (destination = undefined) {
+Creep.prototype.withdrawResource = function (destination = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
-    if (!this.memory.energyDestination) {
-        return;
-    } else {
+    if (this.memory.energyDestination) {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (energyItem && ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0))) {
             switch (this.withdraw(energyItem, RESOURCE_ENERGY)) {
@@ -479,21 +477,12 @@ Creep.prototype.findSpawnsExtensions = function () {
         return true;
     }
     // Spawns
-    let spawn = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {
-        filter: (s) => s.structureType === STRUCTURE_SPAWN && s.energy < s.energyCapacity &&
+    let energyStructures = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {
+        filter: (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.energy < s.energyCapacity &&
             _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'carry.energy') < s.energyCapacity - s.energy
     });
-    if (spawn) {
-        this.memory.storageDestination = spawn.id;
-        return true;
-    }
-    // Extensions
-    let extension = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {
-        filter: (s) => s.structureType === STRUCTURE_EXTENSION && s.energy < s.energyCapacity &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'carry.energy') < s.energyCapacity - s.energy
-    });
-    if (extension) {
-        this.memory.storageDestination = extension.id;
+    if (energyStructures) {
+        this.memory.storageDestination = energyStructures.id;
         return true;
     }
     /**

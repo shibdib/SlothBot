@@ -11,11 +11,11 @@
 
 module.exports.role = function (creep) {
     //Invader detection
-    if (creep.fleeHome()) {
+    if (creep.kite(5)) {
         creep.memory.onContainer = undefined;
-        return;
+        return true;
     }
-    if (skSafety(creep)) return;
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Set destination reached
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     //Initial move
@@ -68,14 +68,16 @@ function harvestDepositContainer(source, creep) {
         case OK:
             let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
             if (container) {
+                Memory.roomCache[creep.room.name].builderRequested = undefined;
                 return container.id;
             } else {
-                let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+                let site = source.pos.findInRange(creep.room.constructionSites, 3, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
                 if (!site && creep.pos.getRangeTo(source) === 1 && !creep.pos.checkForWall()) {
                     creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
                 } else if (!site && creep.pos.checkForWall()) {
                     findContainerSpot(creep.room, source.pos);
                 } else if (site && site.pos.getRangeTo(source) === 1) {
+                    Memory.roomCache[creep.room.name].builderRequested = true;
                     creep.memory.containerSite = site.id;
                     if (creep.carry[RESOURCE_ENERGY] && creep.memory.containerSite) {
                         let site = Game.getObjectById(creep.memory.containerSite);
@@ -96,15 +98,6 @@ function harvestDepositContainer(source, creep) {
             break;
         case ERR_NOT_ENOUGH_RESOURCES:
             creep.idleFor(Game.getObjectById(creep.memory.source).ticksToRegeneration + 1)
-    }
-}
-
-function skSafety(creep) {
-    let dangerousLair = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR && (!s.ticksToSpawn || s.ticksToSpawn < 10) && s.pos.getRangeTo(creep) <= 6);
-    let keepers = _.filter(creep.room.creeps, (c) => c.owner === 'Source Keeper' && s.pos.getRangeTo(creep) <= 6);
-    if (keepers.length || dangerousLair.length) {
-        creep.kite();
-        return true;
     }
 }
 

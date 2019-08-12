@@ -73,6 +73,7 @@ Creep.prototype.towTruck = function () {
         let trailer = Game.getObjectById(this.memory.trailer);
         if (trailer) {
             if (!trailer.memory.towDestination) {
+                trailer.memory._shibMove = undefined;
                 this.memory.trailer = undefined;
                 trailer.memory.towCreep = undefined;
                 trailer.memory.towDestination = undefined;
@@ -80,6 +81,7 @@ Creep.prototype.towTruck = function () {
                 return false;
             }
             if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
+                trailer.memory._shibMove = undefined;
                 this.shibMove(trailer);
                 return true;
             } else {
@@ -88,6 +90,7 @@ Creep.prototype.towTruck = function () {
                     (trailer.memory.towToObject && !this.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination)))) {
                     this.move(this.pos.getDirectionTo(trailer));
                     this.memory.trailer = undefined;
+                    trailer.memory._shibMove = undefined;
                     trailer.memory.towCreep = undefined;
                     trailer.memory.towDestination = undefined;
                     trailer.memory.towToObject = undefined;
@@ -95,6 +98,7 @@ Creep.prototype.towTruck = function () {
                 } else {
                     let range = 1;
                     if (trailer.memory.towToObject) range = 0;
+                    trailer.memory._shibMove = undefined;
                     this.shibMove(Game.getObjectById(trailer.memory.towDestination), {range: range});
                 }
                 return true;

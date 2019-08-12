@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -37,5 +44,5 @@ module.exports.role = function (creep) {
                     break;
             }
         }
-    } else if (creep.memory.energyDestination || creep.fillerEnergy()) creep.withdrawEnergy(); else creep.idleFor(5);
+    } else if (creep.memory.energyDestination || creep.fillerEnergy()) creep.withdrawResource(); else creep.idleFor(5);
 };

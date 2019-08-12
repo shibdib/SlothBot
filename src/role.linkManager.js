@@ -47,6 +47,6 @@ module.exports.role = function (creep) {
             let hubLink = Game.getObjectById(creep.room.memory.hubLink) || Game.getObjectById(_.sample(creep.room.memory.hubLinks));
             if (hubLink && hubLink.energy) creep.memory.energyDestination = hubLink.id;
         }
-        if (creep.memory.energyDestination) creep.withdrawEnergy(); else creep.idleFor(5);
+        if (creep.memory.energyDestination) creep.withdrawResource(); else creep.idleFor(5);
     }
 };

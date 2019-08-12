@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -9,7 +16,7 @@ module.exports.role = function (creep) {
             if (creep.room.name === creep.memory.overlord) {
                 if (creep.ticksToLive < 500) return creep.memory.recycle = true;
                 if (creep.memory.energyDestination) {
-                    creep.withdrawEnergy();
+                    creep.withdrawResource();
                 } else {
                     creep.findEnergy();
                 }

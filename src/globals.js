@@ -16,7 +16,7 @@ let globals = function () {
     global.NAP_ALLIANCE = [];
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 6; //Range that rooms consider local via linear distance
-    global.POKE_ATTACKS = true;
+    global.POKE_ATTACKS = false;
     global.POKE_NEUTRALS = true;
     global.SIEGE_ENABLED = true; //Attack owned rooms with towers
     global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
@@ -90,34 +90,28 @@ let globals = function () {
         miscHauler: 5,
         // Remotes
         remoteUtility: 6,
-        remoteHarvester: 4,
-        remoteHauler: 5,
+        remoteHarvester: 3,
+        remoteHauler: 4,
         remoteUpgrader: 7,
         remotePioneer: 7,
         assistPioneer: 3,
         fuelTruck: 7,
         remoteResponse: 5,
-        reserver: 4,
-        borderPatrol: 2,
+        reserver: 3,
+        borderPatrol: 4,
         // Power
         Power: 5,
         // SK
         SKworker: 5,
-        SKattacker: 7,
+        SKattacker: 4,
         SKsupport: 7,
         SKhauler: 5,
         // Military
         priority: 3,
-        urgent: 4,
-        high: 9,
-        medium: 10,
+        urgent: 5,
+        high: 7,
+        medium: 9,
         secondary: 11,
-        siege: 6,
-        harass: 3,
-        hold: 4,
-        raid: 8,
-        clean: 8,
-        swarm: 4,
         scout: 3,
         responder: 2,
         // Misc

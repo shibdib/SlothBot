@@ -51,7 +51,7 @@ module.exports.role = function (creep) {
             }
         }
     } else if (creep.memory.energyDestination) {
-        creep.withdrawEnergy();
+        creep.withdrawResource();
     } else if (energySource && powerSpawn.energy < 1000) {
         switch (creep.withdraw(energySource, RESOURCE_ENERGY)) {
             case OK:

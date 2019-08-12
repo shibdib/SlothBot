@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -7,10 +14,8 @@ module.exports.role = function (creep) {
     if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
     //Invader detection
-    if (creep.hits < creep.hitsMax) {
-        creep.goHomeAndHeal();
-        return creep.memory.destination = undefined;
-    }
+    if (creep.kite(5)) return true;
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     // Check if empty
     if (_.sum(creep.carry) === 0) {
         creep.memory.storageDestination = undefined;
@@ -74,13 +79,10 @@ module.exports.role = function (creep) {
         // Set Harvester and move to them if not nearby
         let pairedContainer = Game.getObjectById(creep.memory.containerID);
         if (!pairedContainer || !_.sum(pairedContainer.store)) return creep.memory.containerID = undefined;
+        // Pickup dropped
         // Handle Moving
         if (creep.room.name !== pairedContainer.room.name) return creep.shibMove(new RoomPosition(25, 25, pairedContainer.room.name), {range: 23});
-        for (const resourceType in pairedContainer.store) {
-            if (creep.withdraw(pairedContainer, resourceType) === ERR_NOT_IN_RANGE) {
-                creep.shibMove(pairedContainer, {offRoad: true});
-            }
-        }
+        creep.withdrawResource(Game.getObjectById(creep.memory.containerID));
     }
 };
 
@@ -93,7 +95,7 @@ function dropOff(creep) {
     let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!importantBuilds && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+    if (!controllerLink && !importantBuilds && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }

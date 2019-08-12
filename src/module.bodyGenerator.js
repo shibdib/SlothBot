@@ -281,7 +281,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         case 'reserver':
             claim = 2;
-            if (level >= 6) claim = 3;
+            if (level >= 6 && room.memory.energySurplus) claim = 3;
             move = claim;
             break;
         case 'fuelTruck':

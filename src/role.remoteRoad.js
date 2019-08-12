@@ -11,7 +11,8 @@
 
 module.exports.role = function role(creep) {
     //Invader detection
-    if (creep.fleeHome()) return;
+    if (creep.kite()) return true;
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     if (creep.borderCheck()) return;
     // Set destination
     if (!creep.memory.destination) {
@@ -44,7 +45,7 @@ module.exports.role = function role(creep) {
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
             creep.say('Energy!', true);
-            creep.withdrawEnergy();
+            creep.withdrawResource();
         } else {
             creep.memory.harvest = true;
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();

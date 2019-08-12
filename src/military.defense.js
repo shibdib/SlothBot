@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/1/2017.
  */
@@ -120,8 +127,8 @@ function unsavableCheck(room) {
             abandonOverrun(room);
             room.cacheRoomIntel(true);
             Memory.roomCache[room.name].noClaim = true;
-            log.a(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString());
-            Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString());
+            log.a(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString() + ')');
+            Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString() + ')');
         }
     } else {
         if (badCount === 0) {
@@ -133,18 +140,19 @@ function unsavableCheck(room) {
 }
 
 abandonOverrun = function (room) {
-    for (let key in room.creeps) {
-        room.creeps[key].memory.recycle = true;
+    for (let creep of room.creeps) {
+        if (!creep.my) continue;
+        creep.memory.recycle = true;
     }
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name);
-    for (let key in overlordFor) {
-        overlordFor[key].memory.recycle = true;
+    for (let creep of overlordFor) {
+        creep.memory.recycle = true;
     }
-    for (let key in room.structures) {
-        room.structures[key].destroy();
+    for (let structure of room.structures) {
+        structure.destroy();
     }
-    for (let key in room.constructionSites) {
-        room.constructionSites[key].remove();
+    for (let site of room.constructionSites) {
+        site.remove();
     }
     delete room.memory;
     delete Memory.rooms[room.name];

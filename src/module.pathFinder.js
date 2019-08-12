@@ -38,7 +38,8 @@ function shibMove(creep, heading, options = {}) {
         badRoom: undefined,
         returnIncomplete: false,
         stayInHub: false,
-        ignoreBorder: false
+        ignoreBorder: false,
+        flee: false
     });
     // Handle fatigue
     if (creep.fatigue > 0) {
@@ -88,7 +89,7 @@ function shibMove(creep, heading, options = {}) {
     // CPU Saver for moving to 0 on creeps
     if (heading instanceof Creep && options.range === 0 && rangeToDestination > 2) options.range = 1;
     // Check if target reached or within 1
-    if (rangeToDestination <= options.range) {
+    if (!options.flee && rangeToDestination <= options.range) {
         creep.memory.towDestination = undefined;
         creep.memory._shibMove = undefined;
         return false;
@@ -96,8 +97,7 @@ function shibMove(creep, heading, options = {}) {
         let direction = creep.pos.getDirectionTo(heading);
         return creep.move(direction);
     }
-    if (creep.memory.military) options.useCache = false;
-    if (!heading instanceof RoomPosition) if (creep.room.name !== heading.room.name) return creep.shibMove(new RoomPosition(25, 25, heading.room.name), {range: 18});
+    if (!heading instanceof RoomPosition) if (creep.room.name !== heading.room.name) return creep.shibMove(new RoomPosition(25, 25, heading.room.name), {range: 24});
     let origin = normalizePos(creep);
     let target = normalizePos(heading);
     // Make sure origin and target are good
@@ -275,61 +275,43 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 }
 
 function findRoute(origin, destination, options = {}) {
-    let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 7;
+    let restrictDistance = Game.map.getRoomLinearDistance(origin, destination) + 4;
     let roomDistance = Game.map.findRoute(origin, destination).length;
     let route;
     if (options.useCache) route = getRoute(origin, destination);
     if (route) return route;
     route = Game.map.findRoute(origin, destination, {
         routeCallback: function (roomName) {
-            let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
-            if (rangeToRoom > restrictDistance) {
-                // room is too far out of the way
-                return 256;
-            }
+            // room is too far out of the way
+            if (Game.map.getRoomLinearDistance(origin, roomName) > restrictDistance) return 256;
             // If room is under attack
-            if ((Game.rooms[roomName] && Game.rooms[roomName].memory.responseNeeded) || (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel > 0)) return 100;
+            if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel) return 50;
+            // My rooms
+            if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
+            // If room has an ongoing operation
+            if (Memory.targetRooms && Memory.targetRooms[roomName]) return 40;
             // Get special rooms via name
             let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
             let isHighway = (parsed[1] % 10 === 0) ||
                 (parsed[2] % 10 === 0);
-            let isMyRoom = Game.rooms[roomName] &&
-                Game.rooms[roomName].controller &&
-                Game.rooms[roomName].controller.my;
-            if (isMyRoom) {
-                return 0.5;
-            } else
             // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
-            if (!options.allowSK && !Game.rooms[roomName]) {
-                let fMod = parsed[1] % 10;
-                let sMod = parsed[2] % 10;
-                let isSK = !(fMod === 5 && sMod === 5) &&
-                    ((fMod >= 4) && (fMod <= 6)) &&
-                    ((sMod >= 4) && (sMod <= 6));
-                if (isSK) {
-                    return 4;
-                }
-            }
+            if (!options.allowSK && (Memory.roomCache[roomName] && Memory.roomCache[roomName].sk)) return 5;
             // Check for manual flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
                 // Friendly Rooms
-                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) {
-                    return 1;
-                }
+                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 1;
                 // Avoid rooms owned by others
-                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user) && !Memory.roomCache[roomName].needsCleaning) {
-                    if (Memory.roomCache[roomName].owner) return 254; else return 15;
+                if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) {
+                    if (Memory.roomCache[roomName].level > 3) return 256; else return 25;
                 }
                 // Avoid rooms reserved by others
-                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) {
-                    return 10;
-                }
+                if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 15;
             } else
             // Unknown rooms have a slightly higher weight
-            if (!Memory.roomCache[roomName]) return 7;
-            if (isHighway && options.preferHighway) return 1.25;
-            if (isHighway) return 1.5;
+            if (!Memory.roomCache[roomName]) return 5;
+            if (isHighway && options.preferHighway) return 1;
+            if (isHighway) return 2;
             return 2.25;
         }
     });
@@ -394,7 +376,7 @@ function getTerrainMatrix(roomName, options) {
     return PathFinder.CostMatrix.deserialize(terrainMatrixCache[roomName + type]);
 }
 
-function addTerrainToMatrix(roomName, roadCost, type) {
+function addTerrainToMatrix(roomName, type) {
     let matrix = new PathFinder.CostMatrix();
     let terrain = new Room.Terrain(roomName);
     let plainCost = type === 3 ? 1 : type === 2 ? 1 : 5;
@@ -534,7 +516,7 @@ function addHostilesToMatrix(room, matrix) {
 function getSKMatrix(roomName, matrix) {
     let room = Game.rooms[roomName];
     if (!Memory.roomCache[roomName] || !Memory.roomCache[roomName].sk) return matrix;
-    if (!skMatrixCache[room.name] || (!room.memory.skMatrixTick || Game.time !== room.memory.skMatrixTick)) {
+    if (!skMatrixCache[room.name] || (!room.memory.skMatrixTick || Game.time !== room.memory.skMatrixTick + 100)) {
         room.memory.skMatrixTick = Game.time;
         skMatrixCache[room.name] = addSksToMatrix(room, matrix).serialize();
     }
@@ -542,14 +524,7 @@ function getSKMatrix(roomName, matrix) {
 }
 
 function addSksToMatrix(room, matrix) {
-    if (!room) return matrix;
-    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
-    let fMod = parsed[1] % 10;
-    let sMod = parsed[2] % 10;
-    let isSK = !(fMod === 5 && sMod === 5) &&
-        ((fMod >= 4) && (fMod <= 6)) &&
-        ((sMod >= 4) && (sMod <= 6));
-    if (isSK) {
+    if (room && Memory.roomCache[room.name] && Memory.roomCache[room.name].sk) {
         let sk = room.find(FIND_CREEPS, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (sk.length > 0) {
             for (let c = 0; c < sk.length; c++) {
@@ -633,8 +608,6 @@ function getRoute(from, to) {
             if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') Memory._routeCache = cache; else routeCache = cache;
             return JSON.parse(cachedRoute.route);
         }
-    } else {
-        return;
     }
 }
 

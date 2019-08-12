@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.holdRoom = function () {
@@ -8,7 +15,7 @@ Creep.prototype.holdRoom = function () {
     if (this.borderCheck()) return;
     if (this.memory.role === 'longbow') {
         // Set squad leader
-        if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
+        if ((!this.memory.squadLeader && !this.memory.leader) || (this.memory.leader && !Game.getObjectById(this.memory.leader))) {
             let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'hold' && c.memory.squadLeader);
             if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
         }

@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.rangersRoom = function () {
@@ -5,7 +12,7 @@ Creep.prototype.rangersRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
-    if (!this.memory.squadLeader || !this.memory.leader || !Game.getObjectById(this.memory.leader)) {
+    if ((!this.memory.squadLeader && !this.memory.leader) || (this.memory.leader && !Game.getObjectById(this.memory.leader))) {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
@@ -13,16 +20,10 @@ Creep.prototype.rangersRoom = function () {
     if (this.borderCheck()) return;
     // Handle squad leader
     if (this.memory.squadLeader) {
-        highCommand.threatManagement(this);
-        levelManager(this);
         // Remove duplicate squad leaders
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord &&
             c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id && c.memory.targetRoom === this.memory.targetRoom);
         if (squadLeader.length) return this.memory.squadLeader = undefined;
-        // Sustainability
-        if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
-        // If military action required do that
-        if (this.handleMilitaryCreep(false, false)) return;
         // Check for squad and handle grouping
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         this.memory.waitingForSquad = squadMember.length > 0;
@@ -35,11 +36,18 @@ Creep.prototype.rangersRoom = function () {
                     otherRanger.memory.squadLeader = undefined;
                 }
             }
-            if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         }
         if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
         // Move to room if needed
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+        highCommand.threatManagement(this);
+        levelManager(this);
+        // Sustainability
+        highCommand.operationSustainability(this.room);
+        // If military action required do that
+        if (this.handleMilitaryCreep(false, false)) return;
+        // Scorched Earth
+        if (this.scorchedEarth()) return;
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);

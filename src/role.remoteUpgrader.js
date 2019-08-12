@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -19,7 +26,7 @@ module.exports.role = function (creep) {
         if (link && creep.pos.getRangeTo(link) <= 1 && link.energy > 0) creep.withdraw(link, RESOURCE_ENERGY);
     } else {
         if (creep.memory.energyDestination) {
-            creep.withdrawEnergy();
+            creep.withdrawResource();
         } else if (container && container.store[RESOURCE_ENERGY] > 0) {
             switch (creep.withdraw(container, RESOURCE_ENERGY)) {
                 case OK:

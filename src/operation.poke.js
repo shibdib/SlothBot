@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018.
+ * Copyright (c) 2019.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -12,12 +12,6 @@ Creep.prototype.pokeRoom = function () {
     // Recycle if room is no longer a target
     if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle;
     highCommand.operationSustainability(this.room);
-    // Run from unwinnable fights
-    if (!this.canIWin()) {
-        this.attackInRange();
-        this.say('RUN!', true);
-        return this.goHomeAndHeal();
-    }
     if (!this.handleMilitaryCreep(false, false, false, true)) {
         highCommand.threatManagement(this);
         let sentence = ['Hi', 'Hello'];

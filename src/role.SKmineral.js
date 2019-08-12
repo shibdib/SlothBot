@@ -1,9 +1,16 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
 module.exports.role = function (creep) {
     let source;
-    if (skSafety(creep)) return;
+    if (creep.kite()) return true;
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (_.sum(creep.carry) === 0) creep.memory.harvesting = true;
@@ -21,7 +28,6 @@ module.exports.role = function (creep) {
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
             if (!source || source.pos.roomName !== creep.pos.roomName) return delete creep.memory.source;
-            if (!creep.memory.lair) creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR}).id;
             if (source.energy === 0) {
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
@@ -38,6 +44,8 @@ module.exports.role = function (creep) {
                         creep.idleFor(creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown);
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
+                        Memory.roomCache[creep.room.name].mineralCooldown = Game.time + source.ticksToRegeneration;
+                        creep.memory.recycle = true;
                         break;
                 }
             }
@@ -66,14 +74,5 @@ function skDeposit(creep) {
         }
     } else {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 19});
-    }
-}
-
-function skSafety(creep) {
-    let dangerousLair = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR && (!s.ticksToSpawn || s.ticksToSpawn < 10) && s.pos.getRangeTo(creep) <= 6);
-    let keepers = _.filter(creep.room.creeps, (c) => c.owner === 'Source Keeper' && s.pos.getRangeTo(creep) <= 6);
-    if (keepers.length || dangerousLair.length) {
-        creep.kite();
-        return true;
     }
 }

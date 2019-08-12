@@ -11,6 +11,9 @@ module.exports.segmentManager = function () {
     if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) {
         doNotAggressArray = LOANlist;
         doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, [MY_USERNAME]);
+    } else if (Game.shard.name === 'swc') {
+        doNotAggressArray = [MY_USERNAME, 'Snowgoose', 'Sergey', 'Saruss'];
+        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
     } else {
         doNotAggressArray = [MY_USERNAME];
         doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);

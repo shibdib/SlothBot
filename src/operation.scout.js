@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 Creep.prototype.scoutRoom = function () {
     let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', this.memory.targetRoom];
     let word = Game.time % sentence.length;
@@ -38,7 +45,7 @@ Creep.prototype.scoutRoom = function () {
     // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
     let priority = 4;
-    if (range === 1) priority = 1; else if (range <= 3) priority = 2; else if (range <= 5) priority = 3; else priority = 4;
+    if (range <= 1) priority = 1; else if (range <= 3) priority = 2; else if (range <= 5) priority = 3; else priority = 4;
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
@@ -127,7 +134,7 @@ Creep.prototype.scoutRoom = function () {
                             priority: priority
                         };
                     }
-                } else if ((maxLevel === 7 && towers.length <= 2) || towers.length <= 1) {
+                } else if (towers.length <= 1) {
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'siegeGroup',

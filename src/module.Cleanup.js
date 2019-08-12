@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.cleanup = function () {
 //CLEANUP
     if (Game.time % 25 === 0) {
@@ -57,7 +64,7 @@ function cleanRouteCacheByAge() {
         let originalCount = Memory._routeCache.length;
         let cache = Memory._routeCache;
         for (let key in cache) {
-            if (cache[key].tick + 10000 < Game.time) {
+            if (cache[key].tick + 6000 < Game.time) {
                 delete cache[key];
             }
         }

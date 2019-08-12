@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -28,8 +35,6 @@ module.exports.role = function (creep) {
                 Memory.targetRooms[creep.memory.targetRoom].unClaimer = !creep.room.controller.upgradeBlocked && (!creep.room.controller.ticksToDowngrade || creep.room.controller.ticksToDowngrade > 1000);
                 break;
         }
-    } else {
-        creep.memory.role = 'explorer';
     }
 };
 
@@ -38,14 +43,18 @@ function levelManager(creep) {
     let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.body.length > 1);
     let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (armedEnemies.length) {
+        if (Memory.targetRooms[creep.memory.targetRoom].oldPriority) Memory.targetRooms[creep.memory.targetRoom].priority = Memory.targetRooms[creep.memory.targetRoom].oldPriority;
         Memory.targetRooms[creep.memory.targetRoom].level = 2;
         log.a(Memory.targetRooms[creep.memory.targetRoom].type + ' Operation in ' + creep.room.name + ' is now a level 2.', 'OBSERVER CONTROL:');
         return creep.memory.recycle = true;
     } else if (enemyCreeps.length) {
+        if (Memory.targetRooms[creep.memory.targetRoom].oldPriority) Memory.targetRooms[creep.memory.targetRoom].priority = Memory.targetRooms[creep.memory.targetRoom].oldPriority;
         Memory.targetRooms[creep.memory.targetRoom].level = 1;
         log.a(Memory.targetRooms[creep.memory.targetRoom].type + ' Operation in ' + creep.room.name + ' is now a level 3.', 'OBSERVER CONTROL:');
         return creep.memory.recycle = true;
     } else {
+        if (!Memory.targetRooms[creep.memory.targetRoom].oldPriority) Memory.targetRooms[creep.memory.targetRoom].oldPriority = Memory.targetRooms[creep.memory.targetRoom].priority;
+        Memory.targetRooms[creep.memory.targetRoom].priority = 3;
         Memory.targetRooms[creep.memory.targetRoom].level = 0;
     }
 }
