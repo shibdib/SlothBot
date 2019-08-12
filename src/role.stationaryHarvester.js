@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -137,7 +144,7 @@ function harvestDepositContainer(source, creep) {
         return container.id;
     } else {
         let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 3) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
     }
 }
 

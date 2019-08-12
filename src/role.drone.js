@@ -114,8 +114,9 @@ function upgrading(creep) {
     switch (creep.upgradeController(creep.room.controller)) {
         case OK:
             delete creep.memory._shibMove;
-            return;
+            break;
         case ERR_NOT_IN_RANGE:
-            return creep.shibMove(creep.room.controller, {range: 3});
+            creep.shibMove(creep.room.controller, {range: 3});
     }
+    return true;
 }

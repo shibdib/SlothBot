@@ -53,8 +53,10 @@ function levelManager(creep) {
         log.a(Memory.targetRooms[creep.memory.targetRoom].type + ' Operation in ' + creep.room.name + ' is now a level 3.', 'OBSERVER CONTROL:');
         return creep.memory.recycle = true;
     } else {
-        if (!Memory.targetRooms[creep.memory.targetRoom].oldPriority) Memory.targetRooms[creep.memory.targetRoom].oldPriority = Memory.targetRooms[creep.memory.targetRoom].priority;
-        Memory.targetRooms[creep.memory.targetRoom].priority = 3;
+        if (Memory.targetRooms[creep.memory.targetRoom].type !== 'hold') {
+            if (!Memory.targetRooms[creep.memory.targetRoom].oldPriority) Memory.targetRooms[creep.memory.targetRoom].oldPriority = Memory.targetRooms[creep.memory.targetRoom].priority;
+            Memory.targetRooms[creep.memory.targetRoom].priority = 3;
+        }
         Memory.targetRooms[creep.memory.targetRoom].level = 0;
     }
 }

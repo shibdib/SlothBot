@@ -84,7 +84,7 @@ module.exports.role = function (creep) {
         if (creep.room.name !== pairedContainer.room.name) return creep.shibMove(new RoomPosition(25, 25, pairedContainer.room.name), {range: 23});
         let amount = creep.carryCapacity - _.sum(creep.carry);
         if (creep.getActiveBodyparts(MOVE) !== creep.getActiveBodyparts(CARRY) &&
-            _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD).length < 20) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
+            pairedContainer.pos.findInRange(pairedContainer.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
         creep.withdrawResource(Game.getObjectById(creep.memory.containerID), amount);
     }
 };

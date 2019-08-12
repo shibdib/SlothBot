@@ -31,28 +31,22 @@ module.exports.highCommand = function () {
 
 function manageResponseForces() {
     let spawnBorderPatrol = undefined;
-    let responseTargets = _.max(Memory.roomCache, '.threatLevel');
-    let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') && c.room.hostileCreeps.length)[0];
-    if (!responseTargets || !responseTargets.name) {
-        let highestHeat = _.max(Memory.roomCache, '.roomHeat');
-        if (highestHeat && highestHeat.name) {
-            spawnBorderPatrol = true;
-            let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders &&
-                Game.map.getRoomLinearDistance(c.memory.overlord, highestHeat.name) <= 6);
-            for (let creep of idleResponders) {
-                creep.memory.responseTarget = highestHeat.name;
-                creep.memory.awaitingOrders = undefined;
-                log.a(creep.name + ' reassigned to guard ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
-            }
-        }
-    } else if (responseTargets && responseTargets.name) {
+    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && r.closestRange <= LOCAL_SPHERE + 1 &&
+        r.lastInvaderCheck + 150 >= Game.time), '.threatLevel');
+    let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && r.closestRange <= LOCAL_SPHERE + 1 &&
+        r.lastInvaderCheck + 150 >= Game.time), '.roomHeat');
+    let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') &&
+        c.room.hostileCreeps.length)[0];
+    let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
+    let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard');
+    if (responseTargets && responseTargets.name) {
         spawnBorderPatrol = true;
         let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders
             && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 6);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to assist ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
+            log.a(creep.name + ' responding to ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (unarmedEnemies) {
         spawnBorderPatrol = true;
@@ -61,19 +55,34 @@ function manageResponseForces() {
         for (let creep of idleResponders) {
             creep.memory.responseTarget = unarmedEnemies.room.name;
             creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to assist ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(creep.room.name));
+            log.a(creep.name + ' reassigned to hunt unarmed targets in ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(creep.room.name));
         }
-    } else if (Memory.targetRooms && _.size(Memory.targetRooms)) {
-        let local = _.filter(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'))[0];
-        if (local) {
-            spawnBorderPatrol = true;
-            let idleResponders = _.filter(Game.creeps, (c) => c.memory && unarmedEnemies.room.name !== c.room.name && c.memory.awaitingOrders
-                && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= 6);
-            for (let creep of idleResponders) {
-                creep.memory.responseTarget = unarmedEnemies.room.name;
-                creep.memory.awaitingOrders = undefined;
-                log.a(creep.name + ' reassigned to assist ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(creep.room.name));
-            }
+    } else if (local) {
+        spawnBorderPatrol = true;
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && local !== c.room.name && c.memory.awaitingOrders
+            && Game.map.getRoomLinearDistance(c.memory.overlord, local) <= 6);
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = local;
+            creep.memory.awaitingOrders = undefined;
+            log.a(creep.name + ' reassigned to assist the operation in ' + roomLink(local) + ' from ' + roomLink(creep.room.name));
+        }
+    } else if (guard) {
+        spawnBorderPatrol = true;
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && guard !== c.room.name && c.memory.awaitingOrders
+            && Game.map.getRoomLinearDistance(c.memory.overlord, guard) <= 6);
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = guard;
+            creep.memory.awaitingOrders = undefined;
+            log.a(creep.name + ' reassigned to help guard ' + roomLink(guard) + ' from ' + roomLink(creep.room.name));
+        }
+    } else if (highestHeat && highestHeat.name) {
+        spawnBorderPatrol = false;
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders &&
+            Game.map.getRoomLinearDistance(c.memory.overlord, highestHeat.name) <= 6);
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = highestHeat.name;
+            creep.memory.awaitingOrders = undefined;
+            log.a(creep.name + ' reassigned to guard ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
     }
     Memory.spawnBorderPatrol = spawnBorderPatrol;
@@ -275,7 +284,7 @@ function manageAttacks() {
             // Manage harassment
             case 'harass':
             case 'rangers':
-                if (totalCountFiltered > HARASS_LIMIT) {
+                if (totalCountFiltered > HARASS_LIMIT + 2) {
                     log.a('Canceling operation in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     totalCountFiltered--;
@@ -285,7 +294,7 @@ function manageAttacks() {
                 break;
             // Manage Holds
             case 'hold':
-                staleMulti = 5;
+                staleMulti = 10;
                 break;
             // Manage Nukes
             case 'nukes':
@@ -320,7 +329,7 @@ function manageAttacks() {
                 continue;
             // Manage Guard
             case 'guard':
-                staleMulti = 5;
+                staleMulti = 10;
                 break;
             // Manage Cleaning
             case 'clean':

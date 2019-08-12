@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.hud = function () {
     for (let key in Memory.ownedRooms) {
         let name = Memory.ownedRooms[key].name;
@@ -78,7 +85,7 @@ module.exports.hud = function () {
         }
         let y = lowerBoundary - (activeSpawns.length || 1);
         if (room.memory.responseNeeded) {
-            displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + room.memory.threatLevel);
+            displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + Memory.roomCache[room.name].threatLevel);
             y++;
         }
         if (room.memory.claimTarget) {

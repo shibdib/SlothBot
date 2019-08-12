@@ -159,8 +159,8 @@ module.exports.roomStartup = function (room) {
     }
     if (room.memory.responseNeeded === true) {
         if (!_.includes(queue, 'responder')) {
-            let count = room.memory.numberOfHostiles;
-            if (room.memory.threatLevel < 3) count = 1;
+            let count = Memory.roomCache[room.name].numberOfHostiles;
+            if (Memory.roomCache[room.name].threatLevel < 3) count = 1;
             let responder = _.filter(roomCreeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
             if (responder.length < count) {
                 queueCreep(room, PRIORITIES.responder, {role: 'responder', responseTarget: room.name, military: true})
@@ -220,17 +220,17 @@ module.exports.essentialCreepQueue = function (room) {
     }
     // Local Responder
     if (room.memory.responseNeeded || room.memory.earlyWarning) {
-        if (!_.includes(queue, 'responder') && (room.memory.threatLevel > 2 || level < 3)) {
+        if (!_.includes(queue, 'responder') && (Memory.roomCache[room.name].threatLevel > 2 || level < 3)) {
             let count = 1;
-            if (room.memory.threatLevel >= 3 && room.memory.numberOfHostiles) count = room.memory.numberOfHostiles * 0.5;
+            if (Memory.roomCache[room.name].threatLevel >= 3 && Memory.roomCache[room.name].numberOfHostiles) count = Memory.roomCache[room.name].numberOfHostiles * 0.5;
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
             if (responder.length < count) {
                 queueCreep(room, PRIORITIES.responder, {role: 'responder', responseTarget: room.name, military: true})
             }
         }
-        if (!_.includes(queue, 'longbow') && room.memory.threatLevel > 3) {
+        if (!_.includes(queue, 'longbow') && Memory.roomCache[room.name].threatLevel > 3) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
-            if (longbow.length < _.round(room.memory.numberOfHostiles / 3) + 1) {
+            if (longbow.length < _.round(Memory.roomCache[room.name].numberOfHostiles / 3) + 1) {
                 queueCreep(room, PRIORITIES.responder, {
                     role: 'longbow',
                     responseTarget: room.name,
@@ -459,7 +459,7 @@ module.exports.remoteCreepQueue = function (room) {
         for (let roomName of adjacent) {
             if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
             let range = 1;
-            if (!room.memory.energySurplus) range = 2;
+            //if (!room.memory.energySurplus) range = 2;
             let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && (!Memory.roomCache[r] ||
                 (!Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Game.map.getRoomLinearDistance(room.name, r) <= range)));
             adjacent = _.uniq(_.union(adjacentExits, adjacent));

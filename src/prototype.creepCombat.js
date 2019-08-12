@@ -10,26 +10,6 @@
  */
 'use strict';
 
-Creep.prototype.findClosestSourceKeeper = function () {
-    return this.pos.findClosestByRange(this.room.creeps, {
-        filter: function (object) {
-            return object.owner.username === 'Source Keeper';
-        }
-    });
-};
-
-Creep.prototype.findClosestUnarmedEnemy = function () {
-    let enemy;
-    let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps); else enemy = this.pos.findClosestByPath(this.room.hostileCreeps);
-    if (enemy) {
-        if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
-        this.memory.target = enemy.id;
-        return enemy;
-    }
-    return false;
-};
-
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
     let enemy, filter;
     let worthwhileStructures = this.room.hostileStructures.length > 0;

@@ -15,9 +15,6 @@ let diplomacy = require('module.diplomacy');
 let hud = require('module.hud');
 
 module.exports.hiveMind = function () {
-    // Clean mineral list
-    if (Game.time % 10000 === 0) Memory.ownedMineral = [];
-    let cpuBucket = Game.cpu.bucket;
 
     // Handle Diplomacy
     try {

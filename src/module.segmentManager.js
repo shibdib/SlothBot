@@ -22,7 +22,7 @@ module.exports.segmentManager = function () {
     if (Game.time % 100 === 0) {
         let helpNeeded = [];
         if (Memory.ownedRooms) {
-            let requestSupport = _.filter(Memory.ownedRooms, (r) => Game.rooms[r.name].memory.threatLevel >= 4);
+            let requestSupport = _.filter(Memory.ownedRooms, (r) => Memory.roomCache[r.name].threatLevel >= 4);
             requestSupport.forEach((r) => helpNeeded.push(r.name));
         }
         RawMemory.segments[2] = JSON.stringify(doNotAggressArray);

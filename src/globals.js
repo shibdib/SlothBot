@@ -12,12 +12,12 @@ let globals = function () {
     //Manually set baddies and friends and combat stuff
     global.HOSTILES = ['Tanjera'];
     global.NO_AGGRESSION = [];
-    global.MANUAL_FRIENDS = [];
+    global.MANUAL_FRIENDS = ['KittyTack', 'KOR_Solidarity', 'GimmeCookies', 'Sergey'];
     global.NAP_ALLIANCE = [];
     global.ATTACK_LOCALS = true;
-    global.LOCAL_SPHERE = 6; //Range that rooms consider local via linear distance
+    global.LOCAL_SPHERE = 3; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = false;
-    global.POKE_NEUTRALS = true;
+    global.POKE_NEUTRALS = false;
     global.SIEGE_ENABLED = true; //Attack owned rooms with towers
     global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
 
@@ -61,7 +61,7 @@ let globals = function () {
         RESOURCE_KEANIUM, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_OXYGEN, RESOURCE_HYDROGEN, RESOURCE_CATALYST];
 
     global.BOOST_NEEDS = [];
-
+    global.OWNED_MINERALS = [];
     global.TRADE_TARGETS = [];
 
     global.DO_NOT_SELL_LIST = [RESOURCE_CATALYZED_UTRIUM_ACID,

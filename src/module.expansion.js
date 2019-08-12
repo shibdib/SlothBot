@@ -38,7 +38,9 @@ module.exports.claimNewRoom = function () {
                 }
                 baseScore -= terrainScore;
                 // If it's a new mineral add to the score
-                if (worthyRooms[key].mineral && !_.includes(Memory.ownedMineral, worthyRooms[key].mineral)) baseScore += 450;
+                let minerals = [];
+                Memory.ownedRooms.forEach((r) => minerals.push(r.mineral[0].mineralType));
+                if (worthyRooms[key].mineral && !_.includes(minerals, worthyRooms[key].mineral)) baseScore += 450;
                 // Check if it's near any owned rooms
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
                 for (let key in avoidRooms) {

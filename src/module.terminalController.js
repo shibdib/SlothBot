@@ -11,7 +11,6 @@
 
 let reactionNeeds = REACTION_NEEDS;
 let tradeAmount = TRADE_AMOUNT;
-let energyAmount = ENERGY_AMOUNT;
 let reactionAmount = REACTION_AMOUNT;
 let runOnce, globalOrders, lastPriceAdjust;
 
@@ -33,7 +32,7 @@ module.exports.terminalControl = function (room) {
     //Use extra creds to buy energy
     placeEnergyOrders(room.terminal, globalOrders, myOrders);
     //Handle Sell Orders
-    extendSellOrders(room.terminal, globalOrders, myOrders);
+    manageSellOrders(room.terminal, globalOrders, myOrders);
     placeSellOrders(room.terminal, globalOrders, myOrders);
     //Dump Excess
     if (fillBuyOrders(room.terminal, globalOrders)) return;
@@ -55,7 +54,7 @@ function fillBuyOrders(terminal, globalOrders) {
             if (resourceType === RESOURCE_ENERGY) continue;
             let onHand = terminal.store[resourceType];
             let sellOffAmount = DUMP_AMOUNT;
-            if (!Game.market.credits || Game.market.credits < CREDIT_BUFFER * 0.8) sellOffAmount = 1000;
+            if (!Game.market.credits || Game.market.credits < 10000) sellOffAmount = 1000;
             if (_.includes(END_GAME_BOOSTS, resourceType)) sellOffAmount = DUMP_AMOUNT * 3;
             if (onHand >= sellOffAmount) {
                 let sellableAmount = terminal.store[resourceType] - reactionAmount * 1.2;
@@ -113,7 +112,7 @@ function fillBuyOrders(terminal, globalOrders) {
     }
 }
 
-function extendSellOrders(terminal, myOrders) {
+function manageSellOrders(terminal, myOrders) {
     resource:
         for (const resourceType in terminal.store) {
             for (let key in myOrders) {
@@ -138,6 +137,28 @@ function extendSellOrders(terminal, myOrders) {
                 }
             }
         }
+}
+
+function pricingUpdateSell(globalOrders, myOrders) {
+    let myOrderKeys = _.pluck(myOrders, 'id');
+    for (let key in myOrders) {
+        if (myOrders[key].type === ORDER_SELL) {
+            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
+                order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.id !== myOrders[key].id && !_.includes(myOrderKeys, order.id)), "price");
+            let salePrice = BASE_RESOURCES_SALE_MAX;
+            if (_.includes(END_GAME_BOOSTS, myOrders[key].resourceType)) salePrice = END_GAME_SALE_MAX;
+            if (_.includes(TIER_2_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_2_SALE_MAX;
+            if (_.includes(TIER_1_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_1_SALE_MAX;
+            if (_.includes(BASE_COMPOUNDS, myOrders[key].resourceType)) salePrice = BASE_COMPOUNDS_SALE_MAX;
+            if (myOrders[key].resourceType === RESOURCE_GHODIUM) salePrice = GHODIUM_SALE_MAX;
+            if (_.round((sellOrder.price - 0.001), 3) < salePrice && _.round((sellOrder.price - 0.001), 3) >= salePrice * 0.2) salePrice = _.round((sellOrder.price - 0.001), 3);
+            if (salePrice !== myOrders[key].price) {
+                if (Game.market.changeOrderPrice(myOrders[key].id, salePrice) === OK) {
+                    log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old/comp " + salePrice + "/" + myOrders[key].price + '/' + sellOrder.price + " Resource - " + myOrders[key].resourceType);
+                }
+            }
+        }
+    }
 }
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
@@ -171,10 +192,11 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 }
 
 function placeReactionOrders(terminal, globalOrders, myOrders) {
+    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral[0].mineralAmount), '.mineral[0].mineralType');
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
             // Skip if you can procure yourself
-            if (_.includes(Memory.ownedMineral, reactionNeeds[i])) continue;
+            if (_.includes(ownedMinerals, reactionNeeds[i])) continue;
             let storage = terminal.room.storage;
             if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
@@ -212,10 +234,11 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
 }
 
 function onDemandReactionOrders(terminal, globalOrders) {
-    if (terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER) {
+    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral[0].mineralAmount), '.mineral[0].mineralType');
+    if (terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER * 2) {
         for (let i = 0; i < reactionNeeds.length; i++) {
             // Skip if you can procure yourself
-            if (_.includes(Memory.ownedMineral, reactionNeeds[i])) continue;
+            if (_.includes(ownedMinerals, reactionNeeds[i])) continue;
             let storage = terminal.room.storage;
             if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
@@ -256,29 +279,8 @@ function buyPower(terminal, globalOrders) {
     }
 }
 
-function pricingUpdateSell(globalOrders, myOrders) {
-    let myOrderKeys = _.pluck(myOrders, 'id');
-    for (let key in myOrders) {
-        if (myOrders[key].type === ORDER_SELL) {
-            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
-                order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.id !== myOrders[key].id && !_.includes(myOrderKeys, order.id)), "price");
-            let salePrice = BASE_RESOURCES_SALE_MAX;
-            if (_.includes(END_GAME_BOOSTS, myOrders[key].resourceType)) salePrice = END_GAME_SALE_MAX;
-            if (_.includes(TIER_2_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_2_SALE_MAX;
-            if (_.includes(TIER_1_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_1_SALE_MAX;
-            if (_.includes(BASE_COMPOUNDS, myOrders[key].resourceType)) salePrice = BASE_COMPOUNDS_SALE_MAX;
-            if (myOrders[key].resourceType === RESOURCE_GHODIUM) salePrice = GHODIUM_SALE_MAX;
-            if (_.round((sellOrder.price - 0.001), 3) < salePrice && _.round((sellOrder.price - 0.001), 3) >= salePrice * 0.2) salePrice = _.round((sellOrder.price - 0.001), 3);
-            if (salePrice !== myOrders[key].price) {
-                if (Game.market.changeOrderPrice(myOrders[key].id, salePrice) === OK) {
-                    log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old/comp " + salePrice + "/" + myOrders[key].price + '/' + sellOrder.price + " Resource - " + myOrders[key].resourceType);
-                }
-            }
-        }
-    }
-}
-
 function orderCleanup(myOrders) {
+    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral[0].mineralAmount), '.mineral[0].mineralType');
     for (let key in myOrders) {
         if (myOrders[key].type === ORDER_BUY) {
             if (Game.market.credits < 50) {
@@ -293,7 +295,7 @@ function orderCleanup(myOrders) {
             if (duplicate.length) {
                 duplicate.forEach((duplicateOrder) => Game.market.cancelOrder(duplicateOrder.id))
             }
-            if (_.includes(Memory.ownedMineral, myOrders[key].resourceType)) {
+            if (_.includes(ownedMinerals, myOrders[key].resourceType)) {
                 if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                     log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we now have our own supply of " + myOrders[key].resourceType);
                     return true;
@@ -337,9 +339,9 @@ function placeEnergyOrders(terminal, globalOrders, myOrders) {
         o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0]) return false;
     let energyTarget = ENERGY_AMOUNT;
     // If we have extra credits get more energy
-    if (Game.market.credits >= 100000) energyTarget *= 2;
+    if (Game.market.credits >= CREDIT_BUFFER) energyTarget *= 2;
     // Check if we don't need energy
-    if (terminal.room.energy >= energyTarget * 0.75 || Game.market.credits < CREDIT_BUFFER * 5) return false;
+    if (terminal.room.energy >= energyTarget * 0.75) return false;
     let myOrderKeys = _.pluck(myOrders, 'id');
     let buyOrder = _.max(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
         order.type === ORDER_BUY && order.remainingAmount >= 10000 && !_.includes(myOrderKeys, order.id)), 'price');
