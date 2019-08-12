@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
                 case ERR_NOT_IN_RANGE:
                     if (creep.hits < creep.hitsMax) {
                         creep.heal(creep);
-                        if (creep.pos.getRangeTo(sourceKeeper) >= 5) return;
+                        if (creep.hits < creep.hitsMax * 0.8 && creep.pos.getRangeTo(sourceKeeper) >= 5) return;
                     }
                     creep.shibMove(sourceKeeper);
                     break;

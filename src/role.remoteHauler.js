@@ -22,7 +22,7 @@ module.exports.role = function (creep) {
         creep.memory.hauling = undefined;
     }
     // Check if ready to haul
-    if (!creep.memory.hauling && (_.sum(creep.carry) >= creep.carryCapacity * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry)))) creep.memory.hauling = true;
+    if (!creep.memory.hauling && (_.sum(creep.carry) >= creep.carryCapacity * 0.5 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry)))) creep.memory.hauling = true;
     if (creep.memory.hauling) {
         if (creep.memory.containerID) creep.memory.containerID = undefined;
         creep.repairRoad();
@@ -82,7 +82,10 @@ module.exports.role = function (creep) {
         // Pickup dropped
         // Handle Moving
         if (creep.room.name !== pairedContainer.room.name) return creep.shibMove(new RoomPosition(25, 25, pairedContainer.room.name), {range: 23});
-        creep.withdrawResource(Game.getObjectById(creep.memory.containerID));
+        let amount = creep.carryCapacity - _.sum(creep.carry);
+        if (creep.getActiveBodyparts(MOVE) !== creep.getActiveBodyparts(CARRY) &&
+            _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_ROAD).length < 20) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
+        creep.withdrawResource(Game.getObjectById(creep.memory.containerID), amount);
     }
 };
 

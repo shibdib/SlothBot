@@ -394,10 +394,10 @@ Creep.prototype.fightRanged = function (target) {
         if (opportunity) this.rangedAttack(opportunity);
         if (targets.length > 1 && !allies.length) this.rangedMassAttack();
         // If closing range do not advance
-        if (target.getActiveBodyparts(ATTACK) && range === 4 && lastRange === 6) return true;
+        if (target instanceof Creep && target.getActiveBodyparts(ATTACK) && range === 4 && lastRange === 6) return true;
         // Otherwise move to attack
         let moveRange = 3;
-        if (!target.getActiveBodyparts(ATTACK)) moveRange = 1; else if (range >= lastRange) moveRange = 1;
+        if (target instanceof Creep && !target.getActiveBodyparts(ATTACK)) moveRange = 1; else if (range >= lastRange) moveRange = 1;
         if (this.pos.findInRange(FIND_CREEPS, 1).length > 0) {
             this.shibMove(target, {ignoreCreeps: false, range: moveRange, ignoreRoads: true});
         } else {

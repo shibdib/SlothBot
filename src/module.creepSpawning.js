@@ -566,6 +566,20 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
             }
+            // Border Patrol
+            if (!TEN_CPU && responseNeeded) {
+                let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === remotes[keys] && creep.memory.operation === 'borderPatrol');
+                let count = 1;
+                if (!_.includes(queue, 'longbow') && (borderPatrol.length < count || (borderPatrol[0] && borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1))) {
+                    queueCreep(room, PRIORITIES.borderPatrol, {
+                        role: 'longbow',
+                        operation: 'borderPatrol',
+                        military: true,
+                        localCache: true,
+                        responseTarget: remotes[keys]
+                    });
+                }
+            }
         }
         // Remote Hauler
         if (!_.includes(queue, 'remoteHauler')) {
@@ -592,7 +606,7 @@ module.exports.remoteCreepQueue = function (room) {
             let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester' && creep.memory.containerID);
             let remoteRoad = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteRoad');
             if (remoteRoad.length < (remoteHarvesters.length * 0.25)) {
-                queueCreep(room, PRIORITIES.remotePioneer, {
+                queueCreep(room, PRIORITIES.remoteHauler, {
                     role: 'remoteRoad',
                     localCache: true
                 })

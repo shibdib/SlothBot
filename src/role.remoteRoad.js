@@ -71,8 +71,7 @@ module.exports.role = function role(creep) {
 };
 
 function remoteRoads(creep) {
-    if (creep.room.name !== creep.memory.destination || (creep.memory.roadCheck && Game.time < creep.memory.roadCheck) || !creep.room.sources.length) return false;
-    creep.memory.roadCheck = Game.time + 250;
+    if (creep.room.name !== creep.memory.destination || !creep.room.sources.length) return false;
     let sources = creep.room.sources;
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
