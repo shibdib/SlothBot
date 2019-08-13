@@ -12,7 +12,7 @@ let globals = function () {
     //Manually set baddies and friends and combat stuff
     global.HOSTILES = ['Tanjera'];
     global.NO_AGGRESSION = [];
-    global.MANUAL_FRIENDS = ['KittyTack', 'KOR_Solidarity', 'GimmeCookies', 'Sergey'];
+    global.MANUAL_FRIENDS = ['KittyTack', 'KOR_Solidarity', 'GimmeCookies', 'Sergey', 'duckymirror'];
     global.NAP_ALLIANCE = [];
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 3; //Range that rooms consider local via linear distance

@@ -34,12 +34,13 @@ module.exports.role = function role(creep) {
         // If haulers needed haul
         if (hauling(creep)) return;
         // If builder needed build
-        if (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair()) return creep.builderFunction();
+        if (building(creep)) return;
         // If praiser needed praise
         if (upgrading(creep)) return;
         // Else idle
         creep.idleFor(25);
     } else {
+        creep.memory.task = undefined;
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
@@ -72,9 +73,20 @@ module.exports.role = function role(creep) {
     }
 };
 
+function building(creep) {
+    if (creep.memory.task && creep.memory.task !== 'build') return;
+    let praiser = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader'));
+    let haulers = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler'));
+    if (creep.memory.task === 'build' || (praiser.length && haulers.length && (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair()))) {
+        creep.say('Build!', true);
+        creep.builderFunction();
+        return true;
+    }
+}
+
 function hauling(creep) {
-    if (!creep.room.controller || !creep.room.controller.owner || _.includes(FRIENDLIES, creep.room.controller.owner.username)) return false;
-    // If haulers needed haul
+    if (creep.memory.task && creep.memory.task !== 'haul') return;
+    if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
     let haulers = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler'));
     let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5).length > 0;
     if (creep.memory.task === 'haul' || (creep.carry[RESOURCE_ENERGY] === creep.carryCapacity && haulers.length < 1 && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
@@ -104,10 +116,12 @@ function hauling(creep) {
         } else if (creep.room.energyAvailable === creep.room.energyCapacityAvailable) {
             creep.memory.task = undefined;
         }
+        return true;
     }
 }
 
 function upgrading(creep) {
+    if (creep.memory.task && creep.memory.task !== 'upgrade') return;
     if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
     creep.memory.task = 'upgrade';
     creep.say('Praise!', true);

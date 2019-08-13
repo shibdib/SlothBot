@@ -503,6 +503,8 @@ Creep.prototype.reportDamage = function () {
             for (let key in nearbyCreeps) {
                 let user = nearbyCreeps[key];
                 if (user === MY_USERNAME) continue;
+                // Handle taking damage near allies with other hostiles
+                if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
                 let cache = Memory._badBoyList || {};
                 let threatRating;
                 if (cache[user]) {
@@ -515,7 +517,7 @@ Creep.prototype.reportDamage = function () {
                     }
                 } else {
                     if (_.includes(FRIENDLIES, user)) {
-                        threatRating = 2.5;
+                        threatRating = 1;
                     } else {
                         threatRating = 50;
                     }

@@ -140,7 +140,7 @@ module.exports.roomStartup = function (room) {
     let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
     let priority = 3;
     if (drones.length < 2) priority = 1;
-    if (drones.length < roomSourceSpace[room.name] + 4) {
+    if (drones.length < roomSourceSpace[room.name] * 2.5) {
         queueCreep(room, priority, {role: 'drone'})
     }
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
@@ -395,7 +395,8 @@ module.exports.miscCreepQueue = function (room) {
     }
     // Assist room
     if (level >= 4 && !inBuild && !room.memory.responseNeeded) {
-        let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded && Game.map.getRoomLinearDistance(room.name, r.name) <= 15))[0];
+        let needyRoom = _.sample(_.union(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.memory.responseNeeded),
+            _.filter(Memory.roomCache, (r) => r.owner && r.owner !== MY_USERNAME && _.includes(FRIENDLIES, r.owner) && r.level < room.controller.level - 2)));
         if (needyRoom) {
             if (!_.includes(queue, 'drone')) {
                 let drones = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');

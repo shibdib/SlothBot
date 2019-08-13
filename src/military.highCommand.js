@@ -465,9 +465,11 @@ function manualAttacks() {
             let level = name.match(/\d+$/)[0] || 1;
             let priority = 1;
             let tick = Game.time;
+            let type = 'siege';
+            if (_.max(Memory.ownedRooms, 'controller.level').controller.level < 8) type = 'siegeGroup';
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
-                type: 'siege',
+                type: type,
                 level: Number(level),
                 priority: Number(priority),
                 manual: true

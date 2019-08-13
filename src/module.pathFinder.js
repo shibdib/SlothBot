@@ -380,7 +380,7 @@ function addTerrainToMatrix(roomName, type) {
     let matrix = new PathFinder.CostMatrix();
     let terrain = new Room.Terrain(roomName);
     let plainCost = type === 3 ? 1 : type === 2 ? 1 : 5;
-    let swampCost = type === 3 ? 1 : type === 2 ? 10 : 25;
+    let swampCost = type === 3 ? 1 : type === 2 ? 15 : 25;
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             let tile = terrain.get(x, y);
@@ -428,9 +428,9 @@ function addStructuresToMatrix(room, matrix, type) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
         } else if (structure instanceof StructureRampart && ((!structure.my && !structure.isPublic) || structure.pos.checkForObstacleStructure())) {
             matrix.set(structure.pos.x, structure.pos.y, 256);
-        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic)) {
+        } else if (structure instanceof StructureRampart && (structure.my || structure.isPublic) && !structure.pos.checkForObstacleStructure()) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost - 1);
-        } else if (structure instanceof StructureRoad) {
+        } else if (structure instanceof StructureRoad && (!structure.pos.checkForRampart() || structure.pos.checkForRampart().my || structure.pos.checkForRampart().isPublic)) {
             matrix.set(structure.pos.x, structure.pos.y, roadCost);
         } else if (structure instanceof StructureContainer) {
             matrix.set(structure.pos.x, structure.pos.y, 45);

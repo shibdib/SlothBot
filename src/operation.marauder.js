@@ -13,7 +13,7 @@ Creep.prototype.marauding = function () {
     if (this.room.hostileCreeps.length && this.canIWin() && this.handleMilitaryCreep()) return;
     // Set a target
     if (!this.memory.targetRoom) {
-        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && r.level < 3));
+        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && r.level < 3 && !r.needsCleaning));
         if (lowLevel) this.memory.targetRoom = lowLevel.name; else {
             let potential = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level));
             if (potential.name) this.memory.targetRoom = potential.name;

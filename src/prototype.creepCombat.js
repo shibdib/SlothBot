@@ -10,17 +10,27 @@
  */
 'use strict';
 
+let searchCooldown = {};
+
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
-    let enemy, filter;
+    let enemy, filter, cooldown;
     let worthwhileStructures = this.room.hostileStructures.length > 0;
     if (!this.room.hostileCreeps.length && !worthwhileStructures) return;
-    let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length > 0;
+    let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length;
+    if (barriersPresent) {
+        if (!searchCooldown[this.name] || searchCooldown[this.name] + 15 < Game.time) {
+            searchCooldown[this.name] = Game.time;
+        } else {
+            cooldown = true;
+        }
+    }
     let hostileRoom = this.room.controller && !this.room.controller.my && this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username);
     // Towers die first
     if (hostileRoom) {
         filter = {filter: (c) => c.structureType === STRUCTURE_TOWER};
-        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else enemy = this.pos.findClosestByPath(this.room.structures, filter);
+        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.structures, filter);
         if (enemy) {
+            searchCooldown[this.name] = undefined;
             this.memory.target = enemy.id;
             return enemy;
         }
@@ -30,22 +40,27 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
         filter: (c) => (!c.className && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) &&
             (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0))) && c.owner.username !== 'Source Keeper'
     };
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
+    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
+        searchCooldown[this.name] = undefined;
         this.memory.target = enemy.id;
         return enemy;
     }
     // Kill spawns and extensions
     if (hostileRoom) {
         filter = {filter: (c) => c.structureType === STRUCTURE_SPAWN};
-        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
+        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
         if (enemy) {
+            searchCooldown[this.name] = undefined;
+            this.memory.target = enemy.id;
             return enemy;
         }
         filter = {filter: (c) => c.structureType === STRUCTURE_EXTENSION};
-        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
+        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
         if (enemy) {
+            searchCooldown[this.name] = undefined;
+            this.memory.target = enemy.id;
             return enemy;
         }
     }
@@ -54,23 +69,24 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
         filter: (c) => (!c.my && (!_.includes(FRIENDLIES, c.owner.username) || _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader') &&
             (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0)) && c.owner.username !== 'Source Keeper')
     };
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.creeps, filter); else enemy = this.pos.findClosestByPath(this.room.creeps, filter);
+    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.creeps, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.creeps, filter);
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
-        this.memory.target = enemy.id;
         return enemy;
     }
     // If friendly room leave other structures alone
     if ((this.room.controller && this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || (this.room.controller && this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username))) return false;
     filter = {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_STORAGE && c.structureType !== STRUCTURE_TERMINAL && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_EXTRACTOR && c.structureType !== STRUCTURE_PORTAL};
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else enemy = this.pos.findClosestByPath(this.room.structures, filter);
+    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.structures, filter);
     if (enemy) {
+        searchCooldown[this.name] = undefined;
+        this.memory.target = enemy.id;
         return enemy;
-    } else if (barriers) {
+    } else if (barriers && this.findClosestBarrier()) {
         enemy = this.findClosestBarrier();
-        if (enemy) {
-            return enemy;
-        }
+        searchCooldown[this.name] = undefined;
+        this.memory.target = enemy.id;
+        return enemy;
     }
     return false;
 };

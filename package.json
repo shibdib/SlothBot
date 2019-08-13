@@ -1,0 +1,7 @@
+{
+  "name": "screeps",
+  "version": "0.0.1",
+  "dependencies": {
+    "screeps-api": "latest"
+  }
+}

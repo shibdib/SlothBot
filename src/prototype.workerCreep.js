@@ -293,13 +293,15 @@ Creep.prototype.findEnergy = function () {
     }
     // Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000
+        && terminal.store[RESOURCE_ENERGY].amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === terminal.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity) {
         this.memory.energyDestination = terminal.id;
         return true;
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT / 3) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT / 3
+        && storage.store[RESOURCE_ENERGY].amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === storage.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity) {
         this.memory.energyDestination = storage.id;
         return true;
     }

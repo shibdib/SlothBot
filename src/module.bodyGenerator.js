@@ -271,7 +271,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         case 'unClaimer':
             if (level < 4) break;
-            claim = _.round(0.5 * level);
+            if (level < 7) {
+                claim = _.round(0.5 * level);
+            } else if (level === 7) claim = 8; else claim = 15;
             move = claim;
             break;
         // Remote
