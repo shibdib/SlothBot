@@ -688,7 +688,7 @@ PowerCreep.prototype.moveRandom = function (onPath) {
     this.move(direction);
 };
 
-Creep.prototype.kite = function (fleeRange = 8) {
+Creep.prototype.kite = function (fleeRange = 4) {
     let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange);
     if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
         let skLairs = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR && s.ticksToSpawn < 15 && this.pos.getRangeTo(s) <= fleeRange);

@@ -37,8 +37,6 @@ module.exports.role = function role(creep) {
         if (building(creep)) return;
         // If praiser needed praise
         if (upgrading(creep)) return;
-        // Else idle
-        creep.idleFor(25);
     } else {
         creep.memory.task = undefined;
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
@@ -74,10 +72,11 @@ module.exports.role = function role(creep) {
 };
 
 function building(creep) {
-    if (creep.memory.task && creep.memory.task !== 'build') return;
+    if (creep.memory.task && creep.memory.task !== 'build' && creep.memory.task !== 'repair') return;
+    creep.say(1)
     let praiser = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'upgrade') || c.memory.role === 'upgrader'));
     let haulers = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler'));
-    if (creep.memory.task === 'build' || (praiser.length && haulers.length && (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair()))) {
+    if (creep.memory.task === 'build' || creep.memory.task === 'repair' || (praiser.length && haulers.length && (creep.memory.constructionSite || creep.findConstruction() || creep.findRepair()))) {
         creep.say('Build!', true);
         creep.builderFunction();
         return true;

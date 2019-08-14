@@ -27,7 +27,7 @@ Creep.prototype.borderPatrol = function () {
         if (this.handleMilitaryCreep()) {
             this.memory.onTarget = undefined;
         } else {
-            this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
+            if (this.memory.responseTarget) this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
             // If on target, be available to respond
             if (!this.memory.onTarget) this.memory.onTarget = Game.time;
         }

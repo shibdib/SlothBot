@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
         let source = Game.getObjectById(creep.memory.source);
         switch (creep.harvest(source)) {
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(source);
+                if (container) creep.shibMove(container, {range: 0}); else creep.shibMove(source);
                 break;
             case ERR_NOT_ENOUGH_RESOURCES:
                 creep.idleFor(source.ticksToRegeneration + 1);

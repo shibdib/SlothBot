@@ -56,7 +56,7 @@ module.exports.role = function (creep) {
                             break;
                     }
                 }
-            } else if (!dropOff(creep)) creep.idleFor(2)
+            } else if (!dropOff(creep)) creep.idleFor(15)
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
