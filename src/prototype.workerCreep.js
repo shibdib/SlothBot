@@ -57,12 +57,12 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.7);
+    site = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.5);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
-        this.memory.targetHits = site.hitsMax * 0.8;
+        this.memory.targetHits = site.hitsMax * 0.65;
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_EXTENSION);
@@ -341,7 +341,7 @@ Creep.prototype.findEnergy = function () {
         return true;
     }
     // Hub Container
-    let hubContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
     if (hubContainer && hubContainer.energy - 150 >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity')) {
         this.memory.energyDestination = hubContainer.id;
         return true;
@@ -417,7 +417,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
         return true;
     }
     // Hub Container
-    let hubContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
     if (hubContainer && hubContainer.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity && this.memory.role !== 'filler') {
         this.memory.energyDestination = hubContainer.id;
         this.memory.findEnergyCountdown = undefined;
