@@ -18,13 +18,11 @@ module.exports.role = function (creep) {
     if (!creep.memory.destination) {
         let adjacent = Game.map.describeExits(creep.pos.roomName);
         let possibles, target;
-        possibles = _.filter(adjacent, (r) => (!Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time) && Game.map.getRoomLinearDistance(creep.memory.overlord, r) <= LOCAL_SPHERE);
+        possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time);
         if (possibles.length) {
             target = _.sample(possibles);
         } else {
-            _.forEach(adjacent, function (room) {
-                if ((!target || Memory.roomCache[room] && Game.time - Memory.roomCache[room].cached > Game.time - Memory.roomCache[target].cached) && Game.map.isRoomAvailable(room) && Game.map.getRoomLinearDistance(creep.memory.overlord, room) <= LOCAL_SPHERE) target = room;
-            });
+            target = _.sample(adjacent);
         }
         if (!Game.map.isRoomAvailable(target)) return creep.say("??");
         creep.memory.destination = target;

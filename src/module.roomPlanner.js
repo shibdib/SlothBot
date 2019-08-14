@@ -130,6 +130,40 @@ function buildFromLayout(room) {
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
+    // Controller
+    let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
+    if (!controllerContainer) {
+        controllerContainer = _.filter(room.controller.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+        if (!controllerContainer) {
+            let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
+            if (!controllerBuild && room.controller.level >= 2) {
+                for (let xOff = -1; xOff <= 1; xOff++) {
+                    for (let yOff = -1; yOff <= 1; yOff++) {
+                        if (xOff !== 0 || yOff !== 0) {
+                            let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
+                            if (!pos.checkForImpassible()) return pos.createConstructionSite(STRUCTURE_CONTAINER);
+                        }
+                    }
+                }
+            }
+        } else {
+            room.memory.controllerContainer = controllerContainer.id;
+        }
+    } else if (room.controller.level >= 7) {
+        let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
+        if (!controllerLink) {
+            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
+            for (let key in zoneTerrain) {
+                if (_.filter(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
+                let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
+                if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
+                position.createConstructionSite(STRUCTURE_LINK);
+                break;
+            }
+        } else {
+            room.memory.controllerLink = controllerLink.id;
+        }
+    }
     // Mineral Container
     let extractor = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
     if (extractor) {
@@ -228,40 +262,6 @@ function buildFromLayout(room) {
                 if (!mineral.pos.checkForAllStructure().length && !mineral.pos.checkForConstructionSites()) mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
                 buildRoadFromTo(room, spawn, container);
             }
-        }
-    }
-    // Controller
-    let controllerContainer = Game.getObjectById(room.memory.controllerContainer);
-    if (!controllerContainer) {
-        controllerContainer = _.filter(room.controller.pos.findInRange(room.structures, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-        if (!controllerContainer) {
-            let controllerBuild = _.filter(room.controller.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_CONTAINER)[0];
-            if (!controllerBuild && room.controller.level >= 3) {
-                for (let xOff = -1; xOff <= 1; xOff++) {
-                    for (let yOff = -1; yOff <= 1; yOff++) {
-                        if (xOff !== 0 || yOff !== 0) {
-                            let pos = new RoomPosition(room.controller.pos.x + xOff, room.controller.pos.y + yOff, room.name);
-                            if (!pos.checkForImpassible()) return pos.createConstructionSite(STRUCTURE_CONTAINER);
-                        }
-                    }
-                }
-            }
-        } else {
-            room.memory.controllerContainer = controllerContainer.id;
-        }
-    } else if (room.controller.level >= 7) {
-        let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
-        if (!controllerLink) {
-            let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
-            for (let key in zoneTerrain) {
-                if (_.filter(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
-                let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
-                if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
-                position.createConstructionSite(STRUCTURE_LINK);
-                break;
-            }
-        } else {
-            room.memory.controllerLink = controllerLink.id;
         }
     }
     // Cleanup

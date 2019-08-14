@@ -134,6 +134,7 @@ let globals = function () {
             longbow: [RANGED_ATTACK, MOVE],
             remoteHauler: [CARRY, CARRY, MOVE, MOVE],
             remoteHarvester: [MOVE, CARRY, WORK],
+            remoteAllInOne: [MOVE, MOVE, CARRY, WORK],
         }
     };
 

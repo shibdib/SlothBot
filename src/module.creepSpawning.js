@@ -140,7 +140,7 @@ module.exports.roomStartup = function (room) {
     let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
     let priority = 3;
     if (drones.length < 2) priority = 1;
-    if (drones.length < roomSourceSpace[room.name] * 2.5) {
+    if (drones.length < roomSourceSpace[room.name] + 3) {
         queueCreep(room, priority, {role: 'drone'})
     }
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
@@ -149,9 +149,14 @@ module.exports.roomStartup = function (room) {
             queueCreep(room, 2, {role: 'stationaryHarvester'})
         }
     }
+    let hauler = _.filter(roomCreeps, (c) => (c.memory.role === 'hauler'));
+    if (!_.includes(queue, 'hauler')) {
+        if (hauler.length < 2 || (hauler[0].ticksToLive < (hauler[0].body.length * 3 + 10) && hauler.length < 3)) {
+            queueCreep(room, 2, {role: 'hauler'})
+        }
+    }
     if (!_.includes(queue, 'explorer') && !room.memory.responseNeeded) {
-        let amount = 1;
-        if (room.controller.level < 4) amount = 3;
+        let amount = 6;
         let explorers = _.filter(roomCreeps, (creep) => creep.memory.role === 'explorer');
         if (explorers.length < amount) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
@@ -207,7 +212,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Filler
     if (!_.includes(queue, 'filler') && _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID)).length) {
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID));
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.containerID && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             if (filler.length === 0) {
@@ -297,9 +302,8 @@ module.exports.miscCreepQueue = function (room) {
         if (inBuild) {
             let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
             let amount = roomSourceSpace[room.name] || 1;
-            if (amount > room.constructionSites.length) amount = room.constructionSites.length;
             if (amount <= 3 && _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length) amount = 4;
-            if (TEN_CPU || level >= 6 || !room.constructionSites.length) amount = 2;
+            if (TEN_CPU) amount = 2;
             if (drones.length < amount) {
                 queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
             }
@@ -535,7 +539,7 @@ module.exports.remoteCreepQueue = function (room) {
                         if (!_.includes(queue, 'remoteHarvester')) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                             let sourceCount = 1;
-                            if (level >= 4 && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
                             if (remoteHarvester.length < sourceCount || (remoteHarvester[0] && remoteHarvester[0].ticksToLive < (remoteHarvester[0].body.length * 3 + 10) && remoteHarvester.length < sourceCount + 1)) {
                                 queueCreep(room, PRIORITIES.remoteHarvester, {
                                     role: 'remoteHarvester',

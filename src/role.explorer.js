@@ -20,9 +20,7 @@ module.exports.role = function (creep) {
         if (possibles.length) {
             target = _.sample(possibles);
         } else {
-            _.forEach(adjacent, function (room) {
-                if ((!target || Game.time - Memory.roomCache[room].cached > Game.time - Memory.roomCache[target].cached) && Game.map.isRoomAvailable(room)) target = room;
-            });
+            target = _.sample(adjacent);
         }
         if (!Game.map.isRoomAvailable(target)) return creep.say("??");
         creep.memory.destination = target;

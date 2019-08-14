@@ -49,15 +49,15 @@ module.exports.role = function role(creep) {
             let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
             if (source) {
                 creep.say('Harvest!', true);
-                if (Math.random() >= 0.9) {
-                    creep.memory.harvest = undefined;
-                    creep.memory.source = undefined;
-                    return;
-                }
                 creep.memory.source = source.id;
                 switch (creep.harvest(source)) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(source);
+                        if (Math.random() >= 0.9) {
+                            creep.memory.harvest = undefined;
+                            creep.memory.source = undefined;
+                            return;
+                        }
                         break;
                     case ERR_NOT_ENOUGH_RESOURCES:
                         creep.memory.source = undefined;
@@ -89,7 +89,7 @@ function hauling(creep) {
     if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
     let haulers = _.filter(creep.room.creeps, (c) => c.memory && ((c.memory.role === 'drone' && c.memory.task === 'haul') || c.memory.role === 'hauler'));
     let needyTower = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5).length > 0;
-    if (creep.memory.task === 'haul' || (creep.carry[RESOURCE_ENERGY] === creep.carryCapacity && haulers.length < 1 && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
+    if (creep.memory.task === 'haul' || (creep.carry[RESOURCE_ENERGY] === creep.carryCapacity && haulers.length < 2 && !creep.memory.task && (creep.room.energyAvailable < creep.room.energyCapacityAvailable || needyTower))) {
         creep.memory.task = 'haul';
         creep.say('Haul!', true);
         if (creep.memory.storageDestination || creep.findSpawnsExtensions() || creep.findEssentials() || creep.findStorage()) {
