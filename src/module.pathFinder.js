@@ -56,6 +56,7 @@ function shibMove(creep, heading, options = {}) {
     if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
         let move = creep.getActiveBodyparts(MOVE);
         let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+        if (creep.memory.trailer) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
         let fullCarry = 0;
         if (_.sum(creep.carry)) fullCarry = _.ceil(_.sum(creep.carry) / 50);
         weight += fullCarry;
@@ -69,16 +70,12 @@ function shibMove(creep, heading, options = {}) {
         }
     }
     // Use roads with a trailer
-    if (creep.memory.trailer) {
-        options.offRoad = undefined;
-        options.ignoreRoads = undefined;
-    }
     // Request a tow truck if needed
     if (!creep.className) {
-        if (heading.id && (creep.pos.getRangeTo(heading) > 2 || !creep.getActiveBodyparts(MOVE)) && !creep.className && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
+        if (heading.id && (creep.pos.getRangeTo(heading) > 2 || !creep.getActiveBodyparts(MOVE)) && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
             creep.memory.towDestination = heading.id;
-            if (options.range === 0) creep.memory.towToObject = true;
-        } else if (heading.id && (creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading))) {
+            creep.memory.towRange = options.range;
+        } else if (heading.id && creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {
             creep.memory.towDestination = undefined;
         }
         if (creep.memory.towDestination && creep.memory.towCreep) {
@@ -164,7 +161,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     let cached;
     if (!target) return creep.moveRandom();
     let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
-    if (options.useCache && !options.checkPath && !creep.room.memory.responseNeeded) cached = getPath(creep, origin, target);
+    if (options.useCache && !options.checkPath && !Memory.roomCache[creep.room.name].responseNeeded) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
         pathInfo.findAttempt = undefined;
         creep.memory.badPathing = undefined;

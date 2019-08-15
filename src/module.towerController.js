@@ -72,21 +72,13 @@ module.exports.towerControl = function (room) {
                 return repairTower.heal(woundedCreep[0]);
             }
         }
-        if (repairTower.energy > repairTower.energyCapacity * 0.5) {
+        if (repairTower.energy > repairTower.energyCapacity * 0.25) {
             let structures = room.structures;
-            let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 12500);
+            let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
             if (barriers.length > 0) {
                 return repairTower.repair(barriers[0]);
             }
-            let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.5);
-            if (road.length > 0) {
-                return repairTower.repair(road[0]);
-            }
-            let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * s.room.controller.level), 'hits');
-            repairTower.repair(lowestRampart);
-        } else if (repairTower.energy > repairTower.energyCapacity * 0.25) {
-            let structures = room.structures;
-            let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.15);
+            let road = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25);
             if (road.length > 0) {
                 return repairTower.repair(road[0]);
             }

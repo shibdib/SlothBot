@@ -14,7 +14,7 @@ module.exports.observerControl = function (room) {
         let target;
         let roomX = parseInt(room.name.substr(1, 2));
         let roomY = parseInt(room.name.substr(4, 2));
-        if (observer.room.memory.responseNeeded === true) {
+        if (Memory.roomCache[observer.room.name].responseNeeded === true) {
             let targetX = roomX + (Math.round(Math.random() * 20 - 1));
             let targetY = roomY + (Math.round(Math.random() * 20 - 1));
             target = room.name.substr(0, 1) + targetX + room.name.substr(3, 1) + targetY;

@@ -6,7 +6,7 @@ module.exports.role = function (creep) {
     creep.say(ICONS.respond, true);
     if (creep.tryToBoost(['attack'])) return;
     if (!creep.handleMilitaryCreep(false, true, true)) {
-        if (!creep.room.memory.responseNeeded) creep.memory.recycle = true;
+        if (!Memory.roomCache[creep.room.name].responseNeeded) creep.memory.recycle = true;
         findDefensivePosition(creep, creep);
     }
 };

@@ -358,7 +358,7 @@ function emergencyEnergy(terminal) {
     // Balance energy
     if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.5) {
         // Find needy terminals
-        let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.memory.requestingSupport && r.terminal && r.energy < ENERGY_AMOUNT * 2))[0];
+        let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && Memory.roomCache[r.name].requestingSupport && r.terminal && r.energy < ENERGY_AMOUNT * 2))[0];
         if (responseNeeded) {
             let needyTerminal = responseNeeded.terminal;
             // Determine how much you can move
@@ -375,7 +375,7 @@ function emergencyEnergy(terminal) {
 
 function balanceBoosts(terminal) {
     // Dont balance if being sieged or broke
-    if (terminal.room.memory.requestingSupport) return false;
+    if (Memory.roomCache[terminal.room.name].requestingSupport) return false;
     let primeRoom = Game.rooms[Memory.primeRoom];
     // Loop thru boosts
     let storedResources = Object.keys(terminal.store);

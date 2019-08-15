@@ -19,7 +19,7 @@ module.exports.role = function (creep) {
                 return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
             }
         } else if (!creep.handleMilitaryCreep(false, true)) {
-            creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
+            creep.memory.awaitingOrders = !Memory.roomCache[creep.room.name].responseNeeded;
             return findDefensivePosition(creep, creep);
         }
     } else if (creep.memory.operation) {
@@ -34,7 +34,7 @@ module.exports.role = function (creep) {
         // Hold
         if (creep.memory.operation === 'rangers') creep.rangersRoom();
     } else if (!creep.handleMilitaryCreep(false, true)) {
-        creep.memory.awaitingOrders = !creep.room.memory.responseNeeded;
+        creep.memory.awaitingOrders = !Memory.roomCache[creep.room.name].responseNeeded;
         if (creep.pos.checkForRoad()) {
             creep.moveRandom();
         } else {

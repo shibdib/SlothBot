@@ -12,6 +12,8 @@
 module.exports.role = function (creep) {
     //If source is set harvest
     if (creep.memory.source) {
+        //Find container
+        if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
         let container = Game.getObjectById(creep.memory.containerID);
         //Make sure you're on the container
         if (!creep.memory.onContainer && creep.memory.containerID) {
@@ -48,8 +50,6 @@ module.exports.role = function (creep) {
 function depositEnergy(creep) {
     //Attempt to build extensions
     if (!creep.memory.extensionBuilt || creep.memory.storedLevel !== creep.room.controller.level) extensionBuilder(creep);
-    //Find container
-    if (!creep.memory.containerAttempt && !creep.memory.containerID) creep.memory.containerID = harvestDepositContainer(Game.getObjectById(creep.memory.source), creep);
     //Check if there is extensions
     if (!creep.memory.extensionsFound) extensionFinder(creep);
     //Fill extensions if you have any stored
@@ -160,10 +160,14 @@ function extensionBuilder(creep) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
-                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure()) continue;
-                    count++;
-                    if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
-                    pos.createConstructionSite(STRUCTURE_EXTENSION)
+                    if (pos.checkForWall() || pos.checkForConstructionSites()) continue;
+                    if (pos.checkForObstacleStructure()) {
+                        pos.createConstructionSite(STRUCTURE_RAMPART)
+                    } else {
+                        count++;
+                        if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
+                        pos.createConstructionSite(STRUCTURE_EXTENSION)
+                    }
                 }
             }
         }

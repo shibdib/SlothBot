@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
     if (creep.wrongRoom()) return;
     if (creep.carry.energy === 0) {
         creep.memory.working = undefined;
-        if (creep.room.memory.responseNeeded) creep.memory.currentTarget = undefined;
+        if (Memory.roomCache[creep.room.name].responseNeeded) creep.memory.currentTarget = undefined;
     }
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
     if (creep.memory.working) {
@@ -40,12 +40,10 @@ module.exports.role = function (creep) {
                 }
             } else if (barrier) {
                 creep.memory.currentTarget = barrier.id;
-                if (barrier.hits < 50000) {
-                    creep.memory.targetHits = 70000;
-                } else if (barrier.hits < 150000 * creep.room.controller.level) {
-                    creep.memory.targetHits = 155000 * creep.room.controller.level;
+                if (barrier.hits < 10000) {
+                    creep.memory.targetHits = 25000;
                 } else {
-                    creep.memory.targetHits = barrier.hits + 250000;
+                    creep.memory.targetHits = barrier.hits + 50000;
                 }
             }
         } else {
@@ -63,11 +61,7 @@ module.exports.role = function (creep) {
             creep.withdrawResource();
         } else {
             if (!creep.requestDelivery() && !creep.findEnergy()) {
-                if (creep.pos.checkForRoad()) {
-                    creep.moveRandom();
-                } else {
-                    return creep.idleFor(15);
-                }
+                return creep.idleFor(15);
             }
         }
     }

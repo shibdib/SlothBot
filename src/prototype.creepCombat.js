@@ -700,6 +700,7 @@ PowerCreep.prototype.moveRandom = function (onPath) {
 };
 
 Creep.prototype.kite = function (fleeRange = 4) {
+    if (!this.getActiveBodyparts(MOVE)) return false;
     let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange && c.owner.username !== 'Source Keeper');
     if ((this.memory.destination === this.room.name || this.memory.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
         let sk = _.filter(this.room.hostileCreeps, (c) => c.owner.username === 'Source Keeper');
@@ -811,6 +812,7 @@ function addCreepsToMatrix(room, matrix) {
 }
 
 Creep.prototype.goHomeAndHeal = function () {
+    if (!this.getActiveBodyparts(MOVE)) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     if (this.room.name !== this.memory.overlord) {
         this.memory.runCooldown = Game.time + 100;
@@ -860,6 +862,7 @@ Creep.prototype.canIWin = function (range = 50) {
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);
         alliedCombatParts += armedFriendlies[i].getActiveBodyparts(HEAL) * 0.5;
     }
+    if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel(true);
     Memory.roomCache[this.room.name].hostilePower = hostileCombatParts;
     Memory.roomCache[this.room.name].friendlyPower = alliedCombatParts;
     if (this.getActiveBodyparts(RANGED_ATTACK)) hostileCombatParts -= hostileAttackParts;

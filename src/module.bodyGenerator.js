@@ -67,9 +67,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = work + carry;
                 break;
             } else {
-                work = 8 + level;
+                work = 10 + level;
                 carry = 1;
-                move = 1;
                 break;
             }
         case 'hauler':
@@ -115,12 +114,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level < 5) {
                 work = 4;
                 carry = 1;
-                move = 1;
                 break;
             } else {
                 work = 6;
                 carry = 1;
-                move = 1;
                 break;
             }
         case 'mineralHarvester':
@@ -203,12 +200,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 heal = 2;
                 move = 5;
             } else if (level === 5) {
-                rangedAttack = 4;
+                rangedAttack = 6;
                 heal = 2;
-                move = 6;
+                move = 8;
             } else if (level === 6) {
-                rangedAttack = 7;
-                heal = 3;
+                rangedAttack = 8;
+                heal = 2;
                 move = 10;
             } else if (level === 7) {
                 rangedAttack = 12;
@@ -301,14 +298,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             break;
         case 'remoteHarvester':
             if (room.memory.roadsBuilt) {
-                work = 5;
+                work = 4;
                 carry = 1;
-                move = 3;
+                move = 2;
                 break;
             } else {
                 work = 3;
                 carry = 1;
-                move = 2;
+                move = 3;
                 break;
             }
         case 'remoteAllInOne':
@@ -327,15 +324,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            if (level >= 7) {
-                carry = 30;
+            if (level >= 5) {
+                carry = 16;
                 work = 1;
-                move = 16;
-                break;
-            } else if (level >= 5) {
-                carry = 20;
-                work = 1;
-                move = 11;
+                move = 9;
                 break;
             } else {
                 work = 0;

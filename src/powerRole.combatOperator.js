@@ -56,7 +56,7 @@ module.exports.role = function (powerCreep) {
             }
         }
         // Boost tower when under attack
-        else if (targetTower && powerCreep.room.memory.responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
+        else if (targetTower && Memory.roomCache[powerCreep.room.name].responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_TOWER, targetTower);
         }
         // Linger to generate ops
@@ -65,7 +65,7 @@ module.exports.role = function (powerCreep) {
         }
         else {
             // Find a room in need of response or make yourself available for offensive operations (stage in prime)
-            let needsResponse = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 && r.memory.responseNeeded)).name;
+            let needsResponse = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 && Memory.roomCache[r.name].responseNeeded)).name;
             if (needsResponse) {
                 powerCreep.memory.availableForOperation = false;
                 powerCreep.memory.destinationRoom = needsResponse;

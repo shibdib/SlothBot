@@ -68,7 +68,7 @@ function buildFromLayout(room) {
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
         } else {
             if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) room.memory.hubContainer = hub.checkForAllStructure()[0].id;
-            if (!hub.checkForConstructionSites() && !hub.checkForObstacleStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
+            if (!hub.checkForConstructionSites() && (!hub.checkForObstacleStructure() || !hub.checkForObstacleStructure().length)) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
     } else {
         if (level >= 5) {

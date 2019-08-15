@@ -308,7 +308,7 @@ Creep.prototype.findEnergy = function () {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT / 3
+    if (storage && storage.store[RESOURCE_ENERGY]
         && storage.store[RESOURCE_ENERGY].amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === storage.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity) {
         this.memory.energyDestination = storage.id;
         return true;
@@ -461,7 +461,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
 // Hauler essential storage
 Creep.prototype.findSpawnsExtensions = function () {
     //Tower
-    if (this.room.memory.responseNeeded) {
+    if (Memory.roomCache[this.room.name].responseNeeded) {
         let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {
             filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.85 &&
                 _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'carry.energy') < s.energyCapacity - s.energy
@@ -584,7 +584,7 @@ Creep.prototype.findStorage = function () {
 // Essential buildings
 Creep.prototype.findEssentials = function () {
     //Tower
-    if (this.room.memory.responseNeeded) {
+    if (Memory.roomCache[this.room.name].responseNeeded) {
         let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {
             filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.85 &&
                 _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'carry.energy') < s.energyCapacity - s.energy

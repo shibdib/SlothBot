@@ -8,9 +8,6 @@ Creep.prototype.marauding = function () {
     let sentence = ['Just', 'Here', 'To', 'Ruin', 'Your', 'Day'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    // New target for safemode
-    // Kill everything
-    if (this.room.hostileCreeps.length && this.canIWin() && this.handleMilitaryCreep()) return;
     // Set a target
     if (!this.memory.targetRoom) {
         let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && r.level < 3 && !r.needsCleaning));
@@ -25,10 +22,11 @@ Creep.prototype.marauding = function () {
         }
         if (this.room.name === this.memory.targetRoom) {
             // If on target and cant win find a new target
-            if (!this.canIWin() || !this.handleMilitaryCreep()) {
+            if (!this.canIWin() || !this.handleMilitaryCreep() || Math.random() > 0.98) {
                 this.room.cacheRoomIntel(true);
                 this.attackInRange();
                 this.memory.targetRoom = undefined;
+                this.kite();
             }
         }
     }

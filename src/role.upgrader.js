@@ -20,7 +20,7 @@ module.exports.role = function (creep) {
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (creep.memory.working) {
         if (!creep.memory.onContainer) {
-            if (container && !container.pos.checkForCreep() && creep.pos.getRangeTo(container) > 0) {
+            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 return creep.shibMove(container, {range: 0});
             } else {
                 creep.memory.onContainer = true;
@@ -42,11 +42,19 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.energyDestination) {
         creep.withdrawResource();
-    } else if (creep.getActiveBodyparts(WORK) > creep.getActiveBodyparts(MOVE)) {
-        if (link && link.energy) {
-            creep.withdrawResource(link);
-        } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
-            creep.withdrawResource(container);
+    } else if (!creep.getActiveBodyparts(MOVE)) {
+        if (!creep.memory.onContainer) {
+            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+                return creep.shibMove(container, {range: 0});
+            } else {
+                creep.memory.onContainer = true;
+            }
+        } else {
+            if (link && link.energy) {
+                creep.withdrawResource(link);
+            } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
+                creep.withdrawResource(container);
+            }
         }
     } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
         creep.withdrawResource(container);
@@ -60,7 +68,7 @@ function herald(creep) {
     if (creep.memory.notHerald) return;
     if (creep.memory.herald) {
         let sentence = ['-', '#overlords', '-'];
-        if (creep.room.memory.responseNeeded) {
+        if (Memory.roomCache[creep.room.name].responseNeeded) {
             if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
             if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
             if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);

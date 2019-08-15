@@ -58,6 +58,8 @@ Creep.prototype.idleFor = function (ticks = 0) {
 };
 
 Creep.prototype.towTruck = function () {
+    // Clear broken trailers
+    if (this.memory.trailer && !Game.getObjectById(this.memory.trailer)) this.memory.trailer = undefined;
     if (_.sum(this.carry)) return false;
     if (!this.memory.trailer) {
         let needsTow = _.filter(this.room.creeps, (c) => c.my && c.memory.towDestination && !c.memory.towCreep);
@@ -70,14 +72,11 @@ Creep.prototype.towTruck = function () {
         }
     } else {
         this.say('Towing!', true);
+        if (this.fatigue) return true;
         let trailer = Game.getObjectById(this.memory.trailer);
         if (trailer) {
             if (!trailer.memory.towDestination) {
-                trailer.memory._shibMove = undefined;
                 this.memory.trailer = undefined;
-                trailer.memory.towCreep = undefined;
-                trailer.memory.towDestination = undefined;
-                trailer.memory.towToObject = undefined;
                 return false;
             }
             if (this.pull(trailer) === ERR_NOT_IN_RANGE) {
@@ -86,20 +85,17 @@ Creep.prototype.towTruck = function () {
                 return true;
             } else {
                 trailer.move(this);
-                if (!Game.getObjectById(trailer.memory.towDestination) || (!trailer.memory.towToObject && this.pos.isNearTo(Game.getObjectById(trailer.memory.towDestination))) ||
-                    (trailer.memory.towToObject && !this.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination)))) {
+                if (!Game.getObjectById(trailer.memory.towDestination) || this.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination)) === trailer.memory.towRange) {
                     this.move(this.pos.getDirectionTo(trailer));
                     this.memory.trailer = undefined;
                     trailer.memory._shibMove = undefined;
                     trailer.memory.towCreep = undefined;
                     trailer.memory.towDestination = undefined;
                     trailer.memory.towToObject = undefined;
-                    return false;
+                    trailer.memory.towRange = undefined;
                 } else {
-                    let range = 1;
-                    if (trailer.memory.towToObject) range = 0;
                     trailer.memory._shibMove = undefined;
-                    this.shibMove(Game.getObjectById(trailer.memory.towDestination), {range: range});
+                    this.shibMove(Game.getObjectById(trailer.memory.towDestination), {range: trailer.memory.towRange});
                 }
                 return true;
             }
@@ -470,6 +466,8 @@ Creep.prototype.recycleCreep = function () {
             break;
         case ERR_NOT_IN_RANGE:
             return this.shibMove(spawn[0]);
+        case ERR_BUSY:
+            creep.suicide();
     }
 };
 
@@ -484,19 +482,25 @@ Object.defineProperty(Creep.prototype, 'isFull', {
     configurable: true
 });
 
+Object.defineProperty(Creep.prototype, 'combatPower', {
+    get: function () {
+        if (!this._combatPower) {
+            let thisCombatParts = 0;
+            thisCombatParts += this.getActiveBodyparts(ATTACK);
+            thisCombatParts += this.getActiveBodyparts(RANGED_ATTACK);
+            thisCombatParts += this.getActiveBodyparts(HEAL) * 0.5;
+            this._combatPower = thisCombatParts;
+        }
+        return this._combatPower;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Creep.prototype.reportDamage = function () {
-    if (this.hits === this.hitsMax) {
-        this.memory.healsPlease = undefined;
-        this.memory.healsInbound = undefined;
-    } else if (!this.getActiveBodyparts(HEAL)) {
-        this.memory.healsPlease = true;
-    } else {
-        this.heal(this);
-    }
     if (this.memory.healsInbound && !Game.getObjectById(this.memory.healsInbound)) this.memory.healsInbound = undefined;
     if (!this.memory._lastHits) return this.memory._lastHits = this.hits;
     if (this.hits < this.memory._lastHits) {
-        this.memory.underAttack = true;
         if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) && this.memory.targetRoom !== this.room.name) return false;
         let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => c.pos.getRangeTo(this) <= 3 && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
@@ -508,18 +512,18 @@ Creep.prototype.reportDamage = function () {
                 let cache = Memory._badBoyList || {};
                 let threatRating;
                 if (cache[user]) {
-                    if (cache[user].lastAction + 10 > Game.time) return true;
-                    log.e(this.name + ' has taken damage in ' + this.room.name + '. Adjusting threat rating for ' + user);
+                    if (cache[user].lastAction + 3 > Game.time) return true;
+                    if (Math.random() > 0.8) log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. Adjusting threat rating for ' + user);
                     if (_.includes(FRIENDLIES, user)) {
                         threatRating = cache[user]['threatRating'] + 0.1;
                     } else {
-                        threatRating = cache[user]['threatRating'] + 0.5;
+                        threatRating = cache[user]['threatRating'] + 2.5;
                     }
                 } else {
                     if (_.includes(FRIENDLIES, user)) {
                         threatRating = 1;
                     } else {
-                        threatRating = 50;
+                        threatRating = 100;
                     }
                 }
                 cache[user] = {
@@ -529,8 +533,6 @@ Creep.prototype.reportDamage = function () {
                 Memory._badBoyList = cache;
             }
         }
-    } else {
-        this.memory.underAttack = undefined;
     }
     this.memory._lastHits = this.hits;
 };

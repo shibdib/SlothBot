@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     if (Game.time % 50 === 0 && creep.wrongRoom()) return;
     creep.say(ICONS.courier, true);
     // Special Tasks
-    if (!creep.room.memory.responseNeeded && (creep.memory.terminalWorker || creep.memory.nuclearEngineer || Game.time % 50 === 0)) if (nuclearEngineer(creep) || terminalWorker(creep)) return;
+    if (!Memory.roomCache[creep.room.name].responseNeeded && (creep.memory.terminalWorker || creep.memory.nuclearEngineer || Game.time % 50 === 0)) if (nuclearEngineer(creep) || terminalWorker(creep)) return;
     // If hauling do things
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.5) creep.memory.hauling = true;
     if (!_.sum(creep.carry)) creep.memory.hauling = undefined;

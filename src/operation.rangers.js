@@ -45,9 +45,10 @@ Creep.prototype.rangersRoom = function () {
         // Sustainability
         highCommand.operationSustainability(this.room);
         // If military action required do that
+        if (!this.canIWin(4)) return this.kite();
         if (this.handleMilitaryCreep(false, false)) return;
         // Scorched Earth
-        if (this.scorchedEarth()) return;
+        if (this.scorchedEarth()) ;
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);

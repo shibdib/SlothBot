@@ -43,9 +43,12 @@ module.exports.claimNewRoom = function () {
                 if (worthyRooms[key].mineral && !_.includes(minerals, worthyRooms[key].mineral)) baseScore += 450;
                 // Check if it's near any owned rooms
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);
-                for (let key in avoidRooms) {
-                    let distance = Game.map.findRoute(key, avoidRooms[key].name).length;
-                    if (distance < 2 || (Game.rooms[key] && Game.rooms[key].controller.my)) continue loop1;
+                for (let avoidKey in avoidRooms) {
+                    let avoidName = avoidRooms[avoidKey].name;
+                    let distance = Game.map.findRoute(name, avoidName).length;
+                    let cutoff = 2;
+                    if (_.includes(FRIENDLIES, avoidRooms[avoidKey].owner)) cutoff = 3;
+                    if (distance < cutoff) continue loop1;
                 }
                 worthyRooms[key].claimValue = baseScore;
                 possibles[key] = worthyRooms[key];

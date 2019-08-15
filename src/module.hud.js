@@ -14,7 +14,7 @@ module.exports.hud = function () {
         let activeSpawns = _.filter(spawns, (s) => s.spawning);
         let lowerBoundary = 3;
         if (room.memory.claimTarget) lowerBoundary++;
-        if (room.memory.responseNeeded) lowerBoundary++;
+        if (Memory.roomCache[room.name].responseNeeded) lowerBoundary++;
         room.visual.rect(0, 0, 16, lowerBoundary + activeSpawns.length, {
             fill: '#ffffff',
             opacity: '0.55',
@@ -84,7 +84,7 @@ module.exports.hud = function () {
             displayText(room, 0, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' (' + room.memory.averageCpu + '/R.CPU)');
         }
         let y = lowerBoundary - (activeSpawns.length || 1);
-        if (room.memory.responseNeeded) {
+        if (Memory.roomCache[room.name].responseNeeded) {
             displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + Memory.roomCache[room.name].threatLevel);
             y++;
         }

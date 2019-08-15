@@ -40,8 +40,8 @@ module.exports.controller = function (room) {
     //earlyWarning(room);
 
     // Send an email on a player attack with details of attack
-    if (Memory.roomCache[room.name].threatLevel && !room.memory.alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
-        room.memory.alertEmail = true;
+    if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
+        Memory.roomCache[room.name].alertEmail = true;
         let playerHostile = _.filter(room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(WORK) >= 1) && c.owner.username !== 'Invader')[0];
         if (!playerHostile || !playerHostile.length) return;
         let hostileOwners = [];
@@ -67,7 +67,7 @@ module.exports.controller = function (room) {
         let towers = _.filter(room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy >= 10);
         let responders = _.filter(creeps, (c) => c.memory && c.memory.role === 'responder' && c.memory.overlord === room.name);
         if (((!towers.length && !responders.length) || Memory.roomCache[room.name].threatLevel >= 4 || room.energy < 1000) && !room.controller.safeMode) {
-            room.memory.requestingSupport = true;
+            Memory.roomCache[room.name].requestingSupport = true;
         }
     }
 };
@@ -91,12 +91,15 @@ function rampartManager(room, structures) {
 
 function safeModeManager(room) {
     // || !_.inRange(room.controller.level, _.max(Memory.ownedRooms, 'controller.level').controller.level - 1, _.max(Memory.ownedRooms, 'controller.level').controller.level + 1)
-    if (!room.hostileCreeps.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) return;
-    let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
-    let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER).length;
-    let damagedCritical = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.hits < s.hitsMax).length;
-    let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.energy > 10)).length;
+    if (!room.hostileCreeps.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable) {
+        structureCount[room.name] = undefined;
+        return;
+    }
+    let worthyCount = structureCount[room.name] || _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART).length;
     structureCount[room.name] = worthyCount;
+    let structureLost = worthyCount > _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART).length;
+    let damagedCritical = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_STORAGE) && s.hits < s.hitsMax).length;
+    let towers = _.filter(room.structures, (s) => (s.structureType === STRUCTURE_TOWER && s.energy > 10)).length;
     if (structureLost || damagedCritical > 0 || !towers) {
         let ownerArray = [];
         room.hostileCreeps.forEach((c) => ownerArray.push(c.owner.username));

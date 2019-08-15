@@ -64,7 +64,7 @@ module.exports.role = function (powerCreep) {
             }
         }
         // Boost tower when under attack
-        else if (targetTower && powerCreep.room.memory.responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
+        else if (targetTower && Memory.roomCache[powerCreep.room.name].responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
             abilitySwitch(powerCreep, PWR_OPERATE_TOWER, targetTower);
         }
         // Fill extensions
