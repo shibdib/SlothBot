@@ -96,7 +96,9 @@ RoomPosition.prototype.checkForBarrierStructure = function () {
 };
 
 RoomPosition.prototype.checkForObstacleStructure = function () {
-    return this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+    let obstacle = this.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+    if (!obstacle) obstacle = _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART && !s.my && !s.isPublic)[0];
+    return obstacle;
 };
 
 RoomPosition.prototype.checkForConstructionSites = function () {

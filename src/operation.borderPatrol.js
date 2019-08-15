@@ -16,8 +16,9 @@ Creep.prototype.borderPatrol = function () {
     // Run from unwinnable fights
     if (!this.canIWin()) {
         if (this.memory.responseTarget && this.room.name === this.memory.responseTarget) this.memory.responseTarget = undefined;
+        this.attackInRange();
     }
-    if (!this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
+    if (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) return this.goHomeAndHeal();
     // Handle contact reporting
     this.memory.contactReport = undefined;
     if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) {

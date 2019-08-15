@@ -538,7 +538,7 @@ function addSksToMatrix(room, matrix) {
                         continue;
                     }
                     if (position && !position.checkForWall()) {
-                        matrix.set(position.x, position.y, 256)
+                        matrix.set(position.x, position.y, 255 - (position.getRangeTo(sk[c]) * 10))
                     }
                 }
             }

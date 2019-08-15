@@ -38,7 +38,7 @@ module.exports.role = function (creep) {
                                 creep.memory.waitLink = undefined;
                             } else if (storageItem.structureType === STRUCTURE_LINK) {
                                 creep.memory.waitLink = true;
-                                creep.idleFor(5);
+                                creep.idleFor(storageItem.cooldown + 1 || 5);
                             }
                             creep.memory.storageDestination = undefined;
                             break;

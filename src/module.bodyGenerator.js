@@ -34,7 +34,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             work = _.random(level, level * 2);
             carry = _.random(2, level);
             move = work + carry;
-            if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;
             break;
         case 'remoteRoad':
         case 'repairer':
@@ -174,7 +173,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             attack = _.round(0.5 * level);
             heal = 0;
             if (level > 3) {
-                attack = level + 1;
+                attack = _.random(level + 1, level * 2.5);
                 heal = 1;
             }
             move = tough + heal + attack;

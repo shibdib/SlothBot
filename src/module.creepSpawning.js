@@ -249,14 +249,8 @@ module.exports.essentialCreepQueue = function (room) {
         //Upgrader
         if (!_.includes(queue, 'upgrader')) {
             let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
-            let number = 1;
-            let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-            if (!TEN_CPU && !importantBuilds) {
-                if (room.controller.level < 4) {
-                    number = _.round((15 - level) / 2);
-                    if (room.memory.controllerContainer) number = Game.getObjectById(room.memory.controllerContainer).pos.countOpenTerrainAround() + 1;
-                } else if (room.controller.level < 8 && room.memory.energySurplus) number = 2;
-            }
+            let number = 2;
+            if (level === 8) number = 1;
             //If room is about to downgrade get a creep out asap
             let reboot;
             let priority = PRIORITIES.upgrader;
@@ -620,12 +614,22 @@ module.exports.remoteCreepQueue = function (room) {
     }
     // Border Patrol
     if (!TEN_CPU && Memory.spawnBorderPatrol) {
-        let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
+        let rangedBorderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
         let count = 2;
         if (responseNeeded) count = 3;
-        if (!_.includes(queue, 'longbow') && (borderPatrol.length < count || (borderPatrol[0] && borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1))) {
+        if (!_.includes(queue, 'longbow') && (rangedBorderPatrol.length < count || (rangedBorderPatrol[0] && rangedBorderPatrol[0].ticksToLive < (rangedBorderPatrol[0].body.length * 3 + 10) && rangedBorderPatrol.length < count + 1))) {
             queueCreep(room, PRIORITIES.borderPatrol, {
                 role: 'longbow',
+                operation: 'borderPatrol',
+                military: true,
+                localCache: true
+            });
+        }
+        let meleeBorderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
+        count = 1;
+        if (!_.includes(queue, 'attacker') && (meleeBorderPatrol.length < count || (meleeBorderPatrol[0] && meleeBorderPatrol[0].ticksToLive < (meleeBorderPatrol[0].body.length * 3 + 10) && meleeBorderPatrol.length < count + 1))) {
+            queueCreep(room, PRIORITIES.borderPatrol, {
+                role: 'attacker',
                 operation: 'borderPatrol',
                 military: true,
                 localCache: true
@@ -725,6 +729,7 @@ module.exports.militaryCreepQueue = function () {
                 break;
             case 'hold': //Hold Room
                 let unClaimerNeeded = Memory.targetRooms[key].unClaimer;
+                let cleanerNeeded = Memory.targetRooms[key].cleaner;
                 let longbows = 1;
                 let reboot = true;
                 if (opLevel > 1) {
@@ -745,6 +750,15 @@ module.exports.militaryCreepQueue = function () {
                 if (unClaimerNeeded && (unClaimer.length < 1 || (unClaimer[0] && unClaimer[0].ticksToLive < (unClaimer[0].body.length * 3 + 10) && unClaimer.length < 2)) && longbow.length) {
                     queueMilitaryCreep(priority, {
                         role: 'unClaimer',
+                        targetRoom: key,
+                        operation: 'hold',
+                        military: true
+                    })
+                }
+                let holdCleaner = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'deconstructor');
+                if (cleanerNeeded && holdCleaner.length < 1) {
+                    queueMilitaryCreep(priority, {
+                        role: 'deconstructor',
                         targetRoom: key,
                         operation: 'hold',
                         military: true
