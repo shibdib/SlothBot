@@ -18,9 +18,9 @@ const lastGlobal = Memory.lastGlobalReset || Game.time;
 log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
 
-profiler.enable();
+//profiler.enable();
 module.exports.loop = function () {
-    profiler.wrap(function () {
+    //profiler.wrap(function () {
         stats.lastTime = false;
         stats.reset();
 
@@ -77,7 +77,7 @@ module.exports.loop = function () {
         stats.addSimpleStat('totalCreepCount', _.size(Game.creeps)); // Creep Count
         stats.addSimpleStat('militaryCreepCount', _.size(_.filter(Game.creeps, (r) => r.memory.military))); // Creep Count
         stats.commit();
-    });
+    //});
 };
 
 currentStats = function (notify = false) {

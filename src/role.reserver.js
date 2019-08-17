@@ -13,7 +13,9 @@ module.exports.role = function (creep) {
     //Initial Move
     if (creep.pos.roomName !== creep.memory.reservationTarget) return creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
     //Invader detection
-    if (creep.kite()) return true;
+    if (creep.kite(5) || creep.memory.runCooldown) {
+        return creep.goHomeAndHeal();
+    }
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Reserver
     if (creep.memory.inPlace) {

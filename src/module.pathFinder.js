@@ -161,6 +161,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     let cached;
     if (!target) return creep.moveRandom();
     let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
+    if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true);
     if (options.useCache && !options.checkPath && !Memory.roomCache[creep.room.name].responseNeeded) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
         pathInfo.findAttempt = undefined;
@@ -406,7 +407,7 @@ function getStructureMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 4500 || Math.random() > 0.98)) {
+    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 4500 || Math.random() > 0.98 || Memory.roomCache[roomName].threatLevel >= 3)) {
         room.memory.structureMatrixTick = Game.time;
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, matrix, type).serialize();
     }
@@ -490,8 +491,8 @@ function addHostilesToMatrix(room, matrix) {
     let enemyCreeps = _.filter(room.hostileCreeps, (c) => !c.className && (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)));
     for (let key in enemyCreeps) {
         matrix.set(enemyCreeps[key].pos.x, enemyCreeps[key].pos.y, 0xff);
-        let range = 8;
-        if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 4;
+        let range = 6;
+        if (!enemyCreeps[key].getActiveBodyparts(RANGED_ATTACK)) range = 3;
         let avoidZone = enemyCreeps[key].room.lookForAtArea(LOOK_TERRAIN, enemyCreeps[key].pos.y - range, enemyCreeps[key].pos.x - range, enemyCreeps[key].pos.y + range, enemyCreeps[key].pos.x + range, true);
         for (let key in avoidZone) {
             let position;
@@ -502,8 +503,7 @@ function addHostilesToMatrix(room, matrix) {
             }
             if (!position || matrix.get(position.x, position.y)) continue;
             if (!position.checkForWall()) {
-                let inRange = position.findInRange(enemyCreeps, range);
-                matrix.set(position.x, position.y, 40 * inRange)
+                matrix.set(position.x, position.y, 256)
             }
         }
     }

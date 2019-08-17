@@ -9,6 +9,7 @@
  * Created by rober on 5/16/2017.
  */
 let layouts = require('module.roomLayouts');
+let minCut = require('util.minCut');
 
 module.exports.buildRoom = function (room) {
     if (room.memory.layout && room.memory.bunkerHub) {
@@ -85,46 +86,51 @@ function buildFromLayout(room) {
         }
     }
     // Bunker Ramparts
-    if (level >= 4 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) {
-        let posArray = [];
-        let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_RAMPART).forEach((s) => posArray.push(new RoomPosition(s.x, s.y, room.name)));
-        let exits = [FIND_EXIT_BOTTOM, FIND_EXIT_LEFT, FIND_EXIT_RIGHT, FIND_EXIT_TOP];
-        for (let exit of exits) {
-            exit = hub.findClosestByPath(exit);
-            if (exit) {
-                let path = exit.findPathTo(hub, {
-                    maxOps: 10000,
-                    serialize: false,
-                    ignoreCreeps: true,
-                    maxRooms: 1,
-                    costCallback: function (roomName, costMatrix) {
-                        for (let site of room.constructionSites) {
-                            if (site.structureType === STRUCTURE_RAMPART) {
-                                costMatrix.set(site.pos.x, site.pos.y, 256);
-                            } else {
-                                costMatrix.set(site.pos.x, site.pos.y, 1);
-                            }
-                        }
-                        for (let structure of room.structures) {
-                            if (structure.structureType === STRUCTURE_RAMPART) {
-                                costMatrix.set(structure.pos.x, structure.pos.y, 256);
-                            } else {
-                                costMatrix.set(structure.pos.x, structure.pos.y, 1);
-                            }
-                        }
-                    },
+    if (level >= 4 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
+        if (!room.memory.rampartSpots) {
+            room.memory.rampartPositions = undefined;
+            let rect_array = [];
+            rect_array.push({
+                x1: room.memory.bunkerHub.x - 8,
+                y1: room.memory.bunkerHub.y - 8,
+                x2: room.memory.bunkerHub.x + 8,
+                y2: room.memory.bunkerHub.y + 8
+            });
+            for (let source of room.find(FIND_SOURCES)) {
+                rect_array.push({
+                    x1: source.pos.x - 2,
+                    y1: source.pos.y - 2,
+                    x2: source.pos.x + 2,
+                    y2: source.pos.y + 2
                 });
-                for (let point of path) {
-                    let pos = new RoomPosition(point.x, point.y, room.name);
-                    if (posArray.some(r => r.isEqualTo(pos))) {
-                        if (pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
-                    }
+            }
+            rect_array.push({
+                x1: room.controller.pos.x - 1,
+                y1: room.controller.pos.y - 1,
+                x2: room.controller.pos.x + 1,
+                y2: room.controller.pos.y + 1
+            });
+            let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
+            room.memory.rampartSpots = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
+        } else {
+            // Remove old ramparts
+            let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_RAMPART);
+            if (!room.memory.cleanRamp) {
+                room.memory.cleanRamp = 1;
+                for (let oldRampart of filter) {
+                    let pos = new RoomPosition(oldRampart.x, oldRampart.y, room.name);
+                    if (pos.checkForRampart()) pos.checkForRampart().destroy();
                 }
+            }
+            let buildPositions = JSON.parse(room.memory.rampartSpots);
+            for (let rampartPos of buildPositions) {
+                let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
+                if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
             }
         }
     }
     // Ramparts on buildings
-    if (level >= 3 && level === extensionLevel) {
+    if (level >= 7 && level === extensionLevel) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType) && !s.pos.checkForRampart())) {
             if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) break;
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);

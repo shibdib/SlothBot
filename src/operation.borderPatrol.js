@@ -13,6 +13,7 @@ Creep.prototype.borderPatrol = function () {
     if (this.borderCheck()) return;
     // Invader check
     this.room.invaderCheck();
+    if (this.room.memory.towerTarget && Game.getObjectById(this.room.memory.towerTarget)) return this.fightRanged(Game.getObjectById(this.room.memory.towerTarget));
     if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) return this.goHomeAndHeal();
     if (this.canIWin(5) && this.handleMilitaryCreep()) {

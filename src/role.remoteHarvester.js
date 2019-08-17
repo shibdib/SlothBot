@@ -11,13 +11,17 @@
 
 module.exports.role = function (creep) {
     //Invader detection
-    if (creep.kite(5)) {
+    if (creep.kite(5) || creep.memory.runCooldown) {
         creep.memory.onContainer = undefined;
-        return true;
+        return creep.goHomeAndHeal();
     }
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     // If you're in place just harvest
     if (creep.memory.onContainer) {
+        //Suicide and cache intel if room is reserved/owned by someone else
+        if (creep.room.controller && ((creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME) || creep.room.controller.owner)) {
+            creep.room.cacheRoomIntel(true);
+            return creep.memory.recycle = true;
+        }
         let source = Game.getObjectById(creep.memory.source);
         let container = Game.getObjectById(creep.memory.containerID);
         switch (creep.harvest(source)) {
@@ -28,7 +32,12 @@ module.exports.role = function (creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.hauler && Game.time % 50 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
+                if (creep.memory.haulerID && Game.time % 50 === 0) {
+                    if (!Array.isArray(creep.memory.haulerID)) creep.memory.haulerID = [creep.memory.haulerID];
+                    creep.memory.haulerID = _.remove(creep.memory.haulerID, function (n) {
+                        return Game.getObjectById(n);
+                    });
+                }
                 if (creep.memory.containerID) {
                     if (creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                     if (_.sum(container.store) >= 1980) creep.idleFor(20);

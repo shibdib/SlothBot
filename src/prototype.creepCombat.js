@@ -188,15 +188,15 @@ Creep.prototype.healInRange = function () {
 };
 
 Creep.prototype.healAllyCreeps = function () {
-    let allyCreeps = _.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax);
-    if (allyCreeps.length > 0) {
+    let allyCreep = this.pos.findClosestByPath(_.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax))
+    if (allyCreep) {
         this.say(ICONS.hospital, true);
-        this.shibMove(allyCreeps[0]);
-        let range = this.pos.getRangeTo(allyCreeps[0]);
+        this.shibMove(allyCreep);
+        let range = this.pos.getRangeTo(allyCreep);
         if (range <= 1) {
-            this.heal(allyCreeps[0]);
-        } else {
-            this.rangedHeal(allyCreeps[0]);
+            this.heal(allyCreep);
+        } else if (range <= 3) {
+            this.rangedHeal(allyCreep);
         }
         return true;
     }
@@ -815,7 +815,7 @@ Creep.prototype.goHomeAndHeal = function () {
     if (!this.getActiveBodyparts(MOVE)) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     if (this.room.name !== this.memory.overlord) {
-        this.memory.runCooldown = Game.time + 100;
+        this.memory.runCooldown = Game.time + 50;
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
     } else if (Game.time >= cooldown) {
         this.memory.runCooldown = cooldown;
@@ -850,8 +850,7 @@ Creep.prototype.canIWin = function (range = 50) {
     let hostileAttackParts = 0;
     let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedHostiles.length; i++) {
-        hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
-        hostileAttackParts += armedHostiles[i].getActiveBodyparts(ATTACK);
+        if (range !== 50 && armedHostiles[i].getActiveBodyparts(ATTACK) && this.pos.getRangeTo(armedHostiles[i]) <= 2) hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
         hostileCombatParts += armedHostiles[i].getActiveBodyparts(HEAL) * 0.5;
     }
@@ -866,5 +865,5 @@ Creep.prototype.canIWin = function (range = 50) {
     Memory.roomCache[this.room.name].hostilePower = hostileCombatParts;
     Memory.roomCache[this.room.name].friendlyPower = alliedCombatParts;
     if (this.getActiveBodyparts(RANGED_ATTACK)) hostileCombatParts -= hostileAttackParts;
-    return !hostileCombatParts || hostileCombatParts * 0.85 < alliedCombatParts;
+    return !hostileCombatParts || hostileCombatParts <= alliedCombatParts;
 };

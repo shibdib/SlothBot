@@ -14,7 +14,9 @@ module.exports.role = function (creep) {
     if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
     //Invader detection
-    if (creep.kite(5)) return true;
+    if (creep.kite(5) || creep.memory.runCooldown) {
+        return creep.goHomeAndHeal();
+    }
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     // Check if empty
     if (_.sum(creep.carry) === 0) {
@@ -60,11 +62,13 @@ module.exports.role = function (creep) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
     } else {
+        // Tow Truck
+        if (creep.towTruck()) return;
         // Set harvester pairing
         if (!creep.memory.harvesterID || !Game.getObjectById(creep.memory.harvesterID)) {
-            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && !c.memory.haulerID && c.memory.overlord === creep.memory.overlord && c.memory.containerID);
+            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < 2) && c.memory.overlord === creep.memory.overlord && c.memory.containerID);
             if (harvester) {
-                harvester.memory.haulerID = creep.id;
+                if (!harvester.memory.haulerID) harvester.memory.haulerID = [creep.id]; else harvester.memory.haulerID.push(creep.id);
                 creep.memory.harvesterID = harvester.id;
             } else {
                 creep.memory.harvesterID = undefined;
@@ -85,13 +89,28 @@ module.exports.role = function (creep) {
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
+    //Tower
+    let towerCutoff = 0.65;
+    if (Memory.roomCache[creep.room.name].threatLevel) towerCutoff = 0.99;
+    let tower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {
+        filter: (s) => s.structureType === STRUCTURE_TOWER &&
+            s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity * towerCutoff
+    });
+    if (tower) {
+        creep.memory.storageDestination = tower.id;
+        return true;
+    }
     //Close Link
-    let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && s.energy !== s.energyCapacity && s.isActive()});
+    let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {
+        filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink &&
+            s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity && s.isActive()
+    });
     //Controller
     let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!controllerLink && !importantBuilds && controllerContainer && controllerContainer.store[RESOURCE_ENERGY] < controllerContainer.storeCapacity * 0.5) {
+    if (!controllerLink && (!importantBuilds || creep.room.memory.energySurplus) && controllerContainer &&
+        controllerContainer.store[RESOURCE_ENERGY] + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === controllerContainer.id), '.carry.energy') < controllerContainer.storeCapacity * 0.5) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
@@ -104,12 +123,6 @@ function dropOff(creep) {
     let storage = creep.room.storage;
     if (storage && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep)) && Math.random() >= 0.9) {
         creep.memory.storageDestination = storage.id;
-        return true;
-    }
-    //Tower
-    let tower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.8});
-    if (tower && (!closestLink || closestLink.pos.getRangeTo(creep) > tower.pos.getRangeTo(creep))) {
-        creep.memory.storageDestination = tower.id;
         return true;
     }
     //Terminal

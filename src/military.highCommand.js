@@ -38,7 +38,7 @@ function manageResponseForces() {
     let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') &&
         c.room.hostileCreeps.length && !_.filter(Game.creeps, (r) => r.my && r.memory.responseTarget === c.room.name).length)[0];
     let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
-    let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard');
+    let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
     let lowLevel = _.sortBy(Memory.ownedRooms, 'controller.level')[0];
     if (responseTargets && responseTargets.name) {
         spawnBorderPatrol = true;

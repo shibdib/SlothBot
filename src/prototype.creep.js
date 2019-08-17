@@ -203,7 +203,7 @@ Creep.prototype.renewalCheck = function (cutoff = 100, target = 1200, force = fa
                     this.shibMove(spawn);
                     return true;
             }
-        }
+        } else if (this.ticksToLive < 45) this.memory.recycle = true;
     }
     delete this.memory.renewing;
     return false;

@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -8,20 +15,19 @@ module.exports.role = function (creep) {
     // Boosts
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
     // Responder Mode
-    if (creep.memory.responseTarget) {
-        if (creep.memory.awaitingOrders) return creep.memory.responseTarget = undefined;
+    if (creep.memory.responseTarget || !creep.memory.operation) {
         creep.say(ICONS.respond, true);
-        if (creep.room.name !== creep.memory.responseTarget) {
-            let hostile = creep.findClosestEnemy();
-            if (hostile && (!creep.room.controller || !creep.room.controller.safeMode)) {
-                return creep.handleMilitaryCreep(false, true);
-            } else {
-                return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
-            }
-        } else if (!creep.handleMilitaryCreep(false, true)) {
-            creep.memory.awaitingOrders = !Memory.roomCache[creep.room.name].responseNeeded;
-            return findDefensivePosition(creep, creep);
+        if (creep.room.memory.towerTarget && Game.getObjectById(creep.room.memory.towerTarget)) {
+            return creep.fightRanged(Game.getObjectById(creep.room.memory.towerTarget));
         }
+        if (!creep.handleMilitaryCreep(false, true)) {
+            if (creep.room.name !== creep.memory.responseTarget) {
+                return creep.shibMove(new RoomPosition(25, 25, creep.memory.responseTarget), {range: 18}); //to move to any room}
+            } else {
+                findDefensivePosition(creep, creep);
+            }
+        }
+        if (creep.memory.awaitingOrders) return creep.memory.responseTarget = undefined;
     } else if (creep.memory.operation) {
         // Harass
         if (creep.memory.operation === 'harass') creep.harassRoom();
@@ -33,13 +39,6 @@ module.exports.role = function (creep) {
         if (creep.memory.operation === 'hold') creep.holdRoom();
         // Hold
         if (creep.memory.operation === 'rangers') creep.rangersRoom();
-    } else if (!creep.handleMilitaryCreep(false, true)) {
-        creep.memory.awaitingOrders = !Memory.roomCache[creep.room.name].responseNeeded;
-        if (creep.pos.checkForRoad()) {
-            creep.moveRandom();
-        } else {
-            creep.idleFor(5)
-        }
     }
 };
 
@@ -60,7 +59,7 @@ function findDefensivePosition(creep, target) {
         } else {
             bestRampart = Game.getObjectById(creep.memory.assignedRampart);
             let resetChance = 0.75;
-            if (this.memory.role === 'responder') resetChance = 0.95;
+            if (creep.memory.role === 'responder') resetChance = 0.95;
             if (Math.random() > resetChance && bestRampart.pos.getRangeTo(this) <= 1) creep.memory.assignedRampart = undefined;
         }
         if (bestRampart) {
