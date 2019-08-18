@@ -192,7 +192,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 }
 
 function placeReactionOrders(terminal, globalOrders, myOrders) {
-    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral[0].mineralAmount), '.mineral[0].mineralType');
+    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral.mineralAmount), '.mineral[0].mineralType');
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
             // Skip if you can procure yourself
@@ -200,7 +200,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
             let storage = terminal.room.storage;
             if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
-            let minerals = terminal.room.mineral[0];
+            let minerals = terminal.room.mineral;
             if ((minerals.resourceType === reactionNeeds[i] && minerals.mineralAmount > 0) || stored >= reactionAmount) continue;
             let activeOrder = _.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === reactionNeeds[i] && o.type === ORDER_BUY)[0];
             if (terminal.store[reactionNeeds[i]] < reactionAmount || !terminal.store[reactionNeeds[i]] && Game.market.credits > 500 && !activeOrder) {
@@ -234,7 +234,7 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
 }
 
 function onDemandReactionOrders(terminal, globalOrders) {
-    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral[0].mineralAmount), '.mineral[0].mineralType');
+    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral.mineralAmount), '.mineral[0].mineralType');
     if (terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER * 2) {
         for (let i = 0; i < reactionNeeds.length; i++) {
             // Skip if you can procure yourself
@@ -242,7 +242,7 @@ function onDemandReactionOrders(terminal, globalOrders) {
             let storage = terminal.room.storage;
             if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
-            let minerals = terminal.room.mineral[0];
+            let minerals = terminal.room.mineral;
             if (minerals.resourceType === reactionNeeds[i] || stored >= reactionAmount) continue;
             if (!terminal.store[reactionNeeds[i]] || terminal.store[reactionNeeds[i]] < reactionAmount * 0.5) {
                 let sellOrder = _.min(globalOrders.filter(order => order.resourceType === reactionNeeds[i] &&
@@ -280,7 +280,7 @@ function buyPower(terminal, globalOrders) {
 }
 
 function orderCleanup(myOrders) {
-    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral[0].mineralAmount), '.mineral[0].mineralType');
+    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral.mineralAmount), '.mineral[0].mineralType');
     for (let key in myOrders) {
         if (myOrders[key].type === ORDER_BUY) {
             if (Game.market.credits < 50) {

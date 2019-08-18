@@ -324,10 +324,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            if (level >= 5) {
-                carry = 16;
+            if (level >= 6) {
+                carry = 20;
                 work = 1;
-                move = 9;
+                if (room.memory.roadsBuilt) move = 11; else move = 22;
                 break;
             } else {
                 work = 0;
@@ -355,10 +355,11 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             heal = 10;
             move = heal + tough;
             break;
-        case 'SKworker':
-            work = 6;
-            carry = 1;
-            move = 6;
+        case 'SKWorker':
+            work = 7;
+            rangedAttack = 10;
+            heal = 8;
+            move = 25;
             break;
         case 'SKmineral':
             work = 15;

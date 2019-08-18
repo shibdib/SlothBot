@@ -95,24 +95,10 @@ Object.defineProperty(Room.prototype, 'mineral', {
     get: function () {
         // If we dont have the value stored locally
         if (!this._mineral) {
-            // If we dont have the value stored in memory
-            if (!this.memory.mineralId) {
-                // Find the sources and store their id's in memory,
-                // NOT the full objects
-                this.memory.mineralId = this.find(FIND_MINERALS)
-                    .map(mineral => mineral.id);
-            }
-            // Get the source objects from the id's in memory and store them locally
-            this._mineral = this.memory.mineralId.map(id => Game.getObjectById(id));
+            this._mineral = this.find(FIND_MINERALS)[0];
         }
         // return the locally stored value
         return this._mineral;
-    },
-    set: function (newValue) {
-        // when storing in memory you will want to change the setter
-        // to set the memory value as well as the local value
-        this.memory.mineral = newValue.map(mineral => mineral.id);
-        this._mineral = newValue;
     },
     enumerable: false,
     configurable: true
@@ -310,7 +296,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
         if (room.controller) {
             safemode = room.controller.safeMode;
-            mineral = room.mineral[0].mineralType;
+            mineral = room.mineral.mineralType;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;
                 user = room.controller.owner.username;

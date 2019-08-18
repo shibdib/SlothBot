@@ -19,7 +19,7 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.uniq(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && c.memory.role === 'remoteHarvester'), 'memory.destination')));
+            creep.memory.destination = _.sample(_.uniq(_.pluck(_.filter(Game.creeps, (c) => c.my && c.memory.overlord === creep.memory.overlord && (c.memory.role === 'remoteHarvester' || c.memory.role === 'SKWorker')), 'memory.destination')));
         } else {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }

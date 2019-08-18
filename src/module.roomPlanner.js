@@ -37,16 +37,22 @@ function buildFromLayout(room) {
     let level = room.controller.level;
     let layout = JSON.parse(room.memory.layout);
     let extensionLevel = getLevel(room);
-    // Build preset layout
     let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_TOWER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LINK && s.structureType !== STRUCTURE_LAB);
-    if (level === 8) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
-    } else if (level === 7) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
-    } else if (level === 6) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
-    } else if (level < 6 && level >= 3) {
-        filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
+    // Handle a rebuild
+    let builtSpawn = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN)[0];
+    if (!builtSpawn && room.controller.safeMode >= 5000) {
+        filter = _.filter(layout, (s) => s.structureType === STRUCTURE_SPAWN);
+    } else {
+        // Build preset layout
+        if (level === 8) {
+            filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
+        } else if (level === 7) {
+            filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
+        } else if (level === 6) {
+            filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART);
+        } else if (level < 6 && level >= 3) {
+            filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
+        }
     }
     for (let structure of shuffle(filter)) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
@@ -86,7 +92,7 @@ function buildFromLayout(room) {
         }
     }
     // Bunker Ramparts
-    if (level >= 4 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
+    if (level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
         if (!room.memory.rampartSpots) {
             room.memory.rampartPositions = undefined;
             let rect_array = [];
@@ -98,10 +104,10 @@ function buildFromLayout(room) {
             });
             for (let source of room.find(FIND_SOURCES)) {
                 rect_array.push({
-                    x1: source.pos.x - 2,
-                    y1: source.pos.y - 2,
-                    x2: source.pos.x + 2,
-                    y2: source.pos.y + 2
+                    x1: source.pos.x - 1,
+                    y1: source.pos.y - 1,
+                    x2: source.pos.x + 1,
+                    y2: source.pos.y + 1
                 });
             }
             rect_array.push({
@@ -109,6 +115,12 @@ function buildFromLayout(room) {
                 y1: room.controller.pos.y - 1,
                 x2: room.controller.pos.x + 1,
                 y2: room.controller.pos.y + 1
+            });
+            rect_array.push({
+                x1: room.mineral.pos.x - 1,
+                y1: room.mineral.pos.y - 1,
+                x2: room.mineral.pos.x + 1,
+                y2: room.mineral.pos.y + 1
             });
             let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
             room.memory.rampartSpots = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
@@ -126,6 +138,8 @@ function buildFromLayout(room) {
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
                 if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                else if (!pos.checkForObstacleStructure() && !pos.checkForRoad() &&
+                    !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) pos.createConstructionSite(STRUCTURE_ROAD);
             }
         }
     }

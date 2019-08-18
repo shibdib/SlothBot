@@ -16,13 +16,13 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
     let source = shuffle(this.room.sources);
     if (this.memory.role === 'stationaryHarvester') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'stationaryHarvester' && c.memory.source === s.id).length === 0);
     if (this.memory.role === 'remoteHarvester') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'remoteHarvester' && c.memory.source === s.id).length === 0);
-    if (this.memory.role === 'SKworker') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'SKworker' && c.memory.source === s.id).length === 0);
+    if (this.memory.role === 'SKWorker') source = _.filter(this.room.sources, (s) => _.filter(Game.creeps, (c) => c.id !== this.id && c.memory.role === 'SKWorker' && c.memory.source === s.id).length === 0);
     if (ignoreOthers) source = this.room.sources;
     if (source.length > 0) {
         this.memory.source = this.pos.findClosestByRange(source).id;
         return this.pos.findClosestByRange(source).id;
     }
-    return;
+    return false;
 };
 
 Creep.prototype.findMineral = function () {
@@ -220,6 +220,7 @@ Creep.prototype.harvesterContainerBuild = function () {
     }
 };
 
+let previousCarry;
 Creep.prototype.withdrawResource = function (destination = undefined, amount = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
     if (this.memory.energyDestination) {
@@ -233,6 +234,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
                 case ERR_INVALID_TARGET:
                     switch (this.pickup(energyItem)) {
                         case OK:
+                            if (amount && _.sum(this.carry) > amount) this.drop(energyItem.resourceType, _.sum(this.carry) * 0.5)
                             this.memory.energyDestination = undefined;
                             this.memory._shibMove = undefined;
                             break;
@@ -337,13 +339,11 @@ Creep.prototype.findEnergy = function () {
         return true;
     }
     //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
-    if (!this.room.controller || this.room.controller.level <= 3) {
-        let hauler = _.sample(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination
-            && c.carry[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id), '.carryCapacity') + this.carryCapacity));
-        if (hauler) {
-            this.memory.energyDestination = hauler.id;
-            return true;
-        }
+    let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
+        && c.carry[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id), '.carryCapacity') + this.carryCapacity));
+    if (hauler) {
+        this.memory.energyDestination = hauler.id;
+        return true;
     }
     return false;
 };

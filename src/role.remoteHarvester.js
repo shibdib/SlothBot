@@ -66,10 +66,10 @@ module.exports.role = function (creep) {
             }
             let container = Game.getObjectById(creep.memory.containerID) || Game.getObjectById(creep.memory.containerSite);
             //Make sure you're on the container
-            if (!creep.memory.onContainer) {
-                if (container && creep.pos.getRangeTo(container) > 0) {
+            if (!creep.memory.onContainer && container) {
+                if (creep.pos.getRangeTo(container) > 0) {
                     return creep.shibMove(container, {range: 0});
-                } else if (container) {
+                } else {
                     creep.memory.onContainer = true;
                 }
             }

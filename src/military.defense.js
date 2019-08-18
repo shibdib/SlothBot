@@ -122,11 +122,11 @@ function unsavableCheck(room) {
     let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TOWER && s.my);
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     let badCount = room.memory.badCount || 0;
-    if (room.controller.level <= 4 && hostiles.length && !worthyStructures.length && hostiles.length >= towers.length * 2) {
+    if (hostiles.length && !worthyStructures.length && hostiles.length >= towers.length * 2) {
         if (Game.time % 1500 === 0) {
             room.memory.badCount = badCount + 1;
         }
-        if (room.memory.badCount > 3) {
+        if (room.memory.badCount > room.controller.level) {
             let hostileOwners = [];
             for (let hostile of hostiles) hostileOwners.push(hostile.owner.username)
             abandonOverrun(room);

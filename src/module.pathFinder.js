@@ -449,8 +449,8 @@ function addStructuresToMatrix(room, matrix, type) {
     for (let source of room.sources) {
         matrix.set(source.pos.x, source.pos.y, 256);
     }
-    if (room.mineral[0]) {
-        matrix.set(room.mineral[0].pos.x, room.mineral[0].pos.y, 256);
+    if (room.mineral) {
+        matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
     }
     return matrix;
 }

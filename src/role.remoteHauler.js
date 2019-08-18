@@ -66,7 +66,10 @@ module.exports.role = function (creep) {
         if (creep.towTruck()) return;
         // Set harvester pairing
         if (!creep.memory.harvesterID || !Game.getObjectById(creep.memory.harvesterID)) {
-            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < 2) && c.memory.overlord === creep.memory.overlord && c.memory.containerID);
+            let multiple = 1;
+            if (Game.rooms[creep.memory.overlord].controller.level >= 7) multiple = 2;
+            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < multiple) && c.memory.overlord === creep.memory.overlord) ||
+                _.find(Game.creeps, (c) => c.my && c.memory.role === 'SKWorker' && (!c.memory.haulerID || c.memory.haulerID.length < multiple) && c.memory.overlord === creep.memory.overlord);
             if (harvester) {
                 if (!harvester.memory.haulerID) harvester.memory.haulerID = [creep.id]; else harvester.memory.haulerID.push(creep.id);
                 creep.memory.harvesterID = harvester.id;
@@ -81,7 +84,8 @@ module.exports.role = function (creep) {
             let amount = creep.carryCapacity - _.sum(creep.carry);
             if (creep.getActiveBodyparts(MOVE) !== creep.getActiveBodyparts(CARRY) &&
                 harvester.pos.findInRange(harvester.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
-            creep.withdrawResource(Game.getObjectById(harvester.memory.containerID), amount);
+            let container = Game.getObjectById(harvester.memory.containerID);
+            if (container) creep.withdrawResource(container, amount); else if (creep.memory.energyDestination) creep.withdrawResource(Game.getObjectById(creep.memory.energyDestination), amount); else creep.findEnergy();
         }
     }
 };

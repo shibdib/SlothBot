@@ -139,12 +139,14 @@ function harvestDepositLink(creep) {
 
 function harvestDepositContainer(source, creep) {
     creep.memory.containerAttempt = true;
-    let container = source.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(source) === 1});
-    if (container) {
+    let container = source.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    if (container.pos) {
         return container.id;
     } else {
-        let site = source.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 3) creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 3) {
+            creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        }
     }
 }
 

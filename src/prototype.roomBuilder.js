@@ -635,7 +635,7 @@ function buildRoads(room, structures) {
         buildRoadFromTo(room, spawner, source);
     }
     buildRoadAround(room, spawner.pos);
-    let mineral = room.mineral[0];
+    let mineral = room.mineral;
     let extensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION);
     for (let extension of extensions) {
         buildRoadFromTo(room, spawner, extension);
