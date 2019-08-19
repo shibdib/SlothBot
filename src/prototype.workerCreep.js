@@ -364,7 +364,7 @@ Creep.prototype.fillerEnergy = function () {
                 return true;
             }
             //Dropped
-            let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.carryCapacity * 0.8});
+            let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= 50});
             if (dropped) {
                 this.memory.energyDestination = dropped.id;
                 this.memory.findEnergyCountdown = undefined;
@@ -390,9 +390,15 @@ Creep.prototype.fillerEnergy = function () {
         }
     }
     //Dropped
-    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity')});
     if (dropped) {
         this.memory.energyDestination = dropped.id;
+        return true;
+    }
+    // Tombstone
+    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    if (tombstone) {
+        this.memory.energyDestination = tombstone.id;
         return true;
     }
     return false;
@@ -468,7 +474,7 @@ Creep.prototype.findSpawnsExtensions = function () {
         }
     } else {
         let tower = this.pos.findClosestByRange(FIND_MY_STRUCTURES, {
-            filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.45 &&
+            filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.15 &&
                 _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'carry.energy') < s.energyCapacity - s.energy
         });
         if (tower) {

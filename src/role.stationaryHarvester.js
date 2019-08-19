@@ -84,9 +84,12 @@ function depositEnergy(creep) {
 
 function extensionFinder(creep) {
     creep.memory.extensionsFound = true;
-    let container = Game.getObjectById(creep.memory.containerID);
-    let extension = _.pluck(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.getRangeTo(container) === 1), 'id');
-    if (extension.length) creep.memory.extensions = JSON.stringify(extension);
+    let source = Game.getObjectById(creep.memory.source);
+    let container = Game.getObjectById(creep.memory.containerID) || source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
+    if (container) {
+        let extension = _.pluck(container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION), 1), 'id');
+        if (extension.length) creep.memory.extensions = JSON.stringify(extension);
+    }
 }
 
 function extensionFiller(creep) {
@@ -139,7 +142,7 @@ function harvestDepositLink(creep) {
 
 function harvestDepositContainer(source, creep) {
     creep.memory.containerAttempt = true;
-    let container = source.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    let container = source.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
     if (container.pos) {
         return container.id;
     } else {
@@ -163,9 +166,7 @@ function extensionBuilder(creep) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
                     if (pos.checkForWall() || pos.checkForConstructionSites()) continue;
-                    if (pos.checkForObstacleStructure()) {
-                        pos.createConstructionSite(STRUCTURE_RAMPART)
-                    } else {
+                    if (!pos.checkForObstacleStructure()) {
                         count++;
                         if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
                         pos.createConstructionSite(STRUCTURE_EXTENSION)
