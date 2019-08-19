@@ -846,24 +846,20 @@ Creep.prototype.fleeHome = function (force = false) {
 
 Creep.prototype.canIWin = function (range = 50) {
     if (!this.room.hostileCreeps.length || this.room.name === this.memory.overlord) return true;
-    let hostileCombatParts = 0;
-    let hostileAttackParts = 0;
+    let hostilePower = 0;
     let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedHostiles.length; i++) {
-        if (range !== 50 && armedHostiles[i].getActiveBodyparts(ATTACK) && this.pos.getRangeTo(armedHostiles[i]) <= 2) hostileCombatParts += armedHostiles[i].getActiveBodyparts(ATTACK);
-        hostileCombatParts += armedHostiles[i].getActiveBodyparts(RANGED_ATTACK);
-        hostileCombatParts += armedHostiles[i].getActiveBodyparts(HEAL) * 0.5;
+        if (armedHostiles[i].getActiveBodyparts(HEAL)) hostilePower += armedHostiles[i].abilityPower(true) * 0.5;
+        hostilePower += armedHostiles[i].abilityPower();
     }
-    let alliedCombatParts = 0;
+    let alliedPower = 0;
     let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedFriendlies.length; i++) {
-        alliedCombatParts += armedFriendlies[i].getActiveBodyparts(ATTACK);
-        alliedCombatParts += armedFriendlies[i].getActiveBodyparts(RANGED_ATTACK);
-        alliedCombatParts += armedFriendlies[i].getActiveBodyparts(HEAL) * 0.5;
+        if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower(true) * 0.5;
+        alliedPower += armedFriendlies[i].abilityPower();
     }
     if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel(true);
-    Memory.roomCache[this.room.name].hostilePower = hostileCombatParts;
-    Memory.roomCache[this.room.name].friendlyPower = alliedCombatParts;
-    if (this.getActiveBodyparts(RANGED_ATTACK)) hostileCombatParts -= hostileAttackParts;
-    return !hostileCombatParts || hostileCombatParts <= alliedCombatParts;
+    Memory.roomCache[this.room.name].hostilePower = hostilePower;
+    Memory.roomCache[this.room.name].friendlyPower = alliedPower;
+    return !hostilePower || hostilePower <= alliedPower;
 };

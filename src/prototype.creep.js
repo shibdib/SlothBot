@@ -485,11 +485,10 @@ Object.defineProperty(Creep.prototype, 'isFull', {
 Object.defineProperty(Creep.prototype, 'combatPower', {
     get: function () {
         if (!this._combatPower) {
-            let thisCombatParts = 0;
-            thisCombatParts += this.getActiveBodyparts(ATTACK);
-            thisCombatParts += this.getActiveBodyparts(RANGED_ATTACK);
-            thisCombatParts += this.getActiveBodyparts(HEAL) * 0.5;
-            this._combatPower = thisCombatParts;
+            let power = 0;
+            if (this.getActiveBodyparts(HEAL)) power += this.abilityPower(true);
+            if (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK)) power += this.abilityPower();
+            this._combatPower = power;
         }
         return this._combatPower;
     },
@@ -535,6 +534,35 @@ Creep.prototype.reportDamage = function () {
         }
     }
     this.memory._lastHits = this.hits;
+};
+
+// Get attack/heal power and account for boosts
+Creep.prototype.abilityPower = function (heal = undefined) {
+    if (heal) {
+        if (!this.getActiveBodyparts(HEAL)) return 0;
+        let healPower = 0;
+        for (let part of this.body) {
+            if (part.type !== HEAL || !part.hits) continue;
+            if (part.boost) {
+                healPower += HEAL_POWER * BOOSTS[part.type][part.boost][part.type];
+            } else {
+                healPower += HEAL_POWER;
+            }
+        }
+        return healPower;
+    } else {
+        if (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return 0;
+        let attackPower = 0;
+        for (let part of this.body) {
+            if ((part.type !== ATTACK && part.type !== RANGED_ATTACK) || !part.hits) continue;
+            if (part.boost) {
+                if (part.type === ATTACK) attackPower += ATTACK_POWER * BOOSTS[part.type][part.boost][part.type]; else attackPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
+            } else {
+                if (part.type === ATTACK) attackPower += ATTACK_POWER; else attackPower += RANGED_ATTACK_POWER;
+            }
+        }
+        return attackPower;
+    }
 };
 
 

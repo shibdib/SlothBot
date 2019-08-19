@@ -337,7 +337,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Mineral Harvester
-    if (!inBuild && _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0] && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !Memory.roomCache[room.name].responseNeeded && room.mineral[0].mineralAmount > 0) {
+    if (!inBuild && _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0] && !_.includes(queue, 'mineralHarvester') && level === room.controller.level && !Memory.roomCache[room.name].responseNeeded && room.mineral.mineralAmount > 0) {
         let mineralHarvesters = _.filter(roomCreeps, (creep) => creep.memory.role === 'mineralHarvester');
         if (mineralHarvesters.length < 1) {
             queueCreep(room, PRIORITIES.mineralHarvester, {
