@@ -266,7 +266,7 @@ Creep.prototype.scorchedEarth = function () {
                     this.shibMove(hostile);
             }
         } else if (this.getActiveBodyparts(RANGED_ATTACK)) {
-            if (hostile.structureType !== STRUCTURE_ROAD && hostile.structureType !== STRUCTURE_WALL) this.rangedMassAttack(); else this.rangedAttack(hostile);
+            if (hostile.structureType !== STRUCTURE_ROAD && hostile.structureType !== STRUCTURE_WALL && hostile.structureType !== STRUCTURE_CONTAINER) this.rangedMassAttack(); else this.rangedAttack(hostile);
             let range = 0;
             if (hostile.pos.checkForImpassible()) range = 1;
             this.shibMove(hostile, {range: range});
