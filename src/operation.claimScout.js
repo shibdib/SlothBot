@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 Creep.prototype.claimScout = function () {
     let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', this.memory.targetRoom];
     let word = Game.time % sentence.length;
@@ -15,14 +22,15 @@ Creep.prototype.claimScout = function () {
     let range = this.room.findClosestOwnedRoom(true);
     // Determine if room is still suitable
     if (this.room.controller && !this.room.controller.owner && !this.room.controller.reservation && !this.room.hostileCreeps.length && range <= 10 && range > 2) {
-        let closestRoom = this.room.findClosestOwnedRoom();
-        Game.rooms[closestRoom].memory.claimTarget = this.room.name;
+        Memory.targetRooms[this.room.name] = {
+            tick: Game.time,
+            type: 'claim'
+        };
         this.room.memory = undefined;
         Memory.lastExpansion = Game.time;
         log.i(this.room.name + ' - Has been marked for claiming');
         Game.notify(this.room.name + ' - Has been marked for claiming');
         this.room.cacheRoomIntel(true);
-        delete Memory.targetRooms[this.room.name];
     } else {
         this.room.cacheRoomIntel(true);
         delete Memory.targetRooms[this.room.name];

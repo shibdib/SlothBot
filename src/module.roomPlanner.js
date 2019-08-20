@@ -144,7 +144,7 @@ function buildFromLayout(room) {
         }
     }
     // Ramparts on buildings
-    if (level >= 7 && level === extensionLevel) {
+    if (2 < 1 && level >= 7 && level === extensionLevel) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType) && !s.pos.checkForRampart())) {
             if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) break;
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
@@ -176,7 +176,7 @@ function buildFromLayout(room) {
             for (let key in zoneTerrain) {
                 if (_.filter(controllerContainer.pos.findInRange(FIND_CONSTRUCTION_SITES, 1), (s) => s.structureType === STRUCTURE_LINK)[0]) break;
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, room.name);
-                if (position.checkForAllStructure().length > 0 || position.checkForImpassible()) continue;
+                if (position.checkForAllStructure().length || position.checkForImpassible()) continue;
                 position.createConstructionSite(STRUCTURE_LINK);
                 break;
             }

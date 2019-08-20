@@ -71,7 +71,6 @@ module.exports.role = function (powerCreep) {
                 powerCreep.memory.destinationRoom = needsResponse;
             } else {
                 powerCreep.memory.availableForOperation = true;
-                if (powerCreep.room.name !== Memory.primeRoom) powerCreep.memory.destinationRoom = Memory.primeRoom;
             }
             if (!powerCreep.memory.destinationRoom) powerCreep.idleFor(5);
         }

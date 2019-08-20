@@ -10,9 +10,9 @@ Creep.prototype.marauding = function () {
     this.say(sentence[word], true);
     // Set a target
     if (!this.memory.targetRoom) {
-        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && r.level < 3 && !r.needsCleaning));
+        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && r.level < 3 && !r.needsCleaning));
         if (lowLevel) this.memory.targetRoom = lowLevel.name; else {
-            let potential = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level));
+            let potential = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level));
             if (potential.name) this.memory.targetRoom = potential.name;
         }
     } else {
@@ -22,7 +22,7 @@ Creep.prototype.marauding = function () {
         }
         if (this.room.name === this.memory.targetRoom) {
             // If on target and cant win find a new target
-            if (!this.canIWin() || !this.handleMilitaryCreep() || Math.random() > 0.98) {
+            if (!this.canIWin() || !this.handleMilitaryCreep()) {
                 this.room.cacheRoomIntel(true);
                 this.attackInRange();
                 this.memory.targetRoom = undefined;

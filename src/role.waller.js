@@ -23,13 +23,21 @@ module.exports.role = function (creep) {
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
     if (creep.memory.working) {
         creep.memory.source = undefined;
-        if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget)) {
+        if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel) {
+            let hostileBarrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.findInRange(s.room.hostileCreeps, 3)[0]), 'hits');
             let barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
             let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART)[0];
-            if (barrier && barrier.hits < 2000) {
+            if (!hostileBarrier.id && barrier && barrier.hits < 2000) {
                 creep.memory.currentTarget = barrier.id;
                 creep.memory.targetHits = 10000;
                 creep.shibMove(barrier, {range: 3})
+            } else if (hostileBarrier.id) {
+                creep.memory.currentTarget = hostileBarrier.id;
+                if (hostileBarrier.hits < 10000) {
+                    creep.memory.targetHits = 25000;
+                } else {
+                    creep.memory.targetHits = hostileBarrier.hits + 50000;
+                }
             } else if (site) {
                 switch (creep.build(site)) {
                     case OK:
@@ -38,13 +46,15 @@ module.exports.role = function (creep) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(site, {range: 3})
                 }
-            } else if (barrier) {
+            } else if (barrier.id) {
                 creep.memory.currentTarget = barrier.id;
                 if (barrier.hits < 10000) {
                     creep.memory.targetHits = 25000;
                 } else {
                     creep.memory.targetHits = barrier.hits + 50000;
                 }
+            } else {
+                creep.idleFor(50);
             }
         } else {
             let target = Game.getObjectById(creep.memory.currentTarget);

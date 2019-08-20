@@ -235,5 +235,5 @@ function cacheRoomItems(room) {
 }
 
 function requestBuilders(room) {
-    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.size(_.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)) > 2);
+    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0]);
 }

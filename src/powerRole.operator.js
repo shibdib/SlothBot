@@ -103,13 +103,8 @@ module.exports.role = function (powerCreep) {
             powerCreep.idleFor(5);
         }
         else {
-            // Find a new room unless you're already in the prime room
-            if (powerCreep.room.name !== Memory.primeRoom) {
-                powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
-                    _.filter(Game.powerCreeps, (c) => c.ticksToLive && !c.memory.combat && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
-            } else {
-                powerCreep.memory.destinationRoom = undefined;
-            }
+            powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.ownedRooms, (r) => Game.map.getRoomLinearDistance(r.name, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
+                _.filter(Game.powerCreeps, (c) => c.ticksToLive && !c.memory.combat && c.room.name !== r.name && (!c.memory.destinationRoom || c.memory.destinationRoom !== r.name)))).name;
             if (!powerCreep.memory.destinationRoom) powerCreep.idleFor(5);
         }
     }

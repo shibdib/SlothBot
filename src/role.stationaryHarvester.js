@@ -96,6 +96,10 @@ function extensionFiller(creep) {
     let rawExtension = JSON.parse(creep.memory.extensions);
     for (let id of rawExtension) {
         let extension = Game.getObjectById(id);
+        if (!extension) {
+            creep.memory.extensionsFound = undefined;
+            return creep.memory.extensions = undefined;
+        }
         if (extension.energy < extension.energyCapacity) {
             creep.transfer(extension, RESOURCE_ENERGY);
             return true;
@@ -165,12 +169,10 @@ function extensionBuilder(creep) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
-                    if (pos.checkForWall() || pos.checkForConstructionSites()) continue;
-                    if (!pos.checkForObstacleStructure()) {
-                        count++;
-                        if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
-                        pos.createConstructionSite(STRUCTURE_EXTENSION)
-                    }
+                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure() || pos.isExit()) continue;
+                    count++;
+                    if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
+                    pos.createConstructionSite(STRUCTURE_EXTENSION)
                 }
             }
         }

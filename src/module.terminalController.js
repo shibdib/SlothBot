@@ -376,21 +376,10 @@ function emergencyEnergy(terminal) {
 function balanceBoosts(terminal) {
     // Dont balance if being sieged or broke
     if (Memory.roomCache[terminal.room.name].requestingSupport) return false;
-    let primeRoom = Game.rooms[Memory.primeRoom];
     // Loop thru boosts
     let storedResources = Object.keys(terminal.store);
     for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
-        // Handle prime room boosts
-        if (terminal.room.name === primeRoom.name) return;
-        if (terminal.store[boost] > 250 && (BOOST_USE['heal'].includes(boost) || BOOST_USE['attack'].includes(boost) || BOOST_USE['ranged'].includes(boost) || BOOST_USE['tough'].includes(boost) || BOOST_USE['move'].includes(boost))) {
-            // Determine how much you can move
-            let availableAmount = terminal.store[boost] - 200;
-            switch (terminal.send(boost, availableAmount, primeRoom.name)) {
-                case OK:
-                    log.a(' MARKET: Supplying Prime Room (' + roomLink(primeRoom.name) + ') ' + availableAmount + ' ' + boost + ' From ' + roomLink(terminal.room.name));
-                    return true;
-            }
-        } else if (terminal.store[boost] >= TRADE_AMOUNT * 1.2) {
+        if (terminal.store[boost] >= TRADE_AMOUNT * 1.2) {
             // Find needy terminals
             let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < TRADE_AMOUNT)));
             if (needyTerminal) {

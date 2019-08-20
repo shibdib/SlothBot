@@ -73,13 +73,12 @@ module.exports.hiveMind = function () {
         let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
         let maxRooms = _.round(Game.cpu.limit / 12);
         if (TEN_CPU) maxRooms = 2;
-        let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout');
+        let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
         if (maxLevel >= 4 && minLevel >= 3 && overlordCount < maxRooms && !claimMission.length) {
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
-            let claimAttempt = _.filter(Memory.ownedRooms, (r) => r.memory.claimTarget);
             let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
-            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimAttempt.length && !claimScout.length && Game.gcl.level > overlordCount) {
+            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimScout.length && Game.gcl.level > overlordCount) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {
@@ -89,14 +88,6 @@ module.exports.hiveMind = function () {
                 }
             }
         }
-    }
-
-    // Figure out the prime room every 5000 ticks
-    if (!Memory.primeRoom || Game.time % 5000 === 0) {
-        // Find the highest level/richest room
-        let primeRoom = _.filter(Memory.ownedRooms, (r) => r.controller.level === _.max(Memory.ownedRooms, 'controller.level').controller.level);
-        if (primeRoom.length > 1) primeRoom = _.sortBy(primeRoom, 'energy')[0]; else primeRoom = primeRoom[0];
-        Memory.primeRoom = primeRoom.name;
     }
 
     //Non room specific creep spawning

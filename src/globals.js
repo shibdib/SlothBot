@@ -80,8 +80,8 @@ let globals = function () {
         // Harvesters
         stationaryHarvester: 2,
         // Workers=
-        drone: 4,
-        waller: 4,
+        drone: 5,
+        waller: 5,
         upgrader: 4,
         mineralHarvester: 7,
         repairer: 7,
@@ -102,10 +102,7 @@ let globals = function () {
         // Power
         Power: 5,
         // SK
-        SKworker: 5,
-        SKattacker: 4,
-        SKsupport: 7,
-        SKhauler: 5,
+        SKWorker: 5,
         // Military
         priority: 3,
         urgent: 5,

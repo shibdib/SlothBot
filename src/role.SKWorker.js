@@ -15,9 +15,9 @@ module.exports.role = function (creep) {
         if (!creep.memory.source && !creep.findSource()) creep.findMineral();
         let source = Game.getObjectById(creep.memory.source);
         if (!source) return creep.kite();
-        let sourceKeeper = creep.pos.findInRange(source, 5, {filter: (c) => c.owner.username === 'Source Keeper'});
+        let sourceKeeper = source.pos.findInRange(creep.room.hostileCreeps, 5)[0] || source.pos.findInRange(creep.room.hostileCreeps, 30, {filter: (c) => c.owner.name !== 'SourceKeeper'})[0];
         // Handle healing
-        if (creep.hits < creep.hitsMax) creep.heal(creep); else creep.healInRange();
+        if (creep.hits < creep.hitsMax * 0.6) return creep.goHomeAndHeal(); else if (creep.hits < creep.hitsMax) creep.heal(creep); else creep.healInRange();
         if (sourceKeeper) {
             creep.fightRanged(sourceKeeper);
         } else {
