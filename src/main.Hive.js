@@ -73,12 +73,11 @@ module.exports.hiveMind = function () {
         let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
         let maxRooms = _.round(Game.cpu.limit / 12);
         if (TEN_CPU) maxRooms = 2;
-        let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
-        if (maxLevel >= 4 && minLevel >= 3 && overlordCount < maxRooms && !claimMission.length) {
+        if (maxLevel >= 4 && minLevel >= 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
             let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
-            let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
-            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimScout.length && Game.gcl.level > overlordCount) {
+            let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
+            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimMission.length) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {
