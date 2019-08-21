@@ -318,7 +318,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                     continue;
                 case 'harvest':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
-                    boostNeeded = this.getActiveBodyparts(MOVE) * 30;
+                    boostNeeded = this.getActiveBodyparts(WORK) * 30;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ALKALIDE);

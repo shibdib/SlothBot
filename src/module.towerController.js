@@ -28,7 +28,7 @@ module.exports.towerControl = function (room) {
         }
         if (!hostileCreeps.length && repairTower.energy > repairTower.energyCapacity * 0.25) {
             let structures = room.structures;
-            let barriers = _.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 5000);
+            let barriers = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && (s.hits < 5000 || s.hits < _.max(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits').hits * 0.7)), 'hits');
             if (barriers.length > 0) {
                 return repairTower.repair(barriers[0]);
             }
@@ -36,7 +36,7 @@ module.exports.towerControl = function (room) {
             if (road.length > 0) {
                 return repairTower.repair(road[0]);
             }
-            if (repairTower.energy > repairTower.energyCapacity * 0.7 && repairTower.room.memory.energySurplus) {
+            if (repairTower.energy > repairTower.energyCapacity * 0.7) {
                 let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * repairTower.room.controller.level), 'hits');
                 if (lowestRampart) {
                     return repairTower.repair(lowestRampart);
@@ -59,8 +59,9 @@ module.exports.towerControl = function (room) {
             if (inRangeLongbows.length) inRangeLongbows.forEach((c) => attackPower += c.abilityPower());
             towers.forEach((t) => attackPower += determineDamage(hostileCreeps[i].pos.getRangeTo(t)));
             let healPower = 0;
-            if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower(true) + hostileCreeps[i].abilityPower(true));
+            if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower(true));
             if (inRangeRangedHealers.length) inRangeRangedHealers.forEach((c) => healPower += c.abilityPower(true));
+            healPower += hostileCreeps[i].abilityPower(true);
             let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER}).length > 0;
             if (hostileCreeps[i].hits <= attackPower) {
                 room.memory.towerTarget = hostileCreeps[i].id;
@@ -75,6 +76,7 @@ module.exports.towerControl = function (room) {
                 break;
             } else if (attackPower * 0.6 >= healPower && hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= 2) {
                 room.memory.towerTarget = hostileCreeps[i].id;
+                for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } else {
                 room.memory.towerTarget = undefined;

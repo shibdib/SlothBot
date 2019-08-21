@@ -72,7 +72,7 @@ function shibMove(creep, heading, options = {}) {
     // Use roads with a trailer
     // Request a tow truck if needed
     if (!creep.className) {
-        if (heading.id && (creep.pos.getRangeTo(heading) > 2 || !creep.getActiveBodyparts(MOVE)) && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length) {
+        if (heading.id && (creep.pos.getRangeTo(heading) > 2 || !creep.getActiveBodyparts(MOVE)) && !creep.memory.towDestination && _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length / 2 > _.filter(creep.body, (p) => p.type === MOVE).length && creep.memory.role !== 'responder') {
             creep.memory.towDestination = heading.id;
             creep.memory.towRange = options.range;
         } else if (heading.id && creep.getActiveBodyparts(MOVE) && creep.pos.isNearTo(heading)) {

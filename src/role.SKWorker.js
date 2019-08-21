@@ -11,11 +11,17 @@
 
 module.exports.role = function (creep) {
     if (creep.room.name === creep.memory.destination) {
+        // If no attack parts flee and heal
+        if (!creep.getActiveBodyparts(RANGED_ATTACK)) {
+            creep.kite(6);
+            return creep.heal(creep);
+        }
         //If source is set mine
         if (!creep.memory.source && !creep.findSource()) creep.findMineral();
         let source = Game.getObjectById(creep.memory.source);
         if (!source) return creep.kite();
-        let sourceKeeper = source.pos.findInRange(creep.room.hostileCreeps, 5)[0] || source.pos.findInRange(creep.room.hostileCreeps, 30, {filter: (c) => c.owner.name !== 'SourceKeeper'})[0];
+        let sourceKeeper = source.pos.findInRange(creep.room.hostileCreeps, 5)[0] || source.pos.findInRange(creep.room.hostileCreeps, 30,
+            {filter: (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username !== 'Source Keeper'})[0];
         // Handle healing
         if (creep.hits < creep.hitsMax * 0.6) return creep.goHomeAndHeal(); else if (creep.hits < creep.hitsMax) creep.heal(creep); else creep.healInRange();
         if (sourceKeeper) {

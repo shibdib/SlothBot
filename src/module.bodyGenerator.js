@@ -125,7 +125,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (room.memory.state > 1 && level > 5) multi = 2.5;
             if (room.memory.state > 2 && level > 5) multi = 3;
             work = _.round((multi * level) + 1);
-            move = 2;
             break;
         // Military
         case 'responder':
@@ -381,8 +380,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
     for (let i = 0; i < work; i++) body.push(WORK)
     for (let i = 0; i < carry; i++) body.push(CARRY)
     for (let i = 0; i < claim; i++) body.push(CLAIM)
-    for (let i = 0; i < rangedAttack; i++) body.push(RANGED_ATTACK)
     let attackArray = [];
+    for (let i = 0; i < rangedAttack; i++) attackArray.push(RANGED_ATTACK)
     for (let i = 0; i < attack; i++) attackArray.push(ATTACK)
     let moveArray = [];
     for (let i = 0; i < move; i++) moveArray.push(MOVE)

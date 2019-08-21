@@ -16,7 +16,7 @@ module.exports.role = function (creep) {
     if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
     //Invader detection
-    if (creep.kite(5) || creep.memory.runCooldown) {
+    if (creep.hits < creep.hitsMax || creep.memory.runCooldown) {
         return creep.goHomeAndHeal();
     }
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
@@ -99,7 +99,7 @@ function dropOff(creep) {
     //Tower
     let towerCutoff = 0.65;
     if (Memory.roomCache[creep.room.name].threatLevel) towerCutoff = 0.99;
-    let tower = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {
+    let tower = creep.pos.findClosestByRange(creep.room.structures, {
         filter: (s) => s.structureType === STRUCTURE_TOWER &&
             s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity * towerCutoff
     });
@@ -107,8 +107,26 @@ function dropOff(creep) {
         creep.memory.storageDestination = tower.id;
         return true;
     }
+    //Empty Lab
+    let lab = creep.pos.findClosestByRange(creep.room.structures, {
+        filter: (s) => s.structureType === STRUCTURE_LAB &&
+            s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity
+    });
+    if (lab) {
+        creep.memory.storageDestination = lab.id;
+        return true;
+    }
+    //Nuker
+    let nuker = creep.pos.findClosestByRange(creep.room.structures, {
+        filter: (s) => s.structureType === STRUCTURE_NUKER &&
+            s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity
+    });
+    if (nuker) {
+        creep.memory.storageDestination = nuker.id;
+        return true;
+    }
     //Close Link
-    let closestLink = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {
+    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
         filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink &&
             s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity && s.isActive()
     });
