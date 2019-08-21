@@ -30,6 +30,7 @@ Creep.prototype.claimScout = function () {
         Memory.lastExpansion = Game.time;
         log.i(this.room.name + ' - Has been marked for claiming');
         Game.notify(this.room.name + ' - Has been marked for claiming');
+        this.memory.role = 'explorer';
         this.room.cacheRoomIntel(true);
     } else {
         this.room.cacheRoomIntel(true);

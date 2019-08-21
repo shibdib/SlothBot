@@ -428,7 +428,7 @@ Room.prototype.invaderCheck = function () {
                         ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatParts + '/' + alliedCombatParts + ')', 'RESPONSE COMMAND');
                 }
                 Memory.roomCache[this.name].responseNeeded = true;
-            } else if (invader.length > 1 && invader[0].owner.username === 'Invader' && ownerArray.length === 1) {
+            } else if (invader.length > 1 && invader[0].owner.username === 'Invader' && ownerArray.length === 1 && hostileCombatParts) {
                 Memory.roomCache[this.name].threatLevel = 2;
                 Memory.roomCache[this.name].lastInvaderSighting = Game.time;
                 if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
@@ -437,7 +437,7 @@ Room.prototype.invaderCheck = function () {
                         ' creeps detected. (Invader/Friendly Power Present - ' + hostileCombatParts + '/' + alliedCombatParts + ')', 'RESPONSE COMMAND');
                 }
                 Memory.roomCache[this.name].responseNeeded = true;
-            } else if (invader.length === 1 && invader[0].owner.username !== 'Invader') {
+            } else if (invader.length === 1 && invader[0].owner.username !== 'Invader' && hostileCombatParts) {
                 this.memory.lastPlayerAttack = Game.time;
                 Memory.roomCache[this.name].threatLevel = 3;
                 Memory.roomCache[this.name].lastPlayerSighting = Game.time;
@@ -469,7 +469,7 @@ Room.prototype.invaderCheck = function () {
                 Memory._badBoyList = cache;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
-            } else if (invader.length > 1 && (invader[0].owner.username !== 'Invader' || ownerArray.length > 1)) {
+            } else if (invader.length > 1 && (invader[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatParts) {
                 this.memory.lastPlayerAttack = Game.time;
                 Memory.roomCache[this.name].threatLevel = 4;
                 Memory.roomCache[this.name].lastPlayerSighting = Game.time;

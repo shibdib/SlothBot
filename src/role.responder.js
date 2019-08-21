@@ -12,7 +12,7 @@
 module.exports.role = function (creep) {
     creep.say(ICONS.respond, true);
     if (creep.tryToBoost(['attack'])) return;
-    if (!creep.handleMilitaryCreep(false, true, true)) {
+    if (!creep.fightRampart()) {
         findDefensivePosition(creep, creep);
     }
 };

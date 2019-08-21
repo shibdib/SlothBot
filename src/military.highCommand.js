@@ -31,6 +31,7 @@ module.exports.highCommand = function () {
 
 function manageResponseForces() {
     let spawnBorderPatrol = undefined;
+    let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time);
     let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && r.closestRange <= LOCAL_SPHERE + 1 &&
         r.hostilePower >= (r.friendlyPower + _.sum(_.filter(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name), 'combatPower')) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
     let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && r.closestRange <= LOCAL_SPHERE + 1 &&
@@ -40,10 +41,19 @@ function manageResponseForces() {
     let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
     let lowLevel = _.sortBy(Memory.ownedRooms, 'controller.level')[0];
-    if (responseTargets && responseTargets.name) {
+    if (ownedRoomAttack) {
+        spawnBorderPatrol = true;
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && ownedRoomAttack !== c.room.name && c.memory.awaitingOrders
+            && Game.map.getRoomLinearDistance(c.memory.overlord, ownedRoomAttack) <= c.ticksToLive / 55);
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = ownedRoomAttack;
+            creep.memory.awaitingOrders = undefined;
+            log.a(creep.name + ' reassigned to assist in the defense of ' + roomLink(ownedRoomAttack) + ' from ' + roomLink(creep.room.name));
+        }
+    } else if (responseTargets && responseTargets.name) {
         spawnBorderPatrol = true;
         let idleResponders = _.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.awaitingOrders
-            && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= 6);
+            && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= c.ticksToLive / 55);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
@@ -52,7 +62,7 @@ function manageResponseForces() {
     } else if (unarmedEnemies) {
         spawnBorderPatrol = true;
         let idleResponders = _.filter(Game.creeps, (c) => c.memory && unarmedEnemies.room.name !== c.room.name && c.memory.awaitingOrders
-            && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= 6);
+            && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= c.ticksToLive / 55);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = unarmedEnemies.room.name;
             creep.memory.awaitingOrders = undefined;
@@ -70,7 +80,7 @@ function manageResponseForces() {
     } else if (guard) {
         spawnBorderPatrol = true;
         let idleResponders = _.filter(Game.creeps, (c) => c.memory && guard !== c.room.name && c.memory.awaitingOrders
-            && Game.map.getRoomLinearDistance(c.memory.overlord, guard) <= 6);
+            && Game.map.getRoomLinearDistance(c.memory.overlord, guard) <= c.ticksToLive / 55);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = guard;
             creep.memory.awaitingOrders = undefined;
@@ -78,17 +88,17 @@ function manageResponseForces() {
         }
     } else if (highestHeat && highestHeat.name) {
         spawnBorderPatrol = false;
-        let idleResponders = _.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders &&
-            Game.map.getRoomLinearDistance(c.memory.overlord, highestHeat.name) <= 6);
+        let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders &&
+            Game.map.getRoomLinearDistance(c.memory.overlord, highestHeat.name) <= c.ticksToLive / 55);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = highestHeat.name;
             creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
+            if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (lowLevel && lowLevel.name) {
         spawnBorderPatrol = false;
         let idleResponders = _.filter(Game.creeps, (c) => c.memory && lowLevel.name !== c.room.name && c.memory.awaitingOrders &&
-            Game.map.getRoomLinearDistance(c.memory.overlord, lowLevel.name) <= 6);
+            Game.map.getRoomLinearDistance(c.memory.overlord, lowLevel.name) <= c.ticksToLive / 55);
         for (let creep of idleResponders) {
             creep.memory.responseTarget = lowLevel.name;
             creep.memory.awaitingOrders = undefined;

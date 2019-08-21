@@ -248,11 +248,20 @@ module.exports.essentialCreepQueue = function (room) {
     } else {
         //Remove old queues
         if (_.includes(queue, 'responder')) delete roomQueue[room.name]['responder'];
+        // Claiming
+        let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim' && Game.map.findRoute(room.name, r).length <= 10);
+        if (claimTarget) {
+            let claimer = _.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget);
+            if (!claimer.length) {
+                queueMilitaryCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget})
+            }
+        }
         //Upgrader
         if (!_.includes(queue, 'upgrader')) {
             let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
             let number = 1;
-            if (level < 5) number = 6;
+            let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)[0];
+            if (level < 5 && !inBuild) number = 6;
             //If room is about to downgrade get a creep out asap
             let reboot;
             let priority = PRIORITIES.upgrader;
@@ -293,11 +302,10 @@ module.exports.miscCreepQueue = function (room) {
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
     //Drones
-    let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)[0];
+    let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)[0];
     if (!_.includes(queue, 'drone')) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let amount = roomSourceSpace[room.name] || 1;
-        if (amount <= 3 && _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD).length) amount = 4;
         if (TEN_CPU) amount = 2;
         if (!inBuild || (drones.length && room.energy < 5000)) amount = 1;
         if (drones.length < amount) {
@@ -643,12 +651,6 @@ module.exports.militaryCreepQueue = function () {
                 let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
                 if (!claimScout.length) {
                     queueMilitaryCreep(PRIORITIES.priority, {role: 'claimScout', targetRoom: key, military: true})
-                }
-                break;
-            case 'claim': //Claiming
-                let claimer = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimer');
-                if (!claimer.length) {
-                    queueMilitaryCreep(2, {role: 'claimer', destination: key})
                 }
                 break;
             case 'attack':

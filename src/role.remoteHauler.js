@@ -127,7 +127,7 @@ function dropOff(creep) {
     }
     //Close Link
     let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink &&
+        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink &&
             s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity && s.isActive()
     });
     //Controller

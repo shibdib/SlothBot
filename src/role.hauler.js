@@ -44,5 +44,5 @@ module.exports.role = function (creep) {
                 creep.shibMove(storageItem);
             }
         }
-    } else creep.idleFor(5);
+    } else creep.idleFor(2);
 };

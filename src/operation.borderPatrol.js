@@ -52,7 +52,7 @@ function findDefensivePosition(creep, target) {
                 }
             }
         } else {
-            creep.shibMove(Game.getObjectById(creep.memory.assignedRampart), {range: 0});
+            creep.shibMove(Game.getObjectById(creep.memory.assignedRampart), {range: 0, ignoreCreeps: false});
         }
     }
 }
