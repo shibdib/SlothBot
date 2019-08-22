@@ -72,6 +72,13 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_TERMINAL);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_STORAGE);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -225,7 +232,8 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
     if (destination) this.memory.energyDestination = destination.id;
     if (this.memory.energyDestination) {
         let energyItem = Game.getObjectById(this.memory.energyDestination);
-        if (energyItem && ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0))) {
+        if (!energyItem) return this.memory.energyDestination = undefined;
+        if ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0)) {
             switch (this.withdraw(energyItem, RESOURCE_ENERGY, amount)) {
                 case OK:
                     this.memory.energyDestination = undefined;

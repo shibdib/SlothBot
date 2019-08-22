@@ -84,10 +84,15 @@ module.exports.role = function (creep) {
             // Handle Moving
             if (creep.room.name !== harvester.memory.destination) return creep.shibMove(new RoomPosition(25, 25, harvester.memory.destination), {range: 23});
             let amount = creep.carryCapacity - _.sum(creep.carry);
-            if (creep.getActiveBodyparts(MOVE) !== creep.getActiveBodyparts(CARRY) &&
+            if (creep.getActiveBodyparts(MOVE) < creep.getActiveBodyparts(CARRY) &&
                 harvester.pos.findInRange(harvester.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
             let container = Game.getObjectById(harvester.memory.containerID);
-            if (container) return creep.withdrawResource(container, amount); else if (creep.memory.energyDestination) return creep.withdrawResource(Game.getObjectById(creep.memory.energyDestination), amount); else creep.findEnergy();
+            if (container) return creep.withdrawResource(container, amount); else if (creep.memory.energyDestination) {
+                let energy = Game.getObjectById(creep.memory.energyDestination);
+                // Handle edge case of energy being in wrong room
+                if (!energy || energy.pos.roomName !== harvester.memory.destination) return creep.memory.energyDestination = undefined;
+                return creep.withdrawResource(energy, amount);
+            } else creep.findEnergy();
             if (!creep.memory.energyDestination) creep.shibMove(new RoomPosition(25, 25, harvester.memory.destination), {range: 20})
         }
     }
