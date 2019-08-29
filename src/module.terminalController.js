@@ -396,7 +396,7 @@ function balanceBoosts(terminal) {
     // Balance energy
     if (terminal.store[RESOURCE_ENERGY] >= 10000 && terminal.room.energy >= ENERGY_AMOUNT * 1.2) {
         // Find needy terminals
-        let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < ENERGY_AMOUNT))[0];
+        let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.7))[0];
         if (needyRoom) {
             let needyTerminal = needyRoom.terminal;
             // Determine how much you can move

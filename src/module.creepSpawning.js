@@ -204,9 +204,9 @@ module.exports.essentialCreepQueue = function (room) {
             delete roomQueue[room.name];
             return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
         } else if (!_.includes(queue, 'hauler')) {
-            let amount = 1;
+            let amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
-                queueCreep(room, PRIORITIES.hauler, {role: 'hauler', localCache: true})
+                queueCreep(room, PRIORITIES.hauler + hauler.length, {role: 'hauler', localCache: true})
             }
         }
     }
@@ -491,7 +491,7 @@ module.exports.remoteCreepQueue = function (room) {
                         }
                     } else {
                         //Harvesters
-                        if (!_.includes(queue, 'remoteHarvester')) {
+                        if (!_.includes(queue, 'remoteHarvester') && !room.memory.extremeEnergySurplus) {
                             let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                             let sourceCount = 1;
                             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
