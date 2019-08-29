@@ -70,6 +70,7 @@ Creep.prototype.findConstruction = function () {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
+        
         return true;
     }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_TERMINAL);
