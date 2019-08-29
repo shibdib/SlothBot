@@ -21,7 +21,7 @@ Creep.prototype.claimScout = function () {
     // Make sure it's not super far away
     let range = this.room.findClosestOwnedRoom(true);
     // Determine if room is still suitable
-    if (this.room.controller && !this.room.controller.owner && !this.room.controller.reservation && !this.room.hostileCreeps.length && range <= 10 && range > 2) {
+    if (this.room.controller && !this.room.controller.owner && !this.room.controller.reservation && !this.room.hostileCreeps.length && range <= 10 && range > 2 && this.room.controller.pos.countOpenTerrainAround()) {
         Memory.targetRooms[this.room.name] = {
             tick: Game.time,
             type: 'claim'

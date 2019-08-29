@@ -9,8 +9,6 @@ Creep.prototype.borderPatrol = function () {
     let sentence = [ICONS.border, 'Border', 'Patrol'];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    // Handle border
-    if (this.borderCheck()) return;
     // Invader check
     this.room.invaderCheck();
     if (this.room.memory.towerTarget && Game.getObjectById(this.room.memory.towerTarget)) {

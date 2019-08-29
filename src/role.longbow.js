@@ -10,6 +10,8 @@
  */
 
 module.exports.role = function (creep) {
+    // Handle border
+    if (creep.borderCheck()) return;
     // Border Patrol
     if (creep.memory.operation === 'borderPatrol') return creep.borderPatrol();
     // Boosts

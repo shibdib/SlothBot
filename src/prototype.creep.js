@@ -71,12 +71,18 @@ Creep.prototype.towTruck = function () {
             return false;
         }
     } else {
+        if (this.borderCheck()) return true;
         this.say('Towing!', true);
         if (this.fatigue) return true;
         let trailer = Game.getObjectById(this.memory.trailer);
         if (trailer) {
-            if (!trailer.memory.towDestination) {
+            if (!trailer.memory.towDestination || trailer.memory.towRange === trailer.pos.getRangeTo(Game.getObjectById(trailer.memory.towDestination))) {
                 this.memory.trailer = undefined;
+                trailer.memory._shibMove = undefined;
+                trailer.memory.towCreep = undefined;
+                trailer.memory.towDestination = undefined;
+                trailer.memory.towToObject = undefined;
+                trailer.memory.towRange = undefined;
                 return false;
             }
             if (this.pull(trailer) === ERR_NOT_IN_RANGE) {

@@ -630,8 +630,9 @@ Creep.prototype.siegeHeal = function () {
         if (deconstructor) {
             this.memory.healTarget = deconstructor.id;
             deconstructor.memory.healer = this.id;
+        } else {
+            return this.moveToStaging();
         }
-        return this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 14});
     } else {
         let deconstructor = Game.getObjectById(this.memory.healTarget);
         let moveRange = 0;

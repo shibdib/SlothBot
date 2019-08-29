@@ -56,7 +56,7 @@ function shibMove(creep, heading, options = {}) {
     if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
         let move = creep.getActiveBodyparts(MOVE);
         let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
-        if (creep.memory.trailer) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+        if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
         let fullCarry = 0;
         if (_.sum(creep.carry)) fullCarry = _.ceil(_.sum(creep.carry) / 50);
         weight += fullCarry;
