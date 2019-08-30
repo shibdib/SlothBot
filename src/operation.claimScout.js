@@ -33,6 +33,9 @@ Creep.prototype.claimScout = function () {
         this.memory.role = 'explorer';
         this.room.cacheRoomIntel(true);
     } else {
+        let noClaim = Memory.noClaim || [];
+        noClaim.push(this.room.name);
+        Memory.noClaim = noClaim;
         this.room.cacheRoomIntel(true);
         delete Memory.targetRooms[this.room.name];
     }
