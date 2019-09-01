@@ -559,10 +559,10 @@ module.exports.remoteCreepQueue = function (room) {
         // Remote Road Builder
         if (!_.includes(queue, 'remoteRoad')) {
             let remoteRoad = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'remoteRoad');
-            if (remoteRoad.length < remoteHives[room.name] * 0.3) {
+            if (remoteRoad.length < 2) {
                 queueCreep(room, PRIORITIES.remoteHauler, {
                     role: 'remoteRoad',
-                    misc: JSON.stringify(remoteHives[room.name])
+                    misc: remoteHives[room.name]
                 })
             }
         }
