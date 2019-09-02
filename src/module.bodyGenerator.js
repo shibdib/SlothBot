@@ -132,11 +132,10 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             if (level < 7 && level > 3) {
                 attack = 3 * level;
             }
-            move = _.round(attack / 2);
             if (level >= 7) {
-                attack = 33;
-                move = 17;
+                attack = 30;
             }
+            move = _.round(attack / 2);
             break;
         case 'remoteResponse':
             if (level < 5) {
