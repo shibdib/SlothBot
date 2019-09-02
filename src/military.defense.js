@@ -37,7 +37,7 @@ module.exports.controller = function (room) {
     rampartManager(room, structures);
 
     // Early Warning System
-    //earlyWarning(room);
+    if (!Memory.roomCache[room.name].threatLevel) earlyWarning(room);
 
     // Send an email on a player attack with details of attack
     if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
@@ -108,9 +108,12 @@ function safeModeManager(room) {
 }
 
 function earlyWarning(room) {
-    let earlyWarning;
-    if (room.memory.remoteRooms) earlyWarning = _.filter(room.memory.remoteRooms, (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3);
-    room.memory.earlyWarning = !!earlyWarning.length;
+    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3)[0];
+    if (adjacent) {
+        Memory.roomCache[room.name].threatLevel = adjacent.threatLevel;
+        Memory.roomCache[room.name].tickDetected = adjacent.tickDetected;
+        log.a(roomLink(room.name) + ' has gone to threat level ' + adjacent.threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent.name), 'DEFENSE COMMAND');
+    }
 }
 
 function unsavableCheck(room) {
