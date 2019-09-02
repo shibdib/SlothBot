@@ -150,11 +150,10 @@ function harvestDepositContainer(source, creep) {
         creep.memory.containerAttempt = true;
         return container.id;
     } else {
-        creep.memory.containerAttempt = true;
         let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
         if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 3) {
-            creep.pos.createConstructionSite(STRUCTURE_CONTAINER);
-        }
+            if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) === OK) creep.memory.containerAttempt = true;
+        } else if (site) creep.memory.containerAttempt = true;
     }
 }
 
