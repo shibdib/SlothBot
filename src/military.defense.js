@@ -110,9 +110,9 @@ function safeModeManager(room) {
 function earlyWarning(room) {
     let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3)[0];
     if (adjacent) {
-        Memory.roomCache[room.name].threatLevel = adjacent.threatLevel;
-        Memory.roomCache[room.name].tickDetected = adjacent.tickDetected;
-        log.a(roomLink(room.name) + ' has gone to threat level ' + adjacent.threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent.name), 'DEFENSE COMMAND');
+        Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
+        Memory.roomCache[room.name].tickDetected = Memory.roomCache[adjacent].tickDetected;
+        log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
     }
 }
 
