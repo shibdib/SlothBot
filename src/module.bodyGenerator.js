@@ -134,8 +134,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
             move = _.round(attack / 2);
             if (level >= 7) {
-                tough = 3;
-                attack = 30;
+                attack = 33;
                 move = 17;
             }
             break;
