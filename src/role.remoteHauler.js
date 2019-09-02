@@ -64,8 +64,6 @@ module.exports.role = function (creep) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
     } else {
-        // Tow Truck
-        if (creep.towTruck()) return;
         // Set harvester pairing
         if (!creep.memory.harvesterID || !Game.getObjectById(creep.memory.harvesterID)) {
             let multiple = 1;
