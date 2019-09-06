@@ -547,8 +547,8 @@ module.exports.remoteCreepQueue = function (room) {
             if (remoteHarvesters) {
                 let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
                 let multiple = 1;
-                let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)[0];
-                if (room.controller.level >= 7 && !inBuild) multiple = 2;
+                //let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)[0];
+                //if (room.controller.level >= 7 && !inBuild) multiple = 2;
                 if (remoteHauler.length < remoteHarvesters * multiple) {
                     queueCreep(room, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler'
