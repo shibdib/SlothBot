@@ -97,7 +97,7 @@ let globals = function () {
         assistPioneer: 3,
         fuelTruck: 7,
         remoteResponse: 5,
-        reserver: 5,
+        reserver: 4,
         borderPatrol: 4,
         // Power
         Power: 5,
