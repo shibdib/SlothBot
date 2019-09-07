@@ -47,7 +47,7 @@ module.exports.towerControl = function (room) {
     if (hostileCreeps.length) {
         let towers = _.shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive()));
         let potentialAttack = 0;
-        _.filter(creeps, (c) => c.my && c.memory.military).forEach((c) => potentialAttack += c.abilityPower());
+        _.filter(creeps, (c) => c.my && c.memory.military).forEach((c) => potentialAttack += c.abilityPower().attack);
         for (let i = 0; i < hostileCreeps.length; i++) {
             towers.forEach((t) => potentialAttack += determineDamage(hostileCreeps[i].pos.getRangeTo(t)));
             let inRangeMeleeHealers = _.filter(hostileCreeps, (s) => s.pos.getRangeTo(hostileCreeps[i]) === 1 && s.getActiveBodyparts(HEAL));
@@ -55,13 +55,13 @@ module.exports.towerControl = function (room) {
             let inRangeResponders = _.filter(creeps, (c) => c.getActiveBodyparts(ATTACK) && c.pos.getRangeTo(hostileCreeps[i]) === 1);
             let inRangeLongbows = _.filter(creeps, (c) => c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(hostileCreeps[i]) < 4);
             let attackPower = 0;
-            if (inRangeResponders.length) inRangeResponders.forEach((c) => attackPower += c.abilityPower());
-            if (inRangeLongbows.length) inRangeLongbows.forEach((c) => attackPower += c.abilityPower());
+            if (inRangeResponders.length) inRangeResponders.forEach((c) => attackPower += c.abilityPower().attack);
+            if (inRangeLongbows.length) inRangeLongbows.forEach((c) => attackPower += c.abilityPower().attack);
             towers.forEach((t) => attackPower += determineDamage(hostileCreeps[i].pos.getRangeTo(t)));
             let healPower = 0;
-            if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower(true));
-            if (inRangeRangedHealers.length) inRangeRangedHealers.forEach((c) => healPower += c.abilityPower(true));
-            healPower += hostileCreeps[i].abilityPower(true);
+            if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower(true).defense);
+            if (inRangeRangedHealers.length) inRangeRangedHealers.forEach((c) => healPower += c.abilityPower(true).defense);
+            healPower += hostileCreeps[i].abilityPower().defense;
             let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER}).length > 0;
             if (hostileCreeps[i].hits <= attackPower) {
                 room.memory.towerTarget = hostileCreeps[i].id;

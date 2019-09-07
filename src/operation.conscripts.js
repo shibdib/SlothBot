@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.conscriptsRoom = function () {
@@ -14,7 +21,6 @@ Creep.prototype.conscriptsRoom = function () {
             this.say('FOLLOW ME', true);
             if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
             levelManager(this);
-            highCommand.threatManagement(this);
         } else if (!this.memory.squadLeader) {
             if (this.room.name === squadLeader[0].room.name && this.pos.getRangeTo(squadLeader[0]) > 0) {
                 this.shibMove(squadLeader[0], {range: 1, ignoreCreeps: false});

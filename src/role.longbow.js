@@ -18,6 +18,7 @@ module.exports.role = function (creep) {
     if (!creep.memory.boostAttempt) return creep.tryToBoost(['ranged']);
     // Responder Mode
     if (creep.memory.responseTarget || !creep.memory.operation) {
+        if (creep.hits < creep.hitsMax) creep.heal(creep);
         creep.say(ICONS.respond, true);
         if (creep.room.memory.towerTarget && Game.getObjectById(creep.room.memory.towerTarget)) {
             return creep.fightRanged(Game.getObjectById(creep.room.memory.towerTarget));

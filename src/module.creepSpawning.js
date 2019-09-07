@@ -249,8 +249,8 @@ module.exports.essentialCreepQueue = function (room) {
         //Remove old queues
         if (_.includes(queue, 'responder')) delete roomQueue[room.name]['responder'];
         // Claiming
-        let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim' && Game.map.findRoute(room.name, r).length <= 10);
-        if (claimTarget) {
+        let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
+        if (claimTarget && Game.map.findRoute(claimTarget, room.name).length <= 15) {
             let claimer = _.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget);
             if (!claimer.length) {
                 queueMilitaryCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget})
@@ -355,23 +355,26 @@ module.exports.miscCreepQueue = function (room) {
             })
         }
     }
-    //Explorer
-    if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 2500 <= Game.time)) {
-        let amount = 3;
-        let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
-        if (explorers.length < amount) {
-            queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
+    //Pre observer spawn explorers
+    if (_.max(Memory.ownedRooms, 'controller.level').controller.level < 8) {
+        //Explorer
+        if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 2500 <= Game.time)) {
+            let amount = 3;
+            let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
+            if (explorers.length < amount) {
+                queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
+            }
+            queueTracker['explorer'] = Game.time;
         }
-        queueTracker['explorer'] = Game.time;
-    }
-    //Proxy scout
-    if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['proximityScout'] || queueTracker['proximityScout'] + 2500 <= Game.time)) {
-        let amount = 1;
-        let proximityScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'proximityScout' && creep.memory.overlord === room.name);
-        if (proximityScout.length < amount) {
-            queueCreep(room, PRIORITIES.explorer, {role: 'proximityScout'})
+        //Proxy scout
+        if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['proximityScout'] || queueTracker['proximityScout'] + 2500 <= Game.time)) {
+            let amount = 1;
+            let proximityScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'proximityScout' && creep.memory.overlord === room.name);
+            if (proximityScout.length < amount) {
+                queueCreep(room, PRIORITIES.explorer, {role: 'proximityScout'})
+            }
+            queueTracker['proximityScout'] = Game.time;
         }
-        queueTracker['proximityScout'] = Game.time;
     }
     // Assist room
     if (level >= 4 && !inBuild && !Memory.roomCache[room.name].responseNeeded) {

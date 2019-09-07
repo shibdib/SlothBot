@@ -20,7 +20,6 @@ Creep.prototype.siegeGroupRoom = function () {
     if (this.memory.squadLeader) {
         // Sustainability
         if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
-        highCommand.threatManagement(this);
         //levelManager(this);
         // Handle border
         if (this.borderCheck()) return;

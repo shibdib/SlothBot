@@ -373,6 +373,12 @@ function manageAttacks() {
             continue;
         }
         // Remove allied rooms
+        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && !_.includes(Memory._enemies, Memory.roomCache[key].user) && !_.includes(Memory._nuisance, Memory.roomCache[key].user)) {
+            delete Memory.targetRooms[key];
+            if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is not an enemy.', 'HIGH COMMAND: ');
+            continue;
+        }
+        // Remove allied rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && checkForNap(Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
             if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND: ');

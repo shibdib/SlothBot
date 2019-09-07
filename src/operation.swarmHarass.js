@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.swarmHarassRoom = function () {
@@ -6,7 +13,6 @@ Creep.prototype.swarmHarassRoom = function () {
         let sentence = ['Swarm', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
-        highCommand.threatManagement(this);
         highCommand.operationSustainability(this.room);
         if (Memory.targetRooms[this.memory.targetRoom]) {
             let hostile = this.findClosestEnemy();

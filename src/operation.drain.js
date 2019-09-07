@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.drainRoom = function () {
@@ -33,7 +40,6 @@ Creep.prototype.drainRoom = function () {
             Memory.targetRooms = cache;
         }
         highCommand.operationSustainability(this.room);
-        highCommand.threatManagement(this);
     }
     if (this.room.name === this.memory.targetRoom || this.hits < this.hitsMax) this.heal(this);
     this.borderHump();

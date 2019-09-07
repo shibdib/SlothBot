@@ -374,7 +374,7 @@ Creep.prototype.fightRanged = function (target) {
             // Handle melee attackers
             if (target.getActiveBodyparts(ATTACK)) {
                 moveRange = 3;
-                if (range < 3 && !this.pos.checkForRampart() && this.abilityPower(true) < target.abilityPower()) {
+                if (range < 3 && !this.pos.checkForRampart() && this.abilityPower().defense < target.abilityPower().attack) {
                     this.say('PEW!', true);
                     this.rangedAttack(target);
                     return this.kite(3);
@@ -855,16 +855,16 @@ Creep.prototype.canIWin = function (range = 50) {
     let armedHostiles = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedHostiles.length; i++) {
         if (armedHostiles[i].getActiveBodyparts(HEAL)) {
-            hostilePower += armedHostiles[i].abilityPower(true) * 0.5;
-            healPower += armedHostiles[i].abilityPower(true);
+            hostilePower += armedHostiles[i].abilityPower().defense * 0.5;
+            healPower += armedHostiles[i].abilityPower().defense;
         }
-        hostilePower += armedHostiles[i].abilityPower();
+        hostilePower += armedHostiles[i].abilityPower().attack;
     }
     let alliedPower = 0;
     let armedFriendlies = _.filter(this.room.friendlyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) && this.pos.getRangeTo(c) <= range);
     for (let i = 0; i < armedFriendlies.length; i++) {
-        if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower(true) * 0.5;
-        alliedPower += armedFriendlies[i].abilityPower();
+        if (armedFriendlies[i].getActiveBodyparts(HEAL)) alliedPower += armedFriendlies[i].abilityPower().defense * 0.5;
+        alliedPower += armedFriendlies[i].abilityPower().attack;
     }
     if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel(true);
     Memory.roomCache[this.room.name].hostilePower = hostilePower;

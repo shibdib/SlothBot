@@ -492,8 +492,8 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
     get: function () {
         if (!this._combatPower) {
             let power = 0;
-            if (this.getActiveBodyparts(HEAL)) power += this.abilityPower(true);
-            if (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK)) power += this.abilityPower();
+            if (this.getActiveBodyparts(HEAL)) power += this.abilityPower().defense;
+            if (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK)) power += this.abilityPower().attack;
             this._combatPower = power;
         }
         return this._combatPower;
@@ -516,7 +516,7 @@ Creep.prototype.reportDamage = function () {
                 if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
                 let cache = Memory._badBoyList || {};
                 let threatRating;
-                if (cache[user]) {
+                if (cache[user] && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].user === MY_USERNAME) {
                     if (cache[user].lastAction + 3 > Game.time) return true;
                     if (Math.random() > 0.8) log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. Adjusting threat rating for ' + user);
                     if (_.includes(FRIENDLIES, user)) {
@@ -524,12 +524,18 @@ Creep.prototype.reportDamage = function () {
                     } else {
                         threatRating = cache[user]['threatRating'] + 2.5;
                     }
-                } else {
+                } else if (!cache[user]) {
+                    let multiple = 1;
+                    if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].user === MY_USERNAME) multiple = 10;
                     if (_.includes(FRIENDLIES, user)) {
-                        threatRating = 1;
+                        log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now temporarily been marked hostile.');
+                        threatRating = 1 * multiple;
                     } else {
-                        threatRating = 100;
+                        log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now been marked hostile.');
+                        threatRating = 100 * multiple;
                     }
+                } else {
+                    return;
                 }
                 cache[user] = {
                     threatRating: threatRating,
@@ -543,32 +549,32 @@ Creep.prototype.reportDamage = function () {
 };
 
 // Get attack/heal power and account for boosts
-Creep.prototype.abilityPower = function (heal = undefined) {
-    if (heal) {
-        if (!this.getActiveBodyparts(HEAL)) return 0;
-        let healPower = 0;
-        for (let part of this.body) {
-            if (part.type !== HEAL || !part.hits) continue;
-            if (part.boost) {
+Creep.prototype.abilityPower = function (ignoreTough = undefined) {
+    let attackPower = 0;
+    let healPower = 0;
+    for (let part of this.body) {
+        if (!part.hits) continue;
+        if (part.boost) {
+            if (part.type === ATTACK) {
+                attackPower += ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
+            } else if (part.type === RANGED_ATTACK) {
+                attackPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
+            } else if (part.type === HEAL) {
                 healPower += HEAL_POWER * BOOSTS[part.type][part.boost][part.type];
-            } else {
+            } else if (part.type === TOUGH && !ignoreTough && this.getActiveBodyparts(HEAL)) {
+                healPower += HEAL_POWER * BOOSTS[part.type][part.boost][part.type];
+            }
+        } else {
+            if (part.type === ATTACK) {
+                attackPower += ATTACK_POWER;
+            } else if (part.type === RANGED_ATTACK) {
+                attackPower += RANGED_ATTACK_POWER;
+            } else if (part.type === HEAL) {
                 healPower += HEAL_POWER;
             }
         }
-        return healPower;
-    } else {
-        if (!this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return 0;
-        let attackPower = 0;
-        for (let part of this.body) {
-            if ((part.type !== ATTACK && part.type !== RANGED_ATTACK) || !part.hits) continue;
-            if (part.boost) {
-                if (part.type === ATTACK) attackPower += ATTACK_POWER * BOOSTS[part.type][part.boost][part.type]; else attackPower += RANGED_ATTACK_POWER * BOOSTS[part.type][part.boost][part.type];
-            } else {
-                if (part.type === ATTACK) attackPower += ATTACK_POWER; else attackPower += RANGED_ATTACK_POWER;
-            }
-        }
-        return attackPower;
     }
+    return {attack: attackPower, defense: healPower};
 };
 
 

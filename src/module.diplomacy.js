@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.diplomacyOverlord = function () {
     //Manage threats
     if (Game.time % 25 === 0 && Memory._badBoyList) threatManager();
@@ -15,11 +22,11 @@ function threatManager() {
             continue;
         }
         let threat = Memory._badBoyList[key];
-        if (threat.lastAction + 25 < Game.time) {
+        if (threat.lastAction + 50 < Game.time || threat.lastChange + 250 < Game.time) {
             // Scaled threat decrease
             let currentRating = threat.threatRating;
             let decrease = 1;
-            if (currentRating > 1000) decrease = 0.5; else if (currentRating > 25) decrease = 0.75;
+            //if (currentRating > 1000) decrease = 0.5; else if (currentRating > 25) decrease = 0.75;
             newRating = currentRating - decrease;
             if (newRating <= 0 && (!Memory.ncpArray || !_.includes(Memory.ncpArray, key))) {
                 delete Memory._badBoyList[key];
@@ -27,6 +34,7 @@ function threatManager() {
                 continue;
             } else {
                 Memory._badBoyList[key].threatRating = newRating;
+                Memory._badBoyList[key].lastChange = Game.time;
             }
         }
         if (Memory._badBoyList[key].threatRating > 250 || (Memory.ncpArray && _.includes(Memory.ncpArray, key))) {

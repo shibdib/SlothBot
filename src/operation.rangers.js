@@ -40,7 +40,6 @@ Creep.prototype.rangersRoom = function () {
         if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
         // Move to room if needed
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
-        highCommand.threatManagement(this);
         levelManager(this);
         // Sustainability
         highCommand.operationSustainability(this.room);

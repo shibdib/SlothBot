@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.harassRoom = function () {
@@ -9,7 +16,6 @@ Creep.prototype.harassRoom = function () {
         }
         if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
         if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
-        highCommand.threatManagement(this);
         let sentence = ['Area', 'Denial', 'In', 'Progress'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
