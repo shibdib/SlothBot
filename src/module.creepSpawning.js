@@ -250,11 +250,8 @@ module.exports.essentialCreepQueue = function (room) {
         if (_.includes(queue, 'responder')) delete roomQueue[room.name]['responder'];
         // Claiming
         let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
-        if (claimTarget && Game.map.findRoute(claimTarget, room.name).length <= 15) {
-            let claimer = _.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget);
-            if (!claimer.length) {
-                queueMilitaryCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget})
-            }
+        if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
+            queueCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget})
         }
         //Upgrader
         if (!_.includes(queue, 'upgrader')) {

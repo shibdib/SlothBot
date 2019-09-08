@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
@@ -13,6 +20,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
         creep.room.cacheRoomIntel();
         if (creep.room.controller) {
+            if (creep.room.controller.owner) return creep.memory.recycle = true;
             if (!creep.memory.signed) {
                 switch (creep.signController(creep.room.controller, "#Overlord-Bot Hive")) {
                     case ERR_NOT_IN_RANGE:
@@ -34,6 +42,7 @@ module.exports.role = function (creep) {
                         break;
                     case OK:
                         Game.rooms[creep.memory.overlord].memory.claimTarget = undefined;
+                        Memory.targetRooms[creep.room.name] = undefined;
                         cleanRoom(creep.room, creep.room.structures)
                 }
             }

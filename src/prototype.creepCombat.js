@@ -235,7 +235,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         // Heal if needed
         if (!this.getActiveBodyparts(ATTACK) && this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
         // Fight from rampart
-        if (rampart && this.fightRampart(hostile)) return true;
+        if (rampart && !this.canIWin(5) && this.fightRampart(hostile)) return true;
         // Melee attacker
         if (this.getActiveBodyparts(ATTACK)) return this.attackHostile(hostile);
         // Ranged attacker

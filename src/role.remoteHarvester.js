@@ -38,9 +38,11 @@ module.exports.role = function (creep) {
                         return Game.getObjectById(n);
                     });
                 }
-                if (creep.memory.containerID) {
+                if (container) {
                     if (creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                     if (_.sum(container.store) >= 1980) creep.idleFor(20);
+                } else {
+                    creep.memory.containerID = undefined;
                 }
                 break;
         }

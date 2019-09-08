@@ -124,7 +124,7 @@ function unsavableCheck(room) {
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     let badCount = room.memory.badCount || 0;
     if (hostiles.length && !worthyStructures.length && hostiles.length >= towers.length * 2) {
-        if (Game.time % 1500 === 0) {
+        if (Game.time % 750 === 0) {
             room.memory.badCount = badCount + 1;
         }
         if (room.memory.badCount > room.controller.level) {

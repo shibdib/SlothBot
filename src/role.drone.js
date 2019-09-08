@@ -122,7 +122,7 @@ function hauling(creep) {
 
 function upgrading(creep) {
     if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME) return false;
+    if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked) return false;
     creep.memory.task = 'upgrade';
     creep.say('Praise!', true);
     switch (creep.upgradeController(creep.room.controller)) {
