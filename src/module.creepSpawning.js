@@ -184,7 +184,6 @@ module.exports.essentialCreepQueue = function (room) {
         lastPurge = Game.time;
     }
     //Static room info
-    let queue = roomQueue[room.name];
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
     //Harvesters
@@ -192,7 +191,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (harvesters.length === 0) {
         delete roomQueue[room.name];
         return queueCreep(room, 1, {role: 'stationaryHarvester', reboot: true});
-    } else if (!_.includes(queue, 'stationaryHarvester')) {
+    } else {
         if (harvesters.length < 2 || (harvesters[0].ticksToLive < (harvesters[0].body.length * 3 + 10) && harvesters.length < 3)) {
             queueCreep(room, PRIORITIES.stationaryHarvester, {role: 'stationaryHarvester'})
         }
@@ -203,7 +202,7 @@ module.exports.essentialCreepQueue = function (room) {
         if (hauler.length === 0) {
             delete roomQueue[room.name];
             return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
-        } else if (!_.includes(queue, 'hauler')) {
+        } else {
             let amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
                 queueCreep(room, PRIORITIES.hauler + hauler.length, {role: 'hauler', localCache: true})
@@ -211,7 +210,7 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     //Filler
-    if (!_.includes(queue, 'filler') && _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID)).length) {
+    if (_.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID)).length) {
         let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt && !c.memory.linkID));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
@@ -227,48 +226,42 @@ module.exports.essentialCreepQueue = function (room) {
     if (Memory.roomCache[room.name].responseNeeded || Memory.roomCache[room.name].earlyWarning) {
         if (Memory.roomCache[room.name].threatLevel > 2) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
-            if (!_.includes(queue, 'longbow') && longbow.length < 2) {
+            if (longbow.length < 2) {
                 queueCreep(room, PRIORITIES.responder, {
                     role: 'longbow',
                     responseTarget: room.name,
                     military: true
                 })
             }
-            if (!_.includes(queue, 'responder')) {
-                let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
-                if (responder.length < 2) {
-                    queueCreep(room, PRIORITIES.responder, {
-                        role: 'responder',
-                        responseTarget: room.name,
-                        military: true
-                    })
-                }
+            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
+            if (responder.length < 2) {
+                queueCreep(room, PRIORITIES.responder, {
+                    role: 'responder',
+                    responseTarget: room.name,
+                    military: true
+                })
             }
         }
     } else {
-        //Remove old queues
-        if (_.includes(queue, 'responder')) delete roomQueue[room.name]['responder'];
         // Claiming
         let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
         if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
             queueCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget})
         }
         //Upgrader
-        if (!_.includes(queue, 'upgrader')) {
-            let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
-            let number = 1;
-            let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)[0];
-            if (level < 5 && !inBuild) number = 6;
-            //If room is about to downgrade get a creep out asap
-            let reboot;
-            let priority = PRIORITIES.upgrader;
-            if (room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal) {
-                reboot = true;
-                priority = 1;
-            }
-            if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
-                queueCreep(room, priority + upgraders.length, {role: 'upgrader', reboot: reboot})
-            }
+        let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
+        let number = 1;
+        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)[0];
+        if (level < 5 && !inBuild) number = 6;
+        //If room is about to downgrade get a creep out asap
+        let reboot;
+        let priority = PRIORITIES.upgrader;
+        if (room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal) {
+            reboot = true;
+            priority = 1;
+        }
+        if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
+            queueCreep(room, priority + upgraders.length, {role: 'upgrader', reboot: reboot})
         }
         // Assist room
         if (level >= 3) {
@@ -276,15 +269,13 @@ module.exports.essentialCreepQueue = function (room) {
             let responseNeeded = _.filter(Memory.ownedRooms, (r) => r.name !== room.name && Memory.roomCache[r.name].requestingSupport && Game.map.getRoomLinearDistance(room.name, r.name) <= 15);
             if (responseNeeded.length && !room.memory.responseNeeded) {
                 for (let responseRoom of responseNeeded) {
-                    if (!_.includes(queue, 'longbow')) {
-                        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseRoom.name && creep.memory.role === 'longbow');
-                        if (responder.length < 3) {
-                            queueCreep(room, PRIORITIES.remoteResponse, {
-                                role: 'longbow',
-                                responseTarget: responseRoom.name,
-                                military: true
-                            })
-                        }
+                    let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === responseRoom.name && creep.memory.role === 'longbow');
+                    if (responder.length < 3) {
+                        queueCreep(room, PRIORITIES.remoteResponse, {
+                            role: 'longbow',
+                            responseTarget: responseRoom.name,
+                            military: true
+                        })
                     }
                 }
             }
