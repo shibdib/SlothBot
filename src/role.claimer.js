@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
         if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     } else {
         if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
-        creep.room.cacheRoomIntel();
+        creep.room.cacheRoomIntel(true);
         if (creep.room.controller) {
             if (creep.room.controller.owner) return creep.memory.recycle = true;
             if (!creep.memory.signed) {

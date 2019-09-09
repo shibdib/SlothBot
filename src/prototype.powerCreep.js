@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Set the unit to idle-mode until recall tick
  *
@@ -402,7 +409,6 @@ PowerCreep.prototype.repairRoad = function () {
 
 //Find spawn and recycle
 PowerCreep.prototype.recycleCreep = function () {
-    if (this.borderCheck()) return;
     if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
     let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
     if (!spawn.length) return;
@@ -487,7 +493,7 @@ PowerCreep.prototype.reportDamage = function () {
 
 
 PowerCreep.prototype.fleeRoom = function (room) {
-    if (this.room.name !== room && !this.borderCheck()) return this.idleFor(this.memory.fleeNukeTime);
+    if (this.room.name !== room) return this.idleFor(this.memory.fleeNukeTime);
     if (this.memory.fleeNukeTime <= Game.time) {
         this.memory.fleeNukeTime = undefined;
         this.memory.fleeNukeRoom = undefined;

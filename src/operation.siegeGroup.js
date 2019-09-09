@@ -21,8 +21,6 @@ Creep.prototype.siegeGroupRoom = function () {
         // Sustainability
         if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
         //levelManager(this);
-        // Handle border
-        if (this.borderCheck()) return;
         // Check for squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
         if (!squadMember.length) return this.handleMilitaryCreep(false, false);
@@ -45,7 +43,6 @@ Creep.prototype.siegeGroupRoom = function () {
                 moveRange = 1;
                 ignore = false;
             }
-            if (this.borderCheck()) return;
             this.shibMove(leader, {range: moveRange, ignoreCreeps: ignore, ignoreRoads: true});
         } else {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});

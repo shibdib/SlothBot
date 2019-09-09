@@ -33,7 +33,7 @@ module.exports.hiveMind = function () {
         Game.notify(e.stack);
     }
     // Handle Labs
-    if (Game.cpu.bucket >= 9999) {
+    if (Game.cpu.bucket >= 5000) {
         try {
             labs.labManager();
         } catch (e) {
@@ -54,7 +54,6 @@ module.exports.hiveMind = function () {
         }
     }
     // Process Overlords
-    let processed = 0;
     for (let key in Memory.ownedRooms) {
         let activeRoom = Memory.ownedRooms[key];
         try {
@@ -64,7 +63,6 @@ module.exports.hiveMind = function () {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        processed++;
     }
     //Expansion Manager
     if (Game.time % 25 === 0) {
@@ -116,7 +114,7 @@ module.exports.hiveMind = function () {
         Game.notify(e.stack);
     }
     //Room HUD (If CPU Allows)
-    if (!TEN_CPU && Game.cpu.bucket > 9999) {
+    if (Game.cpu.bucket > 1000) {
         try {
             hud.hud();
         } catch (e) {
@@ -136,8 +134,6 @@ function minionController(minion) {
     if (minion.idle) return;
     // Report damage if hits are low
     if (minion.hits < minion.hitsMax) minion.reportDamage();
-    // Report intel chance
-    if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) minion.room.cacheRoomIntel();
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
@@ -146,6 +142,11 @@ function minionController(minion) {
     let start = Game.cpu.getUsed();
     try {
         if (minion.borderCheck()) return;
+        // Report intel chance
+        if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {
+            minion.room.invaderCheck();
+            minion.room.cacheRoomIntel();
+        }
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - start;
         let cpuUsageArray = creepCpuArray[minion.name] || [];

@@ -71,7 +71,6 @@ Creep.prototype.towTruck = function () {
             return false;
         }
     } else {
-        if (this.borderCheck()) return true;
         this.say('Towing!', true);
         if (this.fatigue) return true;
         let trailer = Game.getObjectById(this.memory.trailer);
@@ -462,7 +461,6 @@ Creep.prototype.repairRoad = function () {
 
 //Find spawn and recycle
 Creep.prototype.recycleCreep = function () {
-    if (this.borderCheck()) return;
     if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
     let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
     if (!spawn.length) return;
@@ -579,7 +577,7 @@ Creep.prototype.abilityPower = function (ignoreTough = undefined) {
 
 
 Creep.prototype.fleeRoom = function (room) {
-    if (this.room.name !== room && !this.borderCheck()) return this.idleFor(this.memory.fleeNukeTime);
+    if (this.room.name !== room) return this.idleFor(this.memory.fleeNukeTime);
     if (this.memory.fleeNukeTime <= Game.time) {
         this.memory.fleeNukeTime = undefined;
         this.memory.fleeNukeRoom = undefined;

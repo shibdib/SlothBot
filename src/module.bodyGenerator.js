@@ -50,7 +50,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
             if (room.memory.state < 2 && room.memory.state !== -1) {
                 work = _.random(level, level * 4);
-                carry = _.random(2, level);
+                carry = _.random(4, level);
             }
             move = work + carry;
             //if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;

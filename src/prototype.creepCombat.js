@@ -444,8 +444,9 @@ Creep.prototype.attackInRange = function () {
 };
 
 Creep.prototype.moveToStaging = function () {
-    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.targetRoom || !Memory.targetRooms[this.memory.targetRoom]) return false;
-    if (this.memory.staging) this.memory.stagingRoom = this.memory.staging;
+    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.targetRoom) return false;
+    // Recycle if operation canceled
+    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle = true;
     if (this.memory.stagingRoom === this.room.name) {
         if (this.findClosestEnemy()) return this.handleMilitaryCreep(false, true);
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 7});
@@ -491,11 +492,11 @@ Creep.prototype.moveToStaging = function () {
 Creep.prototype.siege = function () {
     let healer = Game.getObjectById(this.memory.healer);
     if (this.room.name !== this.memory.targetRoom) {
-        if (!healer || (this.pos.roomName === healer.pos.roomName && this.pos.getRangeTo(healer)) > 2) return this.shibMove(Game.getObjectById(this.memory.healer), {ignoreCreeps: false});
-        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
-            ignoreCreeps: true,
-            range: 20
-        });
+        if (healer && this.pos.roomName === healer.pos.roomName && this.pos.getRangeTo(healer) > 2) {
+            return this.shibMove(healer, {ignoreCreeps: false});
+        } else {
+            if (this.moveToStaging()) return;
+        }
     }
     this.rangedMassAttack();
     if (this.room.controller && this.room.controller.safeMode) {
@@ -763,11 +764,9 @@ Creep.prototype.borderHump = function () {
             Memory.roomCache[this.room.name].noDrain = true;
             this.memory.recycle = true;
         }
-        this.borderCheck();
         this.heal(this);
         this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 15})
     } else if (this.hits < this.hitsMax && this.room.name !== this.memory.targetRoom) {
-        this.borderCheck();
         this.heal(this);
     } else if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
 };

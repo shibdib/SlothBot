@@ -10,8 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    // Handle border
-    if (creep.borderCheck()) return;
     //Renew
     if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
@@ -199,7 +197,7 @@ function buildLinks(creep) {
         if (!inBuildLink && controllerLink && hubLink && allLinks.length < 6 && creep.pos.getRangeTo(closestLink) > 10) {
             let hub = new RoomPosition(creep.room.memory.bunkerHub.x, creep.room.memory.bunkerHub.y, creep.room.name);
             if (creep.pos.getRangeTo(hub) >= 18) {
-                let buildPos = new RoomPosition(creep.pos.x + getRandomInt(-1, 1), creep.pos.y + getRandomInt(-1, 1), creep.room.name);
+                let buildPos = new RoomPosition(creep.pos.x + getRandomInt(-2, 2), creep.pos.y + getRandomInt(-2, 2), creep.room.name);
                 buildPos.createConstructionSite(STRUCTURE_LINK);
             }
         }

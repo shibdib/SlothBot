@@ -41,38 +41,32 @@ function manageResponseForces() {
     let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
     let lowLevel = _.sortBy(Memory.ownedRooms, 'controller.level')[0];
+    let friendlyResponsePower;
     if (ownedRoomAttack) {
         spawnBorderPatrol = true;
-        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && ownedRoomAttack !== c.room.name && c.memory.responseTarget !== ownedRoomAttack && c.memory.role === 'borderPatrol'
-            && Game.map.getRoomLinearDistance(c.memory.overlord, ownedRoomAttack) <= c.ticksToLive / 55), function (c) {
+        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && ownedRoomAttack !== c.room.name && c.memory.responseTarget !== ownedRoomAttack && c.memory.operation === 'borderPatrol'
+            && Game.map.getRoomLinearDistance(c.room.name, ownedRoomAttack) <= c.ticksToLive / 55), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, ownedRoomAttack);
         });
         for (let creep of idleResponders) {
+            if (friendlyResponsePower > ownedRoomAttack.hostilePower) break;
+            friendlyResponsePower += creep.combatPower;
             creep.memory.responseTarget = ownedRoomAttack;
             creep.memory.awaitingOrders = undefined;
             log.a(creep.name + ' reassigned to assist in the defense of ' + roomLink(ownedRoomAttack) + ' from ' + roomLink(creep.room.name));
         }
     } else if (responseTargets && responseTargets.name) {
         spawnBorderPatrol = true;
-        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && responseTargets.name !== c.room.name && c.memory.responseTarget !== responseTargets.name && c.memory.role === 'borderPatrol'
-            && Game.map.getRoomLinearDistance(c.memory.overlord, responseTargets.name) <= c.ticksToLive / 55), function (c) {
+        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && responseTargets.name !== c.room.name && c.memory.responseTarget !== responseTargets.name && c.memory.operation === 'borderPatrol'
+            && Game.map.getRoomLinearDistance(c.room.name, responseTargets.name) <= c.ticksToLive / 55), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, responseTargets.name);
         });
         for (let creep of idleResponders) {
+            if (friendlyResponsePower > responseTargets.hostilePower) break;
+            friendlyResponsePower += creep.combatPower;
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
             log.a(creep.name + ' responding to ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
-        }
-    } else if (unarmedEnemies) {
-        spawnBorderPatrol = true;
-        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && unarmedEnemies.room.name !== c.room.name && c.memory.awaitingOrders
-            && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= c.ticksToLive / 55), function (c) {
-            Game.map.getRoomLinearDistance(c.pos.roomName, unarmedEnemies.room.name);
-        });
-        for (let creep of idleResponders) {
-            creep.memory.responseTarget = unarmedEnemies.room.name;
-            creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to hunt unarmed targets in ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (local) {
         spawnBorderPatrol = true;
@@ -86,7 +80,6 @@ function manageResponseForces() {
             log.a(creep.name + ' reassigned to assist the operation in ' + roomLink(local) + ' from ' + roomLink(creep.room.name));
         }
     } else if (guard) {
-        spawnBorderPatrol = true;
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && guard !== c.room.name && c.memory.awaitingOrders
             && Game.map.getRoomLinearDistance(c.memory.overlord, guard) <= c.ticksToLive / 55), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, guard);
@@ -96,8 +89,17 @@ function manageResponseForces() {
             creep.memory.awaitingOrders = undefined;
             log.a(creep.name + ' reassigned to help guard ' + roomLink(guard) + ' from ' + roomLink(creep.room.name));
         }
+    } else if (unarmedEnemies) {
+        let idleResponder = _.sortBy(_.filter(Game.creeps, (c) => c.memory && unarmedEnemies.room.name !== c.room.name && c.memory.awaitingOrders
+            && Game.map.getRoomLinearDistance(c.memory.overlord, unarmedEnemies.room.name) <= c.ticksToLive / 55), function (c) {
+            Game.map.getRoomLinearDistance(c.pos.roomName, unarmedEnemies.room.name);
+        })[0];
+        if (idleResponder) {
+            idleResponder.memory.responseTarget = unarmedEnemies.room.name;
+            idleResponder.memory.awaitingOrders = undefined;
+            log.a(idleResponder.name + ' reassigned to hunt unarmed targets in ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(idleResponder.room.name));
+        }
     } else if (highestHeat && highestHeat.name) {
-        spawnBorderPatrol = false;
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders
             && Game.map.getRoomLinearDistance(c.memory.overlord, highestHeat.name) <= c.ticksToLive / 55), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, highestHeat.name);
@@ -108,7 +110,6 @@ function manageResponseForces() {
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (lowLevel && lowLevel.name) {
-        spawnBorderPatrol = true;
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && lowLevel.name !== c.room.name && c.memory.awaitingOrders
             && Game.map.getRoomLinearDistance(c.memory.overlord, lowLevel.name) <= c.ticksToLive / 55), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, lowLevel.name);
@@ -222,34 +223,36 @@ function operationRequests() {
         }
     }
     // Pokes
-    let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-    let pokeLimit = POKE_LIMIT;
-    if (TEN_CPU) pokeLimit = 2;
-    if (pokeCount < pokeLimit) {
-        let pokeTargets = [];
-        if (Memory._enemies.length) {
-            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && (_.includes(Memory._enemies, r.user) || _.includes(Memory._nuisance, r.user)) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
-        } else if (POKE_NEUTRALS) {
-            pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
-        }
-        if (pokeTargets.length) {
-            for (let target of pokeTargets) {
-                if (Memory.targetRooms[target.name]) continue;
-                pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-                if (pokeCount >= 5) break;
-                let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
-                if (lastOperation !== 0 && lastOperation + _.random(0, 3000) > Game.time) continue;
-                Memory.roomCache[target.name].lastPoke = Game.time;
-                let cache = Memory.targetRooms || {};
-                let tick = Game.time;
-                cache[target.name] = {
-                    tick: tick,
-                    type: 'poke',
-                    level: 1,
-                    priority: 4
-                };
-                Memory.targetRooms = cache;
-                log.a('Poke operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND: ');
+    if (POKE_ATTACKS) {
+        let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
+        let pokeLimit = POKE_LIMIT;
+        if (TEN_CPU) pokeLimit = 2;
+        if (pokeCount < pokeLimit) {
+            let pokeTargets = [];
+            if (Memory._enemies.length) {
+                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && (_.includes(Memory._enemies, r.user) || _.includes(Memory._nuisance, r.user)) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
+            } else if (POKE_NEUTRALS) {
+                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
+            }
+            if (pokeTargets.length) {
+                for (let target of pokeTargets) {
+                    if (Memory.targetRooms[target.name]) continue;
+                    pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
+                    if (pokeCount >= 5) break;
+                    let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
+                    if (lastOperation !== 0 && lastOperation + _.random(0, 3000) > Game.time) continue;
+                    Memory.roomCache[target.name].lastPoke = Game.time;
+                    let cache = Memory.targetRooms || {};
+                    let tick = Game.time;
+                    cache[target.name] = {
+                        tick: tick,
+                        type: 'poke',
+                        level: 1,
+                        priority: 4
+                    };
+                    Memory.targetRooms = cache;
+                    log.a('Poke operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND: ');
+                }
             }
         }
     }

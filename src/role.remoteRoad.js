@@ -15,7 +15,6 @@ module.exports.role = function role(creep) {
         return creep.goHomeAndHeal();
     }
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
-    if (creep.borderCheck()) return;
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
@@ -24,6 +23,8 @@ module.exports.role = function role(creep) {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
     }
+    // Remove bad desto
+    if (Memory.roomCache[creep.memory.destination] && Memory.roomCache[creep.memory.destination].user && Memory.roomCache[creep.memory.destination].user !== MY_USERNAME) creep.memory.destination = undefined;
     // Handle movement
     if (creep.memory.destination && creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     // Checks

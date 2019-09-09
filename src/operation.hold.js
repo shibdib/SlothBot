@@ -12,7 +12,6 @@ Creep.prototype.holdRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Handle border
-    if (this.borderCheck()) return;
     if (this.memory.role === 'longbow') {
         levelManager(this);
         highCommand.threatManagement(this);

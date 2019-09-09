@@ -1,10 +1,17 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
 
 module.exports.role = function role(creep) {
     let source;
-    if (creep.room.invaderCheck() || creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     let lair = Game.getObjectById(creep.memory.lair);
     if (lair && creep.pos.getRangeTo(lair) <= 5 && lair.ticksToSpawn <= 10) return creep.flee(lair);
     //Initial move

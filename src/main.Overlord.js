@@ -97,7 +97,7 @@ module.exports.overlordMind = function (room) {
     }
 
     // Observer Control
-    if (room.level === 8 && cpuBucket >= 9999) {
+    if (room.level === 8 && cpuBucket >= 2000) {
         try {
             observers.observerControl(room);
         } catch (e) {
@@ -119,7 +119,7 @@ module.exports.overlordMind = function (room) {
     }
 
     // Handle Terminals
-    if (Game.time % 11 === 0 && Math.random() > 0.65 && room.level >= 6 && cpuBucket >= 9999 && room.terminal && !room.terminal.cooldown) {
+    if (room.terminal && room.level >= 6 && !room.terminal.cooldown && Game.time % _.random(7, 12) === 0) {
         try {
             terminals.terminalControl(room);
         } catch (e) {
