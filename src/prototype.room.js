@@ -543,7 +543,7 @@ function urgentMilitary(room) {
     let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(s.store) > 0);
     if (room.controller) {
         // If neutral/hostile owned room that is still building
-        if (room.controller.owner && !_.includes(FRIENDLIES, room.controller.owner.username) && (room.controller.level < 3 || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length)) {
+        if (room.controller.owner && !_.includes(FRIENDLIES, room.controller.owner.username) && (room.controller.level < 3 || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length)) {
             sendScout = true;
         }
         // If unowned but lootable
@@ -560,7 +560,7 @@ function urgentMilitary(room) {
         let tick = Game.time;
         cache[room.name] = {
             tick: tick,
-            type: 'scout',
+            type: 'attack',
         };
         Memory.targetRooms = cache;
     }

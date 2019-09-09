@@ -27,7 +27,7 @@ module.exports.observerControl = function (room) {
             return;
         }
         // Observer queries (Level 0's)
-        let observerOperation = _.findKey(Memory.targetRooms, (t) => t.level === 0 && t.observerCheck + 15 < Game.time);
+        let observerOperation = _.findKey(Memory.targetRooms, (t) => t.level === 0 && (!t.observerCheck || t.observerCheck + 20 < Game.time));
         if (observerOperation && Game.map.getRoomLinearDistance(room.name, observerOperation) <= OBSERVER_RANGE) {
             observer.observeRoom(observerOperation);
             observedRooms[room.name] = observerOperation;
@@ -43,17 +43,11 @@ module.exports.observerControl = function (room) {
         }
         // Observer queries (Random)
         let target;
-        let roomX = parseInt(room.name.substr(1, 2));
-        let roomY = parseInt(room.name.substr(4, 2));
-        if (Memory.roomCache[observer.room.name].responseNeeded === true) {
-            let targetX = roomX + (Math.round(Math.random() * 20 - 1));
-            let targetY = roomY + (Math.round(Math.random() * 20 - 1));
-            target = room.name.substr(0, 1) + targetX + room.name.substr(3, 1) + targetY;
-        } else {
-            let targetX = roomX + (Math.round(Math.random() * 20 - 10));
-            let targetY = roomY + (Math.round(Math.random() * 20 - 10));
-            target = room.name.substr(0, 1) + targetX + room.name.substr(3, 1) + targetY;
-        }
+        let roomX = room.name.match(/\d+/g).map(Number)[0];
+        let roomY = room.name.match(/\d+/g).map(Number)[1];
+        let targetX = Math.abs(roomX + (Math.round(Math.random() * 20 - 10)));
+        let targetY = Math.abs(roomY + (Math.round(Math.random() * 20 - 10)));
+        target = room.name.replace(/[0-9]/g, '')[0] + targetX + room.name.replace(/[0-9]/g, '')[1] + targetY;
         observer.observeRoom(target);
         observedRooms[room.name] = target;
     }

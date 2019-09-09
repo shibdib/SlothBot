@@ -550,7 +550,7 @@ module.exports.militaryCreepQueue = function () {
             }
         }
         //Observers
-        if (opLevel === 0 && !Memory.targetRooms[key].observerCheck) {
+        if (opLevel === 0 && !Memory.targetRooms[key].observerCheck && Memory.targetRooms[key].type !== 'clean') {
             let observer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'observer');
             if ((observer.length < 1 || (observer[0] && observer[0].ticksToLive < (observer[0].body.length * 3 + 10) && observer.length < 2))) {
                 queueMilitaryCreep(PRIORITIES.priority, {
