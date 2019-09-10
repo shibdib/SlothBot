@@ -232,7 +232,7 @@ function operationRequests() {
             if (Memory._enemies.length) {
                 pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && (_.includes(Memory._enemies, r.user) || _.includes(Memory._nuisance, r.user)) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
             } else if (POKE_NEUTRALS) {
-                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
+                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && _.includes(Memory._threats, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
             }
             if (pokeTargets.length) {
                 for (let target of pokeTargets) {
@@ -376,7 +376,7 @@ function manageAttacks() {
             continue;
         }
         // Remove allied rooms
-        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && !_.includes(Memory._enemies, Memory.roomCache[key].user) && !_.includes(Memory._nuisance, Memory.roomCache[key].user)) {
+        if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && !_.includes(Memory._enemies, Memory.roomCache[key].user) && !_.includes(Memory._threats, Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
             if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is not an enemy.', 'HIGH COMMAND: ');
             continue;

@@ -36,6 +36,8 @@ module.exports.role = function role(creep) {
         if (building(creep)) return;
         // If praiser needed praise
         if (upgrading(creep)) return;
+        // Else idle
+        creep.idleFor(15);
     } else {
         creep.memory.task = undefined;
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
@@ -121,7 +123,7 @@ function hauling(creep) {
 
 function upgrading(creep) {
     if (creep.memory.task && creep.memory.task !== 'upgrade') return;
-    if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked) return false;
+    if (!creep.room.controller || !creep.room.controller.owner || creep.room.controller.owner.username !== MY_USERNAME || creep.room.controller.upgradeBlocked || creep.room.controller.level === 8) return false;
     creep.memory.task = 'upgrade';
     creep.say('Praise!', true);
     switch (creep.upgradeController(creep.room.controller)) {

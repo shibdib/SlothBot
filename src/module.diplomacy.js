@@ -14,6 +14,7 @@ function threatManager() {
     let newRating;
     Memory._badBoyArray = [];
     Memory._enemies = [];
+    Memory._threats = [];
     Memory._nuisance = [];
     Memory._threatList = [];
     for (let key in Memory._badBoyList) {
@@ -44,6 +45,9 @@ function threatManager() {
         } else if (Memory._badBoyList[key].threatRating > 5) {
             Memory._threatList.push(key);
         }
+        if (Memory._badBoyList[key].threatRating > 0) {
+            Memory._threats.push(key);
+        }
         let length = 10 - (Memory._badBoyList[key].threatRating.toString().length + 1);
         let display = key.substring(0, length) + '-' + Memory._badBoyList[key].threatRating;
         Memory._badBoyArray.push(display);
@@ -53,7 +57,7 @@ function threatManager() {
     // If Not Standard/S+ Server everyone except manually specified are hostile
     if (Game.shard.name === 'swc') Memory._nuisance = _.filter(_.union(Memory._nuisance, _.uniq(_.pluck(Memory.roomCache, 'user'))), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
     // NCP's are always hostile
-    if (Memory.ncpArray && Memory.ncpArray.length) Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
+    //if (Memory.ncpArray && Memory.ncpArray.length) Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
     // Clean up lists
     Memory._badBoyArray = _.union(_.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined)), Memory.ncpArray);
     Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined));
