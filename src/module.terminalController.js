@@ -366,7 +366,7 @@ function emergencyEnergy(terminal) {
             if (availableAmount <= 0) return false;
             switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
                 case OK:
-                    log.a(' MARKET: Siege Supplies ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name) + ' Current Amounts - ' + terminal.store[RESOURCE_ENERGY] + ' / ' + (storedAmount + neededAmount));
+                    log.a(' MARKET: Siege Supplies ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name));
                     return true;
             }
         }
