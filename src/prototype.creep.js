@@ -505,7 +505,7 @@ Creep.prototype.trackThreat = function () {
     if (!this.memory._lastHits) return this.memory._lastHits = this.hits;
     if (this.hits < this.memory._lastHits) {
         if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) && this.memory.targetRoom !== this.room.name) return false;
-        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => c.pos.getRangeTo(this) <= 3 && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== MY_USERNAME), 'owner.username'));
+        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(this) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(this))) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
             for (let key in nearbyCreeps) {
                 let user = nearbyCreeps[key];
