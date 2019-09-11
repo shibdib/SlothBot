@@ -174,7 +174,7 @@ Object.defineProperty(Room.prototype, 'powerCreeps', {
 Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
-            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (_.includes(Memory._threats, c.owner.username) || c.owner.username === 'Invader'));
+            this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (_.includes(Memory._threats, c.owner.username) || c.owner.username === 'Invader' || c.owner.username === 'Source Keeper'));
             this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (_.includes(Memory._threats, c.owner.username))));
         }
         return this._Hostilecreeps;

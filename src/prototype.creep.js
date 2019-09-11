@@ -500,8 +500,8 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
     configurable: true
 });
 
-Creep.prototype.reportDamage = function () {
-    if (this.memory.healsInbound && !Game.getObjectById(this.memory.healsInbound)) this.memory.healsInbound = undefined;
+Creep.prototype.trackThreat = function () {
+    // Handle damage
     if (!this.memory._lastHits) return this.memory._lastHits = this.hits;
     if (this.hits < this.memory._lastHits) {
         if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) && this.memory.targetRoom !== this.room.name) return false;
@@ -527,7 +527,7 @@ Creep.prototype.reportDamage = function () {
                     if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].user === MY_USERNAME) multiple = 10;
                     if (_.includes(FRIENDLIES, user)) {
                         log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now temporarily been marked hostile.');
-                        threatRating = 1 * multiple;
+                        threatRating = multiple;
                     } else {
                         log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now been marked hostile.');
                         threatRating = 100 * multiple;
@@ -544,6 +544,28 @@ Creep.prototype.reportDamage = function () {
         }
     }
     this.memory._lastHits = this.hits;
+    // Handle hostile creeps in owned rooms
+    if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].user === MY_USERNAME) {
+        let neutrals = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper')));
+        if (neutrals.length) {
+            for (let key in neutrals) {
+                let user = neutrals[key];
+                if (user === MY_USERNAME) continue;
+                let cache = Memory._badBoyList || {};
+                let threatRating;
+                if (cache[user]) {
+                    threatRating = cache[user]['threatRating'] + 0.25;
+                } else if (!cache[user]) {
+                    threatRating = 15;
+                }
+                cache[user] = {
+                    threatRating: threatRating,
+                    lastAction: Game.time,
+                };
+                Memory._badBoyList = cache;
+            }
+        }
+    }
 };
 
 // Get attack/heal power and account for boosts

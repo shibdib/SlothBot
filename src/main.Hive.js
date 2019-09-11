@@ -133,7 +133,7 @@ function minionController(minion) {
     // If idle sleep
     if (minion.idle) return;
     // Report damage if hits are low
-    if (minion.hits < minion.hitsMax) minion.reportDamage();
+    if (minion.hits < minion.hitsMax) minion.trackThreat();
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role

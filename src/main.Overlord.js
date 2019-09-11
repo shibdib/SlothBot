@@ -168,8 +168,8 @@ function minionController(minion) {
             if (Math.random() > Game.cpu.bucket / 8000) return minion.say('BUCKET');
         }
     }
-    // Report damage if hits are low
-    if (minion.hits < minion.hitsMax) minion.reportDamage();
+    // Track Threat
+    minion.trackThreat();
     // Report intel chance
     if (minion.room.name !== minion.memory.overlord && Math.random() > 0.75) {
         minion.room.invaderCheck();
