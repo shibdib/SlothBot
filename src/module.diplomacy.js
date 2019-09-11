@@ -18,7 +18,7 @@ function threatManager() {
     Memory._nuisance = [];
     Memory._threatList = [];
     for (let key in Memory._badBoyList) {
-        if (key === MY_USERNAME) {
+        if (key === MY_USERNAME || !key || key === 'undefined') {
             delete Memory._badBoyList[key];
             continue;
         }
