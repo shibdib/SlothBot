@@ -245,7 +245,7 @@ module.exports.essentialCreepQueue = function (room) {
         // Claiming
         let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
         if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
-            queueCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget})
+            queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: claimTarget});
         }
         //Upgrader
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
@@ -854,9 +854,12 @@ module.exports.militaryCreepQueue = function () {
 
 function queueCreep(room, importance, options = {}, military = false) {
     let cache;
+    console.log(options.role)
     if (!military) {
         cache = roomQueue[room.name] || {};
+        if (options.role === 'claimer') console.log(2)
         if (cache[options.role] && cache[options.role].importance <= importance) return;
+        if (options.role === 'claimer') console.log(3)
     } else {
         cache = militaryQueue || {};
         if (cache[options.role] && cache[options.role].importance <= importance) return;
