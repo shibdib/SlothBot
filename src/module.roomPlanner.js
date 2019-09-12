@@ -97,10 +97,10 @@ function buildFromLayout(room) {
             room.memory.rampartPositions = undefined;
             let rect_array = [];
             rect_array.push({
-                x1: room.memory.bunkerHub.x - 8,
-                y1: room.memory.bunkerHub.y - 8,
-                x2: room.memory.bunkerHub.x + 8,
-                y2: room.memory.bunkerHub.y + 8
+                x1: room.memory.bunkerHub.x - 6,
+                y1: room.memory.bunkerHub.y - 6,
+                x2: room.memory.bunkerHub.x + 6,
+                y2: room.memory.bunkerHub.y + 6
             });
             for (let source of room.find(FIND_SOURCES)) {
                 rect_array.push({
