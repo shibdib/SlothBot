@@ -854,12 +854,9 @@ module.exports.militaryCreepQueue = function () {
 
 function queueCreep(room, importance, options = {}, military = false) {
     let cache;
-    console.log(options.role)
     if (!military) {
         cache = roomQueue[room.name] || {};
-        if (options.role === 'claimer') console.log(2)
         if (cache[options.role] && cache[options.role].importance <= importance) return;
-        if (options.role === 'claimer') console.log(3)
     } else {
         cache = militaryQueue || {};
         if (cache[options.role] && cache[options.role].importance <= importance) return;
