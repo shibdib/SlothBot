@@ -95,12 +95,16 @@ function buildFromLayout(room) {
     if (level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
         if (!room.memory.rampartSpots) {
             room.memory.rampartPositions = undefined;
+            let hubBuffer = 8;
+            let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+            let closestExit = hub.pos.getRangeTo(hub.pos.findClosestByRange(FIND_EXIT)) - 2;
+            if (closestExit < hubBuffer) hubBuffer = closestExit;
             let rect_array = [];
             rect_array.push({
-                x1: room.memory.bunkerHub.x - 6,
-                y1: room.memory.bunkerHub.y - 6,
-                x2: room.memory.bunkerHub.x + 6,
-                y2: room.memory.bunkerHub.y + 6
+                x1: room.memory.bunkerHub.x - hubBuffer,
+                y1: room.memory.bunkerHub.y - hubBuffer,
+                x2: room.memory.bunkerHub.x + hubBuffer,
+                y2: room.memory.bunkerHub.y + hubBuffer
             });
             for (let source of room.find(FIND_SOURCES)) {
                 rect_array.push({
