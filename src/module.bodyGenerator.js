@@ -77,15 +77,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 move = carry;
                 break
             } else {
-                if (!room.memory.hubLink) {
-                    carry = _.random(1.75 * level, 2 * level);
-                    move = _.round((carry / 2) + 0.5);
-                    break;
-                } else {
-                    carry = 16;
-                    move = 8;
-                    break;
-                }
+                carry = _.random(1.75 * level, 2 * level);
+                move = _.round((carry / 2) + 0.5);
+                break;
             }
         case 'filler':
             if (level < 4 || !room.memory.roadsBuilt) {

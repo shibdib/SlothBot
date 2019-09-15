@@ -202,7 +202,7 @@ module.exports.essentialCreepQueue = function (room) {
             delete roomQueue[room.name];
             return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
         } else {
-            let amount = 1;
+            let amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
                 queueCreep(room, PRIORITIES.hauler + hauler.length, {role: 'hauler', localCache: true})
             }
@@ -320,7 +320,8 @@ module.exports.miscCreepQueue = function (room) {
     //Mineral Harvester
     if (!inBuild && level >= 6 && room.mineral.mineralAmount && !queueTracker['mineralHarvester'] || queueTracker['mineralHarvester'] + 1400 <= Game.time) {
         let mineralHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'mineralHarvester');
-        if (!mineralHarvester.length) {
+        let extractor = room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+        if (extractor && !mineralHarvester.length) {
             queueCreep(room, PRIORITIES.mineralHarvester, {
                 role: 'mineralHarvester',
                 assignedMineral: room.mineral.id

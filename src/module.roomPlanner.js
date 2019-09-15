@@ -56,7 +56,7 @@ function buildFromLayout(room) {
     }
     for (let structure of shuffle(filter)) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
-        if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER)) continue;
+        if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
         if (level === extensionLevel && structure.structureType === STRUCTURE_EXTENSION) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.95).length) continue;
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
@@ -148,7 +148,7 @@ function buildFromLayout(room) {
         }
     }
     // Ramparts on buildings
-    if (2 < 1 && level >= 7 && level === extensionLevel) {
+    if (level >= 7 && level === extensionLevel) {
         for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType) && !s.pos.checkForRampart())) {
             if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) break;
             room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
@@ -603,7 +603,6 @@ let protectedStructures = [
     STRUCTURE_TOWER,
     STRUCTURE_POWER_SPAWN,
     STRUCTURE_TERMINAL,
-    STRUCTURE_CONTAINER,
     STRUCTURE_NUKER,
     STRUCTURE_OBSERVER,
     STRUCTURE_LINK,
