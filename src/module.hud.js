@@ -14,6 +14,7 @@ module.exports.hud = function () {
         let activeSpawns = _.filter(spawns, (s) => s.spawning);
         let lowerBoundary = 3;
         if (room.memory.claimTarget) lowerBoundary++;
+        if (!Memory.roomCache[room.name]) room.cacheRoomIntel(true);
         if (Memory.roomCache[room.name].responseNeeded) lowerBoundary++;
         room.visual.rect(0, 0, 16, lowerBoundary + activeSpawns.length, {
             fill: '#ffffff',

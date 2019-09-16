@@ -507,8 +507,7 @@ Creep.prototype.trackThreat = function () {
         if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) && this.memory.targetRoom !== this.room.name) return false;
         let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(this) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(this))) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
-            for (let key in nearbyCreeps) {
-                let user = nearbyCreeps[key];
+            for (let user of nearbyCreeps) {
                 if (user === MY_USERNAME) continue;
                 // Handle taking damage near allies with other hostiles
                 if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
@@ -546,10 +545,9 @@ Creep.prototype.trackThreat = function () {
     this.memory._lastHits = this.hits;
     // Handle hostile creeps in owned rooms
     if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].user === MY_USERNAME) {
-        let neutrals = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper')));
+        let neutrals = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
         if (neutrals.length) {
-            for (let key in neutrals) {
-                let user = neutrals[key];
+            for (let user of neutrals) {
                 if (user === MY_USERNAME) continue;
                 let cache = Memory._badBoyList || {};
                 let threatRating;
