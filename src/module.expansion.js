@@ -7,13 +7,14 @@
 
 module.exports.claimNewRoom = function () {
     let noClaim = Memory.noClaim || [];
-    let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && r.mineral && r.sources === 2 && r.closestRange <= 12 && !_.includes(noClaim, r));
+    let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && r.mineral && r.sources === 2 && r.closestRange <= 12;
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     if (worthyRooms.length > 0) {
         let possibles = {};
         loop1:
             for (let key in worthyRooms) {
                 let name = worthyRooms[key].name;
+                if (_.includes(noClaim, name)) continue;
                 // All rooms start at 5000
                 let baseScore = 5000;
                 // Remote access
