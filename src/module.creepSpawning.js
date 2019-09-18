@@ -284,11 +284,8 @@ module.exports.miscCreepQueue = function (room) {
         if (drones.length < amount) {
             queueCreep(room, priority, {role: 'drone', localCache: true})
         }
-    } else {
-        let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
-        if (!drones.length) {
-            queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
-        }
+    } else if (!_.filter(roomCreeps, (c) => (c.memory.role === 'drone')).length) {
+        queueCreep(room, PRIORITIES.drone, {role: 'drone', localCache: true})
     }
     //LabTech
     if (!queueTracker['labTech'] || queueTracker['labTech'] + 1400 <= Game.time && room.terminal && (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory && s.memory.active)[0]
