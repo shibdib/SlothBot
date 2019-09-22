@@ -37,7 +37,7 @@ function manageResponseForces() {
     let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
         r.lastInvaderCheck + 550 >= Game.time), '.roomHeat');
     let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') &&
-        c.room.hostileCreeps.length && !_.filter(Game.creeps, (r) => r.my && r.memory.responseTarget === c.room.name).length)[0];
+        c.room.hostileCreeps.length && !_.filter(Game.creeps, (r) => r.my && r.memory.responseTarget === c.room.name)[0])[0];
     let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
     let lowLevel = _.sortBy(Memory.ownedRooms, 'controller.level')[0];
@@ -68,17 +68,6 @@ function manageResponseForces() {
             creep.memory.awaitingOrders = undefined;
             log.a(creep.name + ' responding to ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
-    } else if (local) {
-        spawnBorderPatrol = true;
-        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && local !== c.room.name && c.memory.awaitingOrders
-            && Game.map.getRoomLinearDistance(c.memory.overlord, local) <= LOCAL_SPHERE), function (c) {
-            Game.map.getRoomLinearDistance(c.pos.roomName, local);
-        });
-        for (let creep of idleResponders) {
-            creep.memory.responseTarget = local;
-            creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to assist the operation in ' + roomLink(local) + ' from ' + roomLink(creep.room.name));
-        }
     } else if (guard) {
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && guard !== c.room.name && c.memory.awaitingOrders
             && Game.map.getRoomLinearDistance(c.memory.overlord, guard) <= c.ticksToLive / 55), function (c) {
@@ -98,6 +87,17 @@ function manageResponseForces() {
             idleResponder.memory.responseTarget = unarmedEnemies.room.name;
             idleResponder.memory.awaitingOrders = undefined;
             log.a(idleResponder.name + ' reassigned to hunt unarmed targets in ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(idleResponder.room.name));
+        }
+    } else if (local) {
+        spawnBorderPatrol = true;
+        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && local !== c.room.name && c.memory.awaitingOrders
+            && Game.map.getRoomLinearDistance(c.memory.overlord, local) <= LOCAL_SPHERE), function (c) {
+            Game.map.getRoomLinearDistance(c.pos.roomName, local);
+        });
+        for (let creep of idleResponders) {
+            creep.memory.responseTarget = local;
+            creep.memory.awaitingOrders = undefined;
+            log.a(creep.name + ' reassigned to assist the operation in ' + roomLink(local) + ' from ' + roomLink(creep.room.name));
         }
     } else if (highestHeat && highestHeat.name) {
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && highestHeat.name !== c.room.name && c.memory.awaitingOrders
