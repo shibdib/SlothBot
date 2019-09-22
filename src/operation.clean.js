@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.cleanRoom = function () {
@@ -11,7 +18,14 @@ Creep.prototype.cleanRoom = function () {
     //If no longer a target recycle
     if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type !== 'clean') return this.memory.recycle = true;
     //If hostile creeps present request an escort
-    Memory.targetRooms[this.room.name].escort = this.room.hostileCreeps.length;
+    Memory.targetRooms[this.room.name].escort = this.room.hostileCreeps.length > 0;
+    //Handle level based on ramparts
+    let highestRampart = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
+    if (highestRampart && highestRampart.id) {
+        let level = _.ceil(highestRampart.hits / 500000);
+        if (level > 3) level = 3;
+        Memory.targetRooms[this.pos.roomName].level = level;
+    }
     let target;
     // If already have a target, kill it
     if (this.memory.target && Game.getObjectById(this.memory.target)) {
