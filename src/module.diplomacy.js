@@ -38,6 +38,9 @@ function threatManager() {
                 Memory._badBoyList[key].lastChange = Game.time;
             }
         }
+        if (Memory._badBoyList[key].threatRating >= 10) {
+            Memory._threats.push(key);
+        }
         if (Memory._badBoyList[key].threatRating > 250 || (Memory.ncpArray && _.includes(Memory.ncpArray, key))) {
             Memory._enemies.push(key);
         } else if (Memory._badBoyList[key].threatRating > 25) {
