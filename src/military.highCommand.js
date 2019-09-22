@@ -32,16 +32,16 @@ module.exports.highCommand = function () {
 function manageResponseForces() {
     let spawnBorderPatrol = undefined;
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time);
-    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && r.closestRange <= LOCAL_SPHERE + 1 &&
+    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
         r.hostilePower >= (r.friendlyPower + _.sum(_.filter(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name), 'combatPower')) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
-    let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && r.closestRange <= LOCAL_SPHERE + 1 &&
+    let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
         r.lastInvaderCheck + 550 >= Game.time), '.roomHeat');
     let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') &&
         c.room.hostileCreeps.length && !_.filter(Game.creeps, (r) => r.my && r.memory.responseTarget === c.room.name).length)[0];
     let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
     let lowLevel = _.sortBy(Memory.ownedRooms, 'controller.level')[0];
-    let friendlyResponsePower;
+    let friendlyResponsePower = 0;
     if (ownedRoomAttack) {
         spawnBorderPatrol = true;
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && ownedRoomAttack !== c.room.name && c.memory.responseTarget !== ownedRoomAttack && c.memory.operation === 'borderPatrol'

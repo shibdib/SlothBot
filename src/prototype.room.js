@@ -448,21 +448,6 @@ Room.prototype.invaderCheck = function () {
                 else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
                 else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
                 else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
-                let threatRating;
-                let gained = invader.length * multiple;
-                let cache = Memory._badBoyList || {};
-                let key = invader[0].owner.username;
-                if (cache[key]) {
-                    if (cache[key].lastAction + 50 > Game.time) return true;
-                    threatRating = cache[key]['threatRating'] + gained;
-                } else {
-                    threatRating = gained;
-                }
-                cache[key] = {
-                    threatRating: threatRating,
-                    lastAction: Game.time,
-                };
-                Memory._badBoyList = cache;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
             } else if (invader.length > 1 && (invader[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatPower) {
@@ -480,21 +465,6 @@ Room.prototype.invaderCheck = function () {
                 else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
                 else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
                 else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
-                let threatRating;
-                let gained = invader.length * multiple;
-                let cache = Memory._badBoyList || {};
-                let key = invader[0].owner.username;
-                if (cache[key]) {
-                    if (cache[key].lastAction + 50 > Game.time) return true;
-                    threatRating = cache[key]['threatRating'] + gained;
-                } else {
-                    threatRating = gained;
-                }
-                cache[key] = {
-                    threatRating: threatRating,
-                    lastAction: Game.time,
-                };
-                Memory._badBoyList = cache;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
             }

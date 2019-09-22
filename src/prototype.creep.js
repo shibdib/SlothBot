@@ -461,17 +461,16 @@ Creep.prototype.repairRoad = function () {
 
 //Find spawn and recycle
 Creep.prototype.recycleCreep = function () {
-    if (this.room.name !== this.memory.overlord) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 22});
-    let spawn = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN && s.my);
-    if (!spawn.length) return;
-    switch (spawn[0].recycleCreep(this)) {
+    let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
+    if (!spawn) return;
+    switch (spawn.recycleCreep(this)) {
         case OK:
             log.a('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');
             break;
         case ERR_NOT_IN_RANGE:
-            return this.shibMove(spawn[0]);
+            return this.shibMove(spawn);
         case ERR_BUSY:
-            creep.suicide();
+            this.suicide();
     }
 };
 
@@ -505,10 +504,10 @@ Creep.prototype.trackThreat = function () {
     if (!this.memory._lastHits) return this.memory._lastHits = this.hits;
     if (this.hits < this.memory._lastHits) {
         if (this.room.controller && ((this.room.controller.owner && this.room.controller.owner.username !== MY_USERNAME) || (this.room.controller.reservation && this.room.controller.reservation.username !== MY_USERNAME)) && this.memory.targetRoom !== this.room.name) return false;
-        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(this) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(this))) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.owner.username !== MY_USERNAME), 'owner.username'));
+        let nearbyCreeps = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(this) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(this))) && c.owner.username !== MY_USERNAME), 'owner.username'));
         if (nearbyCreeps.length) {
             for (let user of nearbyCreeps) {
-                if (user === MY_USERNAME) continue;
+                if (user === MY_USERNAME || user === 'Source Keeper' || user === 'Invader') continue;
                 // Handle taking damage near allies with other hostiles
                 if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
                 let cache = Memory._badBoyList || {};
@@ -521,15 +520,16 @@ Creep.prototype.trackThreat = function () {
                     } else {
                         threatRating = cache[user]['threatRating'] + 2.5;
                     }
+                    if (threatRating >= 1500) threatRating = 1500;
                 } else if (!cache[user]) {
                     let multiple = 1;
                     if (Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].user === MY_USERNAME) multiple = 10;
                     if (_.includes(FRIENDLIES, user)) {
-                        log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now temporarily been marked hostile.');
+                        log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now temporarily been marked hostile.', 'DIPLOMACY:');
                         threatRating = multiple;
                     } else {
-                        log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now been marked hostile.');
-                        threatRating = 100 * multiple;
+                        log.e(this.name + ' has taken damage in ' + roomLink(this.room.name) + '. ' + user + ' has now been marked hostile.', 'DIPLOMACY:');
+                        threatRating = 10 * multiple;
                     }
                 } else {
                     return;
@@ -548,13 +548,15 @@ Creep.prototype.trackThreat = function () {
         let neutrals = _.uniq(_.pluck(_.filter(this.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
         if (neutrals.length) {
             for (let user of neutrals) {
-                if (user === MY_USERNAME) continue;
+                if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
                 let cache = Memory._badBoyList || {};
                 let threatRating;
                 if (cache[user]) {
                     threatRating = cache[user]['threatRating'] + 0.25;
+                    if (threatRating >= 1500) threatRating = 1500;
                 } else if (!cache[user]) {
                     threatRating = 15;
+                    log.e(this.name + ' has detected a neutral in ' + roomLink(this.room.name) + '. ' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
                 }
                 cache[user] = {
                     threatRating: threatRating,

@@ -43,7 +43,7 @@ module.exports.hiveMind = function () {
         }
     }
     // Military first
-    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military));
+    let militaryCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.military || !r.memory.overlord));
     for (let key in militaryCreeps) {
         try {
             minionController(militaryCreeps[key]);
