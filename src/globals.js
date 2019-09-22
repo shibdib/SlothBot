@@ -30,7 +30,7 @@ let globals = function () {
 
     //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
     global.POKE_LIMIT = 5;
-    global.CLEAN_LIMIT = 1;
+    global.CLEAN_LIMIT = 2;
     global.HARASS_LIMIT = 3;
 
     global.CREDIT_BUFFER = 100000;

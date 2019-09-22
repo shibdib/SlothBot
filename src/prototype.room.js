@@ -289,7 +289,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (!isHighway) isHighway = undefined;
         let cache = Memory.roomCache || {};
         let sources = room.sources;
-        let structures = _.filter(room.structures, (e) => e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER && e.structureType !== STRUCTURE_KEEPER_LAIR);
+        let structures = _.filter(room.structures, (e) => !e.my && e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER && e.structureType !== STRUCTURE_KEEPER_LAIR);
         hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
         if (!hostiles.length) hostiles = undefined;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
@@ -317,7 +317,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             level = room.controller.level || undefined;
             if (_.includes(HOSTILES, user)) important = true;
             // Handle abandoned rooms
-            if (!isHighway && !sk && !user && structures.length > 2) {
+            if (!isHighway && !sk && (!user || user === MY_USERNAME) && structures.length) {
                 needsCleaning = true;
             }
         }
