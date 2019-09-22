@@ -45,9 +45,6 @@ function threatManager() {
         } else if (Memory._badBoyList[key].threatRating > 5) {
             Memory._threatList.push(key);
         }
-        if (Memory._badBoyList[key].threatRating > 0) {
-            Memory._threats.push(key);
-        }
         let length = 10 - (Memory._badBoyList[key].threatRating.toString().length + 1);
         let display = key.substring(0, length) + '-' + Memory._badBoyList[key].threatRating;
         Memory._badBoyArray.push(display);
