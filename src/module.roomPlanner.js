@@ -97,7 +97,7 @@ function buildFromLayout(room) {
             room.memory.rampartPositions = undefined;
             let hubBuffer = 8;
             let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-            let closestExit = hub.pos.getRangeTo(hub.pos.findClosestByRange(FIND_EXIT)) - 2;
+            let closestExit = hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) - 2;
             if (closestExit < hubBuffer) hubBuffer = closestExit;
             let rect_array = [];
             rect_array.push({
