@@ -129,7 +129,7 @@ function minionController(minion) {
     // Disable notifications
     if (minion.ticksToLive > 1450) minion.notifyWhenAttacked(false);
     // If minion has been flagged to recycle do so
-    if (minion.memory.recycle) return minion.recycleCreep();
+    if (!minion.memory.role || minion.memory.recycle) return minion.recycleCreep();
     // If idle sleep
     if (minion.idle) return;
     // Report damage if hits are low
