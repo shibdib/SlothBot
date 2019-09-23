@@ -450,7 +450,7 @@ module.exports.remoteCreepQueue = function (room) {
             // If it's reserved by someone else continue
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
             // Handle SK
-            if (1 > 2 && Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && level >= 7) {
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && level >= 7) {
                 let SKWorker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKWorker');
                 let sourceCount = Memory.roomCache[remotes[keys]].sources || 1;
                 if (SKWorker.length < sourceCount) {
