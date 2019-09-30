@@ -21,7 +21,7 @@ module.exports.role = function (creep) {
         possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time);
         if (possibles.length) {
             target = _.sample(possibles);
-        } else {
+        } else if (!possibles.length || (target && !Game.map.isRoomAvailable(target))) {
             target = _.sample(adjacent);
         }
         if (!Game.map.isRoomAvailable(target)) return creep.say("??");

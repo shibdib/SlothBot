@@ -7,7 +7,7 @@
 
 module.exports.diplomacyOverlord = function () {
     //Manage threats
-    if (Game.time % 25 === 0 && Memory._badBoyList) threatManager();
+    if (Game.time % 5 === 0 && Memory._badBoyList) threatManager();
 };
 
 function threatManager() {
@@ -55,7 +55,7 @@ function threatManager() {
     // Add manual enemies
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
     // If Not Standard/S+ Server everyone except manually specified are hostile
-    if (Game.shard.name === 'swc') Memory._nuisance = _.filter(_.union(Memory._nuisance, _.uniq(_.pluck(Memory.roomCache, 'user'))), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
+    if (Game.shard.name === 'swc' || Game.shard.name === 'botarena') Memory._nuisance = _.filter(_.union(Memory._nuisance, _.uniq(_.pluck(Memory.roomCache, 'user'))), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
     // NCP's are always hostile
     //if (Memory.ncpArray && Memory.ncpArray.length) Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
     // Clean up lists

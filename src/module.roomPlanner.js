@@ -141,7 +141,11 @@ function buildFromLayout(room) {
             let buildPositions = JSON.parse(room.memory.rampartSpots);
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
-                if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                if (level >= 4) {
+                    if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                } else if (pos.isNearTo(room.controller)) {
+                    if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                }
                 /**else if (!pos.checkForObstacleStructure() && !pos.checkForRoad() &&
                  !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) pos.createConstructionSite(STRUCTURE_ROAD);**/
             }
