@@ -39,7 +39,8 @@ function shibMove(creep, heading, options = {}) {
         returnIncomplete: false,
         stayInHub: false,
         ignoreBorder: false,
-        flee: false
+        flee: false,
+        usePortal: undefined
     });
     // Handle fatigue
     if (creep.fatigue > 0) {
@@ -49,6 +50,11 @@ function shibMove(creep, heading, options = {}) {
             radius: 0.55,
             stroke: 'black'
         });
+    }
+    // Use portal
+    if (options.usePortal === creep.room.name) options.usePortal = undefined;
+    if (options.usePortal && _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL && s.destination.roomName && s.destination.roomName === options.usePortal)[0]) {
+        return creep.moveTo(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL && s.destination.roomName && s.destination.roomName === options.usePortal)[0].pos);
     }
     // Get range
     let rangeToDestination = creep.pos.getRangeTo(heading);
@@ -157,11 +163,9 @@ function shibMove(creep, heading, options = {}) {
 }
 
 function shibPath(creep, heading, pathInfo, origin, target, options) {
-    //check for cached
-    let cached;
-    if (!target) return creep.moveRandom();
-    let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
+    let cached, closestPortal, closestDistance;
     if (!Memory.roomCache[creep.room.name]) creep.room.cacheRoomIntel(true);
+    if (!target) return creep.moveRandom();
     if (options.useCache && !options.checkPath && !Memory.roomCache[creep.room.name].responseNeeded) cached = getPath(creep, origin, target);
     if (cached && options.ignoreCreeps) {
         pathInfo.findAttempt = undefined;
@@ -178,11 +182,25 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         });
         return creep.move(nextDirection);
     } else {
+        let roomDistance = Game.map.findRoute(origin.roomName, target.roomName).length;
         pathInfo.usingCached = undefined;
         let originRoomName = origin.roomName;
         let destRoomName = target.roomName;
         let allowedRooms = pathInfo.route || options.route;
         if (!allowedRooms && roomDistance > 0) {
+            // Check for portals and don't use cached if one exists
+            let potentialPortal = _.filter(Memory.roomCache, (r) => r.portal && Game.map.getRoomLinearDistance(origin.roomName, r.name) <= roomDistance * 0.2 && JSON.parse(r.portal)[0].destination.roomName && Game.map.findRoute(JSON.parse(r.portal)[0].destination.roomName, target.roomName).length <= roomDistance * 0.5);
+            if (potentialPortal.length) {
+                for (let portalRoom of potentialPortal) {
+                    let distance = Game.map.getRoomLinearDistance(origin.roomName, portalRoom.name);
+                    if (!closestPortal || distance < closestPortal) {
+                        closestDistance = distance;
+                        closestPortal = portalRoom.name;
+                        options.usePortal = JSON.parse(portalRoom.portal)[0].destination.roomName;
+                        target.roomName = portalRoom.name;
+                    }
+                }
+            }
             let route;
             if (!route && Game.map.findRoute(origin.roomName, target.roomName)[0]) route = findRoute(origin.roomName, target.roomName, options);
             if (route) {

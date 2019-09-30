@@ -154,6 +154,8 @@ module.exports.overlordMind = function (room) {
 };
 
 function minionController(minion) {
+    // If on portal move
+    if (minion.portalCheck()) return;
     // Disable notifications
     if (minion.ticksToLive > 1490) minion.notifyWhenAttacked(false);
     // If idle sleep

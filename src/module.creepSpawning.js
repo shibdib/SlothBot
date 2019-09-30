@@ -70,6 +70,7 @@ module.exports.processBuildQueue = function () {
                         overlord: undefined,
                         assignedSource: undefined,
                         destination: undefined,
+                        portalJump: undefined,
                         assignedMineral: undefined,
                         military: undefined,
                         responseTarget: undefined,
@@ -104,6 +105,7 @@ module.exports.processBuildQueue = function () {
                             overlord: spawn.room.name,
                             assignedSource: topPriority.assignedSource,
                             destination: topPriority.destination,
+                            portalJump: topPriority.portalJump,
                             assignedMineral: topPriority.assignedMineral,
                             military: topPriority.military,
                             responseTarget: topPriority.responseTarget,
@@ -345,6 +347,22 @@ module.exports.miscCreepQueue = function (room) {
                 queueCreep(room, PRIORITIES.explorer, {role: 'proximityScout'})
             }
             queueTracker['proximityScout'] = Game.time;
+        }
+    }
+    // Portal explorers
+    if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 750 <= Game.time)) {
+        if (_.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName).length) {
+            for (let portalRoom of _.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName)) {
+                let explorer = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.portalJump === JSON.parse(portalRoom.portal)[0].destination.roomName);
+                if (!explorer.length) {
+                    queueCreep(room, PRIORITIES.explorer, {
+                        role: 'explorer',
+                        destination: portalRoom.name,
+                        portalJump: JSON.parse(portalRoom.portal)[0].destination.roomName
+                    });
+                }
+            }
+            queueTracker['explorer'] = Game.time;
         }
     }
     // Assist room
@@ -863,6 +881,7 @@ function queueCreep(room, importance, options = {}, military = false) {
         role: undefined,
         assignedSource: undefined,
         destination: undefined,
+        portalJump: undefined,
         assignedMineral: undefined,
         military: undefined,
         responseTarget: undefined,
@@ -886,6 +905,7 @@ function queueCreep(room, importance, options = {}, military = false) {
             role: options.role,
             assignedSource: options.assignedSource,
             destination: options.destination,
+            portalJump: options.portalJump,
             assignedMineral: options.assignedMineral,
             military: options.military,
             responseTarget: options.responseTarget,

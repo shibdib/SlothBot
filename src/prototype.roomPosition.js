@@ -87,6 +87,10 @@ RoomPosition.prototype.checkForBuiltWall = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_WALL)[0];
 };
 
+RoomPosition.prototype.checkForPortal = function () {
+    return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_PORTAL)[0];
+};
+
 RoomPosition.prototype.checkForRampart = function () {
     return _.filter(this.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART)[0];
 };

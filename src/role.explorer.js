@@ -14,16 +14,27 @@ module.exports.role = function (creep) {
     let sayings = EXPLORER_SPAM;
     creep.say(_.sample(sayings), true);
     if (!creep.memory.destination) {
-        let adjacent = Game.map.describeExits(creep.pos.roomName);
-        let possibles, target;
-        possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time);
-        if (possibles.length) {
-            target = _.sample(possibles);
-        } else if (!possibles.length || (target && !Game.map.isRoomAvailable(target))) {
-            target = _.sample(adjacent);
+        let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];
+        if (portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.portalJump || Math.random() > 0.5)) {
+            if (!creep.memory.portalJump) {
+                creep.memory.portalJump = portal.destination.roomName;
+                log.a(creep.name + ' has found a portal in ' + roomLink(creep.room.name) + ' and is taking it.')
+            } else if (creep.memory.portalJump === creep.room.name) {
+                return creep.memory.usedPortal = true;
+            }
+            return creep.moveTo(portal);
+        } else {
+            let adjacent = Game.map.describeExits(creep.pos.roomName);
+            let possibles, target;
+            possibles = _.filter(adjacent, (r) => !Memory.roomCache[r] || Memory.roomCache[r].cached + 3000 < Game.time);
+            if (possibles.length) {
+                target = _.sample(possibles);
+            } else if (!possibles.length || (target && !Game.map.isRoomAvailable(target))) {
+                target = _.sample(adjacent);
+            }
+            if (!Game.map.isRoomAvailable(target)) return creep.say("??");
+            creep.memory.destination = target;
         }
-        if (!Game.map.isRoomAvailable(target)) return creep.say("??");
-        creep.memory.destination = target;
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {

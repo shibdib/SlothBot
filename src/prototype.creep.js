@@ -108,6 +108,18 @@ Creep.prototype.towTruck = function () {
     }
 };
 
+Creep.prototype.portalCheck = function () {
+    if (!this.pos.checkForPortal()) return false;
+    if (!positionAtDirection(this.pos, LEFT).checkForPortal()) return this.move(LEFT);
+    if (!positionAtDirection(this.pos, RIGHT).checkForPortal()) return this.move(RIGHT);
+    if (!positionAtDirection(this.pos, TOP).checkForPortal()) return this.move(TOP);
+    if (!positionAtDirection(this.pos, BOTTOM).checkForPortal()) return this.move(BOTTOM);
+    if (!positionAtDirection(this.pos, BOTTOM_RIGHT).checkForPortal()) return this.move(BOTTOM_RIGHT);
+    if (!positionAtDirection(this.pos, BOTTOM_LEFT).checkForPortal()) return this.move(BOTTOM_LEFT);
+    if (!positionAtDirection(this.pos, TOP_RIGHT).checkForPortal()) return this.move(TOP_RIGHT);
+    if (!positionAtDirection(this.pos, TOP_LEFT).checkForPortal()) return this.move(TOP_LEFT);
+};
+
 Creep.prototype.borderCheck = function () {
     let thisPos = this.pos;
     let x = thisPos.x;
