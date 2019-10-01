@@ -38,7 +38,7 @@ module.exports.role = function (powerCreep) {
         }
     }
     // level 0 idle
-    if (!powerCreep.level) return powerCreep.idleFor(100);
+    if (!powerCreep.level) return powerCreep.idleFor(10);
     // Handle room movement
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 17})
