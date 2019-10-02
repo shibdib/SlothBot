@@ -66,9 +66,9 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
     }
     // Find unarmed creeps
     filter = {
-        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0) && c.owner.username !== 'Source Keeper')
+        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0))
     };
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
+    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
         if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
         return enemy;
