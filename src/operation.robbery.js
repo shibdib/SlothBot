@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 let highCommand = require('military.highCommand');
 
 Creep.prototype.robbery = function () {
@@ -37,8 +44,8 @@ Creep.prototype.robbery = function () {
     if (this.room.name === this.memory.targetRoom) {
         let tick = Game.time;
         let storageAmount, terminalAmount = 0;
-        if (storage) storageAmount = _.sum(storage.store) || 0;
-        if (terminal) terminalAmount = _.sum(terminal.store) || 0;
+        if (storage) storageAmount = _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) || 0;
+        if (terminal) terminalAmount = _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) || 0;
         let lootAmount = storageAmount + terminalAmount;
         let opLevel = lootAmount / 500 || 1;
         let cache = Memory.targetRooms || {};

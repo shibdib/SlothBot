@@ -37,7 +37,7 @@ module.exports.role = function role(creep) {
         // If praiser needed praise
         if (upgrading(creep)) return;
         // Else idle
-        //creep.idleFor(15);
+        creep.idleFor(15);
     } else {
         creep.memory.task = undefined;
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {

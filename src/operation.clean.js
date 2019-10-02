@@ -62,7 +62,8 @@ Creep.prototype.cleanRoom = function () {
     if (!target) {
         let terminal = this.room.terminal;
         let storage = this.room.storage;
-        if (!Memory.targetRooms[this.memory.targetRoom].complete && ((terminal && _.sum(terminal.store)) || (storage && _.sum(storage.store)))) {
+        if (!Memory.targetRooms[this.memory.targetRoom].complete && ((terminal && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY))) ||
+            (storage && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY))))) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[this.pos.roomName] = {

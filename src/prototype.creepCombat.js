@@ -513,8 +513,10 @@ Creep.prototype.siege = function () {
     if (this.room.name !== this.memory.targetRoom) {
         if (healer && this.pos.roomName === healer.pos.roomName && this.pos.getRangeTo(healer) > 2) {
             return this.shibMove(healer, {ignoreCreeps: false});
-        } else {
+        } else if (!this.memory.stagingComplete) {
             if (this.moveToStaging()) return;
+        } else {
+            return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 7});
         }
     }
     this.rangedMassAttack();
@@ -569,7 +571,7 @@ Creep.prototype.siege = function () {
         if (!target) {
             let terminal = this.room.terminal;
             let storage = this.room.storage;
-            if ((terminal && _.sum(terminal.store) > 0) || (storage && _.sum(storage.store) > 0)) {
+            if ((terminal && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) > 0) || (storage && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) > 0)) {
                 let cache = Memory.targetRooms || {};
                 let tick = Game.time;
                 cache[this.pos.roomName] = {
