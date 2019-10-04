@@ -415,25 +415,17 @@ module.exports.miscCreepQueue = function (room) {
             }
             queueTracker['marauder'] = Game.time;
         }
-        // Border Patrol
-        if (Memory.spawnBorderPatrol) {
-            let rangedBorderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
-            let count = 1;
-            if (rangedBorderPatrol.length < count || (rangedBorderPatrol[0] && rangedBorderPatrol[0].ticksToLive < (rangedBorderPatrol[0].body.length * 3 + 10) && rangedBorderPatrol.length < count + 1)) {
-                queueCreep(room, PRIORITIES.borderPatrol, {
-                    role: 'longbow',
-                    operation: 'borderPatrol',
-                    military: true
-                });
-            }
-            let meleeBorderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
-            if (rangedBorderPatrol.length && (meleeBorderPatrol.length < 1 || (meleeBorderPatrol[0] && meleeBorderPatrol[0].ticksToLive < (meleeBorderPatrol[0].body.length * 3 + 10) && meleeBorderPatrol.length < 1 + 1))) {
-                queueCreep(room, PRIORITIES.borderPatrol, {
-                    role: 'attacker',
-                    operation: 'borderPatrol',
-                    military: true
-                });
-            }
+    }
+    // Border Patrol
+    if (Memory.spawnBorderPatrol) {
+        let rangedBorderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
+        let count = 1;
+        if (rangedBorderPatrol.length < count || (rangedBorderPatrol[0] && rangedBorderPatrol[0].ticksToLive < (rangedBorderPatrol[0].body.length * 3 + 10) && rangedBorderPatrol.length < count + 1)) {
+            queueCreep(room, PRIORITIES.borderPatrol, {
+                role: 'longbow',
+                operation: 'borderPatrol',
+                military: true
+            });
         }
     }
     // Log queue tracking
@@ -448,14 +440,14 @@ module.exports.remoteCreepQueue = function (room) {
     if (!remoteHives[room.name] || Math.random() > 0.95) {
         room.memory.remoteRooms = undefined;
         let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner);
-        for (let roomName of adjacent) {
+        /**for (let roomName of adjacent) {
             if (!Memory.roomCache[roomName] || Memory.roomCache[roomName].sk) continue;
             let range = 1;
             //if (!room.memory.energySurplus) range = 2;
             let adjacentExits = _.filter(Game.map.describeExits(roomName), (r) => !_.includes(adjacent, r) && Memory.roomCache[r] && !Memory.roomCache[r].isHighway
                 && !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Game.map.getRoomLinearDistance(room.name, r) <= range);
             adjacent = _.uniq(_.union(adjacentExits, adjacent));
-        }
+        }**/
         remoteHives[room.name] = JSON.stringify(adjacent);
     }
     //Remotes
@@ -844,7 +836,7 @@ module.exports.militaryCreepQueue = function () {
                 break;
             case 'poke': // Pokes
                 let jerk = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'jerk');
-                if (jerk.length < 1) {
+                if (jerk.length < 2) {
                     queueMilitaryCreep(priority, {
                         role: 'jerk',
                         targetRoom: key,
