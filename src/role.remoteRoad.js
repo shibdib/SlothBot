@@ -12,6 +12,7 @@
 module.exports.role = function role(creep) {
     //Invader detection
     if (creep.kite(5) || creep.memory.runCooldown) {
+        creep.memory.destination = undefined;
         return creep.goHomeAndHeal();
     }
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
