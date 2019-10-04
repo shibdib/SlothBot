@@ -33,7 +33,7 @@ module.exports.towerControl = function (room) {
             if (degrade) {
                 return repairTower.repair(degrade);
             }
-            if (repairTower.energy > repairTower.energyCapacity * 0.7 && Math.random() > 0.5) {
+            if (repairTower.energy > repairTower.energyCapacity * 0.7) {
                 let lowestRampart = _.min(_.filter(structures, (s) => s.structureType === STRUCTURE_RAMPART && s.hits < 250000 * repairTower.room.controller.level), 'hits');
                 if (lowestRampart) {
                     return repairTower.repair(lowestRampart);
@@ -70,7 +70,7 @@ module.exports.towerControl = function (room) {
             } else if (potentialAttack > healPower && nearStructures) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 break;
-            } else if (attackPower * 0.6 >= healPower && hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= 2) {
+            } else if (attackPower * 0.6 >= healPower && (hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= 2 || hostileCreeps[i].owner.username === 'Invader')) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
