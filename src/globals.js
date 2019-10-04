@@ -16,8 +16,8 @@ let globals = function () {
     global.NAP_ALLIANCE = [];
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
-    global.POKE_ATTACKS = false;
-    global.POKE_NEUTRALS = false;
+    global.POKE_ATTACKS = true;
+    global.POKE_NEUTRALS = true;
     global.SIEGE_ENABLED = true; //Attack owned rooms with towers
     global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
 

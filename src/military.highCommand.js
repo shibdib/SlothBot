@@ -230,9 +230,9 @@ function operationRequests() {
         if (pokeCount < pokeLimit) {
             let pokeTargets = [];
             if (Memory._enemies.length) {
-                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && (_.includes(Memory._enemies, r.user) || _.includes(Memory._nuisance, r.user)) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
+                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
             } else if (POKE_NEUTRALS) {
-                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && _.includes(Memory._threats, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
+                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway && !r.hostiles), 'closestRange');
             }
             if (pokeTargets.length) {
                 for (let target of pokeTargets) {

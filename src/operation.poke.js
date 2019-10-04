@@ -16,7 +16,7 @@ Creep.prototype.pokeRoom = function () {
     if (!this.canIWin(4)) return this.kite(6);
     highCommand.operationSustainability(this.room);
     if (!this.handleMilitaryCreep(false, false, false, true)) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23})
+        if (this.memory.targetRoom !== this.room.name) this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23}); else this.scorchedEarth();
     } else {
         let sentence = ['PLEASE', 'JUST', 'DIE'];
         let word = Game.time % sentence.length;
