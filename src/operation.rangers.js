@@ -16,6 +16,8 @@ Creep.prototype.rangersRoom = function () {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
+    // Revert to marauder
+    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.operation = 'marauding';
     // Handle squad leader
     if (this.memory.squadLeader) {
         // Remove duplicate squad leaders
@@ -45,7 +47,7 @@ Creep.prototype.rangersRoom = function () {
         if (!this.canIWin(4)) return this.kite();
         if (this.handleMilitaryCreep(false, false)) return;
         // Scorched Earth
-        if (this.scorchedEarth()) ;
+        this.scorchedEarth();
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);
