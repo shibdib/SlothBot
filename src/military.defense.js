@@ -148,22 +148,20 @@ function unsavableCheck(room) {
 }
 
 abandonOverrun = function (room) {
-    for (let creep of room.creeps) {
-        if (!creep.my) continue;
-        creep.memory.recycle = true;
+    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
+    if (overlordFor.length) {
+        for (let key in overlordFor) {
+            overlordFor[key].memory.recycle = true;
+        }
     }
-    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name);
-    for (let creep of overlordFor) {
-        creep.memory.recycle = true;
+    for (let key in Game.rooms[room].structures) {
+        Game.rooms[room].structures[key].destroy();
     }
-    for (let structure of room.structures) {
-        structure.destroy();
+    for (let key in Game.rooms[room].constructionSites) {
+        Game.rooms[room].constructionSites[key].remove();
     }
-    for (let site of room.constructionSites) {
-        site.remove();
-    }
-    delete room.memory;
-    delete Memory.rooms[room.name];
-    delete Memory.roomCache[room.name];
-    room.controller.unclaim();
+    let noClaim = Memory.noClaim || [];
+    noClaim.push(room);
+    delete Game.rooms[room].memory;
+    Game.rooms[room].controller.unclaim();
 };

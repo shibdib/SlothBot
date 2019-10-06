@@ -465,12 +465,11 @@ function updateLayout(room) {
 }
 
 function abandonRoom(room) {
-    for (let key in Game.rooms[room].creeps) {
-        Game.rooms[room].creeps[key].memory.recycle = true;
-    }
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
-    for (let key in overlordFor) {
-        overlordFor[key].memory.recycle = true;
+    if (overlordFor.length) {
+        for (let key in overlordFor) {
+            overlordFor[key].memory.recycle = true;
+        }
     }
     for (let key in Game.rooms[room].structures) {
         Game.rooms[room].structures[key].destroy();
@@ -478,11 +477,9 @@ function abandonRoom(room) {
     for (let key in Game.rooms[room].constructionSites) {
         Game.rooms[room].constructionSites[key].remove();
     }
-    delete Game.rooms[room].memory;
     let noClaim = Memory.noClaim || [];
     noClaim.push(room);
-    Memory.noClaim = noClaim;
-    delete Memory.roomCache[room];
+    delete Game.rooms[room].memory;
     Game.rooms[room].controller.unclaim();
 };
 
