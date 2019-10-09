@@ -73,8 +73,8 @@ function herald(creep) {
             if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
             if (Memory.roomCache[creep.room.name].threatLevel === 3) sentence = sentence.concat(['FPCON', 'CHARLIE']);
             if (Memory.roomCache[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
-        } else {
-            sentence = sentence.concat(['FPCON', 'NORMAL'])
+        } else if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].lastPlayerSighting) {
+            sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
         }
         if (Memory._badBoyArray && Memory._badBoyArray.length) {
             sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
@@ -83,6 +83,10 @@ function herald(creep) {
         if (Memory._friendsArray && Memory._friendsArray.length > 1) {
             sentence = sentence.concat(['-', 'FRIENDS', 'LIST', '-']);
             sentence = sentence.concat(Memory._friendsArray);
+        }
+        if (Memory.ncpArray && Memory.ncpArray.length > 1) {
+            sentence = sentence.concat(['-', 'KNOWN', 'NCP', 'LIST', '-']);
+            sentence = sentence.concat(Memory.ncpArray);
         }
         let word = Game.time % sentence.length;
         creep.say(sentence[word], true);

@@ -59,7 +59,7 @@ function threatManager() {
     // NCP's are always hostile
     //if (Memory.ncpArray && Memory.ncpArray.length) Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
     // Clean up lists
-    Memory._badBoyArray = _.union(_.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined)), Memory.ncpArray);
+    Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined));
     Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined));
     Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined));
     Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined));

@@ -439,7 +439,6 @@ Room.prototype.invaderCheck = function () {
                 }
                 Memory.roomCache[this.name].responseNeeded = true;
             } else if (invader.length === 1 && invader[0].owner.username !== 'Invader' && hostileCombatPower) {
-                this.memory.lastPlayerAttack = Game.time;
                 Memory.roomCache[this.name].threatLevel = 3;
                 Memory.roomCache[this.name].lastPlayerSighting = Game.time;
                 if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
@@ -448,15 +447,9 @@ Room.prototype.invaderCheck = function () {
                         ' hostiles detected. Owners - ' + ownerArray.toString() + ' (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
                 }
                 Memory.roomCache[this.name].responseNeeded = true;
-                let multiple = 2;
-                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
-                else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
-                else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
-                else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
             } else if (invader.length > 1 && (invader[0].owner.username !== 'Invader' || ownerArray.length > 1) && hostileCombatPower) {
-                this.memory.lastPlayerAttack = Game.time;
                 Memory.roomCache[this.name].threatLevel = 4;
                 Memory.roomCache[this.name].lastPlayerSighting = Game.time;
                 if (invaderAlert[this.name] < Game.time && Game.time % 50 === 0) {
@@ -465,11 +458,6 @@ Room.prototype.invaderCheck = function () {
                         ' hostiles detected. Owners - ' + ownerArray.toString() + ' (Invader/Friendly Power Present - ' + hostileCombatPower + '/' + alliedCombatPower + ')', 'RESPONSE COMMAND');
                 }
                 Memory.roomCache[this.name].responseNeeded = true;
-                let multiple = 2;
-                if (this.controller && this.controller.owner && _.includes(FRIENDLIES, this.controller.owner.username)) multiple = 10;
-                else if (this.controller && this.controller.reservation && _.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 2;
-                else if (this.controller && this.controller.owner && !_.includes(FRIENDLIES, this.controller.owner.username)) multiple = 0;
-                else if (this.controller && this.controller.reservation && !_.includes(FRIENDLIES, this.controller.reservation.username)) multiple = 0;
                 let roomHeat = Memory.roomCache[this.name].roomHeat || 0;
                 Memory.roomCache[this.name].roomHeat = roomHeat + (invader.length * 5);
             }
