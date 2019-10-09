@@ -121,22 +121,20 @@ function earlyWarning(room) {
 function unsavableCheck(room) {
     // Abandon Bad Rooms
     if (room.controller.safeMode || !room.hostileCreeps.length) return;
-    let hostiles = _.filter(room.hostileCreeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && (c.getActiveBodyparts(ATTACK) >= 3 || c.getActiveBodyparts(RANGED_ATTACK) >= 3 || c.getActiveBodyparts(WORK) >= 3));
-    let worthyStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_TOWER && s.my);
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     let badCount = room.memory.badCount || 0;
-    if (hostiles.length && !worthyStructures.length && hostiles.length >= towers.length * 2) {
+    if (room.hostileCreeps.length && !towers.length) {
         if (Game.time % 750 === 0) {
             room.memory.badCount = badCount + 1;
         }
         if (room.memory.badCount > room.controller.level) {
             let hostileOwners = [];
-            for (let hostile of hostiles) hostileOwners.push(hostile.owner.username)
+            for (let hostile of room.hostileCreeps) hostileOwners.push(hostile.owner.username)
             abandonOverrun(room);
             room.cacheRoomIntel(true);
             Memory.roomCache[room.name].noClaim = true;
-            log.a(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString() + ')');
-            Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + hostileOwners.toString() + ')');
+            log.a(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + _.uniq(hostileOwners).toString() + ')');
+            Game.notify(room.name + ' has been abandoned due to a prolonged enemy presence. (Enemies - ' + _.uniq(hostileOwners).toString() + ')');
         }
     } else {
         if (badCount === 0) {
@@ -148,20 +146,21 @@ function unsavableCheck(room) {
 }
 
 abandonOverrun = function (room) {
-    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
+    let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room.name);
     if (overlordFor.length) {
         for (let key in overlordFor) {
             overlordFor[key].memory.recycle = true;
         }
     }
-    for (let key in Game.rooms[room].structures) {
-        Game.rooms[room].structures[key].destroy();
+    for (let key in room.structures) {
+        room.structures[key].destroy();
     }
-    for (let key in Game.rooms[room].constructionSites) {
-        Game.rooms[room].constructionSites[key].remove();
+    for (let key in room.constructionSites) {
+        room.constructionSites[key].remove();
     }
     let noClaim = Memory.noClaim || [];
-    noClaim.push(room);
-    delete Game.rooms[room].memory;
-    Game.rooms[room].controller.unclaim();
+    noClaim.push(room.name);
+    delete room.memory;
+    delete Memory.roomCache[room.name];
+    room.controller.unclaim();
 };

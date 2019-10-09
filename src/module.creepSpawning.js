@@ -367,8 +367,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     // Assist room
     if (level >= 4 && !inBuild && !Memory.roomCache[room.name].responseNeeded) {
-        let needyRoom = _.sample(_.union(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && (!Memory.roomCache[r.name] || !Memory.roomCache[r.name].responseNeeded)),
-            _.filter(Memory.roomCache, (r) => r.owner && r.owner !== MY_USERNAME && _.includes(FRIENDLIES, r.owner) && r.level < room.controller.level - 2)));
+        let needyRoom = _.sample(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && (!r.hostileCreeps || !r.hostileCreeps.length)));
         if (needyRoom) {
             let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needyRoom.name || creep.memory.overlord === needyRoom.name) && creep.memory.role === 'drone');
             if (TEN_CPU) drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needyRoom.name || creep.memory.overlord === needyRoom.name) && creep.memory.role === 'drone');
@@ -392,7 +391,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         // Power Level
-        let upgradeAssist = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.controller.level + 1 < level))[0];
+        let upgradeAssist = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && r.controller.level + 1 < level && (!r.hostileCreeps || !r.hostileCreeps.length)))[0];
         if (upgradeAssist && room.memory.energySurplus && level >= 6) {
             let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
             if (remoteUpgraders.length < 1) {
