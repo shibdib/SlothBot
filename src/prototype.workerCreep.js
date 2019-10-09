@@ -27,17 +27,9 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
 
 Creep.prototype.findMineral = function () {
     const mineral = this.room.mineral;
-    if (mineral.length > 0) {
-        for (let i = 0; i < mineral.length; i++) {
-            if (_.filter(mineral[i].pos.findInRange(FIND_CREEPS, 2), (c) => c.memory && (c.memory.role === 'remoteHarvester' || c.memory.role === 'stationaryHarvester' || c.memory.role === 'SKworker' || c.memory.role === 'mineralHarvester')).length === 0) {
-                if (this.shibMove(mineral[i]) !== ERR_NO_PATH) {
-                    if (mineral[i].id) {
-                        this.memory.source = mineral[i].id;
-                        return mineral[i];
-                    }
-                }
-            }
-        }
+    if (mineral && mineral.mineralAmount && !_.filter(Game.creeps, (c) => c.id !== this.id && c.memory.source === mineral.id).length) {
+        this.memory.source = mineral.id;
+        return mineral;
     }
 };
 
@@ -243,7 +235,6 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
                 case ERR_INVALID_TARGET:
                     switch (this.pickup(energyItem)) {
                         case OK:
-                            if (amount && _.sum(this.carry) > amount) this.drop(energyItem.resourceType, _.sum(this.carry) * 0.5)
                             this.memory.energyDestination = undefined;
                             this.memory._shibMove = undefined;
                             break;
@@ -291,6 +282,21 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
             delete this.memory.energyDestination;
         }
     }
+};
+
+Creep.prototype.findResources = function () {
+    let droppedResource = this.pos.findClosestByRange(this.room.droppedResources, {filter: (r) => r.type !== RESOURCE_ENERGY && r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    if (droppedResource) {
+        this.memory.energyDestination = droppedResource.id;
+        return true;
+    }
+    //Dropped Energy
+    let droppedEnergy = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    if (droppedEnergy) {
+        this.memory.energyDestination = droppedEnergy.id;
+        return true;
+    }
+    return false;
 };
 
 Creep.prototype.findEnergy = function () {

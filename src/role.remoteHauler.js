@@ -88,7 +88,7 @@ module.exports.role = function (creep) {
                 // Handle edge case of energy being in wrong room
                 if (!energy || energy.pos.roomName !== harvester.memory.destination) return creep.memory.energyDestination = undefined;
                 return creep.withdrawResource(energy, amount);
-            } else creep.findEnergy();
+            } else creep.findResources();
             if (!creep.memory.energyDestination) creep.shibMove(new RoomPosition(25, 25, harvester.memory.destination), {range: 20})
         }
     }
