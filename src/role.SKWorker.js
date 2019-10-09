@@ -17,7 +17,7 @@ module.exports.role = function (creep) {
             return creep.heal(creep);
         }
         //If source is set mine
-        if (!creep.memory.source && !creep.findMineral()) creep.findSource();
+        if (!creep.memory.source && !creep.findSource()) creep.findMineral();
         let source = Game.getObjectById(creep.memory.source);
         if (!source) return creep.kite();
         let sourceKeeper = source.pos.findInRange(creep.room.hostileCreeps, 5)[0] || source.pos.findInRange(creep.room.hostileCreeps, 30,
