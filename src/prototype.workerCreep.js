@@ -626,23 +626,15 @@ Creep.prototype.findEssentials = function () {
             return true;
         }
     }
-    //Controller
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    let linkWeight = 0.15;
-    if (this.room.memory.controllerLink) linkWeight = .3;
-    if (this.room.controller.level < 8 && controllerContainer && Math.random() > (controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity) + linkWeight) {
-        this.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
     //Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < 5000) {
+    if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < 15000) {
         this.memory.storageDestination = terminal.id;
         return true;
     }
     //Storage
     let storage = this.room.storage;
-    if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 5000) {
+    if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 15000) {
         this.memory.storageDestination = storage.id;
         return true;
     }
@@ -671,6 +663,14 @@ Creep.prototype.findEssentials = function () {
     });
     if (power) {
         this.memory.storageDestination = power.id;
+        return true;
+    }
+    //Controller
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    let linkWeight = 0.15;
+    if (this.room.memory.controllerLink) linkWeight = .3;
+    if (this.room.controller.level < 8 && controllerContainer && Math.random() > (controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity) + linkWeight) {
+        this.memory.storageDestination = controllerContainer.id;
         return true;
     }
     //Top off towers
