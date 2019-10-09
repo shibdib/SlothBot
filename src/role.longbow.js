@@ -29,6 +29,7 @@ module.exports.role = function (creep) {
             }
         }
         if (creep.memory.awaitingOrders) return creep.memory.responseTarget = undefined;
+        if (creep.ticksToLive < 750) creep.memory.operation = 'borderPatrol';
     } else if (creep.memory.operation) {
         // Harass
         if (creep.memory.operation === 'harass') creep.harassRoom();
