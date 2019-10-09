@@ -19,6 +19,7 @@ module.exports.role = function (creep) {
     }
     if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
     if (creep.memory.working) {
+        delete creep.memory.harvest;
         creep.memory.source = undefined;
         if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel) {
             let hostileBarrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.findInRange(s.room.hostileCreeps, 3)[0]), 'hits');
@@ -65,11 +66,33 @@ module.exports.role = function (creep) {
             }
         }
     } else {
-        if (creep.memory.energyDestination) {
+        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
+            creep.say('Energy!', true);
             creep.withdrawResource();
         } else {
-            if (!creep.requestDelivery() && !creep.findEnergy()) {
-                return creep.idleFor(15);
+            creep.memory.harvest = true;
+            let source = Game.getObjectById(creep.memory.source) || creep.pos.getClosestSource();
+            if (source) {
+                creep.say('Harvest!', true);
+                creep.memory.source = source.id;
+                switch (creep.harvest(source)) {
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(source);
+                        if (Math.random() >= 0.9) {
+                            creep.memory.harvest = undefined;
+                            creep.memory.source = undefined;
+                            return;
+                        }
+                        break;
+                    case ERR_NOT_ENOUGH_RESOURCES:
+                        creep.memory.source = undefined;
+                        break;
+                    case OK:
+                        break;
+                }
+            } else {
+                delete creep.memory.harvest;
+                creep.idleFor(5);
             }
         }
     }
