@@ -309,9 +309,9 @@ module.exports.miscCreepQueue = function (room) {
     //SPECIALIZED
     //Waller
     if (level >= 3 && !queueTracker['waller'] || queueTracker['waller'] + 1400 <= Game.time) {
-        let wallers = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        let barrier = _.min(room.structures.filter((s) => s.structureType === STRUCTURE_RAMPART), 'hits');
-        if (!wallers.length && barrier.hits < RAMPART_HITS_MAX[room.controller.level] && 0.8 && barrier.hits < 20000000) {
+        let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
+        if (!waller.length) {
+            console.log(room.name)
             queueCreep(room, PRIORITIES.waller, {role: 'waller', localCache: true})
         }
         queueTracker['waller'] = Game.time;
