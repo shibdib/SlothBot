@@ -281,8 +281,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     urgentMilitary(this);
     let room = Game.rooms[this.name];
-    let hostiles, nonCombats, mineral, sk, needsCleaning, power, portal, user, level, closestRange, important, owner,
-        reservation, forestPvp, ncp, safemode;
+    let potentialTarget, nonCombats, mineral, sk, power, portal, user, level, closestRange, important, owner,
+        reservation, forestPvp, safemode;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -294,37 +294,30 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (!isHighway) isHighway = undefined;
         let cache = Memory.roomCache || {};
         let sources = room.sources;
-        let structures = _.filter(room.structures, (e) => !e.my && e.structureType !== STRUCTURE_WALL && e.structureType !== STRUCTURE_RAMPART && e.structureType !== STRUCTURE_ROAD && e.structureType !== STRUCTURE_CONTAINER && e.structureType !== STRUCTURE_CONTROLLER && e.structureType !== STRUCTURE_KEEPER_LAIR);
-        hostiles = _.filter(room.creeps, (e) => (e.getActiveBodyparts(ATTACK) >= 1 || e.getActiveBodyparts(RANGED_ATTACK) >= 1) && !_.includes(FRIENDLIES, e.owner.username));
-        if (!hostiles.length) hostiles = undefined;
         nonCombats = _.filter(room.creeps, (e) => (!e.getActiveBodyparts(ATTACK) || !e.getActiveBodyparts(RANGED_ATTACK)) && !_.includes(FRIENDLIES, e.owner.username));
-        if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR).length > 0) sk = true;
+        if (_.filter(room.structures, (e) => e.structureType === STRUCTURE_KEEPER_LAIR)[0]) sk = true;
         if (room.controller) {
             safemode = room.controller.safeMode;
-            mineral = room.mineral.mineralType;
             if (room.controller.owner) {
                 owner = room.controller.owner.username;
                 user = room.controller.owner.username;
+                // Signage NCP check
+                if (room.controller.sign) {
+                    let text = room.controller.sign.text.toLowerCase();
+                    if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) {
+                        ncpArray.push(room.controller.sign.username);
+                    }
+                    // Special test server code
+                    if (text.includes('@PVP@')) forestPvp = true;
+                }
             } else if (room.controller.reservation) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
-            }
-            // Signage NCP check
-            if (room.controller.owner && room.controller.sign) {
-                let text = room.controller.sign.text.toLowerCase();
-                if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) {
-                    ncp = true;
-                    ncpArray.push(room.controller.sign.username);
-                }
-                // Special test server code
-                if (text.includes('@PVP@')) forestPvp = true;
+            } else {
+                mineral = room.mineral.mineralType;
             }
             level = room.controller.level || undefined;
             if (_.includes(HOSTILES, user)) important = true;
-            // Handle abandoned rooms
-            if (!isHighway && !sk && (!user || user === MY_USERNAME) && structures.length) {
-                needsCleaning = true;
-            }
         }
         // Store portal info
         portal = _.filter(room.structures, (e) => e.structureType === STRUCTURE_PORTAL);
@@ -344,9 +337,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // Store power info
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
-        if (!user && _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper').length) user = _.filter(room.hostileCreeps, (c) => c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper')[0].owner.username;
-        let potentialTarget;
-        if (!user && nonCombats.length >= 2) potentialTarget = true;
+        if (!user && nonCombats.length >= 2) {
+            potentialTarget = true;
+            user = nonCombats[0].owner.username;
+        }
         let key = room.name;
         if (Memory.roomCache && Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
@@ -357,9 +351,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             owner: owner,
             reservation: reservation,
             level: level,
-            hostiles: hostiles,
             sk: sk,
-            needsCleaning: needsCleaning,
             potentialTarget: potentialTarget,
             user: user,
             safemode: safemode,
@@ -368,8 +360,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             isHighway: isHighway,
             closestRange: closestRange,
             important: important,
-            forestPvp: forestPvp,
-            ncp: ncp
+            forestPvp: forestPvp
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;
