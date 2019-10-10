@@ -483,7 +483,7 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
                 let SKMineral = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKMineral');
-                if (!SKMineral.length && SKAttacker.length && (!Memory.roomCache[remotes[keys]].mineralCooldown || Memory.roomCache[remotes[keys]].mineralCooldown < Game.time - 50)) {
+                if (!SKMineral.length && SKAttacker.length && (!Memory.roomCache[remotes[keys]].mineralCooldown || Memory.roomCache[remotes[keys]].mineralCooldown < Game.time)) {
                     queueCreep(room, PRIORITIES.SKWorker, {
                         role: 'SKMineral',
                         destination: remotes[keys]
