@@ -389,10 +389,11 @@ module.exports.miscCreepQueue = function (room) {
                 })
             }
         }
-        let combatAssist = _.sample(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && Memory.roomCache[r.name].threatLevel >= 3));
+        let combatAssist = _.sample(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && (Memory.roomCache[r.name].threatLevel >= 3 || r.controller.level < 3)));
         if (combatAssist) {
             let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === combatAssist.name && creep.memory.operation === 'guard');
-            if (guards.length < Memory.roomCache[combatAssist.name].threatLevel) {
+            let amount = Memory.roomCache[combatAssist.name].threatLevel || 1;
+            if (guards.length < amount || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < amount + 1)) {
                 queueCreep(room, PRIORITIES.remoteResponse, {
                     role: 'longbow',
                     operation: 'guard',
