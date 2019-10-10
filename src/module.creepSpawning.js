@@ -459,7 +459,7 @@ module.exports.remoteCreepQueue = function (room) {
             // If it's reserved by someone else continue
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
             // Handle SK
-            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && level >= 7) {
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && level >= 7 && (!Memory.roomCache[remotes[keys]].invaderCooldown || Memory.roomCache[remotes[keys]].invaderCooldown < Game.time - 50)) {
                 let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKAttacker');
                 if (SKAttacker.length < 2) {
                     queueCreep(room, PRIORITIES.SKWorker + 1, {
@@ -467,14 +467,6 @@ module.exports.remoteCreepQueue = function (room) {
                         destination: remotes[keys]
                     })
                 }
-                /**let SKWorker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKWorker');
-                let sourceCount = Memory.roomCache[remotes[keys]].sources || 1;
-                if (SKWorker.length < sourceCount) {
-                    queueCreep(room, PRIORITIES.SKWorker, {
-                        role: 'SKWorker',
-                        destination: remotes[keys]
-                    })
-                }**/
                 let SKHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKHarvester');
                 let sourceCount = Memory.roomCache[remotes[keys]].sources || 1;
                 if (SKHarvester.length < sourceCount && SKAttacker.length) {
