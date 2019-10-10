@@ -11,9 +11,15 @@
 
 module.exports.role = function role(creep) {
     //Invader detection
-    if (creep.kite(5) || creep.memory.runCooldown) {
+    if (creep.kite() || creep.memory.runCooldown) {
         creep.memory.destination = undefined;
         return creep.goHomeAndHeal();
+    }
+    // Handle SK
+    if (Memory.roomCache[creep.room.name].sk) {
+        let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
+        let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+        if (SK) return creep.kite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
     }
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     // Set destination

@@ -9,55 +9,51 @@
  * Created by Bob on 7/12/2017.
  */
 module.exports.role = function (creep) {
-    let source;
     if (creep.kite()) return true;
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (_.sum(creep.carry) === 0) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
-    if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) {
-        return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20});
-    }
-    creep.memory.destinationReached = true;
+    if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20}); else creep.memory.destinationReached = true;
+    // handle safe SK movement
+    let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
+    let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+    if (SK) return creep.kite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
     if (_.sum(creep.carry) === creep.carryCapacity || !creep.memory.harvesting) {
         delete creep.memory.harvesting;
         creep.memory.hauling = true;
         return skDeposit(creep);
     } else {
         delete creep.memory.hauling;
+        // Check if mineral depleted
+        if (creep.memory.source && Game.getObjectById(creep.memory.source).mineralAmount === 0) {
+            log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.source).mineralType + ' has been depleted.');
+            Memory.roomCache[creep.room.name].mineralCooldown = Game.time + Game.getObjectById(creep.memory.source).ticksToRegeneration;
+            return creep.memory.recycle = true;
+        }
         if (creep.memory.source) {
-            source = Game.getObjectById(creep.memory.source);
-            if (!creep.memory.lair) {
-                creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR).id;
-            }
-            let lair = Game.getObjectById(creep.memory.lair);
-            let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-            if (SK) {
-                return creep.kite(6);
-            } else if (lair.ticksToSpawn <= 10) {
-                return creep.flee(lair);
-            }
-            if (!source || source.pos.roomName !== creep.pos.roomName) return delete creep.memory.source;
-            if (source.energy === 0) {
-                creep.idleFor(source.ticksToRegeneration + 1)
+            if (creep.memory.extractor) {
+                let extractor = Game.getObjectById(creep.memory.extractor);
+                if (!extractor) return creep.memory.recycle = true;
+                if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {
+                    creep.idleFor(extractor.cooldown - 1)
+                } else {
+                    let mineral = Game.getObjectById(creep.memory.source);
+                    switch (creep.harvest(mineral)) {
+                        case ERR_NOT_IN_RANGE:
+                            creep.shibMove(mineral);
+                            break;
+                        case ERR_NOT_FOUND:
+                            mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+                            break;
+                    }
+                }
             } else {
-                switch (creep.harvest(source)) {
-                    case OK:
-                        Memory.roomCache[creep.room.name].mineralCooldown = undefined;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        creep.shibMove(source);
-                        break;
-                    case ERR_NO_BODYPART:
-                        creep.shibMove(source);
-                        break;
-                    case ERR_TIRED:
-                        creep.idleFor(creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_EXTRACTOR}).cooldown);
-                        break;
-                    case ERR_NOT_ENOUGH_RESOURCES:
-                        Memory.roomCache[creep.room.name].mineralCooldown = Game.time + source.ticksToRegeneration;
-                        creep.memory.recycle = true;
-                        break;
+                let extractor = creep.room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
+                if (extractor) {
+                    creep.memory.extractor = extractor.id;
+                } else {
+                    creep.memory.recycle = true;
                 }
             }
         } else {
