@@ -727,7 +727,7 @@ Creep.prototype.kite = function (fleeRange = 4) {
     if (!this.getActiveBodyparts(MOVE)) return false;
     let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange);
     if ((this.memory.destination === this.room.name || this.memory.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
-        let sk = _.filter(this.room.creeps, (c) => c.owner.username === 'Source Keeper');
+        let sk = _.filter(this.room.creeps, (c) => c.owner.username === 'Source Keeper' && this.pos.getRangeTo(c) <= fleeRange);
         avoid = _.union(avoid, sk);
     }
     if (!avoid.length) return false;
