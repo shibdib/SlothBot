@@ -87,8 +87,7 @@ function rampartManager(room, structures) {
 }
 
 function safeModeManager(room) {
-    if (!room.hostileCreeps.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable
-        || !_.inRange(room.controller.level, _.max(Memory.ownedRooms, 'controller.level').controller.level - 1, _.max(Memory.ownedRooms, 'controller.level').controller.level + 1)) {
+    if (!room.hostileCreeps.length || room.controller.safeMode || room.controller.safeModeCooldown || !room.controller.safeModeAvailable || room.controller.level < 3) {
         structureCount[room.name] = undefined;
         return;
     }
