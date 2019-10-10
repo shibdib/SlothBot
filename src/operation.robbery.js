@@ -44,16 +44,24 @@ Creep.prototype.robbery = function () {
     if (this.room.name === this.memory.targetRoom) {
         let tick = Game.time;
         let storageAmount, terminalAmount = 0;
-        if (storage) storageAmount = _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) || 0;
-        if (terminal) terminalAmount = _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) || 0;
+        if (storage) storageAmount = _.sum(_.filter(storage.store, (r) => _.includes(TIER_2_BOOSTS, r.resourceType) || _.includes(END_GAME_BOOSTS, r.resourceType))) || 0;
+        if (terminal) terminalAmount = _.sum(_.filter(terminal.store, (r) => _.includes(TIER_2_BOOSTS, r.resourceType) || _.includes(END_GAME_BOOSTS, r.resourceType))) || 0;
         let lootAmount = storageAmount + terminalAmount;
-        let opLevel = lootAmount / 500 || 1;
+        let opLevel = lootAmount / 500;
         let cache = Memory.targetRooms || {};
-        cache[this.pos.roomName] = {
-            tick: tick,
-            type: 'robbery',
-            level: _.round(opLevel),
-        };
+        if (opLevel >= 1) {
+            cache[this.pos.roomName] = {
+                tick: tick,
+                type: 'robbery',
+                level: _.round(opLevel),
+            };
+        } else {
+            cache[this.pos.roomName] = {
+                tick: tick,
+                type: 'clean',
+                level: 1,
+            };
+        }
         Memory.targetRooms = cache;
     }
     if (!this.memory.hauling) {
