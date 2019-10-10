@@ -320,18 +320,15 @@ function levelManager(room) {
     let armedEnemies = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (armedEnemies.length) {
         if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
-        if (Memory.targetRooms[room.name].level !== 2) log.a(Memory.targetRooms[room.name].type + ' Operation in ' + room.name + ' is now a level 2.', 'OBSERVER CONTROL:');
         Memory.targetRooms[room.name].level = 2;
     } else if (room.hostileCreeps.length) {
         if (Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].priority = Memory.targetRooms[room.name].oldPriority;
-        if (Memory.targetRooms[room.name].level !== 1) log.a(Memory.targetRooms[room.name].type + ' Operation in ' + room.name + ' is now a level 1.', 'OBSERVER CONTROL:');
         Memory.targetRooms[room.name].level = 1;
     } else {
         if (Memory.targetRooms[room.name].type !== 'hold') {
             if (!Memory.targetRooms[room.name].oldPriority) Memory.targetRooms[room.name].oldPriority = Memory.targetRooms[room.name].priority;
             Memory.targetRooms[room.name].priority = 3;
         }
-        if (Memory.targetRooms[room.name].level !== 0) log.a(Memory.targetRooms[room.name].type + ' Operation in ' + room.name + ' is now a level 0.', 'OBSERVER CONTROL:');
         Memory.targetRooms[room.name].level = 0;
     }
 }

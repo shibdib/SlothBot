@@ -40,18 +40,15 @@ function levelManager(creep) {
     let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (armedEnemies.length) {
         if (Memory.targetRooms[creep.room.name].oldPriority) Memory.targetRooms[creep.room.name].priority = Memory.targetRooms[creep.room.name].oldPriority;
-        if (Memory.targetRooms[creep.room.name].level !== 2) log.a(Memory.targetRooms[creep.room.name].type + ' Operation in ' + creep.room.name + ' is now a level 2.', 'OBSERVER CONTROL:');
         Memory.targetRooms[creep.room.name].level = 2;
     } else if (creep.room.hostileCreeps.length) {
         if (Memory.targetRooms[creep.room.name].oldPriority) Memory.targetRooms[creep.room.name].priority = Memory.targetRooms[creep.room.name].oldPriority;
-        if (Memory.targetRooms[creep.room.name].level !== 1) log.a(Memory.targetRooms[creep.room.name].type + ' Operation in ' + creep.room.name + ' is now a level 1.', 'OBSERVER CONTROL:');
         Memory.targetRooms[creep.room.name].level = 1;
     } else {
         if (Memory.targetRooms[creep.room.name].type !== 'hold') {
             if (!Memory.targetRooms[creep.room.name].oldPriority) Memory.targetRooms[creep.room.name].oldPriority = Memory.targetRooms[creep.room.name].priority;
             Memory.targetRooms[creep.room.name].priority = 3;
         }
-        if (Memory.targetRooms[creep.room.name].level !== 0) log.a(Memory.targetRooms[creep.room.name].type + ' Operation in ' + creep.room.name + ' is now a level 0.', 'OBSERVER CONTROL:');
         Memory.targetRooms[creep.room.name].level = 0;
     }
 }
