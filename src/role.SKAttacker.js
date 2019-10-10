@@ -15,11 +15,12 @@ module.exports.role = function (creep) {
         let invaders = _.filter(creep.room.creeps, (c) => c.owner.username === 'Invader');
         if (invaders.length > 1) {
             Memory.roomCache[creep.room.name].invaderCooldown = Game.time + invaders[0].ticksToLive;
+            creep.memory.recycle = true;
         } else {
             Memory.roomCache[creep.room.name].invaderCooldown = undefined;
         }
-        let sourceKeeper = creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'}) || creep.pos.findInRange(creep.room.hostileCreeps, 30,
-            {filter: (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username !== 'Source Keeper'})[0];
+        let sourceKeeper = creep.pos.findInRange(creep.room.hostileCreeps, 30, {filter: (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && c.owner.username !== 'Source Keeper'})[0] ||
+            creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (sourceKeeper) {
             switch (creep.attack(sourceKeeper)) {
                 case ERR_NOT_IN_RANGE:
