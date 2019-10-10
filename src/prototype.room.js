@@ -370,7 +370,7 @@ let invaderAlert = {};
 Room.prototype.invaderCheck = function () {
     if (Memory.roomCache && Memory.roomCache[this.name] && Memory.roomCache[this.name].lastInvaderCheck + 10 > Game.time && !Memory.roomCache[this.name].threatLevel) return;
     if (!Memory.roomCache || !Memory.roomCache[this.name]) this.cacheRoomIntel();
-    if (_.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper').length) {
+    if (this.hostileCreeps.length) {
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[this.name]) Memory.roomCache[this.name] = {};
         Memory.roomCache[this.name].lastInvaderCheck = Game.time;
@@ -384,7 +384,7 @@ Room.prototype.invaderCheck = function () {
             Memory.roomCache[this.name].lastInvaderCheck = undefined;
             return;
         }
-        let invader = _.filter(this.hostileCreeps, (c) => c.owner.username !== 'Source Keeper');
+        let invader = this.hostileCreeps;
         if (invader.length > 0) {
             let hostileCombatPower = 0;
             let armedHostiles = _.filter(this.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));

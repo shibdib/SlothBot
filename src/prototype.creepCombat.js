@@ -38,7 +38,7 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
     // Find armed creeps to kill
     filter = {
         filter: (c) => (!c.className && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) &&
-            (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0))) && c.owner.username !== 'Source Keeper'
+            (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0)))
     };
     if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
@@ -66,7 +66,7 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
     }
     // Find unarmed creeps
     filter = {
-        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0)) && c.owner.username !== 'Source Keeper'
+        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0))
     };
     if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
@@ -95,7 +95,7 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
     }
     // Find armed creeps to kill
     filter = {
-        filter: (c) => (!c.className && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) && c.owner.username !== 'Source Keeper')
+        filter: (c) => (!c.className && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1))
     };
     if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
@@ -725,7 +725,7 @@ PowerCreep.prototype.moveRandom = function (onPath) {
 
 Creep.prototype.kite = function (fleeRange = 4) {
     if (!this.getActiveBodyparts(MOVE)) return false;
-    let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange && c.owner.username !== 'Source Keeper');
+    let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange);
     if ((this.memory.destination === this.room.name || this.memory.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
         let sk = _.filter(this.room.creeps, (c) => c.owner.username === 'Source Keeper');
         avoid = _.union(avoid, sk);

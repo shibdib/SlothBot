@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
         } else {
             Memory.roomCache[creep.room.name].invaderCooldown = undefined;
         }
-        let sourceKeeper = creep.pos.findClosestByRange(creep.pos.findInRange(creep.room.hostileCreeps, 30, {filter: (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL)) && c.owner.username !== 'Source Keeper'})) ||
+        let sourceKeeper = creep.pos.findClosestByRange(creep.pos.findInRange(creep.room.hostileCreeps, 30, {filter: (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL))})) ||
             creep.pos.findClosestByRange(creep.room.creeps, {filter: (c) => c.owner.username === 'Source Keeper'});
         if (sourceKeeper) {
             switch (creep.attack(sourceKeeper)) {
