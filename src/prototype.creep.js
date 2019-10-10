@@ -474,7 +474,7 @@ Creep.prototype.repairRoad = function () {
 //Find spawn and recycle
 Creep.prototype.recycleCreep = function () {
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
-    if (!spawn) return;
+    if (!spawn) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
     switch (spawn.recycleCreep(this)) {
         case OK:
             log.a('Creep - ' + this.name + ' successfully recycled in ' + this.room.name, 'RECYCLING:');
