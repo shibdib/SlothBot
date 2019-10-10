@@ -342,7 +342,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             user = nonCombats[0].owner.username;
         }
         let key = room.name;
-        if (Memory.roomCache && Memory.roomCache[key]) Memory.roomCache[key] = undefined;
         cache[key] = {
             cached: Game.time,
             name: room.name,

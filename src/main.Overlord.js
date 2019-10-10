@@ -154,8 +154,8 @@ module.exports.overlordMind = function (room) {
 };
 
 function minionController(minion) {
-    // If on portal move
-    if (minion.portalCheck()) return;
+    // If on portal or border move
+    if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
     if (minion.ticksToLive > 1490) minion.notifyWhenAttacked(false);
     // If idle sleep
@@ -177,8 +177,6 @@ function minionController(minion) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel();
     }
-    // Handle border
-    if (minion.borderCheck()) return;
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
@@ -187,6 +185,8 @@ function minionController(minion) {
     // Run role and log CPU
     try {
         creepRole.role(minion);
+        // If on portal or border move
+        if (minion.portalCheck() || minion.borderCheck()) return;
         let used = Game.cpu.getUsed() - cpuUsed;
         let cpuUsageArray = creepCpuArray[minion.name] || [];
         if (cpuUsageArray.length < 50) {

@@ -96,7 +96,7 @@ function remoteRoads(creep) {
         if (buildRoadFromTo(creep.room, sources[key], homeExit[homeMiddle])) return true;
     }
     let mineral = creep.room.find(FIND_MINERALS)[0];
-    if (mineral && buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
+    if (mineral && Memory.roomCache[creep.room.name].sk && buildRoadFromTo(creep.room, mineral, homeExit[homeMiddle])) return true;
     if (creep.room.controller && buildRoadFromTo(creep.room, creep.room.controller, homeExit[homeMiddle])) return true;
     let neighboring = Game.map.describeExits(creep.pos.roomName);
     if (neighboring['1'] && neighboring['1'] !== creep.memory.overlord) {
