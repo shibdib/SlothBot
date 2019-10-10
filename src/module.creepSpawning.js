@@ -462,7 +462,7 @@ module.exports.remoteCreepQueue = function (room) {
             // If it's reserved by someone else continue
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
             // Handle response needed
-            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].hostilePower > Memory.roomCache[remotes[keys]].friendlyPower) {
+            if (Memory.roomCache[remotes[keys]] && !Memory.roomCache[remotes[keys]].sk && Memory.roomCache[remotes[keys]].hostilePower > Memory.roomCache[remotes[keys]].friendlyPower) {
                 room.memory.spawnBorderPatrol = remotes[keys];
                 continue;
             }

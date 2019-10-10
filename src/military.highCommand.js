@@ -31,9 +31,9 @@ module.exports.highCommand = function () {
 
 function manageResponseForces() {
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time && r.controller && r.controller.my);
-    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
+    let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
         r.hostilePower > (r.friendlyPower + _.sum(_.filter(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name), 'combatPower')) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
-    let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
+    let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
         r.lastInvaderCheck + 550 >= Game.time), '.roomHeat');
     let unarmedEnemies = _.filter(Game.creeps, (c) => c.my && (c.memory.role === 'remoteHarvester' || c.memory.role === 'remoteHauler' || c.memory.role === 'observer') &&
         c.room.hostileCreeps.length && !_.filter(Game.creeps, (r) => r.my && r.memory.responseTarget === c.room.name)[0])[0];
