@@ -86,6 +86,13 @@ Creep.prototype.findConstruction = function () {
         this.memory.task = 'build';
         return true;
     }
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
+    if (site.length > 0) {
+        site = this.pos.findClosestByRange(site);
+        this.memory.constructionSite = site.id;
+        this.memory.task = 'build';
+        return true;
+    }
     site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
@@ -120,13 +127,6 @@ Creep.prototype.findConstruction = function () {
         this.memory.constructionSite = site.id;
         this.memory.task = 'repair';
         this.memory.targetHits = site.hitsMax * 0.65;
-        return true;
-    }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
-    if (site.length > 0) {
-        site = this.pos.findClosestByRange(site);
-        this.memory.constructionSite = site.id;
-        this.memory.task = 'build';
         return true;
     }
     this.memory.constructionSite = undefined;
