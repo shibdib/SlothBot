@@ -389,7 +389,7 @@ module.exports.miscCreepQueue = function (room) {
                 })
             }
         }
-        let combatAssist = _.sample(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && (Memory.roomCache[r.name].threatLevel >= 3 || r.controller.level < 3)));
+        let combatAssist = _.sample(_.filter(Memory.ownedRooms, (r) => r.name !== room.name && (Memory.roomCache[r.name].threatLevel >= 3 || r.controller.level < 3 || (r.controller.level + 2 <= room.controller.level && Memory.roomCache[r.name].lastPlayerSighting + 1500 > Game.time))));
         if (combatAssist) {
             let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === combatAssist.name && creep.memory.operation === 'guard');
             let amount = Memory.roomCache[combatAssist.name].threatLevel || 1;
