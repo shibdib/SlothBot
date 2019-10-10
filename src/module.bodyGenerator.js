@@ -335,12 +335,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             heal = 5;
             move = attack + heal + tough;
             break;
-        case 'SKWorker':
-            work = 7;
-            rangedAttack = 10;
-            heal = 8;
-            move = 25;
-            break;
         case 'SKMineral':
             work = 15;
             carry = 10;
