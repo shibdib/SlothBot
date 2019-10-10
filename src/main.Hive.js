@@ -65,6 +65,7 @@ module.exports.hiveMind = function () {
         }
     }
     //Expansion Manager
+    if (Game.time % 10000 === 0) Memory.noClaim = undefined;
     if (Game.time % 25 === 0) {
         let overlordCount = Memory.ownedRooms.length;
         let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
