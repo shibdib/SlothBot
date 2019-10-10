@@ -111,6 +111,9 @@ module.exports.role = function (powerCreep) {
 };
 
 function upgradePowers(powerCreep) {
+    let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
+    if (_.size(Game.powerCreeps)) _.filter(Game.powerCreeps, (c) => c.level).forEach((c) => sparePowerLevels -= c.level);
+    if (sparePowerLevels === 0) return;
     // Always have generate ops
     if (!powerCreep.powers[PWR_GENERATE_OPS]) {
         upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
