@@ -509,12 +509,6 @@ Creep.prototype.findSpawnsExtensions = function () {
             return true;
         }
     }
-    // Storage
-    let storage = this.room.storage;
-    if (storage && Math.random() > 0.95) {
-        this.memory.storageDestination = storage.id;
-        return true;
-    }
     // Spawns
     let energyStructures = this.pos.findClosestByRange(this.room.structures, {
         filter: (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length
