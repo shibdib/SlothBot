@@ -30,6 +30,7 @@ Creep.prototype.holdRoom = function () {
 
 function levelManager(creep) {
     if (!Memory.targetRooms[creep.memory.targetRoom] || creep.room.name !== creep.memory.targetRoom) return;
+    if (!creep.room.controller.owner) return delete Memory.targetRooms[creep.memory.targetRoom];
     // Safemode
     if (creep.room.controller.safeMode) {
         let cache = Memory.targetRooms || {};
@@ -44,7 +45,7 @@ function levelManager(creep) {
         return;
     }
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10 && c.isActive());
-    let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+    let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && c.owner.username === c.room.controller.owner.username);
     if (creep.room.name === creep.memory.targetRoom && towers.length) {
         delete Memory.targetRooms[creep.memory.targetRoom];
         log.a('Canceling operation in ' + roomLink(creep.memory.targetRoom) + ' as we cannot hold it due to towers.', 'HIGH COMMAND: ');
