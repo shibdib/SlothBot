@@ -461,7 +461,7 @@ module.exports.remoteCreepQueue = function (room) {
             // Handle SK
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sk && level >= 7 && (!Memory.roomCache[remotes[keys]].invaderCooldown || Memory.roomCache[remotes[keys]].invaderCooldown < Game.time - 50)) {
                 let SKAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKAttacker');
-                if (SKAttacker.length < 2) {
+                if ((SKAttacker[0] && SKAttacker[0].ticksToLive < (SKAttacker[0].body.length * 3 + 10) && SKAttacker.length < 3) || SKAttacker.length < 2) {
                     queueCreep(room, PRIORITIES.SKWorker + 1, {
                         role: 'SKAttacker',
                         destination: remotes[keys]
