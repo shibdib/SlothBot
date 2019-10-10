@@ -36,6 +36,7 @@ module.exports.processBuildQueue = function () {
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'importance')
                 }
+                let cost;
                 for (let key in queue) {
                     topPriority = queue[key];
                     if (topPriority.targetRoom && Game.map.findRoute(topPriority.targetRoom, spawn.room.name).length > 20) continue;
@@ -46,11 +47,11 @@ module.exports.processBuildQueue = function () {
                     } else {
                         body = generator.bodyGenerator(level, role, spawn.room);
                     }
-                    if (body && body.length && global.UNIT_COST(body) <= spawn.room.energyCapacityAvailable) break;
+                    cost = global.UNIT_COST(body);
+                    if (body && body.length && cost <= spawn.room.energyCapacityAvailable) break;
                 }
-                let cost = global.UNIT_COST(body);
                 if (cost > spawn.room.energyAvailable) {
-                    spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
+                    if (cost <= spawn.room.energyCapacityAvailable) spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
                     continue;
                 }
                 if (topPriority && typeof topPriority === 'object') {
