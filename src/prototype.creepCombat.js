@@ -66,7 +66,7 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
     }
     // Find unarmed creeps
     filter = {
-        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0))
+        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0)) && c.owner.username !== 'Source Keeper'
     };
     if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
@@ -841,6 +841,7 @@ Creep.prototype.goHomeAndHeal = function () {
         this.memory.runCooldown = Game.time + 25;
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});
     } else if (Game.time <= cooldown) {
+        if (this.kite()) return;
         this.say(cooldown - Game.time + '...', true);
         this.memory.runCooldown = cooldown;
         this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 19});

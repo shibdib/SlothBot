@@ -175,10 +175,10 @@ Object.defineProperty(Room.prototype, 'hostileCreeps', {
     get: function () {
         if (!this._Hostilecreeps) {
             if (!Memory.targetRooms[this.name] || Memory.targetRooms[this.name].type === 'guard') {
-                this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (_.includes(Memory._threats, c.owner.username) || c.owner.username === 'Invader' || c.owner.username === 'Source Keeper'));
+                this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (_.includes(Memory._threats, c.owner.username) || c.owner.username === 'Invader' || c.owner.username !== 'Source Keeper'));
                 this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (_.includes(Memory._threats, c.owner.username))));
             } else {
-                this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username) || c.owner.username === 'Invader' || c.owner.username === 'Source Keeper'));
+                this._Hostilecreeps = _.filter(this.creeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username) || c.owner.username === 'Invader' || c.owner.username !== 'Source Keeper'));
                 this._Hostilecreeps.concat(_.filter(this.powerCreeps, (c) => !c.my && (!_.includes(FRIENDLIES, c.owner.username))));
             }
         }
@@ -408,7 +408,7 @@ Room.prototype.invaderCheck = function () {
             }
             Memory.roomCache[this.name].hostilePower = hostileCombatPower;
             Memory.roomCache[this.name].friendlyPower = alliedCombatPower;
-            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1 || c.getActiveBodyparts(WORK) >= 6);
+            let armedInvader = _.filter(invader, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(HEAL) || c.getActiveBodyparts(WORK) >= 6 || c.getActiveBodyparts(CLAIM));
             Memory.roomCache[this.name].tickDetected = Game.time;
             if (!Memory.roomCache[this.name].numberOfHostiles || Memory.roomCache[this.name].numberOfHostiles < invader.length) {
                 Memory.roomCache[this.name].numberOfHostiles = invader.length || 1;
@@ -503,7 +503,7 @@ function urgentMilitary(room) {
     // Already a target or too far
     if (Memory.targetRooms[room.name] || range > LOCAL_SPHERE * 2.5) return;
     let otherCreeps = _.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.body.length > 1);
-    let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(s.store) > 0);
+    let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(_.filter(s.store, (r) => _.includes(TIER_2_BOOSTS, r.resourceType) || _.includes(END_GAME_BOOSTS, r.resourceType))) > 500);
     if (room.controller) {
         // If neutral/hostile owned room that is still building
         if (room.controller.owner && !_.includes(FRIENDLIES, room.controller.owner.username) && (room.controller.level < 3 || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length)) {
