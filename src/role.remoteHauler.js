@@ -70,7 +70,7 @@ module.exports.role = function (creep) {
         // Set harvester pairing
         if (!creep.memory.harvesterID || !Game.getObjectById(creep.memory.harvesterID)) {
             let harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < 1) && c.memory.overlord === creep.memory.overlord) ||
-                _.find(Game.creeps, (c) => c.my && c.memory.role === 'SKHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < 2) && c.memory.overlord === creep.memory.overlord);
+                _.find(Game.creeps, (c) => c.my && c.memory.role === 'SKHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < 1) && c.memory.overlord === creep.memory.overlord);
             if (harvester) {
                 if (!harvester.memory.haulerID) harvester.memory.haulerID = [creep.id]; else harvester.memory.haulerID.push(creep.id);
                 creep.memory.harvesterID = harvester.id;
