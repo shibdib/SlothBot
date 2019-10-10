@@ -19,19 +19,21 @@ Creep.prototype.guardRoom = function () {
 };
 
 function levelManager(creep) {
-    if (!Memory.targetRooms[creep.memory.targetRoom] || (creep.room.controller && creep.room.controller.safeMode)) {
+    if (creep.room.controller && creep.room.controller.safeMode) {
         Memory.targetRooms[creep.memory.targetRoom] = undefined;
         creep.memory.role = 'longbow';
         creep.memory.operation = 'borderPatrol';
         return;
     }
-    let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
-    let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
-    if (armedEnemies.length) {
-        Memory.targetRooms[creep.memory.targetRoom].level = 2;
-    } else if (enemyCreeps.length) {
-        Memory.targetRooms[creep.memory.targetRoom].level = 1;
-    } else {
-        Memory.targetRooms[creep.memory.targetRoom].level = 0;
+    if (Memory.targetRooms[creep.memory.targetRoom]) {
+        let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+        let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+        if (armedEnemies.length) {
+            Memory.targetRooms[creep.memory.targetRoom].level = 2;
+        } else if (enemyCreeps.length) {
+            Memory.targetRooms[creep.memory.targetRoom].level = 1;
+        } else {
+            Memory.targetRooms[creep.memory.targetRoom].level = 0;
+        }
     }
 }
