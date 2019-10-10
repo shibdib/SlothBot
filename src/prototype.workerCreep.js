@@ -27,7 +27,7 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
 
 Creep.prototype.findMineral = function () {
     const mineral = this.room.mineral;
-    if (mineral && mineral.mineralAmount && !_.filter(Game.creeps, (c) => c.id !== this.id && c.memory.source === mineral.id).length) {
+    if (mineral && !_.filter(Game.creeps, (c) => c.id !== this.id && c.memory.source === mineral.id).length) {
         this.memory.source = mineral.id;
         return mineral;
     }
