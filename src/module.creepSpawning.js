@@ -37,6 +37,7 @@ module.exports.processBuildQueue = function () {
         }
         if (!spawn.spawning) {
             if (roomQueue[spawn.room.name] || militaryQueue) {
+                if (!Memory.roomCache[spawn.room.name]) spawn.room.cacheRoomIntel(true);
                 let queue;
                 let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
                 if (_.size(militaryQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && level >= 4 && _.inRange(level, maxLevel - 1, maxLevel + 1) && !_.filter(spawn.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)[0]) {
@@ -310,9 +311,8 @@ module.exports.miscCreepQueue = function (room) {
     //Waller
     if (level >= 3 && (!queueTracker['waller'] || queueTracker['waller'] + 1400 <= Game.time)) {
         let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
-        if (!waller.length) {
-            console.log(room.name)
-            queueCreep(room, PRIORITIES.waller, {role: 'waller', localCache: true})
+        if (waller.length < 2) {
+            queueCreep(room, PRIORITIES.waller + (waller.length * 3), {role: 'waller', localCache: true})
         }
         queueTracker['waller'] = Game.time;
     }
