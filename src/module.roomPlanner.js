@@ -132,19 +132,10 @@ function buildFromLayout(room) {
             let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
             room.memory.rampartSpots = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
         } else {
-            // Remove old ramparts
-            let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_RAMPART);
-            if (!room.memory.cleanRamp) {
-                room.memory.cleanRamp = 1;
-                for (let oldRampart of filter) {
-                    let pos = new RoomPosition(oldRampart.x, oldRampart.y, room.name);
-                    if (pos.checkForRampart()) pos.checkForRampart().destroy();
-                }
-            }
             let buildPositions = JSON.parse(room.memory.rampartSpots);
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
-                if (level >= 4) {
+                if (level >= 3) {
                     if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
                 } else if (pos.isNearTo(room.controller)) {
                     if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;

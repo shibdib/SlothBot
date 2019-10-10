@@ -264,12 +264,12 @@ module.exports.miscCreepQueue = function (room) {
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
     //Drones
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)[0];
-    if (inBuild) {
+    if (inBuild || level < 6) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let priority = PRIORITIES.drone;
         let amount = roomSourceSpace[room.name] || 1;
         if (TEN_CPU) amount = 2;
-        if (drones.length && room.energy < 5000) {
+        if ((drones.length && room.energy < 5000) || !inBuild) {
             amount = 1;
             priority = PRIORITIES.medium;
         }
