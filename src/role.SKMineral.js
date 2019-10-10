@@ -27,12 +27,23 @@ module.exports.role = function (creep) {
         delete creep.memory.hauling;
         if (creep.memory.source) {
             source = Game.getObjectById(creep.memory.source);
+            if (!creep.memory.lair) {
+                creep.memory.lair = source.pos.findClosestByRange(creep.room.structures, (s) => s.structureType === STRUCTURE_KEEPER_LAIR).id;
+            }
+            let lair = Game.getObjectById(creep.memory.lair);
+            let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
+            if (SK) {
+                return creep.kite(6);
+            } else if (lair.ticksToSpawn <= 10) {
+                return creep.flee(lair);
+            }
             if (!source || source.pos.roomName !== creep.pos.roomName) return delete creep.memory.source;
             if (source.energy === 0) {
                 creep.idleFor(source.ticksToRegeneration + 1)
             } else {
                 switch (creep.harvest(source)) {
                     case OK:
+                        Memory.roomCache[creep.room.name].mineralCooldown = undefined;
                         break;
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(source);

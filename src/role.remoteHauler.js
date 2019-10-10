@@ -67,7 +67,7 @@ module.exports.role = function (creep) {
             let multiple = 1;
             //if (Game.rooms[creep.memory.overlord].controller.level >= 7) multiple = 2;
             let harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < multiple) && c.memory.overlord === creep.memory.overlord) ||
-                _.find(Game.creeps, (c) => c.my && c.memory.role === 'SKWorker' && (!c.memory.haulerID || c.memory.haulerID.length < multiple) && c.memory.overlord === creep.memory.overlord);
+                _.find(Game.creeps, (c) => c.my && c.memory.role === 'SKHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < multiple) && c.memory.overlord === creep.memory.overlord);
             if (harvester) {
                 if (!harvester.memory.haulerID) harvester.memory.haulerID = [creep.id]; else harvester.memory.haulerID.push(creep.id);
                 creep.memory.harvesterID = harvester.id;

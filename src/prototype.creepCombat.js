@@ -359,7 +359,8 @@ Creep.prototype.fightRampart = function (hostile = undefined) {
     return true;
 };
 
-Creep.prototype.flee = function (target) {
+Creep.prototype.flee = function (target, range = 6) {
+    if (this.pos.getRangeTo(target) >= range) return;
     let direction = this.pos.getDirectionTo(target);
     direction = (direction + 3) % 8 + 1;
     let pos = this.pos.getAdjacentPosition(direction);

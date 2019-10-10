@@ -328,16 +328,15 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 }
                 break
             }
-        case 'SKattacker':
+        case 'SKHarvester':
+            work = 7;
+            move = 7;
+            break;
+        case 'SKAttacker':
             attack = 16;
             tough = 4;
             heal = 5;
             move = attack + heal + tough;
-            break;
-        case 'SKsupport':
-            tough = 5;
-            heal = 10;
-            move = heal + tough;
             break;
         case 'SKWorker':
             work = 7;
@@ -345,7 +344,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             heal = 8;
             move = 25;
             break;
-        case 'SKmineral':
+        case 'SKMineral':
             work = 15;
             carry = 10;
             move = work + carry;
