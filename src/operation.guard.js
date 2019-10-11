@@ -14,7 +14,9 @@ Creep.prototype.guardRoom = function () {
         this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
     } else {
         levelManager(this);
-        this.handleMilitaryCreep();
+        // If military action required do that
+        if (!this.canIWin(4)) return this.kite();
+        this.handleMilitaryCreep(false, false);
     }
 };
 
