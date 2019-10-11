@@ -522,7 +522,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let amount = 1;
                 let misc;
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
-                if (sourceCount > 1 && level >= 6 && !Memory.roomCache[remotes[keys]].sk) {
+                if (sourceCount > 1 && level >= 6) {
                     misc = true;
                     if (Memory.roomCache[remotes[keys]].sk) amount = sourceCount;
                 } else amount = sourceCount;
