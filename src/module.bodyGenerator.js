@@ -138,17 +138,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
             move = tough + rangedAttack + heal + attack;
             break;
-        case 'remoteMedic':
-            heal = 1;
-            move = heal;
-            break;
-        case 'remoteGuard':
-            tough = _.round(0.5 * level);
-            rangedAttack = _.round((0.25 * level));
-            attack = _.random(2, _.round((0.5 * level) + 1));
-            heal = _.random(0, 1);
-            move = tough + rangedAttack + heal + attack + 1;
-            break;
         case 'attacker':
             tough = _.round(0.5 * level);
             attack = _.round(0.5 * level);
@@ -275,11 +264,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             carry = 2;
             move = work + carry;
             break;
-        case 'remoteUtility':
-            work = 1 * level;
-            carry = _.round((1 * level) / 2) || 1;
-            move = work + carry;
-            break;
         case 'remoteHarvester':
             if (room.memory.roadsBuilt) {
                 work = 4;
@@ -309,8 +293,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'remoteHauler':
             if (level >= 6) {
-                carry = 20;
-                if (room.memory.roadsBuilt) move = 11; else move = 22;
+                carry = 10;
+                if (room.memory.roadsBuilt) move = 5; else move = 10;
                 break;
             } else {
                 if (importantBuilds) {
