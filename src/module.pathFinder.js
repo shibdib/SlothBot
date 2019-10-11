@@ -43,7 +43,7 @@ function shibMove(creep, heading, options = {}) {
         usePortal: undefined
     });
     // Handle fatigue
-    if (creep.fatigue > 0) {
+    if (creep.fatigue > 0 || !heading) {
         if (!creep.memory.military) creep.idleFor(1);
         return creep.room.visual.circle(creep.pos, {
             fill: 'transparent',
