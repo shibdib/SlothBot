@@ -9,15 +9,11 @@ Creep.prototype.guardRoom = function () {
     let sentence = ['Security', 'Guard', 'For', this.memory.targetRoom];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    if (this.memory.targetRoom && this.room.name !== this.memory.targetRoom) {
-        if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
-        this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
-    } else {
-        levelManager(this);
-        // If military action required do that
-        if (!this.canIWin(4)) return this.kite();
-        this.handleMilitaryCreep(false, false);
-    }
+    if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
+    if (this.room.name !== this.memory.targetRoom) this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 24});
+    // If military action required do that
+    if (this.handleMilitaryCreep(false, false, true)) return;
+    levelManager(this);
 };
 
 function levelManager(creep) {
