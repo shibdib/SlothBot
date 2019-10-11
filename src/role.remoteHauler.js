@@ -63,7 +63,7 @@ module.exports.role = function (creep) {
     } else {
         // Handle Moving
         if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
-        if (!creep.memory.energyDestination) creep.findResources();
+        if (!creep.memory.energyDestination) findResources(creep);
         if (creep.memory.energyDestination) {
             let energy = Game.getObjectById(creep.memory.energyDestination);
             let amount = creep.carryCapacity - _.sum(creep.carry);
@@ -71,6 +71,27 @@ module.exports.role = function (creep) {
             return creep.withdrawResource(energy, amount);
         }
     }
+};
+
+findResources = function (creep) {
+    let droppedResource = creep.pos.findClosestByRange(creep.room.droppedResources, {filter: (r) => r.type !== RESOURCE_ENERGY && r.amount >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    if (droppedResource) {
+        creep.memory.energyDestination = droppedResource.id;
+        return true;
+    }
+    //Dropped Energy
+    let droppedEnergy = creep.pos.findClosestByRange(creep.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    if (droppedEnergy) {
+        creep.memory.energyDestination = droppedEnergy.id;
+        return true;
+    }
+    // Container
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    if (container) {
+        creep.memory.energyDestination = container.id;
+        return true;
+    }
+    return false;
 };
 
 // Remote Hauler Drop Off
