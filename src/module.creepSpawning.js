@@ -194,7 +194,7 @@ module.exports.essentialCreepQueue = function (room) {
             delete roomQueue[room.name];
             return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
         } else {
-            let amount = 2;
+            let amount = 1;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
                 queueCreep(room, PRIORITIES.hauler + hauler.length, {role: 'hauler', localCache: true})
             }
@@ -217,7 +217,7 @@ module.exports.essentialCreepQueue = function (room) {
     if (Memory.roomCache[room.name].responseNeeded) {
         if (Memory.roomCache[room.name].threatLevel >= 2) {
             let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
-            if (longbow.length < 2) {
+            if (Memory.roomCache[room.name].threatLevel >= 3 && longbow.length < 2) {
                 queueCreep(room, PRIORITIES.responder, {
                     role: 'longbow',
                     responseTarget: room.name,
@@ -225,7 +225,7 @@ module.exports.essentialCreepQueue = function (room) {
                 })
             }
             let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
-            if (responder.length < 2) {
+            if ((Memory.roomCache[room.name].threatLevel >= 3 && responder.length < 2) || (responder.length < 1)) {
                 queueCreep(room, PRIORITIES.responder, {
                     role: 'responder',
                     responseTarget: room.name,
@@ -510,18 +510,11 @@ module.exports.remoteCreepQueue = function (room) {
             if (remoteHarvester.length) {
                 let remoteHaulers = _.filter(Game.creeps, (creep) => creep.my && creep.memory.role === 'remoteHauler' && creep.memory.destination === remotes[keys]).length;
                 let sourceCount = 1;
-                let amount = 1;
-                let misc;
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
-                if (sourceCount > 1 && level >= 6) {
-                    misc = true;
-                    if (Memory.roomCache[remotes[keys]].sk) amount = sourceCount;
-                } else amount = sourceCount;
-                if (remoteHaulers < amount) {
+                if (remoteHaulers < sourceCount) {
                     queueCreep(room, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler',
-                        destination: remotes[keys],
-                        misc: misc
+                        destination: remotes[keys]
                     })
                 }
             }

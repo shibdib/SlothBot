@@ -265,17 +265,16 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = work + carry;
             break;
         case 'remoteHarvester':
-            if (room.memory.roadsBuilt) {
+            if (level >= 7) {
+                work = 6;
+            } else if (level >= 4) {
                 work = 4;
-                carry = 1;
-                move = 2;
-                break;
             } else {
-                work = 3;
-                carry = 1;
-                move = 3;
-                break;
+                work = 2;
             }
+            carry = 1;
+            if (room.memory.roadsBuilt) move = work; else move = work / 2;
+            break;
         case 'remoteAllInOne':
             work = 2;
             if (level < 4) {
@@ -292,32 +291,26 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 break;
             }
         case 'remoteHauler':
-            if (misc) {
-                carry = 22;
+            if (level >= 7) {
+                carry = 30;
+                move = 15;
+                break;
+            } else if (level === 6) {
+                carry = 16;
+                move = 8;
+                break;
+            } else {
+                if (importantBuilds) {
+                    carry = level;
+                } else {
+                    carry = level * 2;
+                }
                 if (room.memory.roadsBuilt) {
                     move = _.round(((carry) / 2) + 0.5);
                 } else {
                     move = carry;
                 }
-                break;
-            } else {
-                if (level >= 6) {
-                    carry = 10;
-                    if (room.memory.roadsBuilt) move = 5; else move = 10;
-                    break;
-                } else {
-                    if (importantBuilds) {
-                        carry = level;
-                    } else {
-                        carry = level * 2;
-                    }
-                    if (room.memory.roadsBuilt) {
-                        move = _.round(((carry) / 2) + 0.5);
-                    } else {
-                        move = carry;
-                    }
-                    break
-                }
+                break
             }
         case 'SKHarvester':
             work = 6;

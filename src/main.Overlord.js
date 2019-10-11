@@ -185,8 +185,6 @@ function minionController(minion) {
     // Run role and log CPU
     try {
         creepRole.role(minion);
-        // If on portal or border move
-        if (minion.portalCheck() || minion.borderCheck()) return;
         let used = Game.cpu.getUsed() - cpuUsed;
         let cpuUsageArray = creepCpuArray[minion.name] || [];
         if (cpuUsageArray.length < 50) {
