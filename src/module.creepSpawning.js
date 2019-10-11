@@ -328,15 +328,6 @@ module.exports.miscCreepQueue = function (room) {
             }
             queueTracker['explorer'] = Game.time;
         }
-        //Proxy scout
-        if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['proximityScout'] || queueTracker['proximityScout'] + 750 <= Game.time)) {
-            let amount = 1;
-            let proximityScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'proximityScout' && creep.memory.overlord === room.name);
-            if (proximityScout.length < amount) {
-                queueCreep(room, PRIORITIES.explorer, {role: 'proximityScout'})
-            }
-            queueTracker['proximityScout'] = Game.time;
-        }
     }
     // Portal explorers
     if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 750 <= Game.time) && !room.memory.spawnBorderPatrol) {
