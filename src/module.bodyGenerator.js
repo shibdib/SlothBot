@@ -60,7 +60,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             } else {
                 work = _.random(8 + level, 20);
-                if (level === 8) work = 15;
+                if (level === 8 && room.memory.energySurplus) work = 15; else if (level === 8) work = 1;
                 carry = 1;
                 break;
             }
