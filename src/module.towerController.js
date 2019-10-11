@@ -29,7 +29,7 @@ module.exports.towerControl = function (room) {
             if (barriers) {
                 return repairTower.repair(barriers);
             }
-            let degrade = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER) && s.hits < s.hitsMax * 0.25)[0];
+            let degrade = _.filter(structures, (s) => (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5) || (s.structureType === STRUCTURE_CONTAINER && s.hits < s.hitsMax * 0.25))[0];
             if (degrade) {
                 return repairTower.repair(degrade);
             }
