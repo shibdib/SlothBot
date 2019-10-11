@@ -67,7 +67,7 @@ module.exports.role = function (creep) {
         if (creep.memory.energyDestination) {
             let energy = Game.getObjectById(creep.memory.energyDestination);
             let amount = creep.carryCapacity - _.sum(creep.carry);
-            if (creep.getActiveBodyparts(MOVE) < creep.getActiveBodyparts(CARRY) && energy.pos.findInRange(energy.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
+            if (energy && creep.getActiveBodyparts(MOVE) < creep.getActiveBodyparts(CARRY) && energy.pos.findInRange(energy.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
             return creep.withdrawResource(energy, amount);
         }
     }
