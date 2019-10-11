@@ -311,7 +311,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
             }
         case 'SKHarvester':
             work = 4;
-            move = 2;
+            move = 4;
             break;
         case 'SKAttacker':
             attack = 16;
