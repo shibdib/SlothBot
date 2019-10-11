@@ -17,20 +17,14 @@ module.exports.role = function (creep) {
     if (creep.hits < creep.hitsMax || creep.memory.runCooldown) {
         return creep.goHomeAndHeal();
     }
-    // Handle SK
-    if (Memory.roomCache[creep.room.name].sk) {
-        let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
-        let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-        if (SK) return creep.kite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
-    }
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (!creep.memory.destination) return creep.memory.recycle = true;
     // Check if empty
     if (_.sum(creep.carry) === 0) {
         creep.memory.storageDestination = undefined;
         creep.memory.hauling = undefined;
     }
     // Check if ready to haul
-    if (!creep.memory.hauling && (_.sum(creep.carry) >= creep.carryCapacity * 0.5 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry)))) creep.memory.hauling = true;
+    if (!creep.memory.hauling && (_.sum(creep.carry) >= creep.carryCapacity * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry)))) creep.memory.hauling = true;
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
             // If carrying minerals deposit in terminal or storage
@@ -67,37 +61,14 @@ module.exports.role = function (creep) {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 23});
         }
     } else {
-        // Set harvester pairing
-        if (!creep.memory.harvesterID || !Game.getObjectById(creep.memory.harvesterID)) {
-            let harvester = _.find(Game.creeps, (c) => c.my && c.memory.role === 'remoteHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < 1) && c.memory.overlord === creep.memory.overlord) ||
-                _.find(Game.creeps, (c) => c.my && c.memory.role === 'SKHarvester' && (!c.memory.haulerID || c.memory.haulerID.length < 1) && c.memory.overlord === creep.memory.overlord);
-            if (harvester) {
-                if (!harvester.memory.haulerID) harvester.memory.haulerID = [creep.id]; else harvester.memory.haulerID.push(creep.id);
-                creep.memory.harvesterID = harvester.id;
-            } else {
-                creep.memory.harvesterID = undefined;
-                creep.idleFor(15);
-                if (creep.room.name !== creep.memory.overlord) creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 20});
-            }
-        } else {
-            let harvester = Game.getObjectById(creep.memory.harvesterID);
-            if (!harvester) {
-                creep.memory.harvesterID = undefined;
-            } else {
-                // Handle Moving
-                if (creep.room.name !== harvester.memory.destination) return creep.shibMove(new RoomPosition(25, 25, harvester.memory.destination), {range: 23});
-                let amount = creep.carryCapacity - _.sum(creep.carry);
-                if (creep.getActiveBodyparts(MOVE) < creep.getActiveBodyparts(CARRY) &&
-                    harvester.pos.findInRange(harvester.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
-                let container = Game.getObjectById(harvester.memory.containerID);
-                if (container) return creep.withdrawResource(container, amount); else if (creep.memory.energyDestination) {
-                    let energy = Game.getObjectById(creep.memory.energyDestination);
-                    // Handle edge case of energy being in wrong room
-                    if (!energy || energy.pos.roomName !== harvester.memory.destination) return creep.memory.energyDestination = undefined;
-                    return creep.withdrawResource(energy, amount);
-                } else creep.findResources();
-                if (!creep.memory.energyDestination) creep.shibMove(new RoomPosition(25, 25, harvester.memory.destination), {range: 20})
-            }
+        // Handle Moving
+        if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
+        if (!creep.memory.energyDestination) creep.findResources();
+        if (creep.memory.energyDestination) {
+            let energy = Game.getObjectById(creep.memory.energyDestination);
+            let amount = creep.carryCapacity - _.sum(creep.carry);
+            if (creep.getActiveBodyparts(MOVE) < creep.getActiveBodyparts(CARRY) && energy.pos.findInRange(energy.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
+            return creep.withdrawResource(energy, amount);
         }
     }
 };

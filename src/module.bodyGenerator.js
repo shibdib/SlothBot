@@ -5,7 +5,7 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-module.exports.bodyGenerator = function (level, role, room = undefined) {
+module.exports.bodyGenerator = function (level, role, room = undefined, misc = undefined) {
     let body = [];
     let work, claim, carry, move, tough, attack, rangedAttack, heal;
     let importantBuilds = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
@@ -292,26 +292,36 @@ module.exports.bodyGenerator = function (level, role, room = undefined) {
                 break;
             }
         case 'remoteHauler':
-            if (level >= 6) {
-                carry = 10;
-                if (room.memory.roadsBuilt) move = 5; else move = 10;
-                break;
-            } else {
-                if (importantBuilds) {
-                    carry = level;
-                } else {
-                    carry = level * 2;
-                }
+            if (misc) {
+                carry = 22;
                 if (room.memory.roadsBuilt) {
                     move = _.round(((carry) / 2) + 0.5);
                 } else {
                     move = carry;
                 }
-                break
+                break;
+            } else {
+                if (level >= 6) {
+                    carry = 10;
+                    if (room.memory.roadsBuilt) move = 5; else move = 10;
+                    break;
+                } else {
+                    if (importantBuilds) {
+                        carry = level;
+                    } else {
+                        carry = level * 2;
+                    }
+                    if (room.memory.roadsBuilt) {
+                        move = _.round(((carry) / 2) + 0.5);
+                    } else {
+                        move = carry;
+                    }
+                    break
+                }
             }
         case 'SKHarvester':
-            work = 4;
-            move = 4;
+            work = 6;
+            move = 3;
             break;
         case 'SKAttacker':
             attack = 16;

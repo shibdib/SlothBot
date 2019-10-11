@@ -45,7 +45,7 @@ module.exports.processBuildQueue = function () {
                     if (topPriority.reboot || level === 1) {
                         body = _.get(SPAWN[0], role);
                     } else {
-                        body = generator.bodyGenerator(level, role, spawn.room);
+                        body = generator.bodyGenerator(level, role, spawn.room, topPriority.misc);
                     }
                     cost = global.UNIT_COST(body);
                     if (body && body.length && cost <= spawn.room.energyCapacityAvailable) break;
@@ -264,7 +264,7 @@ module.exports.miscCreepQueue = function (room) {
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
     //Drones
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)[0];
-    if (inBuild || level < 6) {
+    if (inBuild || (!inBuild && room.constructionSites.length)) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let priority = PRIORITIES.drone;
         let amount = roomSourceSpace[room.name] || 1;
@@ -514,19 +514,25 @@ module.exports.remoteCreepQueue = function (room) {
                     }
                 }
             }
-        }
-        // Remote Hauler
-        let remoteHarvesters = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHarvester').length +
-            (_.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'SKHarvester').length * 1);
-        if (remoteHarvesters) {
-            let remoteHauler = _.filter(Game.creeps, (creep) => creep.my && creep.memory.overlord === room.name && creep.memory.role === 'remoteHauler');
-            let multiple = 1;
-            //let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART)[0];
-            //if (room.controller.level >= 7 && !inBuild) multiple = 2;
-            if (remoteHauler.length < remoteHarvesters * multiple) {
-                queueCreep(room, PRIORITIES.remoteHauler, {
-                    role: 'remoteHauler'
-                })
+            // Remote Hauler
+            let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && (creep.memory.role === 'remoteHarvester' || creep.memory.role === 'SKHarvester'));
+            if (remoteHarvester.length) {
+                let remoteHaulers = _.filter(Game.creeps, (creep) => creep.my && creep.memory.role === 'remoteHauler' && creep.memory.destination === remotes[keys]).length;
+                let sourceCount = 1;
+                let amount = 1;
+                let misc;
+                if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
+                if (sourceCount > 1 && level >= 6 && !Memory.roomCache[remotes[keys]].sk) {
+                    misc = true;
+                    if (Memory.roomCache[remotes[keys]].sk) amount = sourceCount;
+                } else amount = sourceCount;
+                if (remoteHaulers < amount) {
+                    queueCreep(room, PRIORITIES.remoteHauler, {
+                        role: 'remoteHauler',
+                        destination: remotes[keys],
+                        misc: misc
+                    })
+                }
             }
         }
         // Remote Road Builder

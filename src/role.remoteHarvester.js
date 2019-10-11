@@ -32,12 +32,12 @@ module.exports.role = function (creep) {
                 creep.idleFor(source.ticksToRegeneration + 1);
                 break;
             case OK:
-                if (creep.memory.haulerID && Game.time % 50 === 0) {
+                /**if (creep.memory.haulerID && Game.time % 50 === 0) {
                     if (!Array.isArray(creep.memory.haulerID)) creep.memory.haulerID = [creep.memory.haulerID];
                     creep.memory.haulerID = _.remove(creep.memory.haulerID, function (n) {
                         return Game.getObjectById(n);
                     });
-                }
+                }**/
                 if (container) {
                     if (creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                     if (_.sum(container.store) >= 1980) creep.idleFor(20);
@@ -84,7 +84,7 @@ module.exports.role = function (creep) {
                     creep.idleFor(source.ticksToRegeneration + 1);
                     break;
                 case OK:
-                    if (creep.memory.hauler && Game.time % 50 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
+                    //if (creep.memory.hauler && Game.time % 50 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
                     if (creep.memory.containerID) {
                         if (creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                         if (_.sum(container.store) >= 1980) creep.idleFor(20);
