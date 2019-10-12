@@ -10,7 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    creep.room.cacheRoomIntel();
     let sayings = EXPLORER_SPAM;
     creep.say(_.sample(sayings), true);
     if (!creep.memory.destination) {
@@ -38,6 +37,10 @@ module.exports.role = function (creep) {
     }
     if (creep.memory.destinationReached !== true) {
         if (creep.pos.roomName === creep.memory.destination) {
+            if (!creep.memory.cached) {
+                creep.memory.cached = true;
+                creep.room.cacheRoomIntel();
+            }
             if (creep.room.controller && (!creep.room.controller.owner || creep.room.controller.level < 3) && (!creep.room.controller.reservation || !_.includes(FRIENDLIES, creep.room.controller.reservation.username))) {
                 try {
                     if (creep.room.controller.sign && creep.room.controller.sign.username === MY_USERNAME) {
@@ -70,5 +73,6 @@ module.exports.role = function (creep) {
     } else {
         creep.memory.destination = undefined;
         creep.memory.destinationReached = undefined;
+        creep.memory.cached = undefined;
     }
 };

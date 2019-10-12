@@ -28,7 +28,7 @@ module.exports.overlordMind = function (room) {
     defense.controller(room);
 
     //Build Room
-    if ((room.controller.level < 4 && Game.time % 20 === 0) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
+    if ((room.controller.level < 4 && Game.time % 500 === 0 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         try {
@@ -186,6 +186,7 @@ function minionController(minion) {
     try {
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - cpuUsed;
+        //if (used > 0.7) console.log(minion.name + ' ' + roomLink(minion.room.name) + ' ' + used)
         let cpuUsageArray = creepCpuArray[minion.name] || [];
         if (cpuUsageArray.length < 50) {
             cpuUsageArray.push(used)
