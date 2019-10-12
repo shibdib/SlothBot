@@ -11,7 +11,7 @@
 
 module.exports.role = function role(creep) {
     //Invader detection
-    if (creep.kite() || creep.memory.runCooldown) {
+    if (creep.hits < creep.hitsMax || creep.memory.runCooldown) {
         creep.memory.destination = undefined;
         return creep.goHomeAndHeal();
     }
@@ -21,7 +21,6 @@ module.exports.role = function role(creep) {
         let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
         if (SK) return creep.kite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
     }
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
@@ -48,6 +47,7 @@ module.exports.role = function role(creep) {
     // Work
     if (creep.memory.working === true) {
         if (creep.memory.constructionSite || creep.findConstruction()) {
+            if (!Game.getObjectById(creep.memory.constructionSite) || Game.getObjectById(creep.memory.constructionSite).pos.roomName !== creep.memory.destination) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
             if (!remoteRoads(creep)) creep.memory.destination = undefined;
