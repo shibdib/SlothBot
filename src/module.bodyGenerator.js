@@ -273,7 +273,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 work = 2;
             }
             carry = 1;
-            if (room.memory.roadsBuilt) move = work; else move = work / 2;
+            if (room.memory.roadsBuilt || level >= 6) move = work; else move = work / 2;
             break;
         case 'remoteAllInOne':
             work = 2;
