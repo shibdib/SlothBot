@@ -227,7 +227,8 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
         let energyItem = Game.getObjectById(this.memory.energyDestination);
         if (!energyItem) return this.memory.energyDestination = undefined;
         if ((energyItem.store && energyItem.store[RESOURCE_ENERGY] > 0) || (energyItem.carry && energyItem.carry[RESOURCE_ENERGY] > 0) || (energyItem.energy && energyItem.energy > 0)) {
-            if (amount && energyItem.store[RESOURCE_ENERGY] < amount) amount = energyItem.store[RESOURCE_ENERGY];
+            if (amount && energyItem.store && energyItem.store[RESOURCE_ENERGY] < amount) amount = energyItem.store[RESOURCE_ENERGY];
+            if (amount && energyItem.carry && energyItem.carry[RESOURCE_ENERGY] < amount) amount = energyItem.carry[RESOURCE_ENERGY];
             switch (this.withdraw(energyItem, RESOURCE_ENERGY, amount)) {
                 case OK:
                     this.memory.energyDestination = undefined;
@@ -247,7 +248,6 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
                             this.memory._shibMove = undefined;
                             break;
                         case ERR_INVALID_TARGET:
-                            if (amount && energyItem.carry[RESOURCE_ENERGY] < amount) amount = energyItem.carry[RESOURCE_ENERGY];
                             switch (energyItem.transfer(this, RESOURCE_ENERGY, amount)) {
                                 case OK:
                                     this.memory.energyDestination = undefined;
