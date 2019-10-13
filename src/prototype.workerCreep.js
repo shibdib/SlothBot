@@ -296,14 +296,14 @@ Creep.prototype.findEnergy = function () {
     // Terminal
     let terminal = this.room.terminal;
     if (terminal && terminal.store[RESOURCE_ENERGY] > 6000
-        && terminal.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === terminal.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity) {
+        && terminal.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === terminal.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)) {
         this.memory.energyDestination = terminal.id;
         return true;
     }
     // Storage
     let storage = this.room.storage;
     if (storage && storage.store[RESOURCE_ENERGY]
-        && storage.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === storage.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity) {
+        && storage.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === storage.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -314,13 +314,13 @@ Creep.prototype.findEnergy = function () {
         return true;
     }**/
     //Dropped
-    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)});
     if (dropped) {
         this.memory.energyDestination = dropped.id;
         return true;
     }
     // Tombstone
-    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)});
     if (tombstone) {
         this.memory.energyDestination = tombstone.id;
         return true;
@@ -328,7 +328,7 @@ Creep.prototype.findEnergy = function () {
     // Container
     let container = this.pos.findClosestByRange(FIND_STRUCTURES, {
         filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id
-            && s.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity
+            && s.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)
     });
     if (container) {
         this.memory.energyDestination = container.id;
@@ -342,7 +342,7 @@ Creep.prototype.findEnergy = function () {
     }
     //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
     let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
-        && c.carry[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id), '.carryCapacity') + this.carryCapacity));
+        && c.carry[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)));
     if (hauler) {
         this.memory.energyDestination = hauler.id;
         return true;
@@ -398,7 +398,7 @@ Creep.prototype.fillerEnergy = function () {
         return true;
     }
     // Tombstone
-    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)});
     if (tombstone) {
         this.memory.energyDestination = tombstone.id;
         return true;
@@ -415,14 +415,14 @@ Creep.prototype.getEnergy = function (hauler = false) {
         return true;
     }
     // Tombstone
-    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity});
+    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)});
     if (tombstone) {
         this.memory.energyDestination = tombstone.id;
         return true;
     }
     // Hub Container
     let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
-    if (hubContainer && hubContainer.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity && this.memory.role !== 'filler') {
+    if (hubContainer && hubContainer.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4) && this.memory.role !== 'filler') {
         this.memory.energyDestination = hubContainer.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -445,7 +445,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
         // Container
         let container = this.pos.findClosestByRange(this.room.structures, {
             filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id
-                && s.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity
+                && s.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)
         });
         if (container) {
             this.memory.energyDestination = container.id;
@@ -462,7 +462,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
         //Links
         let links = this.pos.findClosestByRange(this.room.structures, {
             filter: (s) => s.structureType === STRUCTURE_LINK && this.room.memory.controllerLink !== s.id
-                && s.energy >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id), '.carryCapacity') + this.carryCapacity
+                && s.energy >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)
         });
         if (links) {
             this.memory.energyDestination = links.id;
