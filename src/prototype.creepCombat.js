@@ -741,7 +741,7 @@ Creep.prototype.kite = function (fleeRange = 6) {
         flee: true,
         swampCost: 75,
         plainCost: 1,
-        maxRooms: 1,
+        maxRooms: 2,
         roomCallback: function () {
             let costs = new PathFinder.CostMatrix;
             addCreepsToMatrix(creep.room, costs);
