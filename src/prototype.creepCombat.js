@@ -756,46 +756,6 @@ Creep.prototype.borderHump = function () {
     } else if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
 };
 
-function addBorderToMatrix(room, matrix) {
-    let exits = Game.map.describeExits(room.name);
-    if (exits === undefined) {
-        return matrix;
-    }
-    let top = ((_.get(exits, TOP, undefined) === undefined) ? 1 : 0);
-    let right = ((_.get(exits, RIGHT, undefined) === undefined) ? 48 : 49);
-    let bottom = ((_.get(exits, BOTTOM, undefined) === undefined) ? 48 : 49);
-    let left = ((_.get(exits, LEFT, undefined) === undefined) ? 1 : 0);
-    for (let y = top; y <= bottom; ++y) {
-        for (let x = left; x <= right; x += ((y % 49 === 0) ? 1 : 49)) {
-            if (matrix.get(x, y) < 255 && Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL) {
-                matrix.set(x, y, 255);
-            }
-        }
-    }
-    return matrix;
-}
-
-function addCreepsToMatrix(room, matrix) {
-    room.creeps.forEach((creep) => matrix.set(creep.pos.x, creep.pos.y, 0xff));
-    let bad = _.filter(room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username) && c.getActiveBodyparts(ATTACK));
-    if (bad.length > 0) {
-        for (let c = 0; c < bad.length; c++) {
-            let sites = bad[c].room.lookForAtArea(LOOK_TERRAIN, bad[c].pos.y - 2, bad[c].pos.x - 2, bad[c].pos.y + 2, bad[c].pos.x + 2, true);
-            for (let key in sites) {
-                try {
-                    let position = new RoomPosition(sites[key].x, sites[key].y, room.name);
-                    if (!position.checkForWall()) {
-                        matrix.set(position.x, position.y, 254)
-                    }
-                } catch (e) {
-                    continue;
-                }
-            }
-        }
-    }
-    return matrix;
-}
-
 Creep.prototype.goHomeAndHeal = function () {
     if (!this.getActiveBodyparts(MOVE)) return false;
     let cooldown = this.memory.runCooldown || Game.time + 25;
