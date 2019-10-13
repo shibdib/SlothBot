@@ -40,7 +40,7 @@ module.exports.towerControl = function (room) {
                 }
             }
         }
-    } else if (hostileCreeps.length) {
+    } else if (hostileCreeps.length && !room.controller.safeMode) {
         let towers = _.shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive()));
         let potentialAttack = 0;
         _.filter(creeps, (c) => c.my && c.memory.military).forEach((c) => potentialAttack += c.abilityPower().attack);
