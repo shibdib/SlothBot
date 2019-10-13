@@ -401,7 +401,8 @@ function balanceBoosts(terminal) {
 }
 
 function trackPriceData(orders) {
-    let data = JSON.parse(Memory._marketData) || {};
+    let data;
+    if (Memory._marketData) data = JSON.parse(Memory._marketData); else data = {};
     for (let resource of RESOURCES_ALL) {
         let sellData = _.filter(orders, (o) => o.resourceType === resource && o.type === ORDER_SELL && o.amount > MINIMUM_MARKET);
         let buyData = _.filter(orders, (o) => o.resourceType === resource && o.type === ORDER_BUY && o.amount > MINIMUM_MARKET);
