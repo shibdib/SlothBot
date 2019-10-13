@@ -9,7 +9,7 @@
  * Created by Bob on 7/12/2017.
  */
 module.exports.role = function (creep) {
-    if (creep.kite()) return true;
+    if (creep.shibKite()) return true;
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
     if (_.sum(creep.carry) === 0) creep.memory.harvesting = true;
@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
     // handle safe SK movement
     let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
     let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-    if (SK) return creep.kite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
+    if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
     if (_.sum(creep.carry) === creep.carryCapacity || !creep.memory.harvesting) {
         delete creep.memory.harvesting;
         creep.memory.hauling = true;

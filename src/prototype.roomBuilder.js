@@ -695,7 +695,7 @@ function buildRoadFromTo(room, start, end) {
             ignoreCreeps: true,
             maxRooms: 1,
             costCallback: function (roomName, costMatrix) {
-                let terrain = new Room.Terrain(this.name);
+                let terrain = Game.map.getRoomTerrain(this.name);
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);

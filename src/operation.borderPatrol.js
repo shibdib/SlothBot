@@ -23,7 +23,7 @@ Creep.prototype.borderPatrol = function () {
     } else if (!this.canIWin(5)) {
         if (this.memory.responseTarget && this.room.name === this.memory.responseTarget) this.memory.responseTarget = undefined;
         this.attackInRange();
-        this.kite(5);
+        this.shibKite(5);
     } else if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) {
         this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
     } else {

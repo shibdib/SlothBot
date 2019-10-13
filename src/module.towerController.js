@@ -40,7 +40,7 @@ module.exports.towerControl = function (room) {
                 }
             }
         }
-    } else if (hostileCreeps.length && !room.controller.safeMode) {
+    } else if (hostileCreeps.length) {
         let towers = _.shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive()));
         let potentialAttack = 0;
         _.filter(creeps, (c) => c.my && c.memory.military).forEach((c) => potentialAttack += c.abilityPower().attack);
@@ -58,8 +58,8 @@ module.exports.towerControl = function (room) {
             if (inRangeMeleeHealers.length) inRangeMeleeHealers.forEach((c) => healPower += c.abilityPower(true).defense);
             if (inRangeRangedHealers.length) inRangeRangedHealers.forEach((c) => healPower += c.abilityPower(true).defense);
             healPower += hostileCreeps[i].abilityPower().defense;
-            let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER}).length > 0;
-            if (hostileCreeps[i].hits <= attackPower) {
+            let nearStructures = hostileCreeps[i].pos.findInRange(room.structures, 3, {filter: (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART}).length > 0;
+            if ((hostileCreeps[i].hits + healPower) - attackPower <= attackPower * hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT))) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
@@ -70,7 +70,7 @@ module.exports.towerControl = function (room) {
             } else if (potentialAttack > healPower && nearStructures) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 break;
-            } else if (attackPower * 0.6 >= healPower && (hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) >= 2 || hostileCreeps[i].owner.username === 'Invader')) {
+            } else if (attackPower * 0.6 >= healPower && (hostileCreeps[i].pos.getRangeTo(hostileCreeps[i].pos.findClosestByRange(FIND_EXIT)) > 2 || hostileCreeps[i].owner.username === 'Invader')) {
                 room.memory.towerTarget = hostileCreeps[i].id;
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;

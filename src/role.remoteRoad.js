@@ -19,7 +19,7 @@ module.exports.role = function role(creep) {
     if (Memory.roomCache[creep.room.name].sk) {
         let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
         let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
-        if (SK) return creep.kite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
+        if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
     }
     // Set destination
     if (!creep.memory.destination) {
@@ -133,7 +133,7 @@ function buildRoadFromTo(room, start, end) {
             ignoreCreeps: true,
             maxRooms: 1,
             costCallback: function (roomName, costMatrix) {
-                let terrain = new Room.Terrain(room.name);
+                let terrain = Game.map.getRoomTerrain(room.name);
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {
                         let tile = terrain.get(x, y);

@@ -28,7 +28,7 @@ Creep.prototype.marauding = function () {
                 this.room.cacheRoomIntel(true);
                 this.attackInRange();
                 this.memory.targetRoom = undefined;
-                this.kite();
+                this.shibKite();
             }
         }
     }

@@ -60,20 +60,7 @@ function shibMove(creep, heading, options = {}) {
     let rangeToDestination = creep.pos.getRangeTo(heading);
     // Set these for creeps that can afford them
     if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
-        let move = creep.getActiveBodyparts(MOVE);
-        let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
-        if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
-        let fullCarry = 0;
-        if (_.sum(creep.carry)) fullCarry = _.ceil(_.sum(creep.carry) / 50);
-        weight += fullCarry;
-        if (move >= weight * 5) {
-            options.offRoad = true;
-        } else if (move >= weight) {
-            options.ignoreRoads = true;
-        } else {
-            options.offRoad = undefined;
-            options.ignoreRoads = undefined;
-        }
+        getMoveWeight(creep, options);
     }
     // Use roads with a trailer
     // Request a tow truck if needed
@@ -393,7 +380,7 @@ function getTerrainMatrix(roomName, options) {
 
 function addTerrainToMatrix(roomName, type) {
     let matrix = new PathFinder.CostMatrix();
-    let terrain = new Room.Terrain(roomName);
+    let terrain = Game.map.getRoomTerrain(roomName);
     let plainCost = type === 3 ? 1 : type === 2 ? 1 : 5;
     let swampCost = type === 3 ? 1 : type === 2 ? 15 : 25;
     for (let y = 0; y < 50; y++) {
@@ -520,7 +507,7 @@ function addHostilesToMatrix(room, matrix) {
             }
             if (!position || matrix.get(position.x, position.y)) continue;
             if (!position.checkForWall()) {
-                matrix.set(position.x, position.y, 256)
+                matrix.set(position.x, position.y, 255)
             }
         }
     }
@@ -653,6 +640,24 @@ function getPath(creep, from, to) {
     }
 }
 
+function getMoveWeight(creep, options) {
+    let move = creep.getActiveBodyparts(MOVE);
+    let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+    if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
+    let fullCarry = 0;
+    if (_.sum(creep.carry)) fullCarry = _.ceil(_.sum(creep.carry) / 50);
+    weight += fullCarry;
+    if (move >= weight * 5) {
+        options.offRoad = true;
+    } else if (move >= weight) {
+        options.ignoreRoads = true;
+    } else {
+        options.offRoad = undefined;
+        options.ignoreRoads = undefined;
+    }
+    return options;
+}
+
 function getPathKey(from, to) {
     return getPosKey(from) + '$' + getPosKey(to);
 }
@@ -675,4 +680,47 @@ Room.prototype.shibRoute = function (destination, options) {
 };
 RoomPosition.prototype.shibMove = function (destination, options) {
     return shibMove(this, destination, options);
+};
+
+
+Creep.prototype.shibKite = function (fleeRange = 6) {
+    if (!this.getActiveBodyparts(MOVE)) return false;
+    let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1);
+    if ((this.memory.destination === this.room.name || this.memory.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
+        let sk = _.filter(this.room.creeps, (c) => c.owner.username === 'Source Keeper' && this.pos.getRangeTo(c) <= fleeRange + 1);
+        avoid = _.union(avoid, sk);
+    }
+    if (!avoid.length) return false;
+    // If in a rampart you're safe
+    if (this.pos.checkForRampart()) return true;
+    this.memory._shibMove = undefined;
+    let avoidance = _.map(this.pos.findInRange(avoid, fleeRange + 1),
+        (c) => {
+            return {pos: c.pos, range: fleeRange + 1};
+        });
+    let creep = this;
+    let options = getMoveWeight(creep, {});
+    let ret = PathFinder.search(this.pos, avoidance, {
+        flee: true,
+        swampCost: 75,
+        plainCost: 3,
+        maxRooms: 2,
+        roomCallback: function () {
+            let matrix = getTerrainMatrix(creep.room.name, options);
+            matrix = getStructureMatrix(creep.room.name, matrix, options);
+            matrix = getCreepMatrix(creep.room.name, creep, matrix);
+            matrix = getHostileMatrix(creep.room.name, matrix);
+            return getSKMatrix(creep.room.name, matrix);
+        }
+    });
+    if (ret.path.length > 0) {
+        if (this.memory.squadLeader === true) {
+            this.memory.squadKite = this.pos.getDirectionTo(ret.path[0]);
+        }
+        this.move(this.pos.getDirectionTo(ret.path[0]));
+        return true;
+    } else {
+        this.idleFor(fleeRange - 3);
+        return true;
+    }
 };

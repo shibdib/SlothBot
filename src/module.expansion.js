@@ -27,7 +27,7 @@ module.exports.claimNewRoom = function () {
                 if (neighboring['7'] && Memory.roomCache[neighboring['7']] && !Memory.roomCache[neighboring['7']].user) sourceCount += Memory.roomCache[neighboring['7']].sources;
                 baseScore += (sourceCount * 70);
                 // Swamps suck
-                let terrain = new Room.Terrain(name);
+                let terrain = Game.map.getRoomTerrain(name);
                 let terrainScore = 0;
                 for (let y = 0; y < 50; y++) {
                     for (let x = 0; x < 50; x++) {

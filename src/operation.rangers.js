@@ -44,7 +44,7 @@ Creep.prototype.rangersRoom = function () {
         // Sustainability
         highCommand.operationSustainability(this.room);
         // If military action required do that
-        if (!this.canIWin(4)) return this.kite();
+        if (!this.canIWin(4)) return this.shibKite();
         if (this.handleMilitaryCreep(false, false)) return;
         // Scorched Earth
         this.scorchedEarth();

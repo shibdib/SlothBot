@@ -15,7 +15,7 @@ module.exports.role = function (creep) {
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);
     if (creep.room.name !== creep.memory.targetRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {range: 23});
-    creep.kite();
+    creep.shibKite();
     if (Memory.targetRooms[creep.memory.targetRoom]) {
         highCommand.operationSustainability(creep.room);
         levelManager(creep);

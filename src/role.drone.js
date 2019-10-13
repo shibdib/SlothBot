@@ -10,7 +10,7 @@
  */
 
 module.exports.role = function role(creep) {
-    if (creep.kite()) return true;
+    if (creep.shibKite()) return true;
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     // Handle remote drones
     if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
