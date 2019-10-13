@@ -350,62 +350,6 @@ Creep.prototype.findEnergy = function () {
     return false;
 };
 
-Creep.prototype.fillerEnergy = function () {
-    let source, container;
-    if (!this.memory.assignedSource) {
-        let assignment = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID && !_.filter(this.room.creeps, (f) => f.my && f.memory.role === 'filler' && f.memory.assignedSource === c.memory.source).length);
-        if (assignment.length) {
-            this.memory.assignedSource = assignment[0].memory.source;
-        } else {
-            // Container
-            let container = _.max(this.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.hubContainer && s.id !== this.room.memory.controllerContainer
-                && this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length < 3,), '.store.energy');
-            if (container) {
-                this.memory.energyDestination = container.id;
-                this.memory.findEnergyCountdown = undefined;
-                return true;
-            }
-            //Dropped
-            let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= 50});
-            if (dropped) {
-                this.memory.energyDestination = dropped.id;
-                this.memory.findEnergyCountdown = undefined;
-                return true;
-            }
-            return false;
-        }
-    } else {
-        source = Game.getObjectById(this.memory.assignedSource);
-    }
-    // Container
-    if (!this.memory.assignedContainer) {
-        source = Game.getObjectById(this.memory.assignedSource);
-        if (source) {
-            let container = source.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.id !== this.room.memory.controllerContainer})[0];
-            if (container) this.memory.assignedContainer = container.id;
-        }
-    } else {
-        container = Game.getObjectById(this.memory.assignedContainer);
-        if (container && container.store[RESOURCE_ENERGY] >= this.carryCapacity * 0.5) {
-            this.memory.energyDestination = container.id;
-            return true;
-        }
-    }
-    //Dropped
-    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity')});
-    if (dropped) {
-        this.memory.energyDestination = dropped.id;
-        return true;
-    }
-    // Tombstone
-    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)});
-    if (tombstone) {
-        this.memory.energyDestination = tombstone.id;
-        return true;
-    }
-    return false;
-};
-
 Creep.prototype.getEnergy = function (hauler = false) {
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
@@ -422,7 +366,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Hub Container
     let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
-    if (hubContainer && hubContainer.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4) && this.memory.role !== 'filler') {
+    if (hubContainer && hubContainer.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubContainer.id && c.id !== this.id), '.carryCapacity') + (this.carryCapacity * 0.4)) {
         this.memory.energyDestination = hubContainer.id;
         this.memory.findEnergyCountdown = undefined;
         return true;

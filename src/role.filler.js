@@ -44,5 +44,61 @@ module.exports.role = function (creep) {
                     break;
             }
         }
-    } else if (creep.memory.energyDestination || creep.fillerEnergy()) creep.withdrawResource(); else creep.idleFor(5);
+    } else if (creep.memory.energyDestination || fillerEnergy(creep)) creep.withdrawResource(); else creep.idleFor(5);
+};
+
+fillerEnergy = function (creep) {
+    let source, container;
+    if (!creep.memory.assignedSource) {
+        let assignment = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID && !_.filter(creep.room.creeps, (f) => f.my && f.memory.role === 'filler' && f.memory.assignedSource === c.memory.source).length);
+        if (assignment.length) {
+            creep.memory.assignedSource = assignment[0].memory.source;
+        } else {
+            // Container
+            let container = _.max(creep.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== creep.room.memory.hubContainer && (s.id !== creep.room.memory.controllerContainer || s.store[RESOURCE_ENERGY] > 750)
+                && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)), '.store.energy');
+            if (container) {
+                creep.memory.energyDestination = container.id;
+                creep.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+            //Dropped
+            let dropped = creep.pos.findClosestByRange(creep.room.droppedEnergy, {filter: (r) => r.amount >= 50});
+            if (dropped) {
+                creep.memory.energyDestination = dropped.id;
+                creep.memory.findEnergyCountdown = undefined;
+                return true;
+            }
+            return false;
+        }
+    } else {
+        source = Game.getObjectById(creep.memory.assignedSource);
+    }
+    // Container
+    if (!creep.memory.assignedContainer) {
+        source = Game.getObjectById(creep.memory.assignedSource);
+        if (source) {
+            let container = source.pos.findInRange(FIND_STRUCTURES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.id !== creep.room.memory.controllerContainer})[0];
+            if (container) creep.memory.assignedContainer = container.id;
+        }
+    } else {
+        container = Game.getObjectById(creep.memory.assignedContainer);
+        if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity * 0.5) {
+            creep.memory.energyDestination = container.id;
+            return true;
+        }
+    }
+    //Dropped
+    let dropped = creep.pos.findClosestByRange(creep.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.carryCapacity')});
+    if (dropped) {
+        creep.memory.energyDestination = dropped.id;
+        return true;
+    }
+    // Tombstone
+    let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.pos.getRangeTo(creep) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    if (tombstone) {
+        creep.memory.energyDestination = tombstone.id;
+        return true;
+    }
+    return false;
 };
