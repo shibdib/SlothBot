@@ -128,15 +128,15 @@ function dropOff(creep) {
         creep.memory.storageDestination = closestLink.id;
         return true;
     }
+    //Terminal
+    if (creep.room.terminal && creep.room.terminal.my && _.sum(creep.room.terminal.store) < creep.room.terminal.storeCapacity * 0.8 && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.terminal.pos.getRangeTo(creep))) {
+        creep.memory.storageDestination = creep.room.terminal.id;
+        return true;
+    }
     //Storage
     let storage = creep.room.storage;
     if (storage && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep)) && Math.random() >= 0.9) {
         creep.memory.storageDestination = storage.id;
-        return true;
-    }
-    //Terminal
-    if (creep.room.terminal && creep.room.terminal.my && creep.room.terminal.store[RESOURCE_ENERGY] < 5000 && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.terminal.pos.getRangeTo(creep))) {
-        creep.memory.storageDestination = creep.room.terminal.id;
         return true;
     }
     //Controller
@@ -144,20 +144,15 @@ function dropOff(creep) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
-    //Terminal
-    if (creep.room.terminal && creep.room.terminal.my && _.sum(creep.room.terminal.store) < creep.room.terminal.storeCapacity * 0.8 && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.terminal.pos.getRangeTo(creep))) {
-        creep.memory.storageDestination = creep.room.terminal.id;
+    // Hub Container
+    let hubContainer = Game.getObjectById(creep.room.memory.hubContainer);
+    if (hubContainer && _.sum(hubContainer.store) < 1000 && (!closestLink || closestLink.pos.getRangeTo(creep) > hubContainer.pos.getRangeTo(creep))) {
+        creep.memory.storageDestination = hubContainer.id;
         return true;
     }
     //Storage
     if (storage && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep))) {
         creep.memory.storageDestination = storage.id;
-        return true;
-    }
-    // Hub Container
-    let hubContainer = Game.getObjectById(creep.room.memory.hubContainer);
-    if (hubContainer && _.sum(hubContainer.store) < 1000 && (!closestLink || closestLink.pos.getRangeTo(creep) > hubContainer.pos.getRangeTo(creep))) {
-        creep.memory.storageDestination = hubContainer.id;
         return true;
     }
     if (closestLink) {
