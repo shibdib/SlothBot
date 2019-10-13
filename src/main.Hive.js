@@ -141,9 +141,9 @@ function minionController(minion) {
     if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
     let memoryRole = minion.memory.role;
-    let creepRole = require('role.' + memoryRole);
     let start = Game.cpu.getUsed();
     try {
+        let creepRole = require('role.' + memoryRole);
         if (minion.borderCheck()) return;
         // Report intel chance
         if (minion.room.name !== minion.memory.overlord && Math.random() > 0.5) {

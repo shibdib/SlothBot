@@ -181,9 +181,9 @@ function minionController(minion) {
     if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
     let memoryRole = minion.memory.role;
-    let creepRole = require('role.' + memoryRole);
     // Run role and log CPU
     try {
+        let creepRole = require('role.' + memoryRole);
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - cpuUsed;
         //if (used > 0.7) console.log(minion.name + ' ' + roomLink(minion.room.name) + ' ' + used)
