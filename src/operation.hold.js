@@ -22,9 +22,9 @@ Creep.prototype.holdRoom = function () {
             Memory.targetRooms[this.room.name].cleaner = this.room.structures.length > 0;
         }
         // If military action required do that
-        if (this.handleMilitaryCreep(false, false, true)) return;
-        if (this.room.name !== this.memory.targetRoom) this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 24});
         if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
+        if (this.room.name !== this.memory.targetRoom) this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 24});
+        this.handleMilitaryCreep(false, false, true)
     }
 };
 
