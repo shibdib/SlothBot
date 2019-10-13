@@ -407,54 +407,64 @@ function trackPriceData(orders) {
         let sellData = _.filter(orders, (o) => o.resourceType === resource && o.type === ORDER_SELL && o.amount > MINIMUM_MARKET);
         let buyData = _.filter(orders, (o) => o.resourceType === resource && o.type === ORDER_BUY && o.amount > MINIMUM_MARKET);
         if (!data.time) {
+            data[resource] = {};
             // Initial Sell Data
-            if (_.min(sellData, '.price') !== Infinity) data[resource].sellMin = [_.min(sellData, '.price')]; else data[resource].sellMin = [];
-            if (_.max(sellData, '.price') !== Infinity) data[resource].sellMax = [_.max(sellData, '.price')]; else data[resource].sellMax = [];
-            let sellX = 0;
+            if (_.min(sellData, '.price') !== Infinity && _.min(sellData, '.price').price) data[resource].sellMin = [_.min(sellData, '.price').price]; else data[resource].sellMin = [];
+            if (_.max(sellData, '.price') !== Infinity && _.max(sellData, '.price').price) data[resource].sellMax = [_.max(sellData, '.price').price]; else data[resource].sellMax = [];
             if (sellData.length) {
-                data[resource].sellAvg25 = [sellData.forEach((o) => o.price + sellX) / sellData.length];
-                data[resource].sellAvg100 = [sellData.forEach((o) => o.price + sellX) / sellData.length];
+                let sellX = 0;
+                sellData.forEach((o) => sellX = o.price + sellX);
+                let avg = _.round(sellX / sellData.length, 2);
+                data[resource].sellAvg25 = [avg];
+                data[resource].sellAvg100 = [avg];
             } else data[resource].sellAvg = [];
             // Initial Buy Data
-            if (_.min(buyData, '.price') !== Infinity) data[resource].buyMin = [_.min(buyData, '.price')]; else data[resource].buyMin = [];
-            if (_.max(buyData, '.price') !== Infinity) data[resource].buyMax = [_.max(buyData, '.price')]; else data[resource].buyMax = [];
-            let buyX = 0;
+            if (_.min(buyData, '.price') !== Infinity && _.min(buyData, '.price').price) data[resource].buyMin = [_.min(buyData, '.price').price]; else data[resource].buyMin = [];
+            if (_.max(buyData, '.price') !== Infinity && _.max(buyData, '.price').price) data[resource].buyMax = [_.max(buyData, '.price').price]; else data[resource].buyMax = [];
             if (buyData.length) {
-                data[resource].buyAvg25 = [buyData.forEach((o) => o.price + buyX) / buyData.length];
-                data[resource].buyAvg100 = [buyData.forEach((o) => o.price + buyX) / buyData.length];
+                let buyX = 0;
+                buyData.forEach((o) => buyX = o.price + buyX);
+                let avg = _.round(buyX / buyData.length, 2);
+                data[resource].buyAvg25 = [avg];
+                data[resource].buyAvg100 = [avg];
             } else data[resource].buyAvg = [];
         } else if (data.time + 1000 < Game.time) {
+            if (!data[resource]) data[resource] = {};
             // New sale Data
-            if (_.min(sellData, '.price') !== Infinity) {
+            if (_.min(sellData, '.price') !== Infinity && _.min(sellData, '.price').price) {
                 if (data[resource].sellMin.length >= 25) data[resource].sellMin.shift();
-                data[resource].sellMin.push(_.min(sellData, '.price'));
+                data[resource].sellMin.push(_.min(sellData, '.price').price);
             }
-            if (_.max(sellData, '.price') !== Infinity) {
+            if (_.max(sellData, '.price') !== Infinity && _.max(sellData, '.price').price) {
                 if (data[resource].sellMax.length >= 25) data[resource].sellMax.shift();
-                data[resource].sellMax.push(_.max(sellData, '.price'));
+                data[resource].sellMax.push(_.max(sellData, '.price').price);
             }
             if (sellData.length) {
                 let sellX = 0;
+                sellData.forEach((o) => sellX = o.price + sellX);
+                let avg = _.round(sellX / sellData.length, 2);
                 if (data[resource].sellAvg25.length >= 25) data[resource].sellAvg25.shift();
                 if (data[resource].sellAvg100.length >= 100) data[resource].sellAvg100.shift();
-                data[resource].sellAvg25.push(sellData.forEach((o) => o.price + sellX) / sellData.length);
-                data[resource].sellAvg100.push(sellData.forEach((o) => o.price + sellX) / sellData.length);
+                data[resource].sellAvg25.push(avg);
+                data[resource].sellAvg100.push(avg);
             }
             // New buy Data
-            if (_.min(buyData, '.price') !== Infinity) {
+            if (_.min(buyData, '.price') !== Infinity && _.min(buyData, '.price').price) {
                 if (data[resource].buyMin.length >= 25) data[resource].buyMin.shift();
-                data[resource].buyMin.push(_.min(sellData, '.price'));
+                data[resource].buyMin.push(_.min(sellData, '.price').price);
             }
-            if (_.max(buyData, '.price') !== Infinity) {
+            if (_.max(buyData, '.price') !== Infinity && _.max(buyData, '.price').price) {
                 if (data[resource].buyMax.length >= 25) data[resource].buyMax.shift();
-                data[resource].buyMax.push(_.max(sellData, '.price'));
+                data[resource].buyMax.push(_.max(sellData, '.price').price);
             }
             if (buyData.length) {
                 let buyX = 0;
+                buyData.forEach((o) => buyX = o.price + buyX);
+                let avg = _.round(buyX / buyData.length, 2);
                 if (data[resource].buyAvg25.length >= 25) data[resource].buyAvg25.shift();
                 if (data[resource].buyAvg100.length >= 100) data[resource].buyAvg100.shift();
-                data[resource].buyAvg25.push(buyData.forEach((o) => o.price + buyX) / sellData.length);
-                data[resource].buyAvg100.push(buyData.forEach((o) => o.price + buyX) / sellData.length);
+                data[resource].buyAvg25.push(avg);
+                data[resource].buyAvg100.push(avg);
             }
         } else {
             return;
@@ -465,12 +475,14 @@ function trackPriceData(orders) {
 }
 
 function getPriceData(resource) {
-    if (!Memory._marketData[resource]) {
+    let data;
+    if (Memory._marketData) data = JSON.parse(Memory._marketData); else data = {};
+    if (!data[resource]) {
         if (_.includes(END_GAME_BOOSTS, resource)) return END_GAME_SALE_MAX;
         if (_.includes(TIER_2_BOOSTS, resource)) return TIER_2_SALE_MAX;
         if (_.includes(TIER_1_BOOSTS, resource)) return TIER_1_SALE_MAX;
         if (_.includes(BASE_COMPOUNDS, resource)) return BASE_COMPOUNDS_SALE_MAX;
-        if (resourceType === RESOURCE_GHODIUM) return GHODIUM_SALE_MAX;
+        if (resource === RESOURCE_GHODIUM) return GHODIUM_SALE_MAX;
         return BASE_RESOURCES_SALE_MAX;
     } else {
         let data = JSON.parse(Memory._marketData);
