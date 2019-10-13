@@ -27,6 +27,8 @@ module.exports.terminalControl = function (room) {
             pricingUpdateSell(globalOrders, myOrders);
             lastPriceAdjust = Game.time;
         }
+        // Tracker
+        trackPriceData(globalOrders);
         runOnce = Game.time;
     }
     //Use extra creds to buy energy
@@ -67,20 +69,12 @@ function fillBuyOrders(terminal, globalOrders) {
                         case OK:
                             log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * sellableAmount + " credits");
                             return true;
-                        case ERR_NOT_ENOUGH_RESOURCES:
-                            Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
-                            log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
-                            return true;
                     }
                     return true;
                 } else if (buyOrder.id && buyOrder.remainingAmount < sellableAmount) {
                     switch (Game.market.deal(buyOrder.id, buyOrder.remainingAmount, terminal.pos.roomName)) {
                         case OK:
                             log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * buyOrder.remainingAmount + " credits");
-                            return true;
-                        case ERR_NOT_ENOUGH_RESOURCES:
-                            Game.market.deal(buyOrder.id, 500, terminal.pos.roomName);
-                            log.w(" MARKET: " + terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + buyOrder.price * 500 + " credits");
                             return true;
                     }
                     return true;
@@ -140,21 +134,14 @@ function manageSellOrders(terminal, myOrders) {
 }
 
 function pricingUpdateSell(globalOrders, myOrders) {
-    let myOrderKeys = _.pluck(myOrders, 'id');
     for (let key in myOrders) {
         if (myOrders[key].type === ORDER_SELL) {
-            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === myOrders[key].resourceType &&
-                order.type === ORDER_SELL && order.remainingAmount >= 1000 && order.id !== myOrders[key].id && !_.includes(myOrderKeys, order.id)), "price");
-            let salePrice = BASE_RESOURCES_SALE_MAX;
-            if (_.includes(END_GAME_BOOSTS, myOrders[key].resourceType)) salePrice = END_GAME_SALE_MAX;
-            if (_.includes(TIER_2_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_2_SALE_MAX;
-            if (_.includes(TIER_1_BOOSTS, myOrders[key].resourceType)) salePrice = TIER_1_SALE_MAX;
-            if (_.includes(BASE_COMPOUNDS, myOrders[key].resourceType)) salePrice = BASE_COMPOUNDS_SALE_MAX;
-            if (myOrders[key].resourceType === RESOURCE_GHODIUM) salePrice = GHODIUM_SALE_MAX;
-            if (_.round((sellOrder.price - 0.001), 3) < salePrice && _.round((sellOrder.price - 0.001), 3) >= salePrice * 0.2) salePrice = _.round((sellOrder.price - 0.001), 3);
-            if (salePrice !== myOrders[key].price) {
+            let sellData = getPriceData(myOrders[key].resourceType);
+            let salePrice;
+            if (sellData.sellAvg25) salePrice = _.last(sellData.sellAvg25); else salePrice = sellData;
+            if (salePrice * 1.1 < myOrders[key].price || salePrice * 0.9 > myOrders[key].price) {
                 if (Game.market.changeOrderPrice(myOrders[key].id, salePrice) === OK) {
-                    log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old/comp " + salePrice + "/" + myOrders[key].price + '/' + sellOrder.price + " Resource - " + myOrders[key].resourceType);
+                    log.w(" MARKET: Sell order price change " + myOrders[key].id + " new/old " + salePrice + "/" + myOrders[key].price + " Resource - " + myOrders[key].resourceType);
                 }
             }
         }
@@ -162,7 +149,6 @@ function pricingUpdateSell(globalOrders, myOrders) {
 }
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
-    let myOrderKeys = _.pluck(myOrders, 'id');
     resource:
         for (let resourceType in terminal.store) {
             if (terminal.store[resourceType] >= SELL_OFF_AMOUNT && resourceType !== RESOURCE_ENERGY) {
@@ -171,17 +157,11 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
                         continue resource;
                     }
                 }
-                let sellOrder = _.min(globalOrders.filter(order => order.resourceType === resourceType &&
-                    order.type === ORDER_SELL && order.remainingAmount >= 500 && order.roomName !== terminal.pos.roomName && !_.includes(myOrderKeys, order.id)), 'price');
                 let sellableAmount = terminal.store[resourceType] - SELL_OFF_AMOUNT;
-                let salePrice = BASE_RESOURCES_SALE_MAX;
-                if (_.includes(END_GAME_BOOSTS, resourceType)) salePrice = END_GAME_SALE_MAX;
-                if (_.includes(TIER_2_BOOSTS, resourceType)) salePrice = TIER_2_SALE_MAX;
-                if (_.includes(TIER_1_BOOSTS, resourceType)) salePrice = TIER_1_SALE_MAX;
-                if (_.includes(BASE_COMPOUNDS, resourceType)) salePrice = BASE_COMPOUNDS_SALE_MAX;
-                if (resourceType === RESOURCE_GHODIUM) salePrice = GHODIUM_SALE_MAX;
-                if (_.round((sellOrder.price - 0.001), 3) < salePrice) salePrice = _.round((sellOrder.price - 0.001), 3);
-                if (sellOrder.id && sellableAmount >= 1000) {
+                let sellData = getPriceData(resourceType);
+                let salePrice;
+                if (sellData.sellAvg25) salePrice = _.last(sellData.sellAvg25); else salePrice = sellData;
+                if (sellableAmount >= 1000) {
                     if (Game.market.createOrder(ORDER_SELL, resourceType, salePrice, sellableAmount, terminal.pos.roomName) === OK) {
                         log.w(" MARKET: New Sell Order: " + resourceType + " at/per " + salePrice);
                         return true;
@@ -260,7 +240,7 @@ function onDemandReactionOrders(terminal, globalOrders) {
 }
 
 function buyPower(terminal, globalOrders) {
-    if (terminal.room.controller.level === 8 && terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER) {
+    if (terminal.room.controller.level === 8 && terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER * 1.2) {
         let storage = terminal.room.storage;
         if (!storage) return;
         let stored = terminal.store[RESOURCE_POWER] + storage.store[RESOURCE_POWER] || 0;
@@ -307,6 +287,13 @@ function orderCleanup(myOrders) {
                         return true;
                     }
                 }
+            } else if (myOrders[key].resourceType === RESOURCE_ENERGY) {
+                if (_.filter(Memory.ownedRooms, (r) => r.energy >= ENERGY_AMOUNT * 1.2)[0]) {
+                    if (Game.market.cancelOrder(myOrders[key].id) === OK) {
+                        log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we have a room with an energy surplus and do not need to purchase energy " + myOrders[key].remainingAmount + "/" + tradeAmount);
+                        return true;
+                    }
+                }
             }
             if (myOrders[key].amount === 0) {
                 if (Game.market.cancelOrder(myOrders[key].id) === OK) {
@@ -334,6 +321,8 @@ function orderCleanup(myOrders) {
 }
 
 function placeEnergyOrders(terminal, globalOrders, myOrders) {
+    // Don't buy energy if any room is in a surplus
+    if (_.filter(Memory.ownedRooms, (r) => r.memory.energySurplus)[0]) return false;
     // Check if an order exists
     if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName &&
         o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0]) return false;
@@ -356,7 +345,7 @@ function placeEnergyOrders(terminal, globalOrders, myOrders) {
 
 function emergencyEnergy(terminal) {
     // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.5) {
+    if (terminal.store[RESOURCE_ENERGY] >= 10000 && !Memory.roomCache[terminal.room.name].requestingSupport) {
         // Find needy terminals
         let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && Memory.roomCache[r.name].requestingSupport && r.terminal && r.energy < ENERGY_AMOUNT * 2))[0];
         if (responseNeeded) {
@@ -379,9 +368,9 @@ function balanceBoosts(terminal) {
     // Loop thru boosts
     let storedResources = Object.keys(terminal.store);
     for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
-        if (terminal.store[boost] >= TRADE_AMOUNT * 1.2) {
+        if (terminal.store[boost] >= TRADE_AMOUNT * 0.5) {
             // Find needy terminals
-            let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < TRADE_AMOUNT)));
+            let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < terminal.store[boost] * 0.7)));
             if (needyTerminal) {
                 // Determine how much you can move
                 let availableAmount = terminal.store[boost] * 0.5;
@@ -394,7 +383,7 @@ function balanceBoosts(terminal) {
         }
     }
     // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] >= 10000 && terminal.room.energy >= ENERGY_AMOUNT * 1.2) {
+    if (terminal.store[RESOURCE_ENERGY] >= 10000 && terminal.room.energy >= ENERGY_AMOUNT * 0.5) {
         // Find needy terminals
         let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.7))[0];
         if (needyRoom) {
@@ -408,5 +397,82 @@ function balanceBoosts(terminal) {
                     return true;
             }
         }
+    }
+}
+
+function trackPriceData(orders) {
+    let data = JSON.parse(Memory._marketData) || {};
+    for (let resource of RESOURCES_ALL) {
+        let sellData = _.filter(orders, (o) => o.resourceType === resource && o.type === ORDER_SELL && o.amount > MINIMUM_MARKET);
+        let buyData = _.filter(orders, (o) => o.resourceType === resource && o.type === ORDER_BUY && o.amount > MINIMUM_MARKET);
+        if (!data.time) {
+            // Initial Sell Data
+            if (_.min(sellData, '.price') !== Infinity) data[resource].sellMin = [_.min(sellData, '.price')]; else data[resource].sellMin = [];
+            if (_.max(sellData, '.price') !== Infinity) data[resource].sellMax = [_.max(sellData, '.price')]; else data[resource].sellMax = [];
+            let sellX = 0;
+            if (sellData.length) {
+                data[resource].sellAvg25 = [sellData.forEach((o) => o.price + sellX) / sellData.length];
+                data[resource].sellAvg100 = [sellData.forEach((o) => o.price + sellX) / sellData.length];
+            } else data[resource].sellAvg = [];
+            // Initial Buy Data
+            if (_.min(buyData, '.price') !== Infinity) data[resource].buyMin = [_.min(buyData, '.price')]; else data[resource].buyMin = [];
+            if (_.max(buyData, '.price') !== Infinity) data[resource].buyMax = [_.max(buyData, '.price')]; else data[resource].buyMax = [];
+            let buyX = 0;
+            if (buyData.length) {
+                data[resource].buyAvg25 = [buyData.forEach((o) => o.price + buyX) / buyData.length];
+                data[resource].buyAvg100 = [buyData.forEach((o) => o.price + buyX) / buyData.length];
+            } else data[resource].buyAvg = [];
+        } else if (data.time + 1000 < Game.time) {
+            // New sale Data
+            if (_.min(sellData, '.price') !== Infinity) {
+                if (data[resource].sellMin.length >= 25) data[resource].sellMin.shift();
+                data[resource].sellMin.push(_.min(sellData, '.price'));
+            }
+            if (_.max(sellData, '.price') !== Infinity) {
+                if (data[resource].sellMax.length >= 25) data[resource].sellMax.shift();
+                data[resource].sellMax.push(_.max(sellData, '.price'));
+            }
+            if (sellData.length) {
+                let sellX = 0;
+                if (data[resource].sellAvg25.length >= 25) data[resource].sellAvg25.shift();
+                if (data[resource].sellAvg100.length >= 100) data[resource].sellAvg100.shift();
+                data[resource].sellAvg25.push(sellData.forEach((o) => o.price + sellX) / sellData.length);
+                data[resource].sellAvg100.push(sellData.forEach((o) => o.price + sellX) / sellData.length);
+            }
+            // New buy Data
+            if (_.min(buyData, '.price') !== Infinity) {
+                if (data[resource].buyMin.length >= 25) data[resource].buyMin.shift();
+                data[resource].buyMin.push(_.min(sellData, '.price'));
+            }
+            if (_.max(buyData, '.price') !== Infinity) {
+                if (data[resource].buyMax.length >= 25) data[resource].buyMax.shift();
+                data[resource].buyMax.push(_.max(sellData, '.price'));
+            }
+            if (buyData.length) {
+                let buyX = 0;
+                if (data[resource].buyAvg25.length >= 25) data[resource].buyAvg25.shift();
+                if (data[resource].buyAvg100.length >= 100) data[resource].buyAvg100.shift();
+                data[resource].buyAvg25.push(buyData.forEach((o) => o.price + buyX) / sellData.length);
+                data[resource].buyAvg100.push(buyData.forEach((o) => o.price + buyX) / sellData.length);
+            }
+        } else {
+            return;
+        }
+    }
+    data.time = Game.time;
+    Memory._marketData = JSON.stringify(data);
+}
+
+function getPriceData(resource) {
+    if (!Memory._marketData[resource]) {
+        if (_.includes(END_GAME_BOOSTS, resource)) return END_GAME_SALE_MAX;
+        if (_.includes(TIER_2_BOOSTS, resource)) return TIER_2_SALE_MAX;
+        if (_.includes(TIER_1_BOOSTS, resource)) return TIER_1_SALE_MAX;
+        if (_.includes(BASE_COMPOUNDS, resource)) return BASE_COMPOUNDS_SALE_MAX;
+        if (resourceType === RESOURCE_GHODIUM) return GHODIUM_SALE_MAX;
+        return BASE_RESOURCES_SALE_MAX;
+    } else {
+        let data = JSON.parse(Memory._marketData);
+        return data[resource];
     }
 }

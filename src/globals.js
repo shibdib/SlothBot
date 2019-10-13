@@ -51,6 +51,9 @@ let globals = function () {
     global.GHODIUM_SALE_MAX = 1.1;
     global.BASE_RESOURCES_SALE_MAX = 0.35;
 
+    // Minimum amount for market data
+    global.MINIMUM_MARKET = 1500;
+
     global.LAYOUT_VERSION = 1.52;
 
     //PC Stuff
