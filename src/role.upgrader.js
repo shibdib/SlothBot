@@ -25,7 +25,7 @@ module.exports.role = function (creep) {
                 return creep.shibMove(container, {range: 0});
             } else {
                 creep.memory.onContainer = true;
-                if (container.pos.isNearTo(container.pos.findClosestByRange(FIND_SOURCES)) && !creep.pos.getRangeTo(container)) return creep.shibMove(container, {range: 1});
+                if (container && container.pos.isNearTo(container.pos.findClosestByRange(FIND_SOURCES)) && !creep.pos.getRangeTo(container)) return creep.shibMove(container, {range: 1});
             }
         }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
