@@ -20,12 +20,10 @@ module.exports.role = function (creep) {
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (creep.memory.working) {
         if (!creep.memory.onContainer) {
-            if (container && !container.pos.isNearTo(container.pos.findClosestByRange(FIND_SOURCES)) &&
-                (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 return creep.shibMove(container, {range: 0});
             } else {
                 creep.memory.onContainer = true;
-                if (container && container.pos.isNearTo(container.pos.findClosestByRange(FIND_SOURCES)) && !creep.pos.getRangeTo(container)) return creep.shibMove(container, {range: 1});
             }
         }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
@@ -46,12 +44,10 @@ module.exports.role = function (creep) {
         creep.withdrawResource();
     } else if (!creep.getActiveBodyparts(MOVE)) {
         if (!creep.memory.onContainer) {
-            if (container && !container.pos.isNearTo(container.pos.findClosestByRange(FIND_SOURCES)) &&
-                (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 return creep.shibMove(container, {range: 0});
             } else {
                 creep.memory.onContainer = true;
-                if (container && container.pos.isNearTo(container.pos.findClosestByRange(FIND_SOURCES)) && !creep.pos.getRangeTo(container)) return creep.shibMove(container, {range: 1});
             }
         } else {
             if (link && link.energy) {
