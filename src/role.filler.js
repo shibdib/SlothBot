@@ -55,8 +55,8 @@ fillerEnergy = function (creep) {
             creep.memory.assignedSource = assignment[0].memory.source;
         } else {
             // Container
-            let container = _.max(creep.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== creep.room.memory.hubContainer && (s.id !== creep.room.memory.controllerContainer || s.store[RESOURCE_ENERGY] > 750)
-                && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)), '.store.energy');
+            let container = creep.pos.findClosestByRange(creep.room.structures.filter((s) => s.structureType === STRUCTURE_CONTAINER && s.id !== creep.room.memory.hubContainer && (s.id !== creep.room.memory.controllerContainer || s.store[RESOURCE_ENERGY] > 750)
+                && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)));
             if (container) {
                 creep.memory.energyDestination = container.id;
                 creep.memory.findEnergyCountdown = undefined;
