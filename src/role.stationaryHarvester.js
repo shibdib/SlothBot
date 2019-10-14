@@ -151,7 +151,7 @@ function harvestDepositContainer(source, creep) {
         return container.id;
     } else {
         let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
-        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 4 && !s.pos.isNearTo(s.room.controller)) {
+        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 4 && !creep.pos.isNearTo(creep.room.controller)) {
             if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) === OK) creep.memory.containerAttempt = true;
         } else if (site) creep.memory.containerAttempt = true;
     }
@@ -169,7 +169,7 @@ function extensionBuilder(creep) {
             for (let yOff = -1; yOff <= 1; yOff++) {
                 if (xOff !== 0 || yOff !== 0) {
                     let pos = new RoomPosition(creep.pos.x + xOff, creep.pos.y + yOff, creep.room.name);
-                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure() || pos.isExit()) continue;
+                    if (pos.checkForWall() || pos.checkForConstructionSites() || pos.checkForObstacleStructure() || pos.isExit() || pos.isNearTo(creep.room.controller)) continue;
                     count++;
                     if ((!creep.memory.linkID && count < 3) || (creep.memory.linkID && count < 2)) continue;
                     pos.createConstructionSite(STRUCTURE_EXTENSION)
