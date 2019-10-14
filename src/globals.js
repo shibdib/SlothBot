@@ -22,11 +22,11 @@ let globals = function () {
     global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
 
     //Signing and whatnot
-    global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY~~~"];
-    global.RESERVE_ROOM_SIGNS = ["~~This is a restricted area, violators will be attacked~~", "~~Exclusion Zone~~"];
-    global.EXPLORED_ROOM_SIGNS = ["~~HELLO!~~"];
+    global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY~~~", "#overlords is recruiting!", "Full Auto Overlord Bot"];
+    global.RESERVE_ROOM_SIGNS = ["~~This is a restricted area, violators will be attacked~~", "~~Exclusion Zone~~", "#overlords is recruiting!"];
+    global.EXPLORED_ROOM_SIGNS = ["~~HELLO!~~", "#overlords is recruiting! Visit us on slack."];
     global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
-    global.EXPLORER_SPAM = ['HI', 'Hello'];
+    global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
     //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
     global.POKE_LIMIT = 5;
