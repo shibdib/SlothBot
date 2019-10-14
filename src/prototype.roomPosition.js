@@ -60,7 +60,8 @@ RoomPosition.prototype.countOpenTerrainAround = function () {
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
             if (xOff !== 0 || yOff !== 0) {
-                if (new RoomPosition(this.x + xOff, this.y + yOff, this.roomName).checkForImpassible()) impassible += 1;
+                let pos = new RoomPosition(this.x + xOff, this.y + yOff, this.roomName);
+                if (pos.checkForImpassible() || (pos.checkForCreep() && !pos.checkForCreep().getActiveBodyparts(MOVE))) impassible += 1;
             }
         }
     }
@@ -76,7 +77,7 @@ RoomPosition.prototype.checkForSwamp = function () {
 };
 
 RoomPosition.prototype.checkForCreep = function () {
-    return _.filter(this.lookFor(LOOK_CREEPS))[0];
+    return this.lookFor(LOOK_CREEPS)[0];
 };
 
 RoomPosition.prototype.checkForPlain = function () {
