@@ -30,7 +30,7 @@ module.exports.controller = function (room) {
     if (Game.time % 5 === 0) safeModeManager(room);
 
     // Abandon hopeless rooms
-    if (Game.time % 5 === 0) unsavableCheck(room);
+    if (Game.time % 5 === 0 && room.controller.level < 6) unsavableCheck(room);
 
     //Manage Ramparts for Allies
     rampartManager(room, structures);
