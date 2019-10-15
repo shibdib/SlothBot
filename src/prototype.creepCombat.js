@@ -244,7 +244,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     // Safemode check
     if (this.room.user && this.room.user !== MY_USERNAME && this.room.controller && this.room.controller.safeMode) return false;
     // Set target
-    let hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst)
+    let hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst);
     // Flee home if you have no parts
     if (!this.getActiveBodyparts(HEAL) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     // If target fight
@@ -254,7 +254,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
         // Heal if needed
         if (!this.getActiveBodyparts(ATTACK) && this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
         // Fight from rampart
-        if (rampart && !this.canIWin(5) && this.fightRampart(hostile)) return true;
+        if (rampart && this.fightRampart(hostile)) return true;
         // Melee attacker
         if (this.getActiveBodyparts(ATTACK)) return this.attackHostile(hostile);
         // Ranged attacker
