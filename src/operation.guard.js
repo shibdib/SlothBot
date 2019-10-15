@@ -12,7 +12,7 @@ Creep.prototype.guardRoom = function () {
     // If military action required do that
     if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (this.room.name !== this.memory.targetRoom) this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 24});
-    this.handleMilitaryCreep(false, false, true)
+    this.handleMilitaryCreep();
     levelManager(this);
 };
 
