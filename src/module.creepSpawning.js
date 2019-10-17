@@ -382,7 +382,7 @@ module.exports.miscCreepQueue = function (room) {
             let amount = Memory.roomCache[combatAssist.name].threatLevel || 1;
             if (guards.length < amount || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < amount + 1)) {
                 queueCreep(room, PRIORITIES.remoteResponse, {
-                    role: 'longbow',
+                    role: 'remoteResponse',
                     operation: 'guard',
                     targetRoom: combatAssist.name,
                     military: true,
@@ -512,6 +512,19 @@ module.exports.remoteCreepQueue = function (room) {
                     queueCreep(room, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler',
                         destination: remotes[keys]
+                    })
+                }
+            }
+            // Handle invader cores
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation === 'Invader') {
+                let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === remotes[keys] && creep.memory.operation === 'guard');
+                if (guards.length < 1 || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < 2)) {
+                    queueCreep(room, PRIORITIES.borderPatrol, {
+                        role: 'attacker',
+                        operation: 'guard',
+                        targetRoom: remotes[keys],
+                        military: true,
+                        localCache: true
                     })
                 }
             }
