@@ -130,7 +130,7 @@ function militaryScout(room) {
             // If room is owned
         } else if (controller.owner) {
             // Do not siege non enemies unless close
-            if (!_.includes(Memory._enemies, controller.owner.username) && range > LOCAL_SPHERE) {
+            if (!_.includes(Memory._enemies, controller.owner.username) && range > LOCAL_SPHERE && controller.owner.username !== 'Invader') {
                 delete Memory.targetRooms[room.name];
                 log.a('Abandoning attack on room ' + roomLink(room.name) + ' as they do not meet the required ' +
                     'threat level for a siege', 'OPERATION PLANNER: ');

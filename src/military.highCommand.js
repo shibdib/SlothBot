@@ -175,6 +175,7 @@ function operationRequests() {
         log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
         break;
     }
+    // SIEGES
     if (Memory._enemies.length) {
         // Attack owned rooms of enemies
         let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts' || target.type === 'drain').length || 0;
@@ -195,6 +196,24 @@ function operationRequests() {
                 log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Room Level - ' + target.level + '), Nearest Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
                 break;
             }
+        }
+    }
+    // Kill strongholds
+    let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.owner && r.owner === 'Invader' && r.closestRange <= 6), 'closestRange');
+    if (stronghold.length) {
+        for (let target of enemyHarass) {
+            if (Memory.targetRooms[target.name]) continue;
+            let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+            if (lastOperation + 3000 > Game.time) continue;
+            let cache = Memory.targetRooms || {};
+            let tick = Game.time;
+            cache[target.name] = {
+                tick: tick,
+                type: 'attack'
+            };
+            Memory.targetRooms = cache;
+            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            break;
         }
     }
     /**
