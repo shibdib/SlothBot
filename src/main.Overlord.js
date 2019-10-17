@@ -28,7 +28,7 @@ module.exports.overlordMind = function (room) {
     defense.controller(room);
 
     //Build Room
-    if ((room.controller.level < 4 && Game.time % 500 === 0 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
+    if (!room.memory.extensionHub || (room.controller.level < 4 && Game.time % 500 === 0 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
         // Request builders
         if (Math.random() > 0.7) requestBuilders(room);
         try {
@@ -236,5 +236,5 @@ function cacheRoomItems(room) {
 }
 
 function requestBuilders(room) {
-    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0]);
+    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0]) && room.memory.extensionHub;
 }
