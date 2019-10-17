@@ -134,7 +134,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 tough = _.round(0.5 * level);
                 rangedAttack = _.round((0.5 * level) + 1);
                 attack = _.round((0.5 * level) + 1);
-                heal = 0;
+                heal = 1;
             }
             move = tough + rangedAttack + heal + attack;
             break;
