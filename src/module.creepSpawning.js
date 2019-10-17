@@ -11,7 +11,6 @@ let militaryQueue = {};
 let energyOrder = {};
 let storedLevel = {};
 let remoteHives = {};
-let lastPurge = 0;
 
 //Build Creeps From Queue
 module.exports.processBuildQueue = function () {
@@ -167,13 +166,6 @@ module.exports.roomStartup = function (room) {
 
 //Essential creeps
 module.exports.essentialCreepQueue = function (room) {
-    //Chance queues get purged
-    if (lastPurge + 1000 < Game.time && Math.random() > 0.98) {
-        roomQueue = {};
-        militaryQueue = {};
-        log.e('Random Creep Queue Purge.');
-        lastPurge = Game.time;
-    }
     //Static room info
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name);
