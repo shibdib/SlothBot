@@ -277,6 +277,23 @@ Object.defineProperty(StructureLab.prototype, 'memory', {
     enumerable: false,
 });
 
+Object.defineProperty(StructureTerminal.prototype, 'memory', {
+    get: function () {
+        if (Memory.structureMemory === undefined || !Memory.structureMemory) {
+            Memory.structureMemory = {};
+        }
+        if (Memory.structureMemory[this.id] === undefined || !Memory.structureMemory[this.id]) {
+            Memory.structureMemory[this.id] = {};
+        }
+        return Memory.structureMemory[this.id];
+    },
+    set: function (v) {
+        return _.set(Memory, 'structureMemory.' + this.id, v);
+    },
+    configurable: true,
+    enumerable: false,
+});
+
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
     urgentMilitary(this);
@@ -536,7 +553,7 @@ Room.prototype.handleNukeAttack = function () {
             }
             return true;
         }
-        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 4, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL});
+        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL});
         for (let structure of structures) {
             if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
             structure.pos.createConstructionSite(STRUCTURE_RAMPART);

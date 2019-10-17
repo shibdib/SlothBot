@@ -25,7 +25,7 @@ module.exports.processBuildQueue = function () {
                 let topPriority, body, role, queue;
                 if (!Memory.roomCache[spawn.room.name]) spawn.room.cacheRoomIntel(true);
                 let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-                if (_.size(militaryQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && level >= 4 && _.inRange(level, maxLevel - 1, maxLevel + 1) && !_.filter(spawn.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)[0]) {
+                if (!spawn.room.memory.nuke && _.size(militaryQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && level >= 4 && _.inRange(level, maxLevel - 1, maxLevel + 1) && !_.filter(spawn.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)[0]) {
                     // If no energy surplus just high priority targets
                     if (spawn.room.memory.energySurplus) {
                         queue = _.sortBy(Object.assign({}, militaryQueue, roomQueue[spawn.room.name]), 'importance');

@@ -345,13 +345,13 @@ function placeEnergyOrders(terminal, globalOrders, myOrders) {
 
 function emergencyEnergy(terminal) {
     // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] >= 10000 && !Memory.roomCache[terminal.room.name].requestingSupport) {
+    if (terminal.store[RESOURCE_ENERGY] >= 7500 && !Memory.roomCache[terminal.room.name].requestingSupport) {
         // Find needy terminals
-        let responseNeeded = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && Memory.roomCache[r.name].requestingSupport && r.terminal && r.energy < ENERGY_AMOUNT * 2))[0];
-        if (responseNeeded) {
+        let responseNeeded = _.min(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && (Memory.roomCache[r.name].threatLevel >= 4 || r.memory.nuke) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
+        if (responseNeeded && responseNeeded.name) {
             let needyTerminal = responseNeeded.terminal;
             // Determine how much you can move
-            let availableAmount = terminal.store[RESOURCE_ENERGY] - (ENERGY_AMOUNT * 0.5);
+            let availableAmount = terminal.store[RESOURCE_ENERGY] - 5000;
             if (availableAmount <= 0) return false;
             switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
                 case OK:

@@ -48,7 +48,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             //if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;
             break;
         case 'upgrader':
-            if (importantBuilds && !room.memory.energySurplus) {
+            if ((importantBuilds && !room.memory.energySurplus) || room.memory.nuke) {
                 work = 1;
                 carry = 1;
                 move = work + carry;
