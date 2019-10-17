@@ -28,7 +28,8 @@ module.exports.towerControl = function (room) {
             }
         } else if (room.memory.nuke) {
             let towers = _.shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive() && s.energy > s.energyCapacity * (s.pos.findClosestByRange(FIND_NUKES).timeToLand / NUKE_LAND_TIME)));
-            let nukeRampart = _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < NUKE_DAMAGE[2] + 15000 && (s.hits + ((towers.length * 500) * (s.pos.findClosestByRange(FIND_NUKES).timeToLand * 0.8))) >= NUKE_DAMAGE[2])[0];
+            let inRangeStructures = _.filter(room.structures, (s) => s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.pos.checkForRampart() && s.pos.checkForRampart().hits < NUKE_DAMAGE[2] + 15000 && (s.pos.checkForRampart().hits + ((towers.length * 500) * (s.pos.findClosestByRange(FIND_NUKES).timeToLand * 0.8))) >= NUKE_DAMAGE[2]);
+            let nukeRampart = _.filter(inRangeStructures, (s) => s.structureType === STRUCTURE_SPAWN)[0].pos.checkForRampart() || _.filter(inRangeStructures, (s) => s.structureType === STRUCTURE_TERMINAL)[0].pos.checkForRampart() || _.filter(inRangeStructures, (s) => s.structureType === STRUCTURE_STORAGE)[0].pos.checkForRampart() || _.sample(inRangeStructures).pos.checkForRampart();
             if (nukeRampart) {
                 for (let tower of towers) tower.repair(nukeRampart);
             } else {
