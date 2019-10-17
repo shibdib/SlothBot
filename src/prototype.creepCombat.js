@@ -446,9 +446,6 @@ Creep.prototype.attackInRange = function () {
     let targets = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(Memory._threatList, c.owner.username) || c.owner.username === 'Invader'});
     let allies = this.pos.findInRange(this.room.creeps, 3, {filter: (c) => _.includes(FRIENDLIES, c.owner.username) && !c.my});
     if (range <= 3) {
-        if (hostile instanceof Creep && range <= 2 && (hostile.getActiveBodyparts(ATTACK) || hostile.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER > this.getActiveBodyparts(HEAL) * HEAL_POWER) && !hostile.fatigue) {
-            this.shibKite();
-        }
         if (targets.length > 1 && !allies.length) {
             this.rangedMassAttack();
         } else {

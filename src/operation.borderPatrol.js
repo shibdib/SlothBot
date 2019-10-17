@@ -16,7 +16,8 @@ Creep.prototype.borderPatrol = function () {
     }
     // Handle rampart
     if (this.fightRampart()) return;
-    if (!this.attackInRange()) if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
+    this.attackInRange();
+    if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) return this.goHomeAndHeal();
     if (this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
