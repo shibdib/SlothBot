@@ -10,7 +10,7 @@ Creep.prototype.marauding = function () {
     this.say(sentence[word], true);
     // Set a target
     if (!this.memory.targetRoom) {
-        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && _.includes(Memory._threats, r.user) && !r.sk && !r.safemode && r.level && r.level < 3 && !r.needsCleaning));
+        let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && _.includes(Memory._threats, r.user) && !r.sk && !r.safemode && r.level && r.level < 3));
         if (lowLevel) {
             this.memory.targetRoom = lowLevel.name;
         } else {
