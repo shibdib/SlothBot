@@ -516,7 +516,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             // Handle invader cores
-            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation === 'Invader') {
+            if (Memory.roomCache[remotes[keys]] && ((Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation === 'Invader') || Memory.roomCache[remotes[keys]].structures)) {
                 let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === remotes[keys] && creep.memory.operation === 'guard');
                 if (guards.length < 1 || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < 2)) {
                     queueCreep(room, PRIORITIES.borderPatrol, {
