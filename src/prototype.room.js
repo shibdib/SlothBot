@@ -546,7 +546,7 @@ Room.prototype.handleNukeAttack = function () {
     }
     this.memory.nuke = true;
     for (let nuke of nukes) {
-        if (nuke.timeToLand <= 200) {
+        if (nuke.timeToLand <= 75) {
             for (let c of nuke.room.creeps) {
                 c.memory.fleeNukeTime = Game.time + nuke.timeToLand + 2;
                 c.memory.fleeNukeRoom = nuke.room.name;
