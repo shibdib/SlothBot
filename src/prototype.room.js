@@ -544,7 +544,7 @@ Room.prototype.handleNukeAttack = function () {
         this.memory.nuke = undefined;
         return false;
     }
-    this.memory.nuke = true;
+    this.memory.nuke = _.min(nukes, '.timeToLand').timeToLand;
     for (let nuke of nukes) {
         if (nuke.timeToLand <= 75) {
             for (let c of nuke.room.creeps) {
