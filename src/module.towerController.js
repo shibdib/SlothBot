@@ -19,9 +19,15 @@ module.exports.towerControl = function (room) {
     if (!hostileCreeps.length) {
         if (room.memory.nuke) {
             let towers = _.shuffle(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive() && s.energy > s.energyCapacity * (s.pos.findClosestByRange(FIND_NUKES).timeToLand / NUKE_LAND_TIME)));
-            let nukeRampart = _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5), 'hits');
-            for (let tower of towers) tower.repair(nukeRampart);
-            return;
+            let nukeRampart = _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < NUKE_DAMAGE[2])[0];
+            if (nukeRampart) {
+                for (let tower of towers) tower.repair(nukeRampart);
+                return;
+            } else {
+                nukeRampart = _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5), 'hits');
+                for (let tower of towers) tower.repair(nukeRampart);
+                return;
+            }
         }
     }
     let repairTower = Game.getObjectById(roomRepairTower[room.name]) || _.max(_.filter(structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > s.energyCapacity * 0.15), 'energy');
