@@ -359,7 +359,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             isHighway: isHighway,
             closestRange: closestRange,
             important: important,
-            forestPvp: forestPvp
+            forestPvp: forestPvp,
+            towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,
+            structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR).length
         };
         Memory.ncpArray = _.uniq(ncpArray);
         Memory.roomCache = cache;
@@ -521,47 +523,22 @@ function urgentMilitary(room) {
 
 Room.prototype.handleNukeAttack = function () {
     let nukes = this.find(FIND_NUKES);
-    if (nukes.length === 0) {
+    if (!nukes.length) {
+        this.memory.nuke = undefined;
         return false;
     }
-    let findSaveableStructures = function (object) {
-        if (object.structureType === STRUCTURE_ROAD) {
-            return false;
-        }
-        if (object.structureType === STRUCTURE_RAMPART) {
-            return false;
-        }
-        if (object.structureType === STRUCTURE_EXTENSION) {
-            return false;
-        }
-        if (object.structureType === STRUCTURE_CONTROLLER) {
-            return false;
-        }
-        return object.structureType !== STRUCTURE_WALL;
-    };
-    let isRampart = function (object) {
-        return object.structureType === STRUCTURE_RAMPART;
-    };
+    this.memory.nuke = true;
     for (let nuke of nukes) {
         if (nuke.timeToLand <= 200) {
             for (let c of nuke.room.creeps) {
                 c.memory.fleeNukeTime = Game.time + nuke.timeToLand + 2;
                 c.memory.fleeNukeRoom = nuke.room.name;
             }
+            return true;
         }
-        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 4, {
-            filter: findSaveableStructures
-        });
+        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 4, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL});
         for (let structure of structures) {
-            let lookConstructionSites = structure.pos.lookFor(LOOK_CONSTRUCTION_SITES);
-            if (lookConstructionSites.length > 0) {
-                continue;
-            }
-            let lookStructures = structure.pos.lookFor(LOOK_STRUCTURES);
-            let lookRampart = _.findIndex(lookStructures, isRampart);
-            if (lookRampart > -1) {
-                continue;
-            }
+            if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
             structure.pos.createConstructionSite(STRUCTURE_RAMPART);
         }
     }

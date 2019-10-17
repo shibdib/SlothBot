@@ -22,7 +22,12 @@ module.exports.role = function (creep) {
     if (creep.memory.working) {
         delete creep.memory.harvest;
         creep.memory.source = undefined;
-        if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel) {
+        if (!creep.memory.currentTarget || !Game.getObjectById(creep.memory.currentTarget) || Memory.roomCache[creep.room.name].threatLevel || creep.room.memory.nuke) {
+            let nukeSite, nukeRampart;
+            if (creep.room.memory.nuke) {
+                nukeSite = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 4)[0];
+                nukeRampart = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 4), 'hits');
+            }
             let hostileBarrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 3)[0]), 'hits');
             let barrier = _.min(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_RAMPART), 'hits');
             let site = _.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART)[0];
@@ -37,6 +42,23 @@ module.exports.role = function (creep) {
                 } else {
                     creep.memory.targetHits = hostileBarrier.hits + 50000;
                 }
+            } else if (nukeSite) {
+                creep.say('NUKE!', true);
+                switch (creep.build(nukeSite)) {
+                    case OK:
+                        creep.memory._shibMove = undefined;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(nukeSite, {range: 3})
+                }
+            } else if (nukeRampart && nukeRampart.id) {
+                creep.say('NUKE!', true);
+                creep.memory.currentTarget = nukeRampart.id;
+                if (barrier.hits < 10000) {
+                    creep.memory.targetHits = 25000;
+                } else {
+                    creep.memory.targetHits = barrier.hits + 50000;
+                }
             } else if (site) {
                 switch (creep.build(site)) {
                     case OK:
@@ -45,7 +67,7 @@ module.exports.role = function (creep) {
                     case ERR_NOT_IN_RANGE:
                         creep.shibMove(site, {range: 3})
                 }
-            } else if (barrier.id) {
+            } else if (barrier && barrier.id) {
                 creep.memory.currentTarget = barrier.id;
                 if (barrier.hits < 10000) {
                     creep.memory.targetHits = 25000;
