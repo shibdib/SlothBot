@@ -105,6 +105,15 @@ findResources = function (creep) {
 // Remote Hauler Drop Off
 function dropOff(creep) {
     buildLinks(creep);
+    // Lab
+    let lab = creep.pos.findClosestByRange(creep.room.structures, {
+        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
+    });
+    //Links
+    if (lab) {
+        creep.memory.storageDestination = lab.id;
+        return true;
+    }
     //Tower
     let towerCutoff = 0.65;
     if (Memory.roomCache[creep.room.name].threatLevel) towerCutoff = 0.99;
@@ -126,8 +135,7 @@ function dropOff(creep) {
     }
     //Close Link
     let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink &&
-            s.energy + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), '.carry.energy') < s.energyCapacity && s.isActive()
+        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
     });
     //Links
     if (closestLink && closestLink.pos.getRangeTo(creep) <= creep.room.storage.pos.getRangeTo(creep)) {
