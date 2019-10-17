@@ -28,7 +28,7 @@ module.exports.terminalControl = function (room) {
             lastPriceAdjust = Game.time;
         }
         // Tracker
-        trackPriceData(globalOrders);
+        //trackPriceData(globalOrders);
         runOnce = Game.time;
     }
     //Use extra creds to buy energy
@@ -463,8 +463,8 @@ function trackPriceData(orders) {
                 let buyX = 0;
                 buyData.forEach((o) => buyX = o.price + buyX);
                 let avg = _.round(buyX / buyData.length, 2);
-                if (data[resource].buyAvg25.length >= 25) data[resource].buyAvg25.shift();
-                if (data[resource].buyAvg100.length >= 100) data[resource].buyAvg100.shift();
+                if (data[resource].buyAvg25 && data[resource].buyAvg25.length >= 25) data[resource].buyAvg25.shift(); else if (!data[resource].buyAvg25) data[resource].buyAvg25 = [];
+                if (data[resource].buyAvg100 && data[resource].buyAvg100.length >= 100) data[resource].buyAvg100.shift(); else if (!data[resource].buyAvg100) data[resource].buyAvg100 = [];
                 data[resource].buyAvg25.push(avg);
                 data[resource].buyAvg100.push(avg);
             }
