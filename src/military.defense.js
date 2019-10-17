@@ -36,7 +36,7 @@ module.exports.controller = function (room) {
     rampartManager(room, structures);
 
     // Early Warning System
-    if (!Memory.roomCache[room.name].threatLevel < 4) earlyWarning(room);
+    //if (!Memory.roomCache[room.name].threatLevel < 4) earlyWarning(room);
 
     // Send an email on a player attack with details of attack
     if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
