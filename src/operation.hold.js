@@ -20,6 +20,8 @@ Creep.prototype.holdRoom = function () {
             highCommand.operationSustainability(this.room);
             Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive) && this.room.controller.pos.countOpenTerrainAround() > 0;
             Memory.targetRooms[this.room.name].cleaner = this.room.structures.length > 0;
+        } else if (!Memory.targetRooms[this.memory.targetRoom]) {
+            return this.memory.recycle = true;
         }
         // If military action required do that
         this.attackInRange();
