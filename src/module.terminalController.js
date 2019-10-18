@@ -41,7 +41,7 @@ module.exports.terminalControl = function (room) {
     //Send energy to rooms under siege
     if (emergencyEnergy(room.terminal)) return;
     //Disperse Minerals and Boosts
-    if (balanceBoosts(room.terminal)) return;
+    //if (balanceBoosts(room.terminal)) return;
     //Extend/Place buy orders if we have enough buffer cash
     if (placeReactionOrders(room.terminal, globalOrders, myOrders)) return;
     //Use extra creds to buy needed items for boosts
