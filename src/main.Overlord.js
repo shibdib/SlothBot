@@ -154,6 +154,7 @@ module.exports.overlordMind = function (room) {
     roomCpuArray[room.name] = cpuUsageArray;
 };
 
+let errorCount = {};
 function minionController(minion) {
     // If on portal or border move
     if (minion.portalCheck() || minion.borderCheck()) return;
@@ -217,9 +218,15 @@ function minionController(minion) {
             {opacity: 0.8, font: 0.4, stroke: '#000000', strokeWidth: 0.05}
         );
     } catch (e) {
-        log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
-        log.e(e.stack);
-        Game.notify(e.stack);
+        if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
+        if (errorCount[minion.name] < 10) {
+            log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
+            log.e(e.stack);
+            Game.notify(e.stack);
+        } else {
+            log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been marked for recycling due to hitting the error cap.');
+            minion.memory.recycle = true;
+        }
     }
 }
 
