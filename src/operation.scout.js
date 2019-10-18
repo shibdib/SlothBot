@@ -107,7 +107,7 @@ Creep.prototype.scoutRoom = function () {
                     priority: 1
                 };
                 // If owned room has tower
-            } else if (SIEGE_ENABLED && maxLevel >= 6) {
+            } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
                     if (towers.length >= 3 && nukeTarget(this.room)) {
                         cache[Game.flags[name].pos.roomName] = {
@@ -124,10 +124,17 @@ Creep.prototype.scoutRoom = function () {
                             priority: priority
                         };
                     }
-                } else if (towers.length <= 1) {
+                } else if (towers.length <= 1 && maxLevel >= 7) {
                     cache[this.room.name] = {
                         tick: tick,
                         type: 'siegeGroup',
+                        level: 1,
+                        priority: priority
+                    };
+                } else if (towers.length <= 2 && maxLevel >= 6) {
+                    cache[this.room.name] = {
+                        tick: tick,
+                        type: 'drain',
                         level: 1,
                         priority: priority
                     };
