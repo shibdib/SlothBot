@@ -24,7 +24,7 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(JSON.parse(creep.memory.misc));
+            creep.memory.destination = _.sample(_.union(JSON.parse(creep.memory.misc), [creep.memory.overlord]));
         } else {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
@@ -86,10 +86,12 @@ function remoteRoads(creep) {
     let goHome = Game.map.findExit(creep.room.name, creep.memory.overlord);
     let homeExit = creep.room.find(goHome);
     let homeMiddle = _.round(homeExit.length / 2);
-    let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
-    for (let container of containers) {
-        if (_.size(Game.constructionSites) >= 70) return false;
-        if (buildRoadFromTo(creep.room, container, homeExit[homeMiddle])) return true;
+    if (!Memory.roomCache[creep.room.name] || !Memory.roomCache[creep.room.name].owner) {
+        let containers = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER);
+        for (let container of containers) {
+            if (_.size(Game.constructionSites) >= 70) return false;
+            if (buildRoadFromTo(creep.room, container, homeExit[homeMiddle])) return true;
+        }
     }
     for (let key in sources) {
         if (_.size(Game.constructionSites) >= 70) return false;

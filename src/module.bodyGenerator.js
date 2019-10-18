@@ -35,9 +35,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             carry = _.random(2, level);
             move = work + carry;
             break;
-        case 'remoteRoad':
+        case 'roadBuilder':
         case 'repairer':
-            work = 2;
+            work = _.random(2, level);
             carry = 1;
             move = work + carry;
             break;
