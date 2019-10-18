@@ -287,25 +287,22 @@ function findRoute(origin, destination, options = {}) {
         routeCallback: function (roomName) {
             // room is too far out of the way
             if (Game.map.getRoomLinearDistance(origin, roomName) > restrictDistance) return 256;
-            // If room is under attack
-            if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel) return 50;
             // My rooms
             if (Game.rooms[roomName] && Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) return 1;
-            // If room has an ongoing operation
-            if (Memory.targetRooms && Memory.targetRooms[roomName]) return 40;
             // Get special rooms via name
             let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-            let isHighway = (parsed[1] % 10 === 0) ||
-                (parsed[2] % 10 === 0);
+            let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
             // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
             if (!options.allowSK && (Memory.roomCache[roomName] && Memory.roomCache[roomName].sk)) return 5;
             // Check for manual flagged rooms
             if (Memory.avoidRooms && _.includes(Memory.avoidRooms, roomName)) return 254;
             if (Memory.roomCache && Memory.roomCache[roomName]) {
+                // If room is under attack
+                if (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 3) return 50;
                 // Friendly Rooms
-                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 1;
+                if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 4;
                 // Avoid rooms owned by others
-                if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) {
+                if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
                     if (Memory.roomCache[roomName].level > 3) return 256; else return 25;
                 }
                 // Avoid rooms reserved by others
