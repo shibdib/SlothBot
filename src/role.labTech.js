@@ -273,8 +273,8 @@ function boostDelivery(creep) {
     if (lab.mineralType === lab.memory.neededBoost && lab.mineralAmount >= boostCreep.memory.boostNeeded) return false;
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;
-    creep.say(ICONS.boost, true);
-    if (creep.carry[lab.memory.neededBoost] === _.sum(creep.carry)) {
+    creep.say(lab.memory.neededBoost, true);
+    if (_.sum(creep.carry) > 0 && creep.carry[lab.memory.neededBoost] === _.sum(creep.carry)) {
         switch (creep.transfer(lab, lab.memory.neededBoost)) {
             case OK:
                 return delete creep.memory.labTech;
