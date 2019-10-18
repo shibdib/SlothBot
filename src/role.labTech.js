@@ -274,12 +274,12 @@ function boostDelivery(creep) {
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;
     creep.say(lab.memory.neededBoost, true);
-    if (_.sum(creep.carry) > 0 && creep.carry[lab.memory.neededBoost] === _.sum(creep.carry)) {
+    if (_.sum(creep.carry) && creep.carry[lab.memory.neededBoost] === _.sum(creep.carry)) {
         switch (creep.transfer(lab, lab.memory.neededBoost)) {
             case OK:
                 return delete creep.memory.labTech;
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(lab, {ignoreCreeps: false});
+                creep.shibMove(lab);
                 creep.memory.labTech = true;
                 return true;
         }

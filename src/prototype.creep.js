@@ -252,6 +252,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'attack':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_UTRIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(ATTACK) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ACID);
@@ -264,6 +265,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'upgrade':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ACID);
@@ -276,6 +278,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'tough':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(TOUGH) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_GHODIUM_ALKALIDE);
@@ -288,6 +291,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'ranged':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(RANGED_ATTACK) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_KEANIUM_ALKALIDE);
@@ -300,6 +304,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'heal':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(HEAL) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
@@ -312,6 +317,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'build':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_LEMERGIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_LEMERGIUM_ACID);
@@ -324,6 +330,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'move':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(MOVE) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
@@ -336,6 +343,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'harvest':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_UTRIUM_ALKALIDE);
@@ -348,6 +356,7 @@ Creep.prototype.tryToBoost = function (boosts, require = false) {
                 case 'dismantle':
                     boostInRoom = getBoostAmount(this.room, RESOURCE_CATALYZED_ZYNTHIUM_ACID);
                     boostNeeded = this.getActiveBodyparts(WORK) * 30;
+                    if (!boostNeeded) continue;
                     this.memory.boostNeeded = boostNeeded;
                     if (boostInRoom >= boostNeeded) {
                         available.push(RESOURCE_CATALYZED_ZYNTHIUM_ACID);
