@@ -347,7 +347,7 @@ function emergencyEnergy(terminal) {
     // Balance energy
     if (terminal.store[RESOURCE_ENERGY] >= 7500 && !Memory.roomCache[terminal.room.name].requestingSupport) {
         // Find needy terminals
-        let responseNeeded = _.min(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && (Memory.roomCache[r.name].threatLevel >= 4 || r.memory.nuke) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
+        let responseNeeded = _.min(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && (Memory.roomCache[r.name].threatLevel >= 4 || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
         if (responseNeeded && responseNeeded.name) {
             let needyTerminal = responseNeeded.terminal;
             // Determine how much you can move

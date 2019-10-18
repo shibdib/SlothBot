@@ -538,30 +538,6 @@ function urgentMilitary(room) {
     }
 }
 
-Room.prototype.handleNukeAttack = function () {
-    let nukes = this.find(FIND_NUKES);
-    if (!nukes.length) {
-        this.memory.nuke = undefined;
-        return false;
-    }
-    this.memory.nuke = _.min(nukes, '.timeToLand').timeToLand;
-    for (let nuke of nukes) {
-        if (nuke.timeToLand <= 75) {
-            for (let c of nuke.room.creeps) {
-                c.memory.fleeNukeTime = Game.time + nuke.timeToLand + 2;
-                c.memory.fleeNukeRoom = nuke.room.name;
-            }
-            return true;
-        }
-        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL});
-        for (let structure of structures) {
-            if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
-            structure.pos.createConstructionSite(STRUCTURE_RAMPART);
-        }
-    }
-    return true;
-};
-
 Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false, minLevel = 1) {
     let distance = 0;
     let closest;

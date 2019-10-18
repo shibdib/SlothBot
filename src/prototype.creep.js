@@ -611,13 +611,13 @@ Creep.prototype.abilityPower = function (ignoreTough = undefined) {
 };
 
 
-Creep.prototype.fleeRoom = function (room) {
-    if (this.room.name !== room) return this.idleFor(this.memory.fleeNukeTime);
+Creep.prototype.fleeNukeRoom = function () {
+    this.say('NUKE!', true);
     if (this.memory.fleeNukeTime <= Game.time) {
         this.memory.fleeNukeTime = undefined;
         this.memory.fleeNukeRoom = undefined;
+        return false;
     }
-    let exit = this.pos.findClosestByPath(FIND_EXIT);
-    this.say('NUKE! RUN!', true);
-    this.shibMove(exit);
+    if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
+    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(Memory.ownedRooms, (r) => r.name !== this.memory.overlord)).name;
 };

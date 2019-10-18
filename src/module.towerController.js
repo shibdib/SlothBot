@@ -35,7 +35,7 @@ module.exports.towerControl = function (room) {
             if (nukeRampart) {
                 for (let tower of towers) tower.repair(nukeRampart);
             } else {
-                nukeRampart = _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && (s.hits + ((towers.length * 500) * (s.pos.findClosestByRange(FIND_NUKES).timeToLand * 0.8))) >= NUKE_DAMAGE[2]), 'hits');
+                nukeRampart = _.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_NUKES)) <= 5 && s.hits < NUKE_DAMAGE[2] + 15000 && (s.hits + ((towers.length * 500) * (s.pos.findClosestByRange(FIND_NUKES).timeToLand * 0.8))) >= NUKE_DAMAGE[2])[0];
                 for (let tower of towers) tower.repair(nukeRampart);
             }
         } else if (repairTower.energy > repairTower.energyCapacity * 0.5) {

@@ -20,17 +20,17 @@ module.exports.controller = function (room) {
     // Check for invaders and request help
     room.invaderCheck();
 
-    // Tower control
-    towers.towerControl(room);
-
     // Handle nuke defense
-    if (Game.time % 100 === 0) room.handleNukeAttack();
+    if (Game.time % 5 === 0) handleNukeAttack(room);
 
     // Check if you should safemode
     if (Game.time % 5 === 0) safeModeManager(room);
 
     // Abandon hopeless rooms
     if (Game.time % 5 === 0 && room.controller.level < 6) unsavableCheck(room);
+
+    // Tower control
+    towers.towerControl(room);
 
     //Manage Ramparts for Allies
     rampartManager(room, structures);
@@ -162,4 +162,28 @@ abandonOverrun = function (room) {
     delete room.memory;
     delete Memory.roomCache[room.name];
     room.controller.unclaim();
+};
+
+handleNukeAttack = function (room) {
+    let nukes = room.find(FIND_NUKES);
+    if (!nukes.length) {
+        room.memory.nuke = undefined;
+        return false;
+    }
+    room.memory.nuke = _.min(nukes, '.timeToLand').timeToLand;
+    for (let nuke of nukes) {
+        if (nuke.timeToLand <= 75) {
+            for (let c of nuke.room.creeps) {
+                c.memory.fleeNukeTime = Game.time + nuke.timeToLand + 2;
+                c.memory.fleeNukeRoom = nuke.room.name;
+            }
+            return true;
+        }
+        let structures = nuke.pos.findInRange(FIND_MY_STRUCTURES, 5, {filter: (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_TERMINAL});
+        for (let structure of structures) {
+            if (structure.pos.checkForConstructionSites() || structure.pos.checkForRampart()) continue;
+            structure.pos.createConstructionSite(STRUCTURE_RAMPART);
+        }
+    }
+    return true;
 };

@@ -27,10 +27,11 @@ module.exports.overlordMind = function (room) {
     // Handle Defense
     defense.controller(room);
 
+    // Request builders
+    if (Math.random() > 0.7) requestBuilders(room);
+
     //Build Room
     if (!room.memory.extensionHub || (room.controller.level < 4 && Game.time % 500 === 0 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
-        // Request builders
-        if (Math.random() > 0.7) requestBuilders(room);
         try {
             planner.buildRoom(room);
         } catch (e) {
@@ -158,6 +159,8 @@ function minionController(minion) {
     if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
     if (minion.ticksToLive > 1490) minion.notifyWhenAttacked(false);
+    // Handle nuke flee
+    if (minion.memory.fleeNukeTime && minion.fleeNukeRoom(minion.memory.fleeNukeRoom)) return;
     // If idle sleep
     if (minion.idle) return;
     // If minion has been flagged to recycle do so
@@ -177,8 +180,6 @@ function minionController(minion) {
         minion.room.invaderCheck();
         minion.room.cacheRoomIntel();
     }
-    // Handle nuke flee
-    if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
     let memoryRole = minion.memory.role;
     // Run role and log CPU
@@ -236,5 +237,5 @@ function cacheRoomItems(room) {
 }
 
 function requestBuilders(room) {
-    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0]) && room.memory.extensionHub;
+    room.memory.buildersNeeded = (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0]);
 }

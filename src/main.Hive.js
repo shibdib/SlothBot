@@ -138,7 +138,7 @@ function minionController(minion) {
     // Report damage if hits are low
     if (minion.hits < minion.hitsMax) minion.trackThreat();
     // Handle nuke flee
-    if (minion.memory.fleeNukeTime && minion.fleeRoom(minion.memory.fleeNukeRoom)) return;
+    if (minion.memory.fleeNukeTime && minion.fleeNukeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role
     let memoryRole = minion.memory.role;
     let start = Game.cpu.getUsed();
