@@ -28,7 +28,7 @@ module.exports.role = function (creep) {
         } else if (Math.random() > 0.98) creep.memory.onContainer = undefined;
         let extractor = Game.getObjectById(creep.memory.extractor);
         if (!extractor) return creep.memory.recycle = true;
-        if (Game.getObjectById(creep.room.memory.extractorContainer) && _.sum(Game.getObjectById(creep.room.memory.extractorContainer).store) === 2000) return creep.idleFor(25);
+        if (Game.getObjectById(creep.room.memory.extractorContainer) && _.sum(Game.getObjectById(creep.room.memory.extractorContainer).store) === 2000 && !creep.pos.getRangeTo(Game.getObjectById(creep.room.memory.extractorContainer))) return creep.idleFor(25);
         if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {
             creep.idleFor(extractor.cooldown - 1)
         } else {
