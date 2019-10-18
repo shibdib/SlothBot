@@ -404,7 +404,7 @@ function manageAttacks() {
         }
         // Delete wave based rooms at the threshold
         if (Memory.targetRooms[key].waves) {
-            if (Memory.targetRooms[key].waves >= 3) {
+            if (Memory.targetRooms[key].waves >= 5) {
                 delete Memory.targetRooms[key];
                 log.a('Canceling operation in ' + roomLink(key) + ' as it has reached the maximum number of attack waves.', 'HIGH COMMAND: ');
             }
