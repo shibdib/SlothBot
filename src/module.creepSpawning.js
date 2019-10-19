@@ -262,7 +262,7 @@ module.exports.miscCreepQueue = function (room) {
     if (inBuild || (!inBuild && room.constructionSites.length)) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let priority = PRIORITIES.drone;
-        let amount = roomSourceSpace[room.name] || 1;
+        let amount = roomSourceSpace[room.name] || 2;
         if (TEN_CPU) amount = 2;
         if ((drones.length && room.energy < 5000) || !inBuild) {
             amount = 1;
