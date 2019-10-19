@@ -104,8 +104,8 @@ function shibMove(creep, heading, options = {}) {
     if (pathInfo.pathPosTime && pathInfo.pathPosTime >= STATE_STUCK) {
         let bumpCreep = _.filter(creep.room.creeps, (c) => c.memory && !c.memory.trailer && c.getActiveBodyparts(MOVE) && c.pos.x === pathInfo.newPos.x && c.pos.y === pathInfo.newPos.y &&
             c.memory.role !== 'Reserver')[0];
-        if (bumpCreep && !creep.memory.trailer) {
-            bumpCreep.shibMove(creep, {range: 0});
+        if (bumpCreep && !creep.memory.trailer && Math.random() > 0.5) {
+            bumpCreep.move(bumpCreep.pos.getDirectionTo(creep));
             bumpCreep.say(ICONS.traffic, true)
         } else {
             delete pathInfo.path;
