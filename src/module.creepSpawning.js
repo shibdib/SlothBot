@@ -238,7 +238,7 @@ module.exports.essentialCreepQueue = function (room) {
         if (level < 5 && !inBuild) {
             number = 6;
             if (room.memory.controllerContainer) number = Game.getObjectById(room.memory.controllerContainer).pos.countOpenTerrainAround()
-        } else if (level >= 5 && room.memory.energySurplus) number = 2;
+        } else if (level >= 5 && room.memory.energySurplus && level !== 8) number = 2;
         if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
             //If room is about to downgrade get a creep out asap
             let reboot;
