@@ -54,6 +54,7 @@ function buildFromLayout(room) {
             filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LAB);
         }
     }
+    let built;
     for (let structure of shuffle(filter)) {
         let pos = new RoomPosition(structure.x, structure.y, room.name);
         if (level !== extensionLevel && (structure.structureType !== STRUCTURE_EXTENSION && structure.structureType !== STRUCTURE_SPAWN && structure.structureType !== STRUCTURE_TOWER && structure.structureType !== STRUCTURE_TERMINAL)) continue;
@@ -63,7 +64,30 @@ function buildFromLayout(room) {
         if (structure.structureType === STRUCTURE_LAB && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 1 && !pos.isNearTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
         if (structure.structureType === STRUCTURE_LAB && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 2 && !pos.isNearTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
-            if (pos.createConstructionSite(structure.structureType) === OK) break;
+            if (pos.createConstructionSite(structure.structureType) === OK) {
+                built = true;
+                break;
+            }
+        }
+    }
+    // Handle special buildings
+    if (!built && level === 8 && level === extensionLevel) {
+        let factory = _.filter(room.structures, (s) => s.structureType === STRUCTURE_FACTORY)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_FACTORY)[0];
+        let power = _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0];
+        let nuker = _.filter(room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0] || _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_NUKER)[0];
+        if (!factory || !power || !nuker) {
+            let filter = _.filter(layout, (s) => s.structureType === STRUCTURE_EXTENSION);
+            let buildThis = STRUCTURE_FACTORY;
+            if (!power) buildThis = STRUCTURE_POWER_SPAWN; else if (!nuker) buildThis = STRUCTURE_NUKER;
+            for (let structure of shuffle(filter)) {
+                let pos = new RoomPosition(structure.x, structure.y, room.name);
+                if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
+                    if (pos.createConstructionSite(buildThis) === OK) {
+                        built = true;
+                        break;
+                    }
+                }
+            }
         }
     }
     // Hub
