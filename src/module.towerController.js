@@ -87,6 +87,8 @@ module.exports.towerControl = function (room) {
                 for (let tower of towers) tower.attack(hostileCreeps[i]);
                 break;
             } else {
+                let nearbyRampart = _.min(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART && s.pos.findInRange(_.filter(s.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK) || c.getActiveBodyparts(WORK)), 3)[0] && s.hits < 50000 * s.room.controller.level), 'hits');
+                if (nearbyRampart.id) for (let tower of towers) tower.repair(nearbyRampart);
                 room.memory.towerTarget = undefined;
             }
         }
