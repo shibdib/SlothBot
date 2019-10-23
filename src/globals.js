@@ -10,9 +10,9 @@ let Log = require('logger');
 let globals = function () {
 
     //Manually set baddies and friends and combat stuff
-    global.HOSTILES = ['Tanjera', 'MephistoDD'];
+    global.HOSTILES = [];
     global.NO_AGGRESSION = [];
-    global.MANUAL_FRIENDS = ['KittyTack', 'KOR_Solidarity', 'GimmeCookies', 'Sergey', 'duckymirror'];
+    global.MANUAL_FRIENDS = ['Sergey', 'CHARLIEHB1'];
     global.NAP_ALLIANCE = [];
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
