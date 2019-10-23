@@ -444,6 +444,19 @@ module.exports.remoteCreepQueue = function (room) {
         let remotes = JSON.parse(remoteHives[room.name]);
         for (let keys in shuffle(remotes)) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
+            // Handle invader cores
+            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation === 'Invader')) {
+                let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === remotes[keys] && creep.memory.operation === 'guard');
+                if (guards.length < 1 || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < 2)) {
+                    queueCreep(room, PRIORITIES.borderPatrol, {
+                        role: 'attacker',
+                        operation: 'guard',
+                        targetRoom: remotes[keys],
+                        military: true,
+                        localCache: true
+                    })
+                }
+            }
             // If owned or a highway continue
             if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || Memory.roomCache[remotes[keys]].isHighway)) continue;
             // If it's reserved by someone else continue
@@ -512,19 +525,6 @@ module.exports.remoteCreepQueue = function (room) {
                     queueCreep(room, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler',
                         destination: remotes[keys]
-                    })
-                }
-            }
-            // Handle invader cores
-            if (Memory.roomCache[remotes[keys]] && ((Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation === 'Invader') || Memory.roomCache[remotes[keys]].structures)) {
-                let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === remotes[keys] && creep.memory.operation === 'guard');
-                if (guards.length < 1 || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < 2)) {
-                    queueCreep(room, PRIORITIES.borderPatrol, {
-                        role: 'attacker',
-                        operation: 'guard',
-                        targetRoom: remotes[keys],
-                        military: true,
-                        localCache: true
                     })
                 }
             }
