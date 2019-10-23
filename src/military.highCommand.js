@@ -199,7 +199,7 @@ function operationRequests() {
         }
     }
     // Kill strongholds
-    let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.owner && r.owner === 'Invader' && r.closestRange <= 6), 'closestRange');
+    let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers), 'closestRange');
     if (stronghold.length) {
         for (let target of enemyHarass) {
             if (Memory.targetRooms[target.name]) continue;
