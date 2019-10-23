@@ -456,6 +456,15 @@ module.exports.remoteCreepQueue = function (room) {
                         localCache: true
                     })
                 }
+                let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
+                let amount = 1;
+                if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap - 1;
+                if (reserver.length < amount) {
+                    queueCreep(room, PRIORITIES.reserver + reserver.length, {
+                        role: 'reserver',
+                        reservationTarget: remotes[keys]
+                    })
+                }
             }
             // If owned or a highway continue
             if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || Memory.roomCache[remotes[keys]].isHighway)) continue;
