@@ -158,7 +158,7 @@ function militaryScout(room) {
                 // If owned room has tower
             } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
-                    if (towers.length >= 3 && nukeTarget(this.room)) {
+                    if (towers.length >= 3 && nukeTarget(room)) {
                         cache[Game.flags[name].pos.roomName] = {
                             tick: tick,
                             dDay: tick + 50000,
@@ -166,7 +166,7 @@ function militaryScout(room) {
                             level: 1
                         };
                     } else if (towers.length <= 3) {
-                        cache[this.room.name] = {
+                        cache[room.name] = {
                             tick: tick,
                             type: 'siege',
                             level: 1,
@@ -174,14 +174,14 @@ function militaryScout(room) {
                         };
                     }
                 } else if (towers.length <= 1 && maxLevel >= 7) {
-                    cache[this.room.name] = {
+                    cache[room.name] = {
                         tick: tick,
                         type: 'siegeGroup',
                         level: 1,
                         priority: priority
                     };
                 } else if (towers.length <= 2 && maxLevel >= 6) {
-                    cache[this.room.name] = {
+                    cache[room.name] = {
                         tick: tick,
                         type: 'drain',
                         level: 1,
