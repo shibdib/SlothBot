@@ -19,7 +19,7 @@ module.exports.role = function (creep) {
     let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
     let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
     if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
-    if (_.sum(creep.store) === creep.store.getCapacity() || !creep.memory.harvesting) {
+    if (creep.isFull || !creep.memory.harvesting) {
         delete creep.memory.harvesting;
         creep.memory.hauling = true;
         return skDeposit(creep);

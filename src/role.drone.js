@@ -22,7 +22,7 @@ module.exports.role = function role(creep) {
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
-    if (_.sum(creep.store) === creep.store.getCapacity()) {
+    if (creep.isFull) {
         creep.memory.working = true;
         creep.memory.source = undefined;
         creep.memory.harvest = undefined;

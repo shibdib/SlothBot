@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     let terminal = creep.room.terminal;
     if (!creep.store[RESOURCE_ENERGY]) creep.memory.working = undefined;
-    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.8) creep.memory.working = true;
+    if (creep.isFull) creep.memory.working = true;
     if (creep.memory.working === true) {
         if (creep.upgradeController(Game.rooms[creep.memory.destination].controller) === ERR_NOT_IN_RANGE) creep.shibMove(Game.rooms[creep.memory.destination].controller, {range: 3});
         if (container && creep.pos.getRangeTo(container) <= 1 && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);

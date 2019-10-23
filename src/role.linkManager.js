@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     if (Game.time % 150 === 0 && creep.wrongRoom()) return;
     creep.say(ICONS.haul, true);
     // If hauling do things
-    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.5) creep.memory.hauling = true;
+    if (creep.isFull) creep.memory.hauling = true;
     if (!_.sum(creep.store)) creep.memory.hauling = undefined;
     if (creep.memory.hauling) {
         // Hub Container

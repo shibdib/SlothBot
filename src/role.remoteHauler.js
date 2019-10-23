@@ -62,7 +62,7 @@ module.exports.role = function (creep) {
         // Handle Moving
         if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
         // Check if ready to haul
-        if (!creep.memory.hauling && (_.sum(creep.store) >= creep.store.getCapacity() * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.store)))) return creep.memory.hauling = true;
+        if (!creep.memory.hauling && (creep.isFull || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.store)))) return creep.memory.hauling = true;
         if (!creep.memory.energyDestination) findResources(creep);
         if (creep.memory.energyDestination) {
             let energy = Game.getObjectById(creep.memory.energyDestination);
