@@ -24,7 +24,7 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
             cooldown = true;
         }
     }
-    let hostileRoom = this.room.controller && !this.room.controller.my && this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username);
+    let hostileRoom = this.room.controller && !this.room.controller.my && ((this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && !_.includes(FRIENDLIES, this.room.controller.reservation.username)));
     // Towers die first (No ramps)
     if (hostileRoom) {
         filter = {filter: (c) => c.structureType === STRUCTURE_TOWER && !c.pos.checkForRampart() && c.isActive()};
@@ -105,18 +105,19 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
         return enemy;
     }
     // If friendly room leave other structures alone
-    if ((this.room.controller && this.room.controller.reservation && _.includes(FRIENDLIES, this.room.controller.reservation.username)) || (this.room.controller && this.room.controller.owner && _.includes(FRIENDLIES, this.room.controller.owner.username))) return false;
-    filter = {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_EXTRACTOR && c.structureType !== STRUCTURE_PORTAL};
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.structures, filter);
-    if (enemy) {
-        searchCooldown[this.name] = undefined;
-        this.memory.target = enemy.id;
-        return enemy;
-    } else if (barriers && this.findClosestBarrier()) {
-        enemy = this.findClosestBarrier();
-        searchCooldown[this.name] = undefined;
-        this.memory.target = enemy.id;
-        return enemy;
+    if (hostileRoom) {
+        filter = {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_EXTRACTOR && c.structureType !== STRUCTURE_PORTAL};
+        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.structures, filter);
+        if (enemy) {
+            searchCooldown[this.name] = undefined;
+            this.memory.target = enemy.id;
+            return enemy;
+        } else if (barriers && this.findClosestBarrier()) {
+            enemy = this.findClosestBarrier();
+            searchCooldown[this.name] = undefined;
+            this.memory.target = enemy.id;
+            return enemy;
+        }
     }
     return false;
 };
@@ -178,7 +179,8 @@ Creep.prototype.attackHostile = function (hostile) {
             return true;
         case ERR_NOT_IN_RANGE:
             if (this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
-            return this.shibMove(moveTarget, {ignoreCreeps: false, range: 0});
+            this.shibMove(moveTarget, {ignoreCreeps: false, range: 1});
+            return true;
     }
 };
 
@@ -249,18 +251,15 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     if (!this.getActiveBodyparts(HEAL) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     // If target fight
     if (hostile && hostile.pos.roomName === this.pos.roomName && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
-        let range = this.pos.getRangeTo(hostile);
-        if (this.getActiveBodyparts(HEAL) && (!this.getActiveBodyparts(RANGED_ATTACK) && range > 1) || (this.getActiveBodyparts(RANGED_ATTACK) && range > 3)) this.healInRange();
+        this.say(1)
         // Heal if needed
         if (!this.getActiveBodyparts(ATTACK) && this.getActiveBodyparts(HEAL) && this.hits < this.hitsMax) this.heal(this);
         // Fight from rampart
         if (rampart && this.fightRampart(hostile)) return true;
         // Melee attacker
-        if (this.getActiveBodyparts(ATTACK)) return this.attackHostile(hostile);
+        if (this.getActiveBodyparts(ATTACK) && this.attackHostile(hostile)) return true;
         // Ranged attacker
-        if (this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) this.fightRanged(hostile);
-        return true;
-        // If no target heal
+        return !!(this.getActiveBodyparts(RANGED_ATTACK) && this.fightRanged(hostile));
     } else if (_.filter(this.room.friendlyCreeps, (c) => c.hits < c.hitsMax).length && this.getActiveBodyparts(HEAL)) {
         if (this.healMyCreeps()) return true;
         if (this.healAllyCreeps()) return true;
