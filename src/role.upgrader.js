@@ -19,16 +19,16 @@ module.exports.role = function (creep) {
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (creep.memory.working) {
-        if (!creep.memory.onContainer) {
-            if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
-                return creep.shibMove(container, {range: 0});
-            } else {
-                creep.memory.onContainer = true;
-            }
-        }
         switch (creep.upgradeController(Game.rooms[creep.memory.overlord].controller)) {
             case OK:
                 if (Math.random() > 0.99) creep.memory.onContainer = undefined;
+                if (!creep.memory.onContainer) {
+                    if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
+                        return creep.shibMove(container, {range: 0});
+                    } else {
+                        creep.memory.onContainer = true;
+                    }
+                }
                 delete creep.memory._shibMove;
                 if (link && link.energy) {
                     creep.withdrawResource(link);
