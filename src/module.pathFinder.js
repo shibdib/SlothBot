@@ -42,6 +42,8 @@ function shibMove(creep, heading, options = {}) {
         flee: false,
         usePortal: undefined
     });
+    // Clear bad tow creeps
+    if (creep.memory.towCreep && !Game.getObjectById(creep.memory.towCreep)) creep.memory.towCreep = undefined;
     // Handle fatigue
     if (creep.fatigue > 0 || !heading) {
         if (!creep.memory.military) creep.idleFor(1);
@@ -72,7 +74,6 @@ function shibMove(creep, heading, options = {}) {
             creep.memory.towDestination = undefined;
         }
         if (creep.memory.towDestination && creep.memory.towCreep) {
-            if (!Game.getObjectById(creep.memory.towCreep)) creep.memory.towCreep = undefined;
             return;
         }
     }
