@@ -201,10 +201,10 @@ function operationRequests() {
     // Kill strongholds
     let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers), 'closestRange');
     if (stronghold.length) {
-        for (let target of enemyHarass) {
+        for (let target of stronghold) {
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 3000 > Game.time) continue;
+            if (lastOperation + 1000 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -212,7 +212,7 @@ function operationRequests() {
                 type: 'attack'
             };
             Memory.targetRooms = cache;
-            log.a('Scout operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+            log.a('Scout operation planned for ' + roomLink(target.name) + ' SUSPECTED INVADER STRONGHOLD (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
             break;
         }
     }
