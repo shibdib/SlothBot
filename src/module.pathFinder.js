@@ -285,6 +285,8 @@ function findRoute(origin, destination, options = {}) {
     if (route) return route;
     route = Game.map.findRoute(origin, destination, {
         routeCallback: function (roomName) {
+            // Skip origin/destination
+            if (roomName === origin || roomName === destination) return 1;
             // room is too far out of the way
             if (Game.map.getRoomLinearDistance(origin, roomName) > restrictDistance) return 256;
             // My rooms
@@ -303,8 +305,10 @@ function findRoute(origin, destination, options = {}) {
                 if (Memory.roomCache[roomName].user && _.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 4;
                 // Avoid rooms owned by others
                 if (Memory.roomCache[roomName].owner && !_.includes(FRIENDLIES, Memory.roomCache[roomName].owner)) {
-                    if (Memory.roomCache[roomName].level > 3) return 256; else return 25;
+                    if (Memory.roomCache[roomName].towers) return 256; else return 25;
                 }
+                // Avoid strongholds
+                if (Memory.roomCache[roomName].sk && Memory.roomCache[roomName].towers) return 256;
                 // Avoid rooms reserved by others
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 15;
             } else
