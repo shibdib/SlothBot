@@ -14,11 +14,11 @@ module.exports.role = function (creep) {
     if (creep.tryToBoost(['build'])) return;
     creep.say(ICONS.castle, true);
     if (creep.wrongRoom()) return;
-    if (creep.carry.energy === 0) {
+    if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;
         if (Memory.roomCache[creep.room.name].responseNeeded) creep.memory.currentTarget = undefined;
     }
-    if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
+    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.8) creep.memory.working = true;
     if (creep.memory.working) {
         delete creep.memory.harvest;
         creep.memory.source = undefined;

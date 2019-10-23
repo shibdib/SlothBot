@@ -16,7 +16,7 @@ module.exports.role = function (creep) {
     if (creep.room.terminal.store[RESOURCE_POWER]) powerSource = creep.room.terminal;
     if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
     if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage;
-    if (creep.carry[RESOURCE_ENERGY] && powerSpawn.energy < powerSpawn.energyCapacity) {
+    if (creep.store[RESOURCE_ENERGY] && powerSpawn.energy < powerSpawn.energyCapacity) {
         switch (creep.transfer(powerSpawn, RESOURCE_ENERGY)) {
             case OK:
                 return true;
@@ -24,7 +24,7 @@ module.exports.role = function (creep) {
                 creep.shibMove(powerSpawn);
                 return true;
         }
-    } else if (creep.carry[RESOURCE_POWER] && powerSpawn.power !== powerSpawn.powerCapacity) {
+    } else if (creep.store[RESOURCE_POWER] && powerSpawn.power !== powerSpawn.powerCapacity) {
         switch (creep.transfer(powerSpawn, RESOURCE_POWER)) {
             case OK:
                 return false;
@@ -32,11 +32,11 @@ module.exports.role = function (creep) {
                 creep.shibMove(powerSpawn);
                 return true;
         }
-    } else if (_.sum(creep.carry)) {
+    } else if (_.sum(creep.store)) {
         creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
         if (creep.memory.storageDestination) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);
-            for (const resourceType in creep.carry) {
+            for (const resourceType in creep.store) {
                 switch (creep.transfer(storageItem, resourceType)) {
                     case OK:
                         creep.memory.storageDestination = undefined;

@@ -18,21 +18,21 @@ module.exports.role = function (creep) {
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
             // Check if empty
-            if (_.sum(creep.carry) === 0) {
+            if (!_.sum(creep.store)) {
                 creep.memory.storageDestination = undefined;
                 creep.memory.hauling = undefined;
                 return;
             }
             // If carrying minerals deposit in terminal or storage
-            if (_.sum(creep.carry) > creep.carry[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
+            if (_.sum(creep.store) > creep.store[RESOURCE_ENERGY]) creep.memory.storageDestination = creep.room.terminal.id || creep.room.storage.id;
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                for (const resourceType in creep.carry) {
+                for (const resourceType in creep.store) {
                     switch (creep.transfer(storageItem, resourceType)) {
                         case OK:
-                            if (!_.sum(creep.carry) && (storageItem.structureType !== STRUCTURE_LINK || creep.memory.waitLink)) {
+                            if (!_.sum(creep.store) && (storageItem.structureType !== STRUCTURE_LINK || creep.memory.waitLink)) {
                                 creep.memory.waitLink = undefined;
-                            } else if (storageItem.structureType === STRUCTURE_LINK && _.sum(creep.carry)) {
+                            } else if (storageItem.structureType === STRUCTURE_LINK && _.sum(creep.store)) {
                                 creep.memory.waitLink = true;
                                 creep.idleFor(storageItem.cooldown + 1 || 5);
                             }
@@ -62,12 +62,12 @@ module.exports.role = function (creep) {
         // Handle Moving
         if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
         // Check if ready to haul
-        if (!creep.memory.hauling && (_.sum(creep.carry) >= creep.carryCapacity * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry)))) return creep.memory.hauling = true;
+        if (!creep.memory.hauling && (_.sum(creep.store) >= creep.store.getCapacity() * 0.8 || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.store)))) return creep.memory.hauling = true;
         if (!creep.memory.energyDestination) findResources(creep);
         if (creep.memory.energyDestination) {
             let energy = Game.getObjectById(creep.memory.energyDestination);
-            let amount = creep.carryCapacity - _.sum(creep.carry);
-            if (energy && creep.getActiveBodyparts(MOVE) < creep.getActiveBodyparts(CARRY) && energy.pos.findInRange(energy.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.carryCapacity / 2) - _.sum(creep.carry);
+            let amount = creep.store.getCapacity() - _.sum(creep.store);
+            if (energy && creep.getActiveBodyparts(MOVE) < creep.getActiveBodyparts(CARRY) && energy.pos.findInRange(energy.room.structures, 4, {filter: (s) => s.structureType === STRUCTURE_ROAD}).length < 3) amount = (creep.store.getCapacity() / 2) - _.sum(creep.store);
             return creep.withdrawResource(energy, amount);
         } else {
             creep.idleFor(10);
@@ -76,25 +76,25 @@ module.exports.role = function (creep) {
 };
 
 findResources = function (creep) {
-    let droppedResource = creep.pos.findClosestByRange(creep.room.droppedResources, {filter: (r) => r.type !== RESOURCE_ENERGY && r.amount >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    let droppedResource = creep.pos.findClosestByRange(creep.room.droppedResources, {filter: (r) => r.type !== RESOURCE_ENERGY && r.amount >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
     if (droppedResource) {
         creep.memory.energyDestination = droppedResource.id;
         return true;
     }
     // Tombstone
-    let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
     if (tombstone) {
         creep.memory.energyDestination = tombstone.id;
         return true;
     }
     //Dropped Energy
-    let droppedEnergy = creep.pos.findClosestByRange(creep.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    let droppedEnergy = creep.pos.findClosestByRange(creep.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
     if (droppedEnergy) {
         creep.memory.energyDestination = droppedEnergy.id;
         return true;
     }
     // Container
-    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.carryCapacity') + (creep.carryCapacity * 0.4)});
+    let container = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
     if (container) {
         creep.memory.energyDestination = container.id;
         return true;
@@ -129,7 +129,7 @@ function dropOff(creep) {
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
     if (!controllerLink && (!importantBuilds || creep.room.memory.energySurplus) && controllerContainer &&
-        controllerContainer.store[RESOURCE_ENERGY] + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === controllerContainer.id), '.carry.energy') < controllerContainer.storeCapacity * 0.5) {
+        controllerContainer.store[RESOURCE_ENERGY] + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === controllerContainer.id), '.store[RESOURCE_ENERGY]') < controllerContainer.storeCapacity * 0.5) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }

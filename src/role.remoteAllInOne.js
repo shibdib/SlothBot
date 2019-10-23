@@ -13,12 +13,12 @@ module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     // Check if ready to haul
-    if (creep.isFull || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.carry))) {
+    if (creep.isFull || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.store))) {
         creep.memory.source = undefined;
         if (creep.pos.roomName === creep.memory.overlord) {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
-                for (const resourceType in creep.carry) {
+                for (const resourceType in creep.store) {
                     switch (creep.transfer(storageItem, resourceType)) {
                         case OK:
                             creep.memory.storageDestination = undefined;

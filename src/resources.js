@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 "use strict";
 
 // Resources Module handles determining what sort of mode we should be operating in.
@@ -96,7 +103,7 @@ function summarize_room_internal(room) {
     const creeps = _.filter(Game.creeps, c => c.memory.overlord === room.name && c.my);
     const num_creeps = creeps ? creeps.length : 0;
     const enemy_creeps = room.find(FIND_HOSTILE_CREEPS);
-    const creep_energy = _.sum(Game.creeps, c => c.memory.overlord === room.name ? c.carry.energy : 0);
+    const creep_energy = _.sum(Game.creeps, c => c.memory.overlord === room.name ? c.store.energy : 0);
     const num_enemies = enemy_creeps ? enemy_creeps.length : 0;
     const spawns = room.find(FIND_MY_SPAWNS);
     const num_spawns = spawns ? spawns.length : 0;

@@ -34,12 +34,12 @@ module.exports.role = function role(creep) {
     // Handle movement
     if (creep.memory.destination && creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});
     // Checks
-    if (creep.carry.energy === 0) {
+    if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.working = undefined;
         creep.memory.constructionSite = undefined;
         creep.memory.task = undefined;
     }
-    if (_.sum(creep.carry) === creep.carryCapacity) {
+    if (creep.isFull) {
         creep.memory.working = true;
         creep.memory.source = undefined;
         creep.memory.harvest = undefined;

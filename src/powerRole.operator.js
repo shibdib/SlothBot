@@ -99,7 +99,7 @@ module.exports.role = function (powerCreep) {
             abilitySwitch(powerCreep, PWR_OPERATE_LAB, targetLab);
         }
         // Linger to generate ops
-        else if (powerCreep.ops < 100 || powerCreep.ops < powerCreep.carryCapacity * 0.5) {
+        else if (powerCreep.ops < 100 || powerCreep.ops < powerCreep.store.getCapacity() * 0.5) {
             powerCreep.idleFor(5);
         }
         else {

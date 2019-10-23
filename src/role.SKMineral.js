@@ -12,14 +12,14 @@ module.exports.role = function (creep) {
     if (creep.shibKite()) return true;
     if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
     //Initial move
-    if (_.sum(creep.carry) === 0) creep.memory.harvesting = true;
+    if (!_.sum(creep.store)) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;
     if (creep.pos.roomName !== creep.memory.destination && !creep.memory.hauling) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 20}); else creep.memory.destinationReached = true;
     // handle safe SK movement
     let lair = creep.pos.findInRange(creep.room.structures, 5, {filter: (s) => s.structureType === STRUCTURE_KEEPER_LAIR})[0];
     let SK = creep.pos.findInRange(creep.room.creeps, 5, {filter: (c) => c.owner.username === 'Source Keeper'})[0];
     if (SK) return creep.shibKite(6); else if (lair && lair.ticksToSpawn <= 10) return creep.flee(lair);
-    if (_.sum(creep.carry) === creep.carryCapacity || !creep.memory.harvesting) {
+    if (_.sum(creep.store) === creep.store.getCapacity() || !creep.memory.harvesting) {
         delete creep.memory.harvesting;
         creep.memory.hauling = true;
         return skDeposit(creep);
@@ -66,7 +66,7 @@ function skDeposit(creep) {
     if (creep.pos.roomName === creep.memory.overlord) {
         if (creep.renewalCheck()) return;
         if (creep.room.storage) {
-            for (const resourceType in creep.carry) {
+            for (const resourceType in creep.store) {
                 switch (creep.transfer(creep.room.storage, resourceType)) {
                     case OK:
                         break;

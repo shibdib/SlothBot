@@ -19,8 +19,8 @@ module.exports.role = function (creep) {
     let storage = creep.room.storage;
     //If creep needs boosts do that first
     if (boostDelivery(creep)) return;
-    if (_.sum(creep.carry) === 0) creep.memory.hauling = false;
-    if (_.sum(creep.carry) > creep.carryCapacity * 0.75) creep.memory.hauling = true;
+    if (!_.sum(creep.store)) creep.memory.hauling = false;
+    if (_.sum(creep.store) > creep.store.getCapacity() * 0.75) creep.memory.hauling = true;
     // Fill needy labs
     if (creep.memory.supplier) return supplyLab(creep);
     // Empty labs
@@ -54,11 +54,11 @@ module.exports.role = function (creep) {
     }
     let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY])[0];
     let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
-    if (_.sum(creep.carry) > 0) {
+    if (_.sum(creep.store)) {
         let storage = creep.room.terminal;
         if (!storage || _.sum(storage.store) > 0.8 * storage.storeCapacity) storage = creep.room.storage;
-        if (nuker && nuker.ghodium < nuker.ghodiumCapacity && creep.carry[RESOURCE_GHODIUM]) storage = nuker;
-        for (let resourceType in creep.carry) {
+        if (nuker && nuker.ghodium < nuker.ghodiumCapacity && creep.store[RESOURCE_GHODIUM]) storage = nuker;
+        for (let resourceType in creep.store) {
             switch (creep.transfer(storage, resourceType)) {
                 case OK:
                     creep.memory.empty = undefined;
@@ -117,8 +117,8 @@ function emptyLab(creep) {
     let storage = creep.room.storage;
     let lab = Game.getObjectById(creep.memory.labHelper);
     creep.say(ICONS.reaction + 'Emptying', true);
-    if (_.sum(creep.carry) > 0) {
-        for (let resourceType in creep.carry) {
+    if (_.sum(creep.store)) {
+        for (let resourceType in creep.store) {
             if (_.sum(terminal.store) < terminal.storeCapacity * 0.95) {
                 switch (creep.transfer(terminal, resourceType)) {
                     case OK:
@@ -182,10 +182,10 @@ function supplyLab(creep) {
     }
     creep.say(ICONS.reaction + 'Filling', true);
     creep.memory.componentNeeded = lab.memory.itemNeeded;
-    if (!creep.carry[creep.memory.componentNeeded]) {
-        let carried = creep.carry[creep.memory.componentNeeded] || 0;
-        if (_.sum(creep.carry) > carried) {
-            for (let resourceType in creep.carry) {
+    if (!creep.store[creep.memory.componentNeeded]) {
+        let carried = creep.store[creep.memory.componentNeeded] || 0;
+        if (_.sum(creep.store) > carried) {
+            for (let resourceType in creep.store) {
                 if (resourceType === creep.memory.componentNeeded) continue;
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
@@ -232,8 +232,8 @@ function supplyLab(creep) {
             }
         }
     } else {
-        if (_.sum(creep.carry) > creep.carry[creep.memory.componentNeeded]) {
-            for (let resourceType in creep.carry) {
+        if (_.sum(creep.store) > creep.store[creep.memory.componentNeeded]) {
+            for (let resourceType in creep.store) {
                 if (resourceType === creep.memory.componentNeeded) continue;
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
@@ -274,7 +274,7 @@ function boostDelivery(creep) {
     let terminal = creep.room.terminal;
     let storage = creep.room.storage;
     creep.say(lab.memory.neededBoost, true);
-    if (_.sum(creep.carry) && creep.carry[lab.memory.neededBoost] === _.sum(creep.carry)) {
+    if (_.sum(creep.store) && creep.store[lab.memory.neededBoost] === _.sum(creep.store)) {
         switch (creep.transfer(lab, lab.memory.neededBoost)) {
             case OK:
                 return delete creep.memory.labTech;
@@ -283,8 +283,8 @@ function boostDelivery(creep) {
                 creep.memory.labTech = true;
                 return true;
         }
-    } else if (_.sum(creep.carry) > creep.carry[lab.memory.neededBoost]) {
-        for (let resourceType in creep.carry) {
+    } else if (_.sum(creep.store) > creep.store[lab.memory.neededBoost]) {
+        for (let resourceType in creep.store) {
             if (resourceType === lab.memory.neededBoost) continue;
             switch (creep.transfer(terminal, resourceType)) {
                 case OK:
@@ -298,9 +298,9 @@ function boostDelivery(creep) {
         }
     }
     if (lab.mineralType && lab.mineralType !== lab.memory.neededBoost) {
-        if (_.sum(creep.carry) > 0) {
+        if (_.sum(creep.store) > 0) {
             let storage = creep.room.terminal || creep.room.storage;
-            for (let resourceType in creep.carry) {
+            for (let resourceType in creep.store) {
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
                         return true;
@@ -340,8 +340,8 @@ function boostDelivery(creep) {
                 return false;
             }
         } else {
-            let amount = creep.carryCapacity;
-            if (boostCreep.memory.boostNeeded < creep.carryCapacity) amount = boostCreep.memory.boostNeeded;
+            let amount = creep.store.getCapacity();
+            if (boostCreep.memory.boostNeeded < creep.store.getCapacity()) amount = boostCreep.memory.boostNeeded;
             if (!Game.getObjectById(creep.memory.itemStorage) || !Game.getObjectById(creep.memory.itemStorage).store) return creep.memory.itemStorage = undefined;
             if (Game.getObjectById(creep.memory.itemStorage).store[lab.memory.neededBoost] < amount) amount = Game.getObjectById(creep.memory.itemStorage).store[lab.memory.neededBoost];
             switch (creep.withdraw(Game.getObjectById(creep.memory.itemStorage), lab.memory.neededBoost, amount)) {
@@ -367,8 +367,8 @@ function droppedResources(creep) {
     let resources = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType !== RESOURCE_ENERGY})[0];
     if (tombstone) {
         let storage = creep.room.storage;
-        if (_.sum(creep.carry) > 0) {
-            for (let resourceType in creep.carry) {
+        if (_.sum(creep.store) > 0) {
+            for (let resourceType in creep.store) {
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
                         return false;
@@ -390,8 +390,8 @@ function droppedResources(creep) {
         }
     } else if (resources) {
         let storage = creep.room.storage;
-        if (_.sum(creep.carry) > 0) {
-            for (let resourceType in creep.carry) {
+        if (_.sum(creep.store) > 0) {
+            for (let resourceType in creep.store) {
                 switch (creep.transfer(storage, resourceType)) {
                     case OK:
                         return false;

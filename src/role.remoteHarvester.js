@@ -39,7 +39,7 @@ module.exports.role = function (creep) {
                     });
                 }**/
                 if (container) {
-                    if (creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
+                    if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                     if (_.sum(container.store) >= 1980) creep.idleFor(20);
                 } else {
                     creep.memory.containerID = undefined;
@@ -86,7 +86,7 @@ module.exports.role = function (creep) {
                 case OK:
                     //if (creep.memory.hauler && Game.time % 50 === 0 && !Game.getObjectById(creep.memory.hauler)) creep.memory.hauler = undefined;
                     if (creep.memory.containerID) {
-                        if (creep.carry[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
+                        if (creep.store[RESOURCE_ENERGY] && container.hits < container.hitsMax * 0.5) return creep.repair(container);
                         if (_.sum(container.store) >= 1980) creep.idleFor(20);
                     }
                     break;
@@ -111,7 +111,7 @@ function harvestDepositContainer(source, creep) {
                 } else if (site && site.pos.getRangeTo(source) === 1) {
                     Memory.roomCache[creep.room.name].builderRequested = true;
                     creep.memory.containerSite = site.id;
-                    if (creep.carry[RESOURCE_ENERGY] && creep.memory.containerSite) {
+                    if (creep.store[RESOURCE_ENERGY] && creep.memory.containerSite) {
                         let site = Game.getObjectById(creep.memory.containerSite);
                         if (!site) return creep.memory.containerSite = undefined;
                         switch (creep.build(site)) {

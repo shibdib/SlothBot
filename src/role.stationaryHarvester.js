@@ -33,7 +33,7 @@ module.exports.role = function (creep) {
                 break;
             case OK:
                 if (container && container.store[RESOURCE_ENERGY] > 10 && creep.memory.linkID && Game.time % 3 === 0) creep.withdraw(container, RESOURCE_ENERGY);
-                if (_.sum(creep.carry) === creep.carryCapacity) return depositEnergy(creep);
+                if (_.sum(creep.store) === creep.store.getCapacity()) return depositEnergy(creep);
                 break;
         }
     } else {

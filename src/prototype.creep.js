@@ -60,7 +60,7 @@ Creep.prototype.idleFor = function (ticks = 0) {
 Creep.prototype.towTruck = function () {
     // Clear broken trailers
     if (this.memory.trailer && !Game.getObjectById(this.memory.trailer)) this.memory.trailer = undefined;
-    if (_.sum(this.carry)) return false;
+    if (_.sum(this.store)) return false;
     if (!this.memory.trailer) {
         let needsTow = _.filter(this.room.creeps, (c) => c.my && c.memory.towDestination && !c.memory.towCreep);
         if (needsTow.length) {
@@ -209,7 +209,7 @@ Creep.prototype.renewalCheck = function (cutoff = 100, target = 1200, force = fa
         if (spawn) {
             switch (spawn.renewCreep(this)) {
                 case OK:
-                    if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
+                    if (this.store[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
                     this.say(ICONS.renew);
                     this.memory.renewingTarget = spawn.id;
                     this.memory.renewing = true;
@@ -465,8 +465,8 @@ function getBoostAmount(room, boost) {
         }
     });
     let boostInRoomCreeps = _.sum(room.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
-        if (s['creep'] && s['creep'].carry) {
-            return s['creep'].carry[boost] || 0;
+        if (s['creep'] && s['creep'].store) {
+            return s['creep'].store[boost] || 0;
         } else {
             return 0;
         }
@@ -475,7 +475,7 @@ function getBoostAmount(room, boost) {
 }
 
 Creep.prototype.repairRoad = function () {
-    if (this.carry[RESOURCE_ENERGY] < 10 || !this.getActiveBodyparts(WORK)) return;
+    if (this.store[RESOURCE_ENERGY] < 10 || !this.getActiveBodyparts(WORK)) return;
     let road = this.pos.lookFor(LOOK_STRUCTURES);
     if (road.length > 0 && road[0].hits < road[0].hitsMax) this.repair(road[0]);
 };
@@ -499,7 +499,7 @@ Creep.prototype.recycleCreep = function () {
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {
-            this._isFull = _.sum(this.carry) >= this.carryCapacity * 0.95;
+            this._isFull = _.sum(this.store) >= this.store.getCapacity() * 0.95;
         }
         return this._isFull;
     },

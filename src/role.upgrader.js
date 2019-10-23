@@ -14,8 +14,8 @@ module.exports.role = function (creep) {
     if (creep.tryToBoost(['upgrade']) || creep.wrongRoom()) return;
     // Handle yelling
     herald(creep);
-    if (_.sum(creep.carry) >= creep.carryCapacity * 0.8) creep.memory.working = true;
-    if (!creep.carry.energy) delete creep.memory.working;
+    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.8) creep.memory.working = true;
+    if (!creep.store[RESOURCE_ENERGY]) delete creep.memory.working;
     let container = Game.getObjectById(creep.room.memory.controllerContainer);
     let link = Game.getObjectById(creep.room.memory.controllerLink);
     if (creep.memory.working) {
@@ -52,11 +52,11 @@ module.exports.role = function (creep) {
         } else {
             if (link && link.energy) {
                 creep.withdrawResource(link);
-            } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
+            } else if (container && container.store[RESOURCE_ENERGY] >= creep.store.getCapacity()) {
                 creep.withdrawResource(container);
             }
         }
-    } else if (container && container.store[RESOURCE_ENERGY] >= creep.carryCapacity) {
+    } else if (container && container.store[RESOURCE_ENERGY] >= creep.store.getCapacity()) {
         creep.withdrawResource(container);
     } else if (!creep.findEnergy(25)) {
         let source = creep.pos.getClosestSource();

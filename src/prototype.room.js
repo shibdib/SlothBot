@@ -568,8 +568,8 @@ Room.prototype.getBoostAmount = function (boost) {
         }
     });
     let boostInRoomCreeps = _.sum(this.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
-        if (s['creep'] && s['creep'].carry) {
-            return s['creep'].carry[boost] || 0;
+        if (s['creep'] && s['creep'].store) {
+            return s['creep'].store[boost] || 0;
         } else {
             return 0;
         }

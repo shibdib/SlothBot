@@ -65,7 +65,7 @@ Creep.prototype.robbery = function () {
         Memory.targetRooms = cache;
     }
     if (!this.memory.hauling) {
-        if (((!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) || _.sum(this.carry) === this.carryCapacity) return this.memory.hauling = true;
+        if (((!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) || _.sum(this.store) === this.store.getCapacity()) return this.memory.hauling = true;
         if (tower.id) {
             switch (this.withdraw(tower, RESOURCE_ENERGY)) {
                 case OK:
@@ -93,12 +93,12 @@ Creep.prototype.robbery = function () {
             }
         }
     } else {
-        if (_.sum(this.carry) === 0) return delete this.memory.hauling;
+        if (!_.sum(this.store)) return delete this.memory.hauling;
         if (this.pos.roomName === this.memory.overlord) {
             if (this.renewalCheck()) return;
             if (this.memory.storageDestination) {
                 let storageItem = Game.getObjectById(this.memory.storageDestination);
-                for (const resourceType in this.carry) {
+                for (const resourceType in this.store) {
                     switch (this.transfer(storageItem, resourceType)) {
                         case OK:
                             break;
@@ -114,7 +114,7 @@ Creep.prototype.robbery = function () {
                 let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
                 let storage = this.room.storage;
                 let terminal = this.room.terminal;
-                if (controllerContainer && this.carry[RESOURCE_ENERGY] === _.sum(this.carry) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.70) {
+                if (controllerContainer && this.store[RESOURCE_ENERGY] === _.sum(this.store) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.70) {
                     this.memory.storageDestination = controllerContainer.id;
                     switch (this.transfer(controllerContainer, RESOURCE_ENERGY)) {
                         case OK:
@@ -131,7 +131,7 @@ Creep.prototype.robbery = function () {
                     }
                 } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.90) {
                     this.memory.storageDestination = storage.id;
-                    for (const resourceType in this.carry) {
+                    for (const resourceType in this.store) {
                         switch (this.transfer(storage, resourceType)) {
                             case OK:
                                 delete this.memory.storageDestination;
@@ -148,7 +148,7 @@ Creep.prototype.robbery = function () {
                     }
                 } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70) {
                     this.memory.storageDestination = terminal.id;
-                    for (const resourceType in this.carry) {
+                    for (const resourceType in this.store) {
                         switch (this.transfer(terminal, resourceType)) {
                             case OK:
                                 delete this.memory.storageDestination;

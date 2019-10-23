@@ -647,7 +647,7 @@ function getMoveWeight(creep, options) {
     let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     let fullCarry = 0;
-    if (_.sum(creep.carry)) fullCarry = _.ceil(_.sum(creep.carry) / 50);
+    if (_.sum(creep.store)) fullCarry = _.ceil(_.sum(creep.store) / 50);
     weight += fullCarry;
     if (move >= weight * 5) {
         options.offRoad = true;

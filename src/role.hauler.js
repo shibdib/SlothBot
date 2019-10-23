@@ -16,8 +16,8 @@ module.exports.role = function (creep) {
     // Tow Truck
     if (creep.towTruck()) return;
     // If hauling do things
-    if (_.sum(creep.carry) >= creep.carryCapacity * 0.5) creep.memory.hauling = true;
-    if (!_.sum(creep.carry)) creep.memory.hauling = undefined;
+    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.5) creep.memory.hauling = true;
+    if (!_.sum(creep.store)) creep.memory.hauling = undefined;
     if (creep.memory.hauling) {
         if (creep.memory.storageDestination || creep.findSpawnsExtensions() || creep.findEssentials() || creep.findStorage()) {
             let storageItem = Game.getObjectById(creep.memory.storageDestination);

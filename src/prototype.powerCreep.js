@@ -145,7 +145,7 @@ PowerCreep.prototype.renewalCheck = function (level = 8, cutoff = 100, target = 
         if (spawn) {
             switch (spawn.renewCreep(this)) {
                 case OK:
-                    if (this.carry[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
+                    if (this.store[RESOURCE_ENERGY] > 0 && !spawn.spawning) this.transfer(spawn, RESOURCE_ENERGY);
                     this.say(ICONS.renew);
                     this.memory.renewingTarget = spawn.id;
                     this.memory.renewing = true;
@@ -392,8 +392,8 @@ function getBoostAmount(room, boost) {
         }
     });
     let boostInRoomCreeps = _.sum(room.lookForAtArea(LOOK_CREEPS, 0, 0, 49, 49, true), (s) => {
-        if (s['creep'] && s['creep'].carry) {
-            return s['creep'].carry[boost] || 0;
+        if (s['creep'] && s['creep'].store) {
+            return s['creep'].store[boost] || 0;
         } else {
             return 0;
         }
@@ -402,7 +402,7 @@ function getBoostAmount(room, boost) {
 }
 
 PowerCreep.prototype.repairRoad = function () {
-    if (this.carry[RESOURCE_ENERGY] < 10 || this.getActiveBodyparts(WORK) === 0) return;
+    if (this.store[RESOURCE_ENERGY] < 10 || this.getActiveBodyparts(WORK) === 0) return;
     let road = this.pos.lookFor(LOOK_STRUCTURES);
     if (road.length > 0 && road[0].hits < road[0].hitsMax) this.repair(road[0]);
 };
@@ -423,7 +423,7 @@ PowerCreep.prototype.recycleCreep = function () {
 Object.defineProperty(PowerCreep.prototype, 'ops', {
     get: function () {
         if (!this._ops) {
-            this._ops = this.carry[RESOURCE_OPS];
+            this._ops = this.store[RESOURCE_OPS];
         }
         return this._ops;
     },
@@ -434,7 +434,7 @@ Object.defineProperty(PowerCreep.prototype, 'ops', {
 Object.defineProperty(PowerCreep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {
-            this._isFull = _.sum(this.carry) >= this.carryCapacity * 0.95;
+            this._isFull = _.sum(this.store) >= this.store.getCapacity() * 0.95;
         }
         return this._isFull;
     },
