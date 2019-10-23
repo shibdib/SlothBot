@@ -325,10 +325,10 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // Portal explorers
-    if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 750 <= Game.time) && !room.memory.spawnBorderPatrol) {
+    if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 1500 <= Game.time) && !room.memory.spawnBorderPatrol) {
         if (_.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName).length) {
             for (let portalRoom of _.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName)) {
-                let explorer = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer' && creep.memory.portalJump === JSON.parse(portalRoom.portal)[0].destination.roomName);
+                let explorer = _.filter(Game.creeps, (creep) => creep.memory.destination === portalRoom.name);
                 if (!explorer.length) {
                     queueCreep(room, PRIORITIES.explorer, {
                         role: 'explorer',
