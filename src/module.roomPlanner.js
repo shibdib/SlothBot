@@ -160,7 +160,7 @@ function buildFromLayout(room) {
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
                 if (level >= 3) {
-                    if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                    if ((!pos.checkForBarrierStructure() || (!pos.checkForRampart() && pos.checkForRoad())) && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
                 } else if (pos.isNearTo(room.controller)) {
                     if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
                 }
