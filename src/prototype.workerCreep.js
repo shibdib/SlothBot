@@ -701,6 +701,7 @@ Creep.prototype.builderFunction = function () {
                 this.memory.task = undefined;
                 break;
             case ERR_INVALID_TARGET:
+                if (construction.pos.checkForCreep()) construction.pos.checkForCreep().moveRandom();
                 this.memory.constructionSite = undefined;
                 this.memory.task = undefined;
                 break;
