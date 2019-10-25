@@ -82,7 +82,8 @@ findResources = function (creep) {
         return true;
     }
     // Tombstone
-    let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
+    let tombstone = creep.pos.findClosestByRange(creep.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)}) ||
+        creep.pos.findClosestByRange(creep.room.ruins, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(creep.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== creep.id), '.store.getCapacity()') + (creep.store.getCapacity() * 0.4)});
     if (tombstone) {
         creep.memory.energyDestination = tombstone.id;
         return true;

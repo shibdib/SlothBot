@@ -319,7 +319,8 @@ Creep.prototype.findEnergy = function () {
         return true;
     }
     // Tombstone
-    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)});
+    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)}) ||
+        this.pos.findClosestByRange(this.room.ruins, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)});
     if (tombstone) {
         this.memory.energyDestination = tombstone.id;
         return true;
@@ -358,7 +359,8 @@ Creep.prototype.getEnergy = function (hauler = false) {
         return true;
     }
     // Tombstone
-    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)});
+    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)}) ||
+        this.pos.findClosestByRange(this.room.ruins, {filter: (r) => r.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)});
     if (tombstone) {
         this.memory.energyDestination = tombstone.id;
         return true;

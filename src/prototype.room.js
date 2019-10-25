@@ -221,6 +221,17 @@ Object.defineProperty(Room.prototype, 'tombstones', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'ruins', {
+    get: function () {
+        if (!this._ruins) {
+            this._ruins = this.find(FIND_RUINS);
+        }
+        return this._ruins;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'level', {
     get: function () {
         if (!this._level) {
