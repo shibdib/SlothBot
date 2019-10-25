@@ -31,7 +31,7 @@ module.exports.overlordMind = function (room) {
     if (Math.random() > 0.7) requestBuilders(room);
 
     //Build Room
-    if (!room.memory.extensionHub || (room.controller.level < 4 && Game.time % 500 === 0 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
+    if (!room.memory.extensionHub || (room.controller.level < 4 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
         try {
             planner.buildRoom(room);
         } catch (e) {
@@ -39,11 +39,11 @@ module.exports.overlordMind = function (room) {
             log.e(e.stack);
             Game.notify(e.stack);
         }
-        // Silence Alerts
-        if (Game.time % 500 === 0) {
-            for (let building of room.structures) {
-                building.notifyWhenAttacked(false);
-            }
+    }
+    // Silence Alerts
+    if (Game.time % 2500 === 0) {
+        for (let building of room.structures) {
+            building.notifyWhenAttacked(false);
         }
     }
 
