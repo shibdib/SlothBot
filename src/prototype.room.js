@@ -388,6 +388,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             closestRange: closestRange,
             important: important,
             forestPvp: forestPvp,
+            invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length,
             towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length
         };

@@ -445,7 +445,7 @@ module.exports.remoteCreepQueue = function (room) {
         for (let keys in shuffle(remotes)) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
             // Handle invader cores
-            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation === 'Invader')) {
+            if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].invaderCore && !Memory.roomCache[remotes[keys]].sk) {
                 let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === remotes[keys] && creep.memory.operation === 'guard');
                 if (guards.length < 1 || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < 2)) {
                     queueCreep(room, PRIORITIES.borderPatrol, {
@@ -458,7 +458,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
                 let amount = 1;
-                if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap - 1;
+                if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap;
                 if (reserver.length < amount) {
                     queueCreep(room, PRIORITIES.reserver + reserver.length, {
                         role: 'reserver',
