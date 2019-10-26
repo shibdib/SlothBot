@@ -82,9 +82,6 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
             this.memory.target = enemy.id;
             return enemy;
         }
-    }
-    // Kill spawns(Ramps)
-    if (hostileRoom) {
         filter = {filter: (c) => c.structureType === STRUCTURE_SPAWN && c.isActive()};
         if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
         if (enemy) {
@@ -92,17 +89,6 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
             this.memory.target = enemy.id;
             return enemy;
         }
-    }
-    // Find armed creeps to kill
-    filter = {
-        filter: (c) => (!c.className && (c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1))
-    };
-    if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else if (!cooldown) enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
-    if (enemy) {
-        if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
-        searchCooldown[this.name] = undefined;
-        this.memory.target = enemy.id;
-        return enemy;
     }
     // If friendly room leave other structures alone
     if (hostileRoom) {
