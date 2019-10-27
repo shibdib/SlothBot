@@ -273,8 +273,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //LabTech
-    if ((!queueTracker['labTech'] || queueTracker['labTech'] + 1400 <= Game.time) && room.terminal && (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory && s.memory.active)[0]
-        || (_.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTRACTOR)[0] && room.mineral.mineralAmount))) {
+    if ((!queueTracker['labTech'] || queueTracker['labTech'] + 1400 <= Game.time) && room.terminal) {
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (!labTech.length) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', localCache: true})
