@@ -10,7 +10,7 @@ let Log = require('logger');
 let globals = function () {
 
     //Manually set baddies and friends and combat stuff
-    global.HOSTILES = [];
+    global.HOSTILES = ['Daxten'];
     global.NO_AGGRESSION = [];
     global.MANUAL_FRIENDS = ['Sergey', 'CHARLIEHB1'];
     global.NAP_ALLIANCE = [];
