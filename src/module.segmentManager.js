@@ -10,12 +10,9 @@ module.exports.segmentManager = function () {
     let doNotAggressArray;
     if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) {
         doNotAggressArray = LOANlist;
-        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, [MY_USERNAME]);
-    } else if (Game.shard.name === 'swc') {
-        doNotAggressArray = [MY_USERNAME, 'snowgoose', 'Sergey', 'Saruss'];
-        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
+        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, [MY_USERNAME], ['Shibdib']);
     } else {
-        doNotAggressArray = [MY_USERNAME];
+        doNotAggressArray = [MY_USERNAME, 'Shibdib'];
         doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
     }
     global.FRIENDLIES = doNotAggressArray;
