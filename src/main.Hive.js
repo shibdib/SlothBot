@@ -135,8 +135,8 @@ function minionController(minion) {
     if (!minion.memory.role || minion.memory.recycle) return minion.recycleCreep();
     // If idle sleep
     if (minion.idle) return;
-    // Report damage if hits are low
-    if (minion.hits < minion.hitsMax) minion.trackThreat();
+    // Track threat
+    diplomacy.trackThreat(minion);
     // Handle nuke flee
     if (minion.memory.fleeNukeTime && minion.fleeNukeRoom(minion.memory.fleeNukeRoom)) return;
     // Set role

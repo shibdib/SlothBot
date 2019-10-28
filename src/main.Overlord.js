@@ -12,6 +12,7 @@ let terminals = require('module.terminalController');
 let spawning = require('module.creepSpawning');
 let state = require('module.roomState');
 let planner = require('module.roomPlanner');
+let diplomacy = require('module.diplomacy');
 let storedLevel = {};
 
 module.exports.overlordMind = function (room) {
@@ -175,7 +176,7 @@ function minionController(minion) {
         }
     }
     // Track Threat
-    minion.trackThreat();
+    diplomacy.trackThreat(minion);
     // Report intel chance
     if (minion.room.name !== minion.memory.overlord && Math.random() > 0.75) {
         minion.room.invaderCheck();

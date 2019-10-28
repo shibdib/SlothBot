@@ -64,3 +64,72 @@ function threatManager() {
     Memory._nuisance = _.uniq(_.filter(Memory._nuisance, (p) => p !== null && p !== undefined));
     Memory._threatList = _.uniq(_.filter(Memory._threatList, (p) => p !== null && p !== undefined));
 }
+
+module.exports.trackThreat = function (creep) {
+    // Handle damage
+    if (!creep.memory._lastHits) return creep.memory._lastHits = creep.hits;
+    if (creep.hits < creep.memory._lastHits) {
+        if (creep.room.controller && ((creep.room.controller.owner && creep.room.controller.owner.username !== MY_USERNAME) || (creep.room.controller.reservation && creep.room.controller.reservation.username !== MY_USERNAME)) && creep.memory.targetRoom !== creep.room.name) return false;
+        let nearbyCreeps = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => ((c.getActiveBodyparts(RANGED_ATTACK) && c.pos.getRangeTo(creep) <= 3) || (c.getActiveBodyparts(ATTACK) && c.pos.isNearTo(creep))) && c.owner.username !== MY_USERNAME), 'owner.username'));
+        if (nearbyCreeps.length) {
+            for (let user of nearbyCreeps) {
+                if (user === MY_USERNAME || user === 'Source Keeper' || user === 'Invader') continue;
+                // Handle taking damage near allies with other hostiles
+                if (nearbyCreeps.length > 1 && _.includes(FRIENDLIES, user)) continue;
+                let cache = Memory._badBoyList || {};
+                let threatRating;
+                if (cache[user] && Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
+                    if (cache[user].lastAction + 3 > Game.time) return true;
+                    if (Math.random() > 0.8) log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. Adjusting threat rating for ' + user);
+                    if (_.includes(FRIENDLIES, user)) {
+                        threatRating = cache[user]['threatRating'] + 0.1;
+                    } else {
+                        threatRating = cache[user]['threatRating'] + 2.5;
+                    }
+                    if (threatRating >= 1500) threatRating = 1500;
+                } else if (!cache[user]) {
+                    let multiple = 1;
+                    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) multiple = 10;
+                    if (_.includes(FRIENDLIES, user)) {
+                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now temporarily been marked hostile.', 'DIPLOMACY:');
+                        threatRating = multiple;
+                    } else {
+                        log.e(creep.name + ' has taken damage in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile.', 'DIPLOMACY:');
+                        threatRating = 10 * multiple;
+                    }
+                } else {
+                    return;
+                }
+                cache[user] = {
+                    threatRating: threatRating,
+                    lastAction: Game.time,
+                };
+                Memory._badBoyList = cache;
+            }
+        }
+    }
+    creep.memory._lastHits = creep.hits;
+    // Handle hostile creeps in owned rooms
+    if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].user === MY_USERNAME) {
+        let neutrals = _.uniq(_.pluck(_.filter(creep.room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
+        if (neutrals.length) {
+            for (let user of neutrals) {
+                if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
+                let cache = Memory._badBoyList || {};
+                let threatRating;
+                if (cache[user]) {
+                    threatRating = cache[user]['threatRating'] + 0.25;
+                    if (threatRating >= 1500) threatRating = 1500;
+                } else if (!cache[user]) {
+                    threatRating = 15;
+                    log.e(creep.name + ' has detected a neutral in ' + roomLink(creep.room.name) + '. ' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
+                }
+                cache[user] = {
+                    threatRating: threatRating,
+                    lastAction: Game.time,
+                };
+                Memory._badBoyList = cache;
+            }
+        }
+    }
+};
