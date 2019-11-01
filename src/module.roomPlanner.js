@@ -61,8 +61,11 @@ function buildFromLayout(room) {
         if (level === extensionLevel && structure.structureType === STRUCTURE_EXTENSION) continue;
         if (_.filter(room.constructionSites, (s) => s.structureType === structure.structureType && s.progress < s.progressTotal * 0.99).length) continue;
         // Special case labs
-        if (structure.structureType === STRUCTURE_LAB && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 1 && !pos.isNearTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
-        if (structure.structureType === STRUCTURE_LAB && _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 2 && !pos.isNearTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
+        if (structure.structureType === STRUCTURE_LAB) {
+            if (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB).length && !pos.isNearTo(_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
+            if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 1 && !pos.isNearTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
+            if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB).length === 2 && !pos.isNearTo(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0])) continue;
+        }
         if (!pos.checkForConstructionSites() && !pos.checkForAllStructure().length) {
             if (pos.createConstructionSite(structure.structureType) === OK) {
                 built = true;
