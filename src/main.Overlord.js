@@ -55,7 +55,7 @@ module.exports.overlordMind = function (room) {
             spawning.roomStartup(room);
             if (Math.random() > 0.7) spawning.remoteCreepQueue(room);
         } else {
-            if (Math.random() > 0.1 && cpuBucket >= 3000) {
+            if (Math.random() > 0.1 && cpuBucket >= 2500) {
                 try {
                     spawning.essentialCreepQueue(room);
                 } catch (e) {
@@ -64,7 +64,7 @@ module.exports.overlordMind = function (room) {
                     Game.notify(e.stack);
                 }
             }
-            if (Math.random() > 0.5 && cpuBucket >= 8000) {
+            if (Math.random() > 0.5 && cpuBucket >= 3500) {
                 try {
                     spawning.miscCreepQueue(room);
                 } catch (e) {
@@ -73,7 +73,7 @@ module.exports.overlordMind = function (room) {
                     Game.notify(e.stack);
                 }
             }
-            if (Math.random() > 0.6 && cpuBucket >= 9999) {
+            if (Math.random() > 0.6 && cpuBucket >= 4000) {
                 try {
                     spawning.remoteCreepQueue(room);
                 } catch (e) {

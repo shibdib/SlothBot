@@ -627,7 +627,7 @@ let globals = function () {
         if (val > max) return max;
         return val;
     };
-    global.adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.8, maxCpuPerTick = 495) {
+    global.adjustedCPULimit = function adjustedCPULimit(limit, bucket, target = BUCKET_MAX * 0.5, maxCpuPerTick = 495) {
         var multiplier = 1;
         if (bucket < target) {
             multiplier = Math.sin(Math.PI * bucket / (2 * target));
