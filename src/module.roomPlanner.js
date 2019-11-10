@@ -159,7 +159,7 @@ function buildFromLayout(room) {
             });
             let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
             room.memory.rampartSpots = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
-        } else {
+        } else if (room.memory.rampartSpots) {
             let buildPositions = JSON.parse(room.memory.rampartSpots);
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
