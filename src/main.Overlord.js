@@ -32,7 +32,7 @@ module.exports.overlordMind = function (room) {
     if (Math.random() > 0.7) requestBuilders(room);
 
     //Build Room
-    if (!room.memory.extensionHub || (room.controller.level < 4 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || Game.time % 200 === 0) {
+    if (!room.memory.extensionHub || (room.controller.level < 4 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || (Game.time % 200 === 0 && Math.random() > 0.5)) {
         try {
             planner.buildRoom(room);
         } catch (e) {

@@ -123,8 +123,9 @@ function buildFromLayout(room) {
     }
     // Bunker Ramparts
     if (level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
-        if (!room.memory.rampartSpots || Math.random() > 0.98) {
+        if (!room.memory.rampartsSet || Math.random() > 0.99) {
             room.memory.rampartSpots = undefined;
+            room.memory.rampartsSet = 1;
             let hubBuffer = 8;
             let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
             let closestExit = hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) - 2;
