@@ -10,14 +10,14 @@ let Log = require('logger');
 let globals = function () {
 
     //Manually set baddies and friends and combat stuff
-    global.HOSTILES = ['Daxten'];
+    global.HOSTILES = [];
     global.NO_AGGRESSION = [];
-    global.MANUAL_FRIENDS = ['Sergey', 'CHARLIEHB1'];
+    global.MANUAL_FRIENDS = [];
     global.NAP_ALLIANCE = [];
     global.ATTACK_LOCALS = true;
     global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
-    global.POKE_ATTACKS = true;
-    global.POKE_NEUTRALS = true;
+    global.POKE_ATTACKS = false;
+    global.POKE_NEUTRALS = false;
     global.SIEGE_ENABLED = true; //Attack owned rooms with towers
     global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
 
@@ -29,9 +29,9 @@ let globals = function () {
     global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
     //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
-    global.POKE_LIMIT = 5;
-    global.CLEAN_LIMIT = 2;
-    global.HARASS_LIMIT = 3;
+    global.POKE_LIMIT = 3;
+    global.CLEAN_LIMIT = 1;
+    global.HARASS_LIMIT = 1;
 
     global.CREDIT_BUFFER = 100000;
     global.TRADE_AMOUNT = 10000;

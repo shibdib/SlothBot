@@ -216,7 +216,6 @@ function operationRequests() {
             break;
         }
     }
-    /**
      // Clean
      let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
      let cleanLimit = CLEAN_LIMIT;
@@ -236,7 +235,7 @@ function operationRequests() {
             Memory.targetRooms = cache;
             log.a('Cleaning operation planned for ' + roomLink(cleanTarget.name), 'HIGH COMMAND: ');
         }
-    }**/
+     }
     // Pokes
     if (POKE_ATTACKS) {
         let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
