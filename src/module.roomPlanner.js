@@ -182,6 +182,10 @@ function buildFromLayout(room) {
                     } else if (!pos.checkForRampart() && !pos.checkForConstructionSites()) {
                         pos.createConstructionSite(STRUCTURE_RAMPART);
                         break;
+                    } else if (pos.checkForBuiltWall() && pos.checkForRampart()) {
+                        pos.checkForRampart().destroy();
+                    } else if (pos.checkForBuiltWall() && pos.checkForRoad()) {
+                        pos.checkForRoad().destroy();
                     }
                 } else if (pos.isNearTo(room.controller)) {
                     if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
