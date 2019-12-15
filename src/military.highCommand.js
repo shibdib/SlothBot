@@ -40,11 +40,14 @@ function manageResponseForces() {
     let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
     let friendlyResponsePower = 0;
+    let idlePower = 0;
     if (ownedRoomAttack) {
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && ownedRoomAttack !== c.room.name && c.memory.responseTarget !== ownedRoomAttack && c.memory.operation === 'borderPatrol'
             && Game.map.getRoomLinearDistance(c.room.name, ownedRoomAttack) <= c.ticksToLive / 55), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, ownedRoomAttack);
         });
+        idleResponders.forEach((c) => idlePower += c.combatPower);
+        if (idlePower < responseTargets.hostilePower) return false;
         for (let creep of idleResponders) {
             if (friendlyResponsePower > ownedRoomAttack.hostilePower) break;
             friendlyResponsePower += creep.combatPower;
@@ -57,6 +60,8 @@ function manageResponseForces() {
             && Game.map.getRoomLinearDistance(c.room.name, responseTargets.name) <= LOCAL_SPHERE), function (c) {
             Game.map.getRoomLinearDistance(c.pos.roomName, responseTargets.name);
         });
+        idleResponders.forEach((c) => idlePower += c.combatPower);
+        if (idlePower < responseTargets.hostilePower) return false;
         for (let creep of idleResponders) {
             if (friendlyResponsePower > responseTargets.hostilePower) break;
             friendlyResponsePower += creep.combatPower;
