@@ -527,7 +527,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let remoteHaulers = _.filter(Game.creeps, (creep) => creep.my && creep.memory.role === 'remoteHauler' && creep.memory.destination === remotes[keys]).length;
                 let sourceCount = 1;
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
-                if (remoteHaulers < sourceCount) {
+                if (!remoteHaulers) {
                     queueCreep(room, PRIORITIES.remoteHauler, {
                         role: 'remoteHauler',
                         destination: remotes[keys]

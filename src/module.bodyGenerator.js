@@ -265,9 +265,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = work + carry;
             break;
         case 'remoteHarvester':
-            if (level >= 7) {
-                work = 6;
-            } else if (level >= 4) {
+            if (level >= 4) {
                 work = 4;
             } else {
                 work = 2;
