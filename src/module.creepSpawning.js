@@ -582,6 +582,9 @@ module.exports.militaryCreepQueue = function () {
             case 1:
                 priority = PRIORITIES.urgent;
                 break;
+            case 99:
+                priority = PRIORITIES.priority;
+                break;
         }
         //Number fatigue
         if (_.size(Memory.targetRooms) > Memory.myRooms.length) priority += 1;

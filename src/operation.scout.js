@@ -104,7 +104,7 @@ Creep.prototype.scoutRoom = function () {
                     tick: tick,
                     type: 'hold',
                     level: 0,
-                    priority: 1
+                    priority: 99
                 };
                 // If owned room has tower
             } else if (SIEGE_ENABLED) {
