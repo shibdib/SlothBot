@@ -342,23 +342,23 @@ module.exports.miscCreepQueue = function (room) {
         let needyRoom = _.sample(_.filter(myRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.hostileCreeps.length && (!Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time)));
         if (needyRoom) {
             let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needyRoom.name || creep.memory.overlord === needyRoom.name) && creep.memory.role === 'drone');
-            if (TEN_CPU) drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needyRoom.name || creep.memory.overlord === needyRoom.name) && creep.memory.role === 'drone');
-            let amount = roomSourceSpace[needyRoom.name] + 2;
+            let amount = roomSourceSpace[room.name] - 2 || 2;
             if (drones.length < amount) {
                 queueCreep(room, PRIORITIES.assistPioneer + drones.length * 0.25, {
                     role: 'drone',
                     destination: needyRoom.name
                 });
             }
-            if (level >= 6 && room.storage && room.energy >= 10000 && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 200 <= Game.time)) {
-                let pioneers = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'drone');
-                let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'fuelTruck');
-                if (fuelTruck.length < 1 && pioneers.length > 1) {
-                    queueCreep(room, PRIORITIES.fuelTruck, {
-                        role: 'fuelTruck',
-                        destination: needyRoom.name
-                    });
-                    queueTracker['fuelTruck'] = Game.time;
+            if (level >= 6 && room.storage && room.energy >= 10000) {
+                if (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 1450 <= Game.time) {
+                    let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'fuelTruck');
+                    if (fuelTruck.length < 1 && drones.length > 1) {
+                        queueCreep(room, PRIORITIES.fuelTruck, {
+                            role: 'fuelTruck',
+                            destination: needyRoom.name
+                        });
+                        queueTracker['fuelTruck'] = Game.time;
+                    }
                 }
             }
         }
@@ -366,7 +366,7 @@ module.exports.miscCreepQueue = function (room) {
         let upgradeAssist = _.sample(_.filter(myRooms, (r) => r.name !== room.name && r.controller.level + 1 < level && !r.hostileCreeps.length && (!Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time)));
         if (upgradeAssist && room.memory.energySurplus && level >= 6) {
             let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
-            if (remoteUpgraders.length < 1) {
+            if (!remoteUpgraders.length) {
                 queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
                     role: 'remoteUpgrader',
                     destination: upgradeAssist.name
@@ -389,8 +389,8 @@ module.exports.miscCreepQueue = function (room) {
         }
         // Marauder
         if (!queueTracker['marauder'] || queueTracker['marauder'] + 2500 <= Game.time) {
-            let marauder = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'marauding');
-            if (!marauder.length && Math.random() > 0.5) {
+            let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding');
+            if (marauder.length < 2 && Math.random() > 0.5) {
                 queueCreep(room, PRIORITIES.medium, {
                     role: 'longbow',
                     operation: 'marauding',
