@@ -25,7 +25,6 @@ module.exports.loop = function () {
     if (!Memory.myRooms || !Memory.myRooms.length || Math.random() > 0.95) {
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.level && r.controller.owner.username === MY_USERNAME);
         if (myRooms.length) {
-            console.log(_.pluck(_.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.level && r.controller.owner.username === MY_USERNAME), '.name'))
             Memory.myRooms = _.pluck(myRooms, '.name');
             Memory.maxLevel = _.max(myRooms, 'controller.level').controller.level;
             Memory.minLevel = _.min(myRooms, 'controller.level').controller.level;
