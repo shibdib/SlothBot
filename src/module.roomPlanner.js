@@ -174,7 +174,7 @@ function buildFromLayout(room) {
                                 }
                             }
                         }
-                    } else if (!pos.isNearTo(room.controller) && !pos.isNearTo(room.mineral) && ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() && pos.isNearTo(pos.findClosestByRange(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART)))) {
+                    } else if (!pos.isNearTo(room.controller) && !pos.isNearTo(room.mineral) && !pos.isNearTo(pos.findClosestByRange(FIND_SOURCES)) && ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y))) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() && pos.isNearTo(pos.findClosestByRange(_.filter(room.structures, (s) => s.structureType === STRUCTURE_RAMPART)))) {
                         if (pos.checkForRampart()) pos.checkForRampart().destroy();
                         if (pos.checkForRoad()) pos.checkForRoad().destroy();
                         pos.createConstructionSite(STRUCTURE_WALL);
