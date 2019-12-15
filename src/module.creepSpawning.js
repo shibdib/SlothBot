@@ -291,7 +291,8 @@ module.exports.miscCreepQueue = function (room) {
     if (level >= 3 && (!queueTracker['waller'] || queueTracker['waller'] + 1400 <= Game.time)) {
         let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
-        if (room.memory.energySurplus || Memory.roomCache[room.name].responseNeeded) amount = 2;
+        if (!_.filter(room.structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]).length) amount = 0;
+        if (Memory.roomCache[room.name].responseNeeded) amount = 2;
         if (waller.length < amount) {
             queueCreep(room, PRIORITIES.waller + (waller.length * 3), {role: 'waller', localCache: true})
         }

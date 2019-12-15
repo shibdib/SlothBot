@@ -54,6 +54,18 @@ let globals = function () {
     // Minimum amount for market data
     global.MINIMUM_MARKET = 1500;
 
+    // Wall and rampart target amounts
+    global.BARRIER_TARGET_HIT_POINTS = {
+        1: 1000,
+        2: 50000,
+        3: 200000,
+        4: 450000,
+        5: 750000,
+        6: 1500000,
+        7: 5000000,
+        8: 10000000
+    };
+
     global.LAYOUT_VERSION = 1.52;
 
     //PC Stuff

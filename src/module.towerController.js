@@ -45,7 +45,7 @@ module.exports.towerControl = function (room) {
                 return repairTower.repair(barriers);
             }
             if (repairTower.energy > repairTower.energyCapacity * 0.7) {
-                let lowestRampart = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < 50000 * repairTower.room.controller.level), 'hits');
+                let lowestRampart = _.min(_.filter(structures, (s) => (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < BARRIER_TARGET_HIT_POINTS[s.room.controller.level]), 'hits');
                 if (lowestRampart) {
                     return repairTower.repair(lowestRampart);
                 }
