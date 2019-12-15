@@ -23,7 +23,7 @@ module.exports.loop = function () {
 
     // Store owned rooms in array
     if (!Memory.myRooms || !Memory.myRooms.length || Math.random() > 0.95) {
-        let myRooms = _.filter(Game.rooms, (r) => r.controller.owner && r.controller.level && r.controller.owner.username === MY_USERNAME);
+        let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
         if (myRooms.length) {
             Memory.myRooms = _.pluck(myRooms, '.name');
             Memory.maxLevel = _.max(myRooms, 'controller.level').controller.level;
