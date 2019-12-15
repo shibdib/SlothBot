@@ -8,7 +8,6 @@
 //modules
 //Setup globals and prototypes
 require("require");
-let _ = require('lodash');
 let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
@@ -19,17 +18,18 @@ Memory.lastGlobalReset = Game.time;
 
 //profiler.enable();
 module.exports.loop = function () {
-    let cpu = Game.cpu.getUsed()
-
     //Logging level
     Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
     // Store owned rooms in array
-    if (!Memory.myRooms || !Memory.myRooms.length) {
-        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        Memory.myRooms = _.pluck(myRooms, '.name');
-        Memory.maxLevel = _.max(myRooms, 'controller.level').controller.level;
-        Memory.minLevel = _.min(myRooms, 'controller.level').controller.level;
+    if (!Memory.myRooms || !Memory.myRooms.length || Math.random() > 0.95) {
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.level && r.controller.owner.username === MY_USERNAME);
+        if (myRooms.length) {
+            console.log(_.pluck(_.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.level && r.controller.owner.username === MY_USERNAME), '.name'))
+            Memory.myRooms = _.pluck(myRooms, '.name');
+            Memory.maxLevel = _.max(myRooms, 'controller.level').controller.level;
+            Memory.minLevel = _.min(myRooms, 'controller.level').controller.level;
+        }
     }
 
     // Get Tick Length
@@ -70,13 +70,9 @@ module.exports.loop = function () {
         log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
         return;
     }
-    ;
 
     //Hive Mind
-    cpu = Game.cpu.getUsed()
-    hive.hiveMind();
-    console.log('hive ' + (Game.cpu.getUsed() - cpu))
-    console.log('total ' + Game.cpu.getUsed())
+    if (Memory.myRooms && Memory.myRooms.length) hive.hiveMind();
     //});
 };
 

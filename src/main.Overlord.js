@@ -86,7 +86,6 @@ module.exports.overlordMind = function (room) {
     }
 
     // Manage creeps
-    let cpu = Game.cpu.getUsed()
     let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
     // Worker minions
     for (let key in roomCreeps) {
@@ -98,7 +97,6 @@ module.exports.overlordMind = function (room) {
             Game.notify(e.stack);
         }
     }
-    console.log(room.name + ' creeps ' + (Game.cpu.getUsed() - cpu))
 
     // Observer Control
     if (room.level === 8 && cpuBucket >= 2000) {
