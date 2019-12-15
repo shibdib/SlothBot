@@ -12,7 +12,6 @@ let _ = require('lodash');
 let hive = require('main.Hive');
 let cleanUp = require('module.Cleanup');
 let segments = require('module.segmentManager');
-const profiler = require('profiler');
 const tickLengthArray = [];
 const lastGlobal = Memory.lastGlobalReset || Game.time;
 log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
@@ -32,7 +31,6 @@ module.exports.loop = function () {
         Memory.maxLevel = _.max(myRooms, 'controller.level').controller.level;
         Memory.minLevel = _.min(myRooms, 'controller.level').controller.level;
     }
-    ;
 
     // Get Tick Length
     let d = new Date();

@@ -6,7 +6,6 @@ require("prototype.powerCreep");
 require("prototype.roomPosition");
 require("prototype.roomObject");
 require("prototype.room");
-require("prototype.roomBuilder");
 require('module.pathFinder');
 
 // Operations
