@@ -275,8 +275,9 @@ module.exports.miscCreepQueue = function (room) {
     }
     //LabTech
     if ((!queueTracker['labTech'] || queueTracker['labTech'] + 1400 <= Game.time) && room.terminal) {
+        let activeLab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.active);
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
-        if (!labTech.length) {
+        if (!labTech.length && (activeLab.length || room.mineral.mineralAmount)) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', localCache: true})
         }
         queueTracker['labTech'] = Game.time;
