@@ -16,6 +16,7 @@ let diplomacy = require('module.diplomacy');
 let storedLevel = {};
 
 module.exports.overlordMind = function (room) {
+    if (!room) return;
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
 

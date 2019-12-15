@@ -555,7 +555,7 @@ Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false,
     let closest;
     for (let key of Memory.myRooms) {
         let room = Game.rooms[key];
-        if (room.controller.level < minLevel) continue;
+        if (!room || room.controller.level < minLevel) continue;
         let range = Game.map.findRoute(this, room).length;
         if (safePath) range = this.shibRoute(room).length - 1;
         if (!distance) {
