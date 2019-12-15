@@ -179,7 +179,7 @@ function buildFromLayout(room) {
                         if (pos.checkForRoad()) pos.checkForRoad().destroy();
                         pos.createConstructionSite(STRUCTURE_WALL);
                         break;
-                    } else if (!pos.checkForRampart() && !pos.checkForConstructionSites()) {
+                    } else if (!pos.checkForRampart() && !pos.checkForBuiltWall() && !pos.checkForConstructionSites()) {
                         pos.createConstructionSite(STRUCTURE_RAMPART);
                         break;
                     } else if (pos.checkForBuiltWall() && pos.checkForRampart()) {
