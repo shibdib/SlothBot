@@ -32,6 +32,14 @@ module.exports.terminalControl = function (room) {
         runOnce = Game.time;
     }
     //Use extra creds to buy energy
+    if (Game.market.credits >= 2500) {
+        //Extend/Place buy orders if we have enough buffer cash
+        if (placeReactionOrders(room.terminal, globalOrders, myOrders)) return;
+        //Use extra creds to buy needed items for boosts
+        if (onDemandReactionOrders(room.terminal, globalOrders)) return;
+        //Buy Power
+        if (buyPower(room.terminal, globalOrders)) return;
+    }
     placeEnergyOrders(room.terminal, globalOrders, myOrders);
     //Handle Sell Orders
     manageSellOrders(room.terminal, globalOrders, myOrders);
@@ -42,12 +50,6 @@ module.exports.terminalControl = function (room) {
     if (emergencyEnergy(room.terminal)) return;
     //Disperse Minerals and Boosts
     //if (balanceBoosts(room.terminal)) return;
-    //Extend/Place buy orders if we have enough buffer cash
-    if (placeReactionOrders(room.terminal, globalOrders, myOrders)) return;
-    //Use extra creds to buy needed items for boosts
-    if (onDemandReactionOrders(room.terminal, globalOrders)) return;
-    //Buy Power
-    if (buyPower(room.terminal, globalOrders)) return;
 };
 
 function fillBuyOrders(terminal, globalOrders) {
