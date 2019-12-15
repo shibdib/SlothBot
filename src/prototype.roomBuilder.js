@@ -787,14 +787,6 @@ function rebuildSpawn(room) {
     }
 }
 
-function isEven(n) {
-    return n % 2 === 0;
-}
-
-function isOdd(n) {
-    return Math.abs(n % 2) === 1;
-}
-
 abandonRoom = function (room) {
     for (let key in Game.rooms[room].creeps) {
         Game.rooms[room].creeps[key].memory.recycle = true;

@@ -617,7 +617,13 @@ let globals = function () {
         return Math.floor(Math.random() * (max - min + 1) + min);
     };
 
-    global.stats = require('stats');
+    global.isEven = function (n) {
+        return n % 2 === 0;
+    };
+
+    global.isOdd = function (n) {
+        return Math.abs(n % 2) === 1;
+    };
 
     /* Posted March 2nd, 2018 by @semperrabbit */
 

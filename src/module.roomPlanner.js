@@ -174,7 +174,16 @@ function buildFromLayout(room) {
                                 }
                             }
                         }
-                    } else if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
+                    } else if (!pos.isNearTo(room.controller) && !pos.isNearTo(room.mineral) && !pos.checkForBuiltWall() && !pos.checkForConstructionSites() && ((isEven(pos.x) && isOdd(pos.y)) || (isOdd(pos.x) && isEven(pos.y)))) {
+                        if (pos.checkForRampart()) pos.checkForRampart().destroy();
+                        if (pos.checkForRoad()) pos.checkForRoad().destroy();
+                        pos.createConstructionSite(STRUCTURE_WALL);
+                        break;
+                    } else if (!pos.checkForRampart() && !pos.checkForConstructionSites()) {
+                        if (pos.checkForBuiltWall()) pos.checkForBuiltWall().destroy();
+                        pos.createConstructionSite(STRUCTURE_RAMPART);
+                        break;
+                    }
                 } else if (pos.isNearTo(room.controller)) {
                     if (!pos.checkForBarrierStructure() && !pos.checkForConstructionSites() && pos.createConstructionSite(STRUCTURE_RAMPART) === OK) break;
                 }
@@ -327,18 +336,18 @@ function buildFromLayout(room) {
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
     if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
-    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL) || s.structureType === STRUCTURE_WALL);
+    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME && s.structureType !== STRUCTURE_STORAGE && s.structureType !== STRUCTURE_TERMINAL));
     if (level >= 6) {
-        badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME) || s.structureType === STRUCTURE_WALL);
+        badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME));
     } else if (level >= 4) {
-        badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME && s.structureType !== STRUCTURE_TERMINAL) || s.structureType === STRUCTURE_WALL);
+        badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME && s.structureType !== STRUCTURE_TERMINAL));
     }
     if (badStructure.length) badStructure.forEach((s) => s.destroy());
 }
 
 function newClaimBuild(room) {
     let level = room.controller.level;
-    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME) || s.structureType === STRUCTURE_WALL);
+    let badStructure = _.filter(room.structures, (s) => (s.owner && s.owner.username !== MY_USERNAME));
     if (badStructure.length) badStructure.forEach((s) => s.destroy());
     if (level < 2) return;
     // Cleanup
