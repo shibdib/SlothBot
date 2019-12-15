@@ -553,16 +553,17 @@ function urgentMilitary(room) {
 Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false, minLevel = 1) {
     let distance = 0;
     let closest;
-    for (let key in Memory.ownedRooms) {
-        if (Memory.ownedRooms[key].controller.level < minLevel) continue;
-        let range = Game.map.findRoute(this, Memory.ownedRooms[key]).length;
-        if (safePath) range = this.shibRoute(Memory.ownedRooms[key]).length - 1;
+    for (let key of Memory.myRooms) {
+        let room = Game.rooms[key];
+        if (room.controller.level < minLevel) continue;
+        let range = Game.map.findRoute(this, room).length;
+        if (safePath) range = this.shibRoute(room).length - 1;
         if (!distance) {
             distance = range;
-            closest = Memory.ownedRooms[key].name;
+            closest = room.name;
         } else if (range < distance) {
             distance = range;
-            closest = Memory.ownedRooms[key].name;
+            closest = room.name;
         }
     }
     if (!range) return closest;

@@ -54,8 +54,8 @@ module.exports.hiveMind = function () {
         }
     }
     // Process Overlords
-    for (let key in Memory.ownedRooms) {
-        let activeRoom = Memory.ownedRooms[key];
+    for (let key of Memory.myRooms) {
+        let activeRoom = Game.rooms[key];
         try {
             overlord.overlordMind(activeRoom);
         } catch (e) {
@@ -67,16 +67,15 @@ module.exports.hiveMind = function () {
     //Expansion Manager
     if (Game.time % 10000 === 0) Memory.noClaim = undefined;
     if (Game.time % 25 === 0) {
-        let overlordCount = Memory.ownedRooms.length;
-        let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
-        let minLevel = _.min(Memory.ownedRooms, 'controller.level').controller.level;
+        let overlordCount = Memory.myRooms.length;
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let maxRooms = _.round(Game.cpu.limit / 12);
         if (TEN_CPU) maxRooms = 2;
-        if (maxLevel >= 4 && minLevel >= 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
-            let needyRoom = _.filter(Memory.ownedRooms, (r) => r.memory.buildersNeeded);
-            let safemode = _.filter(Memory.ownedRooms, (r) => r.controller.safeMode);
+        if (Memory.maxLevel >= 4 && Memory.minLevel >= 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
+            let needyRoom = _.filter(myRooms, (r) => r.memory.buildersNeeded);
+            let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
             let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
-            if (needyRoom.length < Memory.ownedRooms.length / 2 && !safemode.length && !claimMission.length) {
+            if (needyRoom.length < myRooms.length / 2 && !safemode.length && !claimMission.length) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {

@@ -10,6 +10,7 @@ module.exports.claimNewRoom = function () {
     let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && r.mineral && r.sources === 2 && r.closestRange <= 12);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     if (worthyRooms.length > 0) {
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let possibles = {};
         loop1:
             for (let key in worthyRooms) {
@@ -39,7 +40,7 @@ module.exports.claimNewRoom = function () {
                 baseScore -= terrainScore;
                 // If it's a new mineral add to the score
                 let minerals = [];
-                Memory.ownedRooms.forEach((r) => minerals.push(r.mineral.mineralType));
+                myRooms.forEach((r) => minerals.push(r.mineral.mineralType));
                 if (worthyRooms[key].mineral && !_.includes(minerals, worthyRooms[key].mineral)) baseScore += 450;
                 // Check if it's near any owned rooms
                 let avoidRooms = _.filter(Memory.roomCache, (r) => r.level);

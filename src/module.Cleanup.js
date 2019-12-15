@@ -41,9 +41,9 @@ module.exports.cleanup = function () {
 
 function cleanPathCacheByUsage() {
     if (Memory._pathCache) { //1500 entries ~= 100kB
-        if (_.size(Memory._pathCache) > (_.size(Memory.ownedRooms) * 100)) {
+        if (_.size(Memory._pathCache) > (Memory.myRooms.length * 100)) {
             let sorted = _.sortBy(Memory._pathCache, 'uses');
-            let overage = (_.size(Memory._pathCache) - _.size(Memory.ownedRooms) * 100) + 50;
+            let overage = (_.size(Memory._pathCache) - Memory.myRooms.length * 100) + 50;
             log.i('Cleaning Path cache (Over max size by ' + overage + ')...');
             Memory._pathCache = _.slice(sorted, overage, _.size(Memory._pathCache));
         }
@@ -51,9 +51,9 @@ function cleanPathCacheByUsage() {
 }
 
 function cleanRouteCacheByUsage() {
-    if (Memory._routeCache && _.size(Memory._routeCache) > (_.size(Memory.ownedRooms) * 20)) { //1500 entries ~= 100kB
+    if (Memory._routeCache && _.size(Memory._routeCache) > (Memory.myRooms.length * 20)) { //1500 entries ~= 100kB
         let sorted = _.sortBy(Memory._routeCache, 'uses');
-        let overage = (_.size(Memory._routeCache) - (_.size(Memory.ownedRooms) * 20)) + 5;
+        let overage = (_.size(Memory._routeCache) - (Memory.myRooms.length * 20)) + 5;
         log.i('Cleaning Route cache (Over max size by ' + overage + ')...');
         Memory._routeCache = _.slice(sorted, overage, _.size(Memory._routeCache));
     }

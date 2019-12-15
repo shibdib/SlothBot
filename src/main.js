@@ -20,63 +20,65 @@ Memory.lastGlobalReset = Game.time;
 
 //profiler.enable();
 module.exports.loop = function () {
-    //profiler.wrap(function () {
-        stats.lastTime = false;
-        stats.reset();
+    let cpu = Game.cpu.getUsed()
 
-        //Logging level
-        Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
+    //Logging level
+    Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
-        Memory.ownedRooms = shuffle(_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.owner.username === MY_USERNAME));
+    // Store owned rooms in array
+    if (!Memory.myRooms || !Memory.myRooms.length) {
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+        Memory.myRooms = _.pluck(myRooms, '.name');
+        Memory.maxLevel = _.max(myRooms, 'controller.level').controller.level;
+        Memory.minLevel = _.min(myRooms, 'controller.level').controller.level;
+    }
+    ;
 
-        // Get Tick Length
-        let d = new Date();
-        let seconds = _.round(d.getTime() / 1000, 2);
-        let lastTick = Memory.lastTick || seconds;
-        Memory.lastTick = seconds;
-        let tickLength = seconds - lastTick;
-        if (tickLengthArray.length < 50) {
-            tickLengthArray.push(tickLength)
+    // Get Tick Length
+    let d = new Date();
+    let seconds = _.round(d.getTime() / 1000, 2);
+    let lastTick = Memory.lastTick || seconds;
+    Memory.lastTick = seconds;
+    let tickLength = seconds - lastTick;
+    if (tickLengthArray.length < 50) {
+        tickLengthArray.push(tickLength)
+    } else {
+        tickLengthArray.shift();
+        tickLengthArray.push(tickLength)
+    }
+    Memory.tickLength = average(tickLengthArray);
+
+    //Routine status
+    if (Game.time % 100 === 0) status();
+
+    //Update allies
+    populateLOANlist();
+
+    //Must run modules
+    segments.segmentManager();
+    cleanUp.cleanup();
+
+    //Bucket Check
+    if (Memory.cooldown) {
+        if (Memory.cooldown + 25 < Game.time) {
+            delete Memory.cooldown;
         } else {
-            tickLengthArray.shift();
-            tickLengthArray.push(tickLength)
-        }
-        Memory.tickLength = average(tickLengthArray);
-
-        //Routine status
-        if (Game.time % 100 === 0) status();
-
-        //Update allies
-        populateLOANlist();
-
-        //Must run modules
-        segments.segmentManager();
-        cleanUp.cleanup();
-
-        //Bucket Check
-        if (Memory.cooldown) {
-            if (Memory.cooldown + 25 < Game.time) {
-                delete Memory.cooldown;
-            } else {
-                let countDown = (Memory.cooldown + 25) - Game.time;
-                log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
-                return;
-            }
-        } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
-            Memory.cooldown = Game.time;
-            log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
+            let countDown = (Memory.cooldown + 25) - Game.time;
+            log.e('On CPU Cooldown For ' + countDown + ' more ticks. Current Bucket ' + Game.cpu.bucket);
             return;
         }
+    } else if (Game.cpu.bucket < Game.cpu.limit * 10) {
+        Memory.cooldown = Game.time;
+        log.e('Skipping tick ' + Game.time + ' due to lack of CPU.');
+        return;
+    }
+    ;
 
-        //Hive Mind
-        if (_.size(Memory.ownedRooms)) {
-            hive.hiveMind();
-        }
-
-        // Simple stats
-        stats.addSimpleStat('totalCreepCount', _.size(Game.creeps)); // Creep Count
-        stats.addSimpleStat('militaryCreepCount', _.size(_.filter(Game.creeps, (r) => r.memory.military))); // Creep Count
-        stats.commit();
+    //Hive Mind
+    cpu = Game.cpu.getUsed()
+    hive.hiveMind();
+    console.log('hive ' + (Game.cpu.getUsed() - cpu))
+    console.log('total ' + Game.cpu.getUsed())
     //});
 };
 
@@ -146,8 +148,8 @@ status = function () {
     log.a('--GLOBAL INFO--', ' ');
     log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + ((_.round(Game.gcl.progress / Game.gcl.progressTotal, 2)) * 100) + '% | Creep Count - ' + _.size(Game.creeps) + ' | Likely Next Claim - ' + _.max(_.filter(Memory.roomCache, (r) => r.claimWorthy), 'claimValue').name, ' ');
     log.a('--ROOM INFO--', ' ');
-    for (let key in Memory.ownedRooms) {
-        let activeRoom = Memory.ownedRooms[key];
+    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+    for (let activeRoom of myRooms) {
         if (!activeRoom.controller) continue;
         let averageEnergy, marauder, averageCpu = 'No Data';
         if (roomEnergyArray[activeRoom.name]) averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';

@@ -14,7 +14,7 @@ let minCut = require('util.minCut');
 module.exports.buildRoom = function (room) {
     if (room.memory.layout && room.memory.bunkerHub) {
         if (room.memory.layoutVersion === LAYOUT_VERSION) {
-            if (Memory.ownedRooms.length === 1 || room.controller.level >= 4) {
+            if (Memory.myRooms.length === 1 || room.controller.level >= 4) {
                 return buildFromLayout(room);
             } else {
                 return newClaimBuild(room);

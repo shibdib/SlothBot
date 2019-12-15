@@ -63,7 +63,7 @@ function militaryScout(room) {
         return;
     }
     Memory.roomCache[room.name].lastOperation = Game.time;
-    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+    let maxLevel = Memory.maxLevel;
     // Get room details
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive());
     let countableStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTAINER);

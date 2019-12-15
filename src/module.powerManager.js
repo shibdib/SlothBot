@@ -22,7 +22,7 @@ module.exports.powerControl = function () {
     if (Game.gpl.level) {
         let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
         if (_.size(Game.powerCreeps)) _.filter(Game.powerCreeps, (c) => c.level).forEach((c) => sparePowerLevels -= c.level);
-        if (_.size(Game.powerCreeps) && (Game.gpl.level < 10 || Memory.ownedRooms.length / 4 <= _.size(Game.powerCreeps) || sparePowerLevels === 0)) {
+        if (_.size(Game.powerCreeps) && (Game.gpl.level < 10 || Memory.myRooms.length / 4 <= _.size(Game.powerCreeps) || sparePowerLevels === 0)) {
             let powerCreeps = _.filter(Game.powerCreeps, (c) => c.my);
             for (let powerCreep of powerCreeps) {
                 if (powerCreep.ticksToLive) {

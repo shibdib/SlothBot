@@ -88,7 +88,7 @@ function rampartManager(room, structures) {
 
 function safeModeManager(room) {
     let controller = room.controller;
-    if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade || controller.level < 3 || _.filter(Memory.ownedRooms, (r) => r.controller.safeMode).length) {
+    if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade || controller.level < 3) {
         structureCount[room.name] = undefined;
         return;
     }

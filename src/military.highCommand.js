@@ -11,7 +11,7 @@
 
 module.exports.highCommand = function () {
     if (!Memory.targetRooms) Memory.targetRooms = {};
-    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+    let maxLevel = Memory.maxLevel;
     // Manage dispatching responders
     if (Game.time % 10 === 0) manageResponseForces();
     // Request scouting for new operations
@@ -39,7 +39,6 @@ function manageResponseForces() {
         c.room.hostileCreeps.length && !_.filter(Game.creeps, (r) => r.my && r.memory.responseTarget === c.room.name)[0])[0];
     let local = _.findKey(Memory.targetRooms, (o) => o.priority === 1 && o.level > 0 && (o.type !== 'siege' && o.type !== 'siegeGroup'));
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
-    let lowLevel = _.sortBy(Memory.ownedRooms, 'controller.level')[0];
     let friendlyResponsePower = 0;
     if (ownedRoomAttack) {
         let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && ownedRoomAttack !== c.room.name && c.memory.responseTarget !== ownedRoomAttack && c.memory.operation === 'borderPatrol'
@@ -105,16 +104,6 @@ function manageResponseForces() {
             creep.memory.awaitingOrders = undefined;
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
-    } else if (lowLevel && lowLevel.name) {
-        let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && lowLevel.name !== c.room.name && c.memory.awaitingOrders
-            && Game.map.getRoomLinearDistance(c.memory.overlord, lowLevel.name) <= LOCAL_SPHERE), function (c) {
-            Game.map.getRoomLinearDistance(c.pos.roomName, lowLevel.name);
-        });
-        for (let creep of idleResponders) {
-            creep.memory.responseTarget = lowLevel.name;
-            creep.memory.awaitingOrders = undefined;
-            log.a(creep.name + ' reassigned to protect ' + roomLink(lowLevel.name) + ' from ' + roomLink(creep.room.name));
-        }
     }
 }
 
@@ -153,7 +142,7 @@ function queueAllyAttack(roomName) {
 function operationRequests() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
-    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+    let maxLevel = Memory.maxLevel;
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean').length || 0;
     let targetLimit = HARASS_LIMIT;
     // Harass Enemies
@@ -274,7 +263,7 @@ function operationRequests() {
 
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
-    let maxLevel = _.max(Memory.ownedRooms, 'controller.level').controller.level;
+    let maxLevel = Memory.maxLevel;
     let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'attack' && target.type !== 'scout').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
@@ -505,7 +494,7 @@ function manualAttacks() {
             let priority = 1;
             let tick = Game.time;
             let type = 'siege';
-            if (_.max(Memory.ownedRooms, 'controller.level').controller.level < 8) type = 'siegeGroup';
+            if (Memory.maxLevel < 8) type = 'siegeGroup';
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: type,

@@ -172,11 +172,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 }
 
 function placeReactionOrders(terminal, globalOrders, myOrders) {
-    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral.mineralAmount), '.mineral.mineralType');
     resource:
         for (let i = 0; i < reactionNeeds.length; i++) {
-            // Skip if you can procure yourself
-            if (_.includes(ownedMinerals, reactionNeeds[i])) continue;
             let storage = terminal.room.storage;
             if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
@@ -214,11 +211,8 @@ function placeReactionOrders(terminal, globalOrders, myOrders) {
 }
 
 function onDemandReactionOrders(terminal, globalOrders) {
-    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral.mineralAmount), '.mineral.mineralType');
     if (terminal.store[RESOURCE_ENERGY] > 500 && Game.market.credits >= CREDIT_BUFFER * 2) {
         for (let i = 0; i < reactionNeeds.length; i++) {
-            // Skip if you can procure yourself
-            if (_.includes(ownedMinerals, reactionNeeds[i])) continue;
             let storage = terminal.room.storage;
             if (!storage) return;
             let stored = terminal.store[reactionNeeds[i]] + storage.store[reactionNeeds[i]] || 0;
@@ -260,7 +254,7 @@ function buyPower(terminal, globalOrders) {
 }
 
 function orderCleanup(myOrders) {
-    let ownedMinerals = _.pluck(_.filter(Memory.ownedRooms, (o) => o.mineral.mineralAmount), '.mineral.mineralType');
+    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let key in myOrders) {
         if (myOrders[key].type === ORDER_BUY) {
             if (Game.market.credits < 50) {
@@ -275,12 +269,7 @@ function orderCleanup(myOrders) {
             if (duplicate.length) {
                 duplicate.forEach((duplicateOrder) => Game.market.cancelOrder(duplicateOrder.id))
             }
-            if (_.includes(ownedMinerals, myOrders[key].resourceType)) {
-                if (Game.market.cancelOrder(myOrders[key].id) === OK) {
-                    log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we now have our own supply of " + myOrders[key].resourceType);
-                    return true;
-                }
-            } else if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
+            if (myOrders[key].resourceType !== RESOURCE_ENERGY) {
                 if (myOrders[key].remainingAmount > tradeAmount) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                         log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " for exceeding the set trade amount (order amount/set limit) " + myOrders[key].remainingAmount + "/" + tradeAmount);
@@ -288,7 +277,7 @@ function orderCleanup(myOrders) {
                     }
                 }
             } else if (myOrders[key].resourceType === RESOURCE_ENERGY) {
-                if (_.filter(Memory.ownedRooms, (r) => r.energy >= ENERGY_AMOUNT * 1.2)[0]) {
+                if (_.filter(myRooms, (r) => r.energy >= ENERGY_AMOUNT * 1.2)[0]) {
                     if (Game.market.cancelOrder(myOrders[key].id) === OK) {
                         log.e(" MARKET: Order Cancelled: " + myOrders[key].id + " we have a room with an energy surplus and do not need to purchase energy");
                         return true;
@@ -322,7 +311,8 @@ function orderCleanup(myOrders) {
 
 function placeEnergyOrders(terminal, globalOrders, myOrders) {
     // Don't buy energy if any room is in a surplus
-    if (_.filter(Memory.ownedRooms, (r) => r.memory.energySurplus)[0]) return false;
+    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+    if (_.filter(myRooms, (r) => r.memory.energySurplus)[0]) return false;
     // Check if an order exists
     if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName &&
         o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY)[0]) return false;
@@ -347,7 +337,8 @@ function emergencyEnergy(terminal) {
     // Balance energy
     if (terminal.store[RESOURCE_ENERGY] >= 7500 && !Memory.roomCache[terminal.room.name].requestingSupport) {
         // Find needy terminals
-        let responseNeeded = _.min(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && (Memory.roomCache[r.name].threatLevel >= 4 || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+        let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && (Memory.roomCache[r.name].threatLevel >= 4 || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
         if (responseNeeded && responseNeeded.name) {
             let needyTerminal = responseNeeded.terminal;
             // Determine how much you can move
@@ -385,7 +376,8 @@ function balanceBoosts(terminal) {
     // Balance energy
     if (terminal.store[RESOURCE_ENERGY] >= 10000 && terminal.room.energy >= ENERGY_AMOUNT * 1.2) {
         // Find needy terminals
-        let needyRoom = shuffle(_.filter(Memory.ownedRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.7))[0];
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+        let needyRoom = shuffle(_.filter(myRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.7))[0];
         if (needyRoom) {
             let needyTerminal = needyRoom.terminal;
             // Determine how much you can move

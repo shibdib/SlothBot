@@ -16,7 +16,8 @@ module.exports.segmentManager = function () {
         doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
     }
     global.FRIENDLIES = doNotAggressArray;
-    if (Game.time % 100 === 0) {
+    /**
+     if (Game.time % 100 === 0) {
         let helpNeeded = [];
         if (Memory.ownedRooms) {
             let requestSupport = _.filter(Memory.ownedRooms, (r) => Memory.roomCache[r.name].threatLevel >= 4);
@@ -25,7 +26,7 @@ module.exports.segmentManager = function () {
         RawMemory.segments[2] = JSON.stringify(doNotAggressArray);
         // Store your requests for help into segment 22, to use this create an array with the rooms needing assistance called helpNeeded
         if (helpNeeded && helpNeeded.length && JSON.stringify(helpNeeded) !== RawMemory.segments[22]) RawMemory.segments[22] = JSON.stringify(helpNeeded);
-    }
+    }**/
     // Every 33 ticks check to see if friends need help or not and if they do store them in Memory._alliedRoomDefense in array format
     if (Game.time % 33 === 0 && LOANlist && LOANlist.length) {
         let helpRequested;

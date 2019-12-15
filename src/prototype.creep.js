@@ -483,7 +483,7 @@ Creep.prototype.repairRoad = function () {
 //Find spawn and recycle
 Creep.prototype.recycleCreep = function () {
     let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
-    if (!this.memory.overlord) this.memory.overlord = Memory.ownedRooms[0].name;
+    if (!this.memory.overlord) this.memory.overlord = Memory.myRooms[0];
     if (!spawn) return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 20});
     switch (spawn.recycleCreep(this)) {
         case OK:
@@ -559,5 +559,5 @@ Creep.prototype.fleeNukeRoom = function () {
         return false;
     }
     if (this.memory.fleeTo && this.room.name !== this.memory.fleeTo) this.shibMove(new RoomPosition(25, 25, this.memory.fleeTo), {range: 23}); else if (this.room.name !== this.memory.fleeTo) this.idleFor(this.memory.fleeNukeTime - Game.time);
-    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(Memory.ownedRooms, (r) => r.name !== this.memory.overlord)).name;
+    if (!this.memory.fleeTo) this.memory.fleeTo = _.sample(_.filter(Memory.myRooms, (r) => r.name !== this.memory.overlord)).name;
 };

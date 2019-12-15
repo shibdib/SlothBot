@@ -3,9 +3,9 @@
  */
 
 module.exports.labManager = function () {
-    for (let key in shuffle(Memory.ownedRooms)) {
-        if (Memory.ownedRooms[key].controller.level < 6) continue;
-        let room = Memory.ownedRooms[key];
+    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+    for (let room of myRooms) {
+        if (room.controller.level < 6) continue;
         room.memory.reactionRoom = true;
         let lab = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB)[0];
         if (lab && room.terminal && Math.random() >= 0.5) cleanLabs(room);

@@ -6,9 +6,8 @@
  */
 
 module.exports.hud = function () {
-    for (let key in Memory.ownedRooms) {
-        let name = Memory.ownedRooms[key].name;
-        let room = Game.rooms[name];
+    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
+    for (let room of myRooms) {
         if (!room) continue;
         let spawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
         let activeSpawns = _.filter(spawns, (s) => s.spawning);
@@ -34,7 +33,6 @@ module.exports.hud = function () {
         let lastTickProgress = Memory.lastTickProgress || 0;
         Memory.gclProgressArray = Memory.gclProgressArray || [];
         let progressPerTick = Game.gcl.progress - lastTickProgress;
-        stats.addSimpleStat('gclTickProgress', _.size(progressPerTick)); // Creep Count
         let paused = '*P* ';
         if (progressPerTick > 0) {
             paused = '';
