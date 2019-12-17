@@ -254,7 +254,6 @@ module.exports.essentialCreepQueue = function (room) {
 
 //Non essential creeps
 module.exports.miscCreepQueue = function (room) {
-    let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     let queueTracker = lastQueue[room.name] || {};
     let level = getLevel(room);
     let roomCreeps = _.filter(Game.creeps, (r) => r.memory.overlord === room.name && (!r.memory.destination || r.memory.destination === room.name));
@@ -339,66 +338,55 @@ module.exports.miscCreepQueue = function (room) {
     }
     // Assist room
     if (level >= 4 && !inBuild && !Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
-        let needyRoom = _.sample(_.filter(myRooms, (r) => r.name !== room.name && r.memory.buildersNeeded && !r.hostileCreeps.length && (!Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time)));
-        if (needyRoom) {
-            let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needyRoom.name || creep.memory.overlord === needyRoom.name) && creep.memory.role === 'drone');
-            let amount = roomSourceSpace[room.name] - 2 || 2;
+        let safeToSupport = _.filter(Game.rooms, (r) => !r.hostileCreeps.length && (!Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time));
+        let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded))).name;
+        if (needDrones) {
+            let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needDrones || creep.memory.overlord === needDrones) && creep.memory.role === 'drone');
+            let amount = roomSourceSpace[room.name] || 2;
             if (drones.length < amount) {
                 queueCreep(room, PRIORITIES.assistPioneer + drones.length * 0.25, {
                     role: 'drone',
-                    destination: needyRoom.name
+                    destination: needDrones
                 });
             }
-            if (level >= 6 && room.storage && room.energy >= 10000) {
-                if (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 1450 <= Game.time) {
-                    let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needyRoom.name && creep.memory.role === 'fuelTruck');
-                    if (fuelTruck.length < 1 && drones.length > 1) {
-                        queueCreep(room, PRIORITIES.fuelTruck, {
-                            role: 'fuelTruck',
-                            destination: needyRoom.name
-                        });
-                        queueTracker['fuelTruck'] = Game.time;
-                    }
+        }
+        if (level >= 6 && room.memory.energySurplus) {
+            // Energy Supplies
+            let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.energyNeeded))).name;
+            if (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 1450 <= Game.time) {
+                let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needEnergy && creep.memory.role === 'fuelTruck');
+                if (!fuelTruck.length) {
+                    queueCreep(room, PRIORITIES.fuelTruck, {
+                        role: 'fuelTruck',
+                        destination: needEnergy
+                    });
+                    queueTracker['fuelTruck'] = Game.time;
                 }
             }
-        }
-        // Power Level
-        let upgradeAssist = _.sample(_.filter(myRooms, (r) => r.name !== room.name && r.controller.level + 1 < level && !r.hostileCreeps.length && (!Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time)));
-        if (upgradeAssist && room.memory.energySurplus && level >= 6) {
-            let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgradeAssist.name && creep.memory.role === 'remoteUpgrader');
-            if (!remoteUpgraders.length) {
-                queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
-                    role: 'remoteUpgrader',
-                    destination: upgradeAssist.name
-                })
+            // Power Level
+            let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.controller && r.controller.my && r.controller.level && r.controller.level + 1 < level))).name;
+            if (upgraderRequested) {
+                let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgraderRequested && creep.memory.role === 'remoteUpgrader');
+                if (!remoteUpgraders.length) {
+                    queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
+                        role: 'remoteUpgrader',
+                        destination: upgraderRequested
+                    })
+                }
             }
-        }
-        let combatAssist = _.sample(_.filter(myRooms, (r) => r.name !== room.name && (Memory.roomCache[r.name].threatLevel >= 3 || r.controller.level < 3 || (r.controller.level + 2 <= room.controller.level && Memory.roomCache[r.name].lastPlayerSighting + 1500 > Game.time))));
-        if (combatAssist) {
-            let guards = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === combatAssist.name && creep.memory.operation === 'guard');
-            let amount = Memory.roomCache[combatAssist.name].threatLevel || 1;
-            if (guards.length < amount || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < amount + 1)) {
-                queueCreep(room, PRIORITIES.remoteResponse, {
-                    role: 'remoteResponse',
-                    operation: 'guard',
-                    targetRoom: combatAssist.name,
-                    military: true,
-                    localCache: true
-                })
+            // Marauder
+            if (!queueTracker['marauder'] || queueTracker['marauder'] + 2500 <= Game.time) {
+                let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding');
+                if (marauder.length < 2 && Math.random() > 0.5) {
+                    queueCreep(room, PRIORITIES.medium, {
+                        role: 'longbow',
+                        operation: 'marauding',
+                        military: true,
+                        localCache: true
+                    });
+                }
+                queueTracker['marauder'] = Game.time;
             }
-        }
-        // Marauder
-        if (!queueTracker['marauder'] || queueTracker['marauder'] + 2500 <= Game.time) {
-            let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding');
-            if (marauder.length < 2 && Math.random() > 0.5) {
-                queueCreep(room, PRIORITIES.medium, {
-                    role: 'longbow',
-                    operation: 'marauding',
-                    military: true,
-                    localCache: true
-                });
-            }
-            queueTracker['marauder'] = Game.time;
         }
     }
     // Border Patrol
