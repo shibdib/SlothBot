@@ -27,7 +27,7 @@ module.exports.controller = function (room) {
     if (Game.time % 5 === 0) safeModeManager(room);
 
     // Abandon hopeless rooms
-    if (Game.time % 5 === 0 && room.controller.level < 6) unsavableCheck(room);
+    if (Game.time % 100 === 0) unSavableCheck(room);
 
     // Tower control
     towers.towerControl(room);
@@ -87,6 +87,8 @@ function rampartManager(room, structures) {
 }
 
 function safeModeManager(room) {
+    // Ensure camping enemies continue to gain threat even if no creeps present.
+    addThreat(room);
     let controller = room.controller;
     if (!room.hostileCreeps.length || controller.safeMode || controller.safeModeCooldown || !controller.safeModeAvailable || controller.ticksToDowngrade || controller.level < 3) {
         structureCount[room.name] = undefined;
@@ -118,16 +120,14 @@ function earlyWarning(room) {
     }
 }
 
-function unsavableCheck(room) {
+function unSavableCheck(room) {
     // Abandon Bad Rooms
     if (room.controller.safeMode || !room.hostileCreeps.length) return;
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.my);
     let badCount = room.memory.badCount || 0;
     if (room.hostileCreeps.length && !towers.length) {
-        if (Game.time % 750 === 0) {
-            room.memory.badCount = badCount + 1;
-        }
-        if (room.memory.badCount > room.controller.level) {
+        room.memory.badCount = badCount + 1;
+        if (room.memory.badCount > room.controller.level + 2) {
             let hostileOwners = [];
             for (let hostile of room.hostileCreeps) hostileOwners.push(hostile.owner.username)
             abandonOverrun(room);
@@ -141,6 +141,29 @@ function unsavableCheck(room) {
             room.memory.badCount = undefined;
         } else {
             room.memory.badCount = badCount - 1;
+        }
+    }
+}
+
+function addThreat(room) {
+    let neutrals = _.uniq(_.pluck(_.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper'), 'owner.username'));
+    if (neutrals.length) {
+        for (let user of neutrals) {
+            if (user === MY_USERNAME || _.includes(FRIENDLIES, user)) continue;
+            let cache = Memory._badBoyList || {};
+            let threatRating;
+            if (cache[user]) {
+                threatRating = cache[user]['threatRating'] + 0.25;
+                if (threatRating >= 1500) threatRating = 1500;
+            } else if (!cache[user]) {
+                threatRating = 25;
+                log.e(name + ' has detected a neutral in ' + roomLink(room.name) + '. ' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
+            }
+            cache[user] = {
+                threatRating: threatRating,
+                lastAction: Game.time,
+            };
+            Memory._badBoyList = cache;
         }
     }
 }
