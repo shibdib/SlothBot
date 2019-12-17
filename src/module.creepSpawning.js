@@ -339,38 +339,38 @@ module.exports.miscCreepQueue = function (room) {
     // Assist room
     if (level >= 4 && !inBuild && !Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
         let safeToSupport = _.filter(Game.rooms, (r) => !r.hostileCreeps.length && (!Memory.roomCache[r.name] || !Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time));
-        let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded))).name;
+        let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded)));
         if (needDrones) {
-            let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needDrones || creep.memory.overlord === needDrones) && creep.memory.role === 'drone');
+            let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needDrones.name || creep.memory.overlord === needDrones.name) && creep.memory.role === 'drone');
             let amount = roomSourceSpace[room.name] || 2;
             if (drones.length < amount) {
                 queueCreep(room, PRIORITIES.assistPioneer + drones.length * 0.25, {
                     role: 'drone',
-                    destination: needDrones
+                    destination: needDrones.name
                 });
             }
         }
         if (level >= 6 && room.memory.energySurplus) {
             // Energy Supplies
-            let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.energyNeeded))).name;
-            if (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 1450 <= Game.time) {
-                let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needEnergy && creep.memory.role === 'fuelTruck');
+            let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.energyNeeded)));
+            if (needEnergy && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 1450 <= Game.time)) {
+                let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needEnergy.name && creep.memory.role === 'fuelTruck');
                 if (!fuelTruck.length) {
                     queueCreep(room, PRIORITIES.fuelTruck, {
                         role: 'fuelTruck',
-                        destination: needEnergy
+                        destination: needEnergy.name
                     });
                     queueTracker['fuelTruck'] = Game.time;
                 }
             }
             // Power Level
-            let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.controller && r.controller.my && r.controller.level && r.controller.level + 1 < level))).name;
+            let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.controller && r.controller.my && r.controller.level && r.controller.level + 1 < level)));
             if (upgraderRequested) {
-                let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgraderRequested && creep.memory.role === 'remoteUpgrader');
+                let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgraderRequested.name && creep.memory.role === 'remoteUpgrader');
                 if (!remoteUpgraders.length) {
                     queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
                         role: 'remoteUpgrader',
-                        destination: upgraderRequested
+                        destination: upgraderRequested.name
                     })
                 }
             }
