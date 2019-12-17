@@ -113,7 +113,7 @@ function harvestDepositLink(creep) {
     let container = Game.getObjectById(creep.memory.containerID);
     if (!container || (!creep.room.memory.controllerLink && !creep.room.memory.hubLink)) return;
     let source = Game.getObjectById(creep.memory.source);
-    let link = _.filter(container.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
+    let link = _.filter(container.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0] || _.filter(creep.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (!link.isActive()) return link.destroy();
         if (creep.pos.getRangeTo(link) <= 1) {
