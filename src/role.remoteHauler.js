@@ -10,8 +10,6 @@
  */
 
 module.exports.role = function (creep) {
-    //Renew
-    if (creep.renewalCheck()) return;
     creep.say(ICONS.haul2, true);
     //Invader detection
     if (creep.hits < creep.hitsMax || creep.memory.runCooldown) return creep.goHomeAndHeal();
