@@ -102,6 +102,26 @@ function militaryScout(room) {
         delete Memory.targetRooms[room.name];
         // If the room has no controller
         if (!controller) {
+            // Handle SK Cores
+            if (towers.length) {
+                if (maxLevel === 8) {
+                    if (towers.length <= 3) {
+                        cache[this.room.name] = {
+                            tick: tick,
+                            type: 'siege',
+                            level: 1,
+                            priority: priority
+                        };
+                    }
+                } else if (towers.length <= 2 && maxLevel >= 7) {
+                    cache[this.room.name] = {
+                        tick: tick,
+                        type: 'siegeGroup',
+                        level: 1,
+                        priority: priority
+                    };
+                }
+            } else
             // Use rangers if available
             if (maxLevel >= 4) {
                 cache[room.name] = {
