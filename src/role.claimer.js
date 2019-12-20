@@ -51,9 +51,5 @@ module.exports.role = function (creep) {
 };
 
 function cleanRoom(room, structures) {
-    for (let key in structures) {
-        if (structures[key] && structures[key].owner && !structures[key].my) {
-            structures[key].destroy();
-        }
-    }
+    _.filter(structures, (s) => s.structureType !== STRUCTURE_CONTROLLER).forEach((s) => s.destroy());
 }
