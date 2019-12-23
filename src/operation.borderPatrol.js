@@ -11,11 +11,11 @@ Creep.prototype.borderPatrol = function () {
     this.say(sentence[word], true);
     // Invader check
     this.room.invaderCheck();
+    // Handle rampart
+    if (this.fightRampart()) return;
     if (this.room.memory.towerTarget && Game.getObjectById(this.room.memory.towerTarget)) {
         if (this.getActiveBodyparts(RANGED_ATTACK)) return this.fightRanged(Game.getObjectById(this.room.memory.towerTarget)); else if (this.getActiveBodyparts(ATTACK)) this.attackHostile(Game.getObjectById(this.room.memory.towerTarget));
     }
-    // Handle rampart
-    if (this.fightRampart()) return;
     this.attackInRange();
     if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) return this.goHomeAndHeal();
