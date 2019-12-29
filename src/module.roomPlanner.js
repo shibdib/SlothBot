@@ -357,6 +357,8 @@ function newClaimBuild(room) {
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
     if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
     let layout = JSON.parse(room.memory.layout);
+    // Rampart the controller to counter unclaimers
+    buildRampartAround(room, room.controller.pos);
     // Build tower rampart, then tower, then spawn
     let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER);
     let spawns = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN);
@@ -587,6 +589,17 @@ function buildRoadAround(room, position) {
             if (xOff !== 0 || yOff !== 0) {
                 let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
                 buildRoad(pos, room);
+            }
+        }
+    }
+}
+
+function buildRampartAround(room, position) {
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (xOff !== 0 || yOff !== 0) {
+                let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
+                if (!pos.checkForWall() && !pos.checkForConstructionSites() && !pos.checkForRampart()) pos.createConstructionSite(STRUCTURE_RAMPART);
             }
         }
     }
