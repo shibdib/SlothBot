@@ -216,7 +216,7 @@ function operationRequests() {
      let cleanLimit = CLEAN_LIMIT;
      if (TEN_CPU) cleanLimit = 0;
      if (cleanCount < cleanLimit) {
-         let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.structures && !r.owner), 'closestRange');
+         let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.structures && !r.owner && !r.isHighway), 'closestRange');
         if (enemyClean.length) {
             let cleanTarget = _.sample(enemyClean);
             let cache = Memory.targetRooms || {};
