@@ -422,7 +422,7 @@ function manualAttacks() {
             delete Memory.targetRooms[Game.flags[name].pos.roomName];
             delete Memory.roomCache[Game.flags[name].pos.roomName];
             if (Memory.activeSiege && Memory.activeSiege === Game.flags[name].pos.roomName) delete Memory.activeSiege;
-            log.a('Canceling operation in ' + roomLink(key) + ' at your request.', 'HIGH COMMAND: ');
+            log.a('Canceling operation in ' + roomLink(Game.flags[name].pos.roomName) + ' at your request.', 'HIGH COMMAND: ');
             Game.flags[name].remove();
         }
         //Bad room flag
