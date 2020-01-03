@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -123,7 +123,7 @@ function buildFromLayout(room) {
     }
     // Bunker Ramparts
     if (level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
-        if (!room.memory.rampartsSet || Math.random() > 0.99) {
+        if (!room.memory.rampartsSet || Math.random() > 0.98) {
             room.memory.rampartSpots = undefined;
             room.memory.rampartsSet = 1;
             let hubBuffer = 8;
@@ -137,12 +137,13 @@ function buildFromLayout(room) {
                 x2: room.memory.bunkerHub.x + hubBuffer,
                 y2: room.memory.bunkerHub.y + hubBuffer
             });
-            for (let source of room.find(FIND_SOURCES)) {
+            // Sources
+            for (let source of room.sources) {
                 rect_array.push({
-                    x1: source.pos.x - 1,
-                    y1: source.pos.y - 1,
-                    x2: source.pos.x + 1,
-                    y2: source.pos.y + 1
+                    x1: source.x - 1,
+                    y1: source.y - 1,
+                    x2: source.x + 1,
+                    y2: source.y + 1
                 });
             }
             rect_array.push({
@@ -150,12 +151,6 @@ function buildFromLayout(room) {
                 y1: room.controller.pos.y - 1,
                 x2: room.controller.pos.x + 1,
                 y2: room.controller.pos.y + 1
-            });
-            rect_array.push({
-                x1: room.mineral.pos.x - 1,
-                y1: room.mineral.pos.y - 1,
-                x2: room.mineral.pos.x + 1,
-                y2: room.mineral.pos.y + 1
             });
             let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
             room.memory.rampartSpots = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
@@ -193,13 +188,6 @@ function buildFromLayout(room) {
                 /**else if (!pos.checkForObstacleStructure() && !pos.checkForRoad() &&
                  !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_ROAD && s.progress < s.progressTotal * 0.95).length) pos.createConstructionSite(STRUCTURE_ROAD);**/
             }
-        }
-    }
-    // Ramparts on buildings
-    if (level >= 7 && level === extensionLevel) {
-        for (let store of _.filter(room.structures, (s) => protectedStructures.includes(s.structureType) && !s.pos.checkForRampart())) {
-            if (_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length) break;
-            room.createConstructionSite(store.pos, STRUCTURE_RAMPART);
         }
     }
     // Controller
