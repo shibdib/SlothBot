@@ -42,7 +42,7 @@ module.exports.role = function (creep) {
             if (creep.haulerDelivery()) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
                 creep.shibMove(storageItem);
-            }
+            } else creep.idleFor(5);
         }
     } else creep.idleFor(2);
 };

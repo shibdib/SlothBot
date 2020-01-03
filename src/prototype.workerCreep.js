@@ -383,7 +383,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT || (storage.store[RESOURCE_ENERGY] && hauler))) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.5 || (storage.store[RESOURCE_ENERGY] && hauler))) {
         this.memory.energyDestination = storage.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -434,73 +434,70 @@ Creep.prototype.haulerDelivery = function () {
             return true;
         }
     } else {
-        let tower = this.pos.findClosestByRange(this.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.15 &&
-                _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-        });
+        let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.15 &&
+            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy)[0];
         if (tower) {
             this.memory.storageDestination = tower.id;
             return true;
         }
     }
-    // Spawns
-    let energyStructures = this.pos.findClosestByRange(this.room.structures, {
-        filter: (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length
-            && s.energy < s.energyCapacity && _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-    });
-    if (energyStructures) {
-        this.memory.storageDestination = energyStructures.id;
-        return true;
+    // Spawns/Extensions
+    if (!this.memory.spawnsExtension) {
+        this.memory.spawnsExtension = JSON.stringify(_.pluck(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length), 'id'));
+        return;
+    } else {
+        let spawnsExtensions = [];
+        let parsedID = JSON.parse(this.memory.spawnsExtension);
+        parsedID.forEach((s) => spawnsExtensions.push(Game.getObjectById(s)));
+        let target = this.pos.findClosestByRange(_.filter(spawnsExtensions, (s) => s.energy < s.energyCapacity && _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy));
+        if (target) {
+            this.memory.storageDestination = target.id;
+            return true;
+        }
     }
-    //Terminal low
     let terminal = this.room.terminal;
-    if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < 15000) {
-        this.memory.storageDestination = terminal.id;
-        return true;
-    }
-    //Labs
-    let lab = this.pos.findClosestByRange(this.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-    });
-    if (lab) {
-        this.memory.storageDestination = lab.id;
-        return true;
-    }
-    //Nuke
-    let nuke = this.pos.findClosestByRange(this.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-    });
-    if (nuke) {
-        this.memory.storageDestination = nuke.id;
-        return true;
-    }
-    //Power Spawn
-    let power = this.pos.findClosestByRange(this.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.energy < s.energyCapacity &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-    });
-    if (power) {
-        this.memory.storageDestination = power.id;
-        return true;
+    let storage = this.room.storage;
+    if (this.room.controller.level >= 6) {
+        //Terminal low
+        if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < 15000) {
+            this.memory.storageDestination = terminal.id;
+            return true;
+        }
+        //Labs
+        let lab = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity &&
+            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy)[0];
+        if (lab) {
+            this.memory.storageDestination = lab.id;
+            return true;
+        }
+        if (this.room.controller.level >= 8) {
+            //Nuke
+            let nuke = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy < s.energyCapacity)[0];
+            if (nuke) {
+                this.memory.storageDestination = nuke.id;
+                return true;
+            }
+            //Power Spawn
+            let power = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.energy < s.energyCapacity)[0];
+            if (power) {
+                this.memory.storageDestination = power.id;
+                return true;
+            }
+        }
     }
     //Top off towers
-    let tower = this.pos.findClosestByRange(this.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9 &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-    });
-    let fullTower = _.filter(this.room.structures, {
-        filter: (s) => s.my && s.structureType === STRUCTURE_TOWER && s.energy >= s.energyCapacity * 0.9 &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-    });
-    if (tower && !fullTower.length) {
-        this.memory.storageDestination = tower.id;
-        return true;
+    let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9 &&
+        _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy)[0];
+    if (tower) {
+        let fullTower = _.filter(this.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && s.energy >= s.energyCapacity * 0.9 &&
+            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy)[0];
+        if (!fullTower) {
+            this.memory.storageDestination = tower.id;
+            return true;
+        }
     }
     //Storage
-    let storage = this.room.storage;
-    if (storage && this.memory.withdrawID !== storage.id && storage.my && storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+    if (storage && this.memory.withdrawID !== storage.id && storage.my && storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 0.5) {
         this.memory.storageDestination = storage.id;
         return true;
     }
