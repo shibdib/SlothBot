@@ -296,15 +296,13 @@ Creep.prototype.findEnergy = function () {
     }
     // Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] > 6000
-        && terminal.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === terminal.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
         this.memory.energyDestination = terminal.id;
         return true;
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY]
-        && storage.store[RESOURCE_ENERGY] >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === storage.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25) {
         this.memory.energyDestination = storage.id;
         return true;
     }
@@ -376,14 +374,14 @@ Creep.prototype.getEnergy = function (hauler = false) {
     }
     // Extra Full Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] && (terminal.store[RESOURCE_ENERGY] > ENERGY_AMOUNT || (terminal.store[RESOURCE_ENERGY] && hauler))) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER * 1.2) {
         this.memory.energyDestination = terminal.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.5 || (storage.store[RESOURCE_ENERGY] && hauler))) {
+    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25 || (storage.store[RESOURCE_ENERGY] && hauler))) {
         this.memory.energyDestination = storage.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -459,7 +457,7 @@ Creep.prototype.haulerDelivery = function () {
     let storage = this.room.storage;
     if (this.room.controller.level >= 6) {
         //Terminal low
-        if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < 15000) {
+        if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
             this.memory.storageDestination = terminal.id;
             return true;
         }

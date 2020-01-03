@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -23,9 +23,8 @@ Object.defineProperty(Creep.prototype, "idle", {
             this.moveRandom();
         } else if (this.pos.getRangeTo(this.pos.findClosestByRange(FIND_MY_SPAWNS)) === 1) {
             this.moveRandom();
-        } else {
-            return this.memory.idle;
         }
+        return this.memory.idle;
     },
     set: function (val) {
         if (!val && this.memory.idle) {

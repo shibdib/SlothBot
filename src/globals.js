@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -36,6 +36,7 @@ let globals = function () {
     global.CREDIT_BUFFER = 100000;
     global.TRADE_AMOUNT = 10000;
     global.ENERGY_AMOUNT = 50000;
+    global.TERMINAL_ENERGY_BUFFER = 12000;
     global.SIEGE_ENERGY_AMOUNT = 100000;
     global.REACTION_AMOUNT = 1000;
     global.SELL_OFF_AMOUNT = 12500;
