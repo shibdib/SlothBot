@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -572,6 +572,7 @@ Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false,
 
 Room.prototype.getBoostAmount = function (boost) {
     let boostInRoomStructures = _.sum(this.lookForAtArea(LOOK_STRUCTURES, 0, 0, 49, 49, true), (s) => {
+        if (s['structure'] && s['structure'].structureType === STRUCTURE_NUKER) return 0;
         if (s['structure'] && s['structure'].store) {
             return s['structure'].store[boost] || 0;
         } else if (s['structure'] && s['structure'].mineralType === boost) {
