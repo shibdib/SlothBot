@@ -129,7 +129,7 @@ function manageSellOrders(terminal, myOrders) {
         let order = myOrders[key];
         if (order.type !== ORDER_SELL) continue;
         if (order.resourceType !== RESOURCE_ENERGY) {
-            if (terminal.store[order.resourceType] > order.remainingAmount) {
+            if (terminal.store[order.resourceType] - order.remainingAmount > 1500) {
                 if (Game.market.extendOrder(order.id, terminal.store[order.resourceType]) === OK) {
                     log.w("Extended sell order " + order.id + " an additional " + terminal.store[order.resourceType] + " " + order.resourceType, "Market: ");
                     return true;
