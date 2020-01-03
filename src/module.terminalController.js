@@ -29,9 +29,6 @@ module.exports.terminalControl = function (room) {
         //trackPriceData(globalOrders);
         runOnce = Game.time;
     }
-    //Handle Sell Orders
-    manageSellOrders(room.terminal, globalOrders, myOrders);
-    placeSellOrders(room.terminal, globalOrders, myOrders);
     if (room.terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER) {
         //Buy minerals if needed
         if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
@@ -44,6 +41,9 @@ module.exports.terminalControl = function (room) {
         //Dump Excess
         if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
+    //Handle Sell Orders
+    manageSellOrders(room.terminal, globalOrders, myOrders);
+    placeSellOrders(room.terminal, globalOrders, myOrders);
 };
 
 function orderCleanup(myOrders) {
