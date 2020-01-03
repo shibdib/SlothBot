@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -108,7 +108,8 @@ module.exports.role = function (creep) {
             }
         }
     }
-    creep.idleFor(15);
+    let creepRole = require('role.hauler');
+    creepRole.role(creep);
 };
 
 // Empty Function
