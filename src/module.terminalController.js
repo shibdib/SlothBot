@@ -358,25 +358,25 @@ function emergencyEnergy(terminal) {
 function balanceBoosts(terminal) {
     // Dont balance if being sieged or broke
     if (Memory.roomCache[terminal.room.name].requestingSupport) return false;
-    // Loop thru boosts
-    let storedResources = Object.keys(terminal.store);
-    for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
-        if (terminal.store[boost] >= TRADE_AMOUNT * 0.5) {
-            // Find needy terminals
-            let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < terminal.store[boost] * 0.2)));
-            if (needyTerminal) {
-                // Determine how much you can move
-                let availableAmount = terminal.store[boost] * 0.5;
-                switch (terminal.send(boost, availableAmount, needyTerminal.room.name)) {
-                    case OK:
-                        log.a(' MARKET: Balancing ' + availableAmount + ' ' + boost + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name));
-                        return true;
+    // Balance energy
+    if (terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER) {
+        // Loop thru boosts
+        let storedResources = Object.keys(terminal.store);
+        for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
+            if (terminal.store[boost] >= TRADE_AMOUNT * 0.5) {
+                // Find needy terminals
+                let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < terminal.store[boost] * 0.2)));
+                if (needyTerminal) {
+                    // Determine how much you can move
+                    let availableAmount = terminal.store[boost] * 0.5;
+                    switch (terminal.send(boost, availableAmount, needyTerminal.room.name)) {
+                        case OK:
+                            log.a(' MARKET: Balancing ' + availableAmount + ' ' + boost + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name));
+                            return true;
+                    }
                 }
             }
         }
-    }
-    // Balance energy
-    if (terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER) {
         // Find needy terminals
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let needyRoom = shuffle(_.filter(myRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.2))[0];
