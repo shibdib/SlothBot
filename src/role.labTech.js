@@ -108,8 +108,7 @@ module.exports.role = function (creep) {
             }
         }
     }
-    let creepRole = require('role.hauler');
-    creepRole.role(creep);
+    creep.idleFor(15);
 };
 
 // Empty Function
@@ -441,6 +440,7 @@ function storageEmpty(creep) {
     let maxResource = 0;
     let overflow;
     for (let resource of Object.keys(creep.room.storage.store)) {
+        if (resource === RESOURCE_ENERGY) maxResource = ENERGY_AMOUNT;
         if (creep.room.storage.store[resource] > maxResource) {
             maxResource = creep.room.storage.store[resource];
             overflow = resource;
