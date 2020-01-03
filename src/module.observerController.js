@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -65,7 +65,7 @@ function militaryScout(room) {
     Memory.roomCache[room.name].lastOperation = Game.time;
     let maxLevel = Memory.maxLevel;
     // Get room details
-    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.isActive());
+    let towers = _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && (s.isActive() || !room.controller));
     let countableStructures = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_CONTAINER);
     let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(_.filter(s.store, (r) => _.includes(TIER_2_BOOSTS, r.resourceType) || _.includes(END_GAME_BOOSTS, r.resourceType))) > 500);
     let controller = room.controller;
@@ -104,9 +104,9 @@ function militaryScout(room) {
         if (!controller) {
             // Handle SK Cores
             if (towers.length) {
-                if (maxLevel === 8) {
+                if (maxLevel === 8 && towers.length >= 2) {
                     if (towers.length <= 3) {
-                        cache[this.room.name] = {
+                        cache[room.name] = {
                             tick: tick,
                             type: 'siege',
                             level: 1,
@@ -114,7 +114,7 @@ function militaryScout(room) {
                         };
                     }
                 } else if (towers.length <= 2 && maxLevel >= 7) {
-                    cache[this.room.name] = {
+                    cache[room.name] = {
                         tick: tick,
                         type: 'siegeGroup',
                         level: 1,
