@@ -486,8 +486,8 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
             } else if (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].sk) {
-                //Harvesters (Don't build any if there's an extreme surplus)
-                if (!room.memory.extremeEnergySurplus) {
+                //Harvesters (Don't build any if there's a surplus)
+                if (!room.memory.energySurplus) {
                     let remoteHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'remoteHarvester');
                     let sourceCount = 1;
                     if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].sources) sourceCount = Memory.roomCache[remotes[keys]].sources;
