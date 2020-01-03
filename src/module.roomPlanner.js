@@ -124,6 +124,11 @@ function buildFromLayout(room) {
     // Bunker Ramparts
     if (level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
         if (!room.memory.rampartsSet || Math.random() > 0.98) {
+            // Clean old ramparts from new claims
+            if (!room.memory.rampartSpots) {
+                let cleaner = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.pos.checkForRampart());
+                cleaner.forEach((s) => s.pos.checkForRampart().destroy())
+            }
             room.memory.rampartSpots = undefined;
             room.memory.rampartsSet = 1;
             let hubBuffer = 8;
