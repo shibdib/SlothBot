@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -49,7 +49,7 @@ module.exports.terminalControl = function (room) {
     //Send energy to rooms under siege
     if (emergencyEnergy(room.terminal)) return;
     //Disperse Minerals and Boosts
-    //if (balanceBoosts(room.terminal)) return;
+    if (balanceBoosts(room.terminal)) return;
 };
 
 function fillBuyOrders(terminal, globalOrders) {
@@ -363,7 +363,7 @@ function balanceBoosts(terminal) {
     for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY))) {
         if (terminal.store[boost] >= TRADE_AMOUNT * 0.5) {
             // Find needy terminals
-            let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < terminal.store[boost] * 0.7)));
+            let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (!s.store[boost] || s.store[boost] < terminal.store[boost] * 0.2)));
             if (needyTerminal) {
                 // Determine how much you can move
                 let availableAmount = terminal.store[boost] * 0.5;
@@ -379,14 +379,11 @@ function balanceBoosts(terminal) {
     if (terminal.store[RESOURCE_ENERGY] >= 10000 && terminal.room.energy >= ENERGY_AMOUNT * 1.2) {
         // Find needy terminals
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        let needyRoom = shuffle(_.filter(myRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.7))[0];
+        let needyRoom = shuffle(_.filter(myRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.2))[0];
         if (needyRoom) {
             let needyTerminal = needyRoom.terminal;
             // Determine how much you can move
             let availableAmount = terminal.store[RESOURCE_ENERGY] * 0.5;
-            let maxSend = terminal.room.energy * 0.65 - needyRoom.energy;
-            if (availableAmount <= 0) return false;
-            if (maxSend < availableAmount) availableAmount = maxSend;
             switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
                 case OK:
                     log.a(' MARKET: Balancing ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name));
