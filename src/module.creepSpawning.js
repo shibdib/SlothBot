@@ -472,7 +472,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
                 let SKHarvester = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.role === 'SKHarvester');
                 let sourceCount = Memory.roomCache[remotes[keys]].sources || 1;
-                if (SKHarvester.length < sourceCount && SKAttacker.length) {
+                if (!room.memory.extremeEnergySurplus && SKHarvester.length < sourceCount && SKAttacker.length) {
                     queueCreep(room, PRIORITIES.SKWorker, {
                         role: 'SKHarvester',
                         destination: remotes[keys]
