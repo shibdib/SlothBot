@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -95,76 +95,24 @@ Creep.prototype.robbery = function () {
     } else {
         if (!_.sum(this.store)) return delete this.memory.hauling;
         if (this.pos.roomName === this.memory.overlord) {
-            if (this.renewalCheck()) return;
-            if (this.memory.storageDestination) {
+            if (this.memory.storageDestination || this.haulerDelivery()) {
                 let storageItem = Game.getObjectById(this.memory.storageDestination);
-                for (const resourceType in this.store) {
-                    switch (this.transfer(storageItem, resourceType)) {
-                        case OK:
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            this.shibMove(storageItem, {offRoad: true});
-                            break;
-                        case ERR_FULL:
-                            delete this.memory.storageDestination;
-                            break;
-                    }
+                if (!storageItem) return delete this.memory.storageDestination;
+                switch (this.transfer(storageItem, RESOURCE_ENERGY)) {
+                    case OK:
+                        delete this.memory.storageDestination;
+                        delete this.memory._shibMove;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        this.shibMove(storageItem);
+                        break;
+                    case ERR_FULL || ERR_INVALID_TARGET:
+                        delete this.memory.storageDestination;
+                        delete this.memory._shibMove;
+                        if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
+                        break;
                 }
-            } else {
-                let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-                let storage = this.room.storage;
-                let terminal = this.room.terminal;
-                if (controllerContainer && this.store[RESOURCE_ENERGY] === _.sum(this.store) && _.sum(controllerContainer.store) < controllerContainer.storeCapacity * 0.70) {
-                    this.memory.storageDestination = controllerContainer.id;
-                    switch (this.transfer(controllerContainer, RESOURCE_ENERGY)) {
-                        case OK:
-                            delete this.memory.storageDestination;
-                            delete this.memory.destinationReached;
-                            break;
-                        case ERR_NOT_IN_RANGE:
-                            this.shibMove(controllerContainer, {offRoad: true});
-                            break;
-                        case ERR_FULL:
-                            delete this.memory.storageDestination;
-                            this.findStorage();
-                            break;
-                    }
-                } else if (storage && _.sum(storage.store) < storage.storeCapacity * 0.90) {
-                    this.memory.storageDestination = storage.id;
-                    for (const resourceType in this.store) {
-                        switch (this.transfer(storage, resourceType)) {
-                            case OK:
-                                delete this.memory.storageDestination;
-                                delete this.memory.destinationReached;
-                                break;
-                            case ERR_NOT_IN_RANGE:
-                                this.shibMove(storage, {offRoad: true});
-                                break;
-                            case ERR_FULL:
-                                delete this.memory.storageDestination;
-                                this.findStorage();
-                                break;
-                        }
-                    }
-                } else if (terminal && _.sum(terminal.store) < terminal.storeCapacity * 0.70) {
-                    this.memory.storageDestination = terminal.id;
-                    for (const resourceType in this.store) {
-                        switch (this.transfer(terminal, resourceType)) {
-                            case OK:
-                                delete this.memory.storageDestination;
-                                delete this.memory.destinationReached;
-                                break;
-                            case ERR_NOT_IN_RANGE:
-                                this.shibMove(terminal, {offRoad: true});
-                                break;
-                            case ERR_FULL:
-                                delete this.memory.storageDestination;
-                                this.findStorage();
-                                break;
-                        }
-                    }
-                }
-            }
+            } else this.idleFor(5);
         } else {
             return this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {
                 range: 19,

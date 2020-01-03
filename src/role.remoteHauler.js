@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -108,7 +108,6 @@ function dropOff(creep) {
     let lab = creep.pos.findClosestByRange(creep.room.structures, {
         filter: (s) => s.room.storage && s.structureType === STRUCTURE_LAB && s.energy < s.energyCapacity && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
     });
-    //Links
     if (lab) {
         creep.memory.storageDestination = lab.id;
         return true;
@@ -141,39 +140,24 @@ function dropOff(creep) {
         creep.memory.storageDestination = closestLink.id;
         return true;
     }
-    //Terminal
-    if (creep.room.terminal && creep.room.terminal.my && _.sum(creep.room.terminal.store) < creep.room.terminal.storeCapacity * 0.8 && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.terminal.pos.getRangeTo(creep))) {
-        creep.memory.storageDestination = creep.room.terminal.id;
-        return true;
-    }
-    //Storage
-    let storage = creep.room.storage;
-    if (storage && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep)) && Math.random() >= 0.9) {
-        creep.memory.storageDestination = storage.id;
-        return true;
-    }
-    //Controller
-    if (!importantBuilds && !controllerLink && controllerContainer && Math.random() > 0.9) {
-        creep.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
-    // Hub Container
-    let hubContainer = Game.getObjectById(creep.room.memory.hubContainer);
-    if (hubContainer && _.sum(hubContainer.store) < 1000 && (!closestLink || closestLink.pos.getRangeTo(creep) > hubContainer.pos.getRangeTo(creep))) {
-        creep.memory.storageDestination = hubContainer.id;
-        return true;
-    }
-    //Storage
-    if (storage && (!closestLink || closestLink.pos.getRangeTo(creep) > creep.room.storage.pos.getRangeTo(creep))) {
-        creep.memory.storageDestination = storage.id;
-        return true;
-    }
-    if (closestLink) {
-        creep.memory.storageDestination = closestLink.id;
-        return true;
-    }
-    if (creep.findEssentials()) return true;
-    return creep.findSpawnsExtensions();
+    if (creep.memory.storageDestination || creep.haulerDelivery()) {
+        let storageItem = Game.getObjectById(creep.memory.storageDestination);
+        if (!storageItem) return delete creep.memory.storageDestination;
+        switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
+            case OK:
+                delete creep.memory.storageDestination;
+                delete creep.memory._shibMove;
+                break;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(storageItem);
+                break;
+            case ERR_FULL || ERR_INVALID_TARGET:
+                delete creep.memory.storageDestination;
+                delete creep.memory._shibMove;
+                if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
+                break;
+        }
+    } else creep.idleFor(5);
 }
 
 // Build remote links

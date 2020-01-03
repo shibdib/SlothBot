@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -220,7 +220,6 @@ Creep.prototype.harvesterContainerBuild = function () {
     }
 };
 
-let previousCarry;
 Creep.prototype.withdrawResource = function (destination = undefined, amount = undefined) {
     if (destination) this.memory.energyDestination = destination.id;
     if (this.memory.energyDestination) {
@@ -230,12 +229,14 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
             if (amount && energyItem.store && energyItem.store[RESOURCE_ENERGY] < amount) amount = energyItem.store[RESOURCE_ENERGY];
             switch (this.withdraw(energyItem, RESOURCE_ENERGY, amount)) {
                 case OK:
+                    this.memory.withdrawID = energyItem.id;
                     this.memory.energyDestination = undefined;
                     this.memory._shibMove = undefined;
                     return true;
                 case ERR_INVALID_TARGET:
                     switch (this.pickup(energyItem)) {
                         case OK:
+                            this.memory.withdrawID = energyItem.id;
                             this.memory.energyDestination = undefined;
                             this.memory._shibMove = undefined;
                             break;
@@ -249,6 +250,7 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
                         case ERR_INVALID_TARGET:
                             switch (energyItem.transfer(this, RESOURCE_ENERGY, amount)) {
                                 case OK:
+                                    this.memory.withdrawID = energyItem.id;
                                     this.memory.energyDestination = undefined;
                                     this.memory._shibMove = undefined;
                                     return true;
@@ -420,7 +422,7 @@ Creep.prototype.getEnergy = function (hauler = false) {
 };
 
 // Hauler essential storage
-Creep.prototype.findSpawnsExtensions = function () {
+Creep.prototype.haulerDelivery = function () {
     //Tower
     if (Memory.roomCache[this.room.name].responseNeeded) {
         let tower = this.pos.findClosestByRange(this.room.structures, {
@@ -450,124 +452,10 @@ Creep.prototype.findSpawnsExtensions = function () {
         this.memory.storageDestination = energyStructures.id;
         return true;
     }
-    /**
-     //Spawn
-     if (this.memory.spawns) {
-        let rawSpawn = _.shuffle(JSON.parse(this.memory.spawns));
-        for (let i = 0; i < rawSpawn.length; i++) {
-            let spawn = Game.getObjectById(rawSpawn[i]);
-            if (!spawn) return this.memory.spawns = undefined;
-            if (spawn.energy < spawn.energyCapacity) {
-                this.memory.storageDestination = spawn.id;
-                return true;
-            }
-        }
-    } else {
-        let spawn = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_SPAWN), 'id');
-        if (spawn.length) this.memory.spawns = JSON.stringify(spawn);
-    }
-     //Extension
-     if (this.memory.extensions) {
-        let rawExtension = _.shuffle(JSON.parse(this.memory.extensions));
-        for (let i = 0; i < rawExtension.length; i++) {
-            let extension = Game.getObjectById(rawExtension[i]);
-            if (!extension) return this.memory.extensions = undefined;
-            let taken = _.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === extension.id);
-            if (extension.energy < extension.energyCapacity && !taken.length) {
-                this.memory.storageDestination = extension.id;
-                return true;
-            }
-        }
-    } else {
-        let extension = _.pluck(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION &&
-            s.pos.getRangeTo(s.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && (c.memory.onContainer || c.memory.containerAttempt)))) > 1), 'id');
-        if (extension.length) this.memory.extensions = JSON.stringify(extension);
-    }
-     **/
-    return false;
-};
-
-// Basic storage
-Creep.prototype.findStorage = function () {
-    //Terminal
+    //Terminal low
     let terminal = this.room.terminal;
-    if (terminal && terminal.my && (terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT || (this.room.memory.extremeEnergySurplus && terminal.store[RESOURCE_ENERGY] < ENERGY_AMOUNT * 2))) {
+    if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < 15000) {
         this.memory.storageDestination = terminal.id;
-        return true;
-    }
-    //Controller
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer && Math.random() > 0.7 && !controllerContainer.store[RESOURCE_ENERGY]) {
-        this.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
-    //Tower
-    let tower = this.pos.findClosestByRange(this.room.structures, {
-        filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.8 &&
-            _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-    });
-    if (tower) {
-        this.memory.storageDestination = tower.id;
-        return true;
-    }
-    //Terminal for balancing
-    if (terminal && terminal.my && terminal.store < terminal.storeCapacity) {
-        this.memory.storageDestination = terminal.id;
-        return true;
-    }
-    //Storage
-    let storage = this.room.storage;
-    if (storage && storage.my) {
-        this.memory.storageDestination = storage.id;
-        return true;
-    }
-    // Hub Container
-    let hubContainer = Game.getObjectById(this.room.memory.hubContainer);
-    if (hubContainer) {
-        this.memory.storageDestination = hubContainer.id;
-        return true;
-    }
-    // Links
-    let hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (hubLink) {
-        this.memory.energyDestination = hubLink.id;
-        return true;
-    }
-    return false;
-};
-
-// Essential buildings
-Creep.prototype.findEssentials = function () {
-    //Tower
-    if (Memory.roomCache[this.room.name].responseNeeded) {
-        let tower = this.pos.findClosestByRange(this.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.85 &&
-                _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-        });
-        if (tower) {
-            this.memory.storageDestination = tower.id;
-            return true;
-        }
-    } else {
-        let tower = this.pos.findClosestByRange(this.room.structures, {
-            filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.5 &&
-                _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy
-        });
-        if (tower) {
-            this.memory.storageDestination = tower.id;
-            return true;
-        }
-    }
-    //Terminal
-    let terminal = this.room.terminal;
-    if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < 15000) {
-        this.memory.storageDestination = terminal.id;
-        return true;
-    }
-    //Storage
-    let storage = this.room.storage;
-    if (storage && storage.my && storage.store[RESOURCE_ENERGY] < 15000) {
-        this.memory.storageDestination = storage.id;
         return true;
     }
     //Labs
@@ -597,14 +485,6 @@ Creep.prototype.findEssentials = function () {
         this.memory.storageDestination = power.id;
         return true;
     }
-    //Controller
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    let linkWeight = 0.15;
-    if (this.room.memory.controllerLink) linkWeight = .3;
-    if (this.room.controller.level < 8 && controllerContainer && Math.random() > (controllerContainer.store[RESOURCE_ENERGY] / controllerContainer.storeCapacity) + linkWeight) {
-        this.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
     //Top off towers
     let tower = this.pos.findClosestByRange(this.room.structures, {
         filter: (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9 &&
@@ -618,40 +498,18 @@ Creep.prototype.findEssentials = function () {
         this.memory.storageDestination = tower.id;
         return true;
     }
+    //Storage
+    let storage = this.room.storage;
+    if (storage && this.memory.withdrawID !== storage.id && storage.my && storage.store[RESOURCE_ENERGY] < ENERGY_AMOUNT) {
+        this.memory.storageDestination = storage.id;
+        return true;
+    }
+    //Terminal
+    if (terminal && this.memory.withdrawID !== terminal.id) {
+        this.memory.storageDestination = terminal.id;
+        return true;
+    }
     return false;
-};
-
-// Delivery management
-Creep.prototype.requestDelivery = function () {
-    let courier = _.filter(this.room.creeps, (creep) => creep.my && creep.memory.role === 'courier');
-    if (!courier.length || this.ticksToLive < 50) return false;
-    // Delivery timeout
-    if (this.memory.deliveryTick && this.memory.deliveryTick + _.random(15, 25) < Game.time) {
-        delete this.memory.deliveryTick;
-        delete this.memory.deliveryRequested;
-        return false;
-    } else if (!this.memory.deliveryRequested) {
-        this.memory.deliveryTick = Game.time;
-        this.memory.deliveryRequested = true;
-        if (!courier[0].memory.storageDestination) courier[0].memory.storageDestination = this.id;
-        return true;
-    } else if (this.pos.checkForRoad()) {
-        this.moveRandom();
-        return true;
-    } else {
-        this.idleFor(5);
-        return true;
-    }
-};
-
-Creep.prototype.findDeliveries = function () {
-    //Deliveries
-    let deliver = _.sample(_.filter(this.room.creeps, (c) => c.my && c.memory.deliveryRequested && !c.memory.deliveryIncoming));
-    if (deliver) {
-        this.memory.storageDestination = deliver.id;
-        deliver.memory.deliveryIncoming = true;
-        return true;
-    }
 };
 
 Creep.prototype.builderFunction = function () {
