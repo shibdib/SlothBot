@@ -13,9 +13,9 @@ let globals = function () {
     global.HOSTILES = [];
     global.NO_AGGRESSION = [];
     global.MANUAL_FRIENDS = [];
-    global.NAP_ALLIANCE = [];
+    global.NAP_ALLIANCE = ['YP'];
     global.ATTACK_LOCALS = true;
-    global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
+    global.LOCAL_SPHERE = 3; //Range that rooms consider local via linear distance
     global.POKE_ATTACKS = false;
     global.POKE_NEUTRALS = false;
     global.SIEGE_ENABLED = true; //Attack owned rooms with towers
@@ -31,7 +31,7 @@ let globals = function () {
     //Attack limits (Too high and your CPU is screwed, hard coded for non subs)
     global.POKE_LIMIT = 3;
     global.CLEAN_LIMIT = 1;
-    global.HARASS_LIMIT = 1;
+    global.HARASS_LIMIT = 3;
 
     global.CREDIT_BUFFER = 100000;
     global.TRADE_AMOUNT = 10000;
