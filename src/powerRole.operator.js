@@ -143,6 +143,10 @@ function upgradePowers(powerCreep) {
     else if (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5) {
         upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
     }
+    // Operate Factor
+    else if (!powerCreep.powers[PWR_OPERATE_FACTORY]) {
+        upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
+    }
     /**
      // Operate Spawn
      else if (!powerCreep.powers[PWR_OPERATE_SPAWN]) {
@@ -172,16 +176,16 @@ function upgradePowers(powerCreep) {
     else if (powerCreep.level >= 10 && !powerCreep.powers[PWR_REGEN_MINERAL]) {
         upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
     }/**
-    else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 2) {
+     else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 2) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
     }
-    else if (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 3) {
+     else if (powerCreep.level >= 7 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 3) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
     }
-    else if (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 4) {
+     else if (powerCreep.level >= 14 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 4) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
     }
-    else if (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 5) {
+     else if (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 5) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
     }**/
     else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 2) {
