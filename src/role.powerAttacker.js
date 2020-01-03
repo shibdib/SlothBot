@@ -1,15 +1,18 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.role = function (creep) {
-    if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
-    if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
+    creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
     if (!Memory.targetRooms[creep.memory.destination]) creep.memory.recycle = true;
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
-        if (creep.pos.roomName === creep.memory.destination) {
-            creep.memory.destinationReached = true;
-        }
     } else {
-        if (!creep.getActiveBodyparts(ATTACK)) return;
+        if (!creep.getActiveBodyparts(ATTACK) || creep.hits < creep.hitsMax * 0.25) return;
         if (creep.memory.powerBank) {
             let powerBank = Game.getObjectById(creep.memory.powerBank);
             if (powerBank.hits < 250000) Memory.targetRooms[creep.room.name].hauler = powerBank.power / 1250;

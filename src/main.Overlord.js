@@ -134,8 +134,12 @@ module.exports.overlordMind = function (room) {
 
     // Store Data
     storedLevel[room.name] = room.controller.level;
+    if (room.controller.level >= 6) {
+        let currentMinerals = Memory.ownedMinerals || [];
+        Memory.ownedMinerals = _.uniq(currentMinerals, [room.mineral.mineralType]);
+    }
     let used = Game.cpu.getUsed() - mindStart;
-    let cpuUsageArray = roomCpuArray[room.name] || [];
+    let cpuUsageArray = ROOM_CPU_ARRAY[room.name] || [];
     if (cpuUsageArray.length < 50) {
         cpuUsageArray.push(used)
     } else {
@@ -143,17 +147,17 @@ module.exports.overlordMind = function (room) {
         cpuUsageArray.push(used);
         if (average(cpuUsageArray) > 20 && Game.time % 150 === 0) {
             log.e(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
-            for (let key in taskCpuArray[room.name]) {
-                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(taskCpuArray[room.name][key]), 2));
+            for (let key in TASK_CPU_ARRAY[room.name]) {
+                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
             }
             Game.notify(room.name + ' is using a high amount of CPU - ' + average(cpuUsageArray));
-            for (let key in taskCpuArray[room.name]) {
-                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(taskCpuArray[room.name][key]), 2));
+            for (let key in TASK_CPU_ARRAY[room.name]) {
+                log.e(_.capitalize(key) + ' Avg. CPU - ' + _.round(average(TASK_CPU_ARRAY[room.name][key]), 2));
             }
         }
     }
     room.memory.averageCpu = _.round(average(cpuUsageArray), 2);
-    roomCpuArray[room.name] = cpuUsageArray;
+    ROOM_CPU_ARRAY[room.name] = cpuUsageArray;
 };
 
 let errorCount = {};
@@ -191,7 +195,7 @@ function minionController(minion) {
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - cpuUsed;
         //if (used > 0.7) console.log(minion.name + ' ' + roomLink(minion.room.name) + ' ' + used)
-        let cpuUsageArray = creepCpuArray[minion.name] || [];
+        let cpuUsageArray = CREEP_CPU_ARRAY[minion.name] || [];
         if (cpuUsageArray.length < 50) {
             cpuUsageArray.push(used)
         } else {
@@ -202,8 +206,8 @@ function minionController(minion) {
                 log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
             }
         }
-        creepCpuArray[minion.name] = cpuUsageArray;
-        let roomCreepCpu = roomCreepCpuObject[minion.memory.overlord] || {};
+        CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
+        let roomCreepCpu = ROOM_CREEP_CPU_OBJECT[minion.memory.overlord] || {};
         cpuUsageArray = roomCreepCpu[minion.name] || [];
         if (cpuUsageArray.length < 50) {
             cpuUsageArray.push(used)
@@ -212,7 +216,7 @@ function minionController(minion) {
             cpuUsageArray.push(used);
         }
         roomCreepCpu[minion.name] = cpuUsageArray;
-        roomCreepCpuObject[minion.memory.overlord] = roomCreepCpu;
+        ROOM_CREEP_CPU_OBJECT[minion.memory.overlord] = roomCreepCpu;
         minion.room.visual.text(
             _.round(average(cpuUsageArray), 2),
             minion.pos.x,
@@ -234,14 +238,14 @@ function minionController(minion) {
 
 function cacheRoomItems(room) {
     // Cache number of spaces around sources for things
-    if (!roomSourceSpace[room.name]) {
+    if (!ROOM_SOURCE_SPACE[room.name]) {
         let spaces = 0;
         for (let source of room.sources) spaces += source.pos.countOpenTerrainAround();
-        roomSourceSpace[room.name] = spaces;
+        ROOM_SOURCE_SPACE[room.name] = spaces;
     }
     // Cache number of spaces around sources for things
-    if (!roomControllerSpace[room.name]) {
-        roomControllerSpace[room.name] = room.controller.pos.countOpenTerrainAround();
+    if (!ROOM_CONTROLLER_SPACE[room.name]) {
+        ROOM_CONTROLLER_SPACE[room.name] = room.controller.pos.countOpenTerrainAround();
     }
 }
 

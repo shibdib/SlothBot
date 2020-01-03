@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -145,8 +145,8 @@ status = function () {
     for (let activeRoom of myRooms) {
         if (!activeRoom.controller) continue;
         let averageEnergy, marauder, averageCpu = 'No Data';
-        if (roomEnergyArray[activeRoom.name]) averageEnergy = _.round(average(roomEnergyArray[activeRoom.name]), 0) || 'No Data';
-        if (roomCpuArray[activeRoom.name]) averageCpu = _.round(average(roomCpuArray[activeRoom.name]), 2) || 'No Data';
+        if (ROOM_ENERGY_ARRAY[activeRoom.name]) averageEnergy = _.round(average(ROOM_ENERGY_ARRAY[activeRoom.name]), 0) || 'No Data';
+        if (ROOM_CPU_ARRAY[activeRoom.name]) averageCpu = _.round(average(ROOM_CPU_ARRAY[activeRoom.name]), 2) || 'No Data';
         let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
         let marauderCreep = _.filter(roomCreeps, (c) => c.memory.operation === 'marauding')[0];
         if (marauderCreep) marauder = roomLink(marauderCreep.pos.roomName);

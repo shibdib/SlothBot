@@ -36,7 +36,7 @@ module.exports.powerControl = function () {
                     try {
                         // If idle sleep
                         if (powerCreep.idle) continue;
-                        powerCreepRole.role(powerCreep, myRooms);
+                        powerCreepRole.role(powerCreep);
                     } catch (e) {
                         log.e(powerCreepRole.name + ' in room ' + powerCreep.room.name + ' experienced an error');
                         log.e(e.stack);

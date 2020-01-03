@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -151,7 +151,7 @@ function minionController(minion) {
         }
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - start;
-        let cpuUsageArray = creepCpuArray[minion.name] || [];
+        let cpuUsageArray = CREEP_CPU_ARRAY[minion.name] || [];
         if (cpuUsageArray.length < 50) {
             cpuUsageArray.push(used)
         } else {
@@ -162,7 +162,7 @@ function minionController(minion) {
                 log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
             }
         }
-        creepCpuArray[minion.name] = cpuUsageArray;
+        CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
         minion.room.visual.text(
             _.round(average(cpuUsageArray), 2),
             minion.pos.x,

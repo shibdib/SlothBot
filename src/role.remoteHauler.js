@@ -127,7 +127,7 @@ function dropOff(creep) {
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
     if (!controllerLink && (!importantBuilds || creep.room.memory.energySurplus) && controllerContainer &&
-        controllerContainer.store[RESOURCE_ENERGY] + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === controllerContainer.id), '.store[RESOURCE_ENERGY]') < controllerContainer.storeCapacity * 0.5) {
+        controllerContainer.store[RESOURCE_ENERGY] + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === controllerContainer.id), '.store[RESOURCE_ENERGY]') < controllerContainer.store.getCapacity() * 0.5) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }

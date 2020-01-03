@@ -9,7 +9,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-module.exports.role = function (powerCreep, myRooms) {
+module.exports.role = function (powerCreep) {
     // If not spawned return
     if (!powerCreep.ticksToLive) return;
     // Handle border
@@ -18,6 +18,16 @@ module.exports.role = function (powerCreep, myRooms) {
     upgradePowers(powerCreep);
     // Generate Ops
     if (powerCreep.powers[PWR_GENERATE_OPS] && !powerCreep.powers[PWR_GENERATE_OPS].cooldown) abilitySwitch(powerCreep, PWR_GENERATE_OPS);
+    // Get Ops from terminal
+    if (powerCreep.room.terminal && powerCreep.room.terminal.store[RESOURCE_OPS] && powerCreep.store[RESOURCE_OPS] < powerCreep.store.getCapacity() * 0.5) {
+        switch (powerCreep.withdraw(powerCreep.room.terminal, RESOURCE_OPS)) {
+            case OK:
+                return;
+            case ERR_NOT_IN_RANGE:
+                powerCreep.shibMove(powerCreep.room.terminal);
+                return;
+        }
+    }
     // Handle renewal
     if (powerCreep.ticksToLive <= 1000) {
         let spawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_POWER_SPAWN)[0] || _.filter(powerCreep.room.structures, (s) => s.structureType === STRUCTURE_POWER_BANK)[0];
@@ -26,7 +36,7 @@ module.exports.role = function (powerCreep, myRooms) {
                 case OK:
                     break;
                 case ERR_NOT_IN_RANGE:
-                    powerCreep.shibMove(spawn, {range: 1});
+                    return powerCreep.shibMove(spawn, {range: 1});
             }
         }
     }
@@ -41,46 +51,51 @@ module.exports.role = function (powerCreep, myRooms) {
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
-        let targetSpawn = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 15 && (!s.effects || !s.effects.length)));
-        let targetTower = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length)));
-        let targetObserver = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_OBSERVER && (!s.effects || !s.effects.length)));
-        let targetSource = _.sample(_.filter(powerCreep.room.sources, (s) => !s.effects || !s.effects.length));
-        let targetMineral = _.sample(_.filter(powerCreep.room.mineral, (s) => !s.effects || !s.effects.length));
-        let targetLab = _.sample(_.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length)));
+        let targetSpawn = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN && s.spawning && s.spawning.remainingTime >= 15 && (!s.effects || !s.effects.length))[0];
+        let targetTower = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length))[0];
+        let targetObserver = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_OBSERVER && (!s.effects || !s.effects.length))[0];
+        let targetSource = _.filter(powerCreep.room.sources, (s) => !s.effects || !s.effects.length)[0];
+        let targetMineral = _.filter(powerCreep.room.mineral, (s) => !s.effects || !s.effects.length)[0];
+        let targetLab = _.filter(powerCreep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LAB && s.memory.creating && !s.memory.itemNeeded && (!s.effects || !s.effects.length))[0];
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
             switch (powerCreep.enableRoom(powerCreep.room.controller)) {
                 case OK:
                     break;
                 case ERR_NOT_IN_RANGE:
-                    powerCreep.shibMove(powerCreep.room.controller, {range: 1});
+                    return powerCreep.shibMove(powerCreep.room.controller, {range: 1});
             }
         }
         // Boost tower when under attack
         else if (targetTower && Memory.roomCache[powerCreep.room.name].responseNeeded && powerCreep.powers[PWR_OPERATE_TOWER] && !powerCreep.powers[PWR_OPERATE_TOWER].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_TOWER].ops) {
-            abilitySwitch(powerCreep, PWR_OPERATE_TOWER, targetTower);
+            powerCreep.say('TOWER', true);
+            return abilitySwitch(powerCreep, PWR_OPERATE_TOWER, targetTower);
         }
         // Fill extensions
         else if (powerCreep.powers[PWR_OPERATE_EXTENSION] && !powerCreep.powers[PWR_OPERATE_EXTENSION].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_EXTENSION].ops &&
             1 - (powerCreep.room.energyAvailable / powerCreep.room.energyCapacityAvailable) > 0.2 &&
             ((powerCreep.room.storage && powerCreep.room.storage.store[RESOURCE_ENERGY] >= 5000) || (powerCreep.room.terminal && powerCreep.room.terminal.store[RESOURCE_ENERGY] >= 5000))) {
+            powerCreep.say('FILL', true);
             if (powerCreep.room.storage && powerCreep.room.storage.store[RESOURCE_ENERGY] >= 5000) {
-                abilitySwitch(powerCreep, PWR_OPERATE_EXTENSION, powerCreep.room.storage);
+                return abilitySwitch(powerCreep, PWR_OPERATE_EXTENSION, powerCreep.room.storage);
             } else {
-                abilitySwitch(powerCreep, PWR_OPERATE_EXTENSION, powerCreep.room.terminal);
+                return abilitySwitch(powerCreep, PWR_OPERATE_EXTENSION, powerCreep.room.terminal);
             }
         }
         // Boost Spawn
         else if (targetSpawn && powerCreep.powers[PWR_OPERATE_SPAWN] && !powerCreep.powers[PWR_OPERATE_SPAWN].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_SPAWN].ops) {
-            abilitySwitch(powerCreep, PWR_OPERATE_SPAWN, targetSpawn);
+            powerCreep.say('SPAWN', true);
+            return abilitySwitch(powerCreep, PWR_OPERATE_SPAWN, targetSpawn);
         }
         // Boost Sources
-        else if (targetSource && powerCreep.powers[PWR_REGEN_SOURCE] && !powerCreep.powers[PWR_REGEN_SOURCE].cooldown) {
-            abilitySwitch(powerCreep, PWR_REGEN_SOURCE, targetSource);
+        else if (targetSource && powerCreep.powers[PWR_REGEN_SOURCE] && !powerCreep.powers[PWR_REGEN_SOURCE].cooldown && powerCreep.ops >= POWER_INFO[PWR_REGEN_SOURCE].ops) {
+            powerCreep.say('SOURCE', true);
+            return abilitySwitch(powerCreep, PWR_REGEN_SOURCE, targetSource);
         }
         // Boost Mineral
-        else if (targetMineral && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown) {
-            abilitySwitch(powerCreep, PWR_REGEN_MINERAL, targetMineral);
+        else if (targetMineral && powerCreep.powers[PWR_REGEN_MINERAL] && !powerCreep.powers[PWR_REGEN_MINERAL].cooldown && powerCreep.ops >= POWER_INFO[PWR_REGEN_MINERAL].ops) {
+            powerCreep.say('MINERAL', true);
+            return abilitySwitch(powerCreep, PWR_REGEN_MINERAL, targetMineral);
         }
         /**
          // Boost Observer
@@ -89,11 +104,18 @@ module.exports.role = function (powerCreep, myRooms) {
         }**/
         // Boost Lab
         else if (targetLab && powerCreep.powers[PWR_OPERATE_LAB] && !powerCreep.powers[PWR_OPERATE_LAB].cooldown && powerCreep.ops >= POWER_INFO[PWR_OPERATE_LAB].ops) {
-            abilitySwitch(powerCreep, PWR_OPERATE_LAB, targetLab);
+            powerCreep.say('LAB', true);
+            return abilitySwitch(powerCreep, PWR_OPERATE_LAB, targetLab);
         }
-        // Linger to generate ops
-        else if (powerCreep.ops < 100 || powerCreep.ops < powerCreep.store.getCapacity() * 0.5) {
-            powerCreep.idleFor(5);
+        // Store Excess Ops
+        else if (powerCreep.store[RESOURCE_OPS] >= powerCreep.store.getCapacity()) {
+            switch (powerCreep.transfer(powerCreep.room.terminal, RESOURCE_OPS, powerCreep.store[RESOURCE_OPS] * 0.5)) {
+                case OK:
+                    return;
+                case ERR_NOT_IN_RANGE:
+                    powerCreep.shibMove(powerCreep.room.terminal);
+                    return;
+            }
         }
         else {
             powerCreep.idleFor(5);

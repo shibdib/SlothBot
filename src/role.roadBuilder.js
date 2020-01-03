@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -184,18 +184,18 @@ function buildRoad(position, room) {
 
 function cacheRoad(room, from, to, path) {
     let key = getPathKey(from, to);
-    let cache = roadCache[room.name] || {};
+    let cache = ROAD_CACHE[room.name] || {};
     let tick = Game.time;
     cache[key] = {
         path: JSON.stringify(path),
         tick: tick
     };
-    roadCache[room.name] = cache;
+    ROAD_CACHE[room.name] = cache;
 }
 
 function getRoad(room, from, to) {
     if (room.memory._roadCache) room.memory._roadCache = undefined;
-    let cache = roadCache[room.name] || undefined;
+    let cache = ROAD_CACHE[room.name] || undefined;
     if (!cache) return;
     let cachedPath = cache[getPathKey(from, to)];
     if (cachedPath) {

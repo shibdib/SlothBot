@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.setRoomState = function (room) {
     // Set Energy Needs
     let energyInRoom = room.energy;
@@ -19,14 +26,14 @@ module.exports.setRoomState = function (room) {
         }
         room.memory.energyPositive = average(energyIncomeArray) > 0;
         room.memory.energyIncomeArray = JSON.stringify(energyIncomeArray);
-        let energyAvailableArray = roomEnergyArray[room.name] || [];
+        let energyAvailableArray = ROOM_ENERGY_ARRAY[room.name] || [];
         if (energyAvailableArray.length < 50) {
             energyAvailableArray.push(energyInRoom)
         } else {
             energyAvailableArray.shift();
             energyAvailableArray.push(energyInRoom);
         }
-        roomEnergyArray[room.name] = energyAvailableArray;
+        ROOM_ENERGY_ARRAY[room.name] = energyAvailableArray;
     }
     // Set room state
     if (!room.memory.lastStateChange || (room.memory.lastStateChange + 3000) < Game.time) {

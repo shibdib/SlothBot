@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -22,7 +22,7 @@ module.exports.role = function (creep) {
         // Hub Container
         let hubContainer = Game.getObjectById(creep.memory.storageDestination) || creep.room.storage || Game.getObjectById(creep.room.memory.hubContainer) || creep.pos.findInRange(_.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK), 3)[0] || Game.getObjectById(creep.findSpawnsExtensions());
         if (hubContainer) {
-            if (_.sum(hubContainer.store) === hubContainer.storeCapacity) return creep.idleFor(10);
+            if (_.sum(hubContainer.store) === hubContainer.store.getCapacity()) return creep.idleFor(10);
             let storageItem = hubContainer;
             if (!storageItem) return delete creep.memory.storageDestination;
             switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -24,7 +24,7 @@ module.exports.cleanup = function () {
         for (let name in Memory.creeps) {
             if (!Game.creeps[name]) {
                 delete Memory.creeps[name];
-                delete creepCpuArray[name];
+                delete CREEP_CPU_ARRAY[name];
             }
         }
         for (let name in Memory.flags) {

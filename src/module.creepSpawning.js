@@ -130,7 +130,7 @@ module.exports.roomStartup = function (room) {
     let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
     let priority = 3;
     if (drones.length < 2) priority = 1;
-    if (drones.length < roomSourceSpace[room.name] + 3) {
+    if (drones.length < ROOM_SOURCE_SPACE[room.name] + 3) {
         queueCreep(room, priority, {role: 'drone'})
     }
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
@@ -263,7 +263,7 @@ module.exports.miscCreepQueue = function (room) {
     if (inBuild) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let priority = PRIORITIES.drone;
-        let amount = roomSourceSpace[room.name] || 2;
+        let amount = ROOM_SOURCE_SPACE[room.name] || 2;
         if (TEN_CPU || room.energy < 5000) amount = 1;
         if (drones.length < amount) {
             queueCreep(room, priority, {role: 'drone', localCache: true})
@@ -342,7 +342,7 @@ module.exports.miscCreepQueue = function (room) {
         let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded)));
         if (needDrones) {
             let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needDrones.name || creep.memory.overlord === needDrones.name) && creep.memory.role === 'drone');
-            let amount = roomSourceSpace[room.name] || 2;
+            let amount = ROOM_SOURCE_SPACE[room.name] || 2;
             if (drones.length < amount) {
                 queueCreep(room, PRIORITIES.assistPioneer + drones.length * 0.25, {
                     role: 'drone',
