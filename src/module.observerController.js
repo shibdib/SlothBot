@@ -189,7 +189,7 @@ function militaryScout(room) {
             } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
                     if (towers.length >= 3 && nukeTarget(room)) {
-                        cache[Game.flags[name].pos.roomName] = {
+                        cache[room.name] = {
                             tick: tick,
                             dDay: tick + 50000,
                             type: 'nuke',

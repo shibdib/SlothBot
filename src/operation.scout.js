@@ -140,7 +140,7 @@ Creep.prototype.scoutRoom = function () {
             } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
                     if (towers.length >= 3 && nukeTarget(this.room)) {
-                        cache[Game.flags[name].pos.roomName] = {
+                        cache[this.room.name] = {
                             tick: tick,
                             dDay: tick + 50000,
                             type: 'nuke',
