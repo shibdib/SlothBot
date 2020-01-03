@@ -532,19 +532,6 @@ module.exports.remoteCreepQueue = function (room) {
             })
         }
     }
-    //Power Mining
-    if (level >= 8 && room.memory.state > 2 && !TEN_CPU && !Memory.roomCache[room.name].responseNeeded) {
-        let powerRooms = _.filter(Memory.roomCache, (r) => r.power && Game.map.getRoomLinearDistance(room.name, r.name) < 10);
-        if (powerRooms.length) {
-            for (let powerRoom of powerRooms) {
-                let powerScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerScout');
-                if (!powerScout.length) {
-                    queueMilitaryCreep(1, {role: 'powerScout', targetRoom: powerRoom, military: true});
-                    break;
-                }
-            }
-        }
-    }
 };
 
 //Military creeps

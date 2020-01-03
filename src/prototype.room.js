@@ -363,7 +363,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             portal = undefined;
         }
         // Store power info
-        power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK);
+        power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
         if (!user && nonCombats.length >= 2) {
             potentialTarget = true;

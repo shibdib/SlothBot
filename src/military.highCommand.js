@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -153,8 +153,8 @@ function operationRequests() {
     let targetLimit = HARASS_LIMIT;
     if (TEN_CPU) targetLimit = 1;
     // Harass Enemies
-    let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
-    if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => ATTACK_LOCALS && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level && r.closestRange <= LOCAL_SPHERE), 'closestRange');
+    let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
+    if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => ATTACK_LOCALS && r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level && r.closestRange <= LOCAL_SPHERE), 'closestRange');
     for (let target of enemyHarass) {
         if (totalCountFiltered >= targetLimit) break;
         if (Memory.targetRooms[target.name]) continue;
@@ -175,7 +175,7 @@ function operationRequests() {
         // Attack owned rooms of enemies
         let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts' || target.type === 'drain').length || 0;
         if (Memory._enemies.length && !activeSieges) {
-            let enemySiege = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) &&
+            let enemySiege = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !checkForNap(r.user) &&
                 !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && (r.level < 3 || (SIEGE_ENABLED && maxLevel >= 6)) && (Game.shard.name !== 'vsrv2' || r.forestPvp)), 'closestRange');
             for (let target of enemySiege) {
                 if (Memory.targetRooms[target.name]) continue;
@@ -262,6 +262,27 @@ function operationRequests() {
                     Memory.targetRooms = cache;
                     log.a('Poke operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND: ');
                 }
+            }
+        }
+    }
+    // Power Mining
+    if (maxLevel >= 8 && !TEN_CPU) {
+        let powerRooms = _.filter(Memory.roomCache, (r) => r.power && r.closestRange <= 10);
+        if (powerRooms.length) {
+            for (let powerRoom of powerRooms) {
+                if (Memory.targetRooms[powerRoom.name]) continue;
+                if (totalCountFiltered >= targetLimit + 2) break;
+                let lastOperation = Memory.roomCache[powerRoom.name].lastOperation || 0;
+                if (lastOperation + 4500 > Game.time) continue;
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[powerRoom.name] = {
+                    tick: tick,
+                    type: 'attack'
+                };
+                Memory.targetRooms = cache;
+                log.a('Scout operation planned for ' + roomLink(powerRoom.name) + ' suspected power bank location, Nearest Room - ' + powerRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+                break;
             }
         }
     }
