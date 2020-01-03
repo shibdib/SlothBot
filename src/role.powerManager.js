@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -14,8 +14,10 @@ module.exports.role = function (creep) {
     let powerSource, energySource;
     if (creep.room.storage.store[RESOURCE_POWER]) powerSource = creep.room.storage;
     if (creep.room.terminal.store[RESOURCE_POWER]) powerSource = creep.room.terminal;
-    if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
-    if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage;
+    if (creep.room.memory.energySurplus) {
+        if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
+        if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage;
+    }
     if (creep.store[RESOURCE_ENERGY] && powerSpawn.energy < powerSpawn.energyCapacity) {
         switch (creep.transfer(powerSpawn, RESOURCE_ENERGY)) {
             case OK:

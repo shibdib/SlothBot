@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -9,12 +9,7 @@
  * Created by Bob on 7/12/2017.
  */
 
-module.exports.role = function (powerCreep) {
-    // If flagged as the combat operator, use that role
-    if (powerCreep.memory.combat) {
-        let combatRole = require('powerRole.' + powerCreep.className);
-        return combatRole.role(powerCreep);
-    }
+module.exports.role = function (powerCreep, myRooms) {
     // If not spawned return
     if (!powerCreep.ticksToLive) return;
     // Handle border
@@ -33,18 +28,16 @@ module.exports.role = function (powerCreep) {
                 case ERR_NOT_IN_RANGE:
                     powerCreep.shibMove(spawn, {range: 1});
             }
-        } else {
-            powerCreep.memory.destinationRoom = powerCreep.room.findClosestOwnedRoom(false, false, 8);
         }
     }
     // level 0 idle
     if (!powerCreep.level) return powerCreep.idleFor(10);
-    // Handle room movement
+    // Handle room assignment
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 17})
     }
-    else if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom === powerCreep.room.name) {
-        powerCreep.memory.destinationRoom = undefined;
+    else if (!powerCreep.memory.destinationRoom) {
+        powerCreep.memory.destinationRoom = _.filter(Memory.myRooms, (r) => !_.filter(Game.powerCreeps, (c) => c.memory.destinationRoom === r).length)[0];
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
@@ -103,9 +96,7 @@ module.exports.role = function (powerCreep) {
             powerCreep.idleFor(5);
         }
         else {
-            powerCreep.memory.destinationRoom = _.sample(_.filter(Memory.myRooms, (r) => Game.map.getRoomLinearDistance(r, powerCreep.room.name) < powerCreep.ticksToLive / 150 &&
-                _.filter(Game.powerCreeps, (c) => c.ticksToLive && !c.memory.combat && c.room.name !== r && (!c.memory.destinationRoom || c.memory.destinationRoom !== r)))).name;
-            if (!powerCreep.memory.destinationRoom) powerCreep.idleFor(5);
+            powerCreep.idleFor(5);
         }
     }
 };
@@ -130,10 +121,11 @@ function upgradePowers(powerCreep) {
     else if (powerCreep.level >= 22 && powerCreep.powers[PWR_GENERATE_OPS].level < 5) {
         upgradeSwitch(powerCreep, PWR_GENERATE_OPS)
     }
-    // Operate Spawn
-    else if (!powerCreep.powers[PWR_OPERATE_SPAWN]) {
+    /**
+     // Operate Spawn
+     else if (!powerCreep.powers[PWR_OPERATE_SPAWN]) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
-    }
+    }**/
     // Operate Extension
     else if (!powerCreep.powers[PWR_OPERATE_EXTENSION]) {
         upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
@@ -157,7 +149,7 @@ function upgradePowers(powerCreep) {
     // Regen Mineral
     else if (powerCreep.level >= 10 && !powerCreep.powers[PWR_REGEN_MINERAL]) {
         upgradeSwitch(powerCreep, PWR_REGEN_MINERAL)
-    }
+    }/**
     else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 2) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
     }
@@ -169,7 +161,7 @@ function upgradePowers(powerCreep) {
     }
     else if (powerCreep.level >= 22 && powerCreep.powers[PWR_OPERATE_SPAWN].level < 5) {
         upgradeSwitch(powerCreep, PWR_OPERATE_SPAWN)
-    }
+    }**/
     else if (powerCreep.level >= 2 && powerCreep.powers[PWR_OPERATE_EXTENSION].level < 2) {
         upgradeSwitch(powerCreep, PWR_OPERATE_EXTENSION)
     }

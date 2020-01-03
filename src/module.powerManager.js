@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -13,7 +13,7 @@ module.exports.powerControl = function () {
     let powerSpawns = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN);
     if (powerSpawns.length) {
         for (let powerSpawn of powerSpawns) {
-            if (powerSpawn.room.energy >= ENERGY_AMOUNT && powerSpawn.power >= 1 && powerSpawn.energy >= 50) {
+            if (powerSpawn.power >= 1 && powerSpawn.energy >= 50) {
                 powerSpawn.processPower();
             }
         }
@@ -21,8 +21,13 @@ module.exports.powerControl = function () {
     // Handle PC spawning
     if (Game.gpl.level) {
         let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
+        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
         if (_.size(Game.powerCreeps)) _.filter(Game.powerCreeps, (c) => c.level).forEach((c) => sparePowerLevels -= c.level);
-        if (_.size(Game.powerCreeps) && (Game.gpl.level < 10 || Memory.myRooms.length / 4 <= _.size(Game.powerCreeps) || sparePowerLevels === 0)) {
+        if ((!_.size(Game.powerCreeps) && myRooms.length) || (sparePowerLevels >= 3 && _.size(Game.powerCreeps) < myRooms.length)) {
+            let name = 'operator_' + _.random(1, 99);
+            log.a('Created an operator named ' + name);
+            PowerCreep.create(name, POWER_CLASS.OPERATOR);
+        } else if (_.size(Game.powerCreeps)) {
             let powerCreeps = _.filter(Game.powerCreeps, (c) => c.my);
             for (let powerCreep of powerCreeps) {
                 if (powerCreep.ticksToLive) {
@@ -31,7 +36,7 @@ module.exports.powerControl = function () {
                     try {
                         // If idle sleep
                         if (powerCreep.idle) continue;
-                        powerCreepRole.role(powerCreep);
+                        powerCreepRole.role(powerCreep, myRooms);
                     } catch (e) {
                         log.e(powerCreepRole.name + ' in room ' + powerCreep.room.name + ' experienced an error');
                         log.e(e.stack);
@@ -45,10 +50,6 @@ module.exports.powerControl = function () {
                     }
                 }
             }
-        } else {
-            let name = 'operator_' + _.random(1, 99);
-            log.a('Created an operator named ' + name);
-            PowerCreep.create(name, POWER_CLASS.OPERATOR);
         }
     }
 };
