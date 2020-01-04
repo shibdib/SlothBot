@@ -617,12 +617,12 @@ module.exports.militaryCreepQueue = function () {
                     queueMilitaryCreep(PRIORITIES.power, {role: 'powerHealer', destination: key, military: true})
                 }
                 let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
-                if (!Memory.targetRooms[key].complete && !_.includes(queue, 'powerAttacker') && (powerAttacker.length < 2 || (powerAttacker[0] && powerAttacker[0].ticksToLive < (powerAttacker[0].body.length * 3 + 100) && powerAttacker.length < 3)) && powerHealer.length > 0) {
-                    queueMilitaryCreep(PRIORITIES.power, {role: 'powerAttacker', destination: key, military: true})
+                if (!Memory.targetRooms[key].complete && !_.includes(queue, 'powerAttacker') && (powerAttacker.length < 2 || (powerAttacker[0] && powerAttacker[0].ticksToLive < (powerAttacker[0].body.length * 3 + 100) && powerAttacker.length < 3)) && powerHealer.length) {
+                    queueMilitaryCreep(PRIORITIES.power - 1, {role: 'powerAttacker', destination: key, military: true})
                 }
                 let powerHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHauler' && creep.memory.destination === key);
                 if (Memory.targetRooms[key].hauler && !_.includes(queue, 'powerHauler') && powerHauler.length < Memory.targetRooms[key].hauler) {
-                    queueMilitaryCreep(PRIORITIES.power, {role: 'powerHauler', destination: key, military: true})
+                    queueMilitaryCreep(PRIORITIES.power - 1, {role: 'powerHauler', destination: key, military: true})
                 }
                 break;
             case 'hold': //Hold Room
