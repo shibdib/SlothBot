@@ -51,6 +51,7 @@ module.exports.role = function role(creep) {
             creep.builderFunction();
         } else {
             if (!remoteRoads(creep)) creep.memory.destination = undefined;
+            if (creep.memory.overlord === creep.room.name) creep.idleFor(5);
         }
     } else {
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
