@@ -27,6 +27,8 @@ module.exports.role = function (creep) {
     if (_.sum(creep.store)) return storeBoosts(creep);
     // Empty labs
     if (creep.memory.empty) return emptyLab(creep);
+    // Empty mineral harvester container
+    if (mineralHauler(creep)) return;
     // Handle terminal goods
     if (terminalControl(creep)) return;
     // Handle storage goods
@@ -55,30 +57,6 @@ module.exports.role = function (creep) {
         if (!creep.memory.labHelper) creep.memory.labHelper = lab.id;
         creep.memory.supplier = true;
         return supplyLab(creep);
-    }
-    let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY])[0];
-    let nuker = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
-    if (nuker && nuker.ghodium < nuker.ghodiumCapacity && (creep.room.storage.store[RESOURCE_GHODIUM] || creep.room.terminal.store[RESOURCE_GHODIUM])) {
-        let storage = creep.room.terminal;
-        if (creep.room.storage.store[RESOURCE_GHODIUM]) storage = creep.room.storage;
-        switch (creep.withdraw(storage, RESOURCE_GHODIUM)) {
-            case OK:
-                return;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(storage);
-                return;
-        }
-    } else if (container) {
-        for (let resourceType in container.store) {
-            if (resourceType === RESOURCE_ENERGY) continue;
-            switch (creep.withdraw(container, resourceType)) {
-                case OK:
-                    return;
-                case ERR_NOT_IN_RANGE:
-                    creep.shibMove(container);
-                    return;
-            }
-        }
     }
     creep.idleFor(2);
 };
@@ -377,6 +355,20 @@ function droppedResources(creep) {
 
 // Remove minerals from the terminal if it's overfull and has no energy or move boosts to storage
 function terminalControl(creep) {
+    // Handle nuker needing ghodium
+    let nuke = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_NUKER)[0];
+    if (nuke && nuke.ghodium < nuke.ghodiumCapacity && (creep.room.storage.store[RESOURCE_GHODIUM] || creep.room.terminal.store[RESOURCE_GHODIUM])) {
+        let storage = creep.room.terminal;
+        if (creep.room.storage.store[RESOURCE_GHODIUM]) storage = creep.room.storage;
+        switch (creep.withdraw(storage, RESOURCE_GHODIUM)) {
+            case OK:
+                return;
+            case ERR_NOT_IN_RANGE:
+                creep.shibMove(storage);
+                return;
+        }
+    }
+    // Store resource in storage up to the stockpile amount
     if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
         for (let resourceType of Object.keys(creep.room.terminal.store)) {
             if (!_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) {
@@ -424,5 +416,22 @@ function storageEmpty(creep) {
         case ERR_NOT_IN_RANGE:
             creep.shibMove(creep.room.storage);
             return true;
+    }
+}
+
+// Mineral hauler
+function mineralHauler(creep) {
+    let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY])[0];
+    if (container) {
+        for (let resourceType in container.store) {
+            if (resourceType === RESOURCE_ENERGY) continue;
+            switch (creep.withdraw(container, resourceType)) {
+                case OK:
+                    return true;
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(container);
+                    return true;
+            }
+        }
     }
 }
