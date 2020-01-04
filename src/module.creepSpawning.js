@@ -604,7 +604,7 @@ module.exports.militaryCreepQueue = function () {
                 }
                 break;
             case 'power': //Power Mining
-                if (Memory.roomCache[key].power < Game.time + 1750) {
+                if (Memory.roomCache[key].power < Game.time) {
                     Memory.targetRooms[key] = undefined;
                     Memory.roomCache[key].power = undefined;
                     break;

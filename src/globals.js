@@ -116,7 +116,7 @@ let globals = function () {
         reserver: 4,
         borderPatrol: 3,
         // Power
-        Power: 5,
+        Power: 3,
         // SK
         SKWorker: 5,
         // Military
