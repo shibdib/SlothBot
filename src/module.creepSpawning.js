@@ -526,7 +526,9 @@ module.exports.remoteCreepQueue = function (room) {
         }
         // Remote Road Builder
         let roadBuilder = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'roadBuilder');
-        if (roadBuilder.length < 2) {
+        let amount = 2;
+        if (!remotes.length) amount = 1;
+        if (roadBuilder.length < amount) {
             queueCreep(room, PRIORITIES.remoteHauler, {
                 role: 'roadBuilder',
                 misc: remoteHives[room.name]
