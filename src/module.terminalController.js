@@ -209,7 +209,7 @@ function fillBuyOrders(terminal, globalOrders) {
                     Game.market.calcTransactionCost(1000, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
                 sellAmount = 1000;
             }
-            if (buyer) {
+            if (buyer && sellAmount >= 250) {
                 switch (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName)) {
                     case OK:
                         log.w(terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + (buyer.price * sellAmount) + " credits", "Market: ");
