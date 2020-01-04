@@ -10,7 +10,6 @@ module.exports.claimNewRoom = function () {
     let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && r.mineral && r.sources === 2 && r.closestRange <= 12);
     if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     if (worthyRooms.length > 0) {
-        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let possibles = {};
         loop1:
             for (let key in worthyRooms) {
@@ -49,6 +48,8 @@ module.exports.claimNewRoom = function () {
                     if (_.includes(FRIENDLIES, avoidRooms[avoidKey].owner)) cutoff = 3;
                     if (distance < cutoff) continue loop1;
                 }
+                // Add points if closer
+                baseScore += 500 / worthyRooms[key].closestRange;
                 worthyRooms[key].claimValue = baseScore;
                 possibles[key] = worthyRooms[key];
             }
