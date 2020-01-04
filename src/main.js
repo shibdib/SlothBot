@@ -75,36 +75,6 @@ module.exports.loop = function () {
     //});
 };
 
-currentStats = function (notify = false) {
-    let sorted = _.sortBy(Memory._benchmark, 'avg');
-    log.e('---------------------------------------------------------------------------');
-    log.e('~~~~~BENCHMARK REPORT~~~~~');
-    if (notify) Game.notify('~~~~~BENCHMARK REPORT~~~~~');
-    let totalTicks;
-    let overallAvg;
-    let bucketAvg;
-    let bucketTotal;
-    for (let key in sorted) {
-        if (sorted[key]['title'] === 'Total') {
-            totalTicks = sorted[key]['tickCount'];
-            overallAvg = sorted[key]['avg'];
-            continue;
-        }
-        if (sorted[key]['title'] === 'bucket') {
-            bucketAvg = sorted[key]['avg'];
-            bucketTotal = sorted[key]['used'];
-            continue;
-        }
-        log.a(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3) + '. ||| Peak CPU Used: ' + _.round(sorted[key]['max'], 3));
-        if (notify) Game.notify(sorted[key]['title'] + ' - Was Used ' + sorted[key]['useCount'] + ' times. ||| Average CPU Used: ' + _.round(sorted[key]['avg'], 3) + '. ||| Total CPU Used: ' + _.round(sorted[key]['avg'] * sorted[key]['useCount'], 3) + '. ||| Peak CPU Used: ' + _.round(sorted[key]['max'], 3));
-    }
-    log.e('Ticks Covered: ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
-    log.e('Total Bucket Used: ' + bucketTotal + '. Current Bucket: ' + Game.cpu.bucket);
-    log.e('---------------------------------------------------------------------------');
-    if (notify) Game.notify('Ticks Covered: ' + totalTicks + '. Average CPU Used: ' + _.round(overallAvg, 3));
-    if (notify) Game.notify('Total Bucket Used: ' + bucketTotal + '. Current Bucket: ' + Game.cpu.bucket);
-};
-
 abandon = function (room) {
     if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
