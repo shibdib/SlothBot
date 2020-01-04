@@ -268,10 +268,10 @@ function operationRequests() {
     // Power Mining
     if (maxLevel >= 8 && !TEN_CPU) {
         let powerRooms = _.filter(Memory.roomCache, (r) => r.power && r.closestRange <= 10);
-        if (powerRooms.length) {
+        let powerMining = _.filter(Memory.targetRooms, (target) => target.type === 'power').length || 0;
+        if (powerRooms.length && powerMining <= 2) {
             for (let powerRoom of powerRooms) {
-                if (Memory.targetRooms[powerRoom.name]) continue;
-                if (totalCountFiltered >= targetLimit + 2) break;
+                if (Memory.targetRooms[powerRoom.name]) break;
                 let lastOperation = Memory.roomCache[powerRoom.name].lastOperation || 0;
                 if (lastOperation + 4500 > Game.time) continue;
                 let cache = Memory.targetRooms || {};
@@ -376,6 +376,7 @@ function manageAttacks() {
                     Memory.targetRooms = cache;
                 }
                 continue;
+            case 'power':
             // Manage Guard
             case 'guard':
                 staleMulti = 10;
