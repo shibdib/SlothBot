@@ -136,7 +136,8 @@ module.exports.overlordMind = function (room) {
     storedLevel[room.name] = room.controller.level;
     if (room.controller.level >= 6) {
         let currentMinerals = Memory.ownedMinerals || [];
-        Memory.ownedMinerals = _.uniq(currentMinerals, [room.mineral.mineralType]);
+        currentMinerals.push(room.mineral.mineralType);
+        Memory.ownedMinerals = _.uniq(currentMinerals);
     }
     let used = Game.cpu.getUsed() - mindStart;
     let cpuUsageArray = ROOM_CPU_ARRAY[room.name] || [];
