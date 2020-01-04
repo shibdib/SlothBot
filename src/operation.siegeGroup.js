@@ -12,7 +12,7 @@ Creep.prototype.siegeGroupRoom = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set squad leader
-    if ((!this.memory.squadLeader && !this.memory.leader) || (this.memory.leader && !Game.getObjectById(this.memory.leader))) {
+    if (!this.memory.squadLeader && !this.memory.leader) {
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.memory.squadLeader);
         if (!squadLeader.length && this.memory.role === 'siegeEngine') this.memory.squadLeader = true; else if (squadLeader.length) this.memory.leader = squadLeader[0].id;
     }
@@ -23,7 +23,10 @@ Creep.prototype.siegeGroupRoom = function () {
         //levelManager(this);
         // Check for squad
         let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
-        if (!squadMember.length) return this.handleMilitaryCreep(false, false);
+        if (!squadMember.length) {
+            if (this.room.controller && this.room.controller.my) this.idleFor(10);
+            return this.handleMilitaryCreep(false, false);
+        }
         if (this.pos.findInRange(squadMember, 2).length < squadMember.length) return this.idleFor(1);
         // If military action required do that
         this.attackInRange();
@@ -35,7 +38,10 @@ Creep.prototype.siegeGroupRoom = function () {
     } else {
         // Set leader and move to them
         let leader = Game.getObjectById(this.memory.leader);
-        if (!leader) return delete this.memory.leader;
+        if (!leader) {
+            if (this.room.controller && this.room.controller.my) this.idleFor(10);
+            return delete this.memory.leader;
+        }
         if (this.room.name === leader.room.name) {
             let moveRange = 0;
             let ignore = true;
