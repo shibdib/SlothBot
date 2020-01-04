@@ -271,7 +271,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 work = 2;
             }
             carry = 1;
-            if (room.memory.roadsBuilt || level >= 6) move = work; else move = work / 2;
+            if (room.memory.roadsBuilt || level >= 6) move = work / 2; else move = work;
             break;
         case 'remoteAllInOne':
             work = 2;
@@ -291,11 +291,13 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'remoteHauler':
             if (level >= 7) {
                 carry = 30;
-                move = 15;
+                if (misc) carry = 15;
+                move = carry * 0.5;
                 break;
             } else if (level === 6) {
                 carry = 16;
-                move = 8;
+                if (misc) carry = 8;
+                move = carry * 0.5;
                 break;
             } else {
                 if (importantBuilds) {
