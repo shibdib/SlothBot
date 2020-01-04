@@ -422,6 +422,12 @@ module.exports.remoteCreepQueue = function (room) {
                 && !Memory.roomCache[r].owner && !Memory.roomCache[r].sk && Game.map.getRoomLinearDistance(room.name, r) <= range);
             adjacent = _.uniq(_.union(adjacentExits, adjacent));
         }**/
+        // Handle SK middle room
+        if (level >= 7 && _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk).length) {
+            let skAdjacent = _.filter(adjacent, (r) => Memory.roomCache[r] && Memory.roomCache[r].sk);
+            skAdjacent = _.uniq(skAdjacent, _.filter(Game.map.describeExits(skAdjacent[0]), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources >= 3 && !Memory.roomCache[r].sk));
+            if (skAdjacent.length > 1) adjacent = _.uniq(adjacent, skAdjacent);
+        }
         remoteHives[room.name] = JSON.stringify(adjacent);
     }
     //Remotes
@@ -445,7 +451,7 @@ module.exports.remoteCreepQueue = function (room) {
                 let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
                 let amount = 1;
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap;
-                if (reserver.length < amount) {
+                if (reserver.length < amount && (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].isHighway)) {
                     queueCreep(room, PRIORITIES.reserver + reserver.length, {
                         role: 'reserver',
                         reservationTarget: remotes[keys]
@@ -453,7 +459,7 @@ module.exports.remoteCreepQueue = function (room) {
                 }
             }
             // If owned or a highway continue
-            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || Memory.roomCache[remotes[keys]].isHighway)) continue;
+            if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || !Memory.roomCache[remotes[keys]].sources)) continue;
             // If it's reserved by someone else continue
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
             // Handle response needed
@@ -502,7 +508,7 @@ module.exports.remoteCreepQueue = function (room) {
                     let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
                     let amount = 1;
                     if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap;
-                    if (reserver.length < amount) {
+                    if (reserver.length < amount && (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].isHighway)) {
                         queueCreep(room, PRIORITIES.reserver + reserver.length, {
                             role: 'reserver',
                             reservationTarget: remotes[keys]

@@ -318,7 +318,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         closestRange = this.findClosestOwnedRoom(true);
         // Get special rooms via name
         //let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(room.name);
-        let isHighway = room.sources.length === 0;
+        let isHighway = !room.controller;
         if (!isHighway) isHighway = undefined;
         let cache = Memory.roomCache || {};
         let sources = room.sources;
