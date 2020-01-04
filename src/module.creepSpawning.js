@@ -28,13 +28,14 @@ module.exports.processBuildQueue = function () {
                 if (!spawn.room.memory.nuke && _.size(militaryQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && level >= 4 && _.inRange(level, maxLevel - 1, maxLevel + 1) && !_.filter(spawn.room.constructionSites, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART)[0]) {
                     // If no energy surplus just urgent priority targets
                     if (spawn.room.memory.energySurplus) {
-                        queue = _.sortBy(Object.assign({}, militaryQueue, roomQueue[spawn.room.name]), 'importance');
+                        queue = _.sortBy(Object.assign({}, militaryQueue, roomQueue[spawn.room.name]), 'priority');
                     } else {
-                        queue = _.sortBy(Object.assign({}, _.filter(militaryQueue, (t) => t.importance <= PRIORITIES.urgent), roomQueue[spawn.room.name]), 'importance');
+                        queue = _.sortBy(Object.assign({}, _.filter(militaryQueue, (t) => t.priority <= PRIORITIES.urgent), roomQueue[spawn.room.name]), 'priority');
                     }
                 } else {
-                    queue = _.sortBy(roomQueue[spawn.room.name], 'importance')
+                    queue = _.sortBy(roomQueue[spawn.room.name], 'priority')
                 }
+                displayQueue(spawn.room, queue);
                 let cost;
                 for (let key in queue) {
                     topPriority = queue[key];
@@ -657,7 +658,7 @@ module.exports.militaryCreepQueue = function () {
                 let siegeEngine = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeEngine' && creep.memory.operation === 'siegeGroup');
                 let healer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'healer' && creep.memory.operation === 'siegeGroup');
                 if (healer.length && (siegeEngine.length < siegeEngines || (siegeEngine[0] && siegeEngine[0].ticksToLive < (siegeEngine[0].body.length * 3 + 50) && siegeEngine.length < siegeEngines + 1))) {
-                    queueMilitaryCreep(priority, {
+                    queueMilitaryCreep(priority - 1, {
                         role: 'siegeEngine',
                         targetRoom: key,
                         operation: 'siegeGroup',
@@ -767,7 +768,7 @@ module.exports.militaryCreepQueue = function () {
                 let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'siegeHealer');
                 if (opLevel > 2) opLevel = 2;
                 if (sieger.length < siegeHealer.length) {
-                    queueMilitaryCreep(priority, {
+                    queueMilitaryCreep(priority - 1, {
                         role: 'siegeEngine',
                         targetRoom: key,
                         operation: 'siege',
@@ -870,10 +871,10 @@ function queueCreep(room, importance, options = {}, military = false) {
     let cache;
     if (!military) {
         cache = roomQueue[room.name] || {};
-        if (cache[options.role] && cache[options.role].importance <= importance) return;
+        if (cache[options.role] && cache[options.role].priority <= importance) return;
     } else {
         cache = militaryQueue || {};
-        if (cache[options.role] && cache[options.role].importance <= importance) return;
+        if (cache[options.role] && cache[options.role].priority <= importance) return;
     }
     _.defaults(options, {
         role: undefined,
@@ -899,7 +900,7 @@ function queueCreep(room, importance, options = {}, military = false) {
         cache[key] = {
             cached: Game.time,
             room: room.name,
-            importance: importance,
+            priority: importance,
             role: options.role,
             assignedSource: options.assignedSource,
             destination: options.destination,
@@ -929,7 +930,7 @@ function queueCreep(room, importance, options = {}, military = false) {
 function queueMilitaryCreep(priority, options = {}) {
     let cache;
     cache = militaryQueue || {};
-    if (cache[options.role] && cache[options.role].importance <= priority) return;
+    if (cache[options.role] && cache[options.role].priority <= priority) return;
     _.defaults(options, {
         role: undefined,
         assignedSource: undefined,
@@ -950,7 +951,7 @@ function queueMilitaryCreep(priority, options = {}) {
     let key = options.role;
     cache[key] = {
         cached: Game.time,
-        importance: priority,
+        priority: priority,
         role: options.role,
         assignedSource: options.assignedSource,
         destination: options.destination,
@@ -973,23 +974,35 @@ function queueMilitaryCreep(priority, options = {}) {
 function determineEnergyOrder(room) {
     storedLevel[room.name] = getLevel(room);
     if (!room.memory.bunkerHub) return;
-    let hauler = _.filter(room.creeps, (c) => c.my && c.memory.role === 'hauler')[0];
-    let harvester = _.filter(room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester');
-    let harvesterExtensions = _.filter(room.structures, (s) => s.structureType === STRUCTURE_EXTENSION && s.pos.findInRange(harvester, 1).length);
-    let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
-    let energyStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
-    let rangeArray = [];
-    let usedIdArray = [];
-    for (let x = 0; x < energyStructures.length; x++) {
-        let nextClosest;
-        if (hauler) {
-            nextClosest = hauler.pos.findClosestByPath(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
-        } else {
-            nextClosest = hub.findClosestByPath(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
+    if (!energyOrder[room.name] || Math.random() > 0.8) {
+        let harvester = _.filter(room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.onContainer);
+        let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
+        let energyStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION);
+        let rangeArray = [];
+        let usedIdArray = [];
+        for (let x = 0; x < energyStructures.length; x++) {
+            let nextClosest;
+            let harvesterExtensions = _.filter(room.structures, (s) => !_.includes(usedIdArray, s.id) && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.pos.findInRange(harvester, 1).length);
+            if (harvesterExtensions.length) {
+                nextClosest = harvesterExtensions[0];
+            } else {
+                nextClosest = hub.findClosestByPath(energyStructures, {filter: (s) => !_.includes(usedIdArray, s.id)});
+            }
+            if (!nextClosest) break;
+            usedIdArray.push(nextClosest.id);
+            rangeArray.push(nextClosest);
         }
-        if (!nextClosest) break;
-        usedIdArray.push(nextClosest.id);
-        rangeArray.push(nextClosest);
+        energyOrder[room.name] = JSON.stringify(rangeArray);
     }
-    energyOrder[room.name] = JSON.stringify(rangeArray);
+}
+
+function displayQueue(room, queue) {
+    let roles = _.pluck(queue, 'role');
+    let tickQueued = _.pluck(queue, 'cached');
+    let priority = _.pluck(queue, 'priority');
+    for (let i = 0; i < 5; i++) {
+        if (!roles[i]) break;
+        displayText(room, 38, 1, 'Creep Build Queue', true);
+        displayText(room, 38, 2 + i, _.capitalize(roles[i]) + ' Priority- ' + priority[i] + ' Age- ' + (Game.time - tickQueued[i]), true);
+    }
 }

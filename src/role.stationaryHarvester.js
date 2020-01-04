@@ -87,7 +87,7 @@ function extensionFinder(creep) {
     let source = Game.getObjectById(creep.memory.source);
     let container = Game.getObjectById(creep.memory.containerID) || source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
     if (container) {
-        let extension = _.pluck(container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_EXTENSION), 1), 'id');
+        let extension = _.pluck(container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1), 'id');
         if (extension.length) creep.memory.extensions = JSON.stringify(extension);
     }
 }
