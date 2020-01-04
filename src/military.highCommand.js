@@ -194,7 +194,7 @@ function operationRequests() {
         }
     }
     // Kill strongholds
-    let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers), 'closestRange');
+    let stronghold = _.sortBy(_.filter(Memory.roomCache, (r) => r.sk && r.towers && r.closestRange <= 3), 'closestRange');
     if (stronghold.length) {
         for (let target of stronghold) {
             if (Memory.targetRooms[target.name]) continue;
