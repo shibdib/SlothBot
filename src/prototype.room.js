@@ -334,6 +334,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                     let text = room.controller.sign.text.toLowerCase();
                     if (text.includes('overmind') || text.includes('tooangel') || text.includes('quorum') || text.includes('ᴏᴠᴇʀᴍɪɴᴅ')) {
                         ncpArray.push(room.controller.sign.username);
+                    } else if (_.includes(ncpArray, room.controller.sign.username)) {
+                        _.remove(ncpArray, (u) => u === room.controller.sign.username);
                     }
                     // Special test server code
                     if (text.includes('@PVP@')) forestPvp = true;

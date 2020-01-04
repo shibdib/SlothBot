@@ -153,8 +153,8 @@ function operationRequests() {
     let targetLimit = HARASS_LIMIT;
     if (TEN_CPU) targetLimit = 1;
     // Harass Enemies
-    let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
-    if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => ATTACK_LOCALS && r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level && r.closestRange <= LOCAL_SPHERE), 'closestRange');
+    let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => HARASS_ATTACKS && r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
+    if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level && (ATTACK_LOCALS && r.closestRange <= LOCAL_SPHERE)), 'closestRange');
     for (let target of enemyHarass) {
         if (totalCountFiltered >= targetLimit) break;
         if (Memory.targetRooms[target.name]) continue;

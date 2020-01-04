@@ -55,9 +55,12 @@ function threatManager() {
     // Add manual enemies
     Memory._enemies = _.union(Memory._enemies, HOSTILES);
     // If Not Standard/S+ Server everyone except manually specified are hostile
-    if (Game.shard.name === 'swc' || Game.shard.name === 'botarena') Memory._nuisance = _.filter(_.union(Memory._nuisance, _.uniq(_.pluck(Memory.roomCache, 'user'))), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
-    // NCP's are always hostile
-    //if (Memory.ncpArray && Memory.ncpArray.length) Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
+    if (_.includes(COMBAT_SERVER, Game.shard.name)) Memory._enemies = _.filter(_.pluck(Memory.roomCache, 'user'), (p) => !_.includes(MANUAL_FRIENDS, p) && p !== MY_USERNAME && !_.includes(FRIENDLIES, p));
+    // NCP's are always hostile (Also clean NCP array)
+    if (NCP_HOSTILE && Memory.ncpArray && Memory.ncpArray.length) {
+        if (Math.random() > 0.5) _.remove(Memory.ncpArray, (u) => !_.includes(_.pluck(Memory.roomCache, 'user'), u));
+        Memory._enemies = _.union(Memory._enemies, Memory.ncpArray);
+    }
     // Clean up lists
     Memory._badBoyArray = _.uniq(_.filter(Memory._badBoyArray, (p) => p !== null && p !== undefined));
     Memory._enemies = _.uniq(_.filter(Memory._enemies, (p) => p !== null && p !== undefined));

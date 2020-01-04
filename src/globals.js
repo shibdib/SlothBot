@@ -10,16 +10,18 @@ let Log = require('logger');
 let globals = function () {
 
     //Manually set baddies and friends and combat stuff
-    global.HOSTILES = [];
-    global.NO_AGGRESSION = [];
-    global.MANUAL_FRIENDS = [];
-    global.NAP_ALLIANCE = ['YP'];
-    global.ATTACK_LOCALS = true;
-    global.LOCAL_SPHERE = 2; //Range that rooms consider local via linear distance
-    global.POKE_ATTACKS = false;
-    global.POKE_NEUTRALS = false;
-    global.SIEGE_ENABLED = true; //Attack owned rooms with towers
-    global.ATTACK_COOLDOWN = 3000; //Time between attacks on a room
+    global.COMBAT_SERVER = []; // Insert the Game.shard.name of servers you'd like to declare everyone hostile
+    global.HOSTILES = []; // Manually set players as hostile
+    global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT_SERVER)
+    global.NAP_ALLIANCE = ['YP']; // Do not attack members of this alliance
+    global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
+    global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
+    global.POKE_ATTACKS = false; // Small cheap annoying attacks
+    global.POKE_NEUTRALS = false; // Poke everyone
+    global.HARASS_ATTACKS = false; // Larger disrupting attacks
+    global.SIEGE_ENABLED = false; //Attack owned rooms with towers
+    global.NCP_HOSTILE = true; // Always attack users of open source bots
+    global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
 
     //Signing and whatnot
     global.OWNED_ROOM_SIGNS = ["~~~NO ENTRY~~~", "Full Auto Overlord Bot"];
