@@ -39,6 +39,8 @@ function shibMove(creep, heading, options = {}) {
         returnIncomplete: false,
         stayInHub: false,
         ignoreBorder: false,
+        ignoreRoads: false,
+        offRoad: false,
         flee: false,
         usePortal: undefined
     });
@@ -62,7 +64,7 @@ function shibMove(creep, heading, options = {}) {
     let rangeToDestination = creep.pos.getRangeTo(heading);
     // Set these for creeps that can afford them
     if (!creep.className && (!options.ignoreRoads || !options.offRoad)) {
-        getMoveWeight(creep, options);
+        options = getMoveWeight(creep, options);
     }
     // Use roads with a trailer
     // Request a tow truck if needed
@@ -314,7 +316,7 @@ function findRoute(origin, destination, options = {}) {
                 if (Memory.roomCache[roomName].user && !_.includes(FRIENDLIES, Memory.roomCache[roomName].user)) return 15;
             } else
             // Unknown rooms have a slightly higher weight
-            if (!Memory.roomCache[roomName]) return 5;
+            if (!Memory.roomCache[roomName]) return 25;
             if (isHighway && options.preferHighway) return 1;
             if (isHighway) return 2;
             return 2.25;
