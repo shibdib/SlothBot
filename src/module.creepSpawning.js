@@ -376,7 +376,7 @@ module.exports.miscCreepQueue = function (room) {
                 }
             }
             // Marauder
-            if (!queueTracker['marauder'] || queueTracker['marauder'] + 2500 <= Game.time) {
+            if (POKE_ATTACKS && !queueTracker['marauder'] || queueTracker['marauder'] + 2500 <= Game.time) {
                 let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding');
                 if (marauder.length < 2 && Math.random() > 0.5) {
                     queueCreep(room, PRIORITIES.medium, {
