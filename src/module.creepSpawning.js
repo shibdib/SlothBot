@@ -398,9 +398,9 @@ module.exports.miscCreepQueue = function (room) {
     // Border Patrol
     if (room.memory.spawnBorderPatrol) {
         let rangedBorderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
-        let count = 1;
+        let count = 3;
         if (rangedBorderPatrol.length < count || (rangedBorderPatrol[0] && rangedBorderPatrol[0].ticksToLive < (rangedBorderPatrol[0].body.length * 3 + 10) && rangedBorderPatrol.length < count + 1)) {
-            queueCreep(room, PRIORITIES.borderPatrol, {
+            queueCreep(room, PRIORITIES.borderPatrol + (rangedBorderPatrol.length * 2.5), {
                 role: 'longbow',
                 operation: 'borderPatrol',
                 military: true
