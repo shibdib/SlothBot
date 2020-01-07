@@ -48,6 +48,11 @@ module.exports.processBuildQueue = function () {
                         body = generator.bodyGenerator(level, role, spawn.room, topPriority.misc);
                     }
                     cost = global.UNIT_COST(body);
+                    // If cant afford try the previous level
+                    if (cost > spawn.room.energyCapacityAvailable && level >= 2) {
+                        body = generator.bodyGenerator(level - 1, role, spawn.room, topPriority.misc);
+                        cost = global.UNIT_COST(body);
+                    }
                     if (body && body.length && cost <= spawn.room.energyCapacityAvailable) break;
                 }
                 if (cost > spawn.room.energyAvailable) {

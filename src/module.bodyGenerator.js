@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -42,7 +42,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = work + carry;
             break;
         case 'waller':
-            work = _.random(level, level * 2);
+            work = _.random(level * 0.5, level * 2);
             carry = _.random(2, level);
             move = work + carry;
             //if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;
