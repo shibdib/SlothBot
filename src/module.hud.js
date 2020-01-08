@@ -5,6 +5,8 @@
  * Project - Overlord-Bot (Screeps)
  */
 
+let constructionSiteInfo = {};
+
 module.exports.hud = function () {
     //GCL
     let lastTickGCLProgress = Memory.lastTickGCLProgress || 0;
@@ -53,6 +55,38 @@ module.exports.hud = function () {
                 displayText(room, 0, lowerBoundary + i, spawn.name + ICONS.build + ' ' + _.capitalize(spawningCreep.name.split("_")[0]) + ' - Ticks: ' + spawn.spawning.remainingTime);
                 i++;
             }
+        }
+        //Construction
+        if (room.constructionSites.length) {
+            for (let site of room.constructionSites) {
+                let roomSites = constructionSiteInfo[room.name] || {};
+                let siteInfo = roomSites[site.id] || {};
+                let lastTickProgress = siteInfo['lastTickProgress'] || site.progress;
+                siteInfo['lastTickProgress'] = site.progress;
+                let progressPerTick = site.progress - lastTickProgress;
+                siteInfo['progressArray'] = siteInfo['progressArray'] || [];
+                if (progressPerTick > 0) {
+                    if (siteInfo['progressArray'].length < 100) {
+                        siteInfo['progressArray'].push(progressPerTick)
+                    } else {
+                        siteInfo['progressArray'].shift();
+                        siteInfo['progressArray'].push(progressPerTick)
+                    }
+                }
+                progressPerTick = average(siteInfo['progressArray']);
+                let secondsToUpgrade = _.round(((site.progressTotal - site.progress) / progressPerTick) * Memory.tickLength);
+                let ticksToUpgrade = _.round((site.progressTotal - site.progress) / progressPerTick);
+                let displayTime;
+                if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
+                if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
+                if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
+                if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
+                if (displayTime) site.say(displayTime + ' / ' + ticksToUpgrade + ' ticks.');
+                roomSites[site.id] = siteInfo;
+                constructionSiteInfo[room.name] = roomSites;
+            }
+        } else {
+            constructionSiteInfo[room.name] = {};
         }
         //Controller
         if (room.controller.progressTotal) {
