@@ -20,6 +20,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'herald':
             move = 1;
             break;
+        case 'swarm':
         case 'jerk':
             if (_.random(0, 1) === 1) {
                 rangedAttack = 1
@@ -31,21 +32,12 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         // General Creeps
         case 'drone':
-            work = _.random(level, level * 2);
-            carry = _.random(2, level);
-            move = work + carry;
-            break;
         case 'roadBuilder':
         case 'repairer':
-            work = _.random(2, level);
-            carry = 1;
-            move = work + carry;
-            break;
         case 'waller':
-            work = _.random(level * 0.5, level * 2);
-            carry = _.random(2, level);
+            work = _.random(level, level * 2);
+            carry = _.random(1, level);
             move = work + carry;
-            //if (room.memory.roadsBuilt) move = ((work + carry) / 2) + 0.5;
             break;
         case 'upgrader':
             if ((importantBuilds && !room.memory.energySurplus) || room.memory.nuke) {
@@ -64,17 +56,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 carry = 1;
                 break;
             }
-        case 'hauler':
-            if (level < 4 || !room.memory.roadsBuilt) {
-                carry = level;
-                move = carry;
-                break
-            } else {
-                carry = _.random(1.75 * level, 2 * level);
-                move = _.round((carry / 2) + 0.5);
-                break;
-            }
         case 'filler':
+        case 'hauler':
             if (level < 4 || !room.memory.roadsBuilt) {
                 carry = level;
                 move = carry;
@@ -90,12 +73,9 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'courier':
         case 'powerManager':
+        case 'labTech':
             carry = 6;
             move = 3;
-            break;
-        case 'labTech':
-            carry = _.round(1.7 * level);
-            move = _.round(carry / 2);
             break;
         case 'stationaryHarvester':
             if (level < 5) {
@@ -197,14 +177,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             if (level < 4) break;
             carry = _.round(1.5 * level);
             move = carry;
-            break;
-        case 'swarm':
-            if (_.random(0, 1) === 1) {
-                rangedAttack = 1
-            } else {
-                attack = 1
-            }
-            move = 1;
             break;
         case 'conscript':
             heal = 2;
