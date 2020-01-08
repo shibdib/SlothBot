@@ -110,7 +110,7 @@ function buildFromLayout(room) {
     } else {
         if (level >= 5) {
             delete room.memory.hubContainer;
-            let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.isActive());
+            let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_EXIT)) > 3 && s.isActive());
             if (links.length) {
                 let a = [];
                 links.forEach((l) => a.push(l.id))
