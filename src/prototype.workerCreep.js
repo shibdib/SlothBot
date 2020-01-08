@@ -482,12 +482,6 @@ Creep.prototype.haulerDelivery = function () {
                 return true;
             }
         }
-        //Controller
-        let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-        if (controllerContainer) {
-            this.memory.storageDestination = controllerContainer.id;
-            return true;
-        }
     }
     //Top off towers
     let tower = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.9 &&
@@ -508,6 +502,12 @@ Creep.prototype.haulerDelivery = function () {
     //Terminal
     if (terminal && this.memory.withdrawID !== terminal.id) {
         this.memory.storageDestination = terminal.id;
+        return true;
+    }
+    //Controller
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+    if (controllerContainer) {
+        this.memory.storageDestination = controllerContainer.id;
         return true;
     }
     return false;
