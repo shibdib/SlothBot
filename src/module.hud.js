@@ -6,6 +6,29 @@
  */
 
 module.exports.hud = function () {
+    //GCL
+    let lastTickGCLProgress = Memory.lastTickGCLProgress || 0;
+    Memory.gclProgressArray = Memory.gclProgressArray || [];
+    let progressPerTick = Game.gcl.progress - lastTickGCLProgress;
+    Memory.lastTickGCLProgress = Game.gcl.progress;
+    let paused = '*P* ';
+    if (progressPerTick > 0) {
+        paused = '';
+        if (Memory.gclProgressArray.length < 250) {
+            Memory.gclProgressArray.push(progressPerTick)
+        } else {
+            Memory.gclProgressArray.shift();
+            Memory.gclProgressArray.push(progressPerTick)
+        }
+    }
+    progressPerTick = average(Memory.gclProgressArray);
+    let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
+    let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick);
+    let displayTime;
+    if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
+    if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
+    if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
+    if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let room of myRooms) {
         if (!room) continue;
@@ -20,6 +43,8 @@ module.exports.hud = function () {
             opacity: '0.55',
             stroke: 'black'
         });
+        //GCL Display
+        displayText(room, 0, 1, paused + ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.');
         //SPAWNING
         if (activeSpawns.length) {
             let i = 0;
@@ -29,29 +54,6 @@ module.exports.hud = function () {
                 i++;
             }
         }
-        //GCL
-        let lastTickProgress = Memory.lastTickProgress || 0;
-        Memory.gclProgressArray = Memory.gclProgressArray || [];
-        let progressPerTick = Game.gcl.progress - lastTickProgress;
-        let paused = '*P* ';
-        if (progressPerTick > 0) {
-            paused = '';
-            if (Memory.gclProgressArray.length < 250) {
-                Memory.gclProgressArray.push(progressPerTick)
-            } else {
-                Memory.gclProgressArray.shift();
-                Memory.gclProgressArray.push(progressPerTick)
-            }
-        }
-        progressPerTick = average(Memory.gclProgressArray);
-        let secondsToUpgrade = _.round(((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick) * Memory.tickLength);
-        let ticksToUpgrade = _.round((Game.gcl.progressTotal - Game.gcl.progress) / progressPerTick);
-        let displayTime;
-        if (secondsToUpgrade < 60) displayTime = secondsToUpgrade + ' Seconds';
-        if (secondsToUpgrade >= 86400) displayTime = _.round(secondsToUpgrade / 86400, 2) + ' Days';
-        if (secondsToUpgrade < 86400 && secondsToUpgrade >= 3600) displayTime = _.round(secondsToUpgrade / 3600, 2) + ' Hours';
-        if (secondsToUpgrade > 60 && secondsToUpgrade < 3600) displayTime = _.round(secondsToUpgrade / 60, 2) + ' Minutes';
-        displayText(room, 0, 1, paused + ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.');
         //Controller
         if (room.controller.progressTotal) {
             let lastTickProgress = room.memory.lastTickProgress || room.controller.progress;
