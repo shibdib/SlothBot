@@ -20,7 +20,7 @@ module.exports.role = function (creep) {
     if (!_.sum(creep.store)) creep.memory.hauling = undefined;
     if (creep.memory.hauling) {
         // Hub Container
-        let hubContainer = Game.getObjectById(creep.memory.storageDestination) || creep.room.storage || Game.getObjectById(creep.room.memory.hubContainer) || creep.pos.findInRange(_.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK), 3)[0] || Game.getObjectById(creep.findSpawnsExtensions());
+        let hubContainer = Game.getObjectById(creep.memory.storageDestination) || creep.room.storage || Game.getObjectById(creep.room.memory.hubContainer) || creep.pos.findInRange(_.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK), 3)[0] || Game.getObjectById(creep.haulerDelivery());
         // If extra full deliver to controller
         if (hubContainer.store[RESOURCE_ENERGY] >= hubContainer.store.getCapacity() * 0.5 || hubContainer.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT) {
             let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
