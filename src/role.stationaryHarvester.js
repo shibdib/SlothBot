@@ -151,8 +151,8 @@ function harvestDepositContainer(source, creep) {
         return container.id;
     } else {
         let site = source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
-        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 3 && !creep.pos.isNearTo(creep.room.controller)) {
-            if (creep.pos.createConstructionSite(STRUCTURE_CONTAINER) === OK) creep.memory.containerAttempt = true;
+        if (!site && creep.pos.getRangeTo(source) === 1 && creep.room.controller.level >= 2 && !creep.pos.isNearTo(creep.room.controller)) {
+            if (!_.filter(creep.room.constructionSites, (s) => s.structureType === STRUCTURE_CONTAINER).length && creep.pos.createConstructionSite(STRUCTURE_CONTAINER) === OK) creep.memory.containerAttempt = true;
         } else if (site) creep.memory.containerAttempt = true;
     }
 }
