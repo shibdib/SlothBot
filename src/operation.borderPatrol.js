@@ -32,6 +32,9 @@ Creep.prototype.borderPatrol = function () {
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
         // Idle in target rooms for 25 ticks
         if (!this.memory.responseTarget || (this.memory.onTarget && this.memory.onTarget + _.random(10, 25) <= Game.time)) {
+            this.memory.responseTarget = undefined;
+            this.memory.onTarget = undefined;
+            this.memory.awaitingOrders = true;
             offDuty(this);
         } else {
             this.findDefensivePosition(this);
@@ -43,9 +46,6 @@ function offDuty(creep) {
     if (creep.room.name !== creep.memory.overlord || creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.overlord)) >= 5) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 3});
     } else {
-        creep.memory.responseTarget = undefined;
-        creep.memory.onTarget = undefined;
-        creep.memory.awaitingOrders = true;
         creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
     }
 }
