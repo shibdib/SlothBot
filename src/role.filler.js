@@ -19,16 +19,8 @@ module.exports.role = function (creep) {
     if (creep.isFull) creep.memory.hauling = true;
     if (!_.sum(creep.store)) creep.memory.hauling = undefined;
     if (creep.memory.hauling) {
-        // Hub Container
-        let hubContainer = Game.getObjectById(creep.memory.storageDestination) || creep.room.storage || Game.getObjectById(creep.room.memory.hubContainer) || creep.pos.findInRange(_.filter(creep.room.structures, (s) => s.my && s.structureType === STRUCTURE_LINK), 3)[0] || Game.getObjectById(creep.haulerDelivery());
-        // If extra full deliver to controller
-        if (hubContainer && (hubContainer.store[RESOURCE_ENERGY] >= hubContainer.store.getCapacity() * 0.5 || hubContainer.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT)) {
-            let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-            if (controllerContainer) hubContainer = controllerContainer;
-        }
-        if (hubContainer) {
-            if (_.sum(hubContainer.store) === hubContainer.store.getCapacity()) return creep.idleFor(10);
-            let storageItem = hubContainer;
+        if (creep.memory.storageDestination || creep.haulerDelivery()) {
+            let storageItem = Game.getObjectById(creep.memory.storageDestination);
             if (!storageItem) return delete creep.memory.storageDestination;
             switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
                 case OK:
@@ -36,10 +28,6 @@ module.exports.role = function (creep) {
                     delete creep.memory._shibMove;
                     break;
                 case ERR_NOT_IN_RANGE:
-                    if (storageItem.structureType !== STRUCTURE_TOWER) {
-                        let adjacentStructure = _.filter(creep.pos.findInRange(FIND_STRUCTURES, 1), (s) => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.energy < s.energyCapacity);
-                        if (adjacentStructure.length > 0) creep.transfer(adjacentStructure[0], RESOURCE_ENERGY);
-                    }
                     creep.shibMove(storageItem);
                     break;
                 case ERR_FULL || ERR_INVALID_TARGET:
@@ -48,7 +36,7 @@ module.exports.role = function (creep) {
                     if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
                     break;
             }
-        }
+        } else creep.idleFor(5);
     } else if (creep.memory.energyDestination || fillerEnergy(creep)) creep.withdrawResource(); else creep.idleFor(5);
 };
 

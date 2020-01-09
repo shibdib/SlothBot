@@ -103,12 +103,8 @@ function buildFromLayout(room) {
                 if (hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) hub.checkForAllStructure()[0].destroy();
             }
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
-        } else {
-            if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) room.memory.hubContainer = hub.checkForAllStructure()[0].id;
-            if (!hub.checkForConstructionSites() && (!hub.checkForObstacleStructure() || !hub.checkForObstacleStructure().length)) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
-    } else {
-        if (level >= 5) {
+    } else if (level >= 5) {
             delete room.memory.hubContainer;
             let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_EXIT)) > 3 && s.isActive());
             if (links.length) {
@@ -116,11 +112,7 @@ function buildFromLayout(room) {
                 links.forEach((l) => a.push(l.id))
                 room.memory.hubLinks = a;
             }
-        } else {
-            if (hub.checkForAllStructure()[0] && hub.checkForAllStructure()[0].structureType === STRUCTURE_CONTAINER) room.memory.hubContainer = hub.checkForAllStructure()[0].id;
-            if (!hub.checkForConstructionSites() && !hub.checkForObstacleStructure().length) hub.createConstructionSite(STRUCTURE_CONTAINER);
         }
-    }
     // Bunker Ramparts
     if (level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
         if (!room.memory.rampartsSet || Math.random() > 0.98) {

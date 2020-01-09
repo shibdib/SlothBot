@@ -186,15 +186,17 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     //Haulers
-    let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
-    if (hauler.length === 0) {
-        delete roomQueue[room.name];
-        return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
-    } else {
-        let amount = 1;
-        //if (room.controller.level >= 6 && room.energyCapacity * 0.4 > room.energyAvailable) amount = 2;
-        if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
-            queueCreep(room, PRIORITIES.hauler + hauler.length, {role: 'hauler', localCache: true})
+    if (room.memory.hubLink) {
+        let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
+        if (hauler.length === 0) {
+            delete roomQueue[room.name];
+            return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
+        } else {
+            let amount = 1;
+            //if (room.controller.level >= 6 && room.energyCapacity * 0.4 > room.energyAvailable) amount = 2;
+            if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
+                queueCreep(room, PRIORITIES.hauler + hauler.length, {role: 'hauler', localCache: true})
+            }
         }
     }
     //Filler
@@ -239,7 +241,7 @@ module.exports.essentialCreepQueue = function (room) {
         //Upgrader
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let number = 1;
-        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD)[0];
+        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0];
         if (level < 5 && !inBuild) {
             number = 6;
             if (room.memory.controllerContainer) number = Game.getObjectById(room.memory.controllerContainer).pos.countOpenTerrainAround()
