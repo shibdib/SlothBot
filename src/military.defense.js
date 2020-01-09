@@ -109,7 +109,7 @@ function safeModeManager(room) {
 }
 
 function earlyWarning(room) {
-    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel && !Memory.roomCache[r].sk && !Memory.roomCache[r].isHighway)[0];
+    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3 && Memory.roomCache[r].threatLevel > Memory.roomCache[room.name].threatLevel && !Memory.roomCache[r].sk && !Memory.roomCache[r].isHighway)[0];
     if (adjacent) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
