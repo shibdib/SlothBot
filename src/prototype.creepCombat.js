@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -658,22 +658,13 @@ Creep.prototype.siegeHeal = function () {
     }
 };
 
-Creep.prototype.moveRandom = function (onPath) {
+Creep.prototype.moveRandom = function () {
     let start = Math.ceil(Math.random() * 8);
     let direction = 0;
     for (let i = start; i < start + 8; i++) {
         direction = ((i - 1) % 8) + 1;
         let pos = this.pos.getAdjacentPosition(direction);
-        if (pos.isExit()) {
-            continue;
-        }
-        if (onPath && !pos.inPath()) {
-            continue;
-        }
-        if (pos.checkForWall()) {
-            continue;
-        }
-        if (pos.checkForObstacleStructure()) {
+        if (pos.isExit() || pos.checkForWall() || pos.checkForObstacleStructure() || pos.checkForCreep()) {
             continue;
         }
         break;
