@@ -5,8 +5,6 @@ This code is designed to function fine with no user interaction. It also uses fl
 
 For discussion or support join the **#overlord-bot** channel on slack.
 
-If you're interested in joining the Overlords Alliance, join the **#overlords** channel on slack.
-
 _This was made as a way for me to learn JS, so excuse any horrible practices you may encounter. Slowly refactoring the really ugly stuff._
 
 ##Current Features
@@ -23,4 +21,4 @@ _This was made as a way for me to learn JS, so excuse any horrible practices you
 ##Setup
 1. For the main server simply fork this repo and sync your github to the game, point it to the src folder.
 2. Private servers you can download this repo, copy the src folder into the applicable server folder.
-3. Modify the globals.js file for your needs.
+3. Modify the config.js file for your needs.
