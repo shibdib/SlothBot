@@ -313,7 +313,7 @@ Creep.prototype.findEnergy = function () {
         return true;
     }**/
     //Dropped
-    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.4)});
+    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= _.sum(this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id), '.store.getCapacity()') + (this.store.getCapacity() * 0.9)});
     if (dropped) {
         this.memory.energyDestination = dropped.id;
         return true;
