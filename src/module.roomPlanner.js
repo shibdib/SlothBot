@@ -114,7 +114,7 @@ function buildFromLayout(room) {
             }
         }
     // Bunker Ramparts
-    if (level >= 2 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
+    if (level >= 2 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length) {
         if (!room.memory.rampartsSet || Math.random() > 0.98) {
             // Clean old ramparts from new claims
             if (!room.memory.rampartSpots) {
@@ -155,7 +155,7 @@ function buildFromLayout(room) {
             let buildPositions = JSON.parse(room.memory.rampartSpots);
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
-                if (level >= 3) {
+                if (level >= 2) {
                     // Handle tunnels
                     if (pos.checkForWall()) {
                         for (let xOff = -1; xOff <= 1; xOff++) {
