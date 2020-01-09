@@ -293,7 +293,7 @@ module.exports.miscCreepQueue = function (room) {
     }
     //SPECIALIZED
     //Waller
-    if (level >= 3 && (!queueTracker['waller'] || queueTracker['waller'] + 1400 <= Game.time)) {
+    if (level >= 2 && (!queueTracker['waller'] || queueTracker['waller'] + 1400 <= Game.time)) {
         let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');
         let amount = 1;
         if (Memory.roomCache[room.name].responseNeeded) amount = 2;

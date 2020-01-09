@@ -94,14 +94,14 @@ Creep.prototype.findConstruction = function () {
         this.memory.targetHits = 12500;
         return true;
     }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
         this.memory.task = 'build';
         return true;
     }
-    site = _.filter(construction, (s) => s.structureType === STRUCTURE_CONTAINER);
+    site = _.filter(construction, (s) => s.structureType === STRUCTURE_RAMPART);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;

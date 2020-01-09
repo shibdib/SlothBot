@@ -114,7 +114,7 @@ function buildFromLayout(room) {
             }
         }
     // Bunker Ramparts
-    if (level >= 3 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
+    if (level >= 2 && _.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART).length < 3) {
         if (!room.memory.rampartsSet || Math.random() > 0.98) {
             // Clean old ramparts from new claims
             if (!room.memory.rampartSpots) {
