@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -18,7 +18,7 @@ module.exports.role = function (creep) {
         creep.memory.working = undefined;
         if (Memory.roomCache[creep.room.name].responseNeeded) creep.memory.currentTarget = undefined;
     }
-    if (_.sum(creep.store) >= creep.store.getCapacity() * 0.8) creep.memory.working = true;
+    if (creep.isFull) creep.memory.working = true;
     if (creep.memory.working) {
         delete creep.memory.harvest;
         creep.memory.source = undefined;
