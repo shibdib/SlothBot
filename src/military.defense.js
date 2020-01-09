@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -36,7 +36,7 @@ module.exports.controller = function (room) {
     rampartManager(room, structures);
 
     // Early Warning System
-    //if (!Memory.roomCache[room.name].threatLevel < 4) earlyWarning(room);
+    earlyWarning(room);
 
     // Send an email on a player attack with details of attack
     if (Memory.roomCache[room.name].threatLevel && !Memory.roomCache[room.name].alertEmail && Memory.roomCache[room.name].threatLevel >= 4) {
@@ -109,11 +109,11 @@ function safeModeManager(room) {
 }
 
 function earlyWarning(room) {
-    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 4)[0];
+    let adjacent = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && Memory.roomCache[r].threatLevel >= 3 && !Memory.roomCache[r].sk && !Memory.roomCache[r].isHighway)[0];
     if (adjacent) {
         Memory.roomCache[room.name].threatLevel = Memory.roomCache[adjacent].threatLevel;
         Memory.roomCache[room.name].tickDetected = Game.time;
-        //log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
+        log.a(roomLink(room.name) + ' has gone to threat level ' + Memory.roomCache[adjacent].threatLevel + ' due to a triggering of the early warning system in ' + roomLink(adjacent) + '.', 'DEFENSE COMMAND');
     } else if (room.controller.safeMode && room.controller.safeMode < 1700) {
         Memory.roomCache[room.name].threatLevel = 4;
         Memory.roomCache[room.name].tickDetected = Game.time;
