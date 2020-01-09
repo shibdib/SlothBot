@@ -33,7 +33,6 @@ module.exports.role = function (creep) {
                     if (link && link.energy) {
                         creep.withdrawResource(link);
                     } else if (container && container.store[RESOURCE_ENERGY]) {
-                        creep.say(1)
                         creep.withdrawResource(container);
                     }
                 }
@@ -69,7 +68,8 @@ module.exports.role = function (creep) {
 function herald(creep) {
     if (creep.memory.notHerald) return;
     if (creep.memory.herald) {
-        let sentence = ['-', '#overlords', '-'];
+        let sentence = ['-'];
+        if (Memory.LOANalliance) sentence = sentence.concat([Memory.LOANalliance, '-']);
         if (Memory.roomCache[creep.room.name].responseNeeded) {
             if (Memory.roomCache[creep.room.name].threatLevel === 1) sentence = sentence.concat(['FPCON', 'ALPHA']);
             if (Memory.roomCache[creep.room.name].threatLevel === 2) sentence = sentence.concat(['FPCON', 'BRAVO']);
