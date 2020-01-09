@@ -387,7 +387,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             isHighway: isHighway,
             closestRange: closestRange,
             important: important,
-            forestPvp: room.controller && room.controller.sign.text.toLowerCase().includes('@PVP@'),
+            forestPvp: room.controller && room.controller.sign && room.controller.sign.text.toLowerCase().includes('@PVP@'),
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length,
             towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,
             structures: _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_KEEPER_LAIR && s.structureType !== STRUCTURE_EXTRACTOR).length
