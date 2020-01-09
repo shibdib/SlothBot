@@ -77,6 +77,8 @@ function herald(creep) {
             if (Memory.roomCache[creep.room.name].threatLevel >= 4) sentence = sentence.concat(['FPCON', 'DELTA']);
         } else if (Memory.roomCache[creep.room.name] && Memory.roomCache[creep.room.name].lastPlayerSighting) {
             sentence = sentence.concat(['LAST', 'ATTACK', Game.time - Memory.roomCache[creep.room.name].lastPlayerSighting, 'TICKS', 'AGO']);
+        } else {
+            sentence = sentence.concat(['FPCON', 'NORMAL']);
         }
         if (Memory._badBoyArray && Memory._badBoyArray.length) {
             sentence = sentence.concat(['-', 'THREAT', 'LIST', '-']);
@@ -95,7 +97,7 @@ function herald(creep) {
         if (!creep.memory.signed) {
             let signs = OWNED_ROOM_SIGNS;
             let addition = '';
-            if (Game.shard.name === 'vsrv2' && creep.room.controller.level >= 4) addition = ' @pvp@';
+            if (Game.shard.name === 'treecafe' && creep.room.controller.level >= 4) addition = ' @pvp@';
             switch (creep.signController(creep.room.controller, _.sample(signs) + addition)) {
                 case OK:
                     creep.memory.signed = true;
