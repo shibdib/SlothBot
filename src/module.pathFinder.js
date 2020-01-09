@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -416,7 +416,7 @@ function getStructureMatrix(roomName, matrix, options) {
     let room = Game.rooms[roomName];
     let type = 1;
     if (options.ignoreRoads) type = 2; else if (options.offRoad) type = 3;
-    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 4500 || Math.random() > 0.98 || (Memory.roomCache[roomName] && Memory.roomCache[roomName].threatLevel >= 3))) {
+    if (!structureMatrixCache[roomName + type] || (!room.memory.structureMatrixTick || Game.time > room.memory.structureMatrixTick + 4500 || Math.random() > 0.85)) {
         room.memory.structureMatrixTick = Game.time;
         structureMatrixCache[roomName + type] = addStructuresToMatrix(room, matrix, type).serialize();
     }
