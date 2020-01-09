@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -66,7 +66,7 @@ module.exports.hud = function () {
                 let progressPerTick = site.progress - lastTickProgress;
                 siteInfo['progressArray'] = siteInfo['progressArray'] || [];
                 if (progressPerTick > 0) {
-                    if (siteInfo['progressArray'].length < 100) {
+                    if (siteInfo['progressArray'].length < 25) {
                         siteInfo['progressArray'].push(progressPerTick)
                     } else {
                         siteInfo['progressArray'].shift();
