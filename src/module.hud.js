@@ -56,6 +56,16 @@ module.exports.hud = function () {
                 i++;
             }
         }
+        //Safemode
+        if (room.controller.safeMode) {
+            let secondsToNoSafe = room.controller.safeMode * Memory.tickLength;
+            let displayTime;
+            if (secondsToNoSafe < 60) displayTime = secondsToNoSafe + ' Seconds';
+            if (secondsToNoSafe >= 86400) displayTime = _.round(secondsToNoSafe / 86400, 2) + ' Days';
+            if (secondsToNoSafe < 86400 && secondsToNoSafe >= 3600) displayTime = _.round(secondsToNoSafe / 3600, 2) + ' Hours';
+            if (secondsToNoSafe > 60 && secondsToNoSafe < 3600) displayTime = _.round(secondsToNoSafe / 60, 2) + ' Minutes';
+            if (displayTime) room.controller.say(displayTime + ' / ' + room.controller.safeMode + ' ticks.');
+        }
         //Construction
         if (room.constructionSites.length) {
             for (let site of room.constructionSites) {
