@@ -20,7 +20,7 @@ module.exports.processBuildQueue = function () {
         let spawn = spawns[key];
         let level = getLevel(spawn.room);
         // Clear queue if something is stuck
-        if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && (Game.time - lastBuilt[spawn.room.name] >= 1450 || (level >= 3 && spawn.room.creeps.length < 4))) {
+        if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && (Game.time - lastBuilt[spawn.room.name] >= 1450 || (level >= 3 && spawn.room.creeps.length < 4 && Math.random() > 0.5))) {
             roomQueue[spawn.room.name] = undefined;
             continue;
         }
