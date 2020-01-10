@@ -11,12 +11,18 @@ let militaryQueue = {};
 let energyOrder = {};
 let storedLevel = {};
 let remoteHives = {};
+let lastBuilt = {};
 
 //Build Creeps From Queue
 module.exports.processBuildQueue = function () {
     let spawns = Game.spawns;
     for (let key in spawns) {
         let spawn = spawns[key];
+        // Clear queue if something is stuck
+        if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && Game.time - lastBuilt[spawn.room.name] >= 1450) {
+            roomQueue[spawn.room.name] = undefined;
+            continue;
+        }
         let level = getLevel(spawn.room);
         if (!energyOrder[spawn.pos.roomName] || storedLevel[spawn.pos.roomName] !== level) determineEnergyOrder(spawn.room);
         if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
@@ -122,6 +128,7 @@ module.exports.processBuildQueue = function () {
                             if (topPriority.military && militaryQueue) delete militaryQueue[role];
                             if (topPriority.buildCount && roomQueue[spawn.room.name][role]) return roomQueue[spawn.room.name][role].buildCount = topPriority.buildCount - 1;
                             if (roomQueue[spawn.room.name]) delete roomQueue[spawn.room.name][role];
+                            lastBuilt[spawn.room.name] = Game.time;
                     }
                 }
             }
