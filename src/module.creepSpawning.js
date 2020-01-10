@@ -18,12 +18,12 @@ module.exports.processBuildQueue = function () {
     let spawns = Game.spawns;
     for (let key in spawns) {
         let spawn = spawns[key];
+        let level = getLevel(spawn.room);
         // Clear queue if something is stuck
-        if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && Game.time - lastBuilt[spawn.room.name] >= 1450) {
+        if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && (Game.time - lastBuilt[spawn.room.name] >= 1450 || (level >= 3 && spawn.room.creeps.length < 4))) {
             roomQueue[spawn.room.name] = undefined;
             continue;
         }
-        let level = getLevel(spawn.room);
         if (!energyOrder[spawn.pos.roomName] || storedLevel[spawn.pos.roomName] !== level) determineEnergyOrder(spawn.room);
         if (level > spawns[key].room.controller.level) level = spawns[key].room.controller.level;
         if (!spawn.spawning) {
