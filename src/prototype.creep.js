@@ -500,7 +500,7 @@ Creep.prototype.recycleCreep = function () {
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
         if (!this._isFull) {
-            this._isFull = _.sum(this.store) >= this.store.getCapacity() * 0.85;
+            this._isFull = _.sum(this.store) >= this.store.getCapacity() * 0.85 || (_.sum(this.store) && this.ticksToLive < 250);
         }
         return this._isFull;
     },
