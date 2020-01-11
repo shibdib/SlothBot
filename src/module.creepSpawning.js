@@ -439,6 +439,19 @@ module.exports.remoteCreepQueue = function (room) {
             skAdjacent = _.uniq(skAdjacent, _.filter(Game.map.describeExits(skAdjacent[0]), (r) => Memory.roomCache[r] && Memory.roomCache[r].sources >= 3 && !Memory.roomCache[r].sk));
             if (skAdjacent.length > 1) adjacent = _.uniq(adjacent, skAdjacent);
         }
+        // Handle highway deadends
+        if (!adjacent.length) {
+            let highway = _.filter(Game.map.describeExits(room.name), (r) => Memory.roomCache[r] && !Memory.roomCache[r].owner);
+            if (highway.length) {
+                let adjacent = _.filter(Game.map.describeExits(highway[0]), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner);
+            }
+        }
+        // Handle single remotes
+        if (adjacent.length === 1) {
+            let secondaryAdjacent = _.filter(Game.map.describeExits(adjacent[0]), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner);
+            if (secondaryAdjacent.length) adjacent = adjacent.concat(secondaryAdjacent);
+        }
+        console.log(JSON.stringify(adjacent))
         remoteHives[room.name] = JSON.stringify(adjacent);
     }
     //Remotes
