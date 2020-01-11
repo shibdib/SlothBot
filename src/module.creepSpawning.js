@@ -546,7 +546,7 @@ module.exports.remoteCreepQueue = function (room) {
         let amount = 2;
         if (!remotes.length) amount = 1;
         if (roadBuilder.length < amount) {
-            queueCreep(room, PRIORITIES.remoteHauler, {
+            queueCreep(room, PRIORITIES.roadBuilder, {
                 role: 'roadBuilder',
                 misc: remoteHives[room.name]
             })
