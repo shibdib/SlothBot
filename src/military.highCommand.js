@@ -286,12 +286,35 @@ function operationRequests() {
             }
         }
     }
+    // Commodity Mining
+    if (maxLevel >= 4 && !TEN_CPU) {
+        let commodityRooms = _.filter(Memory.roomCache, (r) => r.commodity && r.closestRange <= 10 && !r.user);
+        let commodityMining = _.filter(Memory.targetRooms, (target) => target.type === 'commodity').length || 0;
+        if (commodityRooms.length && commodityMining <= 2) {
+            for (let commodityRoom of commodityRooms) {
+                if (Memory.targetRooms[commodityRoom.name]) break;
+                let lastOperation = Memory.roomCache[commodityRoom.name].lastOperation || 0;
+                if (lastOperation + 4500 > Game.time) continue;
+                let cache = Memory.targetRooms || {};
+                let tick = Game.time;
+                cache[commodityRoom.name] = {
+                    tick: tick,
+                    type: 'commodity',
+                    level: 1,
+                    priority: 1
+                };
+                Memory.targetRooms = cache;
+                log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected power deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+                break;
+            }
+        }
+    }
 }
 
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = Memory.maxLevel;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'attack' && target.type !== 'scout').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'attack' && target.type !== 'scout' && target.type !== 'power' && target.type !== 'commodity').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
@@ -377,6 +400,7 @@ function manageAttacks() {
                 }
                 continue;
             case 'power':
+            case 'commodity':
             // Manage Guard
             case 'guard':
                 staleMulti = 10;

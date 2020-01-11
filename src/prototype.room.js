@@ -91,6 +91,19 @@ Object.defineProperty(Room.prototype, 'sources', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'deposits', {
+    get: function () {
+        // If we dont have the value stored locally
+        if (!this._deposits) {
+            this._deposits = this.find(FIND_DEPOSITS)[0];
+        }
+        // return the locally stored value
+        return this._deposits;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'mineral', {
     get: function () {
         // If we dont have the value stored locally
@@ -310,7 +323,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let potentialTarget, nonCombats, mineral, sk, power, portal, user, level, closestRange, important, owner,
-        reservation, forestPvp, safemode;
+        reservation, commodity, safemode;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -362,6 +375,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         } else {
             portal = undefined;
         }
+        // Deposit info
+        if (room.deposits) {
+            commodity = room.deposits.ticksToDecay > 4500;
+        }
         // Store power info
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
         if (power.length && power[0].pos.countOpenTerrainAround() > 1) power = Game.time + power[0].ticksToDecay; else power = undefined;
@@ -375,6 +392,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             name: room.name,
             sources: sources.length,
             mineral: mineral,
+            commodity: commodity,
             owner: owner,
             reservation: reservation,
             level: level,

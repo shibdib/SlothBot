@@ -626,6 +626,12 @@ module.exports.militaryCreepQueue = function () {
                     queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
                 }
                 break;
+            case 'commodity': //commodity Mining
+                let commodityMiner = _.filter(Game.creeps, (creep) => creep.memory.role === 'commodityMiner' && creep.memory.destination === key);
+                if ((commodityMiner.length < 2 || (commodityMiner[0] && commodityMiner[0].ticksToLive < (commodityMiner[0].body.length * 3 + 100) && commodityMiner.length < 3))) {
+                    queueMilitaryCreep(PRIORITIES.power, {role: 'commodityMiner', destination: key, military: true})
+                }
+                break;
             case 'power': //Power Mining
                 if (Memory.roomCache[key].power < Game.time) {
                     Memory.targetRooms[key] = undefined;
