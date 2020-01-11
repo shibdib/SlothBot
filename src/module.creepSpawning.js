@@ -278,7 +278,7 @@ module.exports.miscCreepQueue = function (room) {
         let amount = ROOM_SOURCE_SPACE[room.name] || 3;
         if (TEN_CPU || room.energy < 5000) amount = 1;
         if (drones.length < amount) {
-            queueCreep(room, priority, {role: 'drone', localCache: true})
+            queueCreep(room, priority + drones.length, {role: 'drone', localCache: true})
         }
     }
     //LabTech
