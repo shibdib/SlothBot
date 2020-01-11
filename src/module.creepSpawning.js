@@ -451,7 +451,6 @@ module.exports.remoteCreepQueue = function (room) {
             let secondaryAdjacent = _.filter(Game.map.describeExits(adjacent[0]), (r) => Memory.roomCache[r] && !Memory.roomCache[r].isHighway && !Memory.roomCache[r].owner);
             if (secondaryAdjacent.length) adjacent = adjacent.concat(secondaryAdjacent);
         }
-        console.log(JSON.stringify(adjacent))
         remoteHives[room.name] = JSON.stringify(adjacent);
     }
     //Remotes
