@@ -87,8 +87,13 @@ function extensionFinder(creep) {
     let source = Game.getObjectById(creep.memory.source);
     let container = Game.getObjectById(creep.memory.containerID) || source.pos.findInRange(creep.room.constructionSites, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
     if (container) {
-        let extension = _.pluck(container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1), 'id');
-        if (extension.length) creep.memory.extensions = JSON.stringify(extension);
+        let extension = container.pos.findInRange(_.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION), 1);
+        if (extension.length) {
+            for (let s of extension) {
+                if (!s.pos.checkForRampart() && !s.pos.checkForConstructionSites()) s.pos.createConstructionSite(STRUCTURE_RAMPART);
+            }
+            creep.memory.extensions = JSON.stringify(_.pluck(extension, 'id'));
+        }
     }
 }
 
@@ -116,6 +121,7 @@ function harvestDepositLink(creep) {
     let link = _.filter(container.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0] || _.filter(creep.pos.findInRange(creep.room.structures, 1), (s) => s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.controllerLink)[0];
     if (link) {
         if (!link.isActive()) return link.destroy();
+        if (!link.pos.checkForRampart() && !link.pos.checkForConstructionSites()) link.pos.createConstructionSite(STRUCTURE_RAMPART);
         if (creep.pos.getRangeTo(link) <= 1) {
             return link.id;
         } else if (creep.pos.getRangeTo(link) <= 3) {
@@ -147,6 +153,7 @@ function harvestDepositLink(creep) {
 function harvestDepositContainer(source, creep) {
     let container = source.pos.findInRange(creep.room.structures, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && !s.pos.isNearTo(s.room.controller)})[0];
     if (container) {
+        if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
         creep.memory.containerAttempt = true;
         return container.id;
     } else {
