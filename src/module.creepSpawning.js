@@ -855,21 +855,6 @@ module.exports.militaryCreepQueue = function () {
                     })
                 }
                 break;
-            case 'conscripts': // Conscripts
-                let conscriptCount = 10;
-                if (opLevel > 1) conscriptCount = 20;
-                let conscripts = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'conscript');
-                if (conscripts.length < conscriptCount + 2) {
-                    queueMilitaryCreep(priority, {
-                        role: 'conscript',
-                        targetRoom: key,
-                        operation: 'conscripts',
-                        military: true,
-                        waitFor: conscriptCount,
-                        staging: stagingRoom
-                    })
-                }
-                break;
             case 'poke': // Pokes
                 let jerk = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'jerk');
                 if (jerk.length < 2) {

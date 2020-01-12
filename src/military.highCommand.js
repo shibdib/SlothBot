@@ -173,7 +173,7 @@ function operationRequests() {
     // SIEGES
     if (Memory._enemies.length) {
         // Attack owned rooms of enemies
-        let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'conscripts' || target.type === 'drain').length || 0;
+        let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup' || target.type === 'swarm' || target.type === 'drain').length || 0;
         if (Memory._enemies.length && !activeSieges) {
             let enemySiege = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !checkForNap(r.user) &&
                 !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && (r.level < 3 || (SIEGE_ENABLED && maxLevel >= 6)) && (Game.shard.name !== 'treecafe' || r.forestPvp)), 'closestRange');
@@ -695,20 +695,6 @@ function manualAttacks() {
             cache[Game.flags[name].pos.roomName] = {
                 tick: tick,
                 type: 'swarm',
-                level: level,
-                priority: Number(priority)
-            };
-            Memory.targetRooms = cache;
-            Game.flags[name].remove();
-        }
-        if (_.startsWith(name, 'conscripts')) {
-            let cache = Memory.targetRooms || {};
-            let level = name.match(/\d+$/)[0] || 1;
-            let priority = 1;
-            let tick = Game.time;
-            cache[Game.flags[name].pos.roomName] = {
-                tick: tick,
-                type: 'conscripts',
                 level: level,
                 priority: Number(priority)
             };
