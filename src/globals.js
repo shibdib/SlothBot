@@ -12,22 +12,6 @@ let globals = function () {
     require('config');
     global.LAYOUT_VERSION = 1.52;
 
-    //PC Stuff
-    global.OPERATOR_UPGRADE_PRIORITY = [PWR_GENERATE_OPS, PWR_OPERATE_SPAWN, PWR_OPERATE_EXTENSION, PWR_OPERATE_TOWER];
-
-    //Terminal
-    global.REACTION_NEEDS = [RESOURCE_ZYNTHIUM,
-        RESOURCE_KEANIUM, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_OXYGEN, RESOURCE_HYDROGEN, RESOURCE_CATALYST];
-
-    global.BOOST_NEEDS = [];
-    global.OWNED_MINERALS = [];
-    global.TRADE_TARGETS = [];
-
-    global.DO_NOT_SELL_LIST = [RESOURCE_CATALYZED_UTRIUM_ACID,
-        RESOURCE_CATALYZED_ZYNTHIUM_ACID,
-        RESOURCE_CATALYZED_GHODIUM_ACID];
-
-
     // Reaction
     global.MAKE_THESE_BOOSTS = [RESOURCE_GHODIUM, RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_ALKALIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_UTRIUM_ACID, RESOURCE_LEMERGIUM_ACID, RESOURCE_UTRIUM_ALKALIDE];
     global.END_GAME_BOOSTS = [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ACID, RESOURCE_CATALYZED_LEMERGIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
@@ -358,52 +342,6 @@ let globals = function () {
             configurable: true,
             enumerable: false
         });
-    };
-
-    /*
-     The following is copied from the path finder in the screeps driver at:
-     https://github.com/screeps/driver/blob/master/lib/path-finder.js
-     */
-    //const MAX_WORLD_SIZE = 255; // Talk to marcel before growing world larger than W127N127 :: E127S127
-    // Convert a room name to/from usable coordinates ("E1N1" -> { xx: 129, yy: 126 })
-    global.parseRoomName = function (roomName) {
-        let room = /^([WE])([0-9]+)([NS])([0-9]+)$/.exec(roomName);
-        if (!room) {
-            return; //throw src Error("Invalid room name " + roomName);
-        }
-        let rx = (WORLD_WIDTH >> 1) + ((room[1] === "W") ? (-Number(room[2])) : (Number(room[2]) + 1));
-        let ry = (WORLD_HEIGHT >> 1) + ((room[3] === "N") ? (-Number(room[4])) : (Number(room[4]) + 1));
-        if (((rx > 0) && (rx <= WORLD_WIDTH) && (ry > 0) && (ry <= WORLD_HEIGHT)) === false) {
-            return; //throw src Error("Invalid room name " + roomName);
-        }
-        return {xx: rx, yy: ry};
-    };
-    // Converts return value of 'parseRoomName' back into a normal room name
-    global.generateRoomName = function (xx, yy) {
-        return (
-            ((xx <= (WORLD_WIDTH >> 1)) ? ("W" + ((WORLD_WIDTH >> 1) - xx)) : ("E" + (xx - (WORLD_WIDTH >> 1) - 1)))
-            + ((yy <= (WORLD_HEIGHT >> 1)) ? ("N" + ((WORLD_HEIGHT >> 1) - yy)) : ("S" + (yy - (WORLD_HEIGHT >> 1) - 1)))
-        );
-    };
-    // Helper function to convert RoomPosition objects into global coordinate objects
-    global.toWorldPosition = function (rp) {
-        let xx = (rp.x | 0), yy = (rp.y | 0);
-        if (((xx >= 0) && (xx < 50) && (yy >= 0) && (yy < 50)) === false) {
-            return; //throw src Error("Invalid room position");
-        }
-        let offset = parseRoomName(rp.roomName);
-        return {
-            xx: (xx + offset.xx * 50)
-            , yy: (yy + offset.yy * 50)
-        };
-    };
-    // Converts back to a RoomPosition
-    global.fromWorldPosition = function (wp) {
-        return new RoomPosition(
-            wp[0] % 50
-            , wp[1] % 50
-            , generateRoomName(Math.floor(wp[0] / 50), Math.floor(wp[1] / 50))
-        );
     };
 
     //Get average of array
