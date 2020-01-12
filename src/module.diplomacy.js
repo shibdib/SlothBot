@@ -9,7 +9,7 @@ module.exports.diplomacyOverlord = function () {
     //Manage threats
     if (Game.time % 5 === 0 && Memory._badBoyList) threatManager();
     //Manage friendlies
-    if (Game.time % 1500 === 0) friendlyListManagement();
+    if (!FRIENDLIES || Game.time % 1500 === 0) friendlyListManagement();
 };
 
 function threatManager() {
