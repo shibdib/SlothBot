@@ -5,7 +5,7 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-let overlord = require('main.Overlord');
+let overlord = require('main.overlord');
 let highCommand = require('military.highCommand');
 let labs = require('module.labController');
 let power = require('module.powerManager');

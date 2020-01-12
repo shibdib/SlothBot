@@ -8,8 +8,8 @@
 //modules
 //Setup globals and prototypes
 require("require");
-let hive = require('main.Hive');
-let cleanUp = require('module.Cleanup');
+let hive = require('main.hive');
+let cleanUp = require('module.cleanup');
 let segments = require('module.segmentManager');
 const tickLengthArray = [];
 const lastGlobal = Memory.lastGlobalReset || Game.time;
