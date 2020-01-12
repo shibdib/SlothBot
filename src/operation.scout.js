@@ -285,7 +285,7 @@ function claimScout(creep) {
     // Make sure it's not super far away
     let range = creep.room.findClosestOwnedRoom(true);
     // Determine if room is still suitable
-    if (creep.room.controller && !creep.room.controller.owner && !creep.room.controller.reservation && !creep.room.hostileCreeps.length && range <= 10 && range > 2 && creep.room.controller.pos.countOpenTerrainAround()) {
+    if (creep.room.controller && !creep.room.controller.owner && !creep.room.controller.reservation && !creep.room.hostileCreeps.length && range <= 10 && range > 1 && creep.room.controller.pos.countOpenTerrainAround()) {
         Memory.targetRooms[creep.room.name] = {
             tick: Game.time,
             type: 'claim'
@@ -300,6 +300,8 @@ function claimScout(creep) {
         let noClaim = Memory.noClaim || [];
         noClaim.push(creep.room.name);
         Memory.noClaim = noClaim;
+        log.i(creep.room.name + ' - is not suitable for claiming');
+        creep.memory.role = 'explorer';
         creep.room.cacheRoomIntel(true);
         delete Memory.targetRooms[creep.room.name];
     }
