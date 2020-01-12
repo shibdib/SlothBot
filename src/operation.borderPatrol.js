@@ -17,10 +17,18 @@ Creep.prototype.borderPatrol = function () {
         if (this.getActiveBodyparts(RANGED_ATTACK)) return this.fightRanged(Game.getObjectById(this.room.memory.towerTarget)); else if (this.getActiveBodyparts(ATTACK)) this.attackHostile(Game.getObjectById(this.room.memory.towerTarget));
     }
     this.attackInRange();
+    // Handle flee
+    if (this.memory.runCooldown) return this.goHomeAndHeal();
     if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK)) return this.goHomeAndHeal();
     if (this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
+    } else if (Math.random() > 0.7 && !this.canIWin(50)) {
+        if (this.memory.responseTarget && this.room.name === this.memory.responseTarget) this.memory.responseTarget = undefined;
+        this.attackInRange();
+        this.shibKite(5);
+        this.memory.runCooldown = 5;
+        return this.goHomeAndHeal();
     } else if (!this.canIWin(5)) {
         if (this.memory.responseTarget && this.room.name === this.memory.responseTarget) this.memory.responseTarget = undefined;
         this.attackInRange();
