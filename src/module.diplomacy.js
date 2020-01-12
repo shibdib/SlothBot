@@ -8,6 +8,8 @@
 module.exports.diplomacyOverlord = function () {
     //Manage threats
     if (Game.time % 5 === 0 && Memory._badBoyList) threatManager();
+    //Manage friendlies
+    if (Game.time % 1500 === 0) friendlyListManagement();
 };
 
 function threatManager() {
@@ -138,3 +140,16 @@ module.exports.trackThreat = function (creep) {
         }
     }
 };
+
+function friendlyListManagement() {
+//Alliance List Management
+    let doNotAggressArray;
+    if (!!~['shard0', 'shard1', 'shard2', 'shard3'].indexOf(Game.shard.name)) {
+        doNotAggressArray = LOANlist;
+        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS, [MY_USERNAME], ['Shibdib']);
+    } else {
+        doNotAggressArray = [MY_USERNAME, 'Shibdib'];
+        doNotAggressArray = _.union(doNotAggressArray, MANUAL_FRIENDS);
+    }
+    global.FRIENDLIES = doNotAggressArray;
+}

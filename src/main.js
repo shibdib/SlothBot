@@ -10,7 +10,6 @@
 require("require");
 let hive = require('main.hive');
 let cleanUp = require('module.cleanup');
-let segments = require('module.segmentManager');
 const tickLengthArray = [];
 const lastGlobal = Memory.lastGlobalReset || Game.time;
 log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
@@ -52,7 +51,6 @@ module.exports.loop = function () {
     populateLOANlist();
 
     //Must run modules
-    segments.segmentManager();
     cleanUp.cleanup();
 
     //Bucket Check
