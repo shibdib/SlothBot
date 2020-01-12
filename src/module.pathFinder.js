@@ -625,7 +625,15 @@ function getRoute(from, to) {
 function cachePath(creep, from, to, path) {
     //Don't store short paths
     if (path.length < 5) return;
-    let key = getPathKey(from, to);
+    //Store path based off move weight
+    let options = getMoveWeight(creep);
+    let weight = 3;
+    if (options.offRoad) {
+        weight = 1;
+    } else if (options.ignoreRoads) {
+        weight = 2;
+    }
+    let key = getPathKey(from, to, weight);
     let cache;
     if (creep.memory.localCache) cache = creep.memory.localPathCache || {}; else cache = pathCache;
     if (cache instanceof Array) cache = {};
@@ -642,7 +650,15 @@ function getPath(creep, from, to) {
     let cache;
     if (creep.memory.localPathCache && creep.memory.localPathCache[getPathKey(from, to)]) return creep.memory.localPathCache[getPathKey(from, to)].path; else if (Game.shard.name === 'shard0' || Game.shard.name === 'shard1' || Game.shard.name === 'shard2' || Game.shard.name === 'shard3') cache = Memory._pathCache || {}; else cache = pathCache;
     if (!cache) return;
-    let cachedPath = cache[getPathKey(from, to)];
+    //Store path based off move weight
+    let options = getMoveWeight(creep);
+    let weight = 3;
+    if (options.offRoad) {
+        weight = 1;
+    } else if (options.ignoreRoads) {
+        weight = 2;
+    }
+    let cachedPath = cache[getPathKey(from, to, weight)];
     if (cachedPath) {
         cachedPath.uses += 1;
         pathCache = cache;
@@ -650,7 +666,7 @@ function getPath(creep, from, to) {
     }
 }
 
-function getMoveWeight(creep, options) {
+function getMoveWeight(creep, options = {}) {
     let move = creep.getActiveBodyparts(MOVE);
     let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
@@ -668,8 +684,8 @@ function getMoveWeight(creep, options) {
     return options;
 }
 
-function getPathKey(from, to) {
-    return getPosKey(from) + '$' + getPosKey(to);
+function getPathKey(from, to, weight) {
+    return getPosKey(from) + '$' + getPosKey(to) + '$' + weight;
 }
 
 function getPosKey(pos) {
