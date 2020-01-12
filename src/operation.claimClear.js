@@ -1,5 +1,3 @@
-let highCommand = require('military.highCommand');
-
 Creep.prototype.claimClear = function () {
     if (this.room.name === this.memory.targetRoom) {
         if (!this.room.controller.owner) {

@@ -644,7 +644,7 @@ module.exports.militaryCreepQueue = function () {
                 }
                 break;
             case 'hold': //Hold Room
-                let unClaimerNeeded = Memory.targetRooms[key].unClaimer;
+                let unClaimerNeeded = Memory.targetRooms[key].claimAttacker;
                 let cleanerNeeded = Memory.targetRooms[key].cleaner;
                 let longbows = 1;
                 let reboot = true;
@@ -662,10 +662,10 @@ module.exports.militaryCreepQueue = function () {
                         reboot: reboot
                     })
                 }
-                let unClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'unClaimer' && creep.memory.operation === 'hold');
-                if (unClaimerNeeded && (unClaimer.length < 1 || (unClaimer[0] && unClaimer[0].ticksToLive < (unClaimer[0].body.length * 3 + 10) && unClaimer.length < 2)) && longbow.length) {
+                let claimAttacker = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'claimAttacker' && creep.memory.operation === 'hold');
+                if (unClaimerNeeded && (claimAttacker.length < 1 || (claimAttacker[0] && claimAttacker[0].ticksToLive < (claimAttacker[0].body.length * 3 + 10) && claimAttacker.length < 2)) && longbow.length) {
                     queueMilitaryCreep(priority, {
-                        role: 'unClaimer',
+                        role: 'claimAttacker',
                         targetRoom: key,
                         operation: 'hold',
                         military: true
@@ -845,10 +845,10 @@ module.exports.militaryCreepQueue = function () {
                         staging: stagingRoom
                     })
                 }
-                let rangerUnClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'unClaimer' && creep.memory.operation === 'rangers');
-                if (Memory.targetRooms[key].unClaimer && rangerUnClaimer.length < 1 || (rangerUnClaimer[0] && rangerUnClaimer[0].ticksToLive < (rangerUnClaimer[0].body.length * 3 + 10) && rangerUnClaimer.length < 2)) {
+                let rangerUnClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'claimAttacker' && creep.memory.operation === 'rangers');
+                if (Memory.targetRooms[key].claimAttacker && rangerUnClaimer.length < 1 || (rangerUnClaimer[0] && rangerUnClaimer[0].ticksToLive < (rangerUnClaimer[0].body.length * 3 + 10) && rangerUnClaimer.length < 2)) {
                     queueMilitaryCreep(priority, {
-                        role: 'unClaimer',
+                        role: 'claimAttacker',
                         targetRoom: key,
                         operation: 'rangers',
                         military: true

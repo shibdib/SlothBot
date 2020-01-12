@@ -348,7 +348,7 @@ function observerOp(room) {
                 return;
             }
             // Request unClaimer if room level is too high
-            Memory.targetRooms[room.name].unClaimer = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
+            Memory.targetRooms[room.name].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
             break;
     }
 }

@@ -205,7 +205,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             heal = 20;
             move = tough + heal;
             break;
-        case 'unClaimer':
+        case 'claimAttacker':
             if (level < 4) break;
             if (level < 7) {
                 claim = _.round(0.5 * level);

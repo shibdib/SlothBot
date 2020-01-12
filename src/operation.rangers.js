@@ -88,6 +88,6 @@ function levelManager(creep) {
     }
     if (creep.room.controller) {
         if (creep.room.controller.owner) return Memory.targetRooms[creep.memory.targetRoom].type = 'hold';
-        if (creep.room.controller.reservation) Memory.targetRooms[creep.room.name].unClaimer = !creep.room.controller.upgradeBlocked && creep.room.controller.reservation.ticksToEnd >= 500;
+        if (creep.room.controller.reservation) Memory.targetRooms[creep.room.name].claimAttacker = !creep.room.controller.upgradeBlocked && creep.room.controller.reservation.ticksToEnd >= 500;
     }
 }

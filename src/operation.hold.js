@@ -18,7 +18,7 @@ Creep.prototype.holdRoom = function () {
         // Handle target room
         if (this.room.name === this.memory.targetRoom && Memory.targetRooms[this.memory.targetRoom]) {
             highCommand.operationSustainability(this.room);
-            Memory.targetRooms[this.room.name].unClaimer = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive) && this.room.controller.pos.countOpenTerrainAround() > 0;
+            Memory.targetRooms[this.room.name].claimAttacker = !this.room.controller.upgradeBlocked && (!this.room.controller.ticksToDowngrade || this.room.controller.level > 1 || this.room.controller.ticksToDowngrade > this.ticksToLive) && this.room.controller.pos.countOpenTerrainAround() > 0;
             Memory.targetRooms[this.room.name].cleaner = this.room.structures.length > 0;
         } else if (!Memory.targetRooms[this.memory.targetRoom]) {
             return this.memory.recycle = true;
