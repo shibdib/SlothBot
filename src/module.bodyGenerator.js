@@ -89,30 +89,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             work = _.round((multi * level) + 1);
             break;
         // Military
-        case 'responder':
-            attack = 1 * level;
-            if (level < 7 && level > 3) {
-                attack = 3 * level;
-            }
-            if (level >= 7) {
-                attack = 30;
-            }
-            move = _.round(attack / 2);
-            break;
-        case 'remoteResponse':
-            if (level < 5) {
-                tough = _.round(0.5 * level);
-                rangedAttack = _.round((0.25 * level));
-                attack = _.round((0.5 * level) + 1);
-                heal = 0;
-            } else {
-                tough = _.round(0.5 * level);
-                rangedAttack = _.round((0.5 * level) + 1);
-                attack = _.round((0.5 * level) + 1);
-                heal = 1;
-            }
-            move = tough + rangedAttack + heal + attack;
-            break;
         case 'attacker':
             tough = _.round(0.5 * level);
             attack = _.round(0.5 * level);

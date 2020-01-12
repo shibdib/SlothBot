@@ -40,7 +40,6 @@ let globals = function () {
         roadBuilder: 7,
         assistPioneer: 6,
         fuelTruck: 7,
-        remoteResponse: 5,
         reserver: 4,
         borderPatrol: 3,
         // Power
