@@ -65,8 +65,9 @@ module.exports.hiveMind = function () {
         }
     }
     //Expansion Manager
-    if (Game.time % 10000 === 0) Memory.noClaim = undefined;
     if (Game.time % 25 === 0) {
+        // Randomly clear noClaim
+        if (Math.random() > 0.98) Memory.noClaim = undefined;
         let overlordCount = Memory.myRooms.length;
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let maxRooms = _.round(Game.cpu.limit / 9);
