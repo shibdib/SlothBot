@@ -10,6 +10,4 @@ module.exports.role = function (creep) {
     if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
     // Swarm
     if (creep.memory.operation && creep.memory.operation === 'swarm') creep.swarmRoom();
-    // Swarm
-    if (creep.memory.operation && creep.memory.operation === 'swarmHarass') creep.swarmHarassRoom();
 };
