@@ -18,9 +18,14 @@ Creep.prototype.scoutRoom = function () {
         range: 23,
         offRoad: true
     });
-    this.room.cacheRoomIntel(true);
     // If room is no longer a target
-    if (!Memory.targetRooms[this.room.name] || (Memory.targetRooms[this.room.name].type !== 'attack' && Memory.targetRooms[this.room.name].type !== 'scout')) return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.room.name]) return this.memory.recycle = true;
+    // Handle claim scout missions
+    if (Memory.targetRooms[this.room.name] && Memory.targetRooms[this.room.name].type === 'claimScout') return claimScout(this);
+    // Handle forward observer
+    if (Memory.targetRooms[this.room.name] && Memory.targetRooms[this.room.name].type !== 'attack' && Memory.targetRooms[this.room.name].type !== 'scout') return forwardObserver(this);
+    // Cache intel
+    this.room.cacheRoomIntel(true);
     // Operation cooldown per room
     if (Memory.roomCache[this.room.name] && !Memory.roomCache[this.room.name].manual && Memory.roomCache[this.room.name].lastOperation && Memory.roomCache[this.room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
         delete Memory.targetRooms[this.room.name];
@@ -261,4 +266,75 @@ function nukeTarget(room) {
         return true;
     }
     return false;
+}
+
+// Handle claim scouting
+function claimScout(creep) {
+    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', creep.memory.targetRoom];
+    let word = Game.time % sentence.length;
+    creep.say(sentence[word], true);
+    // If room is no longer a target
+    if (!Memory.targetRooms[creep.memory.targetRoom]) return creep.memory.recycle = true;
+    // Cache intel
+    creep.room.cacheRoomIntel();
+    // Travel to room
+    if (creep.room.name !== creep.memory.targetRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {
+        range: 23,
+        offRoad: true
+    });
+    // Make sure it's not super far away
+    let range = creep.room.findClosestOwnedRoom(true);
+    // Determine if room is still suitable
+    if (creep.room.controller && !creep.room.controller.owner && !creep.room.controller.reservation && !creep.room.hostileCreeps.length && range <= 10 && range > 2 && creep.room.controller.pos.countOpenTerrainAround()) {
+        Memory.targetRooms[creep.room.name] = {
+            tick: Game.time,
+            type: 'claim'
+        };
+        creep.room.memory = undefined;
+        Memory.lastExpansion = Game.time;
+        log.i(creep.room.name + ' - Has been marked for claiming');
+        Game.notify(creep.room.name + ' - Has been marked for claiming');
+        creep.memory.role = 'explorer';
+        creep.room.cacheRoomIntel(true);
+    } else {
+        let noClaim = Memory.noClaim || [];
+        noClaim.push(creep.room.name);
+        Memory.noClaim = noClaim;
+        creep.room.cacheRoomIntel(true);
+        delete Memory.targetRooms[creep.room.name];
+    }
+}
+
+// Observer tasks
+function forwardObserver(creep) {
+    let highCommand = require('military.highCommand');
+    highCommand.operationSustainability(creep.room);
+    levelManager(creep);
+    //Type specific stuff
+    switch (Memory.targetRooms[creep.memory.targetRoom].type) {
+        case 'hold':
+            // HOLD - Clear target if room is no longer owned
+            if (!creep.room.controller.owner || creep.room.controller.safeMode || !Memory.targetRooms[creep.room.name]) {
+                log.a('Canceling hold operation in ' + roomLink(creep.memory.targetRoom) + ' as it is no longer owned.', 'HIGH COMMAND: ');
+                delete Memory.targetRooms[creep.memory.targetRoom];
+                return;
+            }
+            // Request unClaimer if room level is too high
+            Memory.targetRooms[creep.memory.targetRoom].unClaimer = !creep.room.controller.upgradeBlocked && (!creep.room.controller.ticksToDowngrade || creep.room.controller.ticksToDowngrade > 1000);
+            break;
+    }
+    let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+    if (armedEnemies.length) {
+        if (Memory.targetRooms[creep.room.name].oldPriority) Memory.targetRooms[creep.room.name].priority = Memory.targetRooms[creep.room.name].oldPriority;
+        Memory.targetRooms[creep.room.name].level = 2;
+    } else if (creep.room.hostileCreeps.length) {
+        if (Memory.targetRooms[creep.room.name].oldPriority) Memory.targetRooms[creep.room.name].priority = Memory.targetRooms[creep.room.name].oldPriority;
+        Memory.targetRooms[creep.room.name].level = 1;
+    } else {
+        if (Memory.targetRooms[creep.room.name].type !== 'hold') {
+            if (!Memory.targetRooms[creep.room.name].oldPriority) Memory.targetRooms[creep.room.name].oldPriority = Memory.targetRooms[creep.room.name].priority;
+            Memory.targetRooms[creep.room.name].priority = 3;
+        }
+        Memory.targetRooms[creep.room.name].level = 0;
+    }
 }

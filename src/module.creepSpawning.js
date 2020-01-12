@@ -602,27 +602,19 @@ module.exports.militaryCreepQueue = function () {
         }
         //Observers
         if (opLevel === 0 && !Memory.targetRooms[key].observerCheck && Memory.targetRooms[key].type !== 'clean') {
-            let observer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'observer');
-            if ((observer.length < 1 || (observer[0] && observer[0].ticksToLive < (observer[0].body.length * 3 + 10) && observer.length < 2))) {
-                queueMilitaryCreep(PRIORITIES.priority, {
-                    role: 'observer',
-                    targetRoom: key,
-                    military: true
-                })
+            let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
+            if ((scout.length < 1 || (scout[0] && scout[0].ticksToLive < (scout[0].body.length * 3 + 10) && scout.length < 2))) {
+                queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
             }
             continue;
         }
         switch (Memory.targetRooms[key].type) {
-            case 'claimScout': //Claim Scouting
-                let claimScout = _.filter(Game.creeps, (creep) => creep.memory.role === 'claimScout');
-                if (Memory.targetRooms[key].tick + 50 < Game.time && !claimScout.length) {
-                    queueMilitaryCreep(PRIORITIES.priority, {role: 'claimScout', targetRoom: key, military: true})
-                }
-                break;
+            // Scout ops
+            case 'claimScout':
             case 'attack':
-            case 'scout': //Room Scouting
+            case 'scout':
                 let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
-                if (Memory.targetRooms[key].tick + 50 < Game.time && !scout.length) {
+                if (!scout.length) {
                     queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
                 }
                 break;

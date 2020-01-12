@@ -13,11 +13,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         // Explorer/Scout
         case 'explorer':
         case 'scout':
-        case 'claimScout':
-        case 'observer':
-        case 'messenger':
-        case 'proximityScout':
-        case 'herald':
             move = 1;
             break;
         case 'swarm':

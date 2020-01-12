@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 require("globals")();
 require("prototype.workerCreep");
 require("prototype.creepCombat");
@@ -10,7 +17,6 @@ require('module.pathFinder');
 
 // Operations
 require("operation.scout");
-require("operation.claimScout");
 require("operation.clean");
 require("operation.harass");
 require("operation.drain");
