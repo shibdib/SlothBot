@@ -234,7 +234,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     // Set target
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst);
     // Flee home if you have no parts
-    if (!this.getActiveBodyparts(HEAL) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
+    if ((!this.getActiveBodyparts(HEAL) || this.getActiveBodyparts(HEAL) === 1) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     // If target fight
     if (hostile && hostile.pos.roomName === this.pos.roomName && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
         // Heal if needed
@@ -362,6 +362,7 @@ Creep.prototype.fightRanged = function (target) {
     this.memory.lastRange = range;
     let targets = this.pos.findInRange(this.room.hostileCreeps, 3);
     let allies = this.pos.findInRange(this.room.friendlyCreeps, 4, {filter: (c) => !c.my});
+    let partner = this.pos.findInRange(this.room.friendlyCreeps, 4, {filter: (c) => c.my && c.memory.role === 'longbow' && c.hits >= c.hitsMax * 0.5})[0];
     let moveTarget = target;
     let inRangeRampart = this.pos.findClosestByPath(this.room.structures, {filter: (r) => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() && !r.pos.checkForConstructionSites() && (!r.pos.checkForCreep() || (r.pos.x === this.pos.x && r.pos.y === this.pos.y)) && r.my && r.pos.getRangeTo(target) <= 3});
     if (inRangeRampart) moveTarget = inRangeRampart;
@@ -387,7 +388,12 @@ Creep.prototype.fightRanged = function (target) {
             if (inRangeRampart) {
                 this.shibMove(inRangeRampart, {range: 0, ignoreCreeps: false});
             } else {
-                this.shibMove(target, {range: moveRange, ignoreCreeps: false});
+                if (!partner) {
+                    this.shibMove(target, {range: moveRange, ignoreCreeps: false});
+                } else {
+                    if (this.getActiveBodyparts(HEAL) && this.pos.getRangeTo(partner) <= 1 && this.hits / this.hitsMax > partner.hits / partner.hitsMax) this.heal(partner);
+                    this.shibMove(partner, {range: 0, ignoreCreeps: false});
+                }
             }
         } else {
             this.say('PEW!', true);
