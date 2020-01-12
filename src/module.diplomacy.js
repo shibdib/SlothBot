@@ -28,7 +28,7 @@ function threatManager() {
         if (threat.lastAction + 50 < Game.time || threat.lastChange + 250 < Game.time) {
             // Scaled threat decrease
             let currentRating = threat.threatRating;
-            let decrease = 0.5;
+            let decrease = 0.25;
             //if (currentRating > 1000) decrease = 0.5; else if (currentRating > 25) decrease = 0.75;
             newRating = currentRating - decrease;
             if (newRating <= 0 && (!Memory.ncpArray || !_.includes(Memory.ncpArray, key))) {
