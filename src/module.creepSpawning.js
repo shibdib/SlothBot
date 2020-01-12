@@ -166,12 +166,12 @@ module.exports.roomStartup = function (room) {
         }
     }
     if (Memory.roomCache[room.name].responseNeeded === true) {
-        if (!_.includes(queue, 'responder')) {
+        if (!_.includes(queue, 'attacker')) {
             let count = Memory.roomCache[room.name].numberOfHostiles;
             if (Memory.roomCache[room.name].threatLevel < 3) count = 1;
-            let responder = _.filter(roomCreeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
+            let responder = _.filter(roomCreeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'attacker');
             if (responder.length < count) {
-                queueCreep(room, PRIORITIES.responder, {role: 'responder', responseTarget: room.name, military: true})
+                queueCreep(room, PRIORITIES.responder, {role: 'attacker', responseTarget: room.name, military: true})
             }
         }
     }
@@ -230,10 +230,10 @@ module.exports.essentialCreepQueue = function (room) {
                     military: true
                 })
             }
-            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'responder');
+            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'attacker');
             if ((Memory.roomCache[room.name].threatLevel >= 3 && responder.length < 2) || (responder.length < 1)) {
                 queueCreep(room, PRIORITIES.responder, {
-                    role: 'responder',
+                    role: 'attacker',
                     responseTarget: room.name,
                     military: true
                 })

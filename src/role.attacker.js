@@ -20,4 +20,9 @@ module.exports.role = function (creep) {
     if (creep.memory.operation && creep.memory.operation === 'guard') creep.guardRoom();
     // Hold
     if (creep.memory.operation && creep.memory.operation === 'hold') creep.holdRoom();
+    // Else defend room
+    creep.say(ICONS.respond, true);
+    if (!creep.handleMilitaryCreep()) {
+        creep.findDefensivePosition(creep);
+    }
 };
