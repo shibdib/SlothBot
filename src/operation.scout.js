@@ -341,12 +341,6 @@ function forwardObserver(creep) {
 }
 
 function levelManager(creep) {
-    if (creep.room.controller && creep.room.controller.safeMode) {
-        Memory.targetRooms[creep.memory.targetRoom] = undefined;
-        creep.memory.role = 'longbow';
-        creep.memory.operation = 'borderPatrol';
-        return;
-    }
     if (Memory.targetRooms[creep.memory.targetRoom]) {
         let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
         let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
