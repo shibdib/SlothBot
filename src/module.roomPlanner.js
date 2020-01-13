@@ -10,10 +10,13 @@
  */
 let layouts = require('module.roomLayouts');
 let minCut = require('util.minCut');
+let storedLayouts = {};
 
 module.exports.buildRoom = function (room) {
-    if (room.memory.layout && room.memory.bunkerHub) {
-        if (room.memory.layoutVersion === LAYOUT_VERSION) {
+    if (room.memory.bunkerHub) {
+        // Remove old memory
+        room.memory.layout = undefined;
+        if (room.memory.layoutVersion === LAYOUT_VERSION && storedLayouts[room.name]) {
             if (Memory.myRooms.length === 1 || room.controller.level >= 4) {
                 return buildFromLayout(room);
             } else {
@@ -35,7 +38,7 @@ function buildFromLayout(room) {
     if (!room.memory.bunkerVersion) room.memory.bunkerVersion = 1;
     let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
     let level = room.controller.level;
-    let layout = JSON.parse(room.memory.layout);
+    let layout = JSON.parse(storedLayouts[room.name]);
     let extensionLevel = getLevel(room);
     let filter = _.filter(layout, (s) => s.structureType !== STRUCTURE_OBSERVER && s.structureType !== STRUCTURE_POWER_SPAWN && s.structureType !== STRUCTURE_NUKER && s.structureType !== STRUCTURE_TERMINAL && s.structureType !== STRUCTURE_TOWER && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_LINK && s.structureType !== STRUCTURE_LAB);
     // Handle a rebuild
@@ -341,7 +344,7 @@ function newClaimBuild(room) {
     // Cleanup
     let noRoad = _.filter(room.structures, (s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType) && s.pos.checkForRoad());
     if (noRoad.length) noRoad.forEach((s) => s.pos.checkForRoad().destroy());
-    let layout = JSON.parse(room.memory.layout);
+    let layout = JSON.parse(storedLayouts[room.name]);
     // Rampart the controller to counter unclaimers
     buildRampartAround(room, room.controller.pos);
     // Build tower rampart, then tower, then spawn
@@ -448,7 +451,7 @@ function findHub(room) {
                 room.memory.bunkerHub.x = pos.x;
                 room.memory.bunkerHub.y = pos.y;
                 room.memory.hubSearch = undefined;
-                room.memory.layout = JSON.stringify(layout);
+                storedLayouts[room.name] = JSON.stringify(layout);
                 room.memory.layoutVersion = LAYOUT_VERSION;
                 room.memory.bunkerVersion = layoutVersion;
                 return true;
@@ -489,7 +492,7 @@ function updateLayout(room) {
         }
     }
     room.memory.layoutVersion = LAYOUT_VERSION;
-    room.memory.layout = JSON.stringify(layout);
+    storedLayouts[room.name] = JSON.stringify(layout);
 }
 
 function abandonRoom(room) {
