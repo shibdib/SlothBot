@@ -165,7 +165,7 @@ module.exports.roomStartup = function (room) {
             queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
         }
     }
-    if (Memory.roomCache[room.name].responseNeeded === true) {
+    if (Memory.roomCache[room.name].responseNeeded) {
         if (!_.includes(queue, 'attacker')) {
             let count = Memory.roomCache[room.name].numberOfHostiles;
             if (Memory.roomCache[room.name].threatLevel < 3) count = 1;
@@ -220,31 +220,17 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     // Local Responder
-    if (Memory.roomCache[room.name].responseNeeded) {
-        if (Memory.roomCache[room.name].threatLevel >= 2) {
-            let longbow = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'longbow');
-            if (Memory.roomCache[room.name].threatLevel >= 3 && longbow.length < 2) {
-                queueCreep(room, PRIORITIES.responder, {
-                    role: 'longbow',
-                    responseTarget: room.name,
-                    military: true
-                })
-            }
-            let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name && creep.memory.role === 'attacker');
-            if ((Memory.roomCache[room.name].threatLevel >= 3 && responder.length < 2) || (responder.length < 1)) {
-                queueCreep(room, PRIORITIES.responder, {
-                    role: 'attacker',
-                    responseTarget: room.name,
-                    military: true
-                })
-            }
+    if (Memory.roomCache[room.name].threatLevel >= 2) {
+        let role = _.sample(['longbow', 'attacker']);
+        let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name);
+        if (Memory.roomCache[room.name].threatLevel >= 3 && responder.length < Memory.roomCache[room.name].numberOfHostiles) {
+            queueCreep(room, PRIORITIES.responder, {
+                role: role,
+                responseTarget: room.name,
+                military: true
+            })
         }
     } else {
-        // Claiming
-        let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
-        if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
-            queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: claimTarget});
-        }
         //Upgrader
         let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
         let number = 1;
@@ -320,89 +306,96 @@ module.exports.miscCreepQueue = function (room) {
         }
         queueTracker['mineralHarvester'] = Game.time;
     }
-    //Pre observer spawn explorers
-    if (!Memory.roomCache[room.name].responseNeeded && Memory.maxLevel < 8 && !room.memory.spawnBorderPatrol) {
-        //Explorer
-        if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 750 <= Game.time)) {
-            let amount = 3;
-            let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
-            if (explorers.length < amount) {
-                queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
-            }
-            queueTracker['explorer'] = Game.time;
+    // If no conflict detected
+    if (!Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
+        // Claiming
+        let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
+        if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
+            queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: claimTarget});
         }
-    }
-    // Portal explorers
-    if (!Memory.roomCache[room.name].responseNeeded && (!queueTracker['explorer'] || queueTracker['explorer'] + 1500 <= Game.time) && !room.memory.spawnBorderPatrol) {
-        if (_.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName).length) {
-            for (let portalRoom of _.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName)) {
-                let explorer = _.filter(Game.creeps, (creep) => creep.memory.destination === portalRoom.name);
-                if (!explorer.length) {
-                    queueCreep(room, PRIORITIES.explorer, {
-                        role: 'explorer',
-                        destination: portalRoom.name,
-                        portalJump: JSON.parse(portalRoom.portal)[0].destination.roomName
+        //Pre observer spawn explorers
+        if (Memory.maxLevel < 8) {
+            //Explorer
+            if ((!queueTracker['explorer'] || queueTracker['explorer'] + 750 <= Game.time)) {
+                let amount = 3;
+                let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
+                if (explorers.length < amount) {
+                    queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
+                }
+                queueTracker['explorer'] = Game.time;
+            }
+        }
+        // Portal explorers
+        if ((!queueTracker['explorer'] || queueTracker['explorer'] + 1500 <= Game.time)) {
+            if (_.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName).length) {
+                for (let portalRoom of _.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName)) {
+                    let explorer = _.filter(Game.creeps, (creep) => creep.memory.destination === portalRoom.name);
+                    if (!explorer.length) {
+                        queueCreep(room, PRIORITIES.explorer, {
+                            role: 'explorer',
+                            destination: portalRoom.name,
+                            portalJump: JSON.parse(portalRoom.portal)[0].destination.roomName
+                        });
+                    }
+                }
+                queueTracker['explorer'] = Game.time;
+            }
+        }
+        // Assist room
+        if (level >= 4) {
+            let safeToSupport = _.filter(Game.rooms, (r) => !r.hostileCreeps.length && (!Memory.roomCache[r.name] || !Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time));
+            let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded)));
+            if (needDrones) {
+                let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needDrones.name || creep.memory.overlord === needDrones.name) && creep.memory.role === 'drone');
+                let amount = ROOM_SOURCE_SPACE[room.name] || 2;
+                if (drones.length < amount) {
+                    queueCreep(room, PRIORITIES.assistPioneer + drones.length * 0.25, {
+                        role: 'drone',
+                        destination: needDrones.name
                     });
                 }
             }
-            queueTracker['explorer'] = Game.time;
-        }
-    }
-    // Assist room
-    if (level >= 4 && !Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
-        let safeToSupport = _.filter(Game.rooms, (r) => !r.hostileCreeps.length && (!Memory.roomCache[r.name] || !Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time));
-        let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded)));
-        if (needDrones) {
-            let drones = _.filter(Game.creeps, (creep) => (creep.memory.destination === needDrones.name || creep.memory.overlord === needDrones.name) && creep.memory.role === 'drone');
-            let amount = ROOM_SOURCE_SPACE[room.name] || 2;
-            if (drones.length < amount) {
-                queueCreep(room, PRIORITIES.assistPioneer + drones.length * 0.25, {
-                    role: 'drone',
-                    destination: needDrones.name
-                });
-            }
-        }
-        if (level >= 6 && room.memory.energySurplus) {
-            // Energy Supplies
-            let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.energyNeeded)));
-            if (needEnergy && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 1450 <= Game.time)) {
-                let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needEnergy.name && creep.memory.role === 'fuelTruck');
-                if (!fuelTruck.length) {
-                    queueCreep(room, PRIORITIES.fuelTruck, {
-                        role: 'fuelTruck',
-                        destination: needEnergy.name
-                    });
-                    queueTracker['fuelTruck'] = Game.time;
+            if (level >= 6 && room.memory.energySurplus) {
+                // Energy Supplies
+                let needEnergy = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.energyNeeded)));
+                if (needEnergy && (!queueTracker['fuelTruck'] || queueTracker['fuelTruck'] + 1450 <= Game.time)) {
+                    let fuelTruck = _.filter(Game.creeps, (creep) => creep.memory.destination === needEnergy.name && creep.memory.role === 'fuelTruck');
+                    if (!fuelTruck.length) {
+                        queueCreep(room, PRIORITIES.fuelTruck, {
+                            role: 'fuelTruck',
+                            destination: needEnergy.name
+                        });
+                        queueTracker['fuelTruck'] = Game.time;
+                    }
+                }
+                // Power Level
+                let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.controller && r.controller.my && r.controller.level && r.controller.level + 1 < level)));
+                if (upgraderRequested) {
+                    let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgraderRequested.name && creep.memory.role === 'remoteUpgrader');
+                    if (!remoteUpgraders.length) {
+                        queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
+                            role: 'remoteUpgrader',
+                            destination: upgraderRequested.name
+                        })
+                    }
+                }
+                // Marauder
+                if (POKE_ATTACKS && !queueTracker['marauder'] || queueTracker['marauder'] + 2500 <= Game.time) {
+                    let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding');
+                    if (marauder.length < 2 && Math.random() > 0.5) {
+                        queueCreep(room, PRIORITIES.medium, {
+                            role: 'longbow',
+                            operation: 'marauding',
+                            military: true,
+                            localCache: true
+                        });
+                    }
+                    queueTracker['marauder'] = Game.time;
                 }
             }
-            // Power Level
-            let upgraderRequested = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.controller && r.controller.my && r.controller.level && r.controller.level + 1 < level)));
-            if (upgraderRequested) {
-                let remoteUpgraders = _.filter(Game.creeps, (creep) => creep.memory.destination === upgraderRequested.name && creep.memory.role === 'remoteUpgrader');
-                if (!remoteUpgraders.length) {
-                    queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
-                        role: 'remoteUpgrader',
-                        destination: upgraderRequested.name
-                    })
-                }
-            }
-            // Marauder
-            if (POKE_ATTACKS && !queueTracker['marauder'] || queueTracker['marauder'] + 2500 <= Game.time) {
-                let marauder = _.filter(Game.creeps, (creep) => creep.memory.operation === 'marauding');
-                if (marauder.length < 2 && Math.random() > 0.5) {
-                    queueCreep(room, PRIORITIES.medium, {
-                        role: 'longbow',
-                        operation: 'marauding',
-                        military: true,
-                        localCache: true
-                    });
-                }
-                queueTracker['marauder'] = Game.time;
-            }
         }
-    }
-    // Border Patrol
-    if (room.memory.spawnBorderPatrol) {
+    } // Border Patrol
+    else if (room.memory.spawnBorderPatrol) {
         let borderPatrol = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol');
         let count = 3;
         if (borderPatrol.length < count || (borderPatrol[0] && borderPatrol[0].ticksToLive < (borderPatrol[0].body.length * 3 + 10) && borderPatrol.length < count + 1)) {
@@ -488,7 +481,7 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reservation && Memory.roomCache[remotes[keys]].reservation !== MY_USERNAME) continue;
             // Handle response needed
             if (Memory.roomCache[remotes[keys]] && !Memory.roomCache[remotes[keys]].sk && (Memory.roomCache[remotes[keys]].hostilePower > Memory.roomCache[remotes[keys]].friendlyPower || (Game.rooms[remotes[keys]] && Game.rooms[remotes[keys]].hostileCreeps.length))) {
-                room.memory.spawnBorderPatrol = remotes[keys];
+                room.memory.spawnBorderPatrol = remotes[keys] && _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.operation === 'borderPatrol').length < 3;
                 continue;
             }
             // Handle SK
