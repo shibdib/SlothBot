@@ -128,6 +128,17 @@ Object.defineProperty(Room.prototype, 'structures', {
     configurable: true
 });
 
+Object.defineProperty(Room.prototype, 'energyState', {
+    get: function () {
+        if (!this._energyState) {
+            this._energyState = this.find(FIND_STRUCTURES);
+        }
+        return this._energyState;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'hostileStructures', {
     get: function () {
         if (!this._hostileStructures) {

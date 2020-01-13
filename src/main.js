@@ -118,7 +118,7 @@ status = function () {
         let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
         let marauderCreep = _.filter(roomCreeps, (c) => c.memory.operation === 'marauding')[0];
         if (marauderCreep) marauder = roomLink(marauderCreep.pos.roomName);
-        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(activeRoom.memory.energyIncomeArray)), 0) + ' | Marauder Location - ' + marauder + ' | Creep Count: ' + _.size(roomCreeps), ' ');
+        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' | Marauder Location - ' + marauder + ' | Creep Count: ' + _.size(roomCreeps), ' ');
     }
     if (Memory.targetRooms && _.size(Memory.targetRooms)) {
         log.a('--OPERATION INFO--', ' ');
