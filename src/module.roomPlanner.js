@@ -11,6 +11,7 @@
 let layouts = require('module.roomLayouts');
 let minCut = require('util.minCut');
 let storedLayouts = {};
+let rampartSpots = {};
 
 module.exports.buildRoom = function (room) {
     if (room.memory.bunkerHub) {
@@ -118,14 +119,15 @@ function buildFromLayout(room) {
         }
     // Bunker Ramparts
     if (level >= 2 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length) {
-        if (!room.memory.rampartsSet || Math.random() > 0.98) {
+        if (!rampartSpots[room.name] || Math.random() > 0.98) {
             // Clean old ramparts from new claims
-            if (!room.memory.rampartSpots) {
-                let cleaner = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.pos.checkForRampart());
+            if (!rampartSpots[room.name]) {
+                let cleaner = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 3 && s.pos.checkForRampart());
                 cleaner.forEach((s) => s.pos.checkForRampart().destroy())
             }
+            // Delete old memory
             room.memory.rampartSpots = undefined;
-            room.memory.rampartsSet = 1;
+            rampartSpots[room.name] = undefined;
             let hubBuffer = 8;
             let hub = new RoomPosition(room.memory.bunkerHub.x, room.memory.bunkerHub.y, room.name);
             let closestExit = hub.getRangeTo(hub.findClosestByRange(FIND_EXIT)) - 2;
@@ -153,9 +155,9 @@ function buildFromLayout(room) {
                 y2: room.controller.pos.y + 1
             });
             let bounds = {x1: 0, y1: 0, x2: 49, y2: 49};
-            room.memory.rampartSpots = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
-        } else if (room.memory.rampartSpots) {
-            let buildPositions = JSON.parse(room.memory.rampartSpots);
+            rampartSpots[room.name] = JSON.stringify(minCut.GetCutTiles(room.name, rect_array, bounds));
+        } else if (rampartSpots[room.name]) {
+            let buildPositions = JSON.parse(rampartSpots[room.name]);
             for (let rampartPos of buildPositions) {
                 let pos = new RoomPosition(rampartPos.x, rampartPos.y, room.name);
                 if (level >= 2) {
