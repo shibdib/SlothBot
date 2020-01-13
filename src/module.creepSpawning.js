@@ -309,7 +309,7 @@ module.exports.miscCreepQueue = function (room) {
         queueTracker['waller'] = Game.time;
     }
     //Mineral Harvester
-    if (!inBuild && level >= 6 && room.mineral.mineralAmount && (!queueTracker['mineralHarvester'] || queueTracker['mineralHarvester'] + 1400 <= Game.time)) {
+    if (level >= 6 && room.mineral.mineralAmount && (!queueTracker['mineralHarvester'] || queueTracker['mineralHarvester'] + 1400 <= Game.time)) {
         let mineralHarvester = _.filter(Game.creeps, (creep) => creep.memory.overlord === room.name && creep.memory.role === 'mineralHarvester');
         let extractor = room.structures.filter((s) => s.structureType === STRUCTURE_EXTRACTOR)[0];
         if (extractor && !mineralHarvester.length) {
