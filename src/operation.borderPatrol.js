@@ -51,7 +51,7 @@ Creep.prototype.borderPatrol = function () {
 };
 
 function offDuty(creep) {
-    if (creep.room.name !== creep.memory.overlord || creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.overlord)) >= 5) {
+    if (!Memory.roomCache[creep.room.name].roomHeat && creep.room.name !== creep.memory.overlord || creep.pos.getRangeTo(new RoomPosition(25, 25, creep.memory.overlord)) >= 5) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 3});
     } else {
         creep.idleFor(creep.pos.getRangeTo(creep.pos.findClosestByRange(FIND_EXIT)) - 4);
