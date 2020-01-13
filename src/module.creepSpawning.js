@@ -349,7 +349,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     // Assist room
-    if (level >= 4 && !inBuild && !Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
+    if (level >= 4 && !Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
         let safeToSupport = _.filter(Game.rooms, (r) => !r.hostileCreeps.length && (!Memory.roomCache[r.name] || !Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time));
         let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded)));
         if (needDrones) {
