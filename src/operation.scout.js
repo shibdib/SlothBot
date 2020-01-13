@@ -291,7 +291,6 @@ function claimScout(creep) {
             type: 'claim'
         };
         creep.room.memory = undefined;
-        Memory.lastExpansion = Game.time;
         log.i(creep.room.name + ' - Has been marked for claiming');
         Game.notify(creep.room.name + ' - Has been marked for claiming');
         creep.memory.role = 'explorer';

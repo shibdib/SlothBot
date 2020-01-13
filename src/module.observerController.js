@@ -284,7 +284,6 @@ function claimScout(room) {
             type: 'claim'
         };
         room.memory = undefined;
-        Memory.lastExpansion = Game.time;
         log.i(room.name + ' - Has been marked for claiming');
         Game.notify(room.name + ' - Has been marked for claiming');
         room.cacheRoomIntel(true);

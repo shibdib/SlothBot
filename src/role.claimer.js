@@ -41,7 +41,6 @@ module.exports.role = function (creep) {
                     case ERR_INVALID_TARGET:
                         break;
                     case OK:
-                        Game.rooms[creep.memory.overlord].memory.claimTarget = undefined;
                         Memory.targetRooms[creep.room.name] = undefined;
                         cleanRoom(creep.room, creep.room.structures)
                 }

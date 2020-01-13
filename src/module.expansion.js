@@ -8,7 +8,6 @@
 module.exports.claimNewRoom = function () {
     let noClaim = Memory.noClaim || [];
     let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && r.mineral && r.sources === 2 && r.closestRange <= 12);
-    if (!Memory.lastExpansion) Memory.lastExpansion = Game.time;
     if (worthyRooms.length > 0) {
         let possibles = {};
         loop1:
