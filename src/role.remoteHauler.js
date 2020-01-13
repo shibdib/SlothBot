@@ -125,7 +125,7 @@ function dropOff(creep) {
     let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!controllerLink && (!importantBuilds || creep.room.memory.energySurplus) && controllerContainer &&
+    if (!controllerLink && (!importantBuilds || creep.room.energyState) && controllerContainer &&
         controllerContainer.store[RESOURCE_ENERGY] + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === controllerContainer.id), '.store[RESOURCE_ENERGY]') < controllerContainer.store.getCapacity() * 0.5) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;

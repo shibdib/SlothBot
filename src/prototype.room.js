@@ -131,7 +131,12 @@ Object.defineProperty(Room.prototype, 'structures', {
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
         if (!this._energyState) {
-            this._energyState = this.find(FIND_STRUCTURES);
+            this._energyState = 0;
+            if (this.energy >= ENERGY_AMOUNT * 2.5) {
+                this._energyState = 2;
+            } else if (this.energy >= ENERGY_AMOUNT) {
+                this._energyState = 1;
+            }
         }
         return this._energyState;
     },

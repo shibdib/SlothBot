@@ -35,7 +35,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             move = work + carry;
             break;
         case 'upgrader':
-            if ((importantBuilds && !room.memory.energySurplus) || room.memory.nuke) {
+            if ((importantBuilds && !room.energyState) || room.memory.nuke) {
                 work = 1;
                 carry = 1;
                 move = work + carry;
@@ -47,7 +47,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 break;
             } else {
                 work = _.random(8 + level, 20);
-                if (level === 8 && room.memory.energySurplus) work = 15; else if (level === 8) work = 1;
+                if (level === 8 && room.energyState) work = 15; else if (level === 8) work = 1;
                 carry = 1;
                 break;
             }
@@ -195,7 +195,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             break;
         case 'reserver':
             claim = 2;
-            if (level >= 6 && room.memory.energySurplus) claim = 3; else if (level === 3) claim = 1;
+            if (level >= 6 && room.energyState) claim = 3; else if (level === 3) claim = 1;
             move = claim;
             break;
         case 'fuelTruck':

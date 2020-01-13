@@ -14,7 +14,7 @@ module.exports.role = function (creep) {
     let powerSource, energySource;
     if (creep.room.storage.store[RESOURCE_POWER]) powerSource = creep.room.storage;
     if (creep.room.terminal.store[RESOURCE_POWER]) powerSource = creep.room.terminal;
-    if (creep.room.memory.energySurplus) {
+    if (creep.room.energyState) {
         if (creep.room.terminal.store[RESOURCE_ENERGY]) energySource = creep.room.terminal;
         if (creep.room.storage.store[RESOURCE_ENERGY]) energySource = creep.room.storage;
     }
