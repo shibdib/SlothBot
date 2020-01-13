@@ -339,3 +339,23 @@ function forwardObserver(creep) {
         Memory.targetRooms[creep.room.name].level = 0;
     }
 }
+
+function levelManager(creep) {
+    if (creep.room.controller && creep.room.controller.safeMode) {
+        Memory.targetRooms[creep.memory.targetRoom] = undefined;
+        creep.memory.role = 'longbow';
+        creep.memory.operation = 'borderPatrol';
+        return;
+    }
+    if (Memory.targetRooms[creep.memory.targetRoom]) {
+        let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
+        let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
+        if (armedEnemies.length) {
+            Memory.targetRooms[creep.memory.targetRoom].level = 2;
+        } else if (enemyCreeps.length) {
+            Memory.targetRooms[creep.memory.targetRoom].level = 1;
+        } else {
+            Memory.targetRooms[creep.memory.targetRoom].level = 0;
+        }
+    }
+}
