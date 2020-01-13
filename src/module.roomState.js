@@ -27,14 +27,6 @@ module.exports.setRoomState = function (room) {
         }
         room.memory.energyPositive = average(energyIncomeArray) > 0;
         ROOM_ENERGY_INCOME_ARRAY[room.name] = JSON.stringify(energyIncomeArray);
-        let energyAvailableArray = ROOM_ENERGY_ARRAY[room.name] || [];
-        if (energyAvailableArray.length < 50) {
-            energyAvailableArray.push(energyInRoom)
-        } else {
-            energyAvailableArray.shift();
-            energyAvailableArray.push(energyInRoom);
-        }
-        ROOM_ENERGY_ARRAY[room.name] = energyAvailableArray;
     }
     // Set room state
     if (!room.memory.lastStateChange || (room.memory.lastStateChange + 3000) < Game.time) {

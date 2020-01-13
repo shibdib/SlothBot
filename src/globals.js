@@ -82,7 +82,6 @@ let globals = function () {
     global.ROAD_CACHE = {};
     global.CREEP_CPU_ARRAY = {};
     global.ROOM_CPU_ARRAY = {};
-    global.ROOM_ENERGY_ARRAY = {};
     global.ROOM_ENERGY_INCOME_ARRAY = {};
     global.TASK_CPU_ARRAY = {};
     global.ROOM_CREEP_CPU_OBJECT = {};

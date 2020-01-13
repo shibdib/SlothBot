@@ -107,13 +107,12 @@ nukes = function (target) {
 status = function () {
     log.a('---------------------------------------------------------------------------', ' ');
     log.a('--GLOBAL INFO--', ' ');
-    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + ((_.round(Game.gcl.progress / Game.gcl.progressTotal, 2)) * 100) + '% | Creep Count - ' + _.size(Game.creeps) + ' | Likely Next Claim - ' + _.max(_.filter(Memory.roomCache, (r) => r.claimWorthy), 'claimValue').name, ' ');
+    log.e('GCL - ' + Game.gcl.level + ' | GCL Progress - ' + ((_.round(Game.gcl.progress / Game.gcl.progressTotal, 2)) * 100) + '% | Creep Count - ' + _.size(Game.creeps), ' ');
     log.a('--ROOM INFO--', ' ');
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let activeRoom of myRooms) {
         if (!activeRoom.controller) continue;
-        let averageEnergy, marauder, averageCpu = 'No Data';
-        if (ROOM_ENERGY_ARRAY[activeRoom.name]) averageEnergy = _.round(average(ROOM_ENERGY_ARRAY[activeRoom.name]), 0) || 'No Data';
+        let marauder, averageCpu = 'No Data';
         if (ROOM_CPU_ARRAY[activeRoom.name]) averageCpu = _.round(average(ROOM_CPU_ARRAY[activeRoom.name]), 2) || 'No Data';
         let roomCreeps = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === activeRoom.name);
         let marauderText = '';
@@ -122,7 +121,7 @@ status = function () {
             marauder = roomLink(marauderCreep.pos.roomName);
             marauderText = '| Marauder Location - ' + marauder + ' ';
         }
-        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Avg. Energy Available - ' + averageEnergy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
+        log.e(roomLink(activeRoom.name) + ' | RCL - ' + activeRoom.controller.level + ' | CPU Usage - ' + averageCpu + ' | RCL Progress - ' + ((_.round(activeRoom.controller.progress / activeRoom.controller.progressTotal, 2)) * 100) + '% | Energy Available - ' + activeRoom.energy + ' | Avg. Energy Income - ' + _.round(average(JSON.parse(ROOM_ENERGY_INCOME_ARRAY[activeRoom.name])), 0) + ' ' + marauderText + '| Creep Count: ' + _.size(roomCreeps), ' ');
     }
     if (Memory.targetRooms && _.size(Memory.targetRooms)) {
         log.a('--OPERATION INFO--', ' ');
@@ -142,20 +141,11 @@ status = function () {
         let scouts = _.filter(Memory.targetRooms, (t) => t.type === 'scout' || t.type === 'attack');
         if (scouts.length) log.e('Scout Target Count - ' + scouts.length, ' ');
     }
-    let borderPatrolLeaders = _.filter(Game.creeps, (c) => c.memory && c.memory.operation === 'borderPatrol' && c.memory.squadLeader);
-    if (borderPatrolLeaders.length) {
-        log.a('--BORDER PATROL INFO--', ' ');
-        for (let patrol of borderPatrolLeaders) {
-            if (patrol.memory.contactReport) {
-                log.e(roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + roomLink(patrol.pos.roomName) + ' ~~CONTACT REPORTED~~', ' ');
-            } else {
-                log.e(roomLink(patrol.memory.overlord) + ' Patrol | Location - ' + roomLink(patrol.pos.roomName), ' ');
-            }
-        }
+    if (Memory._badBoyList && Memory._badBoyList.length) {
+        log.a('--DIPLOMATIC INFO--', ' ');
+        if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.join(", "), ' ');
+        if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.join(", "), ' ');
+        if (Memory._threatList && Memory._threatList.length) log.e('Current Threats: ' + Memory._threatList.join(", "), ' ');
     }
-    log.a('--DIPLOMATIC INFO--', ' ');
-    if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.join(", "), ' ');
-    if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.join(", "), ' ');
-    if (Memory._threatList && Memory._threatList.length) log.e('Current Threats: ' + Memory._threatList.join(", "), ' ');
     return log.a('---------------------------------------------------------------------------', ' ');
 };
