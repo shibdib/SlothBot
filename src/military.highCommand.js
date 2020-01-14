@@ -14,6 +14,8 @@ module.exports.highCommand = function () {
     let maxLevel = Memory.maxLevel;
     // Manage dispatching responders
     if (Game.time % 10 === 0) manageResponseForces();
+    // Crush new spawns
+    if (NEW_SPAWN_DENIAL && Game.time % 10 === 0) newSpawnDenial();
     // Request scouting for new operations
     if (maxLevel >= 4 && Game.time % 750 === 0) operationRequests();
     // Manage old operations
@@ -65,6 +67,32 @@ function manageResponseForces() {
             creep.memory.idle = undefined;
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
+    }
+}
+
+function newSpawnDenial() {
+    // Set limit
+    let targetLimit = HARASS_LIMIT + 2;
+    if (TEN_CPU) targetLimit = 1;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean').length || 0;
+    // Harass Enemies
+    let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !r.safemode && r.closestRange <= 12 && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && !r.towers), 'closestRange');
+    for (let target of newSpawns) {
+        if (totalCountFiltered >= targetLimit) break;
+        if (Memory.targetRooms[target.name]) continue;
+        let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
+        if (lastOperation + 1000 > Game.time) continue;
+        let cache = Memory.targetRooms || {};
+        let tick = Game.time;
+        cache[target.name] = {
+            tick: tick,
+            type: 'hold',
+            level: 1,
+            priority: 1
+        };
+        Memory.targetRooms = cache;
+        log.a('Hold operation planned for ' + roomLink(target.name) + ' owned by ' + target.user + ' (Nearest Friendly Room - ' + target.closestRange + ' rooms away)', 'HIGH COMMAND: ');
+        break;
     }
 }
 

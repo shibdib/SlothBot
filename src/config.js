@@ -14,6 +14,7 @@ global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
 global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
+global.NEW_SPAWN_DENIAL = true; // Crush new spawns immediately
 global.POKE_ATTACKS = true; // Small cheap annoying attacks
 global.POKE_NEUTRALS = false; // Poke everyone
 global.HARASS_ATTACKS = true; // Larger disrupting attacks
