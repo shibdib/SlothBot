@@ -184,7 +184,8 @@ abandonOverrun = function (room) {
     let noClaim = Memory.noClaim || [];
     noClaim.push(room.name);
     delete room.memory;
-    delete Memory.roomCache[room.name];
+    room.cacheRoomIntel(true);
+    Memory.roomCache[room.name].noClaim = Game.time;
     room.controller.unclaim();
 };
 
