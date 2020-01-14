@@ -143,7 +143,7 @@ status = function () {
         let scouts = _.filter(Memory.targetRooms, (t) => t.type === 'scout' || t.type === 'attack');
         if (scouts.length) log.e('Scout Target Count - ' + scouts.length, ' ');
     }
-    if (Memory._badBoyList && Memory._badBoyList.length) {
+    if (Memory._badBoyArray && Memory._badBoyArray.length) {
         log.a('--DIPLOMATIC INFO--', ' ');
         if (Memory._enemies && Memory._enemies.length) log.e('Current Enemies: ' + Memory._enemies.join(", "), ' ');
         if (Memory._nuisance && Memory._nuisance.length) log.e('Current Nuisances: ' + Memory._nuisance.join(", "), ' ');

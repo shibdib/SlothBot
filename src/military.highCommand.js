@@ -20,13 +20,6 @@ module.exports.highCommand = function () {
     if (Game.time % 50 === 0) manageAttacks();
     // Check for flags
     if (Game.time % 10 === 0) manualAttacks();
-    // Send help if needed
-    if (Memory._alliedRoomDefense) {
-        Memory._alliedRoomDefense.forEach((r) => queueHelp(r));
-    }
-    if (Memory._alliedRoomAttack) {
-        Memory._alliedRoomAttack.forEach((r) => queueAllyAttack(r));
-    }
 };
 
 function manageResponseForces() {
@@ -73,38 +66,6 @@ function manageResponseForces() {
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
     }
-}
-
-function queueHelp(roomName) {
-    let cache = Memory.targetRooms || {};
-    if (!cache[roomName]) {
-        let op = 'scout';
-        if (Memory.roomCache[roomName]) op = 'guard';
-        log.e('~~ALLY REQUESTING HELP~~ Guard Patrol Requested For ' + roomName);
-        Game.notify('~~ALLY REQUESTING HELP~~ Guard Patrol Requested For ' + roomName);
-        cache[roomName] = {
-            tick: Game.time,
-            type: op,
-            level: 1,
-            priority: 1
-        };
-    }
-    Memory.targetRooms = cache;
-}
-
-function queueAllyAttack(roomName) {
-    let cache = Memory.targetRooms || {};
-    if (!cache[roomName]) {
-        log.e('~~ALLY REQUESTING ATTACK~~ Attack Requested For ' + roomName);
-        Game.notify('~~ALLY REQUESTING ATTACK~~ Attack Requested For ' + roomName);
-        cache[roomName] = {
-            tick: Game.time,
-            type: 'scout',
-            level: 1,
-            priority: 1
-        };
-    }
-    Memory.targetRooms = cache;
 }
 
 function operationRequests() {
@@ -201,11 +162,11 @@ function operationRequests() {
     if (POKE_ATTACKS) {
         let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
         let pokeLimit = POKE_LIMIT;
-        if (TEN_CPU) pokeLimit = 2;
+        if (TEN_CPU) pokeLimit = 1;
         if (pokeCount < pokeLimit) {
             let pokeTargets = [];
             if (Memory._enemies.length) {
-                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
+                pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
             } else if (POKE_NEUTRALS) {
                 pokeTargets = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !checkForNap(r.user) && !Memory.targetRooms[r.name] && !r.level && !r.sk && !r.isHighway), 'closestRange');
             }
@@ -213,7 +174,7 @@ function operationRequests() {
                 for (let target of pokeTargets) {
                     if (Memory.targetRooms[target.name]) continue;
                     pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
-                    if (pokeCount >= 5) break;
+                    if (pokeCount >= pokeLimit) break;
                     let lastOperation = Memory.roomCache[target.name].lastPoke || 0;
                     if (lastOperation !== 0 && lastOperation + _.random(0, 3000) > Game.time) continue;
                     Memory.roomCache[target.name].lastPoke = Game.time;

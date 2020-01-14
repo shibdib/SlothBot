@@ -14,9 +14,9 @@ global.MANUAL_FRIENDS = []; // Manually set players as friends (overrides COMBAT
 global.NAP_ALLIANCE = []; // Do not attack members of this alliance
 global.ATTACK_LOCALS = true; // Attacks targets within range of the next entry
 global.LOCAL_SPHERE = 2; // Range that rooms consider local via linear distance
-global.POKE_ATTACKS = false; // Small cheap annoying attacks
+global.POKE_ATTACKS = true; // Small cheap annoying attacks
 global.POKE_NEUTRALS = false; // Poke everyone
-global.HARASS_ATTACKS = false; // Larger disrupting attacks
+global.HARASS_ATTACKS = true; // Larger disrupting attacks
 global.SIEGE_ENABLED = false; //Attack owned rooms with towers
 global.NCP_HOSTILE = true; // Always attack users of open source bots
 global.ATTACK_COOLDOWN = 4500; //Time between attacks on a room
@@ -29,9 +29,9 @@ global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
 global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
 // Attack limits (Too high and your CPU is screwed, hard coded for non subs)
-global.POKE_LIMIT = 3;
+global.POKE_LIMIT = 2;
 global.CLEAN_LIMIT = 1;
-global.HARASS_LIMIT = 3;
+global.HARASS_LIMIT = 2;
 
 // Wall and rampart target amounts
 global.BARRIER_TARGET_HIT_POINTS = {
