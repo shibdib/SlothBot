@@ -87,7 +87,7 @@ function newSpawnDenial() {
         cache[target.name] = {
             tick: tick,
             type: 'hold',
-            level: 1,
+            level: 0,
             priority: 1
         };
         Memory.targetRooms = cache;
