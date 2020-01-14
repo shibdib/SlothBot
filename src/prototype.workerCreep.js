@@ -354,7 +354,7 @@ Creep.prototype.findEnergy = function () {
 Creep.prototype.getEnergy = function (hauler = false) {
     // Links
     let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
-    if (hubLink && hubLink.energy && hubLink.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * this.store.getCapacity()) {
+    if (hubLink && hubLink.energy && ((hubLink.energy && hauler) || hubLink.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getCapacity() * 0.5))) {
         this.memory.energyDestination = hubLink.id;
         this.memory.findEnergyCountdown = undefined;
         return true;
@@ -441,7 +441,7 @@ Creep.prototype.haulerDelivery = function () {
         let spawnsExtensions = [];
         let parsedID = JSON.parse(this.memory.spawnsExtension);
         parsedID.forEach((s) => spawnsExtensions.push(Game.getObjectById(s)));
-        let target = this.pos.findClosestByRange(_.filter(spawnsExtensions, (s) => s.energy < s.energyCapacity && _.sum(_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id), 'store[RESOURCE_ENERGY]') < s.energyCapacity - s.energy));
+        let target = this.pos.findClosestByPath(_.filter(spawnsExtensions, (s) => s.energy < s.energyCapacity && !_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length));
         if (target) {
             this.memory.storageDestination = target.id;
             return true;
