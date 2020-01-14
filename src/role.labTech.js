@@ -421,7 +421,7 @@ function storageEmpty(creep) {
 
 // Mineral hauler
 function mineralHauler(creep) {
-    let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY] && (_.sum(s.store) - s.store[RESOURCE_ENERGY] >= creep.store.getCapacity() || creep.room.mineral.mineralAmount))[0];
+    let container = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > s.store[RESOURCE_ENERGY] && (_.sum(s.store) - s.store[RESOURCE_ENERGY] >= creep.store.getCapacity() || !creep.room.mineral.mineralAmount))[0];
     if (container) {
         for (let resourceType in container.store) {
             if (resourceType === RESOURCE_ENERGY) continue;

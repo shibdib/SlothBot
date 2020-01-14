@@ -163,8 +163,8 @@ function baseMineralOnDemandBuys(terminal, globalOrders) {
         let target = REACTION_AMOUNT;
         if (Game.market.credits < CREDIT_BUFFER) target *= Game.market.credits / CREDIT_BUFFER;
         if (stored < target) {
-            let buyAmount = stored - (REACTION_AMOUNT * 1.2);
-            if (Game.market.credits < CREDIT_BUFFER) buyAmount *= Game.market.credits / CREDIT_BUFFER;
+            let buyAmount = (REACTION_AMOUNT * 1.2) - stored;
+            if (Game.market.credits < CREDIT_BUFFER) _.round(buyAmount *= (Game.market.credits / CREDIT_BUFFER));
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
                 order.type === ORDER_SELL && order.remainingAmount >= buyAmount && order.roomName !== terminal.pos.roomName &&
                 Game.market.calcTransactionCost(buyAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
