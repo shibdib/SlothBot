@@ -273,7 +273,6 @@ function manageAttacks() {
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
-    if (TEN_CPU) pokeLimit = 3;
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
     let cleanLimit = CLEAN_LIMIT;
     if (TEN_CPU) cleanLimit = 1;
@@ -303,7 +302,7 @@ function manageAttacks() {
                 break;
             // Manage Pokes
             case 'poke':
-                if (pokeCount > pokeLimit) {
+                if (pokeCount > pokeLimit * 2) {
                     delete Memory.targetRooms[key];
                     continue;
                 }
