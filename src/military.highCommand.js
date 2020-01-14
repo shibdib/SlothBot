@@ -31,15 +31,12 @@ module.exports.highCommand = function () {
 
 function manageResponseForces() {
     let idlePower = 0;
-    let idleResponders = _.sortBy(_.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && responseTargets.name !== c.room.name && c.memory.responseTarget !== responseTargets.name && c.memory.operation === 'borderPatrol'
-        && Game.map.getRoomLinearDistance(c.room.name, responseTargets.name) <= LOCAL_SPHERE), function (c) {
-        Game.map.getRoomLinearDistance(c.pos.roomName, responseTargets.name);
-    });
+    let idleResponders = _.filter(Game.creeps, (c) => c.memory && c.memory.awaitingOrders && c.memory.operation === 'borderPatrol');
     idleResponders.forEach((c) => idlePower += c.combatPower);
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time && r.controller && r.controller.my);
     let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
         r.hostilePower < (r.friendlyPower + (_.sum(_.filter(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name), 'combatPower')) + idlePower) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
-    let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
+    let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && !r.numberOfHostiles &&
         r.lastInvaderCheck + 550 >= Game.time), '.roomHeat');
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
     let friendlyResponsePower = 0;
