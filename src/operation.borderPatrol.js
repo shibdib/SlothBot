@@ -36,14 +36,14 @@ Creep.prototype.borderPatrol = function () {
     } else {
         // If on target, be available to respond
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
-        // Idle in target rooms for 25 ticks
-        if (!this.memory.responseTarget || (this.memory.onTarget && this.memory.onTarget + _.random(10, 25) <= Game.time)) {
-            this.memory.responseTarget = undefined;
+        this.memory.responseTarget = undefined;
+        this.memory.awaitingOrders = true;
+        // Idle in target rooms for 100-250 ticks
+        if (this.memory.onTarget && this.memory.onTarget + _.random(100, 250) <= Game.time) {
             this.memory.onTarget = undefined;
-            this.memory.awaitingOrders = true;
             offDuty(this);
         } else {
-            this.findDefensivePosition(this);
+            this.goToHub(this.room.name, this.pos.getRangeTo(this.pos.findClosestByRange(FIND_EXIT)) - 2);
         }
     }
 };
