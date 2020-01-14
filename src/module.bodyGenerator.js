@@ -30,8 +30,8 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'roadBuilder':
         case 'repairer':
         case 'waller':
-            work = _.random(level, level * 2);
-            carry = _.random(1, level);
+            work = _.random(level * 0.5, level * 2);
+            carry = _.random(2, level);
             move = work + carry;
             break;
         case 'upgrader':
