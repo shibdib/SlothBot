@@ -99,7 +99,7 @@ function buildFromLayout(room) {
     }
     // Hub
     if (room.memory.bunkerVersion < 2 || room.memory.bunkerVersion > 5) {
-        if (level >= 5 || room.memory.hubLink) {
+        if (level >= 7 || room.memory.hubLink) {
             delete room.memory.hubContainer;
             if (hub.checkForAllStructure()[0]) {
                 if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
@@ -108,15 +108,7 @@ function buildFromLayout(room) {
             }
             if (!hub.checkForConstructionSites() && !hub.checkForAllStructure().length) hub.createConstructionSite(STRUCTURE_LINK);
         }
-    } else if (level >= 5) {
-            delete room.memory.hubContainer;
-            let links = _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.id !== room.memory.controllerLink && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 2 && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_EXIT)) > 3 && s.isActive());
-            if (links.length) {
-                let a = [];
-                links.forEach((l) => a.push(l.id))
-                room.memory.hubLinks = a;
-            }
-        }
+    }
     // Bunker Ramparts
     if (level >= 2 && !_.filter(room.constructionSites, (s) => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL).length) {
         if (!rampartSpots[room.name] || Math.random() > 0.98) {
@@ -211,7 +203,7 @@ function buildFromLayout(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (room.controller.level >= 7) {
+    } else if (room.controller.level >= 5) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);

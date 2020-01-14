@@ -208,7 +208,7 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Filler
     if (_.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && !c.memory.linkID)).length) {
-        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt && !c.memory.linkID));
+        let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester' && c.memory.linkAttempt && (!c.memory.linkID || !c.room.memory.hubLink)));
         let filler = _.filter(roomCreeps, (c) => (c.memory.role === 'filler'));
         if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             if (filler.length === 0) {
@@ -309,9 +309,11 @@ module.exports.miscCreepQueue = function (room) {
     // If no conflict detected
     if (!Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
         // Claiming
-        let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
-        if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
-            queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: claimTarget});
+        if (Memory.targetRooms && Memory.targetRooms.length) {
+            let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
+            if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
+                queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: claimTarget});
+            }
         }
         //Pre observer spawn explorers
         if (Memory.maxLevel < 8) {
@@ -559,7 +561,8 @@ module.exports.militaryCreepQueue = function () {
     // Targets
     for (let key in shuffle(Memory.targetRooms)) {
         let stagingRoom;
-        let opLevel = Number(Memory.targetRooms[key].level);
+        if (!Memory.targetRooms[key]) continue;
+        let opLevel = Number(Memory.targetRooms[key].level) || 1;
         let escort = Memory.targetRooms[key].escort;
         let priority = Memory.targetRooms[key].priority || 4;
         switch (priority) {

@@ -43,7 +43,7 @@ module.exports.role = function (creep) {
 fillerEnergy = function (creep) {
     let source, container;
     if (!creep.memory.assignedSource) {
-        let assignment = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && !c.memory.linkID && !_.filter(creep.room.creeps, (f) => f.my && f.memory.role === 'filler' && f.memory.assignedSource === c.memory.source).length);
+        let assignment = _.filter(creep.room.creeps, (c) => c.my && c.memory.role === 'stationaryHarvester' && c.memory.containerAttempt && (!c.memory.linkID || !c.room.memory.hubLink) && !_.filter(creep.room.creeps, (f) => f.my && f.memory.role === 'filler' && f.memory.assignedSource === c.memory.source).length);
         if (assignment.length) {
             creep.memory.assignedSource = assignment[0].memory.source;
         } else {
