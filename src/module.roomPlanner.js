@@ -378,10 +378,8 @@ function findHub(room) {
             let hubSearch = room.memory.newHubSearch || 0;
             if (hubSearch >= layouts.layoutArray.length * 2500 && !room.memory.bunkerHub) {
                 abandonRoom(room.name);
-                if (!Memory.noClaim) Memory.noClaim = [];
-                Memory.noClaim.push(room.name);
+                if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = true;
                 log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
-                Game.notify(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
                 return;
             }
             let buildTemplate = _.sample(layouts.layoutArray);
@@ -509,8 +507,7 @@ function abandonRoom(room) {
     let noClaim = Memory.noClaim || [];
     noClaim.push(room);
     delete Game.rooms[room].memory;
-    room.cacheRoomIntel(true);
-    Memory.roomCache[room.name].noClaim = Game.time;
+    if (Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = Game.time;
     Game.rooms[room].controller.unclaim();
 };
 
