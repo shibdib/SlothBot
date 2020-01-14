@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 Creep.prototype.claimClear = function () {
     if (this.room.name === this.memory.targetRoom) {
         if (!this.room.controller.owner) {
@@ -17,6 +24,7 @@ Creep.prototype.claimClear = function () {
         } else {
             cleanRoom(this.room, this.room.structures);
             this.room.controller.unclaim();
+            this.room.cacheRoomIntel(true);
             if (Memory.targetRooms) delete Memory.targetRooms[this.room.name];
             this.memory.recycle = true;
         }

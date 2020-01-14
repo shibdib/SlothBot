@@ -187,9 +187,12 @@ function operationRequests() {
             let cleanTarget = _.sample(enemyClean);
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
+            let overlordCount = Memory.myRooms.length;
+            let type = 'clean';
+            if (Game.gcl.level > overlordCount) type = 'claimClear';
             cache[cleanTarget.name] = {
                 tick: tick,
-                type: 'clean',
+                type: type,
                 level: 1,
                 priority: 4
             };
