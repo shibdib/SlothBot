@@ -30,17 +30,17 @@ module.exports.terminalControl = function (room) {
         runOnce = Game.time;
     }
     if (room.terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER) {
-        //Buy minerals if needed
-        if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
         //Buy Power
         if (buyPower(room.terminal, globalOrders)) return;
         //Disperse Minerals and Boosts
         if (balanceBoosts(room.terminal)) return;
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
-        //Dump Excess
-        if (fillBuyOrders(room.terminal, globalOrders)) return;
     }
+    //Buy minerals if needed
+    if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
+    //Dump Excess
+    if (fillBuyOrders(room.terminal, globalOrders)) return;
     //Handle Sell Orders
     manageSellOrders(room.terminal, globalOrders, myOrders);
     placeSellOrders(room.terminal, globalOrders, myOrders);
@@ -156,13 +156,15 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 }
 
 function baseMineralOnDemandBuys(terminal, globalOrders) {
-    if (Game.market.credits < CREDIT_BUFFER) return false;
     for (let mineral of BASE_MINERALS) {
         // Don't buy minerals you can mine
         if (_.includes(Memory.ownedMinerals, mineral)) continue;
         let stored = terminal.store[mineral] + terminal.room.storage.store[mineral] || 0;
-        if (stored < REACTION_AMOUNT) {
+        let target = REACTION_AMOUNT;
+        if (Game.market.credits < CREDIT_BUFFER) target *= Game.market.credits / CREDIT_BUFFER;
+        if (stored < target) {
             let buyAmount = stored - (REACTION_AMOUNT * 1.2);
+            if (Game.market.credits < CREDIT_BUFFER) buyAmount *= Game.market.credits / CREDIT_BUFFER;
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
                 order.type === ORDER_SELL && order.remainingAmount >= buyAmount && order.roomName !== terminal.pos.roomName &&
                 Game.market.calcTransactionCost(buyAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
@@ -199,9 +201,9 @@ function fillBuyOrders(terminal, globalOrders) {
         // Don't sell energy
         if (resourceType === RESOURCE_ENERGY) continue;
         // Only fill buy orders if we need credits or have too much
-        if ((Game.market.credits < CREDIT_BUFFER && terminal.store[resourceType] > 1000 && !_.includes(MAKE_THESE_BOOSTS, resourceType)) || terminal.store[resourceType] >= DUMP_AMOUNT) {
+        if ((Game.market.credits < CREDIT_BUFFER && terminal.store[resourceType] > REACTION_AMOUNT && !_.includes(MAKE_THESE_BOOSTS, resourceType)) || terminal.store[resourceType] >= DUMP_AMOUNT) {
             let sellAmount = terminal.store[resourceType] - TRADE_AMOUNT;
-            if (Game.market.credits < CREDIT_BUFFER && !_.includes(MAKE_THESE_BOOSTS, resourceType)) sellAmount = terminal.store[resourceType] - 1000;
+            if (Game.market.credits < CREDIT_BUFFER && !_.includes(MAKE_THESE_BOOSTS, resourceType)) sellAmount = terminal.store[resourceType] - REACTION_AMOUNT;
             let buyer = _.max(globalOrders.filter(order => order.resourceType === resourceType && order.type === ORDER_BUY && order.remainingAmount >= sellAmount && order.roomName !== terminal.pos.roomName &&
                 Game.market.calcTransactionCost(sellAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
             if (!buyer && sellAmount >= 1000) {
