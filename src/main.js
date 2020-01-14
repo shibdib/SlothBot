@@ -21,7 +21,7 @@ module.exports.loop = function () {
     Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
     // Store owned rooms in array
-    if (!Memory.myRooms || !Memory.myRooms.length || Math.random() > 0.95) {
+    if (!Memory.myRooms || !Memory.myRooms.length || Math.random() > 0.5) {
         let myRooms = _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my);
         if (myRooms.length) {
             Memory.myRooms = _.pluck(myRooms, '.name');
