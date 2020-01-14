@@ -30,7 +30,7 @@ global.ATTACK_ROOM_SIGNS = ["~~ALL YOUR BASE BELONG TO ME~~"];
 global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 
 // Attack limits (Too high and your CPU is screwed, hard coded for non subs)
-global.POKE_LIMIT = 2;
+global.POKE_LIMIT = 5;
 global.CLEAN_LIMIT = 1;
 global.HARASS_LIMIT = 2;
 

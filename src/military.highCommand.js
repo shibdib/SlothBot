@@ -208,11 +208,14 @@ function operationRequests() {
                     Memory.roomCache[target.name].lastPoke = Game.time;
                     let cache = Memory.targetRooms || {};
                     let tick = Game.time;
+                    let priority;
+                    let range = target.closestRange;
+                    if (range <= LOCAL_SPHERE) priority = 1; else if (range <= LOCAL_SPHERE * 1.25) priority = 2; else if (range <= LOCAL_SPHERE * 2) priority = 3; else priority = 4;
                     cache[target.name] = {
                         tick: tick,
                         type: 'poke',
                         level: 1,
-                        priority: 4
+                        priority: priority
                     };
                     Memory.targetRooms = cache;
                     log.a('Poke operation planned for ' + roomLink(target.name) + ' owned by ' + target.user, 'HIGH COMMAND: ');

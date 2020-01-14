@@ -50,7 +50,7 @@ Creep.prototype.scoutRoom = function () {
     // Prioritize based on range
     let range = this.room.findClosestOwnedRoom(true);
     let priority = 4;
-    if (range <= 1) priority = 1; else if (range <= 3) priority = 2; else if (range <= 5) priority = 3; else priority = 4;
+    if (range <= LOCAL_SPHERE) priority = 1; else if (range <= LOCAL_SPHERE * 1.25) priority = 2; else if (range <= LOCAL_SPHERE * 2) priority = 3; else priority = 4;
     // Plan op based on room comp
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
