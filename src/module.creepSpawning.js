@@ -316,8 +316,8 @@ module.exports.miscCreepQueue = function (room) {
         //Pre observer spawn explorers
         if (Memory.maxLevel < 8) {
             //Explorer
-            if ((!queueTracker['explorer'] || queueTracker['explorer'] + 750 <= Game.time)) {
-                let amount = 3;
+            if ((!queueTracker['explorer'] || queueTracker['explorer'] + 150 <= Game.time)) {
+                let amount = 5;
                 let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
                 if (explorers.length < amount) {
                     queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
