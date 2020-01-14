@@ -158,7 +158,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 function baseMineralOnDemandBuys(terminal, globalOrders) {
     for (let mineral of BASE_MINERALS) {
         // Don't buy minerals you can mine
-        if (_.includes(Memory.ownedMinerals, mineral)) continue;
+        if (_.includes(OWNED_MINERALS, mineral)) continue;
         let stored = terminal.store[mineral] + terminal.room.storage.store[mineral] || 0;
         let target = REACTION_AMOUNT;
         if (Game.market.credits < CREDIT_BUFFER) target *= Game.market.credits / CREDIT_BUFFER;
