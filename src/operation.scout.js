@@ -97,24 +97,6 @@ Creep.prototype.scoutRoom = function () {
                         priority: priority
                     };
                 }
-            } else
-            // Use rangers if available
-            if (maxLevel >= 4) {
-                cache[this.room.name] = {
-                    tick: tick,
-                    type: 'rangers',
-                    level: 0,
-                    priority: priority
-                };
-                // Otherwise use old harass
-            } else {
-                cache[this.room.name] = {
-                    tick: tick,
-                    type: 'harass',
-                    level: 1,
-                    priority: priority,
-                    annoy: true
-                };
             }
             // If the room is in safemode queue up another scout
         } else if (controller.owner && controller.safeMode) {
@@ -134,7 +116,6 @@ Creep.prototype.scoutRoom = function () {
             }
             // If owned room has no towers
             if (!towers.length || _.max(towers, 'energy').energy < 10) {
-                // Set room to be raided for loot if some is available
                 cache[this.room.name] = {
                     tick: tick,
                     type: 'hold',
@@ -179,44 +160,14 @@ Creep.prototype.scoutRoom = function () {
         } else if (!controller.owner) {
             // If other creeps are present
             if (otherCreeps.length) {
-                // Use rangers if available
-                if (maxLevel >= 4) {
-                    cache[this.room.name] = {
-                        tick: tick,
-                        type: 'rangers',
-                        level: 1,
-                        priority: priority
-                    };
-                    // Otherwise use old harass
-                } else {
-                    let annoy = false;
-                    if (armedHostiles.length) annoy = true;
-                    cache[this.room.name] = {
-                        tick: tick,
-                        type: 'harass',
-                        level: 1,
-                        annoy: annoy,
-                        priority: priority
-                    };
-                }
-            } else {
-                // Set room to be raided for loot if some is available
-                if (lootStructures.length) {
-                    cache[this.room.name] = {
-                        tick: tick,
-                        type: 'robbery',
-                        level: 1,
-                        priority: priority
-                    };
-                    // Clean the room if there's structures present
-                } else if (countableStructures.length) {
-                    cache[this.room.name] = {
-                        tick: tick,
-                        type: 'clean',
-                        level: 1,
-                        priority: priority
-                    };
-                }
+                let type = 'rangers';
+                if (POKE_ATTACKS && Math.random() > 0.5) type = 'poke';
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: type,
+                    level: 1,
+                    priority: priority
+                };
             }
         } else {
             delete Memory.targetRooms[this.room.name];

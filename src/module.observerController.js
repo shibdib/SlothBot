@@ -131,24 +131,6 @@ function militaryScout(room) {
                         priority: priority
                     };
                 }
-            } else
-            // Use rangers if available
-            if (maxLevel >= 4) {
-                cache[room.name] = {
-                    tick: tick,
-                    type: 'rangers',
-                    level: 0,
-                    priority: priority
-                };
-                // Otherwise use old harass
-            } else {
-                cache[room.name] = {
-                    tick: tick,
-                    type: 'harass',
-                    level: 1,
-                    priority: priority,
-                    annoy: true
-                };
             }
             // If the room is in safemode queue up another scout
         } else if (controller.owner && controller.safeMode) {
@@ -168,23 +150,12 @@ function militaryScout(room) {
             }
             // If owned room has no towers
             if (!towers.length || _.max(towers, 'energy').energy < 10) {
-                // Set room to be raided for loot if some is available
-                if (lootStructures.length && !otherCreeps.length) {
-                    cache[room.name] = {
-                        tick: tick,
-                        type: 'robbery',
-                        level: 1,
-                        priority: priority
-                    };
-                    // Otherwise try to hold the room
-                } else {
                     cache[room.name] = {
                         tick: tick,
                         type: 'hold',
                         level: 0,
                         priority: 1
                     };
-                }
                 // If owned room has tower
             } else if (SIEGE_ENABLED) {
                 if (maxLevel === 8) {
@@ -223,44 +194,14 @@ function militaryScout(room) {
         } else if (!controller.owner) {
             // If other creeps are present
             if (otherCreeps.length) {
-                // Use rangers if available
-                if (maxLevel >= 4) {
-                    cache[room.name] = {
-                        tick: tick,
-                        type: 'rangers',
-                        level: 1,
-                        priority: priority
-                    };
-                    // Otherwise use old harass
-                } else {
-                    let annoy = false;
-                    if (armedHostiles.length) annoy = true;
-                    cache[room.name] = {
-                        tick: tick,
-                        type: 'harass',
-                        level: 1,
-                        annoy: annoy,
-                        priority: priority
-                    };
-                }
-            } else {
-                // Set room to be raided for loot if some is available
-                if (lootStructures.length) {
-                    cache[room.name] = {
-                        tick: tick,
-                        type: 'robbery',
-                        level: 1,
-                        priority: priority
-                    };
-                    // Clean the room if there's structures present
-                } else if (countableStructures.length) {
-                    cache[room.name] = {
-                        tick: tick,
-                        type: 'clean',
-                        level: 1,
-                        priority: priority
-                    };
-                }
+                let type = 'rangers';
+                if (POKE_ATTACKS && Math.random() > 0.5) type = 'poke';
+                cache[this.room.name] = {
+                    tick: tick,
+                    type: type,
+                    level: 1,
+                    priority: priority
+                };
             }
         } else {
             delete Memory.targetRooms[room.name];

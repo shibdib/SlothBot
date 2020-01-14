@@ -273,11 +273,10 @@ Creep.prototype.scorchedEarth = function () {
     // Friendly check
     if (this.room.user && _.includes(FRIENDLIES, this.room.user)) return false;
     // Set target
-    let hostile = Game.getObjectById(this.memory.scorchedTarget) || this.pos.findClosestByRange(_.filter(this.room.structures, (s) =>
+    let hostile = this.pos.findClosestByRange(_.filter(this.room.structures, (s) =>
         s.structureType !== STRUCTURE_POWER_BANK && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_KEEPER_LAIR));
     // If target fight
     if (hostile && hostile.pos.roomName === this.pos.roomName && (this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK))) {
-        this.memory.scorchedTarget = hostile.id;
         if (this.getActiveBodyparts(ATTACK)) {
             switch (this.attack(hostile)) {
                 case OK:
