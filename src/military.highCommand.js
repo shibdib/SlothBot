@@ -398,7 +398,7 @@ function manageAttacks() {
             }
         }
         // Remove rooms where we're getting wrecked
-        if (Memory.targetRooms[key].tick + (500 * staleMulti) && Memory.targetRooms[key].friendlyDead) {
+        if (Memory.targetRooms[key].tick + (1500 * staleMulti) && Memory.targetRooms[key].friendlyDead) {
             let alliedLosses = Memory.targetRooms[key].friendlyDead;
             let enemyLosses = Memory.targetRooms[key].enemyDead || 1000;
             if (alliedLosses * staleMulti > enemyLosses) {
