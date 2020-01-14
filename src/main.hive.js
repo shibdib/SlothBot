@@ -71,7 +71,7 @@ module.exports.hiveMind = function () {
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let maxRooms = _.round(Game.cpu.limit / 9);
         if (TEN_CPU) maxRooms = 2;
-        if (Memory.maxLevel >= 4 && Memory.minLevel >= 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
+        if (Memory.maxLevel >= 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
             let needyRoom = _.filter(myRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
             let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
