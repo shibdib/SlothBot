@@ -809,7 +809,7 @@ Creep.prototype.canIWin = function (range = 50) {
     Memory.roomCache[this.room.name].hostilePower = hostilePower;
     Memory.roomCache[this.room.name].friendlyPower = alliedPower;
     if (this.getActiveBodyparts(RANGED_ATTACK) && meleeOnly && alliedPower > healPower) return true;
-    return !hostilePower || hostilePower <= alliedPower || this.pos.checkForRampart();
+    return !hostilePower || hostilePower * 1.1 <= alliedPower || this.pos.checkForRampart();
 };
 
 Creep.prototype.findDefensivePosition = function (target) {
