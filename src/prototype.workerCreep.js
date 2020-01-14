@@ -441,10 +441,12 @@ Creep.prototype.haulerDelivery = function () {
         let spawnsExtensions = [];
         let parsedID = JSON.parse(this.memory.spawnsExtension);
         parsedID.forEach((s) => spawnsExtensions.push(Game.getObjectById(s)));
-        let target = this.pos.findClosestByPath(_.filter(spawnsExtensions, (s) => s.energy < s.energyCapacity && !_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length));
-        if (target) {
-            this.memory.storageDestination = target.id;
-            return true;
+        if (spawnsExtensions.length) {
+            let target = this.pos.findClosestByPath(_.filter(spawnsExtensions, (s) => s.energy < s.energyCapacity && !_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length));
+            if (target) {
+                this.memory.storageDestination = target.id;
+                return true;
+            }
         }
     }
     let terminal = this.room.terminal;
@@ -545,6 +547,7 @@ Creep.prototype.builderFunction = function () {
         }
     } else {
         this.say('Build!', true);
+        this.memory.needExpediter = construction.progressTotal - construction.progress > 500;
         switch (this.build(construction)) {
             case OK:
                 return true;

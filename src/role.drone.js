@@ -41,6 +41,7 @@ module.exports.role = function role(creep) {
         creep.idleFor(15);
     } else {
         creep.memory.task = undefined;
+        if (creep.memory.assignedExpediter && Game.getObjectById(creep.memory.assignedExpediter)) return creep.idleFor(creep.pos.getRangeTo(Game.getObjectById(creep.memory.assignedExpediter)) - 1);
         if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();

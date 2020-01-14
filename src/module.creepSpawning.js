@@ -284,6 +284,16 @@ module.exports.miscCreepQueue = function (room) {
         queueTracker['powerManager'] = Game.time;
     }
     //SPECIALIZED
+    //Expediter
+    if (level >= 3 && (!queueTracker['expediter'] || queueTracker['expediter'] + 1400 <= Game.time)) {
+        let expediter = _.filter(roomCreeps, (creep) => creep.memory.role === 'expediter');
+        let needed = _.filter(roomCreeps, (creep) => creep.memory.needExpediter)[0];
+        let amount = 1;
+        if (needed && expediter.length < amount) {
+            queueCreep(room, PRIORITIES.expediter, {role: 'expediter', localCache: true})
+        }
+        queueTracker['waller'] = Game.time;
+    }
     //Waller
     if (level >= 2 && (!queueTracker['waller'] || queueTracker['waller'] + 1400 <= Game.time)) {
         let waller = _.filter(roomCreeps, (creep) => creep.memory.role === 'waller');

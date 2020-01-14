@@ -53,6 +53,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             }
         case 'filler':
         case 'hauler':
+        case 'expediter':
             if (level < 4 || !room.memory.roadsBuilt) {
                 carry = level;
                 move = carry;
