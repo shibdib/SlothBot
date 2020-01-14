@@ -368,6 +368,8 @@ function newClaimBuild(room) {
             // Spawn
             if (!pos.checkForConstructionSites() && !pos.checkForObstacleStructure()) return pos.createConstructionSite(STRUCTURE_SPAWN);
         } else {
+            // Clear any guard ops
+            Memory.targetRooms[room.name] = undefined;
             return buildFromLayout(room);
         }
     }
