@@ -12,7 +12,7 @@
 module.exports.role = function (creep) {
     creep.say(ICONS.haul2, true);
     //Invader detection
-    if (creep.hits < creep.hitsMax || creep.memory.runCooldown) return creep.goHomeAndHeal();
+    if (creep.fleeHome()) return;
     if (creep.memory.hauling) {
         if (creep.pos.roomName === creep.memory.overlord) {
             // Check if empty

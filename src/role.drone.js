@@ -11,7 +11,8 @@
 
 module.exports.role = function role(creep) {
     if (creep.shibKite()) return true;
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    //Invader detection
+    if (creep.fleeHome()) return;
     // Handle remote drones
     if (creep.memory.destination && creep.room.name !== creep.memory.destination) {
         return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 24});

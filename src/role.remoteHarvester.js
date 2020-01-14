@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -11,10 +11,7 @@
 
 module.exports.role = function (creep) {
     //Invader detection
-    if (creep.shibKite(5) || creep.memory.runCooldown) {
-        creep.memory.onContainer = undefined;
-        return creep.goHomeAndHeal();
-    }
+    if (creep.fleeHome()) return;
     // If you're in place just harvest
     if (creep.memory.onContainer) {
         //Suicide and cache intel if room is reserved/owned by someone else

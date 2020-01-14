@@ -769,8 +769,9 @@ Creep.prototype.goHomeAndHeal = function () {
 };
 
 Creep.prototype.fleeHome = function (force = false) {
+    if (this.hits < this.hitsMax) return this.goHomeAndHeal();
     if (this.memory.overlord === this.room.name && !this.memory.runCooldown) return false;
-    if (!force && !this.memory.runCooldown && !this.room.invaderCheck() && this.hits === this.hitsMax) return false;
+    if (!force && !this.memory.runCooldown && !this.canIWin(20) && this.hits === this.hitsMax) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
