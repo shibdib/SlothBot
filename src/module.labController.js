@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 6/24/2017.
  */
@@ -23,7 +30,7 @@ function manageBoostProduction(room) {
     }
     if (!hub || !hub.length || hub.length < 3) return;
     let boost;
-    let boostList = _.union(MAKE_THESE_BOOSTS, TIER_2_BOOSTS, TIER_1_BOOSTS, BASE_COMPOUNDS);
+    let boostList = _.union(MAKE_THESE_BOOSTS, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, END_GAME_BOOSTS);
     for (let key in boostList) {
         // Only one hub per output
         if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
@@ -91,7 +98,7 @@ function manageActiveLabs(room) {
                 let creators = _.pluck(_.filter(hub, (l) => l.memory.itemNeeded), 'id');
                 let creatorOne = Game.getObjectById(creators[0]);
                 let creatorTwo = Game.getObjectById(creators[1]);
-                //If any dont exist reset
+                //If any don't exist reset
                 if (!outputLab || !creatorOne || !creatorTwo) {
                     log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to a lab error (2).');
                     for (let id in creators) {
@@ -153,7 +160,7 @@ function checkForInputs(room, boost) {
     for (let input of shuffle(components)) {
         let storageAmount = storage.store[input] || 0;
         let terminalAmount = terminal.store[input] || 0;
-        if (storageAmount + terminalAmount < 150) return false;
+        if (storageAmount + terminalAmount < 100) return false;
     }
     return boost;
 }
