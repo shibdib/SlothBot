@@ -21,7 +21,7 @@ module.exports.role = function role(creep) {
     // Set destination
     if (!creep.memory.destination) {
         if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.union(JSON.parse(creep.memory.misc), [creep.memory.overlord]));
+            creep.memory.destination = _.sample(_.union(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel), [creep.memory.overlord]));
         } else {
             return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }

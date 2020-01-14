@@ -474,7 +474,7 @@ Room.prototype.invaderCheck = function () {
             ownerArray = _.uniq(ownerArray);
             // Determine threat
             if (!armedInvader.length && (!this.controller || !this.controller.safeMode)) {
-                Memory.roomCache[this.name].threatLevel = -1;
+                Memory.roomCache[this.name].threatLevel = 0;
             } else if ((invader.length === 1 && invader[0].owner.username === 'Invader') || (this.controller && this.controller.safeMode)) {
                 Memory.roomCache[this.name].threatLevel = 1;
                 Memory.roomCache[this.name].lastInvaderSighting = Game.time;
