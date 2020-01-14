@@ -33,11 +33,11 @@ function manageResponseForces() {
         r.hostilePower < (r.friendlyPower + (_.sum(_.filter(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name), 'combatPower')) + idlePower) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
     let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && !r.numberOfHostiles &&
         r.lastInvaderCheck + 550 >= Game.time), '.roomHeat');
-    let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level > 0);
+    let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level);
     let friendlyResponsePower = 0;
     if (ownedRoomAttack) {
         for (let creep of idleResponders) {
-            if (friendlyResponsePower > ownedRoomAttack.hostilePower) break;
+            if (friendlyResponsePower > Memory.roomCache[ownedRoomAttack].hostilePower) break;
             friendlyResponsePower += creep.combatPower;
             creep.memory.responseTarget = ownedRoomAttack;
             creep.memory.awaitingOrders = undefined;
@@ -110,7 +110,7 @@ function operationRequests() {
         if (Memory.targetRooms[target.name]) continue;
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
-        cache[guardNeeded.name] = {
+        cache[target.name] = {
             tick: tick,
             type: 'guard',
             level: 1,
