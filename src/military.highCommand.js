@@ -53,6 +53,7 @@ function manageResponseForces() {
             friendlyResponsePower += creep.combatPower;
             creep.memory.responseTarget = ownedRoomAttack;
             creep.memory.awaitingOrders = undefined;
+            creep.memory.idle = undefined;
             log.a(creep.name + ' reassigned to assist in the defense of ' + roomLink(ownedRoomAttack) + ' from ' + roomLink(creep.room.name));
         }
     } else if (responseTargets && responseTargets.name) {
@@ -67,6 +68,7 @@ function manageResponseForces() {
             friendlyResponsePower += creep.combatPower;
             creep.memory.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
+            creep.memory.idle = undefined;
             log.a(creep.name + ' responding to ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (guard) {
@@ -77,6 +79,7 @@ function manageResponseForces() {
         for (let creep of idleResponders) {
             creep.memory.responseTarget = guard;
             creep.memory.awaitingOrders = undefined;
+            creep.memory.idle = undefined;
             log.a(creep.name + ' reassigned to help guard ' + roomLink(guard) + ' from ' + roomLink(creep.room.name));
         }
     } else if (unarmedEnemies) {
@@ -87,6 +90,7 @@ function manageResponseForces() {
         if (idleResponder) {
             idleResponder.memory.responseTarget = unarmedEnemies.room.name;
             idleResponder.memory.awaitingOrders = undefined;
+            idleResponder.memory.idle = undefined;
             log.a(idleResponder.name + ' reassigned to hunt unarmed targets in ' + roomLink(unarmedEnemies.room.name) + ' from ' + roomLink(idleResponder.room.name));
         }
     } else if (local) {
@@ -97,6 +101,7 @@ function manageResponseForces() {
         for (let creep of idleResponders) {
             creep.memory.responseTarget = local;
             creep.memory.awaitingOrders = undefined;
+            creep.memory.idle = undefined;
             log.a(creep.name + ' reassigned to assist the operation in ' + roomLink(local) + ' from ' + roomLink(creep.room.name));
         }
     } else if (highestHeat && highestHeat.name) {
@@ -107,6 +112,7 @@ function manageResponseForces() {
         for (let creep of idleResponders) {
             creep.memory.responseTarget = highestHeat.name;
             creep.memory.awaitingOrders = undefined;
+            creep.memory.idle = undefined;
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
         }
     }
