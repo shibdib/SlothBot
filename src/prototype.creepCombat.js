@@ -774,16 +774,15 @@ Creep.prototype.fleeHome = function (force = false) {
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
-        this.memory.runCooldown = Game.time + 100;
-        this.drop();
+        this.say('RUN!', true);
+        this.memory.runCooldown = Game.time + 25;
         this.goToHub(this.memory.overlord, true);
-        return true;
-    } else if (Game.time < cooldown) {
-        this.goToHub(this.memory.overlord, true);
-        return true;
+    } else if (Game.time <= cooldown) {
+        if (this.shibKite()) return;
+        this.memory.runCooldown = cooldown;
+        this.idleFor(cooldown - Game.time);
     } else {
-        delete this.memory.runCooldown;
-        return false;
+        return delete this.memory.runCooldown;
     }
 };
 
