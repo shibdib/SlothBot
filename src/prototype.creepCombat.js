@@ -223,7 +223,7 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     if (this.room.user && this.room.user !== MY_USERNAME && this.room.controller && this.room.controller.safeMode) return false;
     // Set target
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst);
-    if (hostile.pos.checkForRampart()) {
+    if (hostile && hostile.pos.checkForRampart()) {
         hostile = hostile.pos.checkForRampart();
         this.memory.target = hostile.id;
     }
