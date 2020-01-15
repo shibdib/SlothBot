@@ -114,7 +114,7 @@ function buildFromLayout(room) {
         if (!rampartSpots[room.name] || Math.random() > 0.98) {
             // Clean old ramparts from new claims
             if (!rampartSpots[room.name]) {
-                let cleaner = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 3 && s.pos.checkForRampart());
+                let cleaner = _.filter(room.structures, (s) => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_LINK && s.pos.getRangeTo(s.pos.findClosestByRange(FIND_SOURCES)) > 3 && s.pos.checkForRampart());
                 cleaner.forEach((s) => s.pos.checkForRampart().destroy())
             }
             // Delete old memory
