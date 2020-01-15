@@ -13,8 +13,8 @@ module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     // Check if ready to haul
-    if (creep.isFull || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.store))) {
-        creep.memory.source = undefined;
+    if (creep.isFull || (creep.memory.overlord === creep.pos.roomName && _.sum(creep.store)) || creep.ticksToLive <= 150) {
+        creep.memory.deposit = undefined;
         if (creep.pos.roomName === creep.memory.overlord) {
             if (creep.memory.storageDestination) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);
@@ -51,6 +51,9 @@ module.exports.role = function (creep) {
                 break;
             case ERR_NOT_ENOUGH_RESOURCES:
                 creep.memory.deposit = undefined;
+                break;
+            case ERR_TIRED:
+                creep.idleFor(deposit.cooldown);
         }
     } else {
         //Find Source
