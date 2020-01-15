@@ -10,82 +10,60 @@
  */
 'use strict';
 
-let searchCooldown = {};
-
 Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = false) {
-    let enemy, filter, cooldown;
+    let enemy, filter;
     let worthwhileStructures = this.room.hostileStructures.length > 0;
-    if (!this.room.hostileCreeps.length && !worthwhileStructures) return;
+    if (!this.room.hostileCreeps.length && !worthwhileStructures) return undefined;
     let barriersPresent = _.filter(this.room.structures, (s) => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART).length;
-    if (barriersPresent) {
-        if (!searchCooldown[this.name] || searchCooldown[this.name] + 3 < Game.time) {
-            searchCooldown[this.name] = Game.time;
-        } else {
-            cooldown = true;
-        }
-    }
     let hostileRoom = this.room.controller && !this.room.controller.my && ((this.room.controller.owner && !_.includes(FRIENDLIES, this.room.controller.owner.username)) || (this.room.controller.reservation && !_.includes(FRIENDLIES, this.room.controller.reservation.username)));
     // Towers die first (No ramps)
     if (hostileRoom) {
-        filter = {filter: (c) => c.structureType === STRUCTURE_TOWER && !c.pos.checkForRampart() && c.isActive()};
+        filter = {filter: (c) => c.structureType === STRUCTURE_TOWER && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()};
         if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else enemy = this.pos.findClosestByPath(this.room.structures, filter);
         if (enemy) {
-            searchCooldown[this.name] = undefined;
             this.memory.target = enemy.id;
             return enemy;
         }
     }
-    // Find armed creeps to kill
+    // Find armed creeps to kill (Outside Ramps)
     filter = {
         filter: (c) => ((c.getActiveBodyparts(ATTACK) >= 1 || c.getActiveBodyparts(RANGED_ATTACK) >= 1 || c.getActiveBodyparts(HEAL) >= 1) &&
-            (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0)))
+            (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0)) && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000))
     };
     if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
-        if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
-        searchCooldown[this.name] = undefined;
         this.memory.target = enemy.id;
         return enemy;
     }
-    // Kill spawns and extensions (No ramps)
+    // Kill spawns (No ramps)
     if (hostileRoom) {
-        filter = {filter: (c) => c.structureType === STRUCTURE_SPAWN && !c.pos.checkForRampart() && c.isActive()};
+        filter = {filter: (c) => c.structureType === STRUCTURE_SPAWN && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000) && c.isActive()};
         if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
         if (enemy) {
-            searchCooldown[this.name] = undefined;
-            this.memory.target = enemy.id;
-            return enemy;
-        }
-        filter = {filter: (c) => c.structureType === STRUCTURE_EXTENSION && !c.pos.checkForRampart() && c.isActive()};
-        if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
-        if (enemy) {
-            searchCooldown[this.name] = undefined;
             this.memory.target = enemy.id;
             return enemy;
         }
     }
-    // Find unarmed creeps
+    // Find unarmed creeps (Outside Ramps)
     filter = {
-        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0))
+        filter: (c) => (ignoreBorder || (c.pos.x < 49 && c.pos.x > 0 && c.pos.y < 49 && c.pos.y > 0) && (!c.pos.checkForRampart() || c.pos.checkForRampart().hits < 50000))
     };
     if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileCreeps, filter); else enemy = this.pos.findClosestByPath(this.room.hostileCreeps, filter);
     if (enemy) {
-        if (enemy.pos.checkForRampart()) enemy = enemy.pos.checkForRampart();
+        this.memory.target = enemy.id;
         return enemy;
     }
-    // Towers die first (Ramps)
+    // Towers/spawns die first (Ramps)
     if (hostileRoom) {
         filter = {filter: (c) => c.structureType === STRUCTURE_TOWER && c.isActive()};
         if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else enemy = this.pos.findClosestByPath(this.room.structures, filter);
         if (enemy) {
-            searchCooldown[this.name] = undefined;
             this.memory.target = enemy.id;
             return enemy;
         }
         filter = {filter: (c) => c.structureType === STRUCTURE_SPAWN && c.isActive()};
         if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.hostileStructures, filter); else enemy = this.pos.findClosestByPath(this.room.hostileStructures, filter);
         if (enemy) {
-            searchCooldown[this.name] = undefined;
             this.memory.target = enemy.id;
             return enemy;
         }
@@ -95,12 +73,10 @@ Creep.prototype.findClosestEnemy = function (barriers = false, ignoreBorder = fa
         filter = {filter: (c) => c.structureType !== STRUCTURE_CONTROLLER && c.structureType !== STRUCTURE_ROAD && c.structureType !== STRUCTURE_WALL && c.structureType !== STRUCTURE_RAMPART && c.structureType !== STRUCTURE_CONTAINER && c.structureType !== STRUCTURE_POWER_BANK && c.structureType !== STRUCTURE_KEEPER_LAIR && c.structureType !== STRUCTURE_EXTRACTOR && c.structureType !== STRUCTURE_PORTAL};
         if (!barriersPresent) enemy = this.pos.findClosestByRange(this.room.structures, filter); else enemy = this.pos.findClosestByPath(this.room.structures, filter);
         if (enemy) {
-            searchCooldown[this.name] = undefined;
             this.memory.target = enemy.id;
             return enemy;
         } else if (barriers && this.findClosestBarrier()) {
             enemy = this.findClosestBarrier();
-            searchCooldown[this.name] = undefined;
             this.memory.target = enemy.id;
             return enemy;
         }
@@ -247,6 +223,10 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
     if (this.room.user && this.room.user !== MY_USERNAME && this.room.controller && this.room.controller.safeMode) return false;
     // Set target
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, unArmedFirst);
+    if (hostile.pos.checkForRampart()) {
+        hostile = hostile.pos.checkForRampart();
+        this.memory.target = hostile.id;
+    }
     // Flee home if you have no parts
     if ((!this.getActiveBodyparts(HEAL) || this.getActiveBodyparts(HEAL) === 1) && !this.getActiveBodyparts(ATTACK) && !this.getActiveBodyparts(RANGED_ATTACK)) return this.goHomeAndHeal();
     // If target fight
