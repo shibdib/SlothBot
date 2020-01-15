@@ -320,7 +320,7 @@ module.exports.miscCreepQueue = function (room) {
     // If no conflict detected
     if (!Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
         // Claiming
-        if (Memory.targetRooms && Memory.targetRooms.length) {
+        if (Memory.targetRooms) {
             let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
             if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
                 queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: claimTarget});
