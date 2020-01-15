@@ -105,7 +105,7 @@ function operationRequests() {
     let targetLimit = HARASS_LIMIT;
     if (TEN_CPU) targetLimit = 1;
     // Guard new rooms
-    let guardNeeded = _.filter(Memory.roomCache, (r) => r.user && r.user === MY_USERNAME && r.level && !r.towers);
+    let guardNeeded = _.filter(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.level && !r.towers);
     for (let target of guardNeeded) {
         if (Memory.targetRooms[target.name]) continue;
         let cache = Memory.targetRooms || {};
