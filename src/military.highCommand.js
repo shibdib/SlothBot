@@ -484,16 +484,6 @@ function manualAttacks() {
             Memory.targetRooms = cache;
             Game.flags[name].remove();
         }
-        //Set staging room
-        if (_.startsWith(name, 'stage')) {
-            let cache = Memory.stagingRooms || {};
-            let tick = Game.time;
-            cache[Game.flags[name].pos.roomName] = {
-                tick: tick
-            };
-            Memory.stagingRooms = cache;
-            Game.flags[name].remove();
-        }
         //Set future
         if (_.startsWith(name, 'future')) {
             let cache = Memory.targetRooms || {};

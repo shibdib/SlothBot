@@ -87,7 +87,6 @@ module.exports.processBuildQueue = function () {
                         targetRoom: undefined,
                         operation: undefined,
                         siegePoint: undefined,
-                        staging: undefined,
                         waitFor: undefined,
                         reservationTarget: undefined,
                         initialBuilder: undefined,
@@ -113,7 +112,6 @@ module.exports.processBuildQueue = function () {
                             targetRoom: topPriority.targetRoom,
                             operation: topPriority.operation,
                             siegePoint: topPriority.siegePoint,
-                            staging: topPriority.staging,
                             waitFor: topPriority.waitFor,
                             reservationTarget: topPriority.reservationTarget,
                             initialBuilder: topPriority.initialBuilder,
@@ -319,13 +317,6 @@ module.exports.miscCreepQueue = function (room) {
     }
     // If no conflict detected
     if (!Memory.roomCache[room.name].responseNeeded && !room.memory.spawnBorderPatrol) {
-        // Claiming
-        if (Memory.targetRooms && _.size(Memory.targetRooms)) {
-            let claimTarget = _.findKey(Memory.targetRooms, (r) => r.type === 'claim');
-            if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget).length && Game.map.findRoute(claimTarget, room.name).length <= 15) {
-                queueCreep(room, PRIORITIES.claimer, {role: 'claimer', destination: claimTarget});
-            }
-        }
         //Pre observer spawn explorers
         if (Memory.maxLevel < 8) {
             //Explorer
@@ -576,6 +567,15 @@ module.exports.militaryCreepQueue = function () {
         let opLevel = Number(Memory.targetRooms[key].level) || 1;
         let escort = Memory.targetRooms[key].escort;
         let priority = Memory.targetRooms[key].priority || 4;
+        //Observers
+        if (opLevel === 0 && !Memory.targetRooms[key].observerCheck && Memory.targetRooms[key].type !== 'clean') {
+            let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
+            if ((scout.length < 1 || (scout[0] && scout[0].ticksToLive < (scout[0].body.length * 3 + 10) && scout.length < 2))) {
+                queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
+            }
+            continue;
+        }
+        // Set priority
         switch (priority) {
             case 4:
                 priority = PRIORITIES.secondary;
@@ -593,22 +593,14 @@ module.exports.militaryCreepQueue = function () {
                 priority = PRIORITIES.priority;
                 break;
         }
-        //Number fatigue
-        if (_.size(Memory.targetRooms) > Memory.myRooms.length) priority += 1;
-        for (let staging in Memory.stagingRooms) {
-            if (Game.map.getRoomLinearDistance(staging, key) === 1) {
-                stagingRoom = staging;
-            }
-        }
-        //Observers
-        if (opLevel === 0 && !Memory.targetRooms[key].observerCheck && Memory.targetRooms[key].type !== 'clean') {
-            let scout = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'scout');
-            if ((scout.length < 1 || (scout[0] && scout[0].ticksToLive < (scout[0].body.length * 3 + 10) && scout.length < 2))) {
-                queueMilitaryCreep(PRIORITIES.priority, {role: 'scout', targetRoom: key, military: true})
-            }
-            continue;
-        }
         switch (Memory.targetRooms[key].type) {
+            // Claiming
+            case 'claim':
+                let claimTarget = _.filter(Memory.targetRooms, (r) => r.type === 'claim')[0];
+                if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget.targetRoom).length) {
+                    queueMilitaryCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget.targetRoom});
+                }
+                break;
             // Scout ops
             case 'claimScout':
             case 'attack':
@@ -719,8 +711,7 @@ module.exports.militaryCreepQueue = function () {
                         role: 'deconstructor',
                         targetRoom: key,
                         operation: 'clean',
-                        military: true,
-                        staging: stagingRoom
+                        military: true
                     })
                 }
                 let cleaningEscort = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'longbow');
@@ -729,8 +720,7 @@ module.exports.militaryCreepQueue = function () {
                         role: 'longbow',
                         targetRoom: key,
                         operation: 'guard',
-                        military: true,
-                        staging: stagingRoom
+                        military: true
                     })
                 }
                 break;
@@ -738,8 +728,10 @@ module.exports.militaryCreepQueue = function () {
                 let claimClear = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'claimer');
                 if (!claimClear.length && !_.includes(queue, 'claimer')) {
                     queueMilitaryCreep(2, {
-                        role: 'claimer', targetRoom: key,
-                        operation: 'claimClear', military: true
+                        role: 'claimer',
+                        targetRoom: key,
+                        operation: 'claimClear',
+                        military: true
                     })
                 }
                 break;
@@ -752,8 +744,7 @@ module.exports.militaryCreepQueue = function () {
                         role: 'raider',
                         targetRoom: key,
                         operation: 'robbery',
-                        military: true,
-                        staging: stagingRoom
+                        military: true
                     })
                 }
                 break;
@@ -787,7 +778,6 @@ module.exports.militaryCreepQueue = function () {
                         targetRoom: key,
                         operation: 'drain',
                         military: true,
-                        staging: stagingRoom,
                         boostCheck: 'heal'
                     })
                 }
@@ -802,8 +792,7 @@ module.exports.militaryCreepQueue = function () {
                         targetRoom: key,
                         operation: 'siege',
                         military: true,
-                        waitFor: opLevel * 2,
-                        staging: stagingRoom
+                        waitFor: opLevel * 2
                     })
                 }
                 if (siegeHealer.length < opLevel) {
@@ -813,7 +802,6 @@ module.exports.militaryCreepQueue = function () {
                         operation: 'siege',
                         military: true,
                         waitFor: opLevel * 2,
-                        staging: stagingRoom,
                         boostCheck: 'heal'
                     })
                 }
@@ -826,8 +814,7 @@ module.exports.militaryCreepQueue = function () {
                         targetRoom: key,
                         operation: 'swarm',
                         military: true,
-                        waitFor: 110 * opLevel,
-                        staging: stagingRoom
+                        waitFor: 110 * opLevel
                     })
                 }
                 break;
@@ -841,8 +828,7 @@ module.exports.militaryCreepQueue = function () {
                         targetRoom: key,
                         operation: 'rangers',
                         military: true,
-                        waitFor: 2,
-                        staging: stagingRoom
+                        waitFor: 2
                     })
                 }
                 let rangerUnClaimer = _.filter(Game.creeps, (creep) => creep.memory.targetRoom === key && creep.memory.role === 'claimAttacker' && creep.memory.operation === 'rangers');
@@ -901,7 +887,6 @@ function queueCreep(room, importance, options = {}, military = false) {
         targetRoom: undefined,
         operation: undefined,
         siegePoint: undefined,
-        staging: undefined,
         waitFor: undefined,
         reservationTarget: undefined,
         initialBuilder: undefined,
@@ -925,7 +910,6 @@ function queueCreep(room, importance, options = {}, military = false) {
             targetRoom: options.targetRoom,
             operation: options.operation,
             siegePoint: options.siegePoint,
-            staging: options.staging,
             waitFor: options.waitFor,
             reservationTarget: options.reservationTarget,
             initialBuilder: options.initialBuilder,
@@ -955,7 +939,6 @@ function queueMilitaryCreep(priority, options = {}) {
         targetRoom: undefined,
         operation: undefined,
         siegePoint: undefined,
-        staging: undefined,
         waitFor: undefined,
         reservationTarget: undefined,
         initialBuilder: undefined,
@@ -975,7 +958,6 @@ function queueMilitaryCreep(priority, options = {}) {
         targetRoom: options.targetRoom,
         operation: options.operation,
         siegePoint: options.siegePoint,
-        staging: options.staging,
         waitFor: options.waitFor,
         reservationTarget: options.reservationTarget,
         initialBuilder: options.initialBuilder,

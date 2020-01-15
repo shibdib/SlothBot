@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -11,7 +11,7 @@ Creep.prototype.cleanRoom = function () {
     let sentence = ['Cleaning', 'Room', this.memory.targetRoom];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
-    //Handle movement and staging
+    //Handle movement
     if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
     //Check sustaintability
     highCommand.operationSustainability(this.room);
@@ -76,7 +76,6 @@ Creep.prototype.cleanRoom = function () {
             return Memory.targetRooms[this.memory.targetRoom].complete = true;
         } else if (!this.room.controller) {
             if (Memory.targetRooms) delete Memory.targetRooms[this.memory.targetRoom];
-            if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
         } else if (this.room.controller.owner) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
@@ -95,7 +94,6 @@ Creep.prototype.cleanRoom = function () {
                     return this.shibMove(this.room.controller);
             }
             if (Memory.targetRooms) delete Memory.targetRooms[this.memory.targetRoom];
-            if (this.memory.staging) delete Memory.stagingRooms[this.memory.staging];
             log.a('Room cleaning in ' + this.memory.targetRoom + ' is complete.', 'CLEANING: ');
         }
     } else {
