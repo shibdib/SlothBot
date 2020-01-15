@@ -258,14 +258,14 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
             }
         case 'commodityMiner':
             if (level >= 7) {
-                carry = 14;
-                work = 2;
-                move = 16;
+                carry = 10;
+                work = 10;
+                move = 20;
                 break;
             } else {
                 carry = 5;
-                work = 1;
-                move = 6;
+                work = 5;
+                move = 10;
                 break;
             }
         case 'SKHarvester':
