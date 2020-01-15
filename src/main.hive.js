@@ -75,7 +75,7 @@ module.exports.hiveMind = function () {
             let needyRoom = _.filter(myRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
             let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
-            if (needyRoom.length < myRooms.length / 2 && !safemode.length && !claimMission.length) {
+            if (needyRoom.length < myRooms.length / 2 && (!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {
