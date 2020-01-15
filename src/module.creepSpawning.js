@@ -633,6 +633,8 @@ module.exports.globalCreepQueue = function () {
                 break;
             case 'commodity': //commodity Mining
                 let commodityMiner = _.filter(Game.creeps, (creep) => creep.memory.role === 'commodityMiner' && creep.memory.destination === key);
+                let amount = Memory.roomCache[key].commodity || 2;
+                if (_.isNaN(amount)) amount = 2;
                 if ((commodityMiner.length < 2 || (commodityMiner[0] && commodityMiner[0].ticksToLive < (commodityMiner[0].body.length * 3 + 100) && commodityMiner.length < 3))) {
                     queueGlobalCreep(PRIORITIES.power, {role: 'commodityMiner', destination: key, military: true})
                 }
