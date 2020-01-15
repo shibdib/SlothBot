@@ -121,15 +121,6 @@ function dropOff(creep) {
         creep.memory.storageDestination = tower.id;
         return true;
     }
-    //Controller
-    let importantBuilds = _.filter(creep.room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER).length;
-    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-    let controllerLink = Game.getObjectById(creep.room.memory.controllerLink);
-    if (!controllerLink && (!importantBuilds || creep.room.energyState) && controllerContainer &&
-        controllerContainer.store[RESOURCE_ENERGY] + _.sum(_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === controllerContainer.id), '.store[RESOURCE_ENERGY]') < controllerContainer.store.getCapacity() * 0.5) {
-        creep.memory.storageDestination = controllerContainer.id;
-        return true;
-    }
     //Close Link
     let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
         filter: (s) => s.room.storage && s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
@@ -137,6 +128,12 @@ function dropOff(creep) {
     //Links
     if (closestLink && closestLink.pos.getRangeTo(creep) <= creep.room.storage.pos.getRangeTo(creep)) {
         creep.memory.storageDestination = closestLink.id;
+        return true;
+    }
+    //Controller
+    let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
+    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity()) {
+        creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
     if (creep.memory.storageDestination || creep.haulerDelivery()) {

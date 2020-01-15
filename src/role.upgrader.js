@@ -54,11 +54,11 @@ module.exports.role = function (creep) {
         } else {
             if (link && link.energy) {
                 creep.withdrawResource(link);
-            } else if (container && container.store[RESOURCE_ENERGY] >= creep.store.getCapacity()) {
+            } else if (container && container.store[RESOURCE_ENERGY]) {
                 creep.withdrawResource(container);
             }
         }
-    } else if (container && container.store[RESOURCE_ENERGY] >= creep.store.getCapacity()) {
+    } else if (container && container.store[RESOURCE_ENERGY]) {
         creep.withdrawResource(container);
     } else if (!creep.findEnergy(25)) {
         let source = creep.pos.getClosestSource();
