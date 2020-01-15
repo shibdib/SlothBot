@@ -355,7 +355,7 @@ module.exports.miscCreepQueue = function (room) {
             }
         }
         // Assist room
-        if (level >= 4) {
+        if (level >= 3) {
             let safeToSupport = _.filter(Game.rooms, (r) => !r.hostileCreeps.length && (!Memory.roomCache[r.name] || !Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time));
             let needDrones = _.sample(_.filter(safeToSupport, ((r) => r.name !== room.name && r.memory.buildersNeeded)));
             if (needDrones) {

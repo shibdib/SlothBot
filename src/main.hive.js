@@ -66,16 +66,14 @@ module.exports.hiveMind = function () {
     }
     //Expansion Manager
     if (Game.time % 25 === 0) {
-        // Randomly clear noClaim
         let overlordCount = Memory.myRooms.length;
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
         let maxRooms = _.round(Game.cpu.limit / 9);
         if (TEN_CPU) maxRooms = 2;
         if (Memory.maxLevel >= 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
-            let needyRoom = _.filter(myRooms, (r) => r.memory.buildersNeeded);
             let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
             let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
-            if (needyRoom.length < myRooms.length / 2 && (!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
+            if ((!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
                 try {
                     expansion.claimNewRoom();
                 } catch (e) {
