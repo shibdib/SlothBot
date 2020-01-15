@@ -100,7 +100,7 @@ function operationRequests() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
     let maxLevel = Memory.maxLevel;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'guard').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'guard' && target.type !== 'commodity' && target.type !== 'power' && target.type !== 'clean' && target.type !== 'claimClear').length || 0;
     // Set limit
     let targetLimit = HARASS_LIMIT;
     if (TEN_CPU) targetLimit = 1;
@@ -179,7 +179,7 @@ function operationRequests() {
         }
     }
      // Clean
-     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
+    let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
      let cleanLimit = CLEAN_LIMIT;
      if (TEN_CPU) cleanLimit = 0;
      if (cleanCount < cleanLimit) {
@@ -287,7 +287,7 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = Memory.maxLevel;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'attack' && target.type !== 'scout' && target.type !== 'power' && target.type !== 'commodity' && target.type !== 'guard').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'clean' && target.type !== 'attack' && target.type !== 'scout' && target.type !== 'power' && target.type !== 'commodity' && target.type !== 'guard' && target.type !== 'claimClear').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
