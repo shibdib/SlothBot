@@ -50,7 +50,6 @@ module.exports.overlordMind = function (room) {
     }
 
     // Manage creep spawning
-    // Level 1 room management
     if (Math.random() > 0.7) {
         if (getLevel(room) < 2) {
             spawning.roomStartup(room);

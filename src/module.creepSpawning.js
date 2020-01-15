@@ -45,6 +45,7 @@ module.exports.processBuildQueue = function () {
                 let cost;
                 for (let key in queue) {
                     topPriority = queue[key];
+                    if (!topPriority.role) continue;
                     if (topPriority.targetRoom && Game.map.findRoute(topPriority.targetRoom, spawn.room.name).length > 20) continue;
                     role = topPriority.role;
                     if (topPriority.misc && topPriority.misc === 'vary') level = _.random(_.round(level / 1.5), level);
@@ -54,6 +55,14 @@ module.exports.processBuildQueue = function () {
                         body = generator.bodyGenerator(level, role, spawn.room, topPriority.misc);
                     }
                     cost = global.UNIT_COST(body);
+                    // If boosts are required to spawn check that a room has them
+                    if (topPriority.boostCheck) {
+                        let hasBoost;
+                        for (let boost of BOOST_USE[topPriority.boostCheck]) {
+                            hasBoost = spawn.room.getBoostAmount(boost) >= 500;
+                        }
+                        if (!hasBoost) continue;
+                    }
                     // If cant afford try the previous level
                     if (cost > spawn.room.energyCapacityAvailable && level >= 2 && (lastBuilt[spawn.room.name] && Game.time - lastBuilt[spawn.room.name] >= 750)) {
                         body = generator.bodyGenerator(level - 1, role, spawn.room, topPriority.misc);
@@ -86,15 +95,6 @@ module.exports.processBuildQueue = function () {
                         boostCheck: undefined,
                         misc: undefined
                     });
-                    if (!topPriority.role) continue;
-                    // If boosts are required to spawn check that a room has them
-                    if (topPriority.boostCheck) {
-                        let hasBoost;
-                        for (let boost of BOOST_USE[topPriority.boostCheck]) {
-                            hasBoost = spawn.room.getBoostAmount(boost) >= 500;
-                        }
-                        if (!hasBoost) continue;
-                    }
                     let name = role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
                     if (topPriority.operation) name = topPriority.operation + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
                     let energyStructures;
@@ -129,6 +129,9 @@ module.exports.processBuildQueue = function () {
                             if (topPriority.buildCount && roomQueue[spawn.room.name][role]) return roomQueue[spawn.room.name][role].buildCount = topPriority.buildCount - 1;
                             if (roomQueue[spawn.room.name]) delete roomQueue[spawn.room.name][role];
                             lastBuilt[spawn.room.name] = Game.time;
+                            break;
+                        default:
+                            spawn.say('??')
                     }
                 }
             }
@@ -220,34 +223,33 @@ module.exports.essentialCreepQueue = function (room) {
         }
     }
     // Local Responder
-    if (Memory.roomCache[room.name].threatLevel >= 2) {
+    if (Memory.roomCache[room.name].threatLevel >= 3) {
         let role = _.sample(['longbow', 'attacker']);
         let responder = _.filter(Game.creeps, (creep) => creep.memory.responseTarget === room.name);
-        if (Memory.roomCache[room.name].threatLevel >= 3 && responder.length < Memory.roomCache[room.name].numberOfHostiles) {
+        if (responder.length < Memory.roomCache[room.name].numberOfHostiles) {
             queueCreep(room, PRIORITIES.responder, {
                 role: role,
                 responseTarget: room.name,
                 military: true
             })
         }
-    } else {
-        //Upgrader
-        let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
-        let number = 1;
-        let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0];
-        if (level < 5 && !inBuild) {
-            number = 6 - level;
-        } else if (level >= 5 && room.energyState && level !== 8) number = 2;
-        if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
-            //If room is about to downgrade get a creep out asap
-            let reboot;
-            let priority = PRIORITIES.upgrader;
-            if (room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal) {
-                reboot = true;
-                priority = 1;
-            }
-            queueCreep(room, priority + upgraders.length, {role: 'upgrader', reboot: reboot})
+    }
+    //Upgrader
+    let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
+    let number = 1;
+    let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0];
+    if (level < 5 && !inBuild) {
+        number = 6 - level;
+    } else if (level >= 5 && room.energyState && level !== 8) number = 2;
+    if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
+        //If room is about to downgrade get a creep out asap
+        let reboot;
+        let priority = PRIORITIES.upgrader;
+        if (room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal) {
+            reboot = true;
+            priority = 1;
         }
+        queueCreep(room, priority + upgraders.length, {role: 'upgrader', reboot: reboot})
     }
 };
 
