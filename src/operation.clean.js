@@ -13,7 +13,7 @@ Creep.prototype.cleanRoom = function () {
     this.say(sentence[word], true);
     //Handle movement
     if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
-    //Check sustaintability
+    //Check sustainability
     highCommand.operationSustainability(this.room);
     //If no longer a target recycle
     if (!Memory.targetRooms[this.memory.destination] || Memory.targetRooms[this.memory.destination].type !== 'clean') return this.memory.recycle = true;
@@ -36,7 +36,6 @@ Creep.prototype.cleanRoom = function () {
                 return;
             case OK:
                 return true;
-
         }
     }
     // If all targets are cleared kill everything

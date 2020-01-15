@@ -32,7 +32,7 @@ global.EXPLORER_SPAM = ['HI', 'Hello', 'Beep', 'Boop', 'Aloha', 'Shibby!'];
 // Attack limits (Too high and your CPU is screwed, hard coded for non subs)
 global.POKE_LIMIT = 5;
 global.CLEAN_LIMIT = 1;
-global.HARASS_LIMIT = 2;
+global.COMBAT_LIMIT = 2;
 
 // Wall and rampart target amounts
 global.BARRIER_TARGET_HIT_POINTS = {

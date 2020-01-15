@@ -578,16 +578,17 @@ module.exports.remoteCreepQueue = function (room) {
 
 //Military creeps
 module.exports.globalCreepQueue = function () {
-    if (!_.size(Memory.targetRooms)) return;
+    if (!_.size(Memory.targetRooms.assign(Memory.auxiliaryTargets))) return;
+    let operations = Memory.targetRooms.assign(Memory.auxiliaryTargets);
     let queue = globalQueue;
     // Targets
-    for (let key in shuffle(Memory.targetRooms)) {
-        if (!Memory.targetRooms[key]) continue;
-        let opLevel = Number(Memory.targetRooms[key].level) || 1;
-        let escort = Memory.targetRooms[key].escort;
-        let priority = Memory.targetRooms[key].priority || 4;
+    for (let key in shuffle(operations)) {
+        if (!operations[key]) continue;
+        let opLevel = Number(operations[key].level) || 1;
+        let escort = operations[key].escort;
+        let priority = operations[key].priority || 4;
         //Observers
-        if (opLevel === 0 && !Memory.targetRooms[key].observerCheck && Memory.targetRooms[key].type !== 'clean') {
+        if (opLevel === 0 && !operations[key].observerCheck && operations[key].type !== 'clean') {
             let scout = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'scout');
             if ((scout.length < 1 || (scout[0] && scout[0].ticksToLive < (scout[0].body.length * 3 + 10) && scout.length < 2))) {
                 queueGlobalCreep(PRIORITIES.priority, {role: 'scout', destination: key, military: true})
@@ -613,11 +614,11 @@ module.exports.globalCreepQueue = function () {
                 break;
         }
         // Some backwards checking
-        if (Memory.targetRooms[key].targetRoom) return Memory.targetRooms[key] = undefined;
-        switch (Memory.targetRooms[key].type) {
+        if (operations[key].targetRoom) return operations[key] = undefined;
+        switch (operations[key].type) {
             // Claiming
             case 'claim':
-                let claimTarget = _.filter(Memory.targetRooms, (r) => r.type === 'claim')[0];
+                let claimTarget = _.filter(operations, (r) => r.type === 'claim')[0];
                 if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget.destination).length) {
                     queueGlobalCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget.destination});
                 }
@@ -641,26 +642,26 @@ module.exports.globalCreepQueue = function () {
                 break;
             case 'power': //Power Mining
                 if (Memory.roomCache[key].power < Game.time) {
-                    Memory.targetRooms[key] = undefined;
+                    operations[key] = undefined;
                     Memory.roomCache[key].power = undefined;
                     break;
                 }
                 let powerHealer = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHealer' && creep.memory.destination === key);
-                if (!Memory.targetRooms[key].complete && !_.includes(queue, 'powerHealer') && (powerHealer.length < 2 || (powerHealer[0] && powerHealer[0].ticksToLive < (powerHealer[0].body.length * 3 + 100) && powerHealer.length < 3))) {
+                if (!operations[key].complete && !_.includes(queue, 'powerHealer') && (powerHealer.length < 2 || (powerHealer[0] && powerHealer[0].ticksToLive < (powerHealer[0].body.length * 3 + 100) && powerHealer.length < 3))) {
                     queueGlobalCreep(PRIORITIES.power, {role: 'powerHealer', destination: key, military: true})
                 }
                 let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
-                if (!Memory.targetRooms[key].complete && !_.includes(queue, 'powerAttacker') && (powerAttacker.length < 2 || (powerAttacker[0] && powerAttacker[0].ticksToLive < (powerAttacker[0].body.length * 3 + 100) && powerAttacker.length < 3)) && powerHealer.length) {
+                if (!operations[key].complete && !_.includes(queue, 'powerAttacker') && (powerAttacker.length < 2 || (powerAttacker[0] && powerAttacker[0].ticksToLive < (powerAttacker[0].body.length * 3 + 100) && powerAttacker.length < 3)) && powerHealer.length) {
                     queueGlobalCreep(PRIORITIES.power - 1, {role: 'powerAttacker', destination: key, military: true})
                 }
                 let powerHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHauler' && creep.memory.destination === key);
-                if (Memory.targetRooms[key].hauler && !_.includes(queue, 'powerHauler') && powerHauler.length < Memory.targetRooms[key].hauler) {
+                if (operations[key].hauler && !_.includes(queue, 'powerHauler') && powerHauler.length < operations[key].hauler) {
                     queueGlobalCreep(PRIORITIES.power - 1, {role: 'powerHauler', destination: key, military: true})
                 }
                 break;
             case 'hold': //Hold Room
-                let unClaimerNeeded = Memory.targetRooms[key].claimAttacker;
-                let cleanerNeeded = Memory.targetRooms[key].cleaner;
+                let unClaimerNeeded = operations[key].claimAttacker;
+                let cleanerNeeded = operations[key].cleaner;
                 let longbows = 1;
                 let reboot = true;
                 if (opLevel > 1) {
@@ -773,7 +774,7 @@ module.exports.globalCreepQueue = function () {
                 break;
             case 'harass': // Harass
                 let harasser = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'longbow');
-                let annoy = Memory.targetRooms[key].annoy;
+                let annoy = operations[key].annoy;
                 if ((harasser.length < opLevel * 2 || (harasser[0] && harasser[0].ticksToLive < (harasser[0].body.length * 3 + 50) && harasser.length < opLevel * 2 + 1))) {
                     queueGlobalCreep(priority, {
                         role: 'longbow',
@@ -865,7 +866,7 @@ module.exports.globalCreepQueue = function () {
                     })
                 }
                 let rangerUnClaimer = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'claimAttacker' && creep.memory.operation === 'rangers');
-                if (Memory.targetRooms[key].claimAttacker && rangerUnClaimer.length < 1 || (rangerUnClaimer[0] && rangerUnClaimer[0].ticksToLive < (rangerUnClaimer[0].body.length * 3 + 10) && rangerUnClaimer.length < 2)) {
+                if (operations[key].claimAttacker && rangerUnClaimer.length < 1 || (rangerUnClaimer[0] && rangerUnClaimer[0].ticksToLive < (rangerUnClaimer[0].body.length * 3 + 10) && rangerUnClaimer.length < 2)) {
                     queueGlobalCreep(priority, {
                         role: 'claimAttacker',
                         destination: key,

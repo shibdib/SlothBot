@@ -14,7 +14,7 @@ Creep.prototype.holdRoom = function () {
     // Handle border
     if (this.memory.role === 'longbow') {
         levelManager(this);
-        highCommand.threatManagement(this);
+        highCommand.generateThreat(this);
         // Handle target room
         if (this.room.name === this.memory.destination && Memory.targetRooms[this.memory.destination]) {
             highCommand.operationSustainability(this.room);
