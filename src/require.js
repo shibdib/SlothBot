@@ -18,7 +18,6 @@ require('module.pathFinder');
 // Operations
 require("operation.scout");
 require("operation.clean");
-require("operation.harass");
 require("operation.drain");
 require("operation.siege");
 require("operation.siegeGroup");
