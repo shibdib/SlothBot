@@ -40,7 +40,7 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
                 carry = 1;
                 move = work + carry;
                 break;
-            } else if (level < 5) {
+            } else if (level < 4) {
                 work = _.random(level + 1, level * 2);
                 carry = 1;
                 move = work + carry;
