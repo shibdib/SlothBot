@@ -8,15 +8,15 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.cleanRoom = function () {
-    let sentence = ['Cleaning', 'Room', this.memory.targetRoom];
+    let sentence = ['Cleaning', 'Room', this.memory.destination];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     //Handle movement
-    if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+    if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     //Check sustaintability
     highCommand.operationSustainability(this.room);
     //If no longer a target recycle
-    if (!Memory.targetRooms[this.memory.targetRoom] || Memory.targetRooms[this.memory.targetRoom].type !== 'clean') return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.memory.destination] || Memory.targetRooms[this.memory.destination].type !== 'clean') return this.memory.recycle = true;
     //If hostile creeps present request an escort
     Memory.targetRooms[this.room.name].escort = this.room.hostileCreeps.length > 0;
     //Handle level based on ramparts
@@ -40,7 +40,7 @@ Creep.prototype.cleanRoom = function () {
         }
     }
     // If all targets are cleared kill everything
-    if (Memory.targetRooms[this.memory.targetRoom].complete) {
+    if (Memory.targetRooms[this.memory.destination].complete) {
         let worthwhile = _.filter(this.room.structures, (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD).length;
         if (worthwhile) {
             target = this.pos.findClosestByPath(this.room.structures, {filter: (s) => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_ROAD});
@@ -62,7 +62,7 @@ Creep.prototype.cleanRoom = function () {
     if (!target) {
         let terminal = this.room.terminal;
         let storage = this.room.storage;
-        if (!Memory.targetRooms[this.memory.targetRoom].complete && ((terminal && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY))) ||
+        if (!Memory.targetRooms[this.memory.destination].complete && ((terminal && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY))) ||
             (storage && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY))))) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
@@ -73,9 +73,9 @@ Creep.prototype.cleanRoom = function () {
             };
             Memory.targetRooms = cache;
         } else if (terminal || storage) {
-            return Memory.targetRooms[this.memory.targetRoom].complete = true;
+            return Memory.targetRooms[this.memory.destination].complete = true;
         } else if (!this.room.controller) {
-            if (Memory.targetRooms) delete Memory.targetRooms[this.memory.targetRoom];
+            if (Memory.targetRooms) delete Memory.targetRooms[this.memory.destination];
         } else if (this.room.controller.owner) {
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
@@ -93,8 +93,8 @@ Creep.prototype.cleanRoom = function () {
                 case ERR_NOT_IN_RANGE:
                     return this.shibMove(this.room.controller);
             }
-            if (Memory.targetRooms) delete Memory.targetRooms[this.memory.targetRoom];
-            log.a('Room cleaning in ' + this.memory.targetRoom + ' is complete.', 'CLEANING: ');
+            if (Memory.targetRooms) delete Memory.targetRooms[this.memory.destination];
+            log.a('Room cleaning in ' + this.memory.destination + ' is complete.', 'CLEANING: ');
         }
     } else {
         this.memory.target = target.id;

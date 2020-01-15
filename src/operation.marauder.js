@@ -9,25 +9,25 @@ Creep.prototype.marauding = function () {
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Set a target
-    if (!this.memory.targetRoom) {
+    if (!this.memory.destination) {
         let lowLevel = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.safemode && r.level && !r.towers));
         if (lowLevel) {
-            this.memory.targetRoom = lowLevel.name;
+            this.memory.destination = lowLevel.name;
         } else {
             let potential = _.sample(_.filter(Memory.roomCache, (r) => r.name !== this.room.name && r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && !r.sk && !r.level && !r.towers));
-            if (potential) this.memory.targetRoom = potential.name; else this.memory.recycle = true;
+            if (potential) this.memory.destination = potential.name; else this.memory.recycle = true;
         }
     } else {
-        if (this.room.name !== this.memory.targetRoom) {
+        if (this.room.name !== this.memory.destination) {
             this.attackInRange();
-            return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 19});
+            return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 19});
         }
-        if (this.room.name === this.memory.targetRoom) {
+        if (this.room.name === this.memory.destination) {
             // If on target and cant win find a new target
             if (!this.canIWin() || !this.handleMilitaryCreep()) {
                 this.room.cacheRoomIntel(true);
                 this.attackInRange();
-                this.memory.targetRoom = undefined;
+                this.memory.destination = undefined;
                 this.shibKite();
             }
         }

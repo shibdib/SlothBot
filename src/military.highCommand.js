@@ -30,7 +30,7 @@ function manageResponseForces() {
     idleResponders.forEach((c) => idlePower += c.combatPower);
     let ownedRoomAttack = _.findKey(Memory.roomCache, (r) => r.owner && r.owner === MY_USERNAME && r.lastPlayerSighting + 25 > Game.time && r.controller && r.controller.my);
     let responseTargets = _.max(_.filter(Memory.roomCache, (r) => r.threatLevel && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE &&
-        r.hostilePower < (r.friendlyPower + (_.sum(_.filter(Game.creeps, (c) => c.my && c.memory.responseTarget === r.name), 'combatPower')) + idlePower) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
+        r.hostilePower < (r.friendlyPower + (_.sum(_.filter(Game.creeps, (c) => c.my && c.memory.other.responseTarget === r.name), 'combatPower')) + idlePower) * 0.85 && r.lastInvaderCheck + 550 >= Game.time), '.threatLevel');
     let highestHeat = _.max(_.filter(Memory.roomCache, (r) => r.roomHeat && !r.sk && (!r.user || r.user === MY_USERNAME) && r.closestRange <= LOCAL_SPHERE && !r.numberOfHostiles &&
         r.lastInvaderCheck + 550 >= Game.time), '.roomHeat');
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level);
@@ -39,7 +39,7 @@ function manageResponseForces() {
         for (let creep of idleResponders) {
             if (friendlyResponsePower > Memory.roomCache[ownedRoomAttack].hostilePower) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.responseTarget = ownedRoomAttack;
+            creep.memory.other.responseTarget = ownedRoomAttack;
             creep.memory.awaitingOrders = undefined;
             creep.memory.idle = undefined;
             log.a(creep.name + ' reassigned to assist in the defense of ' + roomLink(ownedRoomAttack) + ' from ' + roomLink(creep.room.name));
@@ -48,21 +48,21 @@ function manageResponseForces() {
         for (let creep of idleResponders) {
             if (friendlyResponsePower > responseTargets.hostilePower * 1.1) break;
             friendlyResponsePower += creep.combatPower;
-            creep.memory.responseTarget = responseTargets.name;
+            creep.memory.other.responseTarget = responseTargets.name;
             creep.memory.awaitingOrders = undefined;
             creep.memory.idle = undefined;
             log.a(creep.name + ' responding to ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
     } else if (guard) {
         for (let creep of idleResponders) {
-            creep.memory.responseTarget = guard;
+            creep.memory.other.responseTarget = guard;
             creep.memory.awaitingOrders = undefined;
             creep.memory.idle = undefined;
             log.a(creep.name + ' reassigned to help guard ' + roomLink(guard) + ' from ' + roomLink(creep.room.name));
         }
     } else if (highestHeat && highestHeat.name) {
         for (let creep of idleResponders) {
-            creep.memory.responseTarget = highestHeat.name;
+            creep.memory.other.responseTarget = highestHeat.name;
             creep.memory.awaitingOrders = undefined;
             creep.memory.idle = undefined;
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
@@ -316,7 +316,7 @@ function manageAttacks() {
             // Manage Scouts
             case 'scout':
             case 'attack':
-                if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.targetRoom === key).length) staleMulti = 0.25;
+                if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.destination === key).length) staleMulti = 0.25;
                 break;
             // Manage Pokes
             case 'poke':
@@ -727,7 +727,7 @@ module.exports.operationSustainability = function (room) {
             dDay: tick + room.controller.safeMode,
         };
         // Set no longer needed creeps to go recycle
-        _.filter(Game.creeps, (c) => c.my && c.memory.targetRoom && c.memory.targetRoom === room.name).forEach((c) => c.memory.recycle = true);
+        _.filter(Game.creeps, (c) => c.my && c.memory.destination && c.memory.destination === room.name).forEach((c) => c.memory.recycle = true);
         log.a(room.name + ' is now marked as Pending as it has a safemode.', 'OPERATION PLANNER: ');
         return Memory.targetRooms = cache;
     }

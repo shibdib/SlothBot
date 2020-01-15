@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -13,26 +13,26 @@ Creep.prototype.rangersRoom = function () {
     this.say(sentence[word], true);
     // Set squad leader
     if ((!this.memory.squadLeader && !this.memory.leader) || (this.memory.leader && !Game.getObjectById(this.memory.leader))) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'rangers' && c.memory.squadLeader);
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.destination === this.memory.destination && c.memory.operation === 'rangers' && c.memory.squadLeader);
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
     // Revert to marauder
-    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.operation = 'marauding';
+    if (!Memory.targetRooms[this.memory.destination]) return this.memory.operation = 'marauding';
     // Handle squad leader
     if (this.memory.squadLeader) {
         // Remove duplicate squad leaders
         let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === this.memory.overlord &&
-            c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id && c.memory.targetRoom === this.memory.targetRoom);
+            c.memory.operation === this.memory.operation && c.memory.squadLeader && c.id !== this.id && c.memory.destination === this.memory.destination);
         if (squadLeader.length) return this.memory.squadLeader = undefined;
         // Check for squad and handle grouping
-        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.destination === this.memory.destination && c.memory.operation === this.memory.operation && c.id !== this.id);
         this.memory.waitingForSquad = squadMember.length > 0;
         if (this.ticksToLive <= 1000 || squadMember.length) {
             if (!squadMember.length) {
                 let otherRanger = _.filter(this.room.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0] ||
                     _.filter(Game.creeps, (c) => c.memory && c.memory.role === 'longbow' && c.memory.operation === this.memory.operation && c.id !== this.id && c.memory.waitingForSquad)[0];
                 if (otherRanger) {
-                    otherRanger.memory.targetRoom = this.memory.targetRoom;
+                    otherRanger.memory.destination = this.memory.destination;
                     otherRanger.memory.squadLeader = undefined;
                 }
             }
@@ -40,7 +40,7 @@ Creep.prototype.rangersRoom = function () {
         this.attackInRange();
         if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
         // Move to room if needed
-        if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+        if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
         levelManager(this);
         // Sustainability
         highCommand.operationSustainability(this.room);
@@ -69,25 +69,25 @@ Creep.prototype.rangersRoom = function () {
 };
 
 function levelManager(creep) {
-    if (!Memory.targetRooms[creep.memory.targetRoom] || creep.room.name !== creep.memory.targetRoom) return;
+    if (!Memory.targetRooms[creep.memory.destination] || creep.room.name !== creep.memory.destination) return;
     let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
     let towers = _.filter(creep.room.structures, (c) => c.structureType === STRUCTURE_TOWER && c.energy > 10);
     let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
     if (towers.length) {
-        delete Memory.targetRooms[creep.memory.targetRoom];
+        delete Memory.targetRooms[creep.memory.destination];
         creep.room.cacheRoomIntel(true);
         log.a('Canceling operation in ' + roomLink(creep.room.name) + ' as we are not equipped to fight towers.', 'HIGH COMMAND: ');
         return;
     }
     if (armedEnemies.length) {
-        Memory.targetRooms[creep.memory.targetRoom].level = 2;
+        Memory.targetRooms[creep.memory.destination].level = 2;
     } else if (enemyCreeps.length) {
-        Memory.targetRooms[creep.memory.targetRoom].level = 1;
+        Memory.targetRooms[creep.memory.destination].level = 1;
     } else {
-        Memory.targetRooms[creep.memory.targetRoom].level = 0;
+        Memory.targetRooms[creep.memory.destination].level = 0;
     }
     if (creep.room.controller) {
-        if (creep.room.controller.owner) return Memory.targetRooms[creep.memory.targetRoom].type = 'hold';
+        if (creep.room.controller.owner) return Memory.targetRooms[creep.memory.destination].type = 'hold';
         if (creep.room.controller.reservation) Memory.targetRooms[creep.room.name].claimAttacker = !creep.room.controller.upgradeBlocked && creep.room.controller.reservation.ticksToEnd >= 500;
     }
 }

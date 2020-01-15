@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -9,8 +9,8 @@ let highCommand = require('military.highCommand');
 
 Creep.prototype.drainRoom = function () {
     // If room is no longer a target
-    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle = true;
-    if (this.room.name === this.memory.targetRoom) {
+    if (!Memory.targetRooms[this.memory.destination]) return this.memory.recycle = true;
+    if (this.room.name === this.memory.destination) {
         let sentence = ['Gimme', 'That', 'Energy', 'Please'];
         let word = Game.time % sentence.length;
         this.say(sentence[word], true);
@@ -41,6 +41,6 @@ Creep.prototype.drainRoom = function () {
         }
         highCommand.operationSustainability(this.room);
     }
-    if (this.room.name === this.memory.targetRoom || this.hits < this.hitsMax) this.heal(this);
+    if (this.room.name === this.memory.destination || this.hits < this.hitsMax) this.heal(this);
     this.borderHump();
 };

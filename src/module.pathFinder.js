@@ -251,10 +251,10 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                     log.e(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
                     log.e('Ret - ' + JSON.stringify(ret));
                     if (allowedRooms) log.e('Path - ' + allowedRooms);
-                    if (creep.memory.military && creep.memory.targetRoom) {
-                        delete Memory.targetRooms[creep.memory.targetRoom];
-                        delete Memory.roomCache[creep.memory.targetRoom];
-                        log.a('Canceling operation in ' + roomLink(creep.memory.targetRoom) + ' as we cannot find a path.', 'HIGH COMMAND: ');
+                    if (creep.memory.military && creep.memory.destination) {
+                        delete Memory.targetRooms[creep.memory.destination];
+                        delete Memory.roomCache[creep.memory.destination];
+                        log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
                     }
                     return creep.memory.recycle = true;
                 }
@@ -712,7 +712,7 @@ RoomPosition.prototype.shibMove = function (destination, options) {
 Creep.prototype.shibKite = function (fleeRange = 6) {
     if (!this.getActiveBodyparts(MOVE)) return false;
     let avoid = _.filter(this.room.hostileCreeps, (c) => (c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK)) && this.pos.getRangeTo(c) <= fleeRange + 1);
-    if ((this.memory.destination === this.room.name || this.memory.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
+    if ((this.memory.destination === this.room.name || this.memory.other.responseTarget === this.room.name) && Memory.roomCache[this.room.name] && Memory.roomCache[this.room.name].sk) {
         let sk = _.filter(this.room.creeps, (c) => c.owner.username === 'Source Keeper' && this.pos.getRangeTo(c) <= fleeRange + 1);
         avoid = _.union(avoid, sk);
     }

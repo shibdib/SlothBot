@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -10,7 +10,7 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.room.name !== creep.memory.targetRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {range: 22});
+    if (creep.room.name !== creep.memory.destination) return creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 22});
     if (creep.room.controller.upgradeBlocked > creep.ticksToLive) creep.memory.recycle = true;
     if (creep.room.controller && (creep.room.controller.owner || creep.room.controller.reservation)) {
         switch (creep.attackController(creep.room.controller)) {

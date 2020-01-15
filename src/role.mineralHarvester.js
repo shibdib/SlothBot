@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -13,8 +13,8 @@ module.exports.role = function (creep) {
     if (creep.tryToBoost(['harvest'])) return;
     if (creep.wrongRoom()) return;
     // Check if mineral depleted
-    if (creep.memory.assignedMineral && Game.getObjectById(creep.memory.assignedMineral).mineralAmount === 0) {
-        log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.assignedMineral).mineralType + ' has been depleted.');
+    if (creep.memory.other.assignedMineral && Game.getObjectById(creep.memory.other.assignedMineral).mineralAmount === 0) {
+        log.a(creep.room.name + ' supply of ' + Game.getObjectById(creep.memory.other.assignedMineral).mineralType + ' has been depleted.');
         return creep.memory.recycle = true;
     }
     if (creep.memory.extractor) {
@@ -32,7 +32,7 @@ module.exports.role = function (creep) {
         if (extractor.cooldown && extractor.pos.getRangeTo(creep) < 2) {
             creep.idleFor(extractor.cooldown - 1)
         } else {
-            let mineral = Game.getObjectById(creep.memory.assignedMineral);
+            let mineral = Game.getObjectById(creep.memory.other.assignedMineral);
             switch (creep.harvest(mineral)) {
                 case ERR_NOT_IN_RANGE:
                     creep.shibMove(mineral);

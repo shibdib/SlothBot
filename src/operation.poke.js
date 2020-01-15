@@ -14,7 +14,7 @@ Creep.prototype.pokeRoom = function () {
     if (!this.canIWin(6)) return this.shibKite(7);
     highCommand.operationSustainability(this.room);
     if (!this.handleMilitaryCreep(false, false, false, true)) {
-        if (this.memory.targetRoom !== this.room.name) this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23}); else this.scorchedEarth();
+        if (this.memory.destination !== this.room.name) this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23}); else this.scorchedEarth();
     } else {
         sentence = ['PLEASE', 'JUST', 'DIE'];
     }

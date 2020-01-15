@@ -25,18 +25,18 @@ Creep.prototype.borderPatrol = function () {
     if (this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
     } else if (Math.random() > 0.7 && !this.canIWin(50)) {
-        if (this.memory.responseTarget && this.room.name === this.memory.responseTarget) this.memory.responseTarget = undefined;
+        if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
         this.memory.runCooldown = 5;
         return this.goHomeAndHeal();
     } else if (!this.canIWin(6)) {
-        if (this.memory.responseTarget && this.room.name === this.memory.responseTarget) this.memory.responseTarget = undefined;
+        if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
         this.shibKite(6);
-    } else if (this.memory.responseTarget && this.room.name !== this.memory.responseTarget) {
-        this.shibMove(new RoomPosition(25, 25, this.memory.responseTarget), {range: 22});
+    } else if (this.memory.other.responseTarget && this.room.name !== this.memory.other.responseTarget) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.other.responseTarget), {range: 22});
     } else {
         // If on target, be available to respond
         if (!this.memory.onTarget) this.memory.onTarget = Game.time;
-        this.memory.responseTarget = undefined;
+        this.memory.other.responseTarget = undefined;
         this.memory.awaitingOrders = true;
         // Idle in target rooms for 100-250 ticks
         if (this.memory.onTarget && this.memory.onTarget + _.random(100, 250) <= Game.time) {

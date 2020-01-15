@@ -8,20 +8,20 @@
 let highCommand = require('military.highCommand');
 
 Creep.prototype.robbery = function () {
-    let sentence = ['#overlords', 'Thanks', 'For', 'The', 'Stuff', this.memory.targetRoom];
+    let sentence = ['#overlords', 'Thanks', 'For', 'The', 'Stuff', this.memory.destination];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     let terminal = this.room.terminal;
     let storage = this.room.storage;
     // Kill if target is gone
-    if (!Memory.targetRooms[this.memory.targetRoom]) return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.memory.destination]) return this.memory.recycle = true;
     let tower = _.max(_.filter(this.room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 0), 'energy');
-    if (this.room.name !== this.memory.targetRoom && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
+    if (this.room.name !== this.memory.destination && !this.memory.hauling) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {
         range: 23,
         preferHighway: true,
         offRoad: true
     });
-    if (this.room.name === this.memory.targetRoom && (!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) {
+    if (this.room.name === this.memory.destination && (!terminal || !_.sum(terminal.store)) && (!storage || !_.sum(storage.store))) {
         highCommand.operationSustainability(this.room);
         switch (this.signController(this.room.controller, 'Thanks for the loot! #robbed #Overlord-Bot')) {
             case OK:
@@ -41,7 +41,7 @@ Creep.prototype.robbery = function () {
         return this.memory.role = 'remoteHauler';
     }
     // Set level based on how much stuff to haul
-    if (this.room.name === this.memory.targetRoom) {
+    if (this.room.name === this.memory.destination) {
         let tick = Game.time;
         let storageAmount, terminalAmount = 0;
         if (storage) storageAmount = _.sum(_.filter(storage.store, (r) => _.includes(TIER_2_BOOSTS, r.resourceType) || _.includes(END_GAME_BOOSTS, r.resourceType))) || 0;

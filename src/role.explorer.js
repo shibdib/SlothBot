@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -14,11 +14,11 @@ module.exports.role = function (creep) {
     creep.say(_.sample(sayings), true);
     if (!creep.memory.destination) {
         let portal = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_PORTAL)[0];
-        if (portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.portalJump || Math.random() > 0.5)) {
-            if (!creep.memory.portalJump) {
-                creep.memory.portalJump = portal.destination.roomName;
+        if (portal && !portal.destination.shard && !creep.memory.usedPortal && (creep.memory.other.portalJump || Math.random() > 0.5)) {
+            if (!creep.memory.other.portalJump) {
+                creep.memory.other.portalJump = portal.destination.roomName;
                 log.a(creep.name + ' has found a portal in ' + roomLink(creep.room.name) + ' and is taking it.')
-            } else if (creep.memory.portalJump === creep.room.name) {
+            } else if (creep.memory.other.portalJump === creep.room.name) {
                 return creep.memory.usedPortal = true;
             }
             return creep.moveTo(portal);

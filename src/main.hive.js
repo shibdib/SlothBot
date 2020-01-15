@@ -85,10 +85,10 @@ module.exports.hiveMind = function () {
         }
     }
 
-    //Non room specific creep spawning
+    // Global creep queue
     if (Game.time % 25 === 0) {
         try {
-            spawning.militaryCreepQueue();
+            spawning.globalCreepQueue();
         } catch (e) {
             log.e('Military Creep queue experienced an error');
             log.e(e.stack);

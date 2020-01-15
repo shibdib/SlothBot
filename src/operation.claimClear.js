@@ -6,7 +6,7 @@
  */
 
 Creep.prototype.claimClear = function () {
-    if (this.room.name === this.memory.targetRoom) {
+    if (this.room.name === this.memory.destination) {
         if (!this.room.controller.owner) {
             switch (this.claimController(this.room.controller)) {
                 case ERR_NOT_IN_RANGE:
@@ -29,7 +29,7 @@ Creep.prototype.claimClear = function () {
             this.memory.recycle = true;
         }
     } else {
-        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 23});
+        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
     }
 };
 

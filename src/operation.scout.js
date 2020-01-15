@@ -6,18 +6,20 @@
  */
 
 Creep.prototype.scoutRoom = function () {
-    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', this.memory.targetRoom];
+    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', this.memory.destination];
     let word = Game.time % sentence.length;
     this.say(sentence[word], true);
     // Handle edge case where room is overlord
-    if (this.memory.targetRoom === this.memory.overlord) {
+    if (this.memory.destination === this.memory.overlord) {
         delete Memory.targetRooms[this.room.name];
         return this.memory.recycle = true;
     }
-    if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {
-        range: 23,
-        offRoad: true
-    });
+    if (this.room.name !== this.memory.destination) {
+        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {
+            range: 23,
+            offRoad: true
+        });
+    }
     // If room is no longer a target
     if (!Memory.targetRooms[this.room.name]) return this.memory.recycle = true;
     // Handle claim scout missions
@@ -221,18 +223,9 @@ function nukeTarget(room) {
 
 // Handle claim scouting
 function claimScout(creep) {
-    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', creep.memory.targetRoom];
+    let sentence = [MY_USERNAME, 'Scout', 'Drone', 'For', creep.memory.destination];
     let word = Game.time % sentence.length;
     creep.say(sentence[word], true);
-    // If room is no longer a target
-    if (!Memory.targetRooms[creep.memory.targetRoom]) return creep.memory.recycle = true;
-    // Cache intel
-    creep.room.cacheRoomIntel();
-    // Travel to room
-    if (creep.room.name !== creep.memory.targetRoom) return creep.shibMove(new RoomPosition(25, 25, creep.memory.targetRoom), {
-        range: 23,
-        offRoad: true
-    });
     // Make sure it's not super far away
     let range = creep.room.findClosestOwnedRoom(true);
     // Determine if room is still suitable
@@ -263,16 +256,16 @@ function forwardObserver(creep) {
     highCommand.operationSustainability(creep.room);
     levelManager(creep);
     //Type specific stuff
-    switch (Memory.targetRooms[creep.memory.targetRoom].type) {
+    switch (Memory.targetRooms[creep.memory.destination].type) {
         case 'hold':
             // HOLD - Clear target if room is no longer owned
             if (!creep.room.controller.owner || creep.room.controller.safeMode || !Memory.targetRooms[creep.room.name]) {
-                log.a('Canceling hold operation in ' + roomLink(creep.memory.targetRoom) + ' as it is no longer owned.', 'HIGH COMMAND: ');
-                delete Memory.targetRooms[creep.memory.targetRoom];
+                log.a('Canceling hold operation in ' + roomLink(creep.memory.destination) + ' as it is no longer owned.', 'HIGH COMMAND: ');
+                delete Memory.targetRooms[creep.memory.destination];
                 return;
             }
             // Request unClaimer if room level is too high
-            Memory.targetRooms[creep.memory.targetRoom].claimAttacker = !creep.room.controller.upgradeBlocked && (!creep.room.controller.ticksToDowngrade || creep.room.controller.ticksToDowngrade > 1000);
+            Memory.targetRooms[creep.memory.destination].claimAttacker = !creep.room.controller.upgradeBlocked && (!creep.room.controller.ticksToDowngrade || creep.room.controller.ticksToDowngrade > 1000);
             break;
     }
     let armedEnemies = _.filter(creep.room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
@@ -292,15 +285,15 @@ function forwardObserver(creep) {
 }
 
 function levelManager(creep) {
-    if (Memory.targetRooms[creep.memory.targetRoom]) {
+    if (Memory.targetRooms[creep.memory.destination]) {
         let enemyCreeps = _.filter(creep.room.creeps, (c) => !_.includes(FRIENDLIES, c.owner.username));
         let armedEnemies = _.filter(enemyCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
         if (armedEnemies.length) {
-            Memory.targetRooms[creep.memory.targetRoom].level = 2;
+            Memory.targetRooms[creep.memory.destination].level = 2;
         } else if (enemyCreeps.length) {
-            Memory.targetRooms[creep.memory.targetRoom].level = 1;
+            Memory.targetRooms[creep.memory.destination].level = 1;
         } else {
-            Memory.targetRooms[creep.memory.targetRoom].level = 0;
+            Memory.targetRooms[creep.memory.destination].level = 0;
         }
     }
 }

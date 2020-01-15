@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -13,16 +13,16 @@ Creep.prototype.siegeGroupRoom = function () {
     this.say(sentence[word], true);
     // Set squad leader
     if (!this.memory.squadLeader && !this.memory.leader) {
-        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.memory.squadLeader);
+        let squadLeader = _.filter(Game.creeps, (c) => c.memory && c.memory.destination === this.memory.destination && c.memory.operation === 'siegeGroup' && c.memory.squadLeader);
         if (!squadLeader.length && this.memory.role === 'siegeEngine') this.memory.squadLeader = true; else if (squadLeader.length) this.memory.leader = squadLeader[0].id;
     }
     // Handle squad leader
     if (this.memory.squadLeader) {
         // Sustainability
-        if (this.room.name === this.memory.targetRoom) highCommand.operationSustainability(this.room);
+        if (this.room.name === this.memory.destination) highCommand.operationSustainability(this.room);
         //levelManager(this);
         // Check for squad
-        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === this.memory.operation && c.id !== this.id);
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.destination === this.memory.destination && c.memory.operation === this.memory.operation && c.id !== this.id);
         if (!squadMember.length) {
             if (this.room.controller && this.room.controller.my) this.idleFor(10);
             return this.handleMilitaryCreep(false, false);
@@ -33,7 +33,7 @@ Creep.prototype.siegeGroupRoom = function () {
         // Heal
         if (this.hits < this.hitsMax) this.heal(this);
         // Move to response room if needed
-        if (this.room.name !== this.memory.targetRoom) return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+        if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 22});
         this.siege();
     } else {
         // Set leader and move to them
@@ -54,7 +54,7 @@ Creep.prototype.siegeGroupRoom = function () {
             this.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 23});
         }
         // Heal squadmates
-        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.targetRoom === this.memory.targetRoom && c.memory.operation === 'siegeGroup' && c.id !== this.id);
+        let squadMember = _.filter(this.room.creeps, (c) => c.memory && c.memory.destination === this.memory.destination && c.memory.operation === 'siegeGroup' && c.id !== this.id);
         // Heal squad
         let woundedSquad = _.filter(squadMember, (c) => c.hits < c.hitsMax && c.pos.getRangeTo(this) === 1);
         if (this.hits === this.hitsMax && woundedSquad[0]) this.heal(woundedSquad[0]); else if (this.hits < this.hitsMax) this.heal(this);
