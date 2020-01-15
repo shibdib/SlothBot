@@ -170,7 +170,7 @@ Creep.prototype.attackHostile = function (hostile) {
             let range = this.pos.getRangeTo(hostile);
             let lastRange = this.memory.lastRange || range;
             this.memory.lastRange = range;
-            if (Math.random() > 0.3 && range >= lastRange && range <= 4 && hostile.getActiveBodyparts(RANGED_ATTACK) && this.hits < this.hitsMax * 0.95) {
+            if (hostile instanceof Creep && Math.random() > 0.3 && range >= lastRange && range <= 4 && hostile.getActiveBodyparts(RANGED_ATTACK) && this.hits < this.hitsMax * 0.95) {
                 this.memory.kiteCount = this.memory.kiteCount || 1;
                 if (this.memory.kiteCount > 5 || this.hits < this.hitsMax * 0.5) {
                     this.goHomeAndHeal();
