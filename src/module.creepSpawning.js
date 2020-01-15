@@ -612,6 +612,8 @@ module.exports.globalCreepQueue = function () {
                 priority = PRIORITIES.priority;
                 break;
         }
+        // Some backwards checking
+        if (Memory.targetRooms[key].targetRoom) return Memory.targetRooms[key] = undefined;
         switch (Memory.targetRooms[key].type) {
             // Claiming
             case 'claim':

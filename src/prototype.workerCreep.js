@@ -434,12 +434,12 @@ Creep.prototype.haulerDelivery = function () {
         }
     }
     // Spawns/Extensions
-    if (!this.memory.spawnsExtension) {
-        this.memory.spawnsExtension = JSON.stringify(_.pluck(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length), 'id'));
+    if (!this.memory.other.spawnsExtensions) {
+        this.memory.other.spawnsExtensions = JSON.stringify(_.pluck(_.filter(this.room.structures, (s) => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && !s.pos.findInRange(FIND_MY_CREEPS, 1, {filter: (c) => c.memory.role === 'stationaryHarvester'}).length), 'id'));
         return;
     } else {
         let spawnsExtensions = [];
-        let parsedID = JSON.parse(this.memory.spawnsExtension);
+        let parsedID = JSON.parse(this.memory.other.spawnsExtensions);
         parsedID.forEach((s) => spawnsExtensions.push(Game.getObjectById(s)));
         if (spawnsExtensions.length) {
             let target = this.pos.findClosestByPath(_.filter(spawnsExtensions, (s) => s.energy < s.energyCapacity && !_.filter(this.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length));
