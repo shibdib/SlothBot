@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 6/6/2017.
  */
@@ -17,7 +24,7 @@ module.exports.linkControl = function (room) {
         if (link.energy < 50) continue;
         let upgrader = _.filter(link.room.creeps, (c) => c.memory && c.memory.role === 'upgrader')[0];
         // Controller link if conditions met
-        if (upgrader && ((controllerLink && controllerLink.energy < 50 && Math.random() > 0.8) || (room.energyState && controllerLink && controllerLink.energy < 450))) {
+        if (upgrader && ((controllerLink && controllerLink.energy < 50 && Math.random() > 0.5) || (room.energyState && controllerLink && controllerLink.energy < 450))) {
             link.transferEnergy(controllerLink);
         } else if (storageLink && storageLink.energy < 500) {
             link.transferEnergy(storageLink);
