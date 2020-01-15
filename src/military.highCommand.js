@@ -254,29 +254,21 @@ function manageAttacks() {
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
     if (!Memory.targetRooms) Memory.targetRooms = {};
-    // Clear scouts first if over limit
-    if (totalCountFiltered > COMBAT_LIMIT) {
-        let cullAmount = totalCountFiltered - COMBAT_LIMIT;
-        let culled = 0;
-        let scouts = _.filter(Memory.targetRooms, (target) => target.type === 'attack' || target.type === 'scout');
-        for (let key in scouts) {
-            if (culled >= cullAmount) break;
-            culled++;
-            totalCountFiltered--;
-            log.a('Canceling scouting in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
-            delete Memory.targetRooms[key];
-        }
-    }
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
         let type = Memory.targetRooms[key].type;
-
         // Special Conditions
         switch (type) {
             // Manage Scouts
             case 'scout':
             case 'attack':
-                if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.destination === key).length) staleMulti = 0.25;
+                // Clear scouts first if over limit
+                if (totalCountFiltered > COMBAT_LIMIT) {
+                    log.a('Canceling scouting in ' + roomLink(key) + ' as we have too many active operations.', 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
+                } else {
+                    if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.destination === key).length) staleMulti = 0.25;
+                }
                 break;
             // Manage Pokes
             case 'poke':
