@@ -49,16 +49,16 @@ module.exports.processBuildQueue = function () {
                     if (topPriority.destination && Game.map.findRoute(topPriority.destination, spawn.room.name).length > 20) continue;
                     role = topPriority.role;
                     if (topPriority.misc && topPriority.misc === 'vary') level = _.random(_.round(level / 1.5), level);
-                    if (topPriority.reboot || level === 1) {
+                    if (topPriority.other.reboot || level === 1) {
                         body = _.get(SPAWN[0], role);
                     } else {
                         body = generator.bodyGenerator(level, role, spawn.room, topPriority.misc);
                     }
                     cost = global.UNIT_COST(body);
                     // If boosts are required to spawn check that a room has them
-                    if (topPriority.boostCheck) {
+                    if (topPriority.other.boostCheck) {
                         let hasBoost;
-                        for (let boost of BOOST_USE[topPriority.boostCheck]) {
+                        for (let boost of BOOST_USE[topPriority.other.boostCheck]) {
                             hasBoost = spawn.room.getBoostAmount(boost) >= 500;
                         }
                         if (!hasBoost) continue;
@@ -80,15 +80,9 @@ module.exports.processBuildQueue = function () {
                         overlord: undefined,
                         assignedSource: undefined,
                         destination: undefined,
-                        other: undefined,
+                        other: {},
                         military: undefined,
                         operation: undefined,
-                        siegePoint: undefined,
-                        waitFor: undefined,
-                        reservationTarget: undefined,
-                        initialBuilder: undefined,
-                        localCache: undefined,
-                        boostCheck: undefined,
                         misc: undefined
                     });
                     let name = role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
@@ -105,12 +99,6 @@ module.exports.processBuildQueue = function () {
                             other: topPriority.other,
                             military: topPriority.military,
                             operation: topPriority.operation,
-                            siegePoint: topPriority.siegePoint,
-                            waitFor: topPriority.waitFor,
-                            reservationTarget: topPriority.reservationTarget,
-                            initialBuilder: topPriority.initialBuilder,
-                            localCache: topPriority.localCache,
-                            boostCheck: topPriority.boostCheck,
                             misc: topPriority.misc
                         },
                         energyStructures: energyStructures
@@ -187,7 +175,7 @@ module.exports.essentialCreepQueue = function (room) {
     let harvesters = _.filter(roomCreeps, (c) => (c.memory.role === 'stationaryHarvester'));
     if (harvesters.length === 0) {
         delete roomQueue[room.name];
-        return queueCreep(room, 1, {role: 'stationaryHarvester', reboot: true});
+        return queueCreep(room, 1, {role: 'stationaryHarvester', other: {reboot: true}});
     } else {
         if (harvesters.length < 2 || (harvesters[0].ticksToLive < (harvesters[0].body.length * 3 + 10) && harvesters.length < 3)) {
             queueCreep(room, PRIORITIES.stationaryHarvester, {role: 'stationaryHarvester'})
@@ -198,12 +186,23 @@ module.exports.essentialCreepQueue = function (room) {
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (hauler.length === 0) {
             delete roomQueue[room.name];
-            return queueCreep(room, -1, {role: 'hauler', reboot: true, localCache: true});
+            return queueCreep(room, -1, {
+                role: 'hauler',
+                other: {
+                    reboot: true,
+                    localCache: true
+                }
+            });
         } else {
             let amount = 1;
             //if (room.controller.level >= 6 && room.energyCapacity * 0.4 > room.energyAvailable) amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
-                queueCreep(room, PRIORITIES.hauler + hauler.length, {role: 'hauler', localCache: true})
+                queueCreep(room, PRIORITIES.hauler + hauler.length, {
+                    role: 'hauler',
+                    other: {
+                        localCache: true
+                    }
+                })
             }
         }
     }
@@ -214,9 +213,20 @@ module.exports.essentialCreepQueue = function (room) {
         if ((filler[0] && filler[0].ticksToLive < (filler[0].body.length * 3 + 10) && filler.length < harvesters.length + 1) || filler.length < harvesters.length) {
             if (filler.length === 0) {
                 delete roomQueue[room.name];
-                return queueCreep(room, -1, {role: 'filler', reboot: true, localCache: true});
+                return queueCreep(room, -1, {
+                    role: 'filler',
+                    other: {
+                        reboot: true,
+                        localCache: true
+                    }
+                });
             } else {
-                queueCreep(room, PRIORITIES.hauler - 1, {role: 'filler', localCache: true})
+                queueCreep(room, PRIORITIES.hauler - 1, {
+                    role: 'filler',
+                    other: {
+                        localCache: true
+                    }
+                })
             }
         }
     }
@@ -249,7 +259,7 @@ module.exports.essentialCreepQueue = function (room) {
             reboot = true;
             priority = 1;
         }
-        queueCreep(room, priority + upgraders.length, {role: 'upgrader', reboot: reboot})
+        queueCreep(room, priority + upgraders.length, {role: 'upgrader', other: {reboot: reboot}})
     }
 };
 
@@ -265,14 +275,14 @@ module.exports.miscCreepQueue = function (room) {
         let priority = PRIORITIES.drone;
         let amount = 12 - level;
         if (drones.length < amount) {
-            queueCreep(room, priority + drones.length, {role: 'drone', localCache: true})
+            queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: true}})
         }
     }
     //LabTech
     if ((!queueTracker['labTech'] || queueTracker['labTech'] + 1400 <= Game.time) && room.terminal) {
         let labTech = _.filter(roomCreeps, (creep) => (creep.memory.role === 'labTech'));
         if (!labTech.length) {
-            queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', localCache: true})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'labTech', other: {localCache: true}})
         }
         queueTracker['labTech'] = Game.time;
     }
@@ -280,7 +290,7 @@ module.exports.miscCreepQueue = function (room) {
     if (level === 8 && room.energy >= ENERGY_AMOUNT && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0] && (!queueTracker['powerManager'] || queueTracker['powerManager'] + 1400 <= Game.time)) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (!powerManager.length) {
-            queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', localCache: true})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', other: {localCache: true}})
         }
         queueTracker['powerManager'] = Game.time;
     }
@@ -291,7 +301,7 @@ module.exports.miscCreepQueue = function (room) {
         let needed = _.filter(roomCreeps, (creep) => creep.memory.needExpediter)[0];
         let amount = 1;
         if (needed && expediter.length < amount) {
-            queueCreep(room, PRIORITIES.expediter, {role: 'expediter', localCache: true})
+            queueCreep(room, PRIORITIES.miscHauler, {role: 'expediter', other: {localCache: true}})
         }
         queueTracker['waller'] = Game.time;
     }
@@ -301,7 +311,7 @@ module.exports.miscCreepQueue = function (room) {
         let amount = 1;
         if (Memory.roomCache[room.name].responseNeeded) amount = 2;
         if (waller.length < amount) {
-            queueCreep(room, PRIORITIES.waller + (waller.length * 3), {role: 'waller', localCache: true})
+            queueCreep(room, PRIORITIES.waller + (waller.length * 3), {role: 'waller', other: {localCache: true}})
         }
         queueTracker['waller'] = Game.time;
     }
@@ -397,7 +407,7 @@ module.exports.miscCreepQueue = function (room) {
                             role: 'longbow',
                             operation: 'marauding',
                             military: true,
-                            localCache: true
+                            other: {localCache: true}
                         });
                     }
                     queueTracker['marauder'] = Game.time;
@@ -464,16 +474,18 @@ module.exports.remoteCreepQueue = function (room) {
                         operation: 'guard',
                         destination: remotes[keys],
                         military: true,
-                        localCache: true
+                        other: {localCache: true}
                     })
                 }
-                let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
+                let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.other.reservationTarget === remotes[keys]);
                 let amount = 1;
                 if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap;
                 if (reserver.length < amount && (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].isHighway)) {
                     queueCreep(room, PRIORITIES.reserver + reserver.length, {
                         role: 'reserver',
-                        reservationTarget: remotes[keys]
+                        other: {
+                            reservationTarget: remotes[keys]
+                        }
                     })
                 }
             }
@@ -521,13 +533,15 @@ module.exports.remoteCreepQueue = function (room) {
                     })
                 }
                 if (Memory.roomCache[remotes[keys]] && (!Memory.roomCache[remotes[keys]].reservationExpires || Game.time > Memory.roomCache[remotes[keys]].reservationExpires)) {
-                    let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.reservationTarget === remotes[keys]);
+                    let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.other.reservationTarget === remotes[keys]);
                     let amount = 1;
                     if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap;
                     if (reserver.length < amount && (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].isHighway)) {
                         queueCreep(room, PRIORITIES.reserver + reserver.length, {
                             role: 'reserver',
-                            reservationTarget: remotes[keys]
+                            other: {
+                                reservationTarget: remotes[keys]
+                            }
                         })
                     }
                 }
@@ -656,7 +670,7 @@ module.exports.globalCreepQueue = function () {
                         destination: key,
                         operation: 'hold',
                         military: true,
-                        reboot: reboot
+                        other: {reboot: reboot}
                     })
                 }
                 let claimAttacker = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'claimAttacker' && creep.memory.operation === 'hold');
@@ -697,7 +711,7 @@ module.exports.globalCreepQueue = function () {
                         destination: key,
                         operation: 'siegeGroup',
                         military: true,
-                        boostCheck: 'heal'
+                        other: {boostCheck: 'heal'}
                     })
                 }
                 break;
@@ -761,9 +775,11 @@ module.exports.globalCreepQueue = function () {
                         role: 'longbow',
                         destination: key,
                         operation: 'harass',
-                        waitFor: opLevel * 2,
-                        military: true,
-                        reboot: annoy
+                        other: {
+                            reboot: annoy,
+                            waitFor: opLevel * 2
+                        },
+                        military: true
                     })
                 }
                 break;
@@ -783,7 +799,7 @@ module.exports.globalCreepQueue = function () {
                         destination: key,
                         operation: 'drain',
                         military: true,
-                        boostCheck: 'heal'
+                        other: {boostCheck: 'heal'}
                     })
                 }
                 break;
@@ -797,7 +813,9 @@ module.exports.globalCreepQueue = function () {
                         destination: key,
                         operation: 'siege',
                         military: true,
-                        waitFor: opLevel * 2
+                        other: {
+                            waitFor: opLevel * 2
+                        }
                     })
                 }
                 if (siegeHealer.length < opLevel) {
@@ -806,8 +824,10 @@ module.exports.globalCreepQueue = function () {
                         destination: key,
                         operation: 'siege',
                         military: true,
-                        waitFor: opLevel * 2,
-                        boostCheck: 'heal'
+                        other: {
+                            waitFor: opLevel * 2,
+                            boostCheck: 'heal'
+                        },
                     })
                 }
                 break;
@@ -819,7 +839,9 @@ module.exports.globalCreepQueue = function () {
                         destination: key,
                         operation: 'swarm',
                         military: true,
-                        waitFor: 110 * opLevel
+                        other: {
+                            waitFor: opLevel * 110
+                        },
                     })
                 }
                 break;
@@ -833,7 +855,9 @@ module.exports.globalCreepQueue = function () {
                         destination: key,
                         operation: 'rangers',
                         military: true,
-                        waitFor: 2
+                        other: {
+                            waitFor: 2
+                        },
                     })
                 }
                 let rangerUnClaimer = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'claimAttacker' && creep.memory.operation === 'rangers');
@@ -885,15 +909,9 @@ function queueCreep(room, importance, options = {}, military = false) {
         role: undefined,
         assignedSource: undefined,
         destination: undefined,
-        other: undefined,
+        other: {},
         military: undefined,
         operation: undefined,
-        siegePoint: undefined,
-        waitFor: undefined,
-        reservationTarget: undefined,
-        initialBuilder: undefined,
-        localCache: undefined,
-        reboot: undefined,
         misc: undefined
     });
     if (room) {
@@ -908,12 +926,6 @@ function queueCreep(room, importance, options = {}, military = false) {
             other: options.other,
             military: options.military,
             operation: options.operation,
-            siegePoint: options.siegePoint,
-            waitFor: options.waitFor,
-            reservationTarget: options.reservationTarget,
-            initialBuilder: options.initialBuilder,
-            localCache: options.localCache,
-            reboot: options.reboot,
             misc: options.misc
         };
         if (!military) {
@@ -933,12 +945,8 @@ function queueGlobalCreep(priority, options = {}) {
         assignedSource: undefined,
         destination: undefined,
         military: undefined,
+        other: {},
         operation: undefined,
-        siegePoint: undefined,
-        waitFor: undefined,
-        reservationTarget: undefined,
-        initialBuilder: undefined,
-        reboot: undefined,
         misc: undefined
     });
     let key = options.role;
@@ -949,12 +957,8 @@ function queueGlobalCreep(priority, options = {}) {
         assignedSource: options.assignedSource,
         destination: options.destination,
         military: options.military,
+        other: options.other,
         operation: options.operation,
-        siegePoint: options.siegePoint,
-        waitFor: options.waitFor,
-        reservationTarget: options.reservationTarget,
-        initialBuilder: options.initialBuilder,
-        reboot: options.reboot,
         misc: options.misc
     };
     globalQueue = cache;

@@ -467,14 +467,14 @@ Creep.prototype.attackInRange = function () {
 };
 
 Creep.prototype.moveToStaging = function () {
-    if (!this.memory.waitFor || this.memory.stagingComplete || this.memory.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.destination) return false;
+    if (!this.memory.other || !this.memory.other.waitFor || this.memory.stagingComplete || this.memory.other.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.destination) return false;
     // Recycle if operation canceled
     if (!Memory.destinations[this.memory.destination]) return this.memory.recycle = true;
     if (this.memory.stagingRoom === this.room.name) {
         if (this.findClosestEnemy()) return this.handleMilitaryCreep(false, true);
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 7});
         let inPlace = _.filter(this.room.creeps, (creep) => creep.memory && creep.memory.destination === this.memory.destination);
-        if (inPlace.length >= this.memory.waitFor || this.ticksToLive <= 250) {
+        if (inPlace.length >= this.memory.other.waitFor || this.ticksToLive <= 250) {
             this.memory.stagingComplete = true;
             if (!Memory.destinations[this.memory.destination].lastWave || Memory.destinations[this.memory.destination].lastWave + 50 < Game.time) {
                 let waves = Memory.destinations[this.memory.destination].waves || 0;

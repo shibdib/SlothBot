@@ -13,7 +13,7 @@ module.exports.role = function (creep) {
     //Invader detection
     if (creep.fleeHome()) return;
     //Initial Move
-    if (creep.pos.roomName !== creep.memory.reservationTarget) return creep.shibMove(new RoomPosition(25, 25, creep.memory.reservationTarget, {range: 23}));
+    if (creep.pos.roomName !== creep.memory.other.reservationTarget) return creep.shibMove(new RoomPosition(25, 25, creep.memory.other.reservationTarget, {range: 23}));
     //Reserver
     if (creep.memory.inPlace) {
         if (!creep.room.controller.reservation || creep.room.controller.reservation.username === MY_USERNAME) {
