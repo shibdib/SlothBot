@@ -5,10 +5,6 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-/**
- * Created by rober on 5/16/2017.
- */
-
 module.exports.highCommand = function () {
     if (!Memory.targetRooms) Memory.targetRooms = {};
     let maxLevel = Memory.maxLevel;
