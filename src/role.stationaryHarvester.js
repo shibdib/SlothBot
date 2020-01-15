@@ -137,8 +137,6 @@ function harvestDepositLink(creep) {
                 let hub = new RoomPosition(creep.room.memory.bunkerHub.x, creep.room.memory.bunkerHub.y, creep.room.name);
                 if (otherHarvester.pos.getRangeTo(hub) > creep.pos.getRangeTo(hub)) return;
             }
-            let links = _.filter(creep.room.structures, (s) => s.structureType === STRUCTURE_LINK);
-            if (links.length <= 2 && !creep.room.memory.hubLink) return;
             let zoneTerrain = creep.room.lookForAtArea(LOOK_TERRAIN, container.pos.y - 1, container.pos.x - 1, container.pos.y + 1, container.pos.x + 1, true);
             for (let key in zoneTerrain) {
                 let position = new RoomPosition(zoneTerrain[key].x, zoneTerrain[key].y, creep.room.name);

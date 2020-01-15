@@ -99,7 +99,7 @@ function buildFromLayout(room) {
     }
     // Hub
     if (room.memory.bunkerVersion < 2 || room.memory.bunkerVersion > 5) {
-        if (level >= 7 || room.memory.hubLink) {
+        if (level >= 5 || room.memory.hubLink) {
             delete room.memory.hubContainer;
             if (hub.checkForAllStructure()[0]) {
                 if (hub.checkForAllStructure()[0].structureType === STRUCTURE_LINK) room.memory.hubLink = hub.checkForAllStructure()[0].id;
@@ -203,7 +203,7 @@ function buildFromLayout(room) {
         } else {
             room.memory.controllerContainer = controllerContainer.id;
         }
-    } else if (room.controller.level >= 5) {
+    } else if (room.controller.level >= 7) {
         let controllerLink = _.filter(room.controller.pos.findInRange(room.structures, 2), (s) => s.structureType === STRUCTURE_LINK)[0];
         if (!controllerLink) {
             let zoneTerrain = room.lookForAtArea(LOOK_TERRAIN, controllerContainer.pos.y - 1, controllerContainer.pos.x - 1, controllerContainer.pos.y + 1, controllerContainer.pos.x + 1, true);
