@@ -578,8 +578,8 @@ module.exports.remoteCreepQueue = function (room) {
 
 //Military creeps
 module.exports.globalCreepQueue = function () {
-    if (!_.size(Memory.targetRooms.assign(Memory.auxiliaryTargets))) return;
-    let operations = Memory.targetRooms.assign(Memory.auxiliaryTargets);
+    let operations = Object.assign(Memory.targetRooms, Memory.auxiliaryTargets);
+    if (!_.size(operations)) return;
     let queue = globalQueue;
     // Targets
     for (let key in shuffle(operations)) {
