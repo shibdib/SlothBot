@@ -36,7 +36,9 @@ function manageResponseForces() {
     let guard = _.findKey(Memory.targetRooms, (o) => o.type === 'guard' && o.level);
     let friendlyResponsePower = 0;
     if (ownedRoomAttack) {
-        for (let creep of idleResponders) {
+        for (let creep of _.sortBy(idleResponders, function (c) {
+            Game.map.getRoomLinearDistance(c.pos.roomName, ownedRoomAttack);
+        })) {
             if (friendlyResponsePower > Memory.roomCache[ownedRoomAttack].hostilePower) break;
             friendlyResponsePower += creep.combatPower;
             creep.memory.other.responseTarget = ownedRoomAttack;
@@ -45,7 +47,9 @@ function manageResponseForces() {
             log.a(creep.name + ' reassigned to assist in the defense of ' + roomLink(ownedRoomAttack) + ' from ' + roomLink(creep.room.name));
         }
     } else if (responseTargets && responseTargets.name) {
-        for (let creep of idleResponders) {
+        for (let creep of _.sortBy(idleResponders, function (c) {
+            Game.map.getRoomLinearDistance(c.pos.roomName, responseTargets.name);
+        })) {
             if (friendlyResponsePower > responseTargets.hostilePower * 1.1) break;
             friendlyResponsePower += creep.combatPower;
             creep.memory.other.responseTarget = responseTargets.name;
@@ -53,19 +57,23 @@ function manageResponseForces() {
             creep.memory.idle = undefined;
             log.a(creep.name + ' responding to ' + roomLink(responseTargets.name) + ' from ' + roomLink(creep.room.name));
         }
-    } else if (guard) {
-        for (let creep of idleResponders) {
-            creep.memory.other.responseTarget = guard;
-            creep.memory.awaitingOrders = undefined;
-            creep.memory.idle = undefined;
-            log.a(creep.name + ' reassigned to help guard ' + roomLink(guard) + ' from ' + roomLink(creep.room.name));
-        }
     } else if (highestHeat && highestHeat.name) {
-        for (let creep of idleResponders) {
+        for (let creep of _.sortBy(idleResponders, function (c) {
+            Game.map.getRoomLinearDistance(c.pos.roomName, highestHeat.name);
+        })) {
             creep.memory.other.responseTarget = highestHeat.name;
             creep.memory.awaitingOrders = undefined;
             creep.memory.idle = undefined;
             if (creep.room.name !== highestHeat.name) log.a(creep.name + ' reassigned to a contested room ' + roomLink(highestHeat.name) + ' from ' + roomLink(creep.room.name));
+        }
+    } else if (guard) {
+        for (let creep of _.sortBy(idleResponders, function (c) {
+            Game.map.getRoomLinearDistance(c.pos.roomName, guard);
+        })) {
+            creep.memory.other.responseTarget = guard;
+            creep.memory.awaitingOrders = undefined;
+            creep.memory.idle = undefined;
+            log.a(creep.name + ' reassigned to help guard ' + roomLink(guard) + ' from ' + roomLink(creep.room.name));
         }
     }
 }
