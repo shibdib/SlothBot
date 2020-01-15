@@ -553,27 +553,13 @@ Creep.prototype.siege = function () {
             target = this.findClosestBarrier();
         }
         if (!target) {
-            let terminal = this.room.terminal;
-            let storage = this.room.storage;
-            if ((terminal && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) > 0) || (storage && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY)) > 0)) {
-                let cache = Memory.destinations || {};
-                let tick = Game.time;
-                cache[this.pos.roomName] = {
-                    tick: tick,
-                    type: 'robbery',
-                    level: 1
-                };
-                Memory.destinations = cache;
-            } else {
-                let cache = Memory.destinations || {};
-                let tick = Game.time;
-                cache[this.pos.roomName] = {
-                    tick: tick,
-                    type: 'hold',
-                    level: 1
-                };
-                Memory.destinations = cache;
-            }
+            let cache = Memory.destinations || {};
+            cache[this.pos.roomName] = {
+                tick: Game.time,
+                type: 'hold',
+                level: 1
+            };
+            Memory.destinations = cache;
             if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
             this.moveToHostileConstructionSites();
         } else {

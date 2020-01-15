@@ -31,15 +31,19 @@ module.exports.role = function (creep) {
         if (creep.memory.awaitingOrders) return creep.memory.other.responseTarget = undefined;
         if (creep.ticksToLive < 750) creep.memory.operation = 'borderPatrol';
     } else if (creep.memory.operation) {
-        // Harass
-        if (creep.memory.operation === 'harass') creep.harassRoom();
-        // Marauder
-        if (creep.memory.operation === 'marauding') creep.marauding();
-        // Escort
-        if (creep.memory.operation === 'guard') creep.guardRoom();
-        // Hold
-        if (creep.memory.operation === 'hold') creep.holdRoom();
-        // Hold
-        if (creep.memory.operation === 'rangers') creep.rangersRoom();
+        switch (creep.memory.operation) {
+            case 'marauding':
+                creep.marauding();
+                break;
+            case 'guard':
+                creep.guardRoom();
+                break;
+            case 'hold':
+                creep.holdRoom();
+                break;
+            case 'rangers':
+                creep.rangersRoom();
+                break;
+        }
     }
 };

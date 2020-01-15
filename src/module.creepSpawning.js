@@ -759,19 +759,6 @@ module.exports.globalCreepQueue = function () {
                     })
                 }
                 break;
-            case 'robbery': //Room Robbery
-                let raider = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'raider');
-                if (opLevel > 10) opLevel = 6;
-                if (TEN_CPU) opLevel = 1;
-                if (raider.length < opLevel && !_.includes(queue, 'raider')) {
-                    queueGlobalCreep(priority, {
-                        role: 'raider',
-                        destination: key,
-                        operation: 'robbery',
-                        military: true
-                    })
-                }
-                break;
             case 'harass': // Harass
                 let harasser = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'longbow');
                 let annoy = operations[key].annoy;
@@ -832,20 +819,6 @@ module.exports.globalCreepQueue = function () {
                         other: {
                             waitFor: opLevel * 2,
                             boostCheck: 'heal'
-                        },
-                    })
-                }
-                break;
-            case 'swarm': // Swarm
-                let swarm = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'swarm');
-                if (swarm.length < (120 * opLevel) + 10) {
-                    queueGlobalCreep(priority, {
-                        role: 'swarm',
-                        destination: key,
-                        operation: 'swarm',
-                        military: true,
-                        other: {
-                            waitFor: opLevel * 110
                         },
                     })
                 }

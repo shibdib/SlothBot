@@ -61,17 +61,7 @@ Creep.prototype.cleanRoom = function () {
     if (!target) {
         let terminal = this.room.terminal;
         let storage = this.room.storage;
-        if (!Memory.targetRooms[this.memory.destination].complete && ((terminal && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY))) ||
-            (storage && _.sum(_.filter(terminal.store, (r) => r.reservation !== RESOURCE_ENERGY))))) {
-            let cache = Memory.targetRooms || {};
-            let tick = Game.time;
-            cache[this.pos.roomName] = {
-                tick: tick,
-                type: 'robbery',
-                level: 1
-            };
-            Memory.targetRooms = cache;
-        } else if (terminal || storage) {
+        if (terminal || storage) {
             return Memory.targetRooms[this.memory.destination].complete = true;
         } else if (!this.room.controller) {
             if (Memory.targetRooms) delete Memory.targetRooms[this.memory.destination];

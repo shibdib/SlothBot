@@ -1,9 +1,15 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 /**
  * Created by Bob on 7/12/2017.
  */
 
 module.exports.role = function (creep) {
-    creep.room.cacheRoomIntel();
     if (creep.memory.operation === 'poke') return creep.pokeRoom();
     let sentence = ['Just', 'Here', 'Annoying', 'You'];
     let word = Game.time % sentence.length;

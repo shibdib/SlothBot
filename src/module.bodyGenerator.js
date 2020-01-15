@@ -15,7 +15,6 @@ module.exports.bodyGenerator = function (level, role, room = undefined, misc = u
         case 'scout':
             move = 1;
             break;
-        case 'swarm':
         case 'jerk':
             if (_.random(0, 1) === 1) {
                 rangedAttack = 1
