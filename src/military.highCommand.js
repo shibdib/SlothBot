@@ -182,12 +182,12 @@ function operationRequests() {
             break;
         }
     }
-     // Clean
+    // Clean
     let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
-     let cleanLimit = CLEAN_LIMIT;
-     if (TEN_CPU) cleanLimit = 0;
-     if (cleanCount < cleanLimit) {
-         let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.structures && !r.owner && !r.isHighway), 'closestRange');
+    let cleanLimit = CLEAN_LIMIT;
+    if (TEN_CPU) cleanLimit = 0;
+    if (cleanCount < cleanLimit) {
+        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.structures && !r.owner && !r.isHighway), 'closestRange');
         if (enemyClean.length) {
             let cleanTarget = _.sample(enemyClean);
             let cache = Memory.targetRooms || {};
@@ -204,7 +204,7 @@ function operationRequests() {
             Memory.targetRooms = cache;
             log.a('Cleaning operation planned for ' + roomLink(cleanTarget.name), 'HIGH COMMAND: ');
         }
-     }
+    }
     // Pokes
     if (POKE_ATTACKS) {
         let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
@@ -314,7 +314,7 @@ function manageAttacks() {
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
         let type = Memory.targetRooms[key].type;
-        let priority = Memory.targetRooms[key].priority;
+
         // Special Conditions
         switch (type) {
             // Manage Scouts
@@ -721,7 +721,7 @@ function checkForNap(user) {
 }
 
 module.exports.operationSustainability = function (room) {
-    // Switch to pending if safemodes
+    // Switch to pending if safemode
     if (room.controller && room.controller.safeMode) {
         let cache = Memory.targetRooms || {};
         let tick = Game.time;
