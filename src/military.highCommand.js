@@ -291,7 +291,7 @@ function manageAttacks() {
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
-    let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean').length || 0;
+    let cleanCount = _.filter(Memory.targetRooms, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
     let cleanLimit = CLEAN_LIMIT;
     if (TEN_CPU) cleanLimit = 1;
     if (!Memory.targetRooms) Memory.targetRooms = {};
@@ -379,6 +379,7 @@ function manageAttacks() {
                 break;
             // Manage Cleaning
             case 'clean':
+            case 'claimClear':
                 if (cleanCount > cleanLimit) delete Memory.targetRooms[key];
                 staleMulti = 10;
                 break;
@@ -715,10 +716,10 @@ function nukeFlag(flag) {
 function checkForNap(user) {
     // If we have no alliance data return false
     if (!ALLIANCE_DATA || !NAP_ALLIANCE.length || _.includes(Memory._enemies, user)) return false;
-    let LOANdata = JSON.parse(ALLIANCE_DATA);
-    let LOANdataKeys = Object.keys(LOANdata);
-    for (let iL = (LOANdataKeys.length - 1); iL >= 0; iL--) {
-        if (LOANdata[LOANdataKeys[iL]].indexOf(user) >= 0 && _.includes(NAP_ALLIANCE, LOANdataKeys[iL])) {
+    let LOANData = JSON.parse(ALLIANCE_DATA);
+    let LOANDataKeys = Object.keys(LOANData);
+    for (let iL = (LOANDataKeys.length - 1); iL >= 0; iL--) {
+        if (LOANDataKeys[LOANDataKeys[iL]].indexOf(user) >= 0 && _.includes(NAP_ALLIANCE, LOANDataKeys[iL])) {
             return true;
         }
     }
