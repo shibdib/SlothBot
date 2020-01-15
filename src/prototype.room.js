@@ -393,7 +393,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
         // Deposit info
         if (room.deposits) {
-            commodity = room.deposits.ticksToDecay > 4500;
+            if (room.deposits.ticksToDecay > 4500) {
+                commodity = room.deposits.pos.countOpenTerrainAround();
+            }
         }
         // Store power info
         power = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
