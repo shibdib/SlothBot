@@ -47,6 +47,7 @@ module.exports.hud = function () {
         let spawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
         let activeSpawns = _.filter(spawns, (s) => s.spawning);
         let lowerBoundary = 3;
+        if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[room.name]) room.cacheRoomIntel(true);
         if (Memory.roomCache[room.name].responseNeeded) lowerBoundary++;
         room.visual.rect(0, 0, 16, lowerBoundary + activeSpawns.length, {
