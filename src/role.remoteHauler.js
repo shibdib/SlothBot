@@ -132,27 +132,12 @@ function dropOff(creep) {
     }
     //Controller
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
-    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity()) {
+    if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() && Math.random() > _.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
-    if (creep.memory.storageDestination || creep.haulerDelivery()) {
-        let storageItem = Game.getObjectById(creep.memory.storageDestination);
-        if (!storageItem) return delete creep.memory.storageDestination;
-        switch (creep.transfer(storageItem, RESOURCE_ENERGY)) {
-            case OK:
-                delete creep.memory.storageDestination;
-                delete creep.memory._shibMove;
-                break;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(storageItem);
-                break;
-            case ERR_FULL || ERR_INVALID_TARGET:
-                delete creep.memory.storageDestination;
-                delete creep.memory._shibMove;
-                if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
-                break;
-        }
+    if (creep.haulerDelivery()) {
+        return true;
     } else creep.idleFor(5);
 }
 
