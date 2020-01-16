@@ -14,42 +14,6 @@ Room.prototype.constructionSites = function () {
     return _.filter(Game.constructionSites, (s) => s.pos.roomName === this.name);
 };
 
-Room.prototype.getDroppedResources = function () {
-    if (!this.droppedResources) {
-        this.droppedResources = this.find(FIND_DROPPED_RESOURCES);
-    }
-    return this.droppedResources;
-};
-
-Room.prototype.getAssignedCreeps = function () {
-    return _.filter(Game.creeps, (c) => c.memory.overlord === this.name);
-};
-
-Room.prototype.getCreepsInRoom = function () {
-    return _.filter(Game.creeps, (c) => c.pos.roomName === this.name);
-};
-
-Room.prototype.getExtensionCount = function () {
-    let level = this.controller.level;
-    if (level === 1) {
-        return RCL_1_EXTENSIONS;
-    } else if (level === 2) {
-        return RCL_2_EXTENSIONS
-    } else if (level === 3) {
-        return RCL_3_EXTENSIONS
-    } else if (level === 4) {
-        return RCL_4_EXTENSIONS
-    } else if (level === 5) {
-        return RCL_5_EXTENSIONS
-    } else if (level === 6) {
-        return RCL_6_EXTENSIONS
-    } else if (level === 7) {
-        return RCL_7_EXTENSIONS
-    } else if (level === 8) {
-        return RCL_8_EXTENSIONS
-    }
-};
-
 Object.defineProperty(Room.prototype, 'user', {
     get: function () {
         if (!this._user) {
@@ -275,7 +239,7 @@ Object.defineProperty(Room.prototype, 'level', {
 Object.defineProperty(Room.prototype, 'energy', {
     get: function () {
         if (!this._energy) {
-            this._energy = getRoomEnergy(this);
+            this._energy = getRoomResource(this, RESOURCE_ENERGY);
         }
         return this._energy;
     },
@@ -283,18 +247,32 @@ Object.defineProperty(Room.prototype, 'energy', {
     configurable: true
 });
 
-function getRoomEnergy(room) {
-    let terminalEnergy = 0;
-    if (room.terminal) terminalEnergy = room.terminal.store[RESOURCE_ENERGY] || 0;
-    let storageEnergy = 0;
-    if (room.storage) storageEnergy = room.storage.store[RESOURCE_ENERGY] || 0;
-    let containerEnergy = 0;
-    _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[RESOURCE_ENERGY] && s.id !== room.memory.controllerContainer).forEach((c) => containerEnergy = c.store[RESOURCE_ENERGY] + containerEnergy);
-    let linkEnergy = 0;
-    _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.energy && s.id !== room.memory.controllerLink).forEach((c) => linkEnergy = c.energy + linkEnergy);
-    let droppedEnergy = 0;
-    room.droppedEnergy.forEach((c) => droppedEnergy = c.amount + droppedEnergy);
-    return terminalEnergy + storageEnergy + containerEnergy + linkEnergy + droppedEnergy;
+let resourceStore = {};
+Room.prototype.store = function (resource) {
+    if (!resourceStore[this.name] || resourceStore[this.name].tick !== Game.time) {
+        resourceStore[this.name] = {};
+        resourceStore[this.name].tick = Game.time;
+    }
+    if (!resourceStore[this.name][resource]) {
+        resourceStore[this.name][resource] = getRoomResource(this, resource);
+    }
+    return resourceStore[this.name][resource];
+};
+
+function getRoomResource(room, resource) {
+    let terminalStore = 0;
+    if (room.terminal) terminalStore = room.terminal.store[resource] || 0;
+    let storageStore = 0;
+    if (room.storage) storageStore = room.storage.store[resource] || 0;
+    let containerStore = 0;
+    _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.store[resource] && s.id !== room.memory.controllerContainer).forEach((c) => containerStore = c.store[resource] + containerStore);
+    let linkStore = 0;
+    let droppedStore = 0;
+    if (resource === RESOURCE_ENERGY) {
+        _.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && s.energy && s.id !== room.memory.controllerLink).forEach((c) => linkStore = c.energy + linkStore);
+        room.droppedEnergy.forEach((c) => droppedStore = c.amount + droppedStore);
+    }
+    return terminalStore + storageStore + containerStore + linkStore + droppedStore;
 }
 
 /**
