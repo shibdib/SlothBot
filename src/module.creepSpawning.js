@@ -618,9 +618,8 @@ module.exports.globalCreepQueue = function () {
         switch (operations[key].type) {
             // Claiming
             case 'claim':
-                let claimTarget = _.filter(operations, (r) => r.type === 'claim')[0];
-                if (claimTarget && !_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === claimTarget.destination).length) {
-                    queueGlobalCreep(PRIORITIES.claimer, {role: 'claimer', destination: claimTarget.destination});
+                if (!_.filter(Game.creeps, (c) => c.memory.role === 'claimer' && c.memory.destination === key).length) {
+                    queueGlobalCreep(PRIORITIES.claimer, {role: 'claimer', destination: key});
                 }
                 break;
             // Scout ops
