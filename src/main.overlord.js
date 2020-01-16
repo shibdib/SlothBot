@@ -226,9 +226,11 @@ function minionController(minion) {
     } catch (e) {
         if (!errorCount[minion.name]) errorCount[minion.name] = 1; else errorCount[minion.name] += 1;
         if (errorCount[minion.name] < 10) {
-            if (errorCount[minion.name] === 1) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
-            log.e(e.stack);
-            Game.notify(e.stack);
+            if (errorCount[minion.name] === 1) {
+                log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name));
+                log.e(e.stack);
+                Game.notify(e.stack);
+            }
         } else if (errorCount[minion.name] >= 50) {
             if (errorCount[minion.name] === 50) log.e(minion.name + ' experienced an error in room ' + roomLink(minion.room.name) + ' and has been killed.');
             minion.suicide();
