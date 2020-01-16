@@ -167,9 +167,9 @@ function harvestDepositContainer(source, creep) {
 function extensionBuilder(creep) {
     let container = Game.getObjectById(creep.memory.containerID);
     let inBuild;
-    let site = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
+    let site = creep.pos.findClosestByRange(creep.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
     if (site) {
-        if (this.pos.getRangeTo(site) <= 1) {
+        if (creep.pos.getRangeTo(site) <= 1) {
             inBuild = site.id;
         }
     }
