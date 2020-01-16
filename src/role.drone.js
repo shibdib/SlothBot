@@ -80,7 +80,7 @@ function building(creep) {
     let dedicatedUpgrader = _.filter(creep.room.creeps, (c) => c.my && c.memory && c.memory.role === 'upgrader');
     //let drones = _.filter(creep.room.creeps, (c) => c.my && c.memory && (c.memory.role === 'drone' || c.memory.role === 'upgrader'));
     if ((Memory.roomCache[creep.room.name].sk || creep.memory.task === 'build' || creep.memory.task === 'repair') ||
-        ((dedicatedUpgrader.length || upgrader.length || creep.room.controller.upgradeBlocked) && (creep.memory.constructionSite || creep.constructionWork() || creep.findRepair()))) {
+        ((dedicatedUpgrader.length || upgrader.length || creep.room.controller.upgradeBlocked) && (creep.memory.constructionSite || creep.constructionWork()))) {
         creep.say('Build!', true);
         creep.builderFunction();
         return true;
