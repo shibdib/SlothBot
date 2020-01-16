@@ -534,7 +534,7 @@ function checkForNap(user) {
     let LOANData = JSON.parse(ALLIANCE_DATA);
     let LOANDataKeys = Object.keys(LOANData);
     for (let iL = (LOANDataKeys.length - 1); iL >= 0; iL--) {
-        if (LOANDataKeys[LOANDataKeys[iL]].indexOf(user) >= 0 && _.includes(NAP_ALLIANCE, LOANDataKeys[iL])) {
+        if (LOANDataKeys[LOANDataKeys[iL]] && LOANDataKeys[LOANDataKeys[iL]].indexOf(user) >= 0 && _.includes(NAP_ALLIANCE, LOANDataKeys[iL])) {
             return true;
         }
     }

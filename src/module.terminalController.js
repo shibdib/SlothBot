@@ -263,7 +263,7 @@ function balanceBoosts(terminal) {
     }
     // Find needy terminals
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-    let needyRoom = shuffle(_.filter(myRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.2))[0];
+    let needyRoom = _.sample(_.filter(myRooms, (r) => r.name !== terminal.room.name && r.terminal && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.2));
     if (needyRoom) {
         let needyTerminal = needyRoom.terminal;
         // Determine how much you can move
