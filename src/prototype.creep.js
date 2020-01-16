@@ -462,8 +462,13 @@ Creep.prototype.haulerDelivery = function () {
     }
     //Controller
     let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
-    if (controllerContainer) {
+    if (controllerContainer && !controllerContainer.store[RESOURCE_ENERGY]) {
         this.memory.storageDestination = controllerContainer.id;
+        return true;
+    }
+    //Storage
+    if (storage && this.memory.withdrawID !== storage.id && storage.my && _.sum(storage.store) < storage.store.getCapacity()) {
+        this.memory.storageDestination = storage.id;
         return true;
     }
     return false;
