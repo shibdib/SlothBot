@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -9,8 +9,7 @@
  * Created by Bob on 7/12/2017.
  */
 module.exports.role = function (creep) {
-    if (creep.shibKite()) return true;
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.shibKite() || creep.fleeHome()) return true;
     //Initial move
     if (!_.sum(creep.store)) creep.memory.harvesting = true;
     if (creep.pos.roomName !== creep.memory.destination) delete creep.memory.destinationReached;

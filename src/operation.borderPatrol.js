@@ -21,13 +21,13 @@ Creep.prototype.borderPatrol = function () {
     // Handle healing
     this.healInRange();
     // Handle flee
-    if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) return this.goHomeAndHeal();
+    if (this.memory.runCooldown || (!this.getActiveBodyparts(RANGED_ATTACK) && !this.getActiveBodyparts(ATTACK))) return this.fleeHome(true);
     if (this.canIWin(5) && this.handleMilitaryCreep()) {
         this.memory.onTarget = undefined;
     } else if (Math.random() > 0.7 && !this.canIWin(50)) {
         if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
         this.memory.runCooldown = 5;
-        return this.goHomeAndHeal();
+        return this.fleeHome(true);
     } else if (!this.canIWin(6)) {
         if (this.memory.other.responseTarget && this.room.name === this.memory.other.responseTarget) this.memory.other.responseTarget = undefined;
         this.shibKite(6);

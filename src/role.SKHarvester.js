@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -10,8 +10,7 @@
  */
 
 module.exports.role = function (creep) {
-    if (creep.shibKite()) return true;
-    if (creep.hits < creep.hitsMax) return creep.goHomeAndHeal();
+    if (creep.shibKite() || creep.fleeHome()) return true;
     if (creep.room.name === creep.memory.destination) {
         //If source is set mine
         if (!creep.memory.source && !creep.findSource()) creep.findMineral();
