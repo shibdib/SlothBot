@@ -30,12 +30,10 @@ module.exports.role = function (creep) {
                         creep.memory.onContainer = true;
                     }
                 }
-                if (!creep.isFull) {
-                    if (link && link.energy) {
-                        creep.withdrawResource(link);
-                    } else if (container && container.store[RESOURCE_ENERGY]) {
-                        creep.withdrawResource(container);
-                    }
+                if (link && link.energy) {
+                    creep.withdrawResource(link);
+                } else if (container && container.store[RESOURCE_ENERGY]) {
+                    creep.withdrawResource(container);
                 }
                 return;
             case ERR_NOT_IN_RANGE:
