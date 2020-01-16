@@ -5,10 +5,6 @@
  * Project - Overlord-Bot (Screeps)
  */
 
-/**
- * Created by Bob on 7/12/2017.
- */
-
 module.exports.role = function (creep) {
     //INITIAL CHECKS
     if (Game.time % 50 === 0 && creep.wrongRoom()) return;
@@ -33,7 +29,6 @@ module.exports.role = function (creep) {
                 case ERR_FULL || ERR_INVALID_TARGET:
                     delete creep.memory.storageDestination;
                     delete creep.memory._shibMove;
-                    if (storageItem.memory) delete storageItem.memory.deliveryIncoming;
                     break;
             }
         } else creep.idleFor(5);
