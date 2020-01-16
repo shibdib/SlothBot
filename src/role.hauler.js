@@ -37,7 +37,7 @@ module.exports.role = function (creep) {
                     break;
             }
         } else creep.idleFor(5);
-    } else if (creep.memory.energyDestination || creep.getEnergy(true)) {
+    } else if (creep.memory.energyDestination || creep.locateEnergy(true)) {
         if (creep.withdrawResource()) {
             if (creep.haulerDelivery()) {
                 let storageItem = Game.getObjectById(creep.memory.storageDestination);

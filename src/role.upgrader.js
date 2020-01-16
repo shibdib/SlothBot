@@ -58,7 +58,7 @@ module.exports.role = function (creep) {
         }
     } else if (container && container.store[RESOURCE_ENERGY]) {
         creep.withdrawResource(container);
-    } else if (!creep.findEnergy(25)) {
+    } else if (!creep.locateEnergy(25)) {
         let source = creep.pos.getClosestSource();
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
     }

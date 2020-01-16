@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019.
+ * Copyright (c) 2020.
  * Github - Shibdib
  * Name - Bob Sardinia
  * Project - Overlord-Bot (Screeps)
@@ -39,7 +39,7 @@ module.exports.role = function (creep) {
                 let container = creep.pos.findClosestByRange(creep.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER && s.pos.getRangeTo(s.room.controller) <= 1});
                 if (container) creep.room.memory.controllerContainer = container.id;
             }
-            if (!creep.findEnergy(25)) {
+            if (!creep.locateEnergy(25)) {
                 let source = creep.pos.getClosestSource();
                 if (creep.harvest(source) === ERR_NOT_IN_RANGE) creep.shibMove(source)
             } else {

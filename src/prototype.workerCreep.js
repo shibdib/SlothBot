@@ -33,7 +33,7 @@ Creep.prototype.findMineral = function () {
     }
 };
 
-Creep.prototype.findConstruction = function () {
+Creep.prototype.constructionWork = function () {
     let construction = this.room.constructionSites;
     let site = _.filter(construction, (s) => s.structureType === STRUCTURE_TOWER);
     if (site.length > 0) {
@@ -129,14 +129,8 @@ Creep.prototype.findConstruction = function () {
         this.memory.targetHits = site.hitsMax * 0.65;
         return true;
     }
-    this.memory.constructionSite = undefined;
-    this.memory.task = undefined;
-    return false;
-};
-
-Creep.prototype.findRepair = function (level) {
     let structures = _.filter(this.room.structures, (s) => s.hits < s.hitsMax);
-    let site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
+    site = _.filter(structures, (s) => s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_RAMPART && s.hits < s.hitsMax);
     if (site.length > 0) {
         site = this.pos.findClosestByRange(site);
         this.memory.constructionSite = site.id;
@@ -186,38 +180,6 @@ Creep.prototype.findRepair = function (level) {
     this.memory.constructionSite = undefined;
     this.memory.task = undefined;
     return false;
-};
-
-Creep.prototype.containerBuilding = function () {
-    let site = this.pos.findClosestByRange(this.room.constructionSites, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (site) {
-        if (this.pos.getRangeTo(site) <= 1) {
-            return site.id;
-        }
-    }
-};
-
-Creep.prototype.harvestDepositContainer = function () {
-    let container = this.pos.findClosestByRange(this.room.structures, {filter: (s) => s.structureType === STRUCTURE_CONTAINER});
-    if (container) {
-        if (this.pos.getRangeTo(container) <= 1) {
-            return container.id;
-        } else if (this.pos.getRangeTo(container) <= 3) {
-            this.shibMove(container);
-            return container.id;
-        }
-    } else {
-        this.harvesterContainerBuild();
-    }
-};
-
-Creep.prototype.harvesterContainerBuild = function () {
-    if (this.memory.source && this.pos.getRangeTo(Game.getObjectById(this.memory.source)) <= 1) {
-        if (Game.getObjectById(this.memory.source).pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length) return;
-        if (this.pos.createConstructionSite(STRUCTURE_CONTAINER) !== OK) {
-            return;
-        }
-    }
 };
 
 Creep.prototype.withdrawResource = function (destination = undefined, amount = undefined) {
@@ -287,73 +249,16 @@ Creep.prototype.withdrawResource = function (destination = undefined, amount = u
     }
 };
 
-Creep.prototype.findEnergy = function () {
+Creep.prototype.locateEnergy = function () {
+    let hauler = this.memory.role === 'hauler';
     // Fuel Trucks
     let fuelTrucks = _.filter(this.room.creeps, (c) => c.my && c.memory.role === 'fuelTruck' && c.store[RESOURCE_ENERGY]);
-    if (fuelTrucks.length) {
+    if (fuelTrucks.length && this.memory.role !== 'fuelTruck') {
         this.memory.energyDestination = fuelTrucks[0].id;
         return true;
     }
-    // Terminal
-    let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
-        this.memory.energyDestination = terminal.id;
-        return true;
-    }
-    // Storage
-    let storage = this.room.storage;
-    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25) {
-        this.memory.energyDestination = storage.id;
-        return true;
-    }
     // Links
-    /**let hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (hubLink && hubLink.energy > 50 && !_.filter(this.room.creeps, (c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length) {
-        this.memory.energyDestination = hubLink.id;
-        return true;
-    }**/
-    //Dropped
-    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * this.store.getCapacity()});
-    if (dropped) {
-        this.memory.energyDestination = dropped.id;
-        return true;
-    }
-    // Tombstone
-    let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * this.store.getCapacity()}) ||
-        this.pos.findClosestByRange(this.room.ruins, {filter: (r) => r.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * this.store.getCapacity()});
-    if (tombstone) {
-        this.memory.energyDestination = tombstone.id;
-        return true;
-    }
-    // Links
-    let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
-    if (hubLink && hubLink.energy) {
-        this.memory.energyDestination = hubLink.id;
-        this.memory.findEnergyCountdown = undefined;
-        return true;
-    }
-    // Container
-    let container = this.pos.findClosestByRange(FIND_STRUCTURES, {
-        filter: (s) => s.structureType === STRUCTURE_CONTAINER && this.room.memory.controllerContainer !== s.id
-            && s.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === s.id && c.id !== this.id).length + 1) * this.store.getCapacity()
-    });
-    if (container) {
-        this.memory.energyDestination = container.id;
-        return true;
-    }
-    //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
-    let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
-        && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * this.store.getCapacity()));
-    if (hauler) {
-        this.memory.energyDestination = hauler.id;
-        return true;
-    }
-    return false;
-};
-
-Creep.prototype.getEnergy = function (hauler = false) {
-    // Links
-    let hubLink = Game.getObjectById(this.room.memory.hubLink) || Game.getObjectById(_.sample(this.room.memory.hubLinks));
+    let hubLink = Game.getObjectById(this.room.memory.hubLink);
     if (hubLink && hubLink.energy && ((hubLink.energy && hauler) || hubLink.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getCapacity() * 0.5))) {
         this.memory.energyDestination = hubLink.id;
         this.memory.findEnergyCountdown = undefined;
@@ -366,18 +271,16 @@ Creep.prototype.getEnergy = function (hauler = false) {
         this.memory.energyDestination = tombstone.id;
         return true;
     }
-    // Extra Full Terminal
+    // Terminal
     let terminal = this.room.terminal;
-    if (terminal && terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER * 1.2) {
+    if (terminal && terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) {
         this.memory.energyDestination = terminal.id;
-        this.memory.findEnergyCountdown = undefined;
         return true;
     }
     // Storage
     let storage = this.room.storage;
-    if (storage && (storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25 || (storage.store[RESOURCE_ENERGY] && hauler))) {
+    if (storage && storage.store[RESOURCE_ENERGY] >= ENERGY_AMOUNT * 0.25 || (storage.store[RESOURCE_ENERGY] && hauler)) {
         this.memory.energyDestination = storage.id;
-        this.memory.findEnergyCountdown = undefined;
         return true;
     }
     if (this.memory.role !== 'hauler' || this.room.controller.level < 5 || (this.memory.findEnergyCountdown >= this.room.controller.level)) {
@@ -406,6 +309,13 @@ Creep.prototype.getEnergy = function (hauler = false) {
         if (links) {
             this.memory.energyDestination = links.id;
             this.memory.findEnergyCountdown = undefined;
+            return true;
+        }
+        //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
+        let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
+            && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * this.store.getCapacity()));
+        if (hauler) {
+            this.memory.energyDestination = hauler.id;
             return true;
         }
     }

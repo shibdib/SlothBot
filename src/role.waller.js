@@ -90,7 +90,7 @@ module.exports.role = function (creep) {
             }
         }
     } else {
-        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
+        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
         } else {

@@ -36,7 +36,7 @@ module.exports.role = function (creep) {
                     break;
             }
         } else creep.idleFor(5);
-    } else if (creep.memory.energyDestination || creep.findEnergy()) creep.withdrawResource(); else creep.idleFor(5);
+    } else if (creep.memory.energyDestination || creep.locateEnergy()) creep.withdrawResource(); else creep.idleFor(5);
 };
 
 function expedite(creep) {

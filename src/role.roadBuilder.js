@@ -43,7 +43,7 @@ module.exports.role = function role(creep) {
     }
     // Work
     if (creep.memory.working === true) {
-        if (creep.memory.constructionSite || creep.findConstruction()) {
+        if (creep.memory.constructionSite || creep.constructionWork()) {
             if (!Game.getObjectById(creep.memory.constructionSite) || Game.getObjectById(creep.memory.constructionSite).pos.roomName !== creep.memory.destination) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
@@ -51,7 +51,7 @@ module.exports.role = function role(creep) {
             if (creep.memory.overlord === creep.room.name) creep.idleFor(5);
         }
     } else {
-        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.findEnergy())) {
+        if (!creep.memory.harvest && (creep.memory.energyDestination || creep.locateEnergy())) {
             creep.say('Energy!', true);
             creep.withdrawResource();
         } else {
