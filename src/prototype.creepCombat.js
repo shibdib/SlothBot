@@ -748,8 +748,9 @@ Creep.prototype.fleeHome = function (force = false) {
         this.memory.runCooldown = cooldown;
         this.idleFor(cooldown - Game.time);
     } else {
-        return delete this.memory.runCooldown;
+        delete this.memory.runCooldown;
     }
+    return true;
 };
 
 Creep.prototype.canIWin = function (range = 50) {
