@@ -67,7 +67,6 @@ module.exports.role = function (creep) {
             }
         } else {
             creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {
-                allowHostile: true,
                 offRoad: true
             });
         }

@@ -1462,7 +1462,7 @@ Creep.prototype.moveToStaging = function () {
     let alreadyStaged = _.filter(Game.creeps, (creep) => creep.memory.destination === this.memory.destination && creep.memory.stagingRoom)[0];
     if (alreadyStaged) {
         this.memory.stagingRoom = alreadyStaged.memory.stagingRoom;
-        this.shibMove(alreadyStaged, {repathChance: 0.5});
+        this.shibMove(alreadyStaged);
         return true;
     } else {
         let route = this.shibRoute(this.memory.destination);
@@ -1546,7 +1546,7 @@ Creep.prototype.siege = function () {
                 case ERR_NOT_IN_RANGE:
                     if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
                     this.heal(this);
-                    this.shibMove(target, {ignoreCreeps: true, ignoreStructures: false});
+                    this.shibMove(target, {ignoreCreeps: true});
                     this.room.visual.text(ICONS.noEntry, target.pos.x, target.pos.y, {
                         align: 'left',
                         opacity: 1
