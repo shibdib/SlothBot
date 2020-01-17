@@ -180,11 +180,12 @@ function operationPlanner(room, creep = undefined) {
 }
 
 function claimScout(room) {
+    let roomPlanner = require('module.roomPlanner');
     // Make sure it's not super far away
     let range = room.findClosestOwnedRoom(true);
     // Determine if room is still suitable
-    if (room.controller && !room.controller.owner && !room.controller.reservation && !room.hostileCreeps.length && range <= 10 && range > 2 && room.controller.pos.countOpenTerrainAround()) {
-        Memory.targetRooms[room.name] = {
+    if (room.controller && !room.controller.owner && !room.controller.reservation && !room.hostileCreeps.length && range <= 10 && range > 2 && room.controller.pos.countOpenTerrainAround() && roomPlanner.hubCheck(room)) {
+        Memory.auxiliaryTargets[room.name] = {
             tick: Game.time,
             type: 'claim'
         };

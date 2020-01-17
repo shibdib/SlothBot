@@ -32,7 +32,7 @@ module.exports.buildRoom = function (room) {
 };
 
 module.exports.hubCheck = function (room) {
-    return findHub(room)
+    return findHub(room, true)
 };
 
 function buildFromLayout(room) {
@@ -367,7 +367,7 @@ function newClaimBuild(room) {
     }
 }
 
-function findHub(room) {
+function findHub(room, hubCheck = undefined) {
     if (room.memory.bunkerHub) return;
     let pos;
     if (!room.memory.typeSearch) room.memory.typeSearch = 1;
@@ -377,10 +377,11 @@ function findHub(room) {
             let searched = [];
             let hubSearch = room.memory.newHubSearch || 0;
             if (hubSearch >= layouts.layoutArray.length * 2500 && !room.memory.bunkerHub) {
+                if (hubCheck) return false;
                 abandonRoom(room.name);
                 if (Memory.roomCache && Memory.roomCache[room.name]) Memory.roomCache[room.name].noClaim = true;
                 log.a(room.name + ' has been abandoned due to being unable to find a suitable hub location.');
-                return;
+                return false;
             }
             let buildTemplate = _.sample(layouts.layoutArray);
             let layoutVersion = buildTemplate[0]['layout'];
