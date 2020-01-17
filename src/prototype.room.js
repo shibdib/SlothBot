@@ -317,7 +317,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     urgentMilitary(this);
     let room = Game.rooms[this.name];
     let potentialTarget, nonCombats, mineral, sk, power, portal, user, level, closestRange, important, owner,
-        reservation, commodity, safemode;
+        reservation, commodity, safemode, hubCheck;
     if (room) {
         // Make NCP array
         let ncpArray = Memory.ncpArray || [];
@@ -349,7 +349,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 reservation = room.controller.reservation.username;
                 user = room.controller.reservation.username;
             } else {
+                let roomPlanner = require('module.roomPlanner');
                 mineral = room.mineral.mineralType;
+                if (sources.length === 2) hubCheck = roomPlanner.hubCheck(this);
             }
             level = room.controller.level || undefined;
             if (_.includes(HOSTILES, user)) important = true;
@@ -401,6 +403,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             isHighway: isHighway,
             closestRange: closestRange,
             important: important,
+            hubCheck: hubCheck,
             forestPvp: room.controller && room.controller.sign && room.controller.sign.text.toLowerCase().includes('@PVP@'),
             invaderCore: _.filter(room.structures, (s) => s.structureType === STRUCTURE_INVADER_CORE).length,
             towers: _.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length,

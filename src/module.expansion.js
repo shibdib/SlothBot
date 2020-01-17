@@ -6,7 +6,7 @@
  */
 
 module.exports.claimNewRoom = function () {
-    let worthyRooms = _.filter(Memory.roomCache, (r) => !r.user && (!r.noClaim || r.noClaim + 3000 < Game.time) && r.mineral && r.sources === 2 && r.closestRange <= 12);
+    let worthyRooms = _.filter(Memory.roomCache, (r) => (!r.noClaim || r.noClaim + 3000 < Game.time) && r.hubCheck && r.closestRange <= 12);
     if (worthyRooms.length > 0) {
         let possibles = {};
         loop1:
