@@ -315,6 +315,13 @@ Creep.prototype.locateEnergy = function () {
         this.memory.findEnergyCountdown = undefined;
         return true;
     }
+    //Dropped
+    let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.store.getCapacity() * 0.8});
+    if (dropped) {
+        this.memory.energyDestination = dropped.id;
+        this.memory.findEnergyCountdown = undefined;
+        return true;
+    }
     // Tombstone
     let tombstone = this.pos.findClosestByRange(this.room.tombstones, {filter: (r) => r.pos.getRangeTo(this) <= 10 && r.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * this.store.getCapacity()}) ||
         this.pos.findClosestByRange(this.room.ruins, {filter: (r) => r.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * this.store.getCapacity()});
@@ -342,13 +349,6 @@ Creep.prototype.locateEnergy = function () {
         });
         if (container) {
             this.memory.energyDestination = container.id;
-            this.memory.findEnergyCountdown = undefined;
-            return true;
-        }
-        //Dropped
-        let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.store.getCapacity() * 0.8});
-        if (dropped) {
-            this.memory.energyDestination = dropped.id;
             this.memory.findEnergyCountdown = undefined;
             return true;
         }
