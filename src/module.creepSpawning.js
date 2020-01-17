@@ -42,6 +42,8 @@ module.exports.processBuildQueue = function () {
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'priority')
                 }
+                // If queue is empty go to next spawn
+                if (!_.size(queue)) continue;
                 let cost;
                 for (let key in queue) {
                     topPriority = queue[key];
@@ -70,8 +72,8 @@ module.exports.processBuildQueue = function () {
                     }
                     if (body && body.length && cost <= spawn.room.energyCapacityAvailable) break;
                 }
-                if (cost > spawn.room.energyAvailable) {
-                    if (cost <= spawn.room.energyCapacityAvailable) spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
+                if (cost > spawn.room.energyAvailable || !body) {
+                    if (body && cost <= spawn.room.energyCapacityAvailable) spawn.say('Queued - ' + role.charAt(0).toUpperCase() + role.slice(1) + ' - Energy (' + spawn.room.energyAvailable + '/' + cost + ')');
                     continue;
                 }
                 if (topPriority && typeof topPriority === 'object') {
@@ -85,8 +87,8 @@ module.exports.processBuildQueue = function () {
                         operation: undefined,
                         misc: undefined
                     });
-                    let name = role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
-                    if (topPriority.operation) name = topPriority.operation + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 100);
+                    let name = role + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 1000);
+                    if (topPriority.operation) name = topPriority.operation + '_' + spawn.room.name + '_T' + level + '_' + _.random(1, 1000);
                     let energyStructures;
                     if (energyOrder[spawn.pos.roomName]) energyStructures = JSON.parse(energyOrder[spawn.pos.roomName]);
                     switch (spawn.spawnCreep(body, name, {
@@ -111,20 +113,6 @@ module.exports.processBuildQueue = function () {
                             lastBuilt[spawn.room.name] = Game.time;
                             break;
                         default:
-                            spawn.say(spawn.spawnCreep(body, name, {
-                                memory: {
-                                    born: Game.time,
-                                    role: role,
-                                    overlord: spawn.room.name,
-                                    assignedSource: topPriority.assignedSource,
-                                    destination: topPriority.destination,
-                                    other: topPriority.other,
-                                    military: topPriority.military,
-                                    operation: topPriority.operation,
-                                    misc: topPriority.misc
-                                },
-                                energyStructures: energyStructures
-                            }))
                     }
                 }
             }
@@ -763,7 +751,7 @@ module.exports.globalCreepQueue = function () {
             case 'claimClear': //Claim Clearing
                 let claimClear = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'claimer');
                 if (!claimClear.length && !_.includes(queue, 'claimer')) {
-                    queueGlobalCreep(2, {
+                    queueGlobalCreep(priority, {
                         role: 'claimer',
                         destination: key,
                         operation: 'claimClear',
