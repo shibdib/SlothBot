@@ -16,7 +16,10 @@ module.exports.highCommand = function () {
     // Request scouting for new operations
     if (maxLevel >= 4 && Game.time % 750 === 0) operationRequests();
     // Manage old operations
-    if (Game.time % 50 === 0) manageAttacks();
+    if (Game.time % 50 === 0) {
+        manageAttacks();
+        manageAuxiliary();
+    }
     // Check for flags
     if (Game.time % 10 === 0) manualAttacks();
 };
@@ -116,7 +119,6 @@ function auxiliaryOperations() {
             log.a('Cleaning operation planned for ' + roomLink(cleanTarget.name), 'HIGH COMMAND: ');
         }
     }
-    // Commodity Mining
     if (maxLevel >= 6) {
         // Power Mining
         if (maxLevel >= 8) {
@@ -139,6 +141,7 @@ function auxiliaryOperations() {
                 }
             }
         }
+        // Commodity Mining
         let commodityRooms = _.filter(Memory.roomCache, (r) => r.commodity && r.closestRange <= 10 && !r.user);
         let commodityMining = _.filter(Memory.targetRooms, (target) => target.type === 'commodity').length || 0;
         if (commodityRooms.length && !commodityMining) {
@@ -253,7 +256,6 @@ function manageAttacks() {
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
     let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
-    if (!Memory.targetRooms) Memory.targetRooms = {};
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
         let type = Memory.targetRooms[key].type;
@@ -375,6 +377,41 @@ function manageAttacks() {
                 delete Memory.targetRooms[key];
                 log.a('Canceling operation in ' + roomLink(key) + ' due to heavy casualties.', 'HIGH COMMAND: ');
             }
+        }
+    }
+}
+
+function manageAuxiliary() {
+    if (!Memory.auxiliaryTargets || !_.size(Memory.auxiliaryTargets)) return;
+    let maxLevel = Memory.maxLevel;
+    for (let key in Memory.auxiliaryTargets) {
+        let type = Memory.auxiliaryTargets[key].type;
+        // Special Conditions
+        switch (type) {
+            case 'power':
+                if (maxLevel < 8) delete Memory.auxiliaryTargets[key];
+            case 'commodity':
+                if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
+            case 'clean':
+            case 'claimClear':
+                break;
+        }
+        if (!Memory.auxiliaryTargets[key]) continue;
+        // Cancel stale ops
+        if (Memory.auxiliaryTargets[key].tick + 10000 < Game.time) {
+            delete Memory.auxiliaryTargets[key];
+            log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
+            continue;
+        }
+        // Remove your rooms
+        if (Memory.roomCache[key] && Memory.roomCache[key].user && Memory.roomCache[key].user === MY_USERNAME) {
+            delete Memory.auxiliaryTargets[key];
+            continue;
+        }
+        // Remove allied rooms
+        if (Memory.roomCache[key] && Memory.roomCache[key].user && (_.includes(FRIENDLIES, Memory.roomCache[key].user) || checkForNap(Memory.roomCache[key].user))) {
+            delete Memory.auxiliaryTargets[key];
+            continue;
         }
     }
 }
