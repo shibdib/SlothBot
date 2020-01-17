@@ -30,7 +30,7 @@ function manageBoostProduction(room) {
     }
     if (!hub || !hub.length || hub.length < 3) return;
     let boost;
-    let boostList = _.union(MAKE_THESE_BOOSTS, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, END_GAME_BOOSTS);
+    let boostList = _.union(MAKE_THESE_BOOSTS, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS);
     for (let key in boostList) {
         // Only one hub per output
         if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
@@ -116,8 +116,8 @@ function manageActiveLabs(room) {
                         case OK:
                             // Enough created
                             let total = outputLab.room.getBoostAmount(outputLab.memory.creating);
-                            if (((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.25) ||
-                                ((_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || _.includes(END_GAME_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 6)) {
+                            if (((!_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || !_.includes(TIER_3_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 2.25) ||
+                                ((_.includes(TIER_2_BOOSTS, outputLab.memory.creating) || _.includes(TIER_3_BOOSTS, outputLab.memory.creating)) && total >= BOOST_AMOUNT * 6)) {
                                 log.a(outputLab.room.name + ' is no longer producing ' + outputLab.memory.creating + ' due to reaching the production cap.');
                                 for (let id in creators) {
                                     creators[id].memory = undefined;

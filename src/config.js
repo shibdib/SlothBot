@@ -47,15 +47,15 @@ global.BARRIER_TARGET_HIT_POINTS = {
 };
 
 // Amount targets (Advanced)
-global.CREDIT_BUFFER = 100000;
-global.TRADE_AMOUNT = 10000;
-global.ENERGY_AMOUNT = 50000;
-global.TERMINAL_ENERGY_BUFFER = 12000;
-global.SIEGE_ENERGY_AMOUNT = 100000;
-global.REACTION_AMOUNT = 500;
-global.SELL_OFF_AMOUNT = 12500;
-global.BOOST_AMOUNT = 5000;
-global.DUMP_AMOUNT = TRADE_AMOUNT * 2.25;
+global.CREDIT_BUFFER = 10000; // Stay above
+global.MINERAL_TRADE_AMOUNT = 5000;  // Hold this much of a mineral before selling
+global.BOOST_TRADE_AMOUNT = 5000;  // Hold this much of a mineral before selling
+global.ENERGY_AMOUNT = 50000; // Aim for this amount in a room
+global.TERMINAL_ENERGY_BUFFER = 7500; // Keep this much in terminal
+global.REACTION_AMOUNT = 500; // Minimum amount for base reaction minerals and power
+global.SELL_OFF_AMOUNT = 10000; // Fill buy orders if possible at this amount
+global.BOOST_AMOUNT = 5000; // Try to have this much of all applicable boosts
+global.DUMP_AMOUNT = 15000; // Get rid of resources at all costs if above this
 
 // Max prices
 global.ENERGY_BUY_MAX = 0.02;
@@ -64,4 +64,4 @@ global.TIER_2_SALE_MAX = 1.25;
 global.TIER_1_SALE_MAX = 0.75;
 global.BASE_COMPOUNDS_SALE_MAX = 0.35;
 global.GHODIUM_SALE_MAX = 1.1;
-global.BASE_RESOURCES_SALE_MAX = 0.35;
+global.BASE_RESOURCES_SALE_MAX = 0.1;

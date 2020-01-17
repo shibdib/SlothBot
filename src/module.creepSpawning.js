@@ -19,6 +19,7 @@ module.exports.processBuildQueue = function () {
     for (let key in spawns) {
         let spawn = spawns[key];
         let level = getLevel(spawn.room);
+        displayQueue(spawn.room);
         // Clear queue if something is stuck
         if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && (Game.time - lastBuilt[spawn.room.name] >= 1450 || (level >= 3 && spawn.room.creeps.length < 4 && Math.random() > 0.5))) {
             roomQueue[spawn.room.name] = undefined;
@@ -41,7 +42,6 @@ module.exports.processBuildQueue = function () {
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'priority')
                 }
-                displayQueue(spawn.room, queue);
                 let cost;
                 for (let key in queue) {
                     topPriority = queue[key];
@@ -111,7 +111,20 @@ module.exports.processBuildQueue = function () {
                             lastBuilt[spawn.room.name] = Game.time;
                             break;
                         default:
-                            spawn.say('??')
+                            spawn.say(spawn.spawnCreep(body, name, {
+                                memory: {
+                                    born: Game.time,
+                                    role: role,
+                                    overlord: spawn.room.name,
+                                    assignedSource: topPriority.assignedSource,
+                                    destination: topPriority.destination,
+                                    other: topPriority.other,
+                                    military: topPriority.military,
+                                    operation: topPriority.operation,
+                                    misc: topPriority.misc
+                                },
+                                energyStructures: energyStructures
+                            }))
                     }
                 }
             }
@@ -966,13 +979,30 @@ function determineEnergyOrder(room) {
     }
 }
 
-function displayQueue(room, queue) {
+function displayQueue(room) {
+    let queue;
+    if (room.energyState || room.energyAvailable === room.energyCapacityAvailable) {
+        queue = _.sortBy(Object.assign({}, globalQueue, roomQueue[room.name]), 'priority');
+    } else {
+        queue = _.sortBy(Object.assign({}, _.filter(globalQueue, (t) => t.priority <= PRIORITIES.urgent), roomQueue[room.name]), 'priority');
+    }
     let roles = _.pluck(queue, 'role');
     let tickQueued = _.pluck(queue, 'cached');
     let priority = _.pluck(queue, 'priority');
+    let military = _.pluck(queue, 'military');
+    let lower = _.size(queue) + 2;
+    if (lower > 7) lower = 7;
+    room.visual.rect(39, 0, 49, lower, {
+        fill: '#ffffff',
+        opacity: '0.55',
+        stroke: 'black'
+    });
+    displayText(room, 40, 1, 'Creep Build Queue');
+    if (!_.size(queue)) return;
     for (let i = 0; i < 5; i++) {
         if (!roles[i]) break;
-        displayText(room, 38, 1, 'Creep Build Queue', true);
-        displayText(room, 38, 2 + i, _.capitalize(roles[i]) + ' Priority- ' + priority[i] + ' Age- ' + (Game.time - tickQueued[i]), true);
+        let mil = '';
+        if (military[i]) mil = '*';
+        displayText(room, 40, 2 + i, _.capitalize(roles[i]) + mil + ' Priority- ' + priority[i] + ' Age- ' + (Game.time - tickQueued[i]));
     }
 }
