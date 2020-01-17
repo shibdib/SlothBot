@@ -44,28 +44,17 @@ module.exports.hud = function () {
         room.memory.lastTickProgress = undefined;
         room.memory.rclProgressArray = undefined;
         room.memory.lastTickProgress = undefined;
-        let spawns = _.filter(room.structures, (s) => s.my && s.structureType === STRUCTURE_SPAWN);
-        let activeSpawns = _.filter(spawns, (s) => s.spawning);
         let lowerBoundary = 3;
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[room.name]) room.cacheRoomIntel(true);
         if (Memory.roomCache[room.name].responseNeeded) lowerBoundary++;
-        room.visual.rect(0, 0, 16, lowerBoundary + activeSpawns.length, {
+        room.visual.rect(0, 0, 16, lowerBoundary, {
             fill: '#ffffff',
             opacity: '0.55',
             stroke: 'black'
         });
         //GCL Display
         displayText(room, 0, 1, paused + ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.');
-        //SPAWNING
-        if (activeSpawns.length) {
-            let i = 0;
-            for (let spawn of activeSpawns) {
-                let spawningCreep = Game.creeps[spawn.spawning.name];
-                displayText(room, 0, lowerBoundary + i, spawn.name + ICONS.build + ' ' + _.capitalize(spawningCreep.name.split("_")[0]) + ' - Ticks: ' + spawn.spawning.remainingTime);
-                i++;
-            }
-        }
         //Safemode
         if (room.controller.safeMode) {
             let secondsToNoSafe = room.controller.safeMode * Memory.tickLength;
@@ -138,7 +127,7 @@ module.exports.hud = function () {
             delete RCL_PROGRESS[room.name];
             displayText(room, 0, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' (' + room.memory.averageCpu + '/R.CPU)');
         }
-        let y = lowerBoundary - (activeSpawns.length || 1);
+        let y = lowerBoundary;
         if (Memory.roomCache[room.name].responseNeeded) {
             displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + Memory.roomCache[room.name].threatLevel);
             y++;

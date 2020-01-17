@@ -116,6 +116,9 @@ module.exports.processBuildQueue = function () {
                     }
                 }
             }
+        } else {
+            let spawningCreep = Game.creeps[spawn.spawning.name];
+            spawn.say(ICONS.build + ' ' + _.capitalize(spawningCreep.name.split("_")[0]) + ' - Ticks: ' + spawn.spawning.remainingTime);
         }
     }
 };
