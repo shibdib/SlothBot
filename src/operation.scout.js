@@ -271,11 +271,11 @@ function forwardObserver(room) {
             // HOLD - Clear target if room is no longer owned
             if (!room.controller.owner || room.controller.safeMode || !Memory.targetRooms[room.name]) {
                 log.a('Canceling hold operation in ' + roomLink(memory.destination) + ' as it is no longer owned.', 'HIGH COMMAND: ');
-                delete Memory.targetRooms[memory.destination];
+                delete Memory.targetRooms[room.name];
                 return;
             }
             // Request unClaimer if room level is too high
-            Memory.targetRooms[memory.destination].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
+            Memory.targetRooms[room.name].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
             break;
     }
     let armedEnemies = _.filter(room.hostileCreeps, (c) => c.getActiveBodyparts(ATTACK) || c.getActiveBodyparts(RANGED_ATTACK));
