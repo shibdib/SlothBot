@@ -131,10 +131,12 @@ function auxiliaryOperations() {
                     let tick = Game.time;
                     cache[powerRoom.name] = {
                         tick: tick,
-                        type: 'attack'
+                        type: 'power',
+                        level: 1,
+                        priority: 1
                     };
                     Memory.auxiliaryTargets = cache;
-                    log.a('Scout operation planned for ' + roomLink(powerRoom.name) + ' suspected power bank location, Nearest Room - ' + powerRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+                    log.a('Mining operation planned for ' + roomLink(powerRoom.name) + ' suspected power bank location, Nearest Room - ' + powerRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
                     break;
                 }
             }
@@ -154,7 +156,7 @@ function auxiliaryOperations() {
                     priority: 1
                 };
                 Memory.auxiliaryTargets = cache;
-                log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected power deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
+                log.a('Mining operation planned for ' + roomLink(commodityRoom.name) + ' suspected commodity deposit location, Nearest Room - ' + commodityRoom.closestRange + ' rooms away', 'HIGH COMMAND: ');
                 break;
             }
         }

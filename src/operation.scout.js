@@ -63,17 +63,6 @@ function operationPlanner(room, creep = undefined) {
     let cache = Memory.targetRooms || {};
     let tick = Game.time;
     let otherCreeps = _.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper');
-    let armedHostiles = _.filter(otherCreeps, (c) => !c.my && (c.getActiveBodyparts(ATTACK) > 0 || c.getActiveBodyparts(RANGED_ATTACK) > 0) && !_.includes(FRIENDLIES, c.owner.username));
-    let powerBanks = _.filter(room.structures, (e) => e.structureType === STRUCTURE_POWER_BANK && e.ticksToDecay > 1000);
-    // Handle power bank rooms
-    if (powerBanks.length && !armedHostiles.length && maxLevel >= 8) {
-        cache[room.name] = {
-            tick: tick,
-            type: 'power',
-            level: 1,
-            priority: 1
-        };
-    } else
     // Guard ally rooms
     if (ally) {
         cache[room.name] = {
