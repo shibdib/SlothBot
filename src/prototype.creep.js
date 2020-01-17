@@ -1731,7 +1731,7 @@ Creep.prototype.findDefensivePosition = function (target) {
                 }
             }
         } else {
-            this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0, ignorethiss: false});
+            if (!this.pos.isNearTo(Game.getObjectById(this.memory.assignedRampart))) this.shibMove(Game.getObjectById(this.memory.assignedRampart), {range: 0});
         }
     }
 }

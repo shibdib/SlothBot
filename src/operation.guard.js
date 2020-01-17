@@ -13,7 +13,7 @@ Creep.prototype.guardRoom = function () {
     this.attackInRange();
     if (this.hits < this.hitsMax) this.heal(this); else this.healInRange();
     if (this.room.name !== this.memory.destination) return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 24});
-    this.handleMilitaryCreep();
+    if (!this.handleMilitaryCreep()) this.findDefensivePosition(this);
     levelManager(this);
 };
 
