@@ -47,7 +47,7 @@ function shibMove(creep, heading, options = {}) {
     // Clear bad tow creeps
     if (creep.memory.towCreep && !Game.getObjectById(creep.memory.towCreep)) creep.memory.towCreep = undefined;
     // Handle fatigue
-    if (creep.fatigue > 0 || !heading) {
+    if (creep.getActiveBodyparts(MOVE) && (creep.fatigue > 0 || !heading)) {
         if (!creep.memory.military) creep.idleFor(1);
         return creep.room.visual.circle(creep.pos, {
             fill: 'transparent',
