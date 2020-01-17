@@ -44,10 +44,10 @@ module.exports.hud = function () {
         room.memory.lastTickProgress = undefined;
         room.memory.rclProgressArray = undefined;
         room.memory.lastTickProgress = undefined;
-        let lowerBoundary = 3;
+        let lowerBoundary = 4;
         if (!Memory.roomCache) Memory.roomCache = {};
         if (!Memory.roomCache[room.name]) room.cacheRoomIntel(true);
-        if (Memory.roomCache[room.name].responseNeeded) lowerBoundary++;
+        if (Memory.roomCache[room.name].threatLevel) lowerBoundary++;
         room.visual.rect(0, 0, 16, lowerBoundary, {
             fill: '#ffffff',
             opacity: '0.55',
@@ -128,7 +128,7 @@ module.exports.hud = function () {
             displayText(room, 0, 2, ICONS.upgradeController + ' Controller Level: ' + room.controller.level + ' (' + room.memory.averageCpu + '/R.CPU)');
         }
         let y = lowerBoundary;
-        if (Memory.roomCache[room.name].responseNeeded) {
+        if (Memory.roomCache[room.name].threatLevel) {
             displayText(room, 0, y, ICONS.crossedSword + ' RESPONSE NEEDED: Threat Level ' + Memory.roomCache[room.name].threatLevel);
             y++;
         }
