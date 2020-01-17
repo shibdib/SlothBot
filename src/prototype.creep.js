@@ -1436,17 +1436,17 @@ Creep.prototype.attackInRange = function () {
 Creep.prototype.moveToStaging = function () {
     if (!this.memory.other || !this.memory.other.waitFor || this.memory.stagingComplete || this.memory.other.waitFor === 1 || this.ticksToLive <= 250 || !this.memory.destination) return false;
     // Recycle if operation canceled
-    if (!Memory.destinations[this.memory.destination]) return this.memory.recycle = true;
+    if (!Memory.targetRooms[this.memory.destination]) return this.memory.recycle = true;
     if (this.memory.stagingRoom === this.room.name) {
         if (this.findClosestEnemy()) return this.handleMilitaryCreep(false, true);
         this.shibMove(new RoomPosition(25, 25, this.memory.stagingRoom), {range: 7});
         let inPlace = _.filter(this.room.creeps, (creep) => creep.memory && creep.memory.destination === this.memory.destination);
         if (inPlace.length >= this.memory.other.waitFor || this.ticksToLive <= 250) {
             this.memory.stagingComplete = true;
-            if (!Memory.destinations[this.memory.destination].lastWave || Memory.destinations[this.memory.destination].lastWave + 50 < Game.time) {
-                let waves = Memory.destinations[this.memory.destination].waves || 0;
-                Memory.destinations[this.memory.destination].waves = waves + 1;
-                Memory.destinations[this.memory.destination].lastWave = Game.time;
+            if (!Memory.targetRooms[this.memory.destination].lastWave || Memory.targetRooms[this.memory.destination].lastWave + 50 < Game.time) {
+                let waves = Memory.targetRooms[this.memory.destination].waves || 0;
+                Memory.targetRooms[this.memory.destination].waves = waves + 1;
+                Memory.targetRooms[this.memory.destination].lastWave = Game.time;
             }
             return false;
         } else {
@@ -1492,14 +1492,14 @@ Creep.prototype.siege = function () {
     }
     this.rangedMassAttack();
     if (this.room.controller && this.room.controller.safeMode) {
-        let cache = Memory.destinations || {};
+        let cache = Memory.targetRooms || {};
         let tick = Game.time;
         cache[Game.flags[name].pos.roomName] = {
             tick: tick,
             dDay: tick + this.room.controller.safeMode,
             type: 'pending',
         };
-        Memory.destinations = cache;
+        Memory.targetRooms = cache;
         return this.memory.recycle = true;
     }
     let target;
@@ -1532,13 +1532,13 @@ Creep.prototype.siege = function () {
             target = this.findClosestBarrier();
         }
         if (!target) {
-            let cache = Memory.destinations || {};
+            let cache = Memory.targetRooms || {};
             cache[this.pos.roomName] = {
                 tick: Game.time,
                 type: 'hold',
                 level: 1
             };
-            Memory.destinations = cache;
+            Memory.targetRooms = cache;
             if (!this.pos.findInRange(alliedCreep, 3)[0] && this.getActiveBodyparts(RANGED_ATTACK) > 0) this.rangedMassAttack();
             this.moveToHostileConstructionSites();
         } else {
@@ -1654,13 +1654,13 @@ Creep.prototype.borderHump = function () {
         this.memory.noDrain = noDrainCount + 1;
         // If room is not drainable mark as such and recycle
         if (this.memory.noDrain >= 15) {
-            let cache = Memory.destinations || {};
+            let cache = Memory.targetRooms || {};
             cache[this.room.name] = {
                 tick: Game.time,
                 type: 'attack',
                 priority: 1,
             };
-            Memory.destinations = cache;
+            Memory.targetRooms = cache;
             this.room.cacheRoomIntel(true);
             Memory.roomCache[this.room.name].noDrain = true;
             this.memory.recycle = true;
