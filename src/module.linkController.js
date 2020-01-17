@@ -6,7 +6,7 @@
  */
 
 module.exports.linkControl = function (room) {
-    let links = _.sortBy(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.energy && s.id !== s.room.memory.controllerLink && s.id !== s.room.memory.hubLink), '.energy');
+    let links = shuffle(_.filter(room.structures, (s) => s.structureType === STRUCTURE_LINK && !s.cooldown && s.energy && s.id !== s.room.memory.controllerLink && s.id !== s.room.memory.hubLink));
     let hubLink = Game.getObjectById(room.memory.hubLink);
     let controllerLink = Game.getObjectById(room.memory.controllerLink);
     if (!controllerLink || !controllerLink.isActive()) delete room.memory.controllerLink;
