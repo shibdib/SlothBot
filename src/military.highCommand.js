@@ -388,8 +388,13 @@ function manageAuxiliary() {
         switch (type) {
             case 'power':
                 if (maxLevel < 8) delete Memory.auxiliaryTargets[key];
+                break;
             case 'commodity':
                 if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
+                break;
+            case 'claim':
+                if (Game.gcl.level === Memory.myRooms.length) delete Memory.auxiliaryTargets[key];
+                break;
             case 'clean':
             case 'claimClear':
                 break;
