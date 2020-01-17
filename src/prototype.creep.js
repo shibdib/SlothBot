@@ -1683,6 +1683,7 @@ Creep.prototype.borderHump = function () {
 Creep.prototype.fleeHome = function (force = false) {
     if (this.hits < this.hitsMax) force = true;
     if (this.memory.overlord === this.room.name && !this.memory.runCooldown) return false;
+    if (!!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel();
     if (!force && !this.memory.runCooldown && !Memory.roomCache[this.room.name].threatLevel && this.hits === this.hitsMax) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;
