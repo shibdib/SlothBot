@@ -46,22 +46,25 @@ global.BARRIER_TARGET_HIT_POINTS = {
     8: 10000000
 };
 
+// The boosts you want labs to focus on first (resources permitted)
+global.LAB_PRIORITY = [RESOURCE_GHODIUM, RESOURCE_GHODIUM_ACID, RESOURCE_GHODIUM_ALKALIDE, RESOURCE_LEMERGIUM_ALKALIDE, RESOURCE_UTRIUM_ACID, RESOURCE_LEMERGIUM_ACID, RESOURCE_UTRIUM_ALKALIDE];
+
 // Amount targets (Advanced)
 global.CREDIT_BUFFER = 10000; // Stay above
-global.MINERAL_TRADE_AMOUNT = 5000;  // Hold this much of a mineral before selling
-global.BOOST_TRADE_AMOUNT = 5000;  // Hold this much of a mineral before selling
-global.ENERGY_AMOUNT = 50000; // Aim for this amount in a room
-global.TERMINAL_ENERGY_BUFFER = 7500; // Keep this much in terminal
-global.REACTION_AMOUNT = 500; // Minimum amount for base reaction minerals and power
-global.SELL_OFF_AMOUNT = 10000; // Fill buy orders if possible at this amount
-global.BOOST_AMOUNT = 5000; // Try to have this much of all applicable boosts
-global.DUMP_AMOUNT = 15000; // Get rid of resources at all costs if above this
+global.ENERGY_AMOUNT = (TERMINAL_CAPACITY * 0.1 + STORAGE_CAPACITY * 0.025); // Aim for this amount in a room
+global.MINERAL_TRADE_AMOUNT = TERMINAL_CAPACITY * 0.015;  // Hold this much of a mineral before selling
+global.BOOST_TRADE_AMOUNT = TERMINAL_CAPACITY * 0.03;  // Hold this much of a mineral before selling
+global.TERMINAL_ENERGY_BUFFER = TERMINAL_CAPACITY * 0.05; // Keep this much in terminal
+global.REACTION_AMOUNT = TERMINAL_CAPACITY * 0.01; // Minimum amount for base reaction minerals and power
+global.BOOST_AMOUNT = TERMINAL_CAPACITY * 0.025; // Try to have this much of all applicable boosts
+global.DUMP_AMOUNT = TERMINAL_CAPACITY * 0.15; // Fills buys (of if overflowing it will offload to other terminals)
 
-// Max prices
-global.ENERGY_BUY_MAX = 0.02;
-global.END_GAME_SALE_MAX = 2.25;
-global.TIER_2_SALE_MAX = 1.25;
-global.TIER_1_SALE_MAX = 0.75;
-global.BASE_COMPOUNDS_SALE_MAX = 0.35;
-global.GHODIUM_SALE_MAX = 1.1;
-global.BASE_RESOURCES_SALE_MAX = 0.1;
+// Baseline/Default prices
+global.COMMODITY_MARKET_BASELINE = 0.02;
+global.ENERGY_MARKET_BASELINE = 0.02;
+global.TIER_3_MARKET_BASELINE = 2.25;
+global.TIER_2_MARKET_BASELINE = 1.25;
+global.TIER_1_MARKET_BASELINE = 0.75;
+global.BASE_COMPOUNDS_MARKET_BASELINE = 0.35;
+global.GHODIUM_MARKET_BASELINE = 1.1;
+global.BASE_MINERALS_MARKET_BASELINE = 0.1;

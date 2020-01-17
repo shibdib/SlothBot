@@ -13,6 +13,7 @@ let tradeAmount = MINERAL_TRADE_AMOUNT;
 let runOnce, globalOrders, lastPriceAdjust;
 
 module.exports.terminalControl = function (room) {
+    Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
     //Things that don't need to be run for every terminal
     if (runOnce !== Game.time) {
@@ -25,15 +26,18 @@ module.exports.terminalControl = function (room) {
             pricingUpdateSell(globalOrders, myOrders);
             lastPriceAdjust = Game.time;
         }
-        // Tracker
-        //trackPriceData(globalOrders);
+        // Set saleTerminal
+        if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time) {
+            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
+            Memory.saleTerminal.saleSet = Game.time;
+        }
         runOnce = Game.time;
     }
     if (room.terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER) {
         //Buy Power
         if (buyPower(room.terminal, globalOrders)) return;
         //Disperse Minerals and Boosts
-        if (balanceBoosts(room.terminal)) return;
+        if (balanceResources(room.terminal)) return;
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
     }
@@ -50,6 +54,12 @@ function orderCleanup(myOrders) {
     let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
     for (let key in myOrders) {
         let order = myOrders[key];
+        if (!order.active) {
+            if (Game.market.cancelOrder(order.id) === OK) {
+                log.e("Order Cancelled: " + order.id + " no longer active.", 'MARKET: ');
+                return true;
+            }
+        }
         if (order.type === ORDER_BUY) {
             if (Game.market.credits < 50) {
                 if (Game.market.cancelOrder(order.id) === OK) {
@@ -85,8 +95,13 @@ function orderCleanup(myOrders) {
                 }
             }
         } else {
-            if (order.resourceType !== RESOURCE_ENERGY) {
-                if (order.amount < 500) {
+            if (order.roomName !== Memory.saleTerminal.room) {
+                if (Game.market.cancelOrder(order.id) === OK) {
+                    log.e("Order Cancelled: " + order.id + " - Not the designated sale terminal.", 'MARKET: ');
+                    return true;
+                }
+            } else if (order.resourceType !== RESOURCE_ENERGY) {
+                if (order.amount < 10) {
                     if (Game.market.cancelOrder(order.id) === OK) {
                         log.e("Order Cancelled: " + order.id + " - Not enough resources remaining in terminal.", 'MARKET: ');
                         return true;
@@ -145,36 +160,37 @@ function manageSellOrders(terminal, myOrders) {
 }
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
-    for (let resourceType in terminal.store) {
-        // Avoid Duplicates
-        if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
-        // Handle minerals
-        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < MINERAL_TRADE_AMOUNT) continue;
-        // Handle boosts
-        if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
-        // Sell
-        let price = 5;
-        let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL && order.remainingAmount >= MINERAL_TRADE_AMOUNT), 'price');
-        if (competitorOrder) {
-            price = competitorOrder.price - 0.01;
-        } else if (latestMarketHistory(resourceType)) {
-            price = latestMarketHistory(resourceType)['avgPrice'];
-        }
-        if (Game.market.createOrder(ORDER_SELL, resourceType, price, terminal.store[resourceType], terminal.pos.roomName) === OK) {
-            log.w("New Sell Order: " + resourceType + " at/per " + price, "Market: ");
-            return true;
+    if (terminal.room.name === Memory.saleTerminal.room) {
+        for (let resourceType in terminal.store) {
+            // Avoid Duplicates
+            if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
+            // Handle minerals
+            if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < MINERAL_TRADE_AMOUNT) continue;
+            // Handle boosts
+            if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
+            // Sell
+            let price = 5;
+            let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL && order.remainingAmount >= MINERAL_TRADE_AMOUNT), 'price');
+            if (competitorOrder) {
+                price = competitorOrder.price - 0.01;
+            } else if (latestMarketHistory(resourceType)) {
+                price = latestMarketHistory(resourceType)['avgPrice'];
+            }
+            if (Game.market.createOrder(ORDER_SELL, resourceType, price, terminal.store[resourceType], terminal.pos.roomName) === OK) {
+                log.w("New Sell Order: " + resourceType + " at/per " + price, "Market: ");
+                return true;
+            }
         }
     }
 }
 
 function baseMineralOnDemandBuys(terminal, globalOrders) {
+    if (!terminal.store[RESOURCE_ENERGY] || Game.market.credits < CREDIT_BUFFER) return;
     for (let mineral of BASE_MINERALS) {
         // Don't buy minerals you can mine
         if (_.includes(OWNED_MINERALS, mineral)) continue;
         let stored = terminal.store[mineral] + terminal.room.storage.store[mineral] || 0;
-        let target = REACTION_AMOUNT;
-        if (Game.market.credits < CREDIT_BUFFER) target *= Game.market.credits / CREDIT_BUFFER;
-        if (stored < target) {
+        if (stored < REACTION_AMOUNT) {
             let buyAmount = (REACTION_AMOUNT * 1.2) - stored;
             if (Game.market.credits < CREDIT_BUFFER) _.round(buyAmount *= (Game.market.credits / CREDIT_BUFFER));
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
@@ -209,11 +225,10 @@ function buyPower(terminal, globalOrders) {
 }
 
 function fillBuyOrders(terminal, globalOrders) {
+    if (!terminal.store[RESOURCE_ENERGY]) return;
     for (let resourceType in terminal.store) {
-        // Don't sell energy
-        if (resourceType === RESOURCE_ENERGY) continue;
         // Only fill buy orders if we need credits or have too much
-        if ((Game.market.credits < CREDIT_BUFFER && terminal.store[resourceType] > REACTION_AMOUNT && !_.includes(MAKE_THESE_BOOSTS, resourceType)) || terminal.store[resourceType] >= DUMP_AMOUNT) {
+        if (terminal.store[resourceType] > DUMP_AMOUNT || (terminal.store[resourceType] > REACTION_AMOUNT && Game.market.credits > CREDIT_BUFFER)) {
             let sellAmount = terminal.store[resourceType] - REACTION_AMOUNT;
             let buyer = _.max(globalOrders.filter(order => order.resourceType === resourceType && order.type === ORDER_BUY && order.remainingAmount >= sellAmount && order.roomName !== terminal.pos.roomName &&
                 Game.market.calcTransactionCost(sellAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
@@ -228,7 +243,8 @@ function fillBuyOrders(terminal, globalOrders) {
                         log.w(terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + (buyer.price * sellAmount) + " credits", "Market: ");
                         return true;
                 }
-            } else if (terminal.store[resourceType] >= DUMP_AMOUNT) {
+            } // Offload if we're overflowing
+            else if (_.sum(terminal.store) >= terminal.store.getCapacity() * 0.95 && terminal.store[resourceType] >= DUMP_AMOUNT) {
                 let alliedRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(FRIENDLIES, r.user) && r.level >= 6));
                 let randomRoom = _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !_.includes(FRIENDLIES, r.user) && r.level >= 6)) || _.sample(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && r.level >= 6));
                 if (alliedRoom && (_.includes(TIER_3_BOOSTS, resourceType) || _.includes(TIER_2_BOOSTS, resourceType))) {
@@ -249,33 +265,46 @@ function fillBuyOrders(terminal, globalOrders) {
     }
 }
 
-function balanceBoosts(terminal) {
-    if (Memory.roomCache[terminal.room.name].requestingSupport) return false;
-    // Loop boosts
-    let storedResources = Object.keys(terminal.store);
-    for (let boost of _.shuffle(_.filter(storedResources, (r) => r !== RESOURCE_ENERGY && terminal.room.store(r) > BOOST_AMOUNT * 1.2))) {
-        let needyTerminal = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.name !== terminal.room.name && (s.store[boost] + s.room.storage.store[boost] < BOOST_AMOUNT)));
+function balanceResources(terminal) {
+    // Loop resources
+    for (let resource of _.filter(terminal.store, (r) => r !== RESOURCE_ENERGY)) {
+        let keepAmount = REACTION_AMOUNT;
+        if (_.includes(LAB_PRIORITY, resource) && terminal.room.store(resource) < BOOST_TRADE_AMOUNT) {
+            continue;
+        } else if (_.includes(LAB_PRIORITY, resource)) {
+            keepAmount = BOOST_TRADE_AMOUNT;
+        } else if (terminal.room.store(resource) < REACTION_AMOUNT) {
+            continue;
+        }
+        let sendAmount = terminal.room.store(resource) - keepAmount;
+        if (sendAmount > terminal.store[resource]) sendAmount = terminal.store[resource];
+        let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.cooldown && r.room.store(resource) < keepAmount), function (s) {
+            s.room.store(resource);
+        })[0];
         if (needyTerminal) {
-            let sendAmount = terminal.room.store(boost) - BOOST_AMOUNT;
-            if (sendAmount > terminal.store[boost]) sendAmount = terminal.store[boost];
-            switch (terminal.send(boost, sendAmount, needyTerminal.room.name)) {
+            switch (terminal.send(resource, sendAmount, needyTerminal.room.name)) {
                 case OK:
-                    log.a('Balancing ' + sendAmount + ' ' + boost + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    log.a('Balancing ' + sendAmount + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
+            }
+        } else {
+            switch (terminal.send(resource, sendAmount, Memory.saleTerminal.room)) {
+                case OK:
+                    log.a('Sent ' + sendAmount + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to sell on the market.', "Market: ");
                     return true;
             }
         }
     }
+    if (Memory.roomCache[terminal.room.name].requestingSupport) return false;
     // Find needy terminals
-    let myRooms = _.filter(Game.rooms, (r) => r.controller.owner && r.controller.owner.username === MY_USERNAME && r.terminal);
-    let needyRoom = _.sample(_.filter(myRooms, (r) => r.name !== terminal.room.name && !r.terminal.cooldown && r.energy < terminal.room.energy * 0.7));
+    let needyRoom = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.cooldown && r.room.energy < terminal.room.energy * 0.85), '.room.energy')[0];
     if (needyRoom) {
-        let needyTerminal = needyRoom.terminal;
         // Determine how much you can move
         let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-        if (availableAmount >= 5000) {
-            switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyTerminal.room.name)) {
+        if (availableAmount >= TERMINAL_ENERGY_BUFFER * 0.33) {
+            switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyRoom.name)) {
                 case OK:
-                    log.a('Balancing ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    log.a('Balancing ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyRoom.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
         }

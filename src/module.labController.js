@@ -30,7 +30,7 @@ function manageBoostProduction(room) {
     }
     if (!hub || !hub.length || hub.length < 3) return;
     let boost;
-    let boostList = _.union(MAKE_THESE_BOOSTS, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS);
+    let boostList = _.union(LAB_PRIORITY, BASE_COMPOUNDS, TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS);
     for (let key in boostList) {
         // Only one hub per output
         if (_.filter(room.structures, (s) => s.structureType === STRUCTURE_LAB && s.memory.creating === boostList[key]).length) continue;
