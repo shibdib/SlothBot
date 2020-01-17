@@ -127,8 +127,6 @@ function auxiliaryOperations() {
             if (powerRooms.length && !powerMining) {
                 for (let powerRoom of powerRooms) {
                     if (Memory.targetRooms[powerRoom.name]) break;
-                    let lastOperation = Memory.roomCache[powerRoom.name].lastOperation || 0;
-                    if (lastOperation + 4500 > Game.time) continue;
                     let cache = Memory.auxiliaryTargets || {};
                     let tick = Game.time;
                     cache[powerRoom.name] = {
@@ -147,8 +145,6 @@ function auxiliaryOperations() {
         if (commodityRooms.length && !commodityMining) {
             for (let commodityRoom of commodityRooms) {
                 if (Memory.auxiliaryTargets[commodityRoom.name]) break;
-                let lastOperation = Memory.roomCache[commodityRoom.name].lastOperation || 0;
-                if (lastOperation + 4500 > Game.time) continue;
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
                 cache[commodityRoom.name] = {
