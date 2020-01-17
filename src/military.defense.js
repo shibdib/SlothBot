@@ -158,7 +158,7 @@ function addThreat(room) {
                 if (threatRating >= 1500) threatRating = 1500;
             } else if (!cache[user]) {
                 threatRating = 25;
-                log.e(name + ' has detected a neutral in ' + roomLink(room.name) + '. ' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
+                log.e(roomLink(room.name) + ' has detected a neutral.' + user + ' has now been marked hostile for trespassing.', 'DIPLOMACY:');
             }
             cache[user] = {
                 threatRating: threatRating,
