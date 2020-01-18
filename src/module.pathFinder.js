@@ -13,8 +13,8 @@ const structureMatrixCache = {};
 const creepMatrixCache = {};
 const hostileMatrixCache = {};
 const skMatrixCache = {};
-const routeCache = {};
-const pathCache = {};
+let routeCache = {};
+let pathCache = {};
 
 function shibMove(creep, heading, options = {}) {
     _.defaults(options, {
