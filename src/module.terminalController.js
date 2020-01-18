@@ -301,10 +301,12 @@ function balanceResources(terminal) {
     if (needyRoom) {
         // Determine how much you can move
         let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-        if (availableAmount >= TERMINAL_ENERGY_BUFFER * 0.33) {
-            switch (terminal.send(RESOURCE_ENERGY, availableAmount, needyRoom.name)) {
+        let requestedAmount = (terminal.room.energy - needyRoom.room.energy) * 0.5;
+        if (requestedAmount > availableAmount) requestedAmount = availableAmount;
+        if (requestedAmount > 1000) {
+            switch (terminal.send(RESOURCE_ENERGY, requestedAmount, needyRoom.room.name)) {
                 case OK:
-                    log.a('Balancing ' + availableAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyRoom.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    log.a('Balancing ' + requestedAmount + ' ' + RESOURCE_ENERGY + ' To ' + roomLink(needyRoom.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
                     return true;
             }
         }
