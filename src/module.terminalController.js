@@ -162,6 +162,8 @@ function manageSellOrders(terminal, myOrders) {
 function placeSellOrders(terminal, globalOrders, myOrders) {
     if (terminal.room.name === Memory.saleTerminal.room) {
         for (let resourceType in terminal.store) {
+            // No energy
+            if (resourceType === RESOURCE_ENERGY) continue;
             // Avoid Duplicates
             if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
             // Handle minerals
