@@ -455,27 +455,8 @@ module.exports.remoteCreepQueue = function (room) {
             if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remotes[keys])) continue;
             // Handle invader cores
             if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].invaderCore && !Memory.roomCache[remotes[keys]].sk) {
-                let guards = _.filter(Game.creeps, (creep) => creep.memory.destination === remotes[keys] && creep.memory.operation === 'guard');
-                if (guards.length < 1 || (guards[0] && guards[0].ticksToLive < (guards[0].body.length * 3 + 10) && guards.length < 2)) {
-                    queueCreep(room, PRIORITIES.borderPatrol, {
-                        role: 'attacker',
-                        operation: 'guard',
-                        destination: remotes[keys],
-                        military: true,
-                        other: {localCache: true}
-                    })
-                }
-                let reserver = _.filter(Game.creeps, (creep) => creep.memory.role === 'reserver' && creep.memory.other.reservationTarget === remotes[keys]);
-                let amount = 1;
-                if (Memory.roomCache[remotes[keys]] && Memory.roomCache[remotes[keys]].reserverCap) amount = Memory.roomCache[remotes[keys]].reserverCap;
-                if (reserver.length < amount && (!Memory.roomCache[remotes[keys]] || !Memory.roomCache[remotes[keys]].isHighway)) {
-                    queueCreep(room, PRIORITIES.reserver + reserver.length, {
-                        role: 'reserver',
-                        other: {
-                            reservationTarget: remotes[keys]
-                        }
-                    })
-                }
+                room.memory.spawnBorderPatrol = true;
+                continue;
             }
             // If owned or a highway continue
             if (Memory.roomCache[remotes[keys]] && (Memory.roomCache[remotes[keys]].level || !Memory.roomCache[remotes[keys]].sources)) continue;
@@ -725,15 +706,6 @@ module.exports.globalCreepQueue = function () {
                         military: true
                     })
                 }
-                let cleaningEscort = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'longbow');
-                if (escort && cleaningEscort.length < deconstructors && !_.includes(queue, 'longbow')) {
-                    queueGlobalCreep(priority, {
-                        role: 'longbow',
-                        destination: key,
-                        operation: 'guard',
-                        military: true
-                    })
-                }
                 break;
             case 'claimClear': //Claim Clearing
                 let claimClear = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'claimer');
@@ -742,22 +714,6 @@ module.exports.globalCreepQueue = function () {
                         role: 'claimer',
                         destination: key,
                         operation: 'claimClear',
-                        military: true
-                    })
-                }
-                break;
-            case 'harass': // Harass
-                let harasser = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'longbow');
-                let annoy = operations[key].annoy;
-                if ((harasser.length < opLevel * 2 || (harasser[0] && harasser[0].ticksToLive < (harasser[0].body.length * 3 + 50) && harasser.length < opLevel * 2 + 1))) {
-                    queueGlobalCreep(priority, {
-                        role: 'longbow',
-                        destination: key,
-                        operation: 'harass',
-                        other: {
-                            reboot: annoy,
-                            waitFor: opLevel * 2
-                        },
                         military: true
                     })
                 }
@@ -783,10 +739,10 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'siege': // Siege
-                let sieger = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'siegeEngine');
+                let siegeCreep = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'siegeEngine');
                 let siegeHealer = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'siegeHealer');
                 if (opLevel > 2) opLevel = 2;
-                if (sieger.length < siegeHealer.length) {
+                if (siegeCreep.length < siegeHealer.length) {
                     queueGlobalCreep(priority - 1, {
                         role: 'siegeEngine',
                         destination: key,
@@ -848,7 +804,7 @@ module.exports.globalCreepQueue = function () {
                 break;
             case 'guard': // Room Guard
                 let guards = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'longbow');
-                if (guards.length < 2) {
+                if (guards.length < opLevel) {
                     queueGlobalCreep(PRIORITIES.priority, {
                         role: 'longbow',
                         destination: key,
