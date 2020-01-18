@@ -897,7 +897,7 @@ function determineEnergyOrder(room) {
 
 function displayQueue(room) {
     let queue;
-    room = Game.rooms[room.name];
+    room = Game.rooms[room];
     if (!room) return;
     if (room.energyState || room.energyAvailable === room.energyCapacityAvailable) {
         queue = _.sortBy(Object.assign({}, globalQueue, roomQueue[room.name]), 'priority');
