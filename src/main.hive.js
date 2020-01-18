@@ -157,11 +157,33 @@ function minionController(minion) {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
             if (average(cpuUsageArray) > 5) {
-                //minion.suicide();
+                minion.suicide();
+                if (minion.memory.military && minion.memory.destination && (Memory.targetRooms[minion.memory.destination] || Memory.auxiliaryTargets[minion.memory.destination])) {
+                    delete Memory.targetRooms[minion.memory.destination];
+                    delete Memory.auxiliaryTargets[minion.memory.destination];
+                }
                 log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
             }
         }
         CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
+        cpuUsageArray = CREEP_ROLE_CPU_ARRAY[minion.role] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
+        } else {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+        }
+        CREEP_ROLE_CPU_ARRAY[minion.role] = cpuUsageArray;
+        let roomCreepCpu = ROOM_CREEP_CPU_OBJECT['military'] || {};
+        cpuUsageArray = roomCreepCpu[minion.name] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
+        } else {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+        }
+        roomCreepCpu[minion.name] = cpuUsageArray;
+        ROOM_CREEP_CPU_OBJECT['military'] = roomCreepCpu;
         minion.room.visual.text(
             _.round(average(cpuUsageArray), 2),
             minion.pos.x,
