@@ -199,6 +199,7 @@ function claimScout(room) {
         Memory.noClaim = noClaim;
         room.cacheRoomIntel(true);
         delete Memory.targetRooms[room.name];
+        delete Memory.auxiliaryTargets[room.name];
     }
 }
 

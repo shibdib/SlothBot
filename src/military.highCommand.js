@@ -113,22 +113,20 @@ function auxiliaryOperations() {
     // Clean
     let cleaning = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
     if (cleaning < CLEAN_LIMIT) {
-        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.targetRooms[r.name] && r.structures && !r.owner && !r.isHighway), 'closestRange');
-        if (enemyClean.length) {
-            let cleanTarget = _.sample(enemyClean);
+        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.structures && !r.owner && !r.isHighway), 'closestRange')[0];
+        if (enemyClean) {
             let cache = Memory.auxiliaryTargets || {};
-            let tick = Game.time;
             let overlordCount = Memory.myRooms.length;
             let type = 'clean';
             if (Game.gcl.level > overlordCount) type = 'claimClear';
-            cache[cleanTarget.name] = {
-                tick: tick,
+            cache[enemyClean.name] = {
+                tick: Game.time,
                 type: type,
                 level: 1,
                 priority: 4
             };
             Memory.auxiliaryTargets = cache;
-            log.a('Cleaning operation planned for ' + roomLink(cleanTarget.name), 'HIGH COMMAND: ');
+            log.a('Cleaning operation planned for ' + roomLink(enemyClean.name), 'HIGH COMMAND: ');
         }
     }
     if (maxLevel >= 6) {
@@ -138,7 +136,7 @@ function auxiliaryOperations() {
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'power').length || 0;
             if (powerRooms.length && !powerMining) {
                 for (let powerRoom of powerRooms) {
-                    if (Memory.targetRooms[powerRoom.name]) break;
+                    if (Memory.auxiliaryTargets[powerRoom.name]) continue;
                     let cache = Memory.auxiliaryTargets || {};
                     let tick = Game.time;
                     cache[powerRoom.name] = {
@@ -158,7 +156,7 @@ function auxiliaryOperations() {
         let commodityMining = _.filter(Memory.targetRooms, (target) => target.type === 'commodity').length || 0;
         if (commodityRooms.length && !commodityMining) {
             for (let commodityRoom of commodityRooms) {
-                if (Memory.auxiliaryTargets[commodityRoom.name]) break;
+                if (Memory.auxiliaryTargets[commodityRoom.name]) continue;
                 let cache = Memory.auxiliaryTargets || {};
                 let tick = Game.time;
                 cache[commodityRoom.name] = {
@@ -344,6 +342,7 @@ function manageAttacks() {
             case 'commodity':
             case 'clean':
             case 'claimClear':
+            case 'claim':
                 delete Memory.targetRooms[key];
                 break;
         }
@@ -552,7 +551,7 @@ function manualAttacks() {
             };
         } else if (_.startsWith(name, 'claim')) {
             cache[Game.flags[name].pos.roomName] = {
-                type: 'claimScout'
+                type: 'claim'
             };
         }
         if (cache[Game.flags[name].pos.roomName]) {
@@ -562,7 +561,7 @@ function manualAttacks() {
             op.level = 1;
             op.manual = true;
             cache[Game.flags[name].pos.roomName] = op;
-            Memory.targetRooms = cache;
+            Memory.auxiliaryTargets = cache;
             Game.flags[name].remove();
         }
     }
