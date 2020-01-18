@@ -14,6 +14,8 @@ module.exports.setRoomState = function (room) {
     room.memory.extremeEnergySurplus = undefined;
     room.memory.energyNeeded = undefined;
     if (Game.time % 5 === 0) {
+        // Request builders
+        if (Math.random() > 0.7) requestBuilders(room);
         let last = room.memory.lastEnergyAmount || 0;
         room.memory.lastEnergyAmount = energyInRoom;
         let energyIncomeArray = [];
@@ -72,3 +74,9 @@ module.exports.setRoomState = function (room) {
         if (oldState !== room.memory.state) log.a(news);
     }
 };
+
+function requestBuilders(room) {
+    if (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length) {
+        room.memory.buildersNeeded = true;
+    }
+}

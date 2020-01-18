@@ -15,7 +15,7 @@ let planner = require('module.roomPlanner');
 let diplomacy = require('module.diplomacy');
 let storedLevel = {};
 
-module.exports.overlordMind = function (room) {
+module.exports.overlordMind = function (room, CPULimit) {
     if (!room) return;
     let mindStart = Game.cpu.getUsed();
     let cpuBucket = Game.cpu.bucket;
@@ -29,8 +29,19 @@ module.exports.overlordMind = function (room) {
     // Handle Defense
     defense.controller(room);
 
-    // Request builders
-    if (Math.random() > 0.7) requestBuilders(room);
+    // Manage creeps
+    let roomCreeps = _.sortBy(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military), '.memory.lastManaged');
+    // Worker minions
+    for (let key in roomCreeps) {
+        try {
+            if ((Game.cpu.getUsed() - mindStart) > CPULimit * 0.9) break;
+            minionController(roomCreeps[key]);
+        } catch (e) {
+            log.e(roomCreeps[key].name + ' in room ' + roomCreeps[key].room.name + ' experienced an error');
+            log.e(e.stack);
+            Game.notify(e.stack);
+        }
+    }
 
     //Build Room
     if (!room.memory.bunkerHub || (room.controller.level < 4 && Math.random() > 0.7) || (getLevel(room) !== room.controller.level && Game.time % 20 === 0) || (Game.time % 200 === 0 && Math.random() > 0.5)) {
@@ -48,6 +59,9 @@ module.exports.overlordMind = function (room) {
             building.notifyWhenAttacked(false);
         }
     }
+
+    //CPU Check
+    if ((Game.cpu.getUsed() - mindStart) > CPULimit) return;
 
     // Manage creep spawning
     if (Game.time % 5 === 0) {
@@ -70,7 +84,7 @@ module.exports.overlordMind = function (room) {
                     Game.notify(e.stack);
                 }
             }
-            if (cpuBucket >= 4000 && Math.random() > 0.5) {
+            if (cpuBucket >= 5000 && Math.random() > 0.5) {
                 try {
                     spawning.remoteCreepQueue(room);
                 } catch (e) {
@@ -79,19 +93,6 @@ module.exports.overlordMind = function (room) {
                     Game.notify(e.stack);
                 }
             }
-        }
-    }
-
-    // Manage creeps
-    let roomCreeps = shuffle(_.filter(Game.creeps, (r) => r.memory.overlord === room.name && !r.memory.military));
-    // Worker minions
-    for (let key in roomCreeps) {
-        try {
-            minionController(roomCreeps[key]);
-        } catch (e) {
-            log.e(roomCreeps[key].name + ' in room ' + roomCreeps[key].room.name + ' experienced an error');
-            log.e(e.stack);
-            Game.notify(e.stack);
         }
     }
 
@@ -105,6 +106,9 @@ module.exports.overlordMind = function (room) {
             Game.notify(e.stack);
         }
     }
+
+    //CPU Check
+    if ((Game.cpu.getUsed() - mindStart) > CPULimit) return;
 
     // Handle Links
     if (room.level >= 5) {
@@ -159,6 +163,12 @@ module.exports.overlordMind = function (room) {
 
 let errorCount = {};
 function minionController(minion) {
+    // Set last managed tick
+    minion.memory.lastManaged = Game.time;
+    // If bucket gets real low kill remotes
+    if (Game.cpu.bucket < 3000) {
+        if (minion.room.name !== minion.memory.overlord) minion.suicide();
+    }
     // If on portal or border move
     if (minion.portalCheck() || minion.borderCheck()) return;
     // Disable notifications
@@ -170,10 +180,9 @@ function minionController(minion) {
     // If minion has been flagged to recycle do so
     if (minion.memory.recycle) return minion.recycleCreep();
     // Chance based CPU saving
-    let adjustedLimit = adjustedCPULimit(Game.cpu.limit, Game.cpu.bucket);
     let cpuUsed = Game.cpu.getUsed();
     if (Game.cpu.bucket < 8000) {
-        if ((cpuUsed >= adjustedLimit && Math.random() > 0.5) || Math.random() > 0.9) return minion.say('CPU'); else {
+        if ((cpuUsed >= Game.cpu.limit && Math.random() > 0.5) || Math.random() > 0.9) return minion.say('CPU'); else {
             if (Math.random() > Game.cpu.bucket / 8000) return minion.say('BUCKET');
         }
     }
@@ -256,11 +265,5 @@ function cacheRoomItems(room) {
     // Cache number of spaces around sources for things
     if (!ROOM_CONTROLLER_SPACE[room.name]) {
         ROOM_CONTROLLER_SPACE[room.name] = room.controller.pos.countOpenTerrainAround();
-    }
-}
-
-function requestBuilders(room) {
-    if (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || getLevel(room) !== room.controller.level || _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0]) {
-        room.memory.buildersNeeded = true;
     }
 }

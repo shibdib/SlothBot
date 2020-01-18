@@ -74,7 +74,7 @@ module.exports.loop = function () {
 };
 
 abandon = function (room) {
-    if (!Game.rooms[room] || !Game.rooms[room].memory.extensionHub) return log.e(room + ' does not appear to be owned by you.');
+    if (!Game.rooms[room] || !Game.rooms[room].memory.bunkerHub) return log.e(room + ' does not appear to be owned by you.');
     let overlordFor = _.filter(Game.creeps, (c) => c.memory && c.memory.overlord === room);
     if (overlordFor.length) {
         for (let key in overlordFor) {

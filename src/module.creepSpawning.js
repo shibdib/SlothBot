@@ -15,11 +15,11 @@ let lastBuilt = {};
 
 //Build Creeps From Queue
 module.exports.processBuildQueue = function () {
+    Memory.ownedRooms.forEach((r) => displayQueue(r));
     let spawns = Game.spawns;
     for (let key in spawns) {
         let spawn = spawns[key];
         let level = getLevel(spawn.room);
-        displayQueue(spawn.room);
         // Clear queue if something is stuck
         if (lastBuilt[spawn.room.name] && roomQueue[spawn.room.name] && (Game.time - lastBuilt[spawn.room.name] >= 1450 || (level >= 3 && spawn.room.creeps.length < 4 && Math.random() > 0.5))) {
             roomQueue[spawn.room.name] = undefined;
@@ -261,7 +261,7 @@ module.exports.miscCreepQueue = function (room) {
     if (inBuild) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let priority = PRIORITIES.drone;
-        let amount = 12 - level;
+        let amount = 10 - level;
         if (drones.length < amount) {
             queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: true}})
         }
@@ -554,7 +554,6 @@ module.exports.globalCreepQueue = function () {
     for (let key in shuffle(operations)) {
         if (!operations[key]) continue;
         let opLevel = Number(operations[key].level) || 1;
-        let escort = operations[key].escort;
         let priority = operations[key].priority || 4;
         //Observers
         if (opLevel === 0 && !operations[key].observerCheck) {
@@ -912,6 +911,8 @@ function determineEnergyOrder(room) {
 
 function displayQueue(room) {
     let queue;
+    room = Game.rooms[room.name];
+    if (!room) return;
     if (room.energyState || room.energyAvailable === room.energyCapacityAvailable) {
         queue = _.sortBy(Object.assign({}, globalQueue, roomQueue[room.name]), 'priority');
     } else {

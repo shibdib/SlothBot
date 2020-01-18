@@ -54,7 +54,7 @@ module.exports.hud = function () {
             stroke: 'black'
         });
         //GCL Display
-        displayText(room, 0, 1, paused + ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks.');
+        displayText(room, 0, 1, paused + ICONS.upgradeController + ' GCL: ' + Game.gcl.level + ' - ' + displayTime + ' / ' + ticksToUpgrade + ' ticks. Bucket- ' + Game.cpu.bucket);
         //Safemode
         if (room.controller.safeMode) {
             let secondsToNoSafe = room.controller.safeMode * Memory.tickLength;

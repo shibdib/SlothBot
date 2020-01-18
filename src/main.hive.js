@@ -54,10 +54,11 @@ module.exports.hiveMind = function () {
         }
     }
     // Process Overlords
+    let overlordCPULimit = adjustedCPULimit(Game.cpu.limit - 5, Game.cpu.bucket) / _.size(Memory.myRooms);
     for (let key of Memory.myRooms) {
         let activeRoom = Game.rooms[key];
         try {
-            overlord.overlordMind(activeRoom);
+            overlord.overlordMind(activeRoom, overlordCPULimit);
         } catch (e) {
             log.e('Overlord Module experienced an error');
             log.e(e.stack);
