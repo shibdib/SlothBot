@@ -576,7 +576,7 @@ module.exports.globalCreepQueue = function () {
         let escort = operations[key].escort;
         let priority = operations[key].priority || 4;
         //Observers
-        if (opLevel === 0 && !operations[key].observerCheck && operations[key].type !== 'clean') {
+        if (opLevel === 0 && !operations[key].observerCheck) {
             let scout = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'scout');
             if ((scout.length < 1 || (scout[0] && scout[0].ticksToLive < (scout[0].body.length * 3 + 10) && scout.length < 2))) {
                 queueGlobalCreep(PRIORITIES.priority, {role: 'scout', destination: key, military: true})

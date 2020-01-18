@@ -15,7 +15,10 @@ module.exports.observerControl = function (room) {
         if (observedRooms[room.name] && Game.rooms[observedRooms[room.name]]) {
             Game.rooms[observedRooms[room.name]].cacheRoomIntel();
             if (Game.map.getRoomLinearDistance(observedRooms[room.name], room.name) <= 2) Game.rooms[observedRooms[room.name]].invaderCheck();
-            if (Memory.targetRooms[observedRooms[room.name]]) observer.operationPlanner(Game.rooms[observedRooms[room.name]]);
+            if (Memory.targetRooms[observedRooms[room.name]]) {
+                Memory.targetRooms[observedRooms[room.name]].observerCheck = true;
+                observer.operationPlanner(Game.rooms[observedRooms[room.name]]);
+            }
         }
         // Observer queries (Military scouts first)
         let scoutOperation = _.findKey(Memory.targetRooms, (t) => t.type === 'attack');
