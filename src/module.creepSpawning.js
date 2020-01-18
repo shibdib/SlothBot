@@ -33,11 +33,12 @@ module.exports.processBuildQueue = function () {
                 if (!Memory.roomCache[spawn.room.name]) spawn.room.cacheRoomIntel(true);
                 let maxLevel = Memory.maxLevel;
                 if (!spawn.room.memory.nuke && _.size(globalQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
+                    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < 10);
                     // If no energy surplus just urgent priority targets
                     if (spawn.room.energyState || spawn.room.energyAvailable === spawn.room.energyCapacityAvailable) {
-                        queue = _.sortBy(Object.assign({}, globalQueue, roomQueue[spawn.room.name]), 'priority');
+                        queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[spawn.room.name]), 'priority');
                     } else {
-                        queue = _.sortBy(Object.assign({}, _.filter(globalQueue, (t) => t.priority <= PRIORITIES.urgent), roomQueue[spawn.room.name]), 'priority');
+                        queue = _.sortBy(Object.assign({}, _.filter(distanceFilteredGlobal, (t) => t.priority <= PRIORITIES.urgent), roomQueue[spawn.room.name]), 'priority');
                     }
                 } else {
                     queue = _.sortBy(roomQueue[spawn.room.name], 'priority')
