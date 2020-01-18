@@ -67,11 +67,10 @@ module.exports.hiveMind = function () {
     }
     //Expansion Manager
     if (Game.time % 25 === 0) {
-        let overlordCount = Memory.myRooms.length;
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        let maxRooms = _.round(Game.cpu.limit / 9);
+        let maxRooms = _.round(Game.cpu.limit / (adjustedCPULimit(Game.cpu.limit - 5, Game.cpu.bucket) / (_.size(Memory.myRooms) + 1)));
         if (TEN_CPU) maxRooms = 2;
-        if (Memory.maxLevel >= 3 && Memory.minLevel > 3 && overlordCount < maxRooms && Game.gcl.level > overlordCount) {
+        if (Memory.maxLevel >= 3 && Memory.minLevel > 3 && Memory.myRooms.length < maxRooms && Game.gcl.level > Memory.myRooms.length) {
             let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
             let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
             if ((!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
