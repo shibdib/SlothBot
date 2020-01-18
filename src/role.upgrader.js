@@ -27,7 +27,8 @@ module.exports.role = function (creep) {
                         if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
                         return creep.shibMove(container, {range: 0});
                     } else {
-                        creep.memory.onContainer = true;
+                        if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                        return creep.shibMove(container, {range: 1});
                     }
                 }
                 if (link && link.energy) {
@@ -47,7 +48,8 @@ module.exports.role = function (creep) {
             if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                 return creep.shibMove(container, {range: 0});
             } else {
-                creep.memory.onContainer = true;
+                if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
+                return creep.shibMove(container, {range: 1});
             }
         } else {
             if (link && link.energy) {
@@ -98,11 +100,9 @@ function herald(creep) {
             let addition = '';
             if (Game.shard.name === 'treecafe' && creep.room.controller.level >= 4) addition = ' @pvp@';
             switch (creep.signController(creep.room.controller, _.sample(signs) + addition)) {
-                case OK:
+                default:
                     creep.memory.signed = true;
                     break;
-                case ERR_NOT_IN_RANGE:
-                    return creep.shibMove(creep.room.controller, {range: 1});
             }
         }
     } else {
