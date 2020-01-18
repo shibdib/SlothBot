@@ -180,8 +180,8 @@ function minionController(minion) {
     // If minion has been flagged to recycle do so
     if (minion.memory.recycle) return minion.recycleCreep();
     // Chance based CPU saving
+    let cpuUsed = Game.cpu.getUsed();
     /**
-     let cpuUsed = Game.cpu.getUsed();
      if (Game.cpu.bucket < 8000) {
         if ((cpuUsed >= Game.cpu.limit && Math.random() > 0.5) || Math.random() > 0.9) return minion.say('CPU'); else {
             if (Math.random() > Game.cpu.bucket / 8000) return minion.say('BUCKET');
