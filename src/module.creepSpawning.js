@@ -335,25 +335,6 @@ module.exports.miscCreepQueue = function (room) {
                 queueTracker['explorer'] = Game.time;
             }
         }
-        // Portal explorers
-        if ((!queueTracker['explorer'] || queueTracker['explorer'] + 1500 <= Game.time)) {
-            if (_.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName).length) {
-                for (let portalRoom of _.filter(Memory.roomCache, (r) => r.portal && JSON.parse(r.portal)[0].destination.roomName)) {
-                    let explorer = _.filter(Game.creeps, (creep) => creep.memory.destination === portalRoom.name);
-                    if (!explorer.length) {
-                        queueCreep(room, PRIORITIES.explorer, {
-                            role: 'explorer',
-                            destination: portalRoom.name,
-                            military: true,
-                            other: {
-                                portalJump: JSON.parse(portalRoom.portal)[0].destination.roomName
-                            }
-                        });
-                    }
-                }
-                queueTracker['explorer'] = Game.time;
-            }
-        }
         // Assist room
         if (level >= 3) {
             let safeToSupport = _.filter(Game.rooms, (r) => !r.hostileCreeps.length && (!Memory.roomCache[r.name] || !Memory.roomCache[r.name].lastPlayerSighting || Memory.roomCache[r.name].lastPlayerSighting + 100 < Game.time));
