@@ -300,7 +300,7 @@ function balanceResources(terminal) {
     let needyRoom = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.cooldown && r.room.energy < terminal.room.energy * 0.85), '.room.energy')[0];
     if (needyRoom) {
         // Determine how much you can move
-        let availableAmount = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
+        let availableAmount = terminal.store[RESOURCE_ENERGY] - (TERMINAL_ENERGY_BUFFER * 1.1);
         let requestedAmount = (terminal.room.energy - needyRoom.room.energy) * 0.5;
         if (requestedAmount > availableAmount) requestedAmount = availableAmount;
         if (requestedAmount > 1000) {
