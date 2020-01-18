@@ -76,7 +76,7 @@ module.exports.setRoomState = function (room) {
 };
 
 function requestBuilders(room) {
-    if (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length) {
+    if (!_.filter(room.structures, (s) => s.structureType === STRUCTURE_SPAWN).length || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER).length) {
         room.memory.buildersNeeded = true;
     }
 }
