@@ -15,7 +15,7 @@ let lastBuilt = {};
 
 //Build Creeps From Queue
 module.exports.processBuildQueue = function () {
-    Memory.ownedRooms.forEach((r) => displayQueue(r));
+    Memory.myRooms.forEach((r) => displayQueue(r));
     let spawns = Game.spawns;
     for (let key in spawns) {
         let spawn = spawns[key];
