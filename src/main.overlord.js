@@ -201,7 +201,6 @@ function minionController(minion) {
         let creepRole = require('role.' + memoryRole);
         creepRole.role(minion);
         let used = Game.cpu.getUsed() - cpuUsed;
-        //if (used > 0.7) console.log(minion.name + ' ' + roomLink(minion.room.name) + ' ' + used)
         let cpuUsageArray = CREEP_CPU_ARRAY[minion.name] || [];
         if (cpuUsageArray.length < 50) {
             cpuUsageArray.push(used)
@@ -209,7 +208,7 @@ function minionController(minion) {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
             if (average(cpuUsageArray) > 3) {
-                //minion.suicide();
+                minion.suicide();
                 log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
             }
         }

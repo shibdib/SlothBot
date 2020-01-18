@@ -222,7 +222,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
                 if (creep.memory.badPathing) creep.memory.badPathing++;
-                if (creep.memory.badPathing > 500) {
+                if (creep.memory.badPathing > 10) {
                     log.e(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
                     log.e('Ret - ' + JSON.stringify(ret));
                     if (allowedRooms) log.e('Path - ' + allowedRooms);
@@ -231,7 +231,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                         delete Memory.roomCache[creep.memory.destination];
                         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
                     }
-                    return creep.memory.recycle = true;
+                    return creep.suicide();
                 }
                 return creep.moveTo(target);
             }

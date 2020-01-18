@@ -156,7 +156,7 @@ function minionController(minion) {
         } else {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
-            if (average(cpuUsageArray) > 5) {
+            if (average(cpuUsageArray) > 7.5) {
                 minion.suicide();
                 if (minion.memory.military && minion.memory.destination && (Memory.targetRooms[minion.memory.destination] || Memory.auxiliaryTargets[minion.memory.destination])) {
                     delete Memory.targetRooms[minion.memory.destination];
