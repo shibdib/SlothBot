@@ -57,6 +57,7 @@ module.exports.processBuildQueue = function () {
                     } else {
                         body = generator.bodyGenerator(level, role, spawn.room, topPriority.misc);
                     }
+                    if (!body || !body.length) continue;
                     cost = global.UNIT_COST(body);
                     // If boosts are required to spawn check that a room has them
                     if (topPriority.other.boostCheck) {
