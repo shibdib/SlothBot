@@ -326,7 +326,10 @@ module.exports.miscCreepQueue = function (room) {
                 let amount = 5;
                 let explorers = _.filter(Game.creeps, (creep) => creep.memory.role === 'explorer');
                 if (explorers.length < amount) {
-                    queueCreep(room, PRIORITIES.explorer + explorers.length, {role: 'explorer'})
+                    queueCreep(room, PRIORITIES.explorer + explorers.length, {
+                        role: 'explorer',
+                        military: true
+                    })
                 }
                 queueTracker['explorer'] = Game.time;
             }
@@ -340,6 +343,7 @@ module.exports.miscCreepQueue = function (room) {
                         queueCreep(room, PRIORITIES.explorer, {
                             role: 'explorer',
                             destination: portalRoom.name,
+                            military: true,
                             other: {
                                 portalJump: JSON.parse(portalRoom.portal)[0].destination.roomName
                             }
