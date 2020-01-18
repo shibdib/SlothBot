@@ -346,7 +346,7 @@ module.exports.miscCreepQueue = function (room) {
                 if (drones.length < amount) {
                     queueCreep(room, PRIORITIES.assistPioneer, {
                         role: 'drone',
-                        destination: needDrones.name
+                        destination: needDrones
                     });
                 }
             }
@@ -358,7 +358,7 @@ module.exports.miscCreepQueue = function (room) {
                     if (!fuelTruck.length) {
                         queueCreep(room, PRIORITIES.fuelTruck, {
                             role: 'fuelTruck',
-                            destination: needEnergy.name
+                            destination: needEnergy
                         });
                         queueTracker['fuelTruck'] = Game.time;
                     }
@@ -370,7 +370,7 @@ module.exports.miscCreepQueue = function (room) {
                     if (!remoteUpgraders.length) {
                         queueCreep(room, PRIORITIES.remoteUpgrader + remoteUpgraders.length, {
                             role: 'remoteUpgrader',
-                            destination: upgraderRequested.name
+                            destination: upgraderRequested
                         })
                     }
                 }
