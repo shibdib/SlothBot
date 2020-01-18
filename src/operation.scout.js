@@ -242,25 +242,6 @@ function nukeTarget(room) {
     return false;
 }
 
-function observerOp(room) {
-    let highCommand = require('military.highCommand');
-    highCommand.operationSustainability(room);
-    levelManager(room);
-    //Type specific stuff
-    switch (Memory.targetRooms[room.name].type) {
-        case 'hold':
-            // HOLD - Clear target if room is no longer owned
-            if (!room.controller.owner || room.controller.safeMode || !Memory.targetRooms[room.name]) {
-                log.a('Canceling hold operation in ' + roomLink(room.name) + ' as it is no longer owned.', 'HIGH COMMAND: ');
-                delete Memory.targetRooms[room.name];
-                return;
-            }
-            // Request unClaimer if room level is too high
-            Memory.targetRooms[room.name].claimAttacker = !room.controller.upgradeBlocked && (!room.controller.ticksToDowngrade || room.controller.ticksToDowngrade > 1000);
-            break;
-    }
-}
-
 // Observer tasks
 function forwardObserver(room) {
     let highCommand = require('military.highCommand');

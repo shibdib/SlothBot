@@ -53,18 +53,15 @@ module.exports.overlordMind = function (room) {
     if (Game.time % 5 === 0) {
         if (getLevel(room) < 2) {
             spawning.roomStartup(room);
-            spawning.remoteCreepQueue(room);
         } else {
-            if (cpuBucket >= 2500) {
-                try {
-                    spawning.essentialCreepQueue(room);
-                } catch (e) {
-                    log.e('Essential Queueing for room ' + room.name + ' experienced an error');
-                    log.e(e.stack);
-                    Game.notify(e.stack);
-                }
+            try {
+                spawning.essentialCreepQueue(room);
+            } catch (e) {
+                log.e('Essential Queueing for room ' + room.name + ' experienced an error');
+                log.e(e.stack);
+                Game.notify(e.stack);
             }
-            if (cpuBucket >= 3500) {
+            if (cpuBucket >= 3500 && Math.random() > 0.5) {
                 try {
                     spawning.miscCreepQueue(room);
                 } catch (e) {
@@ -73,7 +70,7 @@ module.exports.overlordMind = function (room) {
                     Game.notify(e.stack);
                 }
             }
-            if (cpuBucket >= 4000) {
+            if (cpuBucket >= 4000 && Math.random() > 0.5) {
                 try {
                     spawning.remoteCreepQueue(room);
                 } catch (e) {
@@ -201,12 +198,20 @@ function minionController(minion) {
         } else {
             cpuUsageArray.shift();
             cpuUsageArray.push(used);
-            if (average(cpuUsageArray) > 4) {
-                minion.memory.recycle = true;
-                log.e(minion.name + ' was killed for overusing CPU in room ' + minion.room.name);
+            if (average(cpuUsageArray) > 3) {
+                //minion.suicide();
+                log.e(minion.name + ' was killed for overusing CPU in room ' + roomLink(minion.room.name));
             }
         }
         CREEP_CPU_ARRAY[minion.name] = cpuUsageArray;
+        cpuUsageArray = CREEP_ROLE_CPU_ARRAY[minion.role] || [];
+        if (cpuUsageArray.length < 50) {
+            cpuUsageArray.push(used)
+        } else {
+            cpuUsageArray.shift();
+            cpuUsageArray.push(used);
+        }
+        CREEP_ROLE_CPU_ARRAY[minion.role] = cpuUsageArray;
         let roomCreepCpu = ROOM_CREEP_CPU_OBJECT[minion.memory.overlord] || {};
         cpuUsageArray = roomCreepCpu[minion.name] || [];
         if (cpuUsageArray.length < 50) {
