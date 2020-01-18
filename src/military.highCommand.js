@@ -113,7 +113,7 @@ function auxiliaryOperations() {
     // Clean
     let cleaning = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
     if (cleaning < CLEAN_LIMIT) {
-        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.structures && !r.owner && !r.isHighway), 'closestRange')[0];
+        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.structures && !r.owner && !r.isHighway && !r.sk && !r.invaderCore), 'closestRange')[0];
         if (enemyClean) {
             let cache = Memory.auxiliaryTargets || {};
             let overlordCount = Memory.myRooms.length;
