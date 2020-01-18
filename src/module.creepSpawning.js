@@ -899,10 +899,12 @@ function displayQueue(room) {
     let queue;
     room = Game.rooms[room];
     if (!room) return;
+    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && Game.map.getRoomLinearDistance(q.destination, room.name) < 10);
+    // If no energy surplus just urgent priority targets
     if (room.energyState || room.energyAvailable === room.energyCapacityAvailable) {
-        queue = _.sortBy(Object.assign({}, globalQueue, roomQueue[room.name]), 'priority');
+        queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[room.name]), 'priority');
     } else {
-        queue = _.sortBy(Object.assign({}, _.filter(globalQueue, (t) => t.priority <= PRIORITIES.urgent), roomQueue[room.name]), 'priority');
+        queue = _.sortBy(Object.assign({}, _.filter(distanceFilteredGlobal, (t) => t.priority <= PRIORITIES.urgent), roomQueue[room.name]), 'priority');
     }
     let roles = _.pluck(queue, 'role');
     let tickQueued = _.pluck(queue, 'cached');
