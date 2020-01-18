@@ -98,7 +98,7 @@ function auxiliaryOperations() {
         for (let target of stronghold) {
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 1000 > Game.time) continue;
+            if (lastOperation + 5500 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
