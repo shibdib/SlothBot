@@ -28,7 +28,7 @@ module.exports.terminalControl = function (room) {
         }
         // Set saleTerminal
         if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time) {
-            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
+            Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.level === Memory.maxLevel && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
             Memory.saleTerminal.saleSet = Game.time;
         }
         runOnce = Game.time;
@@ -164,6 +164,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         for (let resourceType of Object.keys(terminal.store)) {
             // No energy
             if (resourceType === RESOURCE_ENERGY) continue;
+            // No base minerals if we can produce commodities
+            if (terminal.room.level >= 7 && _.includes(BASE_MINERALS, resourceType)) continue;
             // Avoid Duplicates
             if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
             // Handle minerals
