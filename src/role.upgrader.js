@@ -26,7 +26,7 @@ module.exports.role = function (creep) {
                     if (container && (!container.pos.checkForCreep() || container.pos.checkForCreep().memory.role !== 'upgrader') && creep.pos.getRangeTo(container)) {
                         if (!container.pos.checkForRampart() && !container.pos.checkForConstructionSites()) container.pos.createConstructionSite(STRUCTURE_RAMPART);
                         return creep.shibMove(container, {range: 0});
-                    } else {
+                    } else if (container) {
                         if (container.pos.isNearTo(creep)) creep.memory.onContainer = true;
                         return creep.shibMove(container, {range: 1});
                     }
