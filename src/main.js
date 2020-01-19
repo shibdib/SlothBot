@@ -135,7 +135,7 @@ status = function () {
             if (Memory.targetRooms[key].enemyDead || Memory.targetRooms[key].friendlyDead) {
                 log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key) + ' | Enemy KIA - ' + Memory.targetRooms[key].trackedEnemy.length + '/' + Memory.targetRooms[key].enemyDead + ' | Friendly KIA - ' + Memory.targetRooms[key].trackedFriendly.length + '/' + Memory.targetRooms[key].friendlyDead, ' ');
             } else if (Memory.targetRooms[key].type === 'pending') {
-                log.e(_.capitalize(type) + ' | Countdown - ' + Memory.targetRooms[key].dDay - Game.time + ' ticks | Room ' + roomLink(key), ' ');
+                log.e(_.capitalize(type) + ' | Countdown - ' + (Memory.targetRooms[key].dDay - Game.time) + ' ticks | Room ' + roomLink(key), ' ');
             } else {
                 log.e(_.capitalize(type) + ' | Level - ' + level + ' | Priority - ' + priority + ' | Room ' + roomLink(key), ' ');
             }
