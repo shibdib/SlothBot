@@ -20,10 +20,10 @@ module.exports.role = function role(creep) {
     }
     // Set destination
     if (!creep.memory.destination) {
-        if (creep.memory.overlord === creep.room.name) {
-            creep.memory.destination = _.sample(_.union(_.filter(JSON.parse(creep.memory.misc), (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel), [creep.memory.overlord]));
+        if (creep.memory.overlord === creep.room.name && creep.memory.misc.length) {
+            creep.memory.destination = _.sample(_.union(_.filter(creep.memory.misc, (r) => Memory.roomCache[r] && !Memory.roomCache[r].threatLevel), [creep.memory.overlord]));
         } else {
-            return creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
+            creep.shibMove(new RoomPosition(25, 25, creep.memory.overlord), {range: 17});
         }
     }
     // Remove bad desto
@@ -44,7 +44,7 @@ module.exports.role = function role(creep) {
     // Work
     if (creep.memory.working === true) {
         if (creep.memory.constructionSite || creep.constructionWork()) {
-            if (!Game.getObjectById(creep.memory.constructionSite) || Game.getObjectById(creep.memory.constructionSite).pos.roomName !== creep.memory.destination) return creep.memory.constructionSite = undefined;
+            if (!Game.getObjectById(creep.memory.constructionSite)) return creep.memory.constructionSite = undefined;
             creep.builderFunction();
         } else {
             if (!remoteRoads(creep)) creep.memory.destination = undefined;
