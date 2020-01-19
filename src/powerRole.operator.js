@@ -45,9 +45,8 @@ module.exports.role = function (powerCreep) {
     // Handle room assignment
     if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
         return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 17})
-    }
-    else if (!powerCreep.memory.destinationRoom) {
-        powerCreep.memory.destinationRoom = _.filter(Memory.myRooms, (r) => !_.filter(Game.powerCreeps, (c) => c.memory.destinationRoom === r).length)[0];
+    } else if (!powerCreep.memory.destinationRoom) {
+        powerCreep.memory.destinationRoom = _.filter(Memory.myRooms, (r) => !_.filter(Game.powerCreeps, (c) => c.memory.destinationRoom === r).length && Game.rooms[r].controller.level === 8)[0];
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {
