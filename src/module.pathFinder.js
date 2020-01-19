@@ -30,7 +30,7 @@ function shibMove(creep, heading, options = {}) {
     // Clear bad tow creeps
     if (creep.memory.towCreep && !Game.getObjectById(creep.memory.towCreep)) creep.memory.towCreep = undefined;
     // Handle fatigue
-    if (creep.getActiveBodyparts(MOVE) && (creep.fatigue > 0 || !heading)) {
+    if (!creep.className && creep.getActiveBodyparts(MOVE) && (creep.fatigue > 0 || !heading)) {
         if (!creep.memory.military) creep.idleFor(1);
         return creep.room.visual.circle(creep.pos, {
             fill: 'transparent',
@@ -640,6 +640,11 @@ function getPath(creep, from, to) {
 }
 
 function getMoveWeight(creep, options = {}) {
+    // Handle PC
+    if (creep.className) {
+        options.ignoreRoads = true;
+        return options;
+    }
     let move = creep.getActiveBodyparts(MOVE);
     let weight = _.filter(creep.body, (p) => p.type !== MOVE && p.type !== CARRY).length;
     if (creep.memory.trailer && Game.getObjectById(creep.memory.trailer)) weight += _.filter(Game.getObjectById(creep.memory.trailer).body, (p) => p.type !== MOVE && p.type !== CARRY).length;
