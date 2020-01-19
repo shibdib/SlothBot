@@ -239,18 +239,11 @@ module.exports.essentialCreepQueue = function (room) {
     let upgraders = _.filter(roomCreeps, (creep) => creep.memory.role === 'upgrader');
     let number = 1;
     let inBuild = _.filter(room.constructionSites, (s) => s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER)[0];
-    if (level < 4 && !inBuild) {
-        number = 6 - level;
-    } else if (level >= 5 && room.energyState && level !== 8) number = 2;
+    if (level < 4 && !inBuild) number = 6 - level;
     if (upgraders.length < number || (upgraders[0] && upgraders[0].ticksToLive < (upgraders[0].body.length * 3 + 10) && upgraders.length < number + 1)) {
         //If room is about to downgrade get a creep out asap
-        let reboot;
-        let priority = PRIORITIES.upgrader;
-        if (room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal) {
-            reboot = true;
-            priority = 1;
-        }
-        queueCreep(room, priority + upgraders.length, {role: 'upgrader', other: {reboot: reboot}})
+        let reboot = room.controller.ticksToDowngrade <= 1500 || room.controller.progress > room.controller.progressTotal;
+        queueCreep(room, PRIORITIES.upgrader + upgraders.length, {role: 'upgrader', other: {reboot: reboot}})
     }
 };
 
