@@ -121,21 +121,21 @@ function dropOff(creep) {
         creep.memory.storageDestination = tower.id;
         return true;
     }
-    //Close Link
-    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
-        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive()
-    });
-    //Links
-    if (closestLink && closestLink.pos.getRangeTo(creep) <= creep.room.storage.pos.getRangeTo(creep)) {
-        creep.memory.storageDestination = closestLink.id;
-        return true;
-    }
     //Controller
     let controllerContainer = Game.getObjectById(creep.room.memory.controllerContainer);
     if (controllerContainer && _.sum(controllerContainer.store) < controllerContainer.store.getCapacity() && Math.random() > _.sum(controllerContainer.store) / controllerContainer.store.getCapacity()) {
         creep.memory.storageDestination = controllerContainer.id;
         return true;
     }
+    //Close Link
+    let closestLink = creep.pos.findClosestByRange(creep.room.structures, {
+        filter: (s) => s.room.storage && s.structureType === STRUCTURE_LINK && s.id !== s.room.memory.hubLink && s.id !== s.room.memory.controllerLink && !_.filter(creep.room.creeps, (c) => c.my && c.memory.storageDestination === s.id).length && s.isActive() && s.pos.getRangeTo(creep) < creep.room.storage.pos.getRangeTo(creep)
+    });
+    if (closestLink) {
+        creep.memory.storageDestination = closestLink.id;
+        return true;
+    }
+    // Else fill spawns/extensions
     if (creep.haulerDelivery()) {
         return true;
     } else creep.idleFor(5);
