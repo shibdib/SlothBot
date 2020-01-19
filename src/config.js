@@ -47,7 +47,7 @@ global.BARRIER_TARGET_HIT_POINTS = {
 };
 
 // The boosts you want labs to focus on first (resources permitted)
-global.LAB_PRIORITY = [RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID];
+global.LAB_PRIORITY = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID];
 
 // Amount targets (Advanced)
 global.CREDIT_BUFFER = 10000; // Stay above
