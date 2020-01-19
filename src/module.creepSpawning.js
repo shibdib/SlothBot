@@ -174,10 +174,8 @@ module.exports.essentialCreepQueue = function (room) {
     }
     //Haulers
     if (room.memory.hubLink) {
-        console.log(room.name)
         let hauler = _.filter(roomCreeps, (creep) => (creep.memory.role === 'hauler'));
         if (!hauler.length) {
-            console.log(room.name)
             delete roomQueue[room.name];
             return queueCreep(room, -1, {
                 role: 'hauler',
@@ -187,7 +185,6 @@ module.exports.essentialCreepQueue = function (room) {
                 }
             });
         } else {
-            console.log(2)
             let amount = 1;
             //if (room.controller.level >= 6 && room.energyCapacity * 0.4 > room.energyAvailable) amount = 2;
             if ((hauler[0] && hauler[0].ticksToLive < (hauler[0].body.length * 6 + 50) && hauler.length < amount + 1) || hauler.length < amount) {
