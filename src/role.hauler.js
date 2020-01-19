@@ -7,7 +7,7 @@
 
 module.exports.role = function (creep) {
     //INITIAL CHECKS
-    if (Game.time % 50 === 0 && creep.wrongRoom()) return;
+    if (creep.wrongRoom()) return;
     creep.say(ICONS.haul, true);
     // Tow Truck
     if (creep.towTruck()) return;
