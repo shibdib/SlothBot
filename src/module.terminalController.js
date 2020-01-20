@@ -39,24 +39,25 @@ module.exports.terminalControl = function (room) {
         }
         runOnce = Game.time;
     }
-    if (room.terminal.store[RESOURCE_ENERGY] && spendingMoney > 0) {
+    if (room.terminal.store[RESOURCE_ENERGY]) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
         //Disperse Minerals and Boosts
         if (balanceResources(room.terminal)) return;
-        if (room.name === Memory.saleTerminal.room) {
+        if (room.name === Memory.saleTerminal.room && spendingMoney > 0) {
             //Buy minerals if needed
             if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
-            //Buy Energy
-            if (buyEnergy(room.terminal, globalOrders)) return;
             //Buy Power
             if (buyPower(room.terminal, globalOrders)) return;
             //Buy resources being sold at below market value
             if (dealFinder(room.terminal, globalOrders)) return;
         }
     }
+    //Buy Energy
+    if (buyEnergy(room.terminal, globalOrders)) return;
     //Dump Excess
     if (fillBuyOrders(room.terminal, globalOrders)) return;
+    // Place sell orders
     if (room.name === Memory.saleTerminal.room) placeSellOrders(room.terminal, globalOrders, myOrders);
 };
 
@@ -250,29 +251,18 @@ function buyPower(terminal, globalOrders) {
 }
 
 function buyEnergy(terminal, globalOrders) {
-    let buyPrice = ENERGY_MARKET_BASELINE * (ENERGY_AMOUNT / terminal.room.energy);
-    if (buyPrice > ENERGY_MARKET_BASELINE * 10) buyPrice = ENERGY_MARKET_BASELINE;
-    let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_BATTERY &&
-        order.type === ORDER_SELL && order.price <= ENERGY_MARKET_BASELINE * 25 && !_.includes(Memory.myRooms, order.roomName)), 'price') || _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
-        order.type === ORDER_SELL && order.price <= buyPrice && !_.includes(Memory.myRooms, order.roomName)), 'price');
-    if (sellOrder.price) {
-        let buyAmount = sellOrder.amount;
-        if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
-        if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
-            log.w("Bought " + buyAmount + " " + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
-            spendingMoney -= (sellOrder.price * buyAmount);
-            log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
-            return true;
-        }
-    } else {
-        let buyOrder = globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_BUY && _.includes(Memory.myRooms, order.roomName));
-        let buyAmount = ENERGY_AMOUNT;
-        if ((ENERGY_MARKET_BASELINE * 0.5) * ENERGY_AMOUNT > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (ENERGY_MARKET_BASELINE * 0.5)));
-        if (!buyOrder.length && Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, ENERGY_MARKET_BASELINE * 0.5, buyAmount, terminal.pos.roomName) === OK) {
-            log.w("New Buy Order: " + RESOURCE_ENERGY + " at/per " + ENERGY_MARKET_BASELINE * 0.5 + ' in ' + roomLink(terminal.room.name), "Market: ");
-            spendingMoney -= ((ENERGY_MARKET_BASELINE * 0.5) * buyAmount);
-            log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
-            return true;
+    if (terminal.room.energy < ENERGY_AMOUNT && BUY_ENERGY) {
+        let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY &&
+            order.type === ORDER_SELL && !_.includes(Memory.myRooms, order.roomName)), 'price');
+        if (sellOrder.price) {
+            let buyAmount = sellOrder.amount;
+            if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
+            if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
+                log.w("Bought " + buyAmount + " " + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
+                spendingMoney -= (sellOrder.price * buyAmount);
+                log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
+                return true;
+            }
         }
     }
 }
