@@ -257,7 +257,7 @@ module.exports.miscCreepQueue = function (room) {
     if (inBuild) {
         let drones = _.filter(roomCreeps, (c) => (c.memory.role === 'drone'));
         let priority = PRIORITIES.drone;
-        let amount = 10 - level;
+        let amount = 9 - level;
         if (drones.length < amount) {
             queueCreep(room, priority + drones.length, {role: 'drone', other: {localCache: true}})
         }
