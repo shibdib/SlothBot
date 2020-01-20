@@ -408,6 +408,7 @@ function storageEmpty(creep) {
         if (creep.room.storage.store[resource] > maxResource) {
             maxResource = creep.room.storage.store[resource];
             overflow = resource;
+            break;
         }
     }
     switch (creep.withdraw(creep.room.storage, overflow)) {
