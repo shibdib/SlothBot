@@ -12,11 +12,12 @@ let hive = require('main.hive');
 let cleanUp = require('module.cleanup');
 const tickLengthArray = [];
 const lastGlobal = Memory.lastGlobalReset || Game.time;
-let memCleaned;
+let memCleaned, LAST_MEMORY_TICK;
 log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
 
 module.exports.loop = function () {
+    tryInitSameMemory();
     // Handle cleaning memory for respawn
     if (!memCleaned && !_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my && r.memory.bunkerHub).length) {
         for (let key in Memory) delete Memory[key];
@@ -100,6 +101,18 @@ abandon = function (room) {
     Memory.roomCache[room.name].noClaim = Game.time;
     Game.rooms[room].controller.unclaim();
 };
+
+function tryInitSameMemory() {
+    if (LAST_MEMORY_TICK && global.LastMemory && Game.time === (LAST_MEMORY_TICK + 1)) {
+        delete global.Memory;
+        global.Memory = global.LastMemory;
+        RawMemory._parsed = global.LastMemory;
+    } else {
+        Memory;
+        global.LastMemory = RawMemory._parsed;
+    }
+    LAST_MEMORY_TICK = Game.time;
+}
 
 nukes = function (target) {
     let nukes = _.filter(Game.structures, (s) => s.structureType === STRUCTURE_NUKER && s.energy === s.energyCapacity && s.ghodium === s.ghodiumCapacity && !s.cooldown);
