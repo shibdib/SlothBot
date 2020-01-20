@@ -10,8 +10,8 @@
  */
 
 let tradeAmount = MINERAL_TRADE_AMOUNT;
-let runOnce, globalOrders, lastPriceAdjust;
-let spendingMoney = Memory._banker.spendingAccount || 0;
+let runOnce, globalOrders, lastPriceAdjust, spendingMoney;
+if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendingMoney = 0;
 
 module.exports.terminalControl = function (room) {
     Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
