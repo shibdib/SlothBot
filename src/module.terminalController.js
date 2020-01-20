@@ -11,12 +11,16 @@
 
 let tradeAmount = MINERAL_TRADE_AMOUNT;
 let runOnce, globalOrders, lastPriceAdjust;
+let spendingMoney = Memory._banker.spendingAccount || 0;
 
 module.exports.terminalControl = function (room) {
+    Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
     Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
     //Things that don't need to be run for every terminal
     if (runOnce !== Game.time) {
+        // Track profits
+        profitCheck();
         //Get global orders
         globalOrders = Game.market.getAllOrders();
         //Cleanup broken or old orders
@@ -173,7 +177,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
             // Handle minerals
             if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < MINERAL_TRADE_AMOUNT) continue;
             // Handle boosts
-            if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
+            if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
             // Sell
             let price = 5;
             let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL && order.remainingAmount >= MINERAL_TRADE_AMOUNT), 'price');
@@ -191,7 +195,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
 }
 
 function baseMineralOnDemandBuys(terminal, globalOrders) {
-    if (!terminal.store[RESOURCE_ENERGY] || Game.market.credits < CREDIT_BUFFER) return;
+    if (!terminal.store[RESOURCE_ENERGY] || spendingMoney <= 0) return;
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
         if (_.includes(OWNED_MINERALS, mineral)) continue;
@@ -202,10 +206,12 @@ function baseMineralOnDemandBuys(terminal, globalOrders) {
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
                 order.type === ORDER_SELL && order.remainingAmount >= buyAmount && order.roomName !== terminal.pos.roomName &&
                 Game.market.calcTransactionCost(buyAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
-            if (sellOrder.price * buyAmount > Game.market.credits * 0.1) buyAmount = _.round(buyAmount * ((Game.market.credits * 0.1) / (sellOrder.price * buyAmount)));
+            if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
             if (sellOrder.id && buyAmount >= 50) {
                 if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
                     log.w("Bought " + buyAmount + " " + mineral + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
+                    spendingMoney -= (sellOrder.price * buyAmount);
+                    log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
                     return true;
                 }
             }
@@ -214,7 +220,7 @@ function baseMineralOnDemandBuys(terminal, globalOrders) {
 }
 
 function buyPower(terminal, globalOrders) {
-    if (Game.market.credits < CREDIT_BUFFER * 2 || terminal.room.controller.level < 8) return false;
+    if (!terminal.store[RESOURCE_ENERGY] || spendingMoney <= 0 || terminal.room.controller.level < 8) return;
     let stored = terminal.store[RESOURCE_POWER] + terminal.room.storage.store[RESOURCE_POWER] || 0;
     if (stored >= REACTION_AMOUNT) return;
     let buyAmount = REACTION_AMOUNT - stored;
@@ -222,9 +228,12 @@ function buyPower(terminal, globalOrders) {
         let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_POWER &&
             order.type === ORDER_SELL && order.remainingAmount >= buyAmount && order.roomName !== terminal.pos.roomName &&
             Game.market.calcTransactionCost(buyAmount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY]), 'price');
-        if (sellOrder.id && sellOrder.price * buyAmount < (Game.market.credits * 0.1)) {
+        if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
+        if (sellOrder.id) {
             if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
                 log.w("Bought " + buyAmount + " POWER for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
+                spendingMoney -= (sellOrder.price * buyAmount);
+                log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
                 return true;
             }
         }
@@ -232,7 +241,7 @@ function buyPower(terminal, globalOrders) {
 }
 
 function buyEnergy(terminal, globalOrders) {
-    if (!BUY_ENERGY || terminal.room.energy >= ENERGY_AMOUNT) return false;
+    if (!terminal.store[RESOURCE_ENERGY] || spendingMoney <= 0) return;
     let buyPrice = ENERGY_MARKET_BASELINE * (ENERGY_AMOUNT / terminal.room.energy);
     if (buyPrice > ENERGY_MARKET_BASELINE * 10) buyPrice = ENERGY_MARKET_BASELINE;
     let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_BATTERY &&
@@ -240,15 +249,21 @@ function buyEnergy(terminal, globalOrders) {
         order.type === ORDER_SELL && order.price <= buyPrice && !_.includes(Memory.myRooms, order.roomName)), 'price');
     if (sellOrder.price) {
         let buyAmount = sellOrder.amount;
-        if (sellOrder.price * buyAmount > Game.market.credits * 0.1) buyAmount = _.round(buyAmount * ((Game.market.credits * 0.1) / (sellOrder.price * buyAmount)));
+        if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
         if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
             log.w("Bought " + buyAmount + " " + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
+            spendingMoney -= (sellOrder.price * buyAmount);
+            log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
             return true;
         }
     } else {
         let buyOrder = globalOrders.filter(order => order.resourceType === RESOURCE_ENERGY && order.type === ORDER_BUY && _.includes(Memory.myRooms, order.roomName));
-        if (!buyOrder.length && Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, ENERGY_MARKET_BASELINE * 0.5, ENERGY_AMOUNT, terminal.pos.roomName) === OK) {
+        let buyAmount = ENERGY_AMOUNT;
+        if ((ENERGY_MARKET_BASELINE * 0.5) * ENERGY_AMOUNT > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (ENERGY_MARKET_BASELINE * 0.5)));
+        if (!buyOrder.length && Game.market.createOrder(ORDER_BUY, RESOURCE_ENERGY, ENERGY_MARKET_BASELINE * 0.5, buyAmount, terminal.pos.roomName) === OK) {
             log.w("New Buy Order: " + RESOURCE_ENERGY + " at/per " + ENERGY_MARKET_BASELINE * 0.5 + ' in ' + roomLink(terminal.room.name), "Market: ");
+            spendingMoney -= ((ENERGY_MARKET_BASELINE * 0.5) * buyAmount);
+            log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
             return true;
         }
     }
@@ -269,6 +284,8 @@ function fillBuyOrders(terminal, globalOrders) {
                 switch (Game.market.deal(buyer.id, sellAmount, terminal.pos.roomName)) {
                     case OK:
                         log.w(terminal.pos.roomName + " Sell Off Completed - " + resourceType + " for " + (buyer.price * sellAmount) + " credits in " + roomLink(terminal.room.name), "Market: ");
+                        spendingMoney += ((buyer.price * sellAmount) * 0.75);
+                        log.w("New spending account amount - " + spendingMoney, "Market: ");
                         return true;
                 }
             } // Offload if we're overflowing
@@ -354,7 +371,7 @@ function emergencyEnergy(terminal) {
     if (terminal.store[RESOURCE_ENERGY] && !Memory.roomCache[terminal.room.name].requestingSupport) {
         // Find needy terminals
         let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME);
-        let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && ((Memory.roomCache[r.name] && Memory.roomCache[r.name].threatLevel >= 4) || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
+        let responseNeeded = _.min(_.filter(myRooms, (r) => r.name !== terminal.room.name && ((Memory.roomCache[r.name] && Memory.roomCache[r.name].threatLevel >= 3) || (r.memory.nuke > 1500)) && r.terminal && r.energy < ENERGY_AMOUNT * 2), '.energy');
         if (responseNeeded && responseNeeded.name) {
             let needyTerminal = responseNeeded.terminal;
             // Determine how much you can move
@@ -383,5 +400,26 @@ function latestMarketHistory(resource) {
         return history[_.size(history) - 1]
     } else {
         return false;
+    }
+}
+
+function profitCheck(force = false) {
+    let hourlyTick = EST_TICKS_PER_MIN * 60;
+    let profitTracking = Memory._banker || {};
+    if (force || profitTracking.lastData + hourlyTick < Game.time || !profitTracking.lastData) {
+        profitTracking.lastData = Game.time;
+        let hourlyProfits = profitTracking.hourArray || [];
+        let lastCredit = profitTracking.lastTotalAmount || Game.market.credits;
+        profitTracking.lastTotalAmount = Game.market.credits;
+        let hourChange = Game.market.credits - lastCredit;
+        if (hourChange > 0) profitTracking.spendingAccount += (hourChange * 0.8); else profitTracking.spendingAccount += hourChange;
+        if (hourlyProfits.length < 240) {
+            hourlyProfits.push(hourChange)
+        } else {
+            hourlyProfits.shift();
+            hourlyProfits.push(hourChange);
+        }
+        profitTracking.hourArray = hourlyProfits;
+        Memory._banker = profitTracking;
     }
 }
