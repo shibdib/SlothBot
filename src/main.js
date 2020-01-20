@@ -12,11 +12,17 @@ let hive = require('main.hive');
 let cleanUp = require('module.cleanup');
 const tickLengthArray = [];
 const lastGlobal = Memory.lastGlobalReset || Game.time;
+let memCleaned;
 log.e('Global Reset - Last reset occurred ' + (Game.time - lastGlobal) + ' ticks ago.');
 Memory.lastGlobalReset = Game.time;
 
-//profiler.enable();
 module.exports.loop = function () {
+    // Handle cleaning memory for respawn
+    if (!memCleaned && _.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my && !r.memory.bunkerHub).length === 1) {
+        for (let key in Memory) delete Memory[key];
+    }
+    memCleaned = true;
+
     //Logging level
     Memory.loggingLevel = 4; //Set level 1-5 (5 being most info)
 
