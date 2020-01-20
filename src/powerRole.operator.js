@@ -19,8 +19,20 @@ module.exports.role = function (powerCreep) {
     // Generate Ops
     if (powerCreep.powers[PWR_GENERATE_OPS] && !powerCreep.powers[PWR_GENERATE_OPS].cooldown) abilitySwitch(powerCreep, PWR_GENERATE_OPS);
     // Get Ops from terminal
-    if (powerCreep.room.terminal && powerCreep.room.terminal.store[RESOURCE_OPS] && powerCreep.store[RESOURCE_OPS] < powerCreep.store.getCapacity() * 0.5) {
+    if (powerCreep.room.terminal && powerCreep.room.terminal.store[RESOURCE_OPS] && _.size(powerCreep.powers) > 1 && powerCreep.store[RESOURCE_OPS] < powerCreep.store.getCapacity() * 0.5) {
         switch (powerCreep.withdraw(powerCreep.room.terminal, RESOURCE_OPS)) {
+            case OK:
+                return;
+            case ERR_NOT_IN_RANGE:
+                powerCreep.shibMove(powerCreep.room.terminal);
+                return;
+        }
+    }
+    // Store ops to sell in terminal
+    if (powerCreep.store[RESOURCE_OPS] && powerCreep.room.terminal && (_.size(powerCreep.powers) === 1 || powerCreep.store[RESOURCE_OPS] >= powerCreep.store.getCapacity() * 0.6)) {
+        let amount = powerCreep.store[RESOURCE_OPS] - powerCreep.store.getCapacity() * 0.5;
+        if (_.size(powerCreep.powers) === 1) amount = powerCreep.store[RESOURCE_OPS];
+        switch (powerCreep.transfer(powerCreep.room.terminal, RESOURCE_OPS, amount)) {
             case OK:
                 return;
             case ERR_NOT_IN_RANGE:
