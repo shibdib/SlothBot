@@ -110,9 +110,10 @@ function auxiliaryOperations() {
             break;
         }
     }
-    // Clean
-    let cleaning = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
-    if (cleaning < CLEAN_LIMIT) {
+    /**
+     // Clean
+     let cleaning = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
+     if (cleaning < CLEAN_LIMIT) {
         let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.structures && !r.owner && !r.isHighway && !r.sk && !r.invaderCore && r.closestRange <= LOCAL_SPHERE * 2), 'closestRange')[0];
         if (enemyClean) {
             let cache = Memory.auxiliaryTargets || {};
@@ -128,7 +129,7 @@ function auxiliaryOperations() {
             Memory.auxiliaryTargets = cache;
             log.a('Cleaning operation planned for ' + roomLink(enemyClean.name), 'HIGH COMMAND: ');
         }
-    }
+    }**/
     if (maxLevel >= 6) {
         // Power Mining
         if (maxLevel >= 8) {
@@ -331,6 +332,7 @@ function manageAttacks() {
                 break;
             // Remove auxiliary
             case 'power':
+            case 'poke':
             case 'commodity':
             case 'clean':
             case 'claimClear':
@@ -423,7 +425,6 @@ function manageAuxiliary() {
         // Remove allied rooms
         if (Memory.roomCache[key] && Memory.roomCache[key].user && (_.includes(FRIENDLIES, Memory.roomCache[key].user) || checkForNap(Memory.roomCache[key].user))) {
             delete Memory.auxiliaryTargets[key];
-            continue;
         }
     }
 }
