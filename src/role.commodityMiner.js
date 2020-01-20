@@ -33,7 +33,7 @@ module.exports.role = function (creep) {
                     }
                 }
             } else {
-                let storage = creep.room.storage || creep.room.terminal;
+                let storage = creep.room.terminal || creep.room.storage;
                 if (storage) creep.memory.storageDestination = storage.id;
             }
         } else {
