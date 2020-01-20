@@ -363,11 +363,13 @@ Creep.prototype.locateEnergy = function () {
             return true;
         }
         //Take straight from remoteHaulers/fuel truck at low level who have nowhere to drop
-        let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
-            && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * this.store.getCapacity()));
-        if (hauler) {
-            this.memory.energyDestination = hauler.id;
-            return true;
+        if (this.room.controller.level < 3) {
+            let hauler = this.pos.findClosestByRange(_.filter(this.room.creeps, (c) => c.memory && (c.memory.role === 'remoteHauler' || c.memory.role === 'fuelTruck') && !c.memory.storageDestination && c.memory.idle
+                && c.store[RESOURCE_ENERGY] >= (this.room.creeps.filter((c2) => c2.my && c2.memory.energyDestination === c.id && c2.id !== this.id).length + 1) * this.store.getCapacity()));
+            if (hauler) {
+                this.memory.energyDestination = hauler.id;
+                return true;
+            }
         }
     }
     if (!this.memory.findEnergyCountdown) this.memory.findEnergyCountdown = 1; else this.memory.findEnergyCountdown += 1;
