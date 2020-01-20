@@ -216,13 +216,13 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                 options.useFindRoute = true;
                 options.maxRooms = 16;
                 pathInfo.findAttempt = true;
-                options.maxOps = 30000;
+                options.maxOps = 50000;
                 //console.log("<font color='#ff0000'>PATHING ERROR: Creep " + creep.name + " could not find a path from " + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + " retrying.</font>");
                 return shibPath(creep, heading, pathInfo, origin, target, options);
             } else if (pathInfo.findAttempt) {
                 if (!creep.memory.badPathing) creep.memory.badPathing = 1;
                 if (creep.memory.badPathing) creep.memory.badPathing++;
-                if (creep.memory.badPathing > 10) {
+                if (creep.memory.badPathing > 20) {
                     log.e(creep.name + ' is stuck in ' + creep.room.name + ' and is unable to path from ' + creep.pos.x + "." + creep.pos.y + "." + creep.pos.roomName + " to " + target.x + "." + target.y + "." + target.roomName + '. Suiciding for the good of the CPU.');
                     log.e('Ret - ' + JSON.stringify(ret));
                     if (allowedRooms) log.e('Path - ' + allowedRooms);
