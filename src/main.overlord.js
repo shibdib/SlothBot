@@ -75,16 +75,14 @@ module.exports.overlordMind = function (room, CPULimit) {
                 log.e(e.stack);
                 Game.notify(e.stack);
             }
-            if (cpuBucket >= 3500 && Math.random() > 0.5) {
-                try {
-                    spawning.miscCreepQueue(room);
-                } catch (e) {
-                    log.e('Misc Queueing for room ' + room.name + ' experienced an error');
-                    log.e(e.stack);
-                    Game.notify(e.stack);
-                }
+            try {
+                spawning.miscCreepQueue(room);
+            } catch (e) {
+                log.e('Misc Queueing for room ' + room.name + ' experienced an error');
+                log.e(e.stack);
+                Game.notify(e.stack);
             }
-            if (cpuBucket >= 5000 && Math.random() > 0.5) {
+            if (cpuBucket >= 5000) {
                 try {
                     spawning.remoteCreepQueue(room);
                 } catch (e) {
