@@ -5,7 +5,6 @@
  * Project - Overlord-Bot (Screeps)
  */
 let generator = require('module.bodyGenerator');
-const lastQueue = {};
 let roomQueue = {};
 let globalQueue = {};
 let energyOrder = {};
@@ -36,7 +35,7 @@ module.exports.processBuildQueue = function () {
                 if (!spawn.room.memory.nuke && _.size(globalQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
                     let range = LOCAL_SPHERE;
                     if (spawn.room.energy > ENERGY_AMOUNT) range = LOCAL_SPHERE * 3;
-                    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < range);
+                    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && ((Memory.auxiliaryTargets[q.destination] && Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < 8) || Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < range));
                     // If no energy surplus just urgent priority targets
                     if (spawn.room.energyState || spawn.room.energyAvailable === spawn.room.energyCapacityAvailable) {
                         queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[spawn.room.name]), 'priority');
@@ -582,11 +581,6 @@ module.exports.globalCreepQueue = function () {
                 }
                 break;
             case 'power': //Power Mining
-                if (Memory.roomCache[key].power < Game.time) {
-                    operations[key] = undefined;
-                    Memory.roomCache[key].power = undefined;
-                    break;
-                }
                 let powerSpace = operations[key].space || 2;
                 let powerHealer = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHealer' && creep.memory.destination === key);
                 let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);

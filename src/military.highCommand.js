@@ -133,7 +133,7 @@ function auxiliaryOperations() {
     if (maxLevel >= 6) {
         // Power Mining
         if (maxLevel >= 8) {
-            let powerRooms = _.filter(Memory.roomCache, (r) => r.power && r.closestRange <= 8);
+            let powerRooms = _.filter(Memory.roomCache, (r) => r.power && r.power + 1500 >= Game.time && r.closestRange <= 8);
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'power').length || 0;
             if (powerRooms.length && !powerMining) {
                 for (let powerRoom of powerRooms) {
@@ -399,6 +399,7 @@ function manageAuxiliary() {
         switch (type) {
             case 'power':
                 if (maxLevel < 8) delete Memory.auxiliaryTargets[key];
+                if (Memory.roomCache[key].power + 1500 < Game.time) delete Memory.auxiliaryTargets[key];
                 break;
             case 'commodity':
                 if (maxLevel < 6) delete Memory.auxiliaryTargets[key];
