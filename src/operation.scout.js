@@ -157,11 +157,9 @@ function operationPlanner(room, creep = undefined) {
         } else if (!controller.owner) {
             // If other creeps are present
             if (otherCreeps.length) {
-                let type = 'rangers';
-                if (POKE_ATTACKS && Math.random() > 0.5) type = 'poke';
                 cache[room.name] = {
                     tick: tick,
-                    type: type,
+                    type: 'rangers',
                     level: 1,
                     priority: priority
                 };
