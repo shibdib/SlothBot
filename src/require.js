@@ -25,4 +25,3 @@ require("operation.hold");
 require("operation.rangers");
 require("operation.claimClear");
 require("operation.borderPatrol");
-require("operation.poke");

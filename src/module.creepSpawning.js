@@ -787,17 +787,6 @@ module.exports.globalCreepQueue = function () {
                     })
                 }
                 break;
-            case 'poke': // Pokes
-                let jerk = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'jerk');
-                if (jerk.length < 2) {
-                    queueGlobalCreep(priority, {
-                        role: 'jerk',
-                        destination: key,
-                        operation: 'poke',
-                        military: true
-                    })
-                }
-                break;
             case 'guard': // Room Guard
                 let guards = _.filter(Game.creeps, (creep) => creep.memory.destination === key && creep.memory.role === 'longbow');
                 if (guards.length < opLevel) {

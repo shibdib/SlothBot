@@ -260,9 +260,8 @@ function operationRequests() {
 function manageAttacks() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
     let maxLevel = Memory.maxLevel;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'attack' && target.type !== 'scout' && target.type !== 'guard').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'attack' && target.type !== 'scout' && target.type !== 'guard').length || 0;
     let siegeCountFiltered = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
-    let pokeCount = _.filter(Memory.targetRooms, (target) => target.type === 'poke').length || 0;
     let pokeLimit = POKE_LIMIT;
     let staleMulti = 1;
     for (let key in Memory.targetRooms) {
@@ -278,13 +277,6 @@ function manageAttacks() {
                     delete Memory.targetRooms[key];
                 } else {
                     if (!_.filter(Game.creeps, (c) => c.my && c.memory.role === 'scout' && c.memory.destination === key).length) staleMulti = 0.25;
-                }
-                break;
-            // Manage Pokes
-            case 'poke':
-                if (pokeCount > pokeLimit * 2) {
-                    delete Memory.targetRooms[key];
-                    continue;
                 }
                 break;
             // Manage harassment
@@ -351,7 +343,7 @@ function manageAttacks() {
         if ((Memory.targetRooms[key].tick + (1500 * staleMulti) < Game.time && !Memory.targetRooms[key].lastEnemyKilled) ||
             (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (1500 * staleMulti) < Game.time)) {
             delete Memory.targetRooms[key];
-            if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
+            log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
             continue;
         }
         // Remove far rooms
@@ -368,13 +360,13 @@ function manageAttacks() {
         // Remove allied rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && _.includes(FRIENDLIES, Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
-            if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is a friend.', 'HIGH COMMAND: ');
+            log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is a friend.', 'HIGH COMMAND: ');
             continue;
         }
         // Remove allied rooms
         if (Memory.roomCache[key] && Memory.targetRooms[key].type !== 'guard' && Memory.roomCache[key].user && checkForNap(Memory.roomCache[key].user)) {
             delete Memory.targetRooms[key];
-            if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND: ');
+            log.a('Canceling operation in ' + roomLink(key) + ' as ' + Memory.roomCache[key].user + ' is part of a friendly alliance.', 'HIGH COMMAND: ');
             continue;
         }
         // Delete wave based rooms at the threshold
