@@ -177,33 +177,33 @@ function manageSellOrders(myOrders) {
 }
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
-        for (let resourceType of Object.keys(terminal.store)) {
-            // No energy
-            if (resourceType === RESOURCE_ENERGY) continue;
-            // No base minerals if we can produce commodities
-            if (terminal.room.level >= 7 && _.includes(BASE_MINERALS, resourceType)) continue;
-            // Avoid Duplicates
-            if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
-            // Handle minerals
-            if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < MINERAL_TRADE_AMOUNT) continue;
-            // Handle boosts
-            if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
-            // Sell
-            let price = 5;
-            let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL && order.remainingAmount >= MINERAL_TRADE_AMOUNT), 'price');
-            if (competitorOrder) {
-                price = competitorOrder.price - 0.01;
-            } else if (latestMarketHistory(resourceType)) {
-                price = latestMarketHistory(resourceType)['avgPrice'];
-            }
-            let amount = terminal.store[resourceType];
-            let cost = price * amount * 0.05;
-            if (cost > spendingMoney) amount = _.round(amount * ((spendingMoney) / (cost * amount)));
-            if (Game.market.createOrder(ORDER_SELL, resourceType, price, amount, terminal.pos.roomName) === OK) {
-                log.w("New Sell Order: " + resourceType + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
-                return true;
-            }
+    for (let resourceType of Object.keys(terminal.store)) {
+        // No energy
+        if (resourceType === RESOURCE_ENERGY) continue;
+        // No base minerals if we can produce commodities
+        if (terminal.room.level >= 7 && _.includes(BASE_MINERALS, resourceType)) continue;
+        // Avoid Duplicates
+        if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
+        // Handle minerals
+        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < MINERAL_TRADE_AMOUNT) continue;
+        // Handle boosts
+        if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
+        // Sell
+        let price = 5;
+        let competitorOrder = _.min(globalOrders.filter(order => !_.includes(Memory.myRooms, order.roomName) && order.resourceType === resourceType && order.type === ORDER_SELL && order.remainingAmount >= MINERAL_TRADE_AMOUNT), 'price');
+        if (competitorOrder) {
+            price = competitorOrder.price - 0.01;
+        } else if (latestMarketHistory(resourceType)) {
+            price = latestMarketHistory(resourceType)['avgPrice'];
         }
+        let amount = terminal.store[resourceType];
+        let cost = price * amount * 0.05;
+        if (cost > spendingMoney) amount = _.round(amount * ((spendingMoney) / (cost * amount)));
+        if (Game.market.createOrder(ORDER_SELL, resourceType, price, amount, terminal.pos.roomName) === OK) {
+            log.w("New Sell Order: " + resourceType + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
+            return true;
+        }
+    }
 }
 
 function baseMineralOnDemandBuys(terminal, globalOrders) {
@@ -246,8 +246,8 @@ function buyPower(terminal, globalOrders) {
                 log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
                 return true;
             }
-            }
         }
+    }
 }
 
 function buyEnergy(terminal, globalOrders) {
