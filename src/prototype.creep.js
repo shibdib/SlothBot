@@ -57,8 +57,8 @@ Object.defineProperty(Creep.prototype, 'combatPower', {
 });
 
 Creep.prototype.wrongRoom = function () {
-    if (Game.time % 25 === 0 && this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
-        this.memory.recycle = true;
+    if (this.memory.overlord && this.pos.roomName !== this.memory.overlord) {
+        this.shibMove(new RoomPosition(25, 25, this.memory.overlord), {range: 23});
         return true;
     }
 };
@@ -1351,7 +1351,8 @@ Creep.prototype.fightRanged = function (target) {
     if (range <= 3) {
         let moveRange = 1;
         if (target instanceof Creep) {
-            if ((targets.length > 1 || range === 1) && !allies.length) {
+            let rmaTargets = this.pos.findInRange(this.room.hostileCreeps, 2);
+            if ((rmaTargets.length > 1 || range === 1) && !allies.length) {
                 this.say('BIG PEW!', true);
                 this.rangedMassAttack();
             } else {
@@ -1678,7 +1679,7 @@ Creep.prototype.fleeHome = function (force = false) {
     if (this.hits < this.hitsMax) force = true;
     if (this.memory.overlord === this.room.name && !this.memory.runCooldown) return false;
     if (!Memory.roomCache[this.room.name]) this.room.cacheRoomIntel();
-    if (!force && !this.memory.runCooldown && !Memory.roomCache[this.room.name].threatLevel && this.hits === this.hitsMax) return false;
+    if (!force && !this.memory.runCooldown && !Memory.roomCache[this.room.name].hostilePower && this.hits === this.hitsMax) return false;
     let cooldown = this.memory.runCooldown || Game.time + 100;
     this.memory.runCooldown = cooldown;
     if (this.room.name !== this.memory.overlord) {
