@@ -233,8 +233,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
                         log.a('Canceling operation in ' + roomLink(creep.memory.destination) + ' as we cannot find a path.', 'HIGH COMMAND: ');
                     }
                     return creep.suicide();
+                } else if (creep.memory.badPathing > 10) {
+                    if (allowedRooms) {
+                        target = new RoomPosition(25, 25, allowedRooms[_.round(allowedRooms.length * 0.5)]);
+                    }
+                    return shibPath(creep, heading, pathInfo, origin, target, options);
                 }
-                return creep.moveTo(target);
             }
         }
         pathInfo.path = serializePath(creep.pos, ret.path);
