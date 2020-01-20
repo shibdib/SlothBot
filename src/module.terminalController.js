@@ -385,7 +385,3 @@ function latestMarketHistory(resource) {
         return false;
     }
 }
-
-function sellResource(terminal, resource, globalOrders, myOrders) {
-
-}
