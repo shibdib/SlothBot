@@ -1148,18 +1148,16 @@ Creep.prototype.attackHostile = function (hostile) {
 };
 
 Creep.prototype.healMyCreeps = function () {
-    let myCreeps = this.room.find(FIND_MY_CREEPS, {
-        filter: function (object) {
-            return object.hits < object.hitsMax;
-        }
+    let injured = _.sortBy(_.filter(this.room.creeps, (c) => c.my && c.hits < c.hitsMax), function (c) {
+        return (c.hits / c.hitsMax);
     });
-    if (myCreeps.length > 0) {
+    if (injured.length > 0) {
         this.say(ICONS.hospital, true);
-        this.shibMove(myCreeps[0]);
-        if (this.pos.getRangeTo(myCreeps[0]) <= 1) {
-            this.heal(myCreeps[0]);
+        this.shibMove(injured[0]);
+        if (this.pos.getRangeTo(injured[0]) <= 1) {
+            this.heal(injured[0]);
         } else {
-            this.rangedHeal(myCreeps[0]);
+            this.rangedHeal(injured[0]);
         }
         return true;
     }
@@ -1168,7 +1166,9 @@ Creep.prototype.healMyCreeps = function () {
 
 Creep.prototype.healInRange = function () {
     if (this.hits < this.hitsMax) return this.heal(this);
-    let healCreeps = _.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3);
+    let healCreeps = _.sortBy(_.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax && this.pos.getRangeTo(c) <= 3), function (c) {
+        return (c.hits / c.hitsMax);
+    });
     if (healCreeps.length > 0) {
         if (this.pos.isNearTo(healCreeps[0])) return this.heal(healCreeps[0]); else return this.rangedHeal(healCreeps[0]);
     }
@@ -1176,7 +1176,9 @@ Creep.prototype.healInRange = function () {
 };
 
 Creep.prototype.healAllyCreeps = function () {
-    let allyCreep = this.pos.findClosestByPath(_.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax))
+    let allyCreep = _.sortBy(_.filter(this.room.creeps, (c) => (_.includes(FRIENDLIES, c.owner.username) || c.my) && c.hits < c.hitsMax), function (c) {
+        return (c.hits / c.hitsMax);
+    })[0];
     if (allyCreep) {
         this.say(ICONS.hospital, true);
         this.shibMove(allyCreep);
