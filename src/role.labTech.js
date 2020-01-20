@@ -71,7 +71,8 @@ function storeBoosts(creep) {
         storeTarget = creep.room.terminal;
         // Storage cases
         if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
-            if ((!_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) || (_.includes(LAB_PRIORITY, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT * 2)) storeTarget = creep.room.storage;
+            if (_.includes(ALL_COMMODITIES, resourceType)) storeTarget = creep.room.terminal;
+            else if ((!_.includes(BASE_MINERALS, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) || (_.includes(LAB_PRIORITY, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT * 2)) storeTarget = creep.room.storage;
         }
         // Nuker case
         if (nuker && nuker.ghodium < nuker.ghodiumCapacity && creep.store[RESOURCE_GHODIUM]) storeTarget = nuker;
@@ -413,13 +414,14 @@ function storageEmpty(creep) {
     for (let resource of Object.keys(creep.room.storage.store)) {
         if (resource === RESOURCE_ENERGY) maxResource = ENERGY_AMOUNT;
         if (!_.includes(BASE_MINERALS, resource)) maxResource = BOOST_AMOUNT * 1.2;
+        if (_.includes(ALL_COMMODITIES, resource)) maxResource = 0;
         if (creep.room.storage.store[resource] > maxResource) {
             maxResource = creep.room.storage.store[resource];
             overflow = resource;
             break;
         }
     }
-    switch (creep.withdraw(creep.room.storage, overflow)) {
+    switch (creep.withdraw(creep.room.storage, overflow, creep.room.storage.store[overflow] - maxResource)) {
         case OK:
             return true;
         case ERR_NOT_IN_RANGE:
