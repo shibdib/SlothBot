@@ -14,17 +14,19 @@ let runOnce, globalOrders, lastPriceAdjust, spendingMoney;
 if (Memory._banker) spendingMoney = Memory._banker.spendingAccount; else spendingMoney = 0;
 
 module.exports.terminalControl = function (room) {
-    Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
     Memory.saleTerminal = Memory.saleTerminal || {};
     let myOrders = Game.market.orders;
     //Things that don't need to be run for every terminal
     if (runOnce !== Game.time) {
         // Track profits
         profitCheck();
+        Memory._banker.spendingAccount = _.floor(spendingMoney, 1);
         //Get global orders
         globalOrders = Game.market.getAllOrders();
         //Cleanup broken or old orders
         orderCleanup(myOrders);
+        //Handle Sell Orders
+        manageSellOrders(myOrders);
         //Update prices
         if (lastPriceAdjust + 100 < Game.time) {
             pricingUpdateSell(globalOrders, myOrders);
@@ -37,23 +39,25 @@ module.exports.terminalControl = function (room) {
         }
         runOnce = Game.time;
     }
-    if (room.terminal.store[RESOURCE_ENERGY] >= TERMINAL_ENERGY_BUFFER) {
-        //Buy Power
-        if (buyPower(room.terminal, globalOrders)) return;
-        //Disperse Minerals and Boosts
-        if (balanceResources(room.terminal)) return;
-        //Buy Energy
-        if (buyEnergy(room.terminal, globalOrders)) return;
+    if (room.terminal.store[RESOURCE_ENERGY] && spendingMoney > 0) {
         //Send energy to rooms under siege
         if (emergencyEnergy(room.terminal)) return;
+        //Disperse Minerals and Boosts
+        if (balanceResources(room.terminal)) return;
+        if (room.name === Memory.saleTerminal.room) {
+            //Buy minerals if needed
+            if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
+            //Buy Energy
+            if (buyEnergy(room.terminal, globalOrders)) return;
+            //Buy Power
+            if (buyPower(room.terminal, globalOrders)) return;
+            //Buy resources being sold at below market value
+            if (dealFinder(room.terminal, globalOrders)) return;
+        }
     }
-    //Buy minerals if needed
-    if (baseMineralOnDemandBuys(room.terminal, globalOrders, myOrders)) return;
     //Dump Excess
     if (fillBuyOrders(room.terminal, globalOrders)) return;
-    //Handle Sell Orders
-    manageSellOrders(room.terminal, globalOrders, myOrders);
-    placeSellOrders(room.terminal, globalOrders, myOrders);
+    if (room.name === Memory.saleTerminal.room) placeSellOrders(room.terminal, globalOrders, myOrders);
 };
 
 function orderCleanup(myOrders) {
@@ -141,7 +145,8 @@ function pricingUpdateSell(globalOrders, myOrders) {
             } else if (latestMarketHistory(order.resourceType)) {
                 newPrice = latestMarketHistory(order.resourceType)['avgPrice'];
             }
-            if (currentPrice !== newPrice) {
+            let cost = (newPrice - order.price) * order.remainingAmount * 0.05;
+            if (currentPrice !== newPrice && cost <= spendingMoney) {
                 if (Game.market.changeOrderPrice(order.id, newPrice) === OK) {
                     log.w("Sell order price decrease " + order.id + " new/old " + newPrice + "/" + order.price + " Resource - " + order.resourceType, "Market: ");
                 }
@@ -150,15 +155,20 @@ function pricingUpdateSell(globalOrders, myOrders) {
     }
 }
 
-function manageSellOrders(terminal, myOrders) {
+function manageSellOrders(myOrders) {
     for (let key in myOrders) {
         let order = myOrders[key];
         if (order.type !== ORDER_SELL) continue;
         if (order.resourceType !== RESOURCE_ENERGY) {
-            if (terminal.store[order.resourceType] - order.remainingAmount > 1500) {
-                if (Game.market.extendOrder(order.id, terminal.store[order.resourceType]) === OK) {
-                    log.w("Extended sell order " + order.id + " an additional " + terminal.store[order.resourceType] + " " + order.resourceType + " in " + roomLink(terminal.room.name), "Market: ");
-                    return true;
+            if (Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount > 1500) {
+                let amount = Game.rooms[order.roomName].terminal.store[order.resourceType] - order.remainingAmount;
+                if (amount > 0) {
+                    let cost = order.price * amount * 0.05;
+                    if (cost > spendingMoney) amount = _.round(amount * ((spendingMoney) / (cost * amount)));
+                    if (Game.market.extendOrder(order.id, amount) === OK) {
+                        log.w("Extended sell order " + order.id + " an additional " + amount + " " + order.resourceType + " in " + roomLink(order.roomName), "Market: ");
+                        return true;
+                    }
                 }
             }
         }
@@ -166,7 +176,6 @@ function manageSellOrders(terminal, myOrders) {
 }
 
 function placeSellOrders(terminal, globalOrders, myOrders) {
-    if (terminal.room.name === Memory.saleTerminal.room) {
         for (let resourceType of Object.keys(terminal.store)) {
             // No energy
             if (resourceType === RESOURCE_ENERGY) continue;
@@ -186,16 +195,17 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
             } else if (latestMarketHistory(resourceType)) {
                 price = latestMarketHistory(resourceType)['avgPrice'];
             }
-            if (Game.market.createOrder(ORDER_SELL, resourceType, price, terminal.store[resourceType], terminal.pos.roomName) === OK) {
+            let amount = terminal.store[resourceType];
+            let cost = price * amount * 0.05;
+            if (cost > spendingMoney) amount = _.round(amount * ((spendingMoney) / (cost * amount)));
+            if (Game.market.createOrder(ORDER_SELL, resourceType, price, amount, terminal.pos.roomName) === OK) {
                 log.w("New Sell Order: " + resourceType + " at/per " + price + ' in ' + roomLink(terminal.room.name), "Market: ");
                 return true;
             }
         }
-    }
 }
 
 function baseMineralOnDemandBuys(terminal, globalOrders) {
-    if (!terminal.store[RESOURCE_ENERGY] || spendingMoney <= 0) return;
     for (let mineral of shuffle(BASE_MINERALS)) {
         // Don't buy minerals you can mine
         if (_.includes(OWNED_MINERALS, mineral)) continue;
@@ -220,7 +230,6 @@ function baseMineralOnDemandBuys(terminal, globalOrders) {
 }
 
 function buyPower(terminal, globalOrders) {
-    if (!terminal.store[RESOURCE_ENERGY] || spendingMoney <= 0 || terminal.room.controller.level < 8) return;
     let stored = terminal.store[RESOURCE_POWER] + terminal.room.storage.store[RESOURCE_POWER] || 0;
     if (stored >= REACTION_AMOUNT) return;
     let buyAmount = REACTION_AMOUNT - stored;
@@ -236,12 +245,11 @@ function buyPower(terminal, globalOrders) {
                 log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
                 return true;
             }
+            }
         }
-    }
 }
 
 function buyEnergy(terminal, globalOrders) {
-    if (!terminal.store[RESOURCE_ENERGY] || spendingMoney <= 0) return;
     let buyPrice = ENERGY_MARKET_BASELINE * (ENERGY_AMOUNT / terminal.room.energy);
     if (buyPrice > ENERGY_MARKET_BASELINE * 10) buyPrice = ENERGY_MARKET_BASELINE;
     let sellOrder = _.min(globalOrders.filter(order => order.resourceType === RESOURCE_BATTERY &&
@@ -313,13 +321,14 @@ function fillBuyOrders(terminal, globalOrders) {
 function balanceResources(terminal) {
     // Loop resources
     for (let resource of Object.keys(terminal.store)) {
+        // Energy balance handled elsewhere
+        if (resource === RESOURCE_ENERGY) continue;
         let keepAmount = REACTION_AMOUNT;
         let stockpile;
         if (_.includes(ALL_COMMODITIES, resource) || resource === RESOURCE_OPS || resource === RESOURCE_POWER) {
             keepAmount = 0;
             stockpile = true;
         }
-        if (resource === RESOURCE_ENERGY) continue;
         if (_.includes(LAB_PRIORITY, resource) && terminal.room.store(resource) < BOOST_TRADE_AMOUNT) {
             continue;
         } else if (_.includes(LAB_PRIORITY, resource)) {
@@ -327,24 +336,28 @@ function balanceResources(terminal) {
         } else if (terminal.room.store(resource) < REACTION_AMOUNT) {
             continue;
         }
-        let sendAmount = keepAmount - terminal.room.store(resource);
-        if (sendAmount > terminal.store[resource]) sendAmount = terminal.store[resource];
+        let available = terminal.room.store(resource) - keepAmount;
+        if (available <= 0) continue;
         let needyTerminal = _.sortBy(_.filter(Game.structures, (r) => r.structureType === STRUCTURE_TERMINAL && r.room.name !== terminal.room.name && !r.cooldown && r.room.store(resource) < keepAmount), function (s) {
             s.room.store(resource);
         })[0];
-        if (sendAmount > 0) {
-            if (needyTerminal && !stockpile) {
-                switch (terminal.send(resource, sendAmount, needyTerminal.room.name)) {
-                    case OK:
-                        log.a('Balancing ' + sendAmount + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
-                        return true;
-                }
-            } else if (terminal.room.name !== Memory.saleTerminal.room) {
-                switch (terminal.send(resource, sendAmount, Memory.saleTerminal.room)) {
-                    case OK:
-                        log.a('Sent ' + sendAmount + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to sell on the market.', "Market: ");
-                        return true;
-                }
+        let sendAmount = available - keepAmount;
+        if (sendAmount <= 0) continue;
+        if (needyTerminal && !stockpile) {
+            sendAmount = keepAmount - needyTerminal.room.store(resource);
+            if (sendAmount > terminal.store[resource]) sendAmount = terminal.store[resource];
+            switch (terminal.send(resource, sendAmount, needyTerminal.room.name)) {
+                case OK:
+                    log.a('Balancing ' + sendAmount + ' ' + resource + ' To ' + roomLink(needyTerminal.room.name) + ' From ' + roomLink(terminal.room.name), "Market: ");
+                    return true;
+            }
+        } else if (terminal.room.name !== Memory.saleTerminal.room) {
+            let energyCost = Game.market.calcTransactionCost(sendAmount, terminal.room.name, Memory.saleTerminal.room);
+            if (energyCost > terminal.store[RESOURCE_ENERGY]) sendAmount = 500;
+            switch (terminal.send(resource, sendAmount, Memory.saleTerminal.room)) {
+                case OK:
+                    log.a('Sent ' + sendAmount + ' ' + resource + ' To ' + roomLink(Memory.saleTerminal.room) + ' From ' + roomLink(terminal.room.name) + ' to sell on the market.', "Market: ");
+                    return true;
             }
         }
     }
@@ -390,6 +403,21 @@ function emergencyEnergy(terminal) {
                 log.w("Bought " + 10000 + " " + RESOURCE_ENERGY + " for " + (sellOrder.price * 10000) + " credits", "Market: ");
                 return true;
             }
+        }
+    }
+}
+
+function dealFinder(terminal, globalOrders) {
+    let sellOrder = _.min(globalOrders.filter(order => order.type === ORDER_SELL && latestMarketHistory(order.resourceType) && order.price <= latestMarketHistory(order.resourceType)['avgPrice'] * 0.7 &&
+        Game.market.calcTransactionCost(order.amount, terminal.room.name, order.roomName) < terminal.store[RESOURCE_ENERGY] * 0.5), 'price');
+    let buyAmount = sellOrder.amount;
+    if (sellOrder.price * buyAmount > spendingMoney) buyAmount = _.round(buyAmount * ((spendingMoney) / (sellOrder.price * buyAmount)));
+    if (sellOrder.id && buyAmount >= 500) {
+        if (Game.market.deal(sellOrder.id, buyAmount, terminal.pos.roomName) === OK) {
+            log.w("Bought " + buyAmount + sellOrder.resourceType + " for " + (sellOrder.price * buyAmount) + " credits (DEAL FOUND!!) in " + roomLink(terminal.room.name), "Market: ");
+            spendingMoney -= (sellOrder.price * buyAmount);
+            log.w("Remaining spending account amount - " + spendingMoney, "Market: ");
+            return true;
         }
     }
 }
