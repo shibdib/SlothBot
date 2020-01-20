@@ -411,7 +411,15 @@ Creep.prototype.haulerDelivery = function () {
     }
     let terminal = this.room.terminal;
     let storage = this.room.storage;
+    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
     if (this.room.controller.level >= 6) {
+        if (!this.room.memory.controllerLink && controllerContainer && !controllerContainer.store[RESOURCE_ENERGY]) {
+            let remoteHaulers = _.filter(Game.creeps, (c) => c.my && c.memory.overlord === this.memory.overlord && c.memory.role === 'remoteHauler')[0];
+            if (!remoteHaulers || Math.random() > 0.5) {
+                this.memory.storageDestination = controllerContainer.id;
+                return true;
+            }
+        }
         //Terminal low
         if (terminal && this.memory.withdrawID !== terminal.id && terminal.my && terminal.store[RESOURCE_ENERGY] < TERMINAL_ENERGY_BUFFER) {
             this.memory.storageDestination = terminal.id;
@@ -461,7 +469,6 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
     //Controller
-    let controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
     if (controllerContainer && !controllerContainer.store[RESOURCE_ENERGY]) {
         this.memory.storageDestination = controllerContainer.id;
         return true;
