@@ -7,7 +7,7 @@
 
 module.exports.role = function (creep) {
     creep.memory.destinationReached = creep.pos.roomName === creep.memory.destination;
-    if (!Memory.targetRooms[creep.memory.destination]) creep.memory.recycle = true;
+    if (!Memory.auxiliaryTargets[creep.memory.destination]) creep.memory.recycle = true;
     //Initial move
     if (!creep.memory.destinationReached) {
         creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
@@ -32,8 +32,7 @@ module.exports.role = function (creep) {
             if (powerBank) {
                 creep.memory.powerBank = powerBank.id;
             } else {
-                console.log('PC ' + roomLink(creep.room.name))
-                //creep.memory.recycle = true;
+                Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             }
         }
     }
