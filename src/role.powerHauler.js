@@ -1,9 +1,16 @@
+/*
+ * Copyright (c) 2020.
+ * Github - Shibdib
+ * Name - Bob Sardinia
+ * Project - Overlord-Bot (Screeps)
+ */
+
 module.exports.role = function (creep) {
     if (creep.pos.roomName !== creep.memory.destination) creep.memory.destinationReached = false;
     if (creep.pos.roomName === creep.memory.destination) creep.memory.destinationReached = true;
     //Initial move
     if (!creep.memory.destinationReached && !creep.memory.hauling) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else if (!creep.memory.hauling) {
         let power = creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_POWER})[0];
         if (power) {

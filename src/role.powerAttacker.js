@@ -10,7 +10,7 @@ module.exports.role = function (creep) {
     if (!Memory.targetRooms[creep.memory.destination]) creep.memory.recycle = true;
     //Initial move
     if (!creep.memory.destinationReached) {
-        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination));
+        creep.shibMove(new RoomPosition(25, 25, creep.memory.destination), {range: 23});
     } else {
         if (!creep.getActiveBodyparts(ATTACK) || creep.hits < creep.hitsMax * 0.25) return;
         if (creep.memory.powerBank) {
@@ -32,7 +32,8 @@ module.exports.role = function (creep) {
             if (powerBank) {
                 creep.memory.powerBank = powerBank.id;
             } else {
-                creep.memory.recycle = true;
+                console.log('PC ' + roomLink(creep.room.name))
+                //creep.memory.recycle = true;
             }
         }
     }
