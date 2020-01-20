@@ -34,7 +34,9 @@ module.exports.processBuildQueue = function () {
                 if (!Memory.roomCache[spawn.room.name]) spawn.room.cacheRoomIntel(true);
                 let maxLevel = Memory.maxLevel;
                 if (!spawn.room.memory.nuke && _.size(globalQueue) && !Memory.roomCache[spawn.room.name].responseNeeded && _.inRange(level, maxLevel - 1, maxLevel + 1)) {
-                    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < 10);
+                    let range = LOCAL_SPHERE;
+                    if (spawn.room.energy > ENERGY_AMOUNT) range = LOCAL_SPHERE * 3;
+                    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && Game.map.getRoomLinearDistance(q.destination, spawn.room.name) < range);
                     // If no energy surplus just urgent priority targets
                     if (spawn.room.energyState || spawn.room.energyAvailable === spawn.room.energyCapacityAvailable) {
                         queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[spawn.room.name]), 'priority');
@@ -908,7 +910,9 @@ function displayQueue(room) {
     let queue;
     room = Game.rooms[room];
     if (!room) return;
-    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && Game.map.getRoomLinearDistance(q.destination, room.name) < 10);
+    let range = LOCAL_SPHERE;
+    if (room.energy > ENERGY_AMOUNT) range = LOCAL_SPHERE * 3;
+    let distanceFilteredGlobal = _.filter(globalQueue, (q) => q.destination && Game.map.getRoomLinearDistance(q.destination, room.name) < range);
     // If no energy surplus just urgent priority targets
     if (room.energyState || room.energyAvailable === room.energyCapacityAvailable) {
         queue = _.sortBy(Object.assign({}, distanceFilteredGlobal, roomQueue[room.name]), 'priority');

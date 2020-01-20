@@ -113,7 +113,7 @@ function auxiliaryOperations() {
     // Clean
     let cleaning = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'clean' || target.type === 'claimClear').length || 0;
     if (cleaning < CLEAN_LIMIT) {
-        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.structures && !r.owner && !r.isHighway && !r.sk && !r.invaderCore), 'closestRange')[0];
+        let enemyClean = _.sortBy(_.filter(Memory.roomCache, (r) => !Memory.auxiliaryTargets[r.name] && r.structures && !r.owner && !r.isHighway && !r.sk && !r.invaderCore && r.closestRange <= LOCAL_SPHERE * 2), 'closestRange')[0];
         if (enemyClean) {
             let cache = Memory.auxiliaryTargets || {};
             let overlordCount = Memory.myRooms.length;
@@ -132,7 +132,7 @@ function auxiliaryOperations() {
     if (maxLevel >= 6) {
         // Power Mining
         if (maxLevel >= 8) {
-            let powerRooms = _.filter(Memory.roomCache, (r) => r.power && r.closestRange <= 10);
+            let powerRooms = _.filter(Memory.roomCache, (r) => r.power && r.closestRange <= 8);
             let powerMining = _.filter(Memory.auxiliaryTargets, (target) => target.type === 'power').length || 0;
             if (powerRooms.length && !powerMining) {
                 for (let powerRoom of powerRooms) {
@@ -152,7 +152,7 @@ function auxiliaryOperations() {
             }
         }
         // Commodity Mining
-        let commodityRooms = _.filter(Memory.roomCache, (r) => r.commodity && r.closestRange <= 10 && !r.user);
+        let commodityRooms = _.filter(Memory.roomCache, (r) => r.commodity && r.closestRange <= 8 && !r.user);
         let commodityMining = _.filter(Memory.targetRooms, (target) => target.type === 'commodity').length || 0;
         if (commodityRooms.length && !commodityMining) {
             for (let commodityRoom of commodityRooms) {
@@ -177,7 +177,7 @@ function operationRequests() {
     if (!Memory._enemies || !Memory._enemies.length) Memory._enemies = [];
     if (!Memory._nuisance || !Memory._nuisance.length) Memory._nuisance = [];
     let maxLevel = Memory.maxLevel;
-    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'poke' && target.type !== 'guard').length || 0;
+    let totalCountFiltered = _.filter(Memory.targetRooms, (target) => target.type !== 'guard').length || 0;
     // Set limit
     let targetLimit = COMBAT_LIMIT;
     if (TEN_CPU) targetLimit = 1;
@@ -198,7 +198,7 @@ function operationRequests() {
     }
     if (totalCountFiltered <= targetLimit) {
         // New Spawn Denial
-        let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !r.safemode && r.closestRange <= 12 && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && !r.towers), 'closestRange');
+        let newSpawns = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !r.safemode && r.closestRange <= LOCAL_SPHERE * 3 && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && !r.towers), 'closestRange');
         for (let target of newSpawns) {
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
@@ -216,11 +216,11 @@ function operationRequests() {
         }
         // Harass Enemies
         let enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => HARASS_ATTACKS && r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && (_.includes(Memory._nuisance, r.user) || _.includes(Memory._enemies, r.user)) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level), 'closestRange');
-        if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level && ((ATTACK_LOCALS && r.closestRange <= LOCAL_SPHERE) || POKE_NEUTRALS)), 'closestRange');
+        if (!enemyHarass.length) enemyHarass = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && !checkForNap(r.user) && !_.includes(FRIENDLIES, r.user) && !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && !r.level && r.closestRange <= LOCAL_SPHERE * 3 && ((ATTACK_LOCALS && r.closestRange <= LOCAL_SPHERE) || POKE_NEUTRALS)), 'closestRange');
         for (let target of enemyHarass) {
             if (Memory.targetRooms[target.name]) continue;
             let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
-            if (lastOperation + 3000 > Game.time) continue;
+            if (lastOperation + 4500 > Game.time) continue;
             let cache = Memory.targetRooms || {};
             let tick = Game.time;
             cache[target.name] = {
@@ -238,7 +238,7 @@ function operationRequests() {
         let activeSieges = _.filter(Memory.targetRooms, (target) => target.type === 'siege' || target.type === 'siegeGroup').length || 0;
         if (Memory._enemies.length && !activeSieges) {
             let enemySiege = _.sortBy(_.filter(Memory.roomCache, (r) => r.user && r.user !== MY_USERNAME && _.includes(Memory._enemies, r.user) && !checkForNap(r.user) &&
-                !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && (r.level < 3 || maxLevel >= 6) && (Game.shard.name !== 'treecafe' || r.forestPvp)), 'closestRange');
+                !Memory.targetRooms[r.name] && !r.sk && !r.isHighway && r.level && r.closestRange <= LOCAL_SPHERE * 3 && (r.level < 3 || maxLevel >= 6) && (Game.shard.name !== 'treecafe' || r.forestPvp)), 'closestRange');
             for (let target of enemySiege) {
                 if (Memory.targetRooms[target.name]) continue;
                 let lastOperation = Memory.roomCache[target.name].lastOperation || 0;
@@ -352,6 +352,12 @@ function manageAttacks() {
             (Memory.targetRooms[key].lastEnemyKilled && Memory.targetRooms[key].lastEnemyKilled + (1500 * staleMulti) < Game.time)) {
             delete Memory.targetRooms[key];
             if (type !== 'poke') log.a('Canceling operation in ' + roomLink(key) + ' as it has gone stale.', 'HIGH COMMAND: ');
+            continue;
+        }
+        // Remove far rooms
+        if (Memory.roomCache[key] && Memory.roomCache[key].closestRange > LOCAL_SPHERE * 3) {
+            delete Memory.targetRooms[key];
+            log.a('Canceling operation in ' + roomLink(key) + ' as it is too far away.', 'HIGH COMMAND: ');
             continue;
         }
         // Remove your rooms
