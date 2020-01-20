@@ -21,9 +21,9 @@ module.exports.powerControl = function () {
     // Handle PC spawning
     if (Game.gpl.level) {
         let sparePowerLevels = Game.gpl.level - _.size(Game.powerCreeps);
-        let myRooms = _.filter(Game.rooms, (r) => r.energyAvailable && r.controller.owner && r.controller.owner.username === MY_USERNAME && r.controller.level >= 8);
+        let myRooms = _.filter(Memory.myRooms, (r) => Game.rooms[r].controller.level >= 8);
         if (_.size(Game.powerCreeps)) _.filter(Game.powerCreeps, (c) => c.level).forEach((c) => sparePowerLevels -= c.level);
-        if ((!_.size(Game.powerCreeps) && myRooms.length) || (sparePowerLevels >= 3 && _.size(Game.powerCreeps) < myRooms.length)) {
+        if (sparePowerLevels && _.size(Game.powerCreeps) < myRooms.length) {
             let name = 'operator_' + _.random(1, 99);
             log.a('Created an operator named ' + name);
             PowerCreep.create(name, POWER_CLASS.OPERATOR);
