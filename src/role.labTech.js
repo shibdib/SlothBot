@@ -371,7 +371,15 @@ function terminalControl(creep) {
     // Store resource in storage up to the stockpile amount
     if (_.sum(creep.room.storage.store) < 0.95 * creep.room.storage.store.getCapacity()) {
         for (let resourceType of Object.keys(creep.room.terminal.store)) {
-            if (!_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) {
+            if (resourceType !== RESOURCE_ENERGY && !_.includes(BASE_MINERALS, resourceType) && !_.includes(ALL_COMMODITIES, resourceType) && creep.room.storage.store[resourceType] < BOOST_AMOUNT) {
+                switch (creep.withdraw(creep.room.terminal, resourceType)) {
+                    case OK:
+                        return true;
+                    case ERR_NOT_IN_RANGE:
+                        creep.shibMove(creep.room.terminal);
+                        return true;
+                }
+            } else if (resourceType === RESOURCE_ENERGY && creep.room.terminal.store[resourceType] >= TERMINAL_ENERGY_BUFFER) {
                 switch (creep.withdraw(creep.room.terminal, resourceType)) {
                     case OK:
                         return true;
