@@ -610,12 +610,13 @@ module.exports.globalCreepQueue = function () {
                     Memory.roomCache[key].power = undefined;
                     break;
                 }
+                let powerSpace = operations[key].space || 2;
                 let powerHealer = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHealer' && creep.memory.destination === key);
-                if (!operations[key].complete && !_.includes(queue, 'powerHealer') && (powerHealer.length < 2 || (powerHealer[0] && powerHealer[0].ticksToLive < (powerHealer[0].body.length * 3 + 100) && powerHealer.length < 3))) {
+                let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
+                if (!operations[key].complete && !_.includes(queue, 'powerHealer') && (powerHealer.length < powerAttacker.length || (powerHealer[0] && powerHealer[0].ticksToLive < (powerHealer[0].body.length * 3 + 100) && powerHealer.length < powerAttacker.length + 1))) {
                     queueGlobalCreep(PRIORITIES.power, {role: 'powerHealer', destination: key, military: true})
                 }
-                let powerAttacker = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerAttacker' && creep.memory.destination === key);
-                if (!operations[key].complete && !_.includes(queue, 'powerAttacker') && (powerAttacker.length < 2 || (powerAttacker[0] && powerAttacker[0].ticksToLive < (powerAttacker[0].body.length * 3 + 100) && powerAttacker.length < 3)) && powerHealer.length) {
+                if (!operations[key].complete && !_.includes(queue, 'powerAttacker') && (powerAttacker.length < powerSpace || (powerAttacker[0] && powerAttacker[0].ticksToLive < (powerAttacker[0].body.length * 3 + 100) && powerAttacker.length < powerSpace + 1))) {
                     queueGlobalCreep(PRIORITIES.power - 1, {role: 'powerAttacker', destination: key, military: true})
                 }
                 let powerHauler = _.filter(Game.creeps, (creep) => creep.memory.role === 'powerHauler' && creep.memory.destination === key);

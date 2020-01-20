@@ -15,10 +15,11 @@ module.exports.role = function (creep) {
         if (!creep.getActiveBodyparts(ATTACK) || creep.hits < creep.hitsMax * 0.25) return;
         if (creep.memory.powerBank) {
             let powerBank = Game.getObjectById(creep.memory.powerBank);
+            if (!Memory.auxiliaryTargets[creep.memory.destination].space) Memory.auxiliaryTargets[creep.memory.destination].space = powerBank.pos.countOpenTerrainAround();
             if (powerBank.hits < 250000) Memory.targetRooms[creep.room.name].hauler = powerBank.power / 1250;
             if (!powerBank) {
-                Memory.targetRooms[creep.room.name].complete = true;
-                if (!creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_POWER})[0]) Memory.targetRooms[creep.room.name] = undefined;
+                Memory.auxiliaryTargets[creep.room.name].complete = true;
+                if (!creep.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_POWER})[0]) Memory.auxiliaryTargets[creep.room.name] = undefined;
             }
             switch (creep.attack(powerBank)) {
                 case OK:
