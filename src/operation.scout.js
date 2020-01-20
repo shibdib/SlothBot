@@ -156,7 +156,7 @@ function operationPlanner(room, creep = undefined) {
             // If the room is unowned
         } else if (!controller.owner) {
             // If other creeps are present
-            if (otherCreeps.length) {
+            if (otherCreeps.length && Math.random() > 0.3) {
                 cache[room.name] = {
                     tick: tick,
                     type: 'rangers',
