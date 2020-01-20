@@ -270,7 +270,7 @@ module.exports.miscCreepQueue = function (room) {
         }
     }
     //Power
-    if (level === 8 && room.energy >= ENERGY_AMOUNT && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0]) {
+    if (level === 8 && room.store(RESOURCE_POWER) && _.filter(room.structures, (s) => s.structureType === STRUCTURE_POWER_SPAWN)[0]) {
         let powerManager = _.filter(roomCreeps, (creep) => (creep.memory.role === 'powerManager'));
         if (!powerManager.length) {
             queueCreep(room, PRIORITIES.miscHauler, {role: 'powerManager', other: {localCache: true}})
