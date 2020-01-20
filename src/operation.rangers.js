@@ -17,7 +17,7 @@ Creep.prototype.rangersRoom = function () {
         if (!squadLeader.length) this.memory.squadLeader = true; else this.memory.leader = squadLeader[0].id;
     }
     // Revert to marauder
-    if (!Memory.targetRooms[this.memory.destination]) return this.memory.operation = 'marauding';
+    if (!Memory.targetRooms[this.memory.destination] || _.includes(FRIENDLIES, Memory.roomCache[this.memory.destination].user)) return this.memory.operation = 'marauding';
     // Handle squad leader
     if (this.memory.squadLeader) {
         // Remove duplicate squad leaders
@@ -44,6 +44,8 @@ Creep.prototype.rangersRoom = function () {
         levelManager(this);
         // Sustainability
         highCommand.operationSustainability(this.room);
+        // Generate threat
+        highCommand.generateThreat(this);
         // If military action required do that
         if (!this.canIWin(4)) return this.shibKite();
         if (this.handleMilitaryCreep(false, false)) return;

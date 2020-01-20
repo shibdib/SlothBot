@@ -640,11 +640,9 @@ module.exports.operationSustainability = function (room) {
 };
 
 module.exports.generateThreat = function (creep) {
-    if (!creep.room.controller) return;
-    let user;
-    if (creep.room.controller.owner) user = creep.room.controller.owner.username;
-    if (creep.room.controller.reservation) user = creep.room.controller.reservation.username;
-    if (!user || (_.includes(FRIENDLIES, user) && !_.includes(Memory._threatList, user))) return;
+    creep.room.cacheRoomIntel();
+    let user = Memory.roomCache[creep.room.name].user;
+    if (!user || (_.includes(FRIENDLIES, user))) return;
     let cache = Memory._badBoyList || {};
     let threatRating = 50;
     if (cache[user] && (cache[user]['threatRating'] > 50 || _.includes(FRIENDLIES, user))) threatRating = cache[user]['threatRating'];
