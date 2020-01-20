@@ -50,6 +50,7 @@ global.BARRIER_TARGET_HIT_POINTS = {
 global.LAB_PRIORITY = [RESOURCE_GHODIUM_HYDRIDE, RESOURCE_GHODIUM, RESOURCE_CATALYZED_GHODIUM_ACID];
 
 // Amount targets (Advanced)
+global.BUY_ENERGY = true; // If true it will buy energy at anything below the baseline energy price if a room isn't considered in surplus
 global.CREDIT_BUFFER = 10000; // Stay above
 global.ENERGY_AMOUNT = (TERMINAL_CAPACITY * 0.1 + STORAGE_CAPACITY * 0.025); // Aim for this amount in a room
 global.MINERAL_TRADE_AMOUNT = TERMINAL_CAPACITY * 0.015;  // Hold this much of a mineral before selling
@@ -60,11 +61,11 @@ global.BOOST_AMOUNT = TERMINAL_CAPACITY * 0.025; // Try to have this much of all
 global.DUMP_AMOUNT = TERMINAL_CAPACITY * 0.15; // Fills buys (of if overflowing it will offload to other terminals)
 
 // Baseline/Default prices
-global.COMMODITY_MARKET_BASELINE = 0.02;
-global.ENERGY_MARKET_BASELINE = 0.02;
-global.TIER_3_MARKET_BASELINE = 2.25;
-global.TIER_2_MARKET_BASELINE = 1.25;
-global.TIER_1_MARKET_BASELINE = 0.75;
-global.BASE_COMPOUNDS_MARKET_BASELINE = 0.35;
-global.GHODIUM_MARKET_BASELINE = 1.1;
-global.BASE_MINERALS_MARKET_BASELINE = 0.1;
+global.ENERGY_MARKET_BASELINE = 0.010;
+global.COMMODITY_MARKET_BASELINE = 0.020;
+global.TIER_3_MARKET_BASELINE = 2.250;
+global.TIER_2_MARKET_BASELINE = 1.250;
+global.TIER_1_MARKET_BASELINE = 0.750;
+global.BASE_COMPOUNDS_MARKET_BASELINE = 0.350;
+global.GHODIUM_MARKET_BASELINE = 1.100;
+global.BASE_MINERALS_MARKET_BASELINE = 0.100;
