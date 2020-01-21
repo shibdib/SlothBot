@@ -33,6 +33,7 @@ module.exports.role = function (creep) {
             if (powerBank) {
                 creep.memory.powerBank = powerBank.id;
             } else {
+                creep.room.cacheRoomIntel(true);
                 Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             }
         }
