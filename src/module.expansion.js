@@ -52,14 +52,14 @@ module.exports.claimNewRoom = function () {
             }
         let claimTarget = _.max(possibles, 'claimValue').name;
         if (claimTarget) {
-            let cache = Memory.targetRooms || {};
+            let cache = Memory.auxiliaryTargets || {};
             let tick = Game.time;
             cache[claimTarget] = {
                 tick: tick,
                 type: 'claimScout',
                 priority: 1
             };
-            Memory.targetRooms = cache;
+            Memory.auxiliaryTargets = cache;
             log.a('Claim Scout Mission For ' + claimTarget + ' Initiated.', 'EXPANSION CONTROL: ');
         }
     }

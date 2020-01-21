@@ -314,7 +314,6 @@ Object.defineProperty(StructureTerminal.prototype, 'memory', {
 
 Room.prototype.cacheRoomIntel = function (force = false) {
     if (Memory.roomCache && !force && Memory.roomCache[this.name] && Memory.roomCache[this.name].cached + 1501 > Game.time) return;
-    urgentMilitary(this);
     let room = Game.rooms[this.name];
     let potentialTarget, nonCombats, mineral, sk, power, portal, user, level, closestRange, important, owner,
         reservation, commodity, safemode, hubCheck;
@@ -527,45 +526,6 @@ Room.prototype.invaderCheck = function () {
         }
     }
 };
-
-function urgentMilitary(room) {
-    let sendScout, ownerType;
-    // Friendly rooms
-    if (room.controller) ownerType = room.controller.owner || room.controller.reservation || undefined;
-    if (!ATTACK_LOCALS || (ownerType && _.includes(FRIENDLIES, ownerType.username))) return;
-    let range = room.findClosestOwnedRoom(true);
-    // Operation cooldown per room
-    if (Memory.roomCache[room.name] && !Memory.roomCache[room.name].manual && Memory.roomCache[room.name].lastOperation && Memory.roomCache[room.name].lastOperation + ATTACK_COOLDOWN > Game.time) {
-        return
-    }
-    // Already a target or too far
-    if (Memory.targetRooms[room.name] || range > LOCAL_SPHERE * 2.5) return;
-    let otherCreeps = _.filter(room.creeps, (c) => !c.my && !_.includes(FRIENDLIES, c.owner.username) && c.owner.username !== 'Invader' && c.owner.username !== 'Source Keeper' && c.body.length > 1);
-    let lootStructures = _.filter(room.structures, (s) => s.structureType === STRUCTURE_CONTAINER && s.structureType === STRUCTURE_TERMINAL && s.structureType === STRUCTURE_STORAGE && _.sum(_.filter(s.store, (r) => _.includes(TIER_2_BOOSTS, r.resourceType) || _.includes(TIER_3_BOOSTS, r.resourceType))) > 500);
-    if (room.controller) {
-        // If neutral/hostile owned room that is still building
-        if (room.controller.owner && !_.includes(FRIENDLIES, room.controller.owner.username) && (room.controller.level < 3 || !_.filter(room.structures, (s) => s.structureType === STRUCTURE_TOWER && s.energy > 10).length)) {
-            sendScout = true;
-        }
-        // If unowned but lootable
-        if (!room.controller.owner && lootStructures.length) {
-            sendScout = true;
-        }
-    }
-    // If other creeps and nearby
-    if (otherCreeps.length && range <= LOCAL_SPHERE) {
-        sendScout = true;
-    }
-    if (sendScout) {
-        let cache = Memory.targetRooms || {};
-        let tick = Game.time;
-        cache[room.name] = {
-            tick: tick,
-            type: 'attack',
-        };
-        Memory.targetRooms = cache;
-    }
-}
 
 Room.prototype.findClosestOwnedRoom = function (range = false, safePath = false, minLevel = 1) {
     let distance = 0;

@@ -21,14 +21,14 @@ module.exports.observerControl = function (room) {
             }
         }
         // Observer queries (Military scouts first)
-        let scoutOperation = _.findKey(Memory.targetRooms, (t) => t.type === 'attack');
+        let scoutOperation = _.findKey(Memory.targetRooms, (t) => t && t.type === 'attack');
         if (scoutOperation && Game.map.getRoomLinearDistance(room.name, scoutOperation) <= OBSERVER_RANGE) {
             observer.observeRoom(scoutOperation);
             observedRooms[room.name] = scoutOperation;
             return;
         }
         // Observer queries (Level 0's)
-        let observerOperation = _.findKey(Memory.targetRooms, (t) => t.level === 0 && (!t.observerCheck || t.observerCheck + 20 < Game.time));
+        let observerOperation = _.findKey(Memory.targetRooms, (t) => t && t.level === 0 && (!t.observerCheck || t.observerCheck + 20 < Game.time));
         if (observerOperation && Game.map.getRoomLinearDistance(room.name, observerOperation) <= OBSERVER_RANGE) {
             observer.observeRoom(observerOperation);
             observedRooms[room.name] = observerOperation;
@@ -36,7 +36,7 @@ module.exports.observerControl = function (room) {
             return;
         }
         // Observer queries (Claim scouts)
-        let claimScoutOperation = _.findKey(Memory.targetRooms, (t) => t.type === 'claimScout');
+        let claimScoutOperation = _.findKey(Memory.targetRooms, (t) => t && t.type === 'claimScout');
         if (claimScoutOperation && Game.map.getRoomLinearDistance(room.name, claimScoutOperation) <= OBSERVER_RANGE) {
             observer.observeRoom(claimScoutOperation);
             observedRooms[room.name] = claimScoutOperation;

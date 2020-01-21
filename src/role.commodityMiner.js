@@ -58,6 +58,12 @@ module.exports.role = function (creep) {
     } else {
         //Find Source
         let deposit = creep.room.deposits;
-        if (deposit) creep.memory.deposit = deposit.id; else creep.memory.recycle = true;
+        if (deposit) {
+            Memory.auxiliaryTargets[creep.memory.destination].tick = Game.time;
+            creep.memory.deposit = deposit.id;
+        } else {
+            Memory.auxiliaryTargets[creep.memory.destination] = undefined;
+            creep.memory.recycle = true;
+        }
     }
 };

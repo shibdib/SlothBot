@@ -72,7 +72,7 @@ module.exports.hiveMind = function () {
         if (TEN_CPU) maxRooms = 2;
         if (Memory.maxLevel >= 3 && Memory.minLevel > 3 && Memory.myRooms.length < maxRooms && Game.gcl.level > Memory.myRooms.length) {
             let safemode = _.filter(myRooms, (r) => r.controller.safeMode);
-            let claimMission = _.filter(Memory.targetRooms, (t) => t.type === 'claimScout' || t.type === 'claim');
+            let claimMission = _.filter(Memory.auxiliaryTargets, (t) => t.type === 'claimScout' || t.type === 'claim');
             if ((!safemode.length || !Memory._badBoyArray || !Memory._badBoyArray.length) && !claimMission.length) {
                 try {
                     expansion.claimNewRoom();
