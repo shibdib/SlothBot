@@ -605,7 +605,7 @@ module.exports.remoteCreepQueue = function (room) {
     if (!_.size(remoteHives[room.name]) || room.memory.turtleMode) amount = 1;
     if (roadBuilder.length < amount) {
         let misc = remoteHives[room.name];
-        if (room.memory.turtleMode) misc = [];
+        if (room.memory.turtleMode) misc = JSON.stringify([]);
         queueCreep(room, PRIORITIES.roadBuilder, {
             role: 'roadBuilder',
             misc: misc
