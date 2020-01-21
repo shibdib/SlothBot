@@ -62,6 +62,7 @@ module.exports.role = function (creep) {
             Memory.auxiliaryTargets[creep.memory.destination].tick = Game.time;
             creep.memory.deposit = deposit.id;
         } else {
+            creep.room.cacheRoomIntel(true);
             Memory.auxiliaryTargets[creep.memory.destination] = undefined;
             creep.memory.recycle = true;
         }
