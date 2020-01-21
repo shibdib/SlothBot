@@ -188,7 +188,7 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         // Avoid Duplicates
         if (_.filter(myOrders, (o) => o.roomName === terminal.pos.roomName && o.resourceType === resourceType && o.type === ORDER_SELL).length) continue;
         // Handle minerals
-        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < MINERAL_TRADE_AMOUNT) continue;
+        if (_.includes(_.union(BASE_MINERALS, BASE_COMPOUNDS), resourceType) && terminal.room.store(resourceType) < REACTION_AMOUNT) continue;
         // Handle boosts
         if (_.includes(_.union(TIER_1_BOOSTS, TIER_2_BOOSTS, TIER_3_BOOSTS, [RESOURCE_POWER]), resourceType) && terminal.room.store(resourceType) < BOOST_TRADE_AMOUNT) continue;
         // Sell
@@ -199,7 +199,8 @@ function placeSellOrders(terminal, globalOrders, myOrders) {
         } else if (latestMarketHistory(resourceType)) {
             price = latestMarketHistory(resourceType)['avgPrice'];
         }
-        let amount = terminal.store[resourceType];
+        let amount = terminal.room.store(resourceType) - REACTION_AMOUNT;
+        if (amount > terminal.store[resourceType]) amount = terminal.store[resourceType];
         let cost = price * amount * 0.05;
         if (cost > spendingMoney) amount = _.round(amount * ((spendingMoney) / (cost * amount)));
         if (Game.market.createOrder(ORDER_SELL, resourceType, price, amount, terminal.pos.roomName) === OK) {
