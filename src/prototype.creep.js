@@ -308,13 +308,6 @@ Creep.prototype.locateEnergy = function () {
         this.memory.energyDestination = fuelTrucks[0].id;
         return true;
     }
-    // Links
-    let hubLink = Game.getObjectById(this.room.memory.hubLink);
-    if (hubLink && hubLink.energy && ((hubLink.energy && hauler) || hubLink.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getCapacity() * 0.5))) {
-        this.memory.energyDestination = hubLink.id;
-        this.memory.findEnergyCountdown = undefined;
-        return true;
-    }
     //Dropped
     let dropped = this.pos.findClosestByRange(this.room.droppedEnergy, {filter: (r) => r.amount >= this.store.getCapacity() * 0.8});
     if (dropped) {
@@ -327,6 +320,13 @@ Creep.prototype.locateEnergy = function () {
         this.pos.findClosestByRange(this.room.ruins, {filter: (r) => r.store[RESOURCE_ENERGY] > (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === r.id && c.id !== this.id).length + 1) * this.store.getCapacity()});
     if (tombstone) {
         this.memory.energyDestination = tombstone.id;
+        return true;
+    }
+    // Links
+    let hubLink = Game.getObjectById(this.room.memory.hubLink);
+    if (hubLink && hubLink.energy && ((hubLink.energy && hauler) || hubLink.energy >= (this.room.creeps.filter((c) => c.my && c.memory.energyDestination === hubLink.id && c.id !== this.id).length + 1) * (this.store.getCapacity() * 0.5))) {
+        this.memory.energyDestination = hubLink.id;
+        this.memory.findEnergyCountdown = undefined;
         return true;
     }
     // Terminal

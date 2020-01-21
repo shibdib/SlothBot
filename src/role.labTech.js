@@ -361,7 +361,7 @@ function droppedResources(creep) {
 // Full link
 function linkManager(creep) {
     let hub = Game.getObjectById(creep.room.hubLink);
-    if (hub && hub.energy >= hub.energyCapacity * 0.9) {
+    if (hub && hub.energy >= LINK_CAPACITY * 0.9) {
         switch (creep.withdraw(hub, RESOURCE_ENERGY)) {
             case OK:
                 return true;
