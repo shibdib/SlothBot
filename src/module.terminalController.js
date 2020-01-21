@@ -34,6 +34,9 @@ module.exports.terminalControl = function (room) {
         }
         // Set saleTerminal
         if (!Memory.saleTerminal.room || Memory.saleTerminal.saleSet + 15000 < Game.time) {
+            if (Memory.saleTerminal.room && Game.rooms[Memory.saleTerminal.room].controller.level === Memory.maxLevel) {
+                return Memory.saleTerminal.saleSet = Game.time;
+            }
             Memory.saleTerminal.room = _.sample(_.filter(Game.structures, (s) => s.structureType === STRUCTURE_TERMINAL && s.room.level === Memory.maxLevel && s.isActive() && _.sum(s.store) < s.store.getCapacity() * 0.9)).room.name;
             Memory.saleTerminal.saleSet = Game.time;
         }
